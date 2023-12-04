@@ -1,0 +1,76 @@
+{
+  "name": "@arrai-innovations/vueda",
+  "version": "1.0.0",
+  "description": "Vue.js User Experience for Django Administration (VUEDA) - Client Library",
+  "main": "index.js",
+  "type": "module",
+  "directories": {
+    "lib": "lib",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "vitest",
+    "coverage": "npm run coverage:clean && npm test -- --coverage=true",
+    "coverage:clean": "rm -rf coverage",
+    "prepare": "husky install",
+    "docs": "echo \"#todo: setup jsdoc to markdown\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arrai-innovations/vueda-client.git"
+  },
+  "author": "Arrai Innovations Inc. <developers@arrai.com>",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/arrai-innovations/vueda-client/issues"
+  },
+  "homepage": "https://github.com/arrai-innovations/vueda-client#readme",
+  "devDependencies": {
+    "@arrai-innovations/commitlint-config": "^1.1.0",
+    "@commitlint/cli": "^18.4.3",
+    "@testing-library/jest-dom": "^6.1.4",
+    "@testing-library/user-event": "^14.5.1",
+    "@testing-library/vue": "^8.0.1",
+    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
+    "@vitejs/plugin-vue": "^4.5.0",
+    "@vitest/coverage-v8": "^0.34.6",
+    "@vue/test-utils": "^2.4.3",
+    "doctoc": "^2.1.0",
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-no-autofix": "^1.2.3",
+    "eslint-plugin-prettier-vue": "^5.0.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-vitest": "^0.3.10",
+    "eslint-plugin-vitest-globals": "^1.4.0",
+    "eslint-plugin-vue": "^9.18.1",
+    "husky": "^8.0.3",
+    "jsdoc": "^4.0.2",
+    "jsdom": "^23.0.0",
+    "lint-staged": "^15.1.0",
+    "msw": "^2.0.9",
+    "pinst": "^3.0.0",
+    "prettier": "^3.1.0",
+    "rollup-plugin-strip": "^1.2.2",
+    "vite": "^5.0.4",
+    "vite-plugin-circular-dependency": "^0.2.1",
+    "vitest": "^0.34.6"
+  },
+  "peerDependencies": {
+    "@arrai-innovations/reactive-helpers": "^11.4.0",
+    "@floating-ui/vue": "^1.0.2",
+    "@vueuse/core": "^10.1.2",
+    "lodash-es": "^4.17.21",
+    "vue": "^3.3.9"
+  },
+  "dependencies": {
+    "@tiptap/extension-text-align": "^2.1.13",
+    "@tiptap/starter-kit": "^2.1.13",
+    "@tiptap/vue-3": "^2.1.13",
+    "js-cookie": "^3.0.5",
+    "luxon": "^3.4.4",
+    "peer": "^1.0.1",
+    "platform-detect": "^3.0.1",
+    "vue-router": "^4.2.5"
+  }
+}

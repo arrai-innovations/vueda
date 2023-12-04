@@ -1,0 +1,83 @@
+version: 2.1
+orbs:
+    eslint: arrai/eslint@7.9.0
+    prettier: arrai/prettier@5.8.0
+    npm: arrai/npm@2.12.0
+    github: arrai/github@3.0.0
+executors:
+    node:
+        environment:
+            LANG: C.UTF-8
+        docker:
+            - image: cimg/node:lts
+workflows:
+    test:
+        jobs:
+            - npm/publish:
+                  name: publish
+                  executor: node
+                  context: arrai-private-package-publishing
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore: /.*/
+            - github/create_release:
+                  name: release_on_github
+                  executor: node
+                  context: arrai-global
+                  requires:
+                      - publish
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore: /.*/
+    lint:
+        jobs:
+            - eslint/eslint:
+                  name: eslint
+                  executor: node
+                  context: arrai-global
+                  files: "."
+                  wd: "."
+                  config:
+                      - run:
+                            name: NPM
+                            command: npm ci
+                  filters:
+                      branches:
+                          only:
+                              - main
+            - eslint/eslint:
+                  name: eslint-no-badge
+                  executor: node
+                  context: arrai-global
+                  files: "."
+                  wd: "."
+                  config:
+                      - run:
+                            name: NPM
+                            command: npm ci
+                  create_badges: false
+                  filters:
+                      branches:
+                          ignore:
+                              - main
+            - prettier/code_style:
+                  name: prettier
+                  executor: node
+                  context: arrai-global
+                  filters:
+                      branches:
+                          only:
+                              - main
+            - prettier/code_style:
+                  name: prettier-no-badge
+                  executor: node
+                  context: arrai-global
+                  create_badges: false
+                  filters:
+                      branches:
+                          ignore:
+                              - main
