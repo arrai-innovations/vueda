@@ -1,0 +1,14 @@
+__pycache__
+.pytest_cache/
+.env*.local
+.coverage
+.coverage.*
+htmlcov
+./staticfiles
+media/*
+*.pg
+node_modules
+
+.idea
+.vscode/*
+!.vscode/extensions.json
