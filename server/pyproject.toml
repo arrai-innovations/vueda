@@ -1,0 +1,106 @@
+[tool.flake8]
+enable-extensions = ['G'] # Enables flake8-logging-format
+exclude = ".git,*/static/CACHE/*,docs,node_modules,*venv*"
+per-file-ignores = """
+*/migrations/*: I100, IS001, N806, I201
+"""
+extend-ignore = [
+    # (flake8-builtins) builtin names used as class attributes (e.g. `id`, `type`, `help`)
+    "A003",
+    # (flake8) Black incompatibility - see https://github.com/PyCQA/pycodestyle/issues/373
+    "E203",
+    # (flake8-logging-format) false-positives for anything calling `.warn()`
+    "G010",
+    # (flake8-fixme) "hack" comments
+    "T103",
+    # we are already covered by F401, thanks.
+    "F811",
+    # T002 Python 2.x reserved word print used.
+    # do not care if stuff works on python 2
+    "T002",
+    # let black handle long lines
+    "E501",
+]
+max-complexity = 20
+max-line-length = 120
+# flake8-import-order
+application-import-names = [
+    'config',
+    'vueda'
+]
+import-order-style = 'pycharm'
+# pep8-naming
+ignore-names = [
+    # defaults
+    'setUp',
+    'tearDown',
+    'setUpClass',
+    'tearDownClass',
+    'setUpTestData',
+    'failureException',
+    'longMessage',
+    'maxDiff',
+    # custom (ideally, we'd want "assert*")
+]
+
+[tool.pycodestyle]
+max-line-length = 120
+exclude = ".git,*/static/CACHE/*,docs,node_modules,*venv*"
+
+[tool.black]
+line-length = 120
+
+[tool.coverage.run]
+branch = true
+parallel = true
+concurrency = ["multiprocessing"]
+source = ["./vueda"]
+omit = [
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "except ImportError",
+    "raise ImportError"
+]
+
+[tool.pylint.master]
+load-plugins = ['pylint_django']
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint.messages_control]
+disable = ['missing-docstring', 'invalid-name']
+
+[tool.pylint.design]
+max-parents = 13
+
+[tool.pylint.typecheck]
+generated-members = ['REQUEST', 'acl_users', 'aq_parent', "[a-zA-Z]+_set{1,2}", 'save', 'delete']
+
+[tool.pytest.ini_options]
+addopts = "--ds=config.settings.test --create-db"
+python_files = [
+    "tests.py",
+    "test_*.py"
+]
+filterwarnings = [
+    "ignore:Passing None for the middleware get_response argument is deprecated:DeprecationWarning",
+    "ignore:The providing_args argument is deprecated:DeprecationWarning",
+    "ignore:.*You can remove default_app_config:PendingDeprecationWarning",
+    "ignore:Model observation with save points is unsupported and will result in unexpected beauvoir."
+]
+
+[tool.isort]
+# Use the same import order style as flake8-import-order
+profile = "pycharm"
+
+# Add application import names to the first-party section
+known_first_party = ["config", "vueda"]
+
+# match flake8-import-order expected one line per import
+force_single_line = true
