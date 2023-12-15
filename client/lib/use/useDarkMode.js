@@ -31,7 +31,7 @@ function toggle() {
 
 const isDark = readonly(isDarkRef);
 
-export function useDarkMode() {
+export default function useDarkMode() {
     tryOnMounted(onceInit);
     return {
         isDark,

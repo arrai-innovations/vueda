@@ -1,5 +1,5 @@
 {
-  "name": "@arrai-innovations/vueda",
+  "name": "@arrai-innovations/vueda-client",
   "version": "1.0.0",
   "description": "Vue.js User Experience for Django Administration (VUEDA) - Client Library",
   "main": "index.js",
@@ -61,7 +61,8 @@
     "@floating-ui/vue": "^1.0.2",
     "@vueuse/core": "^10.1.2",
     "lodash-es": "^4.17.21",
-    "vue": "^3.3.9"
+    "vue": "^3.3.9",
+    "vue-router": "^4.2.5"
   },
   "dependencies": {
     "@tiptap/extension-text-align": "^2.1.13",
@@ -69,8 +70,7 @@
     "@tiptap/vue-3": "^2.1.13",
     "js-cookie": "^3.0.5",
     "luxon": "^3.4.4",
-    "peer": "^1.0.1",
     "platform-detect": "^3.0.1",
-    "vue-router": "^4.2.5"
+    "string-similarity-js": "^2.1.4"
   }
 }

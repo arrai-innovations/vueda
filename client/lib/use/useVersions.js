@@ -23,7 +23,7 @@ const onVersion = (event) => {
 
 let toastId = null;
 
-export function useVersions() {
+export default function useVersions() {
     const toasts = useToasts();
     dispatcher.addEventListener("version", onVersion);
     onBeforeUnmount(() => {

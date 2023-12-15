@@ -1,5 +1,7 @@
 # vueda-client
-**V**ue.js **U**ser **E**xperience for **D**jango **A**dministration (VUEDA) - Client Library
+![VUEDA Logo - Vue.js User Experience for Django Admin](/VUEDA.png)
+
+## Client Library
 
 <!-- prettier-ignore-start -->
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -8,12 +10,12 @@
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 <!-- prettier-ignore-end -->
 
-## Install
+### Install
 
 ```console
 $ npm install @arrai-innovations/vueda
 ```
 
-## Usage
+### Usage
 
-## Development
+### Development

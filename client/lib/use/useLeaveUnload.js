@@ -2,7 +2,7 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { onMounted, onUnmounted } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 
-export function useLeaveUnload(state) {
+export default function useLeaveUnload(state) {
     const isActive = useIsActive();
 
     const beforeRouteLeaveListener = () => {

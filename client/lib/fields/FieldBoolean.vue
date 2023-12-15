@@ -1,9 +1,9 @@
 <script setup>
 import useField, { fieldProps } from "@vueda/use/useField.js";
 import { computed } from "vue";
-import FieldHelp from "@vueda/FieldHelp.vue";
-import FieldMessages from "@vueda/FieldMessages.vue";
-import FieldLabel from "@vueda/FieldLabel.vue";
+import FieldHelp from "@vueda/fields/FieldHelp.vue";
+import FieldMessages from "@vueda/fields/FieldMessages.vue";
+import FieldLabel from "@vueda/fields/FieldLabel.vue";
 
 const props = defineProps({
     ...fieldProps,

@@ -1,1 +1,1 @@
-export * from "@vueda/lib/index.js";
+export * from "./lib/index.js";

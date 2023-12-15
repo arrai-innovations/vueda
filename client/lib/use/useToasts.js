@@ -52,7 +52,7 @@ const removeToast = (toastId) => {
     toastsState.toasts.splice(index, 1);
 };
 
-export function useToasts() {
+export default function useToasts() {
     return {
         state: readOnlyToastsState,
         addToast,

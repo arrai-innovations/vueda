@@ -159,7 +159,7 @@ const executeTransition = async (router, stateToRoute, app, model, objectId, tra
     return result;
 };
 
-export function useWorkflow(stateToRoute) {
+export default function useWorkflow(stateToRoute) {
     const router = useRouter();
     return {
         state: readonlyState,

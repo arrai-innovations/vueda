@@ -1,6 +1,6 @@
 <script setup>
 import useWidget, { widgetProps, widgetEmits } from '@vueda/use/useWidget.js';
-import FieldLabel from "@vueda/FieldLabel.vue";
+import FieldLabel from "@vueda/fields/FieldLabel.vue";
 
 const props = defineProps({
     ...widgetProps,
