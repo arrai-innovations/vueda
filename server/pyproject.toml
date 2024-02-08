@@ -54,7 +54,7 @@ version = { attr = "vueda.__version__" }
 universal = true
 
 [tool.flake8]
-enable-extensions = ['G'] # Enables flake8-logging-format
+enable-extensions='G' # Enables flake8-logging-format
 exclude = ".git,*/static/CACHE/*,docs,node_modules,*venv*"
 per-file-ignores = """
 */migrations/*: I100, IS001, N806, I201
@@ -75,12 +75,13 @@ extend-ignore = [
     "T002",
     # let black handle long lines
     "E501",
+    # allow print in scripts, pre-file-ignores does not work
+    "T201"
 ]
 max-complexity = 20
 max-line-length = 120
 # flake8-import-order
 application-import-names = [
-    'config',
     'vueda'
 ]
 import-order-style = 'pycharm'
@@ -97,6 +98,11 @@ ignore-names = [
     'maxDiff',
     # custom (ideally, we'd want "assert*")
 ]
+# not sure the format, but this does not work
+# pre-file-ignores = """
+#    vueda/update.py:
+#    vueda/__main__.py:T201
+# """
 
 [tool.pycodestyle]
 max-line-length = 120
@@ -151,8 +157,9 @@ filterwarnings = [
 ]
 
 [tool.isort]
-# Use the same import order style as flake8-import-order
-profile = "pycharm"
+multi_line_output = 3
+force_grid_wrap = 2
+lines_after_imports = 2
 
 # Add application import names to the first-party section
 known_first_party = ["vueda"]

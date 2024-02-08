@@ -2,29 +2,36 @@
 #  Copyright (c) 2023. Arrai Innovations Inc - All Rights Reserved             ═
 # ══════════════════════════════════════════════════════════════════════════════
 import argparse
+import os
 import shutil
 import subprocess
 import sys
-from argparse_color_formatter import ColorHelpFormatter
-from argparse_color_formatter import ColorTextWrapper
 from collections import OrderedDict
 from test.support.os_helper import EnvironmentVarGuard
 from traceback import format_exception
 
-from cli import fake_arg_quoting
-from cli import blue_color
-from cli import error_color
-from cli import getch
-from cli import open_orange
-from cli import orange_color
-from cli import reset_prompt
-from cli import NoExitArgumentParser
-from sentry import get_tag
+from argparse_color_formatter import ColorHelpFormatter
+from argparse_color_formatter import ColorTextWrapper
+
+from vueda.cli import NoExitArgumentParser
+from vueda.cli import blue_color
+from vueda.cli import error_color
+from vueda.cli import fake_arg_quoting
+from vueda.cli import getch
+from vueda.cli import open_orange
+from vueda.cli import orange_color
+from vueda.cli import reset_prompt
+from vueda.sentry import get_tag
+
+
+# todo: how do we get the project's config?
+config = None
 
 
 # todo: the steps are badass centric for now. we'll need to update them or change which steps exist for vueda.
 
-class Update():
+
+class Update:
     def __init__(self, *, stdout=sys.stdout, stderr=sys.stderr, terminal_width=80, exit_on_error=True, parser=None):
         self.stdout = stdout
         self.stderr = stderr
@@ -35,15 +42,17 @@ class Update():
         else:
             self.arparse_class = NoExitArgumentParser
         self.text_wrapper = ColorTextWrapper(width=self.terminal_width)
-        self.all_steps = OrderedDict([
-            ('backup', self.backup),
-            ('pull', self.pull),
-            ('install', self.install),
-            ('static', self.static),
-            ('migrate', self.migrate),
-            ('post', self.post),
-            ('report', self.report),
-        ])
+        self.all_steps = OrderedDict(
+            [
+                ("backup", self.backup),
+                ("pull", self.pull),
+                ("install", self.install),
+                ("static", self.static),
+                ("migrate", self.migrate),
+                ("post", self.post),
+                ("report", self.report),
+            ]
+        )
         self.parser = parser if parser else self.get_parser()
 
     def get_parser(self):
@@ -54,9 +63,9 @@ class Update():
             "formatter_class": ColorHelpFormatter,
             "prog": "update",  # this is also the subcommand name. colors here would make the subcommand hard to type
             "description": f"Helper for update a {blue_color('vueda-server')} installation. Includes steps for backing"
-                           f" up the database, pulling the latest code, installing dependencies, collecting static"
-                           f" files, migrating the database, running post-update commands and reporting deployment"
-                           f" to sentry.",
+            f" up the database, pulling the latest code, installing dependencies, collecting static"
+            f" files, migrating the database, running post-update commands and reporting deployment"
+            f" to sentry.",
         }
 
     def add_arguments(self):
@@ -399,21 +408,19 @@ class Update():
                     return exit_code
 
 
-
 def update_for_main(subparsers=None):
     terminal_size = shutil.get_terminal_size((80, 20))
     cmd = Update(stdout=sys.stdout, stderr=sys.stderr, terminal_size=terminal_size[0])
     if subparsers:
         parser_args = cmd.parser_args(subparsers)
-        parser_args['name'] = parser_args.pop("prog")
+        parser_args["name"] = parser_args.pop("prog")
         cmd.parser = subparsers.add_parser(**parser_args)
     cmd.add_arguments()
     return cmd.run, cmd.parser
 
 
 if __name__ == "__main__":
+    subparsers = None
     update_call, update_parser = update_for_main(subparsers)
     args = update_parser.parse_args()
     update_call(args)
-
-:

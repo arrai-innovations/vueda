@@ -1,11 +1,13 @@
 # ══════════════════════════════════════════════════════════════════════════════
 #  Copyright (c) 2023. Arrai Innovations Inc - All Rights Reserved             ═
 # ══════════════════════════════════════════════════════════════════════════════
-import sys
 import argparse
+import sys
 from signal import SIGINT
 from traceback import format_exception_only
+
 from .update import update_for_main
+
 
 def version(args):
     from . import __version__
@@ -19,6 +21,7 @@ def version_for_main(subparsers):
         description="Print the version of vueda-server.",
     )
     return version, parser
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -35,7 +38,6 @@ def main():
     commands = {}
     for name, setup_subparser in (
         ("update", update_for_main),
-        ("verify", verify_for_main),
         ("version", version_for_main),
     ):
         commands[name], _parser = setup_subparser(subparsers)

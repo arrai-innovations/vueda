@@ -1,9 +1,31 @@
 # vueda-server
+
 ![VUEDA Logo - Vue.js User Experience for Django Admin](/VUEDA.png)
 
 [![code style: black][]][black] [![code style: prettier][]][prettier] ![pytest status][] ![coverage status][] ![flake8 status][] ![safety status][]
 
-## Server Library
+<!--prettier-ignore-start-->
+<!--TOC-->
+
+- [vueda-server](#vueda-server)
+  - [About](#about)
+  - [Usage](#usage)
+    - [Install](#install)
+    - [Setup](#setup)
+  - [Development](#development)
+    - [Environment](#environment)
+    - [Dependency Management](#dependency-management)
+    - [Hooks](#hooks)
+    - [Updating](#updating)
+    - [Tagging Releases](#tagging-releases)
+  - [Testing](#testing)
+    - [Running Tests](#running-tests)
+    - [Generating Coverage Locally](#generating-coverage-locally)
+
+<!--TOC-->
+<!--prettier-ignore-end-->
+
+## About
 
 `vueda-server`, the counterpart to `vueda-client`, is designed for projects that
 integrate Vue.js frontends with Django REST Framework backends. This server
@@ -17,21 +39,14 @@ model details to the frontend, filtered by user permissions. It is built with
 customization in mind, offering most features as base classes that can be
 extended in your application, ensuring both control and adaptability.
 
-<!-- prettier-ignore-start -->
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+## Usage
 
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-<!-- prettier-ignore-end -->
-
-### Usage
-
-#### Install
+### Install
 
 1. Start a `pipenv` `Pipfile` for your project.
    ```shell
    [you@your MyVuedaServer]$ pipenv shell
-   (MyVuedaServer)[you@your MyVuedaServer]$ 
+   (MyVuedaServer)[you@your MyVuedaServer]$
    ```
 2. If not already setup, add `PIP_EXTRA_INDEX_URL` to your environment.
    ```shell
@@ -54,29 +69,31 @@ extended in your application, ensuring both control and adaptability.
    (MyVuedaServer)[you@your MyVuedaServer]$ pipenv install
    ```
 
-#### Setup
+### Setup
 
 <!-- #todo: document -->
 
-### Development
+## Development
 
-#### Environment
+### Environment
 
 Install packages:
+
 ```shell
 [you@your vueda-server]$ pipenv install --dev
 [you@your vueda-server]$ pipenv shell
 (vueda-server)[you@your vueda-server]$
 ```
 
-#### Dependency Management
+### Dependency Management
 
 While `pipenv` is used as a development environment, it is a poor tool for package dependency management.
-* `requirements.txt` is used to manage dependencies for end-users.
-* `PipFile`'s `[dev-packages]` for development packages.
-* `test-requirements.txt` is used to manage dependencies used in unit tests.
 
-#### Hooks
+- `requirements.txt` is used to manage dependencies for end-users.
+- `PipFile`'s `[dev-packages]` for development packages.
+- `test-requirements.txt` is used to manage dependencies used in unit tests.
+
+### Hooks
 
 Setup pre-commit hooks:
 
@@ -87,7 +104,7 @@ pre-commit installed at .git/hooks/pre-commit
 pre-commit installed at .git/hooks/commit-msg
 ```
 
-#### Updating
+### Updating
 
 In development, pull new changes from the git repo and update your environment with:
 
@@ -96,7 +113,7 @@ In development, pull new changes from the git repo and update your environment w
 (vueda-server)[you@your vueda-server]$ pipenv sync --dev
 ```
 
-#### Tagging Releases
+### Tagging Releases
 
 Git tags are used to indicate to CircleCI that a commit is considered a release. You can make git tags like this:
 
@@ -107,15 +124,15 @@ Git tags are used to indicate to CircleCI that a commit is considered a release.
 
 Tags will have GitHub releases created and be published to our pypi index.
 
-### Testing
+## Testing
 
-#### Running Tests
+### Running Tests
 
 ```console
 (vueda-server)[you@your vueda-server]$ pytest
 ```
 
-#### Generating Coverage Locally
+### Generating Coverage Locally
 
 Coverage will be generated in circleci, but you can do so locally if you don't want to commit & push.
 

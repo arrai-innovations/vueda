@@ -3,8 +3,11 @@
 # ══════════════════════════════════════════════════════════════════════════════
 import argparse
 import sys
+import termios
 import tty
 from functools import partial
+
+
 try:
     # future: drop this when we drop prior to python 3.13
     # noinspection PyCompatibility
@@ -12,8 +15,8 @@ try:
 except ImportError:
     from shlex import quote as shell_quote
 
-import termios
 from colors import color
+
 
 blue_color = partial(color, fg="#0077f7", style="bold")  # arrai blue
 orange_color = partial(color, fg="#ff7f00", style="bold")  # complimentary orange
@@ -36,12 +39,15 @@ def getch():
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     return ch
 
+
 class BadArgumentError(ValueError):
     pass
+
 
 class NoExitArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         raise BadArgumentError(message)
+
 
 def fake_arg_quoting(cl_args):
     """
