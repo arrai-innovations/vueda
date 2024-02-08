@@ -8,6 +8,8 @@ htmlcov
 media/*
 *.pg
 node_modules
+build/
+vueda.egg-info/
 
 .idea
 .vscode/*
