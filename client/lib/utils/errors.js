@@ -17,7 +17,7 @@ export class FormValidationError extends Error {
         const paths = flattenPaths(data);
         this.messages = zipObject(
             paths.map((path) => path.split("[").slice(0, -1).join("[")),
-            paths.map((path) => get(data, path))
+            paths.map((path) => get(data, path)),
         );
     }
 }

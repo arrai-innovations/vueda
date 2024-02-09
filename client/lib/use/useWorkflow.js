@@ -41,7 +41,7 @@ const readonlyState = readonly(state);
 
 const updateState = (target, source) => {
     const index = target.findIndex(
-        (state) => state.id === source.id && state.app === source.app && state.model === source.model
+        (state) => state.id === source.id && state.app === source.app && state.model === source.model,
     );
     if (index === -1) {
         target.push(source);
@@ -78,7 +78,7 @@ const fetchObjectState = async (app, model, objectId) => {
         {
             method: "GET",
             credentials: "include",
-        }
+        },
     );
     let responseData;
     responseData = await getJsonOrText(response);
@@ -99,7 +99,7 @@ const fetchObjectTransitions = async (app, model, objectId) => {
         {
             method: "GET",
             credentials: "include",
-        }
+        },
     );
     let responseData;
     responseData = await getJsonOrText(response);
@@ -120,7 +120,7 @@ const fetchObjectHistory = async (app, model, objectId) => {
         {
             method: "GET",
             credentials: "include",
-        }
+        },
     );
     let responseData;
     responseData = await getJsonOrText(response);
@@ -146,7 +146,7 @@ const executeTransition = async (router, stateToRoute, app, model, objectId, tra
             },
             credentials: "include",
             body: JSON.stringify({ transition_code }),
-        }
+        },
     );
     let responseData;
     responseData = await getJsonOrText(response);

@@ -6,13 +6,11 @@ const buildDynamicRoutePaths = (models, actions) => {
     const paths = [];
     for (const [modelKey, modelData] of Object.entries(models.data)) {
         for (const actionKey of modelData.actions) {
-            paths.push(
-                `/${modelData.app}/${modelKey}/:pk/${actionKey}`,
-            );
+            paths.push(`/${modelData.app}/${modelKey}/:pk/${actionKey}`);
         }
     }
     return paths;
-}
+};
 
 const buildRouteObject = (path, currentPath) => {
     const params = {};
@@ -28,23 +26,26 @@ const buildRouteObject = (path, currentPath) => {
         name: path,
         params,
     };
-}
+};
 
 const getBestMatch = (path, allPaths) => {
     const scores = allPaths.map((x) => stringSimilarity(path, x));
-    const bestMatch = scores.reduce((acc, score, index) => {
-        if (score > acc.score) {
-            acc.score = score;
-            acc.index = index;
-        }
-        return acc;
-    }, { score: 0, index: -1 });
+    const bestMatch = scores.reduce(
+        (acc, score, index) => {
+            if (score > acc.score) {
+                acc.score = score;
+                acc.index = index;
+            }
+            return acc;
+        },
+        { score: 0, index: -1 },
+    );
     return allPaths[bestMatch.index];
-}
+};
 
 const normalizePathForMatching = (path) => {
     return path.replace(/\/[0-9]+/g, "/:pk");
-}
+};
 
 const getAllRoutePaths = (routes) => {
     return routes.reduce((acc, route) => {
@@ -76,4 +77,4 @@ export default function useSuggestRoute() {
         suggestedRoute.value = getSuggestedRoute(router);
     });
     return readonly(suggestedRoute);
-};
+}

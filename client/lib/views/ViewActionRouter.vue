@@ -52,9 +52,5 @@ const componentToRender = computed(() => {
 </script>
 
 <template>
-    <component :is="componentToRender"
-               :app="app"
-               :model="model"
-               :pk="pk"
-               :action="action" />
+    <component :is="componentToRender" :app="app" :model="model" :pk="pk" :action="action" />
 </template>

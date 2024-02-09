@@ -1,4 +1,5 @@
 # vueda-client
+
 ![VUEDA Logo - Vue.js User Experience for Django Admin](/VUEDA.png)
 
 ## Client Library

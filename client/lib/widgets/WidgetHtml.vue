@@ -42,10 +42,7 @@ const props = defineProps({
     },
 });
 const emit = defineEmits([...widgetEmits]);
-const {
-    combinedName,
-    combinedValue,
-} = useWidget(props, emit);
+const { combinedName, combinedValue } = useWidget(props, emit);
 const editor = useEditor({
     content: props.combinedValue,
     extensions: props.extensions,
@@ -68,14 +65,7 @@ const editor = useEditor({
 </script>
 <template>
     <div>
-        <component
-            :is="menuComponent"
-            :disabled="disabled"
-            :editor="editor"
-        />
-        <editor-content
-            v-bind="$attrs"
-            :editor="editor"
-        />
+        <component :is="menuComponent" :disabled="disabled" :editor="editor" />
+        <editor-content v-bind="$attrs" :editor="editor" />
     </div>
 </template>

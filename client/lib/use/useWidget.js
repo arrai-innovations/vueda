@@ -15,22 +15,22 @@ export const widgetProps = {
 export const widgetEmits = ["update:modelValue"];
 
 export default function useWidget(props, emit) {
-    const fieldContext = inject('fieldContext');
+    const fieldContext = inject("fieldContext");
     const combinedValue = computed({
         get: () => {
             if (props.modelValue) {
-                return props.modelValue
+                return props.modelValue;
             }
             if (fieldContext) {
-                return fieldContext.value
+                return fieldContext.value;
             }
         },
         set: (value) => {
             if (props.modelValue) {
-                emit('update:modelValue', value)
+                emit("update:modelValue", value);
             }
             if (fieldContext) {
-                fieldContext.value = value
+                fieldContext.value = value;
             }
         },
     });

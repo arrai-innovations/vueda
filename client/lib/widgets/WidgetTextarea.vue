@@ -9,10 +9,6 @@ const widget = useWidget(props, emit);
 </script>
 <template>
     <div>
-        <textarea
-            :name="widget.combinedName"
-            v-model="widget.combinedValue"
-            v-bind="$attrs"
-        />
+        <textarea :name="widget.combinedName" v-model="widget.combinedValue" v-bind="$attrs" />
     </div>
 </template>

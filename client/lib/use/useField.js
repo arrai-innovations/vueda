@@ -18,16 +18,16 @@ export const fieldProps = {
     },
     label: {
         type: String,
-        default: null
+        default: null,
     },
     help: {
         type: String,
-        default: null
+        default: null,
     },
     validate: {
         type: Function,
         default: null,
-    }
+    },
 };
 
 export function defaultValidateRequired(value) {
@@ -64,7 +64,7 @@ export default function useField(props, functions) {
         } else {
             formContext.deleteError(props.name, "required");
         }
-    }
+    };
     const checkIfChanged = (newValue, oldValue) => {
         if (newValue !== oldValue) {
             checkRequired();
@@ -87,28 +87,15 @@ export default function useField(props, functions) {
                 checkRequired();
             }
         },
-        { deep: true }
-    )
-    watch(
-        toRef(props, "required"),
-        checkIfChanged,
-        {
-            // only one checkIfChanged needs to be immediate
-            immediate: true,
-        }
+        { deep: true },
     );
-    watch(
-        toRef(props, "requiredMessage"),
-        checkIfChanged
-    )
-    watch(
-        dirty,
-        checkIfChanged
-    );
-    watch(
-        toRef(props, "validate"),
-        checkIfChanged,
-    )
+    watch(toRef(props, "required"), checkIfChanged, {
+        // only one checkIfChanged needs to be immediate
+        immediate: true,
+    });
+    watch(toRef(props, "requiredMessage"), checkIfChanged);
+    watch(dirty, checkIfChanged);
+    watch(toRef(props, "validate"), checkIfChanged);
     // watch(
     //     toRef(props, "name"),
     //     (newValue, oldValue) => {
@@ -125,4 +112,4 @@ export default function useField(props, functions) {
     });
     provide("fieldContext", state);
     return state;
-};
+}

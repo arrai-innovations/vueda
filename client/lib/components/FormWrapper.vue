@@ -26,7 +26,7 @@ const handleSubmit = () => {
         updateMessage,
         deleteMessage,
     });
-}
+};
 
 const updateFormValue = (name, value) => {
     set(form.values, name, value);
@@ -35,7 +35,6 @@ const deleteFormValue = (name) => {
     if (name && get(form.values, name)) {
         del(form.values, name);
     }
-
 };
 const updateError = (name, code, message) => {
     if (name && code && message) {
@@ -78,10 +77,11 @@ watch(
         if (initialValues) {
             form.values = cloneDeep(initialValues);
         }
-    }, {
+    },
+    {
         immediate: true,
         deep: true,
-    }
+    },
 );
 const formContext = readonly({
     form: readOnlyForm,
