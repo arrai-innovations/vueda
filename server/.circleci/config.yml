@@ -51,6 +51,7 @@ workflows:
                       branches:
                           only:
                               - main
+                  wd: ./
             - flake8/flake8_pipenv:
                   name: flake8-no-badge
                   executor: python311-base
@@ -60,6 +61,7 @@ workflows:
                       branches:
                           ignore:
                               - main
+                  wd: ./
     audit:
         jobs:
             - safety/safety:
