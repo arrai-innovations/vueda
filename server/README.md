@@ -44,30 +44,30 @@ extended in your application, ensuring both control and adaptability.
 ### Install
 
 1. Start a `pipenv` `Pipfile` for your project.
-   ```shell
-   [you@your MyVuedaServer]$ pipenv shell
-   (MyVuedaServer)[you@your MyVuedaServer]$
-   ```
+    ```shell
+    [you@your MyVuedaServer]$ pipenv shell
+    (MyVuedaServer)[you@your MyVuedaServer]$
+    ```
 2. If not already setup, add `PIP_EXTRA_INDEX_URL` to your environment.
-   ```shell
-   export PIP_EXTRA_INDEX_URL=https://you:password@pypi.arrai-dev.com
-   ```
+    ```shell
+    export PIP_EXTRA_INDEX_URL=https://you:password@pypi.arrai-dev.com
+    ```
 3. Add our private pypi index into the `Pipfile` created by the last step.
-   ```toml
-   [[source]]
-   url = "${PIP_EXTRA_INDEX_URL}"
-   verify_ssl = true
-   name = "arrai"
-   ```
+    ```toml
+    [[source]]
+    url = "${PIP_EXTRA_INDEX_URL}"
+    verify_ssl = true
+    name = "arrai"
+    ```
 4. Add `vueda-server` into your project's dependencies.
-   ```toml
-   [packages]
-   vueda-server = { version = ">=1.0.0,<2.0.0", index = "arrai" }
-   ```
+    ```toml
+    [packages]
+    vueda-server = { version = ">=1.0.0,<2.0.0", index = "arrai" }
+    ```
 5. Install packages.
-   ```shell
-   (MyVuedaServer)[you@your MyVuedaServer]$ pipenv install
-   ```
+    ```shell
+    (MyVuedaServer)[you@your MyVuedaServer]$ pipenv install
+    ```
 
 ### Setup
 
@@ -89,9 +89,9 @@ Install packages:
 
 While `pipenv` is used as a development environment, it is a poor tool for package dependency management.
 
-- `requirements.txt` is used to manage dependencies for end-users.
-- `PipFile`'s `[dev-packages]` for development packages.
-- `test-requirements.txt` is used to manage dependencies used in unit tests.
+-   `requirements.txt` is used to manage dependencies for end-users.
+-   `PipFile`'s `[dev-packages]` for development packages.
+-   `test-requirements.txt` is used to manage dependencies used in unit tests.
 
 ### Hooks
 

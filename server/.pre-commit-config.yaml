@@ -3,76 +3,76 @@ default_stages: [commit]
 fail_fast: true
 
 default_language_version:
-  python: python3.11
+    python: python3.11
 
 repos:
-  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.10.0
-    hooks:
-      - id: commitlint
-        stages: [commit-msg]
-        always_run: true
-        additional_dependencies: ["@arrai-innovations/commitlint-config"]
+    - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+      rev: v9.10.0
+      hooks:
+          - id: commitlint
+            stages: [commit-msg]
+            always_run: true
+            additional_dependencies: ["@arrai-innovations/commitlint-config"]
 
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v4.5.0
+      hooks:
+          - id: trailing-whitespace
+          - id: end-of-file-fixer
 
-  - repo: https://github.com/syntaqx/git-hooks
-    rev: v0.0.18
-    hooks:
-      - id: circleci-config-validate
-        files: ^.circleci/config.yml$
+    - repo: https://github.com/syntaqx/git-hooks
+      rev: v0.0.18
+      hooks:
+          - id: circleci-config-validate
+            files: ^.circleci/config.yml$
 
-  - repo: https://github.com/psf/black
-    rev: 24.1.1 # sync with pipenv Pipfile
-    hooks:
-      - id: black
+    - repo: https://github.com/psf/black
+      rev: 24.1.1 # sync with pipenv Pipfile
+      hooks:
+          - id: black
 
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
+    - repo: https://github.com/pycqa/isort
+      rev: 5.13.2
+      hooks:
+          - id: isort
 
-  - repo: https://github.com/csachs/pyproject-flake8
-    rev: v6.1.0 # sync with pipenv Pipfile
-    hooks:
-      - id: pyproject-flake8
-        # sync with pipenv Pipfile
-        additional_dependencies:
-          [
-            "black==24.1.1",
-            "dlint==0.14.1",
-            "flake8==6.1.0",
-            "flake8-assertive==2.1.0",
-            "flake8-black==0.3.6",
-            "flake8-broken-line==1.0.0",
-            "flake8-bugbear==23.12.2",
-            "flake8-builtins==2.2.0",
-            "flake8-comprehensions==3.14.0",
-            "flake8-debugger==4.1.2",
-            "flake8-fixme==1.1.1",
-            "flake8-import-order==0.18.2",
-            "flake8-import-single==0.1.5",
-            "flake8-logging-format==0.9.0",
-            "flake8-pep3101==2.1.0",
-            "flake8-print==5.0.0",
-            "pep8-naming==0.13.3",
-            "pylint-django==2.5.5",
-          ]
+    - repo: https://github.com/csachs/pyproject-flake8
+      rev: v6.1.0 # sync with pipenv Pipfile
+      hooks:
+          - id: pyproject-flake8
+            # sync with pipenv Pipfile
+            additional_dependencies:
+                [
+                    "black==24.1.1",
+                    "dlint==0.14.1",
+                    "flake8==6.1.0",
+                    "flake8-assertive==2.1.0",
+                    "flake8-black==0.3.6",
+                    "flake8-broken-line==1.0.0",
+                    "flake8-bugbear==23.12.2",
+                    "flake8-builtins==2.2.0",
+                    "flake8-comprehensions==3.14.0",
+                    "flake8-debugger==4.1.2",
+                    "flake8-fixme==1.1.1",
+                    "flake8-import-order==0.18.2",
+                    "flake8-import-single==0.1.5",
+                    "flake8-logging-format==0.9.0",
+                    "flake8-pep3101==2.1.0",
+                    "flake8-print==5.0.0",
+                    "pep8-naming==0.13.3",
+                    "pylint-django==2.5.5",
+                ]
 
-  - repo: https://github.com/frnmst/md-toc
-    rev: 8.2.2
-    hooks:
-      - id: md-toc
-        args: [-p, github, -u, -l6]
+    - repo: https://github.com/frnmst/md-toc
+      rev: 8.2.2
+      hooks:
+          - id: md-toc
+            args: [-p, github, -u, -l6]
 
-  - repo:
-      https://github.com/pre-commit/mirrors-prettier
-      # sync with packages.json
-    rev: v3.1.0
-    hooks:
-      - id: prettier
-        types_or: ["markdown", "yaml", "json"]
+    - repo:
+          https://github.com/pre-commit/mirrors-prettier
+          # sync with packages.json
+      rev: v3.1.0
+      hooks:
+          - id: prettier
+            types_or: ["markdown", "yaml", "json"]
