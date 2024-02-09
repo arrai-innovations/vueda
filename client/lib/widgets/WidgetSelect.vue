@@ -1,5 +1,5 @@
 <script setup>
-import useWidget, { widgetProps, widgetEmits } from "@vueda/use/useWidget.js";
+import useWidget, { widgetEmits, widgetProps } from "@vueda/use/useWidget.js";
 
 const props = defineProps({
     ...widgetProps,

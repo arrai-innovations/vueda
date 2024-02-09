@@ -1,9 +1,9 @@
 <script setup>
-import { reactive, readonly, watch } from "vue";
 import { del } from "@arrai-innovations/reactive-helpers";
 import cloneDeep from "lodash-es/cloneDeep.js";
-import set from "lodash-es/set.js";
 import get from "lodash-es/get.js";
+import set from "lodash-es/set.js";
+import { reactive, readonly, watch } from "vue";
 
 const props = defineProps({
     initialValues: Object,

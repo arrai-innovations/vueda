@@ -1,8 +1,8 @@
 <script setup>
-import useWidget, { widgetProps, widgetEmits } from "@vueda/use/useWidget.js";
-import { EditorContent, useEditor } from "@tiptap/vue-3";
 import TextAlign from "@tiptap/extension-text-align";
 import StarterKit from "@tiptap/starter-kit";
+import { EditorContent, useEditor } from "@tiptap/vue-3";
+import useWidget, { widgetEmits, widgetProps } from "@vueda/use/useWidget.js";
 import { unref } from "vue";
 
 const props = defineProps({

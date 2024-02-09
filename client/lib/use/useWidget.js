@@ -1,5 +1,5 @@
 // useWidget.js
-import { inject, computed, reactive } from "vue";
+import { computed, inject, reactive } from "vue";
 
 export const widgetProps = {
     name: {
@@ -24,6 +24,7 @@ export default function useWidget(props, emit) {
             if (fieldContext) {
                 return fieldContext.value;
             }
+            return undefined;
         },
         set: (value) => {
             if (props.modelValue) {

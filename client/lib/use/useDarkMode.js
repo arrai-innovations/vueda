@@ -1,6 +1,6 @@
+import { tryOnMounted } from "@vueuse/core";
 import { once } from "lodash-es";
 import { readonly, ref } from "vue";
-import { tryOnMounted } from "@vueuse/core";
 
 const darkModeLocalStorageKey = "darkMode";
 const isDarkRef = ref(false);
