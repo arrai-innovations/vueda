@@ -1,5 +1,5 @@
 {
-  "name": "@arrai-innovations/vueda-client",
+  "name": "@arrai-innovations/vueda",
   "version": "1.0.0",
   "description": "Vue.js User Experience for Django Administration (VUEDA) - Client Library",
   "main": "index.js",
