@@ -67,7 +67,7 @@ repos:
       rev: 8.2.2
       hooks:
           - id: md-toc
-            args: [-p, github, -u, -l6]
+            args: [-p, -s1, github, -u, -l6]
 
     - repo:
           https://github.com/pre-commit/mirrors-prettier

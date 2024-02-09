@@ -7,20 +7,19 @@
 <!--prettier-ignore-start-->
 <!--TOC-->
 
-- [vueda-server](#vueda-server)
-  - [About](#about)
-  - [Usage](#usage)
-    - [Install](#install)
-    - [Setup](#setup)
-  - [Development](#development)
-    - [Environment](#environment)
-    - [Dependency Management](#dependency-management)
-    - [Hooks](#hooks)
-    - [Updating](#updating)
-    - [Tagging Releases](#tagging-releases)
-  - [Testing](#testing)
-    - [Running Tests](#running-tests)
-    - [Generating Coverage Locally](#generating-coverage-locally)
+- [About](#about)
+- [Usage](#usage)
+  - [Install](#install)
+  - [Setup](#setup)
+- [Development](#development)
+  - [Environment](#environment)
+  - [Dependency Management](#dependency-management)
+  - [Hooks](#hooks)
+  - [Updating](#updating)
+  - [Tagging Releases](#tagging-releases)
+- [Testing](#testing)
+  - [Running Tests](#running-tests)
+  - [Generating Coverage Locally](#generating-coverage-locally)
 
 <!--TOC-->
 <!--prettier-ignore-end-->
