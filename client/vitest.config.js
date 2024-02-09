@@ -1,18 +1,18 @@
 import Vue from "@vitejs/plugin-vue";
-import { URL, fileURLToPath } from "url";
-import { defineConfig } from "vitest/config";
+import { defineConfig, mergeConfig } from "vitest/config";
+import viteConfig from "./vite.config.js";
 
-export default defineConfig({
-    test: {
-        globals: true,
-        environment: "jsdom",
-        coverage: {
-            reporter: ["text", "json-summary", "html"],
+export default mergeConfig(
+    viteConfig(),
+    defineConfig({
+        plugins: [Vue()],
+        test: {
+            globals: true,
+            environment: "jsdom",
+            coverage: {
+                reporter: ["text", "json-summary", "html"],
+            },
+            setupFiles: ["setup-tests.js"],
         },
-    },
-    resolve: {
-        alias: {
-            "@vueda": fileURLToPath(new URL("./lib", import.meta.url)),
-        },
-    }
-});
+    }),
+);

@@ -7,12 +7,12 @@ module.exports = {
         node: true,
         "vue/setup-compiler-macros": true,
     },
-    plugins: ["no-autofix", "jsdoc", "vue", "vitest", "prettier-vue"],
+    plugins: ["no-autofix", /*"jsdoc", */ "vue", "vitest", "prettier-vue"],
     extends: [
         "eslint:recommended",
         "plugin:vue/vue3-recommended",
         "plugin:vitest/recommended",
-        "plugin:jsdoc/recommended",
+        // "plugin:jsdoc/recommended",
         "plugin:prettier-vue/recommended",
     ],
     rules: {
@@ -50,7 +50,7 @@ module.exports = {
                 alphabetical: true,
             },
         ],
-        "jsdoc/require-jsdoc": "off", // let's ease into this
+        // "jsdoc/require-jsdoc": "off", // let's ease into this
         "node/no-missing-import": "off", // vite handles this
         "node/no-unpublished-import": "off", // vite handles this
         "prefer-const": "error",
