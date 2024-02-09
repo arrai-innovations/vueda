@@ -11,13 +11,35 @@ executors:
       - image: cimg/base:current
   python311:
     docker:
-      - image: cimg/python:3.11.7
+      - image: cimg/python:3.11
       - image: cimg/postgres:15.5
-      - image: cimg/redis:6.2.14
+      - image: cimg/redis:6.2
   python311-base:
     docker:
-      - image: cimg/python:3.11.7
+      - image: cimg/python:3.11
 workflows:
+  test:
+    jobs:
+      - pytest/pytest:
+          name: pytest
+          executor: python311
+          context: arrai-global
+          pipenv_cache_key_version: "2"
+          presetup:
+            - run:
+                name: Install additional OS packages
+                command: |
+                  sudo apt update
+                  sudo apt install rsync
+          config:
+            - run:
+                name: Configure tests
+                command: cp .env.unit .env.local
+          filters: # filters required since `build_*` has filters
+            branches:
+              only: /.*/
+            tags:
+              only: /.*/
   lint:
     jobs:
       - flake8/flake8_pipenv:
