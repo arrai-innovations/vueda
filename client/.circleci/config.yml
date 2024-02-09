@@ -1,8 +1,8 @@
 version: 2.1
 orbs:
-    eslint: arrai/eslint@7.9.0
-    prettier: arrai/prettier@5.8.0
-    npm: arrai/npm@2.12.0
+    eslint: arrai/eslint@7.10.1
+    prettier: arrai/prettier@5.9.1
+    npm: arrai/npm@3.0.1
     github: arrai/github@3.0.0
 executors:
     node:
@@ -13,6 +13,27 @@ executors:
 workflows:
     test:
         jobs:
+            - npm/coverage:
+                  name: tests
+                  context:
+                      - arrai-global
+                  resource_class: medium+
+                  filters:
+                      branches:
+                          only:
+                              - main
+            - npm/coverage:
+                  name: tests-no-badge
+                  context:
+                      - arrai-global
+                  resource_class: medium+
+                  create_badges: false
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore:
+                              - main
             - npm/publish:
                   name: publish
                   executor: node
@@ -76,6 +97,29 @@ workflows:
                   name: prettier-no-badge
                   executor: node
                   context: arrai-global
+                  create_badges: false
+                  filters:
+                      branches:
+                          ignore:
+                              - main
+    audit:
+        jobs:
+            - npm/audit:
+                  name: audit
+                  context:
+                      - arrai-global
+                  executor: node
+                  skip_dev: false
+                  filters:
+                      branches:
+                          only:
+                              - main
+            - npm/audit:
+                  name: audit-no-badge
+                  context:
+                      - arrai-global
+                  executor: node
+                  skip_dev: false
                   create_badges: false
                   filters:
                       branches:
