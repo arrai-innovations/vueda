@@ -25,12 +25,6 @@ workflows:
                   executor: python311
                   context: arrai-global
                   pipenv_cache_key_version: "2"
-                  presetup:
-                      - run:
-                            name: Testing
-                            command: |
-                                which pipenv
-                                pipenv --version
                   filters: # filters required since `build_*` has filters
                       branches:
                           only: /.*/
