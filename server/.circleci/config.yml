@@ -27,14 +27,10 @@ workflows:
                   pipenv_cache_key_version: "2"
                   presetup:
                       - run:
-                            name: Install additional OS packages
+                            name: Testing
                             command: |
-                                sudo apt update
-                                sudo apt install rsync
-                  config:
-                      - run:
-                            name: Configure tests
-                            command: cp .env.unit .env.local
+                                which pipenv
+                                pipenv --version
                   filters: # filters required since `build_*` has filters
                       branches:
                           only: /.*/
