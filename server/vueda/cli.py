@@ -1,6 +1,3 @@
-# ══════════════════════════════════════════════════════════════════════════════
-#  Copyright (c) 2023. Arrai Innovations Inc - All Rights Reserved             ═
-# ══════════════════════════════════════════════════════════════════════════════
 import argparse
 import sys
 import termios
