@@ -43,12 +43,12 @@ extended in your application, ensuring both control and adaptability.
 ### Install
 
 1. Start a `pipenv` `Pipfile` for your project.
-    ```shell
+    ```console
     [you@your MyVuedaServer]$ pipenv shell
     (MyVuedaServer)[you@your MyVuedaServer]$
     ```
 2. If not already setup, add `PIP_EXTRA_INDEX_URL` to your environment.
-    ```shell
+    ```console
     export PIP_EXTRA_INDEX_URL=https://you:password@pypi.arrai-dev.com
     ```
 3. Add our private pypi index into the `Pipfile` created by the last step.
@@ -64,7 +64,7 @@ extended in your application, ensuring both control and adaptability.
     vueda-server = { version = ">=1.0.0,<2.0.0", index = "arrai" }
     ```
 5. Install packages.
-    ```shell
+    ```console
     (MyVuedaServer)[you@your MyVuedaServer]$ pipenv install
     ```
 
@@ -78,7 +78,7 @@ extended in your application, ensuring both control and adaptability.
 
 Install packages:
 
-```shell
+```console
 [you@your vueda-server]$ pipenv install --dev
 [you@your vueda-server]$ pipenv shell
 (vueda-server)[you@your vueda-server]$
@@ -96,7 +96,7 @@ While `pipenv` is used as a development environment, it is a poor tool for packa
 
 Setup pre-commit hooks:
 
-```shell
+```console
 (vueda-server)[you@your vueda-server]$ pre-commit install
 pre-commit installed at .git/hooks/pre-commit
 (vueda-server)[you@your vueda-server]$ pre-commit install --hook-type commit-msg
@@ -107,7 +107,7 @@ pre-commit installed at .git/hooks/commit-msg
 
 In development, pull new changes from the git repo and update your environment with:
 
-```shell
+```console
 (vueda-server)[you@your vueda-server]$ git pull --ff-only
 (vueda-server)[you@your vueda-server]$ pipenv sync --dev
 ```
