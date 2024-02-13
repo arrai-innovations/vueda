@@ -4,12 +4,6 @@ orbs:
     prettier: arrai/prettier@5.9.1
     npm: arrai/npm@3.0.1
     github: arrai/github@3.0.0
-executors:
-    node:
-        environment:
-            LANG: C.UTF-8
-        docker:
-            - image: cimg/node:lts
 workflows:
     test:
         jobs:
@@ -36,7 +30,6 @@ workflows:
                               - main
             - npm/publish:
                   name: publish
-                  executor: node
                   context: arrai-private-package-publishing
                   filters:
                       tags:
@@ -45,7 +38,6 @@ workflows:
                           ignore: /.*/
             - github/create_release:
                   name: release_on_github
-                  executor: node
                   context: arrai-global
                   requires:
                       - publish
@@ -58,7 +50,6 @@ workflows:
         jobs:
             - eslint/eslint_fixed_ip:
                   name: eslint
-                  executor: node
                   context: arrai-global
                   files: "."
                   wd: "."
@@ -72,7 +63,6 @@ workflows:
                               - main
             - eslint/eslint:
                   name: eslint-no-badge
-                  executor: node
                   context: arrai-global
                   files: "."
                   wd: "."
@@ -87,7 +77,6 @@ workflows:
                               - main
             - prettier/code_style_fixed_ip:
                   name: prettier
-                  executor: node
                   context: arrai-global
                   filters:
                       branches:
@@ -95,7 +84,6 @@ workflows:
                               - main
             - prettier/code_style:
                   name: prettier-no-badge
-                  executor: node
                   context: arrai-global
                   create_badges: false
                   filters:
@@ -108,7 +96,6 @@ workflows:
                   name: audit
                   context:
                       - arrai-global
-                  executor: node
                   skip_dev: false
                   filters:
                       branches:
@@ -118,7 +105,6 @@ workflows:
                   name: audit-no-badge
                   context:
                       - arrai-global
-                  executor: node
                   skip_dev: false
                   create_badges: false
                   filters:
