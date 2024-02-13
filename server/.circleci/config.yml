@@ -6,9 +6,6 @@ orbs:
     safety: arrai/safety@3.0.1
     utils: arrai/utils@1.10.0
 executors:
-    base:
-        docker:
-            - image: cimg/base:current
     python311:
         docker:
             - image: cimg/python:3.11
