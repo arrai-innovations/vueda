@@ -32,7 +32,7 @@ workflows:
                           only: /.*/
     lint:
         jobs:
-            - flake8/flake8_pipenv:
+            - flake8/flake8_pipenv_fixed_ip:
                   name: flake8
                   context: arrai-global
                   executor: python311-base
@@ -54,7 +54,7 @@ workflows:
                   wd: ./
     audit:
         jobs:
-            - safety/safety:
+            - safety/safety_fixed_ip:
                   name: safety
                   context: arrai-global
                   executor: safety/python311
