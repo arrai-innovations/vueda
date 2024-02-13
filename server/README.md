@@ -26,14 +26,14 @@
 
 ## About
 
-`vueda-server`, the counterpart to `vueda-client`, is designed for projects that
+[vueda-server], the counterpart to [vueda-client], is designed for projects that
 integrate Vue.js frontends with Django REST Framework backends. This server
 library enhances Django's native authentication and permissions systems
-with default DRF classes and optimizes integration with `django-filters`,
-`drf-flex-fields`, and `drf-writable-nested`. It offers essential out-of-the-box
+with default DRF classes and optimizes integration with [django-filter],
+[drf-flex-fields], and [drf-writable-nested]. It offers essential out-of-the-box
 functionalities such as custom workflow management, audit trails (with DRF
-support for `django-simple-history`), and both row-level and field-level
-permissions. Additionally, `vueda-server` provides DRF classes to expose Django
+support for [django-simple-history]), and both row-level and field-level
+permissions. Additionally, [vueda-server] provides DRF classes to expose Django
 model details to the frontend, filtered by user permissions. It is built with
 customization in mind, offering most features as base classes that can be
 extended in your application, ensuring both control and adaptability.
@@ -151,3 +151,9 @@ Coverage will be generated in circleci, but you can do so locally if you don't w
 [flake8 status]: https://docs.arrai-dev.com/vueda-server/artifacts/main/flake8.svg
 [pipenv]: https://github.com/pypa/pipenv
 [safety status]: https://docs.arrai-dev.com/vueda-server/artifacts/main/safety.svg
+[django-filter]: https://github.com/carltongibson/django-filter
+[drf-flex-fields]: https://github.com/rsinger86/drf-flex-fields
+[drf-writable-nested]: https://github.com/beda-software/drf-writable-nested
+[django-simple-history]: https://github.com/jazzband/django-simple-history
+[vueda-client]: https://github.com/arrai-innovations/vueda-client
+[vueda-server]: https://github.com/arrai-innovations/vueda-server
