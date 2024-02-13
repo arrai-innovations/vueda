@@ -186,7 +186,7 @@ $ npm run test
 
 #### Writing Tests
 
-`vueda-client` has unit tests for its components and composables. These tests are written using the `@testing-library/vue` library. The tests are located in the `tests` directory. The tests run using `vitest`.
+[vueda-client] has unit tests for its components and composables. These tests are written using the [@testing-library/vue] library. The tests are located in the `tests` directory. The tests run using [vitest].
 
 #### Coverage
 
@@ -226,3 +226,5 @@ If you want your changes OK'd before making a pull request, you can create an is
 [tests]: https://docs.arrai.dev/vueda-client/artifacts/main/tests.svg
 [vueda-client]: https://github.com/arrai-innovations/vueda-client
 [vueda-server]: https://github.com/arrai-innovations/vueda-server
+[@testing-library/vue]: https://github.com/testing-library/vue-testing-library
+[vitest]: https://github.com/vitest-dev/vitest
