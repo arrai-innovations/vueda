@@ -37,17 +37,18 @@ vueda-client
 
 ## About
 
-`vueda-client` offers a dynamic Vue.js frontend framework, perfectly tailored for seamless integration with Django REST Framework backends and designed to
-complement `vueda-server`. This client library enables rapid development of
+[vueda-client] offers a dynamic Vue.js frontend framework, perfectly tailored
+for seamless integration with Django REST Framework backends and designed to
+complement [vueda-server]. This client library enables rapid development of
 reactive user interfaces in Django-Vue projects. It features components and
 composables for efficient form handling, CRUD operations, and dynamic routing.
 These tools allow client-side configuration and leverage server-supplied model
 and field metadata to drive forms, fields, views, and routes dynamically.
-Prioritizing developer flexibility, `vueda-client` provides extensive
+Prioritizing developer flexibility, [vueda-client] provides extensive
 customization and theming options for its default components. It also includes
 advanced authentication, navigation, and permission management features, all
 meticulously crafted to integrate smoothly with the corresponding backend
-services of `vueda-server`.
+services of [vueda-server].
 
 ## Install
 
@@ -223,3 +224,5 @@ If you want your changes OK'd before making a pull request, you can create an is
 [eslint]: https://docs.arrai.dev/vueda-client/artifacts/main/eslint.svg
 [audit]: https://docs.arrai.dev/vueda-client/artifacts/main/npm-audit.svg
 [tests]: https://docs.arrai.dev/vueda-client/artifacts/main/tests.svg
+[vueda-client]: https://github.com/arrai-innovations/vueda-client
+[vueda-server]: https://github.com/arrai-innovations/vueda-server
