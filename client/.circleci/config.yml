@@ -56,7 +56,7 @@ workflows:
                           ignore: /.*/
     lint:
         jobs:
-            - eslint/eslint:
+            - eslint/eslint_fixed_ip:
                   name: eslint
                   executor: node
                   context: arrai-global
@@ -85,7 +85,7 @@ workflows:
                       branches:
                           ignore:
                               - main
-            - prettier/code_style:
+            - prettier/code_style_fixed_ip:
                   name: prettier
                   executor: node
                   context: arrai-global
@@ -104,7 +104,7 @@ workflows:
                               - main
     audit:
         jobs:
-            - npm/audit:
+            - npm/audit_fixed_ip:
                   name: audit
                   context:
                       - arrai-global
