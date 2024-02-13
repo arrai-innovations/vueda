@@ -52,7 +52,7 @@ services of [vueda-server].
 
 ## Install
 
-1. ```shell
+1. ```console
    $ npm install @arrai-innovations/vueda`
    ```
 
@@ -78,7 +78,7 @@ services of [vueda-server].
 
 3. (optional) Strip test attributes from production builds, by installing the `rollup-plugin-strip` plugin and adding it to your `vite.config.js`:
 
-    ```shell
+    ```console
     $ npm install --save-dev rollup-plugin-strip
     ```
 
@@ -139,40 +139,40 @@ However, you can use the example server & client to run the library locally.
 # todo: test these instructions when the examples exist
 
 1. Clone `vueda-example-client`:
-    ```shell
+    ```console
     $ git clone https://github.com/arrai-innovations/vueda-example-client.git
     ```
 2. Install the dependencies:
 
-    ```shell
+    ```console
     $ cd vueda-example-client
     [vueda-example-client]$ npm install
     ```
 
 3. Clone `vueda-example-server`:
-    ```shell
+    ```console
     $ git clone https://github.com/arrai-innovations/vueda-example-server.git
     ```
 4. Install the dependencies:
-5. ```shell
+5. ```console
    $ cd vueda-example-server
    [vueda-example-server]$ npm install
    [vueda-example-server]$ pipenv install
    ```
 6. Use the local version of `vueda-client` in the example client:
-    ```shell
+    ```console
     [vueda-example-client]$ npm link ../vueda-client
     ```
 7. Use the local version of `vueda-server` in the example server:
-    ```shell
+    ```console
     [vueda-example-server]$ pipenv run pip install -e ../vueda-server
     ```
 8. Run the server:
-    ```shell
+    ```console
     [vueda-example-server]$ pipenv run ./guincorn.sh
     ```
 9. Run the client:
-    ```shell
+    ```console
     [vueda-example-client]$ npm run dev
     ```
 
@@ -180,7 +180,7 @@ However, you can use the example server & client to run the library locally.
 
 #### Running Tests
 
-```shell
+```console
 $ npm run test
 ```
 
@@ -190,7 +190,7 @@ $ npm run test
 
 #### Coverage
 
-```shell
+```console
 $ npm run coverage
 ```
 
@@ -211,7 +211,7 @@ If you want your changes OK'd before making a pull request, you can create an is
 3. Commit the changes to `package.json` and `package-lock.json`.
 4. Merge the changes into the `main` branch.
 5. On the `main` branch, with the latest changes, create a new tag and push to GitHub.
-    ```shell
+    ```console
     git tag v1.0.0
     git push --tags
     ```
