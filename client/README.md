@@ -2,7 +2,7 @@
 
 ![VUEDA Logo - Vue.js User Experience for Django Admin](/VUEDA.png)
 
-![Prettier](https://docs.arrai-dev.com/vueda-client/artifacts/main/prettier.svg) ![Tests](https://docs.arrai-dev.com/vueda-client/artifacts/main/tests.svg) [![Coverage](https://docs.arrai-dev.com/vueda-client/artifacts/main/tests.coverage.svg)](https://docs.arrai-dev.com/vueda-client/artifacts/main/coverage_tests/) ![ESLint](https://docs.arrai-dev.com/vueda-client/artifacts/main/eslint.svg) ![NPM Audit](https://docs.arrai-dev.com/vueda-client/artifacts/main/npm-audit.svg)
+[![code style: prettier][]][prettier] ![tests][] [![coverage: status][]][coverage] ![eslint][] ![audit][]
 
 <!-- prettier-ignore-start -->
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -215,3 +215,11 @@ If you want your changes OK'd before making a pull request, you can create an is
     git push --tags
     ```
 6. The circleci will publish a new version to NPM and create a release on GitHub.
+
+[prettier]: https://github.com/prettier/prettier
+[code style: prettier]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=for-the-badge
+[coverage]: https://docs.arrai.dev/vueda-client/artifacts/main/coverage_tests/
+[coverage: status]: https://docs.arrai.dev/vueda-client/artifacts/main/tests.coverage.svg
+[eslint]: https://docs.arrai.dev/vueda-client/artifacts/main/eslint.svg
+[audit]: https://docs.arrai.dev/vueda-client/artifacts/main/npm-audit.svg
+[tests]: https://docs.arrai.dev/vueda-client/artifacts/main/tests.svg
