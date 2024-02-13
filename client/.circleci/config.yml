@@ -2,7 +2,7 @@ version: 2.1
 orbs:
     eslint: arrai/eslint@7.10.1
     prettier: arrai/prettier@5.9.1
-    npm: arrai/npm@3.0.1
+    npm: arrai/npm@dev:200
     github: arrai/github@3.0.0
 workflows:
     test:
