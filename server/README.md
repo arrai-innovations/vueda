@@ -49,7 +49,7 @@ extended in your application, ensuring both control and adaptability.
     ```
 2. If not already setup, add `PIP_EXTRA_INDEX_URL` to your environment.
     ```console
-    export PIP_EXTRA_INDEX_URL=https://you:password@pypi.arrai-dev.com
+    export PIP_EXTRA_INDEX_URL=https://you:password@pypi.arrai.dev
     ```
 3. Add our private pypi index into the `Pipfile` created by the last step.
     ```toml
@@ -146,11 +146,11 @@ Coverage will be generated in circleci, but you can do so locally if you don't w
 [black]: https://github.com/ambv/black
 [code style: prettier]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=for-the-badge
 [prettier]: https://github.com/prettier/prettier
-[pytest status]: https://docs.arrai-dev.com/vueda-server/artifacts/main/pytest.svg
-[coverage status]: https://docs.arrai-dev.com/vueda-server/artifacts/main/pytest.coverage.svg
-[flake8 status]: https://docs.arrai-dev.com/vueda-server/artifacts/main/flake8.svg
+[pytest status]: https://docs.arrai.dev/vueda-server/artifacts/main/pytest.svg
+[coverage status]: https://docs.arrai.dev/vueda-server/artifacts/main/pytest.coverage.svg
+[flake8 status]: https://docs.arrai.dev/vueda-server/artifacts/main/flake8.svg
 [pipenv]: https://github.com/pypa/pipenv
-[safety status]: https://docs.arrai-dev.com/vueda-server/artifacts/main/safety.svg
+[safety status]: https://docs.arrai.dev/vueda-server/artifacts/main/safety.svg
 [django-filter]: https://github.com/carltongibson/django-filter
 [drf-flex-fields]: https://github.com/rsinger86/drf-flex-fields
 [drf-writable-nested]: https://github.com/beda-software/drf-writable-nested
