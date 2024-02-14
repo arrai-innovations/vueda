@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-    eslint: arrai/eslint@dev:301
+    eslint: arrai/eslint@dev:302
     prettier: arrai/prettier@5.9.2
     npm: arrai/npm@3.0.2
     github: arrai/github@3.0.0
