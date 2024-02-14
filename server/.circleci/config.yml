@@ -1,10 +1,10 @@
 version: 2.1
 orbs:
-    flake8: arrai/flake8@20.0.0
+    flake8: arrai/flake8@20.0.2
     github: arrai/github@3.0.0
-    pytest: arrai/pytest@8.1.2
-    safety: arrai/safety@3.0.1
-    utils: arrai/utils@1.10.0
+    pytest: arrai/pytest@8.1.4
+    safety: arrai/safety@3.0.3
+    utils: arrai/utils@1.16.3
 executors:
     python311:
         docker:
