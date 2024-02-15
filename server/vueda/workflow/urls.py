@@ -2,7 +2,6 @@ from django.conf import settings
 from django.urls import path
 
 from vueda.workflow.views import ExecuteTransitionView
-from vueda.workflow.views import GetObjectHistoryView
 from vueda.workflow.views import GetObjectStateView
 from vueda.workflow.views import GetObjectTransitionsView
 from vueda.workflow.views import GetStatesForContentTypeView
@@ -20,11 +19,6 @@ urlpatterns = [
         "execute-transition/<app_label>/<model>/<int:object_id>/",
         ExecuteTransitionView.as_view(),
         name="execute-transition",
-    ),
-    path(
-        "object-history/<app_label>/<model>/<int:object_id>/",
-        GetObjectHistoryView.as_view(),
-        name="get-object-history",
     ),
     path(
         "states/<app_label>/<model>/",

@@ -11,28 +11,18 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
 from django.db import models
 from django.db.models import QuerySet
+from simple_history.models import HistoricalRecords
 
+from vueda.core.models import Lookup
 from vueda.core.utils import get_system_user
 from vueda.history.models import SimpleHistoryModelMixin
-from vueda.history.utils import get_request_from_simple_history_middleware
 from vueda.workflow.exceptions import InvalidTransitionError
 
 
 User = get_user_model()
 
 
-class NoHistoryLookup(models.Model):
-    code = models.CharField(max_length=255)
-    name = models.CharField(max_length=255)
-
-    class Meta:
-        abstract = True
-
-    def __str__(self):
-        return f"name: {self.name}, code:{self.code}"
-
-
-class Workflow(NoHistoryLookup):
+class Workflow(Lookup):
     """
     A workflow is a collection of states and transitions.
     """
@@ -65,7 +55,7 @@ class WorkflowPermission(models.Model):
         return f"workflow: {self.workflow}, permission:{self.permission}"
 
 
-class State(NoHistoryLookup):
+class State(Lookup):
     """
     A particular condition an object of the workflow can have.
     """
@@ -133,7 +123,7 @@ class InitialState(models.Model):
         return f"workflow: {self.workflow}, state:{self.state}"
 
 
-class Transition(NoHistoryLookup):
+class Transition(Lookup):
     """
     A transition is a change to a target state. Transitions can have multiple sources.
      Transitions can be executed by users.
@@ -465,14 +455,15 @@ class HasWorkflowModelMixin(models.Model):
         except Transition.DoesNotExist:
             raise ValueError(f"Transition {transition_code!r} does not exist for workflow {self.workflow.code!r}.")
 
-    def apply_transition(self, transition_code: str, user: Optional[User] = None) -> tuple[State, int]:
+    def apply_transition(self, transition_code: str, user: Optional[User] = None) -> tuple[State, Optional[int]]:
         """
         Apply a transition to the object.
         """
         self.check_workflow_permission(user)
-        transition = self.get_transition(transition_code)
+        transition: Transition = self.get_transition(transition_code)
         if user is None:
-            request = get_request_from_simple_history_middleware()
+            # this assumes we are using HistoryRequestMiddleware, which populates the request in the history context
+            request = getattr(HistoricalRecords.context, "request", None)
             if request:
                 user = request.user
             else:
@@ -494,8 +485,10 @@ class HasWorkflowModelMixin(models.Model):
         object_state.state = transition.target
         object_state.save()
         self.on_transition(transition, user)
-        # return the new latest history record id
-        return transition.target, object_state.history.latest().history_id
+        if hasattr(object_state, "history"):
+            # return the new latest history record id
+            return transition.target, object_state.history.latest().history_id
+        return transition.target, None
 
     def on_transition(self, transition: Transition, user: Optional[User] = None):
         """

@@ -1,5 +1,10 @@
 import rest_framework.serializers as drf_serializers
+from rest_framework import serializers
 
+from vueda.core.serializers import User
+from vueda.core.serializers import UserSerializer as CoreUserSerializer
+from vueda.core.serializers import WhoAmISerializer as CoreWhoAmISerializer
+from vueda.core.serializers import WhoIsSomeoneElseSerializer as CoreWhoIsSomeoneElseSerializer
 from vueda.history.fields import HistoricalRecordField
 from vueda.history.fields import filter_fields_for_flexlike_on_historical_records
 
@@ -36,16 +41,64 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
             return {}
         return data.history.values(*value_fields).first()
 
+    def return_annotated_instance(self, instance):
+        # return annotated instance for current_history_id
+        annotated_instance = self.context["view"].get_queryset().filter(id=instance.id).first()
+        # nested writable reuses the same serializer class for creating and updating nested models.
+        return annotated_instance if type(annotated_instance) is type(instance) else instance
+
     def create(self, validated_data):
         created_instance = super().create(validated_data)
-        # return annotated instance for current_history_id
-        annotated_instance = self.context["view"].get_queryset().filter(id=created_instance.id).first()
-        # nested writable reuses the same serializer class for creating and updating nested models.
-        return annotated_instance if type(annotated_instance) is type(created_instance) else created_instance
+        return self.return_annotated_instance(created_instance)
 
     def update(self, instance, validated_data):
         updated_instance = super().update(instance, validated_data)
-        # return annotated instance for current_history_id
-        annotated_instance = self.context["view"].get_queryset().filter(id=updated_instance.id).first()
-        # nested writable reuses the same serializer class for creating and updating nested models.
-        return annotated_instance if type(annotated_instance) is type(updated_instance) else updated_instance
+        return self.return_annotated_instance(updated_instance)
+
+
+class UserSerializer(SimpleHistorySerializerMixin, CoreUserSerializer):
+    """
+    This is a serializer adding historical records to the core user serializer.
+
+    This decoupling helps make the history app optional.
+    """
+
+    class Meta(CoreUserSerializer.Meta):
+        fields = CoreUserSerializer.Meta.fields + SimpleHistorySerializerMixin.Meta.fields
+
+
+class UserHistoricalSerializer(serializers.ModelSerializer):
+    """
+    This is a serializer for the historical records of a user.
+    """
+
+    id = serializers.IntegerField(source="history_id")
+    user_id = serializers.IntegerField(source="id")
+
+    class Meta:
+        model = User.history.model
+        fields = ["id", "last_login", "user_id"]
+
+
+class WhoAmISerializer(
+    SimpleHistorySerializerMixin,
+    CoreWhoAmISerializer,
+):
+    """
+    This decoupling helps make the history app optional.
+    """
+
+    class Meta(CoreWhoAmISerializer.Meta):
+        fields = CoreWhoAmISerializer.Meta.fields + SimpleHistorySerializerMixin.Meta.fields
+
+
+class WhoIsSomeoneElseSerializer(
+    SimpleHistorySerializerMixin,
+    CoreWhoIsSomeoneElseSerializer,
+):
+    """
+    This decoupling helps make the history app optional.
+    """
+
+    class Meta(CoreWhoIsSomeoneElseSerializer.Meta):
+        fields = CoreWhoIsSomeoneElseSerializer.Meta.fields + SimpleHistorySerializerMixin.Meta.fields

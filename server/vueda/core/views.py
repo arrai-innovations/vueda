@@ -1,10 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Max
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 
-from vueda.serializers.auth import WhoAmISerializer
+from vueda.core.serializers import WhoAmISerializer
 
 
 class WhoAmIView(RetrieveAPIView):
@@ -19,8 +18,5 @@ class WhoAmIView(RetrieveAPIView):
 
     def get_object(self):
         if self.request.user.pk:
-            user_model = get_user_model()
-            return user_model.objects.annotate(current_history_id=Max("history_records__history_id")).get(
-                pk=self.request.user.pk
-            )
+            return get_user_model()
         return self.request.user

@@ -1,9 +1,8 @@
 from django.apps.registry import Apps
 from django.utils import timezone
-from simple_history.models import HistoricalRecords
 
+from vueda.core.utils import get_system_user
 from vueda.history.models import SimpleHistoryModelMixin
-from vueda.utils import get_system_user
 
 
 DEFAULT = object()
@@ -35,7 +34,3 @@ def create_historical_record(
     return (manager or apps.get_model(opts.app_label, "Historical{}".format(opts.model_name)).objects).create(
         history_date=history_date or timezone.now(), history_type=history_type, history_user_id=user_id, **attrs
     )
-
-
-def get_request_from_simple_history_middleware():
-    return getattr(HistoricalRecords.context, "request", None)

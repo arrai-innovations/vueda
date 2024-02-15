@@ -1,6 +1,6 @@
 from typing import Iterable
 
-from vueda.utils import create_historical_record
+from vueda.history.utils import create_historical_record
 
 
 def setup_workflow(
@@ -92,9 +92,12 @@ def setup_workflow(
             transition = created_transitions[transition_code]
             transition.transition_permissions.create(permission=permission)
 
+    object_state_class_has_historical_record = hasattr(object_state_class, "historical")
+
     # create object states for all existing target models
     for pk in target_model_class.objects.all().values_list("pk", flat=True):
         object_state = object_state_class.objects.get_or_create(
             workflow_id=workflow.id, object_id=pk, defaults={"state": initial_state}
         )[0]
-        create_historical_record(apps, object_state, history_type="+")
+        if object_state_class_has_historical_record:
+            create_historical_record(apps, object_state, history_type="+")

@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import StatePermission
 from vueda.workflow.models import Workflow
-from vueda.workflow.permissions import VuedaGenericObjectPermission
+from vueda.workflow.permissions import VUEDAWorkflowObjectPermission
 
 
 class HasWorkflowViewMixin:
@@ -43,7 +43,7 @@ class HasWorkflowViewMixin:
 
 class WorkflowView(APIView):
     permission_classes = [
-        VuedaGenericObjectPermission,
+        VUEDAWorkflowObjectPermission,
     ]
 
     def __init__(self):
@@ -66,6 +66,12 @@ class GetObjectStateView(WorkflowView):
         user = request.user
         app_label = kwargs["app_label"]
         model = kwargs["model"]
+        if not isinstance(self.object, HasWorkflowModelMixin):
+            return Response(
+                data={"detail": "Object does not have a workflow."},
+                exception=Exception("Object does not have a workflow."),
+                status=drf_status.HTTP_404_NOT_FOUND,
+            )
         if not user.has_perm(f"{app_label}.read_{model.replace('_', '')}", obj=self.object):
             err_msg = "You do not have permission to perform this action."
             return Response(
@@ -75,13 +81,13 @@ class GetObjectStateView(WorkflowView):
             )
 
         state = self.object.workflow_state
-        history_id = self.object.object_state.history.latest().id
-        return Response(
-            {
-                "state": {"code": state.code, "name": state.name},
-                "current_history_id": history_id,
-            }
-        )
+        response_data = {
+            "state": {"code": state.code, "name": state.name},
+        }
+        if hasattr(self.object.object_state, "history"):
+            current_history_id = self.object.object_state.history.latest().id
+            response_data["current_history_id"] = current_history_id
+        return Response(response_data)
 
 
 class GetObjectTransitionsView(WorkflowView):
@@ -94,38 +100,17 @@ class ExecuteTransitionView(WorkflowView):
         with transaction.atomic():
             transition_code = request.data.get("transition_code")
             state, current_history_id = self.object.apply_transition(transition_code, user=request.user)
-            return Response(
-                {
-                    "new_state": {
-                        "state": {"code": state.code, "name": state.name},
-                        "current_history_id": current_history_id,
-                    },
-                    "new_transitions": list(
-                        self.object.available_transitions(request.user).order_by("name").values("code", "name")
-                    ),
-                }
-            )
-
-
-class GetObjectHistoryView(WorkflowView):
-    def get(self, request, *args, **kwargs):
-        user = request.user
-        app_label = kwargs["app_label"]
-        model = kwargs["model"]
-        if not user.has_perm(f"{app_label}.read_{model.replace('_', '')}", obj=self.object):
-            err_msg = "You do not have permission to perform this action."
-            return Response(
-                data={"detail": err_msg},
-                exception=PermissionDenied(err_msg),
-                status=drf_status.HTTP_403_FORBIDDEN,
-            )
-        return Response(
-            list(
-                self.object.object_state.history.values(
-                    "history_id", "state__code", "history_change_reason", "history_date", "history_user"
-                )
-            )
-        )
+            response_data = {
+                "new_state": {
+                    "state": {"code": state.code, "name": state.name},
+                },
+                "new_transitions": list(
+                    self.object.available_transitions(request.user).order_by("name").values("code", "name")
+                ),
+            }
+            if current_history_id:
+                response_data["new_state"]["current_history_id"] = current_history_id
+            return Response(response_data)
 
 
 class GetStatesForContentTypeView(APIView):

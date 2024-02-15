@@ -11,6 +11,7 @@
 - [Usage](#usage)
   - [Install](#install)
   - [Setup](#setup)
+  - [Usage](#usage-1)
 - [Development](#development)
   - [Environment](#environment)
   - [Dependency Management](#dependency-management)
@@ -69,6 +70,58 @@ extended in your application, ensuring both control and adaptability.
     ```
 
 ### Setup
+
+<!-- #todo: document -->
+
+-   it's up to you to add `vueda-server` to your `INSTALLED_APPS` in `settings.py`, as well as any standard Django
+    settings, like database, middleware, asgi vs wsgi, etc.
+-   it's up to you to add `vueda-server`'s `urls` to your `urls.py`.
+-   `HistoryRequestMiddleware` should be added to your `MIDDLEWARE` in `settings.py`, even if not otherwise
+    using `simple_history`.
+
+    example wsgi settings:
+
+    ```py
+    MIDDLEWARE = [
+        ...
+        'simple_history.middleware.HistoryRequestMiddleware',
+        ...
+    ]
+    ```
+
+    if using asgi, you should also add `HistoryRequestMiddleware` to your middleware stack, for example:
+
+    ```py
+    from asgi_cors_middleware import CorsASGIApp
+    from channels.auth import AuthMiddleware
+    from channels.sessions import CookieMiddleware
+    from channels.sessions import SessionMiddleware
+    from django.conf import settings
+    from simple_history.middleware import HistoryRequestMiddleware
+
+    def my_middlewares_stack(inner):
+        return CorsASGIApp(
+          CookieMiddleware(
+              SessionMiddleware(
+                  AuthMiddleware(
+                      HistoryRequestMiddleware(
+                          # ...
+                          inner
+                      )
+                  )
+              )
+           ),
+           # use django-cors-header's settings for asgi-cors-middleware
+           origins=settings.CORS_ALLOWED_ORIGINS,
+           allow_headers=settings.CORS_ALLOW_HEADERS,
+           expose_headers=settings.CORS_EXPOSE_HEADERS,
+           allow_methods=settings.CORS_ALLOW_METHODS,
+           allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+           max_age=settings.CORS_PREFLIGHT_MAX_AGE,
+       )
+    ```
+
+### Usage
 
 <!-- #todo: document -->
 
