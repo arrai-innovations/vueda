@@ -18,7 +18,6 @@ from vueda.cli import getch
 from vueda.cli import open_orange
 from vueda.cli import orange_color
 from vueda.cli import reset_prompt
-from vueda.sentry import get_tag
 
 
 # todo: how do we get the project's config?
@@ -28,7 +27,34 @@ config = None
 # todo: the steps are badass centric for now. we'll need to update them or change which steps exist for vueda.
 
 
+def get_tag():
+    """
+    Get the current git tag, if it exists.
+    """
+    tag_sp = subprocess.run(
+        ["git", "describe", "--tags", "--abbrev=0", "--exact-match"],
+        capture_output=True,
+    )
+    return tag_sp
+
+
 class Update:
+    """
+    Helper for updating a vueda-server installation. Includes steps for backing up the database, pulling the latest code,
+    installing dependencies, collecting static files, migrating the database, running post-update commands and reporting
+    deployment to sentry.
+
+    This class is designed to be used as a command line tool, but it can also be used as a library.
+
+    ```console
+    (your-venv)[you@yours ~/vueda-server-project/] vueda update
+    # or
+    (your-venv)[you@yours ~/vueda-server-project/] python -m vueda update
+    # usage
+    (your-venv)[you@yours ~/vueda-server-project/] vueda update --help
+    ```
+    """
+
     def __init__(self, *, stdout=sys.stdout, stderr=sys.stderr, terminal_width=80, exit_on_error=True, parser=None):
         self.stdout = stdout
         self.stderr = stderr
@@ -406,6 +432,9 @@ class Update:
 
 
 def update_for_main(subparsers=None):
+    """
+    Add the update command to a parser & wrap the update class for use as a subcommand.
+    """
     terminal_size = shutil.get_terminal_size((80, 20))
     cmd = Update(stdout=sys.stdout, stderr=sys.stderr, terminal_size=terminal_size[0])
     if subparsers:

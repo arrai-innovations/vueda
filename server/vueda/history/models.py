@@ -1,9 +1,7 @@
 from django.db import models
 from simple_history.models import HistoricalRecords
 
-
-class BaseModelMeta:
-    default_permissions = ("create", "read", "update", "delete", "list")
+from vueda.core.models import BaseModelMeta
 
 
 class SimpleHistoryModelMixin(models.Model):

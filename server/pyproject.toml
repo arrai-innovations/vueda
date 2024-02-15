@@ -40,6 +40,9 @@ dynamic = ["dependencies", "version"]
 [project.urls]
 repository = "https://github.com/arrai-innovations/vueda-server/"
 
+[project.scripts]
+vueda = "vueda.__main__:main"
+
 [tool.setuptools]
 include-package-data = false
 

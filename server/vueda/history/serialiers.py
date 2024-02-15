@@ -1,7 +1,7 @@
 import rest_framework.serializers as drf_serializers
 
-from vueda.fields.serializers.history import HistoricalRecordField
-from vueda.fields.serializers.history import filter_fields_for_flexlike_on_historical_records
+from vueda.history.fields import HistoricalRecordField
+from vueda.history.fields import filter_fields_for_flexlike_on_historical_records
 
 
 class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass):
