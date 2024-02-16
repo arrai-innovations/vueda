@@ -1,6 +1,6 @@
-import rest_framework.serializers as drf_serializers
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.encoding import smart_str
+from rest_framework import serializers as drf_serializers
 
 
 class ContentTypeField(drf_serializers.RelatedField):
