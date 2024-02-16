@@ -49,7 +49,7 @@ extended in your application, ensuring both control and adaptability.
     (MyVuedaServer)[you@your MyVuedaServer]$
     ```
 2. If not already setup, add `PIP_EXTRA_INDEX_URL` to your environment.
-    ```console
+    ```shell
     export PIP_EXTRA_INDEX_URL=https://you:password@pypi.arrai.dev
     ```
 3. Add our private pypi index into the `Pipfile` created by the last step.
