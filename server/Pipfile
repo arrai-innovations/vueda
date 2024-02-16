@@ -28,6 +28,9 @@ flake8-print = "==5.0.0"
 pep8-naming = "==0.13.3"
 pylint-django = "==2.5.5"
 
+# build related
+wheel = ">=0.42.0,<1"
+
 # sync with .pre-commit-config.yaml
 isort = "==5.13.2"
 

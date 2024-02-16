@@ -3,10 +3,7 @@ from typing import Optional
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin
 from django.contrib.auth.models import UserManager
-from django.contrib.postgres.indexes import GinIndex
-from django.contrib.postgres.indexes import OpClass
 from django.db import models
-from django.db.models.functions import Upper
 from django.utils import timezone
 
 
@@ -25,7 +22,21 @@ class Lookup(models.Model):
         return f"name: {self.name}, code:{self.code}"
 
 
-class User(AbstractBaseUser, PermissionsMixin):
+class ActivatableBaseModel(models.Model):
+    """
+    A base model for models that can be activated or deactivated.
+    """
+
+    is_active = models.BooleanField(
+        "active",
+        default=True,
+    )
+
+    class Meta:
+        abstract = True
+
+
+class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, PermissionsMixin):
     """
     Default user for VUEDA
 
@@ -42,12 +53,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField("email address", unique=True, db_collation="case_insensitive")
     name = models.CharField("name", max_length=255)
     # name matters, django contrib.auth.backends.ModelBackend.user_can_authenticate checks for is_active
-    is_active = models.BooleanField(
-        "active",
-        default=True,
-        help_text="Designates whether this user should be treated as active. "
-        "Unselect this instead of deleting accounts.",
-    )
     date_joined = models.DateTimeField("date joined", default=timezone.now)
     is_system = models.BooleanField(
         "system",
@@ -61,22 +66,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     class Meta(BaseModelMeta):
+        abstract = True
         ordering = ("-date_joined",)
         default_related_name = "users"
-        # stackoverflow seems to think this would work
-        # https://stackoverflow.com/a/51880653
-        # todo: we do not have enough data for postgres to even want to use GinIndexes yet (query optimization), so
-        #  this could be premature. test this.
-        indexes = [
-            GinIndex(
-                OpClass(Upper("email"), name="gin_trgm_ops"),
-                name="user_email_ln_gin_idx",
-            ),
-            GinIndex(
-                OpClass(Upper("name"), name="gin_trgm_ops"),
-                name="user_upper_name_ln_gin_idx",
-            ),
-        ]
 
     def has_perm(self, perm, obj: Optional[models.Model] = None):
         # django.contrib.auth.backends.ModelBackend always returns false if object is passed, so do not pass obj and
@@ -147,17 +139,3 @@ class User(AbstractBaseUser, PermissionsMixin):
         #     """,
         # )
         # email.send_email()
-
-
-class ActivatableBaseModel(models.Model):
-    """
-    A base model for models that can be activated or deactivated.
-    """
-
-    is_active = models.BooleanField(
-        "active",
-        default=True,
-    )
-
-    class Meta:
-        abstract = True
