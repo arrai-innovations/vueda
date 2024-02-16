@@ -1,27 +1,20 @@
 from typing import Optional
 from typing import Union
 
-from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
-from rest_framework.generics import get_object_or_404
+from rest_framework import exceptions
 from rest_framework.permissions import DjangoObjectPermissions
 
 
-class VUEDAObjectPermissions(DjangoObjectPermissions):
+class ObjectPermissions(DjangoObjectPermissions):
     """
-    This is a custom permission class that extends DjangoObjectPermissions.
-    We have a default perms_map more in line with the way we want to use permissions,
-    and for CRUDL operations vs the default DjangoObjectPermissions perms_map
-    (which is only add, change, delete, not view).
-
-    Note: This class wants the `app_label` and `model` to be provided in the view's kwargs.
-    This is typically done by using the `IncludeAppInRouteNameRouter` router, which includes
-    the app name and model name in the route name. Doing so will make this class not make
-    a queryset just to get the model class, which is a bit of a waste.
+    Extends DjangoObjectPermissions to support state permissions and CRUDL naming conventions.
+    It sets the 'view_action' in permission checks to determine required permissions for views
+    and objects based on the current action in the view.
     """
 
     perms_map = {
-        "GET": ["%(app_label)s.read_%(model_name)s"],
+        "GET": [lambda action: f"%(app_label)s.{'list' if action == 'list' else 'read'}_%(model_name)s"],
         "OPTIONS": [],
         "HEAD": [],
         "POST": ["%(app_label)s.create_%(model_name)s"],
@@ -29,27 +22,56 @@ class VUEDAObjectPermissions(DjangoObjectPermissions):
         "PATCH": ["%(app_label)s.update_%(model_name)s"],
         "DELETE": ["%(app_label)s.delete_%(model_name)s"],
     }
+    view_action = None
 
-    def _queryset(self, view):
+    def has_permission(self, request, view):
         """
-        The way this is used in DjangoObjectPermissions and DjangoModelPermissions
-        right now is to just use the queryset to get the model_class.
+        Bypasses model-level permissions check for models with workflow state permissions,
+        delegating the decision to object-level permissions if applicable.
+        """
+        from vueda.workflow.models import HasWorkflowModelMixin
+        from vueda.workflow.models import StatePermission
+        from vueda.workflow.models import Workflow
 
-        That kinda seems round about, especially for this class were we have the content_type_id.
+        model = view.queryset.model
+        if issubclass(model, HasWorkflowModelMixin):
+            workflow = Workflow.objects.filter(content_type=model.content_type()).first()
+            if (
+                workflow
+                and StatePermission.objects.filter(
+                    state__workflow=workflow,
+                    group__in=request.user.groups.all(),
+                    permission__codename__in=self.get_required_permissions(request.method, model),
+                    grant_or_deny=True,
+                ).exists()
+            ):
+                return True
+        # set the view action for use in get_required_permissions
+        self.view_action = view.action
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request, view, obj):
+        # set the view action for use in get_required_object_permissions
+        self.view_action = view.action
+        return super().has_object_permission(request, view, obj)
+
+    def get_required_permissions(self, method, model_cls):
         """
-        # future: Since this is a private method, we should check this during updates to DRF.
-        try:
-            # get the app_label & model being requested by the user.
-            app_label = view.kwargs["app_label"]
-            model = view.kwargs["model"]
-        except KeyError:
-            # if the view doesn't have kwargs, then use the regular method
-            return super()._queryset(view)
-        # and get the model class for that app_label & model
-        content_type = get_object_or_404(ContentType, app_label=app_label, model=model.replace("_", ""))
-        model_class = content_type.model_class()
-        # and return the queryset for that model class
-        return model_class.objects.all()
+        Allow dynamic permissions based on the view action, for callables in perms_map.
+        """
+        kwargs = {"app_label": model_cls._meta.app_label, "model_name": model_cls._meta.model_name}
+
+        if method not in self.perms_map:
+            raise exceptions.MethodNotAllowed(method)
+
+        called = [perm(self.view_action) if callable(perm) else perm for perm in self.perms_map[method]]
+        return [perm % kwargs for perm in called if perm]  # noqa: S001
+
+    def get_required_object_permissions(self, method, model_cls):
+        """
+        Allow dynamic permissions based on the view action, for callables in perms_map, for object permissions.
+        """
+        return self.get_required_permissions(method, model_cls)
 
 
 DEFAULT = object()

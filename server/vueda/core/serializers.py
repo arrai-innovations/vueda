@@ -59,7 +59,7 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
-class FlexFieldsWriteableNestedMixin(
+class FlexFieldsWriteableNestedSerializerMixin(
     flex_serializers.FlexFieldsSerializerMixin,
     drf_writable_nested.NestedCreateMixin,
     drf_writable_nested.NestedUpdateMixin,
@@ -106,7 +106,9 @@ class WhoIsSomeoneElseSerializer(NoExtraFieldsSerializerMixin, serializers.Model
         fields = ["id", "email", "name"]
 
 
-class UserSerializer(NoExtraFieldsSerializerMixin, FlexFieldsWriteableNestedMixin, serializers.ModelSerializer):
+class UserSerializer(
+    NoExtraFieldsSerializerMixin, FlexFieldsWriteableNestedSerializerMixin, serializers.ModelSerializer
+):
     password_confirm = serializers.CharField(write_only=True, required=False)
 
     class Meta:

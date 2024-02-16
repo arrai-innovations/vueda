@@ -2,36 +2,41 @@ import rest_framework.viewsets as drf_viewsets
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from vueda.core.models import ActivatableBaseModel
 
-class AtomicCreateModelMixin(drf_viewsets.mixins.CreateModelMixin):
+
+class AtomicCreateModelViewSetMixin(drf_viewsets.mixins.CreateModelMixin):
     def create(self, request, *args, **kwargs):
         with transaction.atomic():
             return super().create(request, *args, **kwargs)
 
 
-class AtomicUpdateModelMixin(drf_viewsets.mixins.UpdateModelMixin):
+class AtomicUpdateModelViewSetMixin(drf_viewsets.mixins.UpdateModelMixin):
     def update(self, request, *args, **kwargs):
         with transaction.atomic():
             return super().update(request, *args, **kwargs)
 
 
-class AtomicDestroyModelMixin(drf_viewsets.mixins.DestroyModelMixin):
+class AtomicDestroyModelViewSetMixin(drf_viewsets.mixins.DestroyModelMixin):
     def destroy(self, request, *args, **kwargs):
         with transaction.atomic():
             return super().destroy(request, *args, **kwargs)
 
 
-class AtomicModelViewSetMixin(AtomicCreateModelMixin, AtomicUpdateModelMixin, AtomicDestroyModelMixin):
+class AtomicModelViewSetMixin(
+    AtomicCreateModelViewSetMixin, AtomicUpdateModelViewSetMixin, AtomicDestroyModelViewSetMixin
+):
     pass
 
 
 class AtomicModelViewSet(
-    AtomicCreateModelMixin,
+    AtomicCreateModelViewSetMixin,
     drf_viewsets.mixins.RetrieveModelMixin,
-    AtomicUpdateModelMixin,
-    AtomicDestroyModelMixin,
+    AtomicUpdateModelViewSetMixin,
+    AtomicDestroyModelViewSetMixin,
     drf_viewsets.mixins.ListModelMixin,
     drf_viewsets.GenericViewSet,
 ):
@@ -42,7 +47,7 @@ class AtomicModelViewSet(
     pass
 
 
-class ListRowLevelViewSetMixIn(drf_viewsets.mixins.ListModelMixin, drf_viewsets.GenericViewSet):
+class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.GenericViewSet):
     """
     A ViewSet mixin that filters out rows that the user does not have access to.
     """
@@ -176,3 +181,49 @@ class PerActionSerializerMixin:
         if hasattr(self, "action") and hasattr(self, serializer_class_key):
             return getattr(self, serializer_class_key)
         return super().get_serializer_class()
+
+
+class DeactivateActionViewSetMixin:
+    """
+    A ViewSet mixin that allows you to deactivate a model inheriting from `ActivatableBaseModel`.
+    """
+
+    @action(detail=True, methods=["patch"])
+    def deactivate(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if not isinstance(instance, ActivatableBaseModel):
+            return Response(
+                {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
+                status=405,
+            )
+        if not instance.is_active:
+            return Response(
+                {"detail": f"{instance.__class__.__name__} with id {instance.pk} is already deactivated."},
+                status=400,
+            )
+        instance.is_active = False
+        instance.save()
+        return Response(
+            {"detail": f"{instance.__class__.__name__} with id {instance.pk} has been deactivated."},
+            status=200,
+        )
+
+    @action(detail=True, methods=["patch"])
+    def activate(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if not isinstance(instance, ActivatableBaseModel):
+            return Response(
+                {"detail": f"Activate action is not supported for {instance.__class__}."},
+                status=405,
+            )
+        if instance.is_active:
+            return Response(
+                {"detail": f"{instance.__class__.__name__} with id {instance.pk} is already activated."},
+                status=400,
+            )
+        instance.is_active = True
+        instance.save()
+        return Response(
+            {"detail": f"{instance.__class__.__name__} with id {instance.pk} has been activated."},
+            status=200,
+        )

@@ -147,3 +147,17 @@ class User(AbstractBaseUser, PermissionsMixin):
         #     """,
         # )
         # email.send_email()
+
+
+class ActivatableBaseModel(models.Model):
+    """
+    A base model for models that can be activated or deactivated.
+    """
+
+    is_active = models.BooleanField(
+        "active",
+        default=True,
+    )
+
+    class Meta:
+        abstract = True

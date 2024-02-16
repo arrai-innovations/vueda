@@ -15,7 +15,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from vueda.core.permissions import VUEDAObjectPermissions
+from vueda.core.permissions import ObjectPermissions
 from vueda.core.serializers import ForgotPasswordSerializer
 from vueda.core.serializers import ResetPasswordSerializer
 from vueda.core.serializers import WhoAmISerializer
@@ -141,7 +141,7 @@ class ResetPasswordView(GenericAPIView):
 
 
 class ResendWelcomeEmailView(SingleObjectMixin, APIView):
-    permission_classes = (IsAuthenticated, VUEDAObjectPermissions)
+    permission_classes = (IsAuthenticated, ObjectPermissions)
     model = User
     queryset = User.objects.all()
     action = f"{User.__class__.__name__}.create_user"
