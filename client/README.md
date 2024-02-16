@@ -53,7 +53,7 @@ services of [vueda-server].
 ## Install
 
 1. ```console
-   $ npm install @arrai-innovations/vueda`
+   $ npm install @arrai-innovations/vueda
    ```
 
 2. Add an alias in your project's `vite.config.js`
