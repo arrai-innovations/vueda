@@ -130,3 +130,20 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.email}"
+
+    def send_welcome_email(self):
+        pass
+        # name = self.name or self.get_username()
+        # todo: send email
+        # email = EmailMessageModel.objects.create(
+        #     subject="Welcome To Treature",
+        #     from_email=settings.DEFAULT_FROM_EMAIL,
+        #     to=[self.email],
+        #     body=f"""Welcome,
+        #     {name}
+        #
+        #     Visit the site at:
+        #     https://{settings.FRONTEND_DOMAIN}
+        #     """,
+        # )
+        # email.send_email()

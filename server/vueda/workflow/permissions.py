@@ -1,10 +1,10 @@
-from vueda.core.permissions import VUEDAObjectPermission
+from vueda.core.permissions import VUEDAObjectPermissions
 from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import StatePermission
 from vueda.workflow.models import Workflow
 
 
-class VUEDAWorkflowObjectPermission(VUEDAObjectPermission):
+class VUEDAWorkflowObjectPermissions(VUEDAObjectPermissions):
     """
     Plug workflow state permissions into the DRF object permissions.
     """

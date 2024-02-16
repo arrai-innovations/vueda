@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import StatePermission
 from vueda.workflow.models import Workflow
-from vueda.workflow.permissions import VUEDAWorkflowObjectPermission
+from vueda.workflow.permissions import VUEDAWorkflowObjectPermissions
 
 
 class HasWorkflowViewMixin:
@@ -43,7 +43,7 @@ class HasWorkflowViewMixin:
 
 class WorkflowView(APIView):
     permission_classes = [
-        VUEDAWorkflowObjectPermission,
+        VUEDAWorkflowObjectPermissions,
     ]
 
     def __init__(self):

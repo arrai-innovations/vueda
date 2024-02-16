@@ -181,3 +181,30 @@ class ExcludeFieldsSerializerMixin:
                         kwargs.setdefault(field, {})
                         kwargs[field]["read_only"] = True
         return kwargs
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    password = serializers.CharField()
+    password_confirm = serializers.CharField()
+    pk = serializers.CharField()
+    token = serializers.CharField()
+
+    class Meta:
+        extra_kwargs = {"password": {"write_only": True, "required": True}, "password_confirm": {"required": True}}
+
+    def validate(self, data):
+        if data["password"] > data["password_confirm"]:
+            raise serializers.ValidationError("Password and Confirm Password must be the same.")
+
+        return data
+
+    def validate_password(self, value):
+        try:
+            password_validation.validate_password(value, self.instance)
+        except ValidationError as err:
+            raise serializers.ValidationError(" ".join(err))
+        return value

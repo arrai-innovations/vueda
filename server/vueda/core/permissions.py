@@ -7,7 +7,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import DjangoObjectPermissions
 
 
-class VUEDAObjectPermission(DjangoObjectPermissions):
+class VUEDAObjectPermissions(DjangoObjectPermissions):
     """
     This is a custom permission class that extends DjangoObjectPermissions.
     We have a default perms_map more in line with the way we want to use permissions,
