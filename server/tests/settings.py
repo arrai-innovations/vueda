@@ -23,3 +23,9 @@ INSTALLED_APPS += [  # noqa: F405
 AUTH_USER_MODEL = "tests.User"
 
 IN_TESTS = True
+
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
+ROOT_URLCONF = "tests.root_urls"
+
+SECRET_KEY = "test_secret_key"

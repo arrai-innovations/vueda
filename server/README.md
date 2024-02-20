@@ -19,6 +19,7 @@
   - [Updating](#updating)
   - [Tagging Releases](#tagging-releases)
 - [Testing](#testing)
+  - [Setup](#setup-1)
   - [Running Tests](#running-tests)
   - [Generating Coverage Locally](#generating-coverage-locally)
 
@@ -177,6 +178,24 @@ Git tags are used to indicate to CircleCI that a commit is considered a release.
 Tags will have GitHub releases created and be published to our pypi index.
 
 ## Testing
+
+### Setup
+
+You'll need a database role that can make databases, if a vueda role doesn't already exist. You can create a role like this:
+
+```console
+(vueda-server)[you@your vueda-server]$ createuser --username postgres --pwprompt --createdb vueda
+# or
+(vueda-server)[you@your vueda-server]$ createuser -U postgres -P -d vueda
+```
+
+And you'll then need to put the connection details in your `.env.local`, like this:
+
+```console
+DATABASE_URL="postgresql://vueda:password@/vueda"
+```
+
+Depending on your local postgres setup, you may need to add a `pg_hba.conf` entry for the `vueda` user, or you may not need to provide a password in the connection string.
 
 ### Running Tests
 

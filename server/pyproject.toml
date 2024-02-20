@@ -86,7 +86,8 @@ max-complexity = 20
 max-line-length = 120
 # flake8-import-order
 application-import-names = [
-    'vueda'
+    "vueda",
+    "tests"
 ]
 import-order-style = 'pycharm'
 # pep8-naming
@@ -152,8 +153,8 @@ django_find_project = false
 pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "tests.settings"
 addopts = "--ds=tests.settings --create-db"
+testpaths = ["tests"]
 python_files = [
-    "tests.py",
     "test_*.py"
 ]
 filterwarnings = [
@@ -171,4 +172,4 @@ lines_after_imports = 2
 line_length = 120
 
 # Add application import names to the first-party section
-known_first_party = ["vueda"]
+known_first_party = ["vueda", "tests"]

@@ -27,3 +27,12 @@ class Timesheet(SimpleHistoryModelMixin, models.Model):
 
     class Meta(BaseModelMeta):
         pass
+
+
+class TimesheetEntry(SimpleHistoryModelMixin, models.Model):
+    timesheet = models.ForeignKey("Timesheet", on_delete=models.CASCADE)
+    date = models.DateField()
+    hours = models.DecimalField(max_digits=5, decimal_places=2)
+
+    class Meta(BaseModelMeta):
+        pass

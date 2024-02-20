@@ -1,5 +1,6 @@
 from typing import Optional
 
+from django.conf import settings
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin
 from django.contrib.auth.models import UserManager
@@ -79,14 +80,15 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, PermissionsMixin
 
         # workflow row level permissions
         #  you can be granted or denied permissions by workflow state, so we need to check regardless of super value
-        from vueda.workflow.models import HasWorkflowModelMixin
-
         grant_or_deny = None
-        if isinstance(obj, HasWorkflowModelMixin):
-            if obj.workflow:
-                grant_or_deny = obj.check_state_permission(perm, self.groups.all())
-            else:
-                raise ValueError("Object has no workflow, but is a HasWorkflowModelMixin.")
+        if "vueda.workflow" in settings.INSTALLED_APPS:
+            from vueda.workflow.models import HasWorkflowModelMixin
+
+            if isinstance(obj, HasWorkflowModelMixin):
+                if obj.workflow:
+                    grant_or_deny = obj.check_state_permission(perm, self.groups.all())
+                else:
+                    raise ValueError("Object has no workflow, but is a HasWorkflowModelMixin.")
 
         # `grant_or_deny` is expected to be None if obj is not a `HasWorkflowModelMixin` or if it has no workflow
         #  or if there are no explicit state permissions for the user's groups.

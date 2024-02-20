@@ -1,6 +1,7 @@
 from typing import Optional
 from typing import Union
 
+from django.conf import settings
 from django.db.models import Q
 from rest_framework import exceptions
 from rest_framework.permissions import DjangoObjectPermissions
@@ -29,23 +30,25 @@ class ObjectPermissions(DjangoObjectPermissions):
         Bypasses model-level permissions check for models with workflow state permissions,
         delegating the decision to object-level permissions if applicable.
         """
-        from vueda.workflow.models import HasWorkflowModelMixin
-        from vueda.workflow.models import StatePermission
-        from vueda.workflow.models import Workflow
+        # this is only going to work if workflow is installed
+        if "vueda.workflow" in settings.INSTALLED_APPS:
+            from vueda.workflow.models import HasWorkflowModelMixin
+            from vueda.workflow.models import StatePermission
+            from vueda.workflow.models import Workflow
 
-        model = view.queryset.model
-        if issubclass(model, HasWorkflowModelMixin):
-            workflow = Workflow.objects.filter(content_type=model.content_type()).first()
-            if (
-                workflow
-                and StatePermission.objects.filter(
-                    state__workflow=workflow,
-                    group__in=request.user.groups.all(),
-                    permission__codename__in=self.get_required_permissions(request.method, model),
-                    grant_or_deny=True,
-                ).exists()
-            ):
-                return True
+            model = view.queryset.model
+            if issubclass(model, HasWorkflowModelMixin):
+                workflow = Workflow.objects.filter(content_type=model.content_type()).first()
+                if (
+                    workflow
+                    and StatePermission.objects.filter(
+                        state__workflow=workflow,
+                        group__in=request.user.groups.all(),
+                        permission__codename__in=self.get_required_permissions(request.method, model),
+                        grant_or_deny=True,
+                    ).exists()
+                ):
+                    return True
         # set the view action for use in get_required_permissions
         self.view_action = view.action
         return super().has_permission(request, view)
