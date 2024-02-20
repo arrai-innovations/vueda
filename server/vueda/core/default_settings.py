@@ -2,6 +2,10 @@ from environ import environ
 
 
 env = environ.Env()
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
+
 DATABASES = {"default": env.db("DATABASE_URL", default="postgres://vueda@/vueda")}
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
 
