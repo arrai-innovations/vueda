@@ -1,11 +1,11 @@
 from datetime import date
 
 import pytest
-from conftest import BaseTestAssertResponseMixin
-from conftest import BaseTestGroupMixin
-from conftest import BaseTestUserMixin
 from django.urls import reverse
 
+from tests.conftest import BaseTestAssertResponseMixin
+from tests.conftest import BaseTestGroupMixin
+from tests.conftest import BaseTestUserMixin
 from tests.models import Employee
 from tests.models import Timesheet
 
