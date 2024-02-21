@@ -122,8 +122,7 @@ const fetchObjectHistory = async (app, model, objectId) => {
             credentials: "include",
         },
     );
-    let responseData;
-    responseData = await getJsonOrText(response);
+    const responseData = await getJsonOrText(response);
     if (responseData === "Object does not have a workflow.") {
         return result;
     }
@@ -148,8 +147,7 @@ const executeTransition = async (router, stateToRoute, app, model, objectId, tra
             body: JSON.stringify({ transition_code }),
         },
     );
-    let responseData;
-    responseData = await getJsonOrText(response);
+    const responseData = await getJsonOrText(response);
     handleNotOk(response, responseData, "Failed to execute transition");
     updateState(state.objectStates, { ...result, ...responseData.new_state });
     updateState(state.objectTransitions, { ...result, transitions: responseData.new_transitions });

@@ -1,7 +1,7 @@
 import { onActivated, onDeactivated, onMounted, ref, toRef } from "vue";
 
 export default function useIsActive() {
-    let isActive = ref(false);
+    const isActive = ref(false);
     onMounted(() => {
         isActive.value = true;
     });
