@@ -1,10 +1,16 @@
+export * from "./ViewActionRouter.vue";
 export * from "./ViewCreate.vue";
 export * from "./ViewDelete.vue";
 export * from "./ViewList.vue";
+export * from "./ViewLoading.vue";
+export * from "./ViewNotFound.vue";
 export * from "./ViewRead.vue";
 export * from "./ViewUpdate.vue";
+export { default as ViewActionRouter } from "./ViewActionRouter.vue";
 export { default as ViewCreate } from "./ViewCreate.vue";
 export { default as ViewDelete } from "./ViewDelete.vue";
 export { default as ViewList } from "./ViewList.vue";
+export { default as ViewLoading } from "./ViewLoading.vue";
+export { default as ViewNotFound } from "./ViewNotFound.vue";
 export { default as ViewRead } from "./ViewRead.vue";
 export { default as ViewUpdate } from "./ViewUpdate.vue";

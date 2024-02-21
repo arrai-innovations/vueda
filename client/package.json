@@ -44,6 +44,7 @@
     "eslint-plugin-vitest": "^0.3.10",
     "eslint-plugin-vitest-globals": "^1.4.0",
     "eslint-plugin-vue": "^9.18.1",
+    "glob-promise": "^6.0.5",
     "husky": "^8.0.3",
     "jsdoc": "^4.0.2",
     "jsdom": "^23.0.0",

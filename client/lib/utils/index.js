@@ -1,4 +1,5 @@
 export * from "./connectionHostname.js";
+export * from "./constants.js";
 export * from "./csrf.js";
 export * from "./errors.js";
 export * from "./fetchSupport.js";
