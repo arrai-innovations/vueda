@@ -22,6 +22,10 @@ workflows:
                   executor: python311
                   context: arrai-global
                   pipenv_cache_key_version: "2"
+                  config:
+                      - run:
+                            name: Copy config
+                            command: cp .env.circleci .env.local
                   filters: # filters required since `build_*` has filters
                       branches:
                           only: /.*/

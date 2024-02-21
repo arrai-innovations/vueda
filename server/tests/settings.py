@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from environ import environ
+from environ import environ  # noqa
 
 from vueda.core.default_settings import *  # noqa
 
