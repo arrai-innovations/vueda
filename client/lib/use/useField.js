@@ -1,7 +1,10 @@
+import { FormContextSymbol } from "@vueda/use/useForm.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
 import { computed, inject, provide, reactive, toRef, watch } from "vue";
+
+export const FieldContextSymbol = Symbol("fieldContext");
 
 export const fieldProps = {
     name: {
@@ -35,7 +38,7 @@ export function defaultValidateRequired(value) {
 }
 
 export default function useField(props, functions) {
-    const formContext = inject("formContext");
+    const formContext = inject(FormContextSymbol);
 
     const requiredFn = functions?.required || defaultValidateRequired;
     const requiredMessage = computed(() => {
@@ -110,6 +113,6 @@ export default function useField(props, functions) {
         errors,
         dirty,
     });
-    provide("fieldContext", state);
+    provide(FieldContextSymbol, state);
     return state;
 }

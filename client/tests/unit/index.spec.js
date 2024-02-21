@@ -22,11 +22,7 @@ async function testExports(directory, importPath) {
 
         // handle default export
         if (moduleExports.default) {
-            let name = moduleExports.default.name;
-            if (!name) {
-                name = path.parse(module).name;
-            }
-            exportedKeys.push(name);
+            exportedKeys.push(path.parse(module).name);
         }
     }
 

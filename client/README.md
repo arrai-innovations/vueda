@@ -22,6 +22,7 @@ vueda-client
     - [Theming](#theming)
     - [Customization](#customization)
   - [Development](#development)
+    - [Environment](#environment)
     - [Running Locally](#running-locally)
 - [todo: test these instructions when the examples exist](#todo-test-these-instructions-when-the-examples-exist)
     - [Testing](#testing)
@@ -129,6 +130,18 @@ services of [vueda-server].
 ### Customization
 
 ## Development
+
+### Environment
+
+Clone the repository and install the dependencies:
+
+```console
+$ git clone git://github.com/arrai-innovations/vueda-client.git
+$ cd vueda-client
+[vueda-client]$ npm install --include=dev
+```
+
+Installing without dev dependencies will not work as husky is a dev dependency and is called in prepare.
 
 ### Running Locally
 

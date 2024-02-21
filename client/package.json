@@ -12,7 +12,7 @@
     "test": "vitest",
     "coverage": "npm run coverage:clean && npm test -- --coverage=true",
     "coverage:clean": "rm -rf coverage",
-    "prepare": "husky install",
+    "prepare": "husky || true",
     "docs": "echo \"#todo: setup jsdoc to markdown\""
   },
   "repository": {
@@ -45,25 +45,26 @@
     "eslint-plugin-vitest-globals": "^1.4.0",
     "eslint-plugin-vue": "^9.18.1",
     "glob-promise": "^6.0.5",
-    "husky": "^8.0.3",
+    "husky": "^9.0.11",
     "jsdoc": "^4.0.2",
     "jsdom": "^23.0.0",
     "lint-staged": "^15.1.0",
     "msw": "^2.0.9",
     "pinst": "^3.0.0",
     "prettier": "^3.2.5",
-    "rollup-plugin-strip": "^1.2.2",
+    "@rollup/plugin-strip": "^3.0.4",
     "vite": "^5.0.4",
     "vite-plugin-circular-dependency": "^0.2.1",
     "vitest": "^0.34.6"
   },
   "peerDependencies": {
-    "@arrai-innovations/reactive-helpers": "^11.4.2",
+    "@arrai-innovations/reactive-helpers": "^12.0.0",
     "@floating-ui/vue": "^1.0.2",
     "@vueuse/core": "^10.1.2",
     "lodash-es": "^4.17.21",
-    "vue": "^3.3.9",
-    "vue-router": "^4.2.5"
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.5",
+    "pinia": "^2.1.7"
   },
   "dependencies": {
     "@tiptap/extension-text-align": "^2.1.13",

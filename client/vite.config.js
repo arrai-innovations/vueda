@@ -1,6 +1,6 @@
+import strip from "@rollup/plugin-strip";
 import Vue from "@vitejs/plugin-vue";
 import fs from "fs";
-import strip from "rollup-plugin-strip";
 import { URL, fileURLToPath } from "url";
 import { defineConfig } from "vite";
 import circleDependency from "vite-plugin-circular-dependency";

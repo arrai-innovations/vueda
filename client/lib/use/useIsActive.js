@@ -1,4 +1,4 @@
-import { onActivated, onDeactivated, onMounted, ref, toRef } from "vue";
+import { onActivated, onDeactivated, onMounted, readonly, ref } from "vue";
 
 export default function useIsActive() {
     const isActive = ref(false);
@@ -11,6 +11,5 @@ export default function useIsActive() {
     onDeactivated(() => {
         isActive.value = false;
     });
-    // readonly ref
-    return toRef(() => isActive);
+    return readonly(isActive);
 }

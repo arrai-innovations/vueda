@@ -1,4 +1,5 @@
 // useWidget.js
+import { FieldContextSymbol } from "@vueda/use/useField.js";
 import { computed, inject, reactive } from "vue";
 
 export const widgetProps = {
@@ -15,7 +16,7 @@ export const widgetProps = {
 export const widgetEmits = ["update:modelValue"];
 
 export default function useWidget(props, emit) {
-    const fieldContext = inject("fieldContext");
+    const fieldContext = inject(FieldContextSymbol);
     const combinedValue = computed({
         get: () => {
             if (props.modelValue) {
