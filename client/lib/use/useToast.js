@@ -1,4 +1,5 @@
 import { getFakeId } from "@arrai-innovations/reactive-helpers";
+import { ToastSymbol } from "@vueda/utils/index.js";
 import { DateTime } from "luxon";
 import { inject, provide, reactive, readonly } from "vue";
 
@@ -18,8 +19,6 @@ class ToastError extends Error {
         autoDismiss: 0,
     };
 */
-
-const ToastSymbol = Symbol("toast");
 
 export default function useToast() {
     let toastState = inject(ToastSymbol, null);

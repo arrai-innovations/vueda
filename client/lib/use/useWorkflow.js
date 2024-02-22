@@ -2,6 +2,7 @@ import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname";
 import { getCSRFValue } from "@vueda/utils/csrf";
 import { getJsonOrText } from "@vueda/utils/fetchSupport";
+import { WorkflowSymbol } from "@vueda/utils/index.js";
 import get from "lodash-es/get.js";
 import set from "lodash-es/set.js";
 import snakeCase from "lodash-es/snakeCase.js";
@@ -28,8 +29,6 @@ function handleNotOk(response, data, messagePrefix, empty) {
     }
     return data;
 }
-
-const WorkflowSymbol = Symbol("workflow");
 
 export default function useWorkflow() {
     let workflowState = inject(WorkflowSymbol, null);

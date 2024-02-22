@@ -1,5 +1,5 @@
 // useWidget.js
-import { FieldContextSymbol } from "@vueda/use/useField.js";
+import { FieldContextSymbol } from "@vueda/utils/index.js";
 import { computed, inject, reactive } from "vue";
 
 export const widgetProps = {

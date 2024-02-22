@@ -1,10 +1,8 @@
-import { FormContextSymbol } from "@vueda/use/useForm.js";
+import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/index.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
 import { computed, inject, provide, reactive, toRef, watch } from "vue";
-
-export const FieldContextSymbol = Symbol("fieldContext");
 
 export const fieldProps = {
     name: {

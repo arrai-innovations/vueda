@@ -1,10 +1,9 @@
+import { DarkModeSymbol } from "@vueda/utils/index.js";
 import { inject, onMounted, provide, readonly, ref } from "vue";
 
 const darkModeLocalStorageKey = "darkMode";
 
 const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-const DarkModeSymbol = Symbol();
 
 export default function useDarkMode() {
     let darkMode = inject(DarkModeSymbol, null);

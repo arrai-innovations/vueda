@@ -1,10 +1,9 @@
 import { del } from "@arrai-innovations/reactive-helpers";
+import { FormContextSymbol } from "@vueda/utils/index.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import set from "lodash-es/set.js";
 import { provide, reactive, readonly, toRef, watch } from "vue";
-
-export const FormContextSymbol = Symbol("formContext");
 
 export default function useForm(props) {
     const form = reactive({

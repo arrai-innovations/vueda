@@ -1,11 +1,9 @@
 import { useToast } from "@vueda/use/useToast.js";
-import { VITE_PACKAGE_VERSION } from "@vueda/utils/index.js";
+import { VITE_PACKAGE_VERSION, VersionSymbol } from "@vueda/utils/index.js";
 import semvarGT from "semver/functions/gt.js";
 import { computed, inject, provide, readonly, ref, watch } from "vue";
 
 // import dispatcher from "@vueda/utils/dispatcher";
-
-export const VersionSymbol = Symbol("version");
 
 export default function useVersion() {
     let version = inject(VersionSymbol, null);
