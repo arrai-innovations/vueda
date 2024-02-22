@@ -1,5 +1,6 @@
 import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.contrib.auth import password_validation
@@ -23,17 +24,30 @@ class NoExtraFieldsSerializerMixin:
         attrs = super().validate(attrs)
         errors = {}
         if hasattr(self, "initial_data"):
-            extra_keys = set(self.initial_data.keys()) - set(self.fields.keys())
+            extra_keys_fields = set(self.initial_data.keys()) - set(self.fields.keys())
             if hasattr(self, "_flex_options_rep_only"):
-                extra_keys -= set(self._flex_options_rep_only["fields"])
-                extra_keys -= set(self._flex_options_rep_only["expand"])
-            for extra_key in extra_keys:
+                extra_keys_fields -= set(self._flex_options_rep_only["fields"])
+                extra_keys_fields -= set(self._flex_options_rep_only["expand"])
+            for extra_key in extra_keys_fields:
+                if extra_key in errors:
+                    errors[extra_key].append("Unexpected field.")
+                else:
+                    errors[extra_key] = ["Unexpected field."]
+
+            # unexpected fields in expand param
+            expand_param = settings.REST_FLEX_FIELDS.get("EXPAND_PARAM", "expand")
+            extra_keys_expand = set(self.initial_data.get(expand_param, [])) - set(self.fields.keys())
+            if hasattr(self, "_flex_options_rep_only"):
+                extra_keys_expand -= set(self._flex_options_rep_only["fields"])
+                extra_keys_expand -= set(self._flex_options_rep_only["expand"])
+            for extra_key in extra_keys_expand:
                 if extra_key in errors:
                     errors[extra_key].append("Unexpected field.")
                 else:
                     errors[extra_key] = ["Unexpected field."]
         if errors:
             raise ValidationError(errors)
+
         return attrs
 
 

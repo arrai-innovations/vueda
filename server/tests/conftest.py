@@ -94,10 +94,12 @@ class BaseTestAssertResponseMixin:
                 my_json = response.json()
                 if "serverStack" in my_json:
                     print(
-                        f"Unexpected response code: {response.status_code} != 200\nserver stack:\n{my_json['serverStack']}"
+                        f"Unexpected response code: {response.status_code} != {expected_status_code}\nserver stack:\n{my_json['serverStack']}"
                     )
             except ValueError:
-                print(f"Unexpected response code: {response.status_code} != 200\nresponse was:\n{response.data}")
+                print(
+                    f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response.data}"
+                )
         assert response.status_code == expected_status_code
 
 
@@ -178,8 +180,3 @@ class BaseTestUserMixin:
                     user.groups.add(group)
                 self._users[email] = user
         return self._users
-
-    @pytest.fixture
-    def authenticated_client(self, api_client):
-        api_client.force_authenticate(user=self.user)
-        return api_client
