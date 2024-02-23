@@ -1,6 +1,5 @@
 import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
-from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.contrib.auth import password_validation
@@ -25,26 +24,20 @@ class NoExtraFieldsSerializerMixin:
         errors = {}
         if hasattr(self, "initial_data"):
             extra_keys_fields = set(self.initial_data.keys()) - set(self.fields.keys())
-            if hasattr(self, "_flex_options_rep_only"):
-                extra_keys_fields -= set(self._flex_options_rep_only["fields"])
-                extra_keys_fields -= set(self._flex_options_rep_only["expand"])
+
             for extra_key in extra_keys_fields:
                 if extra_key in errors:
                     errors[extra_key].append("Unexpected field.")
                 else:
                     errors[extra_key] = ["Unexpected field."]
 
-            # unexpected fields in expand param
-            expand_param = settings.REST_FLEX_FIELDS.get("EXPAND_PARAM", "expand")
-            extra_keys_expand = set(self.initial_data.get(expand_param, [])) - set(self.fields.keys())
-            if hasattr(self, "_flex_options_rep_only"):
-                extra_keys_expand -= set(self._flex_options_rep_only["fields"])
-                extra_keys_expand -= set(self._flex_options_rep_only["expand"])
-            for extra_key in extra_keys_expand:
-                if extra_key in errors:
-                    errors[extra_key].append("Unexpected field.")
-                else:
-                    errors[extra_key] = ["Unexpected field."]
+            if not self.parent:
+                extra_keys_expand = set(self._flex_options_rep_only["expand"]) - set(self.expanded_fields)
+                for extra_key in extra_keys_expand:
+                    if extra_key in errors:
+                        errors[extra_key].append("Unexpected field.")
+                    else:
+                        errors[extra_key] = ["Unexpected field."]
         if errors:
             raise ValidationError(errors)
 
@@ -95,6 +88,12 @@ class FlexFieldsWriteableNestedSerializerMixin(
                 self.apply_flex_fields(self.fields, self._flex_options_rep_only)
                 self._flex_fields_rep_applied = True
         return super().to_internal_value(data)
+
+    def update_or_create_direct_relations(self, attrs, relations):
+        from ipdb import launch_ipdb_on_exception
+
+        with launch_ipdb_on_exception():
+            return super().update_or_create_direct_relations(attrs, relations)
 
 
 class WhoAmISerializer(NoExtraFieldsSerializerMixin, serializers.ModelSerializer):

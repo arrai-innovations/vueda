@@ -1,12 +1,45 @@
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers as drf_serializers
 
+from tests.models import Employee
 from tests.models import Timesheet
+from tests.models import TimesheetEntry
+from vueda.core.serializers import FlexFieldsWriteableNestedSerializerMixin
 from vueda.core.serializers import NoExtraFieldsSerializerMixin
 
 
-class TimesheetSerializer(NoExtraFieldsSerializerMixin, FlexFieldsSerializerMixin, drf_serializers.ModelSerializer):
+class EmployeeSerializer(NoExtraFieldsSerializerMixin, FlexFieldsSerializerMixin, drf_serializers.ModelSerializer):
+    class Meta:
+        model = Employee
+        fields = ["id", "user", "employee_number"]
+
+
+class TimesheetEntrySerializer(
+    NoExtraFieldsSerializerMixin, FlexFieldsSerializerMixin, drf_serializers.ModelSerializer
+):
+    class Meta:
+        model = TimesheetEntry
+        fields = ["id", "timesheet", "date", "hours"]
+
+
+class TimesheetSerializer(
+    FlexFieldsWriteableNestedSerializerMixin,
+    NoExtraFieldsSerializerMixin,
+    FlexFieldsSerializerMixin,
+    drf_serializers.ModelSerializer,
+):
     class Meta:
         model = Timesheet
-        # fields = "__all__"
         fields = ["id", "period_start", "period_end", "employee"]
+
+        expandable_fields = {
+            "timesheet_entry": (TimesheetEntrySerializer, {"many": True}),
+            "employee": (
+                EmployeeSerializer,
+                {},
+            ),
+            "foo": (drf_serializers.SerializerMethodField, {"read_only": True}),
+        }
+
+    def get_foo(self, instance):
+        return "bar"

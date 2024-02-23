@@ -96,6 +96,10 @@ class BaseTestAssertResponseMixin:
                     print(
                         f"Unexpected response code: {response.status_code} != {expected_status_code}\nserver stack:\n{my_json['serverStack']}"
                     )
+                else:
+                    print(
+                        f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response.data}"
+                    )
             except ValueError:
                 print(
                     f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response.data}"
