@@ -23,8 +23,8 @@ class TimesheetEntrySerializer(
 
 
 class TimesheetSerializer(
-    FlexFieldsWriteableNestedSerializerMixin,
     NoExtraFieldsSerializerMixin,
+    FlexFieldsWriteableNestedSerializerMixin,
     FlexFieldsSerializerMixin,
     drf_serializers.ModelSerializer,
 ):
