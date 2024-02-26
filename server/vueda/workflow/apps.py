@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class WorkflowsConfig(AppConfig):
+class WorkflowConfig(AppConfig):
     name = "vueda.workflow"
     verbose_name = "VUEDA Workflow"

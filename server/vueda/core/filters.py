@@ -2,7 +2,7 @@ from django.db.models.constants import LOOKUP_SEP
 from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 
-from vueda.core.fields import BaseArrayField
+from vueda.core.fields.form import BaseArrayField
 
 
 class BaseArrayFilter(filters.Filter):

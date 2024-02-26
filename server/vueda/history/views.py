@@ -3,8 +3,8 @@ from django.db.models import Max
 from rest_framework import status as drf_status
 from rest_framework.response import Response
 
-from vueda.core.views import WhoAmIView as CoreWhoAmIView
 from vueda.history.serialiers import WhoAmISerializer
+from vueda.user.views import WhoAmIView as CoreWhoAmIView
 from vueda.workflow.views import WorkflowView
 
 

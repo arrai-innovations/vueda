@@ -16,10 +16,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from vueda.core.permissions import ObjectPermissions
-from vueda.core.serializers import ForgotPasswordSerializer
-from vueda.core.serializers import ResetPasswordSerializer
-from vueda.core.serializers import WhoAmISerializer
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
+from vueda.user.serializers import ForgotPasswordSerializer
+from vueda.user.serializers import ResetPasswordSerializer
+from vueda.user.serializers import WhoAmISerializer
 
 
 User = get_user_model()

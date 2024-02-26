@@ -3,9 +3,10 @@ from rest_framework import viewsets
 from tests.models import Timesheet
 from tests.serializers import TimesheetSerializer
 from vueda.core.permissions import ObjectPermissions
+from vueda.core.viewsets.__init__ import NoExtraFieldsForViewSetMixin
 
 
-class TimesheetViewSet(viewsets.ModelViewSet):
+class TimesheetViewSet(NoExtraFieldsForViewSetMixin, viewsets.ModelViewSet):
     queryset = Timesheet.objects.all()
     serializer_class = TimesheetSerializer
     permission_classes = [ObjectPermissions]

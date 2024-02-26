@@ -1,0 +1,38 @@
+from django.contrib.contenttypes.models import ContentType
+from rest_framework import generics
+from rest_framework.generics import get_object_or_404
+
+from vueda.core.viewsets.__init__ import FlexFieldsMixin
+from vueda.info.register import get_registered_content_types
+from vueda.info.serializers import ModelInformationSerializer
+
+
+class ModelInformationViewSet(FlexFieldsMixin, generics.ListAPIView, generics.RetrieveAPIView):
+    """
+    This viewsets is for providing metadata about models, including fields, actions, and permissions
+    to front-end clients. This is a read-only viewset.
+
+    You should be able to list all models, and get information about a specific model.
+
+    Effectively, this is a custom model viewset for content types.
+
+    urls using this viewset should provide the app_label and model as kwargs.
+    ie: ```py
+    path('model-information/<str:app_label>/<str:model>/', ModelInformationViewSet.as_view(), name='model-information')
+    ```
+    """
+
+    object = None  # type: ContentType
+
+    serializer_class = ModelInformationSerializer
+
+    def get_queryset(self):
+        return ContentType.objects.all().filter(pk__in=get_registered_content_types())
+
+    def dispatch(self, request, *args, **kwargs):
+        self.object = self.get_object(kwargs["app_label"], kwargs["model"])
+        return super().dispatch(request, *args, **kwargs)
+
+    # noinspection PyMethodOverriding
+    def get_object(self, app_label, model):
+        return get_object_or_404(ContentType, app_label=app_label, model=model.replace("_", ""))

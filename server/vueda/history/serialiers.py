@@ -1,12 +1,12 @@
 import rest_framework.serializers as drf_serializers
 from rest_framework import serializers
 
-from vueda.core.serializers import User
-from vueda.core.serializers import UserSerializer as CoreUserSerializer
-from vueda.core.serializers import WhoAmISerializer as CoreWhoAmISerializer
-from vueda.core.serializers import WhoIsSomeoneElseSerializer as CoreWhoIsSomeoneElseSerializer
 from vueda.history.fields import HistoricalRecordField
 from vueda.history.fields import filter_fields_for_flexlike_on_historical_records
+from vueda.user.serializers import User
+from vueda.user.serializers import UserSerializer as CoreUserSerializer
+from vueda.user.serializers import WhoAmISerializer as CoreWhoAmISerializer
+from vueda.user.serializers import WhoIsSomeoneElseSerializer as CoreWhoIsSomeoneElseSerializer
 
 
 class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass):

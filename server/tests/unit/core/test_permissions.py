@@ -1,6 +1,7 @@
 from datetime import date
 
 import pytest
+from django.conf import settings
 from django.urls import reverse
 
 from tests.conftest import BaseTestAssertResponseMixin
@@ -95,6 +96,8 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
             period_end=date(2024, 2, 29),
         )
         detail_url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
+        # add f= querystring to details an only ask for certain fields
+        detail_url += f"?{settings.REST_FLEX_FIELDS['FIELDS_PARAM']}=id,employee,period_start,period_end,dumb"
         list_url = reverse("tests.timesheet-list")
         match http_method:
             case "GET":

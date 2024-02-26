@@ -1,8 +1,8 @@
 from django.db import models
 
-from vueda.core.models import AbstractVUEDAUser
 from vueda.core.models import BaseModelMeta
 from vueda.history.models import SimpleHistoryModelMixin
+from vueda.user.models import AbstractVUEDAUser
 
 
 class User(AbstractVUEDAUser):
