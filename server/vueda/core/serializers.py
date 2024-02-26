@@ -22,6 +22,7 @@ class NoExtraFieldsSerializerMixin:
     def validate(self, attrs):
         attrs = super().validate(attrs)
         errors = {}
+        # set_trace()
         if hasattr(self, "initial_data") and self.context.get("view").serializer_class == self.__class__:
             # if the serializer is a nested serializer, we don't want to validate the extra fields
             # because the parent serializer will validate the extra fields.
@@ -38,6 +39,14 @@ class NoExtraFieldsSerializerMixin:
                     errors[extra_key].append("Unexpected field.")
                 else:
                     errors[extra_key] = ["Unexpected field."]
+            if not self.parent:
+                extra_keys_expand = set(self._flex_options_rep_only["expand"]) - set(self.expanded_fields)
+                for extra_key in extra_keys_expand:
+                    if extra_key in errors:
+                        errors[extra_key].append("Unexpected field.")
+                    else:
+                        errors[extra_key] = ["Unexpected field."]
+
         if errors:
             raise ValidationError(errors)
 
