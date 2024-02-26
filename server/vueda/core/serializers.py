@@ -22,18 +22,34 @@ class NoExtraFieldsSerializerMixin:
     def validate(self, attrs):
         attrs = super().validate(attrs)
         errors = {}
-        if hasattr(self, "initial_data"):
-            extra_keys = set(self.initial_data.keys()) - set(self.fields.keys())
-            if hasattr(self, "_flex_options_rep_only"):
-                extra_keys -= set(self._flex_options_rep_only["fields"])
-                extra_keys -= set(self._flex_options_rep_only["expand"])
-            for extra_key in extra_keys:
+        # set_trace()
+        if hasattr(self, "initial_data") and self.context.get("view").serializer_class == self.__class__:
+            # if the serializer is a nested serializer, we don't want to validate the extra fields
+            # because the parent serializer will validate the extra fields.
+            extra_keys_fields = set(self.initial_data.keys()) - set(self.fields.keys())
+            for extra_key in extra_keys_fields:
                 if extra_key in errors:
                     errors[extra_key].append("Unexpected field.")
                 else:
                     errors[extra_key] = ["Unexpected field."]
+
+            extra_keys_expand = set(self._flex_options_rep_only["expand"]) - set(self.expanded_fields)
+            for extra_key in extra_keys_expand:
+                if extra_key in errors:
+                    errors[extra_key].append("Unexpected field.")
+                else:
+                    errors[extra_key] = ["Unexpected field."]
+            if not self.parent:
+                extra_keys_expand = set(self._flex_options_rep_only["expand"]) - set(self.expanded_fields)
+                for extra_key in extra_keys_expand:
+                    if extra_key in errors:
+                        errors[extra_key].append("Unexpected field.")
+                    else:
+                        errors[extra_key] = ["Unexpected field."]
+
         if errors:
             raise ValidationError(errors)
+
         return attrs
 
 
@@ -69,13 +85,6 @@ class FlexFieldsWriteableNestedSerializerMixin(
     """
 
     def to_internal_value(self, data):
-        """
-        We want to apply flex fields to the serializer fields, but only if the
-        serializer is being used in a view. We don't want to apply flex fields
-        to the serializer fields if the serializer is being used as a nested
-        serializer, because it should already have the flex fields applied.
-        Double applying flex fields to the serializer fields will cause an error.
-        """
         if not self._flex_fields_rep_applied:
             if "view" in self.context and isinstance(self, self.context["view"].serializer_class):
                 self.apply_flex_fields(self.fields, self._flex_options_rep_only)
