@@ -1,13 +1,13 @@
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import generics
-from rest_framework.generics import get_object_or_404
+from rest_framework.viewsets import GenericViewSet
 
 from vueda.core.viewsets.__init__ import FlexFieldsMixin
 from vueda.info.register import get_registered_content_types
 from vueda.info.serializers import ModelInfoSerializer
 
 
-class ModelInfoViewSet(FlexFieldsMixin, generics.ListAPIView, generics.RetrieveAPIView):
+class ModelInfoViewSet(FlexFieldsMixin, generics.ListAPIView, generics.RetrieveAPIView, GenericViewSet):
     """
     This viewsets is for providing metadata about models, including fields, actions, and permissions
     to front-end clients. This is a read-only viewset.
@@ -35,4 +35,4 @@ class ModelInfoViewSet(FlexFieldsMixin, generics.ListAPIView, generics.RetrieveA
 
     # noinspection PyMethodOverriding
     def get_object(self, app_label, model):
-        return get_object_or_404(ContentType, app_label=app_label, model=model.replace("_", ""))
+        return generics.get_object_or_404(ContentType, app_label=app_label, model=model.replace("_", ""))

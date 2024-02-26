@@ -12,6 +12,8 @@ urlpatterns = [
         include(
             [
                 path("tests/", include(tests_urlpatterns)),
+                path("info/", include("vueda.info.urls")),
+                path("workflow/", include("vueda.workflow.urls")),
             ]
         ),
     )
