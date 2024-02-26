@@ -43,7 +43,7 @@ class FilteringSerializer(FlexFieldsSerializerMixin, serializers.Serializer):
     type = serializers.CharField()
 
 
-class ModelInformationSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer):
+class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer):
     """
     A serializer for providing metadata about models, including fields, actions, and permissions.
 

@@ -6,7 +6,7 @@ _registry = {}
 
 def register(content_type, canonical_viewset, canonical_serializer):
     """
-    Register a model so that it can be used with ModelInformationViewSet.
+    Register a model so that it can be used with ModelInfoViewSet.
 
     :param content_type: The content_type to register.
     :param canonical_viewset: The viewset to use as a reference for the model.

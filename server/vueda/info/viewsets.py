@@ -4,10 +4,10 @@ from rest_framework.generics import get_object_or_404
 
 from vueda.core.viewsets.__init__ import FlexFieldsMixin
 from vueda.info.register import get_registered_content_types
-from vueda.info.serializers import ModelInformationSerializer
+from vueda.info.serializers import ModelInfoSerializer
 
 
-class ModelInformationViewSet(FlexFieldsMixin, generics.ListAPIView, generics.RetrieveAPIView):
+class ModelInfoViewSet(FlexFieldsMixin, generics.ListAPIView, generics.RetrieveAPIView):
     """
     This viewsets is for providing metadata about models, including fields, actions, and permissions
     to front-end clients. This is a read-only viewset.
@@ -18,13 +18,13 @@ class ModelInformationViewSet(FlexFieldsMixin, generics.ListAPIView, generics.Re
 
     urls using this viewset should provide the app_label and model as kwargs.
     ie: ```py
-    path('model-information/<str:app_label>/<str:model>/', ModelInformationViewSet.as_view(), name='model-information')
+    path('model-info/<str:app_label>/<str:model>/', ModelInfoViewSet.as_view(), name='model-info')
     ```
     """
 
     object = None  # type: ContentType
 
-    serializer_class = ModelInformationSerializer
+    serializer_class = ModelInfoSerializer
 
     def get_queryset(self):
         return ContentType.objects.all().filter(pk__in=get_registered_content_types())
