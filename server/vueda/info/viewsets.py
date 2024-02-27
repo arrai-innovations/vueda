@@ -2,7 +2,7 @@ from django.contrib.contenttypes.models import ContentType
 from rest_framework import generics
 from rest_framework.viewsets import GenericViewSet
 
-from vueda.core.viewsets.__init__ import FlexFieldsMixin
+from vueda.core.viewsets import FlexFieldsMixin
 from vueda.info.register import get_registered_content_types
 from vueda.info.serializers import ModelInfoSerializer
 

@@ -6,8 +6,8 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from vueda.core.serializers.__init__ import FlexFieldsWriteableNestedSerializerMixin
-from vueda.core.serializers.__init__ import NoExtraFieldsSerializerMixin
+from vueda.core.serializers import FlexFieldsWriteableNestedSerializerMixin
+from vueda.core.serializers import NoExtraFieldsSerializerMixin
 
 
 User = get_user_model()

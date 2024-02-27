@@ -3,7 +3,7 @@ from rest_framework import viewsets
 from tests.models import Timesheet
 from tests.serializers import TimesheetSerializer
 from vueda.core.permissions import ObjectPermissions
-from vueda.core.viewsets.__init__ import NoExtraFieldsForViewSetMixin
+from vueda.core.viewsets import NoExtraFieldsForViewSetMixin
 
 
 class TimesheetViewSet(NoExtraFieldsForViewSetMixin, viewsets.ModelViewSet):
