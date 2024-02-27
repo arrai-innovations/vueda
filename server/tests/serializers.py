@@ -1,9 +1,9 @@
-from models import TimesheetEntry
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers
 
 from tests.models import Employee
 from tests.models import Timesheet
+from tests.models import TimesheetEntry
 from vueda.core.serializers import FlexFieldsWriteableNestedSerializerMixin
 from vueda.core.serializers import NoExtraFieldsSerializerMixin
 
