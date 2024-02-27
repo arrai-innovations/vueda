@@ -1,7 +1,8 @@
-import rest_framework.viewsets as drf_viewsets
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
+from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
+from rest_framework import viewsets as drf_viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -156,18 +157,22 @@ class NoExtraFieldsForViewSetMixin:
         return super().list(request, *args, **kwargs)
 
 
-class GenericActionFlexFieldsViewSetMixin:
+class FlexFieldsMixin(DefaultFlexFieldsMixin):
     """
     Mixin for DRF ViewSets to add 'permitted_expands' in serializer context based on
     the current action. It utilizes 'permit_{action}_expands' attributes of the ViewSet
     to determine expandable fields for each action (e.g., list, retrieve).
+
+    This replaces `rest_flex_fields.FlexFieldsMixin` and `rest_flex_fields.FlexFieldsModelViewSet` usage.
     """
 
     def get_serializer_context(self):
         default_context = super().get_serializer_context()
-        permit_expands_key = f"permit_{self.action}_expands"
-        if hasattr(self, "action") and hasattr(self, permit_expands_key):
-            default_context["permitted_expands"] = getattr(self, permit_expands_key)
+        if hasattr(self, "action") and self.action != "list":
+            # super deals with permitted list action expands
+            permit_expands_key = f"permit_{self.action}_expands"
+            if hasattr(self, permit_expands_key):
+                default_context["permitted_expands"] = getattr(self, permit_expands_key)
         return default_context
 
 

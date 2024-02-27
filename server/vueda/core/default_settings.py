@@ -33,6 +33,11 @@ INSTALLED_APPS = [
     "rest_framework",
     "simple_history",
     "django_filters",
+    "vueda.core",
+    "vueda.history",
+    "vueda.info",
+    "vueda.user",
+    "vueda.workflow",
 ]
 
 REST_FRAMEWORK = {
