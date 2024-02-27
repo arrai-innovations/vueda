@@ -210,11 +210,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
     #     self.assert_response(response, 200)  # self OK success status
     #     assert employee_data['employee_number'] == "abcd-1234"
     #
-    #
-    #
-    #
     #  # def test_expand_exployee_with_non_existing_fields(self, api_client):
-    #
 
     def test_expand_with_existing_expands(self, api_client):
         user = self.users["test_my_user@example.com"]
@@ -309,7 +305,37 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         assert "employee" in response.data
         assert "user" in response.data["employee"]
 
-    # def test_expand_with_non_existing_fields(self, api_client):
+    def test_expand_with_non_existing_fields(self, api_client):
+        user = self.users["test_my_user@example.com"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-12348",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=date(2024, 2, 15),
+            period_end=date(2024, 2, 29),
+        )
+
+        url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
+        response = api_client.put(
+            url
+            + f"?{settings.REST_FLEX_FIELDS['FIELDS_PARAM']}=period_start,period_end,employee,invalid_field_name&"
+            + f"{settings.REST_FLEX_FIELDS['EXPAND_PARAM']}=employee",
+            data={
+                "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-123456"},
+                "period_start": date(2024, 2, 16),
+                "period_end": date(2024, 2, 25),
+                "invalid_field_name": "invalid_value",
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        assert "invalid_field_name" in response.data
+        assert "period_start" not in response.data
 
 
 class FakeRequest:
