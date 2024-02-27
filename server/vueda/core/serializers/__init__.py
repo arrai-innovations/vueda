@@ -13,7 +13,7 @@ class NoExtraFieldsSerializerMixin:
     def validate(self, attrs):
         attrs = super().validate(attrs)
         errors = {}
-        if hasattr(self, "initial_data") and self.context.get("view").serializer_class == self.__class__:
+        if hasattr(self, "initial_data") and self.context.get("view").get_serializer_class() == self.__class__:
             # if the serializer is a nested serializer, we don't want to validate the extra fields
             # because the parent serializer will validate the extra fields.
             extra_keys_fields = set(self.initial_data.keys()) - set(self.fields.keys())
