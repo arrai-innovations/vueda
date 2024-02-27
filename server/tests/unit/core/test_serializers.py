@@ -329,6 +329,9 @@ class FakeView:
         self.request = request
         self.serializer_class = serializer_class
 
+    def get_serializer_class(self):
+        return self.serializer_class
+
 
 @pytest.mark.django_db
 class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
