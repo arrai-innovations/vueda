@@ -19,14 +19,14 @@ from vueda.core.permissions import ObjectPermissions
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.serializers import ForgotPasswordSerializer
 from vueda.user.serializers import ResetPasswordSerializer
-from vueda.user.serializers import WhoAmISerializer
+from vueda.user.serializers import WhoIsSerializer
 
 
 User = get_user_model()
 
 
-class WhoAmIView(RetrieveAPIView):
-    serializer_class = WhoAmISerializer
+class WhoIsView(RetrieveAPIView):
+    serializer_class = WhoIsSerializer
     permission_classes = []
 
     def retrieve(self, request, *args, **kwargs):
