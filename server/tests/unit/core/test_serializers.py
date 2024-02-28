@@ -2,7 +2,6 @@ from datetime import date
 
 import pytest
 from django.conf import settings
-from django.http import QueryDict
 from django.urls import reverse
 from rest_framework.exceptions import ValidationError
 
@@ -12,7 +11,8 @@ from tests.conftest import BaseTestUserMixin
 from tests.models import Employee
 from tests.models import Timesheet
 from tests.serializers import TimesheetSerializer
-from vueda.user.serializers import WhoIsSerializer
+from tests.utils import FakeRequest
+from tests.utils import FakeView
 
 
 @pytest.mark.django_db
@@ -339,28 +339,6 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         assert "period_start" not in response.data
 
 
-class FakeRequest:
-    def __init__(self, query_params=None, data=None, method="GET", user=None):
-        # GET
-        # a dictionary-like class customized to deal with multiple values for the same key
-        self.query_params = QueryDict("", mutable=True)
-        for key, value in query_params.items():
-            self.query_params.setlist(key, [value] if isinstance(value, str) else value)
-        # POST, PUT, PATCH
-        self.data = data
-        self.method = method
-        self.user = user
-
-
-class FakeView:
-    def __init__(self, request, serializer_class):
-        self.request = request
-        self.serializer_class = serializer_class
-
-    def get_serializer_class(self):
-        return self.serializer_class
-
-
 @pytest.mark.django_db
 class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create = {
@@ -541,44 +519,3 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             assert e.detail["label10"][0].code == "invalid"
         else:
             pytest.fail("Serializer is valid when it should not be")
-
-
-@pytest.mark.django_db
-class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
-        "Timesheet Reader": [
-            ("tests", "Timesheet", "read"),
-        ],
-        "Timesheet Updater": [
-            ("tests", "Timesheet", "update"),
-        ],
-    }
-
-    users_to_create = {
-        "testuser@example.com": {
-            "name": "Test User",
-            "password": "testpass",
-            "groups": ["Timesheet Reader"],
-        },
-        "test_my_user@example.com": {
-            "name": "Test User update",
-            "password": "testpass",
-            "groups": ["Timesheet Updater"],
-        },
-    }
-
-    def test_as_user(self):
-        user = self.users["testuser@example.com"]
-        get_data = {
-            "user": {"id": user},
-        }
-        request = FakeRequest(
-            {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["groups"]}, get_data, method="GET", user=user
-        )
-        context = {"request": request, "view": FakeView(request, WhoIsSerializer)}
-
-        serializer = WhoIsSerializer(instance=user, data=get_data, context=context)
-        fields = serializer.get_fields()
-        assert tuple(fields.keys()) == ("id", "email", "name", "groups", "is_superuser")
-
-    # def test_as_another_user(self, employee, another_employee):
