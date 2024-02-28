@@ -12,6 +12,7 @@ from tests.conftest import BaseTestUserMixin
 from tests.models import Employee
 from tests.models import Timesheet
 from tests.serializers import TimesheetSerializer
+from vueda.user.serializers import WhoIsSerializer
 
 
 @pytest.mark.django_db
@@ -313,7 +314,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
 
 
 class FakeRequest:
-    def __init__(self, query_params=None, data=None, method="GET"):
+    def __init__(self, query_params=None, data=None, method="GET", user=None):
         # GET
         # a dictionary-like class customized to deal with multiple values for the same key
         self.query_params = QueryDict("", mutable=True)
@@ -322,6 +323,7 @@ class FakeRequest:
         # POST, PUT, PATCH
         self.data = data
         self.method = method
+        self.user = user
 
 
 class FakeView:
@@ -513,3 +515,44 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             assert e.detail["label10"][0].code == "invalid"
         else:
             pytest.fail("Serializer is valid when it should not be")
+
+
+@pytest.mark.django_db
+class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create = {
+        "Timesheet Reader": [
+            ("tests", "Timesheet", "read"),
+        ],
+        "Timesheet Updater": [
+            ("tests", "Timesheet", "update"),
+        ],
+    }
+
+    users_to_create = {
+        "testuser@example.com": {
+            "name": "Test User",
+            "password": "testpass",
+            "groups": ["Timesheet Reader"],
+        },
+        "test_my_user@example.com": {
+            "name": "Test User update",
+            "password": "testpass",
+            "groups": ["Timesheet Updater"],
+        },
+    }
+
+    def test_as_user(self):
+        user = self.users["testuser@example.com"]
+        get_data = {
+            "user": {"id": user},
+        }
+        request = FakeRequest(
+            {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["groups"]}, get_data, method="GET", user=user
+        )
+        context = {"request": request, "view": FakeView(request, WhoIsSerializer)}
+
+        serializer = WhoIsSerializer(instance=user, data=get_data, context=context)
+        fields = serializer.get_fields()
+        assert tuple(fields.keys()) == ("id", "email", "name", "groups", "is_superuser")
+
+    # def test_as_another_user(self, employee, another_employee):
