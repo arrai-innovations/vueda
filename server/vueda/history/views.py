@@ -3,17 +3,17 @@ from django.db.models import Max
 from rest_framework import status as drf_status
 from rest_framework.response import Response
 
-from vueda.history.serialiers import WhoAmISerializer
-from vueda.user.views import WhoAmIView as CoreWhoAmIView
+from vueda.history.serialiers import WhoIsSerializer
+from vueda.user.views import WhoIsView as CoreWhoIsView
 from vueda.workflow.views import WorkflowView
 
 
-class WhoAmIView(CoreWhoAmIView):
+class WhoIsView(CoreWhoIsView):
     """
     This decoupling helps make the history app optional.
     """
 
-    serializer_class = WhoAmISerializer
+    serializer_class = WhoIsSerializer
 
     def get_object(self):
         user_model = super().get_object()

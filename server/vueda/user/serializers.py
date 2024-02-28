@@ -35,7 +35,7 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
-class WhoAmISerializer(NoExtraFieldsSerializerMixin, serializers.ModelSerializer):
+class WhoIsSerializer(NoExtraFieldsSerializerMixin, serializers.ModelSerializer):
     """
     This is a serializer for the current user, it is simpler than the other user serializers.
     """
@@ -46,16 +46,18 @@ class WhoAmISerializer(NoExtraFieldsSerializerMixin, serializers.ModelSerializer
         model = User
         fields = ["id", "email", "name", "groups", "is_superuser"]
 
+    def get_fields(self):
+        fields = super().get_fields()
 
-class WhoIsSomeoneElseSerializer(NoExtraFieldsSerializerMixin, serializers.ModelSerializer):
-    """
-    This is a serializer for someone else, it is simpler than the other user serializers.
-    It is generally used for looking up users by id and populating dropdowns.
-    """
+        user = None
+        if "request" in self.context and self.context["request"].user:
+            user = self.context["request"].user
 
-    class Meta:
-        model = User
-        fields = ["id", "email", "name"]
+        if user != self.instance:
+            del fields["groups"]
+            del fields["is_superuser"]
+
+        return fields
 
 
 class UserSerializer(

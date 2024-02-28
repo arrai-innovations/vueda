@@ -5,8 +5,7 @@ from vueda.history.fields import HistoricalRecordField
 from vueda.history.fields import filter_fields_for_flexlike_on_historical_records
 from vueda.user.serializers import User
 from vueda.user.serializers import UserSerializer as CoreUserSerializer
-from vueda.user.serializers import WhoAmISerializer as CoreWhoAmISerializer
-from vueda.user.serializers import WhoIsSomeoneElseSerializer as CoreWhoIsSomeoneElseSerializer
+from vueda.user.serializers import WhoIsSerializer as CoreWhoIsSerializer
 
 
 class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass):
@@ -80,25 +79,13 @@ class UserHistoricalSerializer(serializers.ModelSerializer):
         fields = ["id", "last_login", "user_id"]
 
 
-class WhoAmISerializer(
+class WhoIsSerializer(
     SimpleHistorySerializerMixin,
-    CoreWhoAmISerializer,
+    CoreWhoIsSerializer,
 ):
     """
     This decoupling helps make the history app optional.
     """
 
-    class Meta(CoreWhoAmISerializer.Meta):
-        fields = CoreWhoAmISerializer.Meta.fields + SimpleHistorySerializerMixin.Meta.fields
-
-
-class WhoIsSomeoneElseSerializer(
-    SimpleHistorySerializerMixin,
-    CoreWhoIsSomeoneElseSerializer,
-):
-    """
-    This decoupling helps make the history app optional.
-    """
-
-    class Meta(CoreWhoIsSomeoneElseSerializer.Meta):
-        fields = CoreWhoIsSomeoneElseSerializer.Meta.fields + SimpleHistorySerializerMixin.Meta.fields
+    class Meta(CoreWhoIsSerializer.Meta):
+        fields = CoreWhoIsSerializer.Meta.fields + SimpleHistorySerializerMixin.Meta.fields
