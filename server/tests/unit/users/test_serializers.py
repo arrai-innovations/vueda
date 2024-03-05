@@ -1,4 +1,5 @@
 import pytest
+from django.contrib.auth import get_user_model
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
@@ -33,12 +34,16 @@ class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
 
     def test_as_user(self):
         user = self.users["testuser@example.com"]
+        # Get the user again, so we can confirm that user != self.instance doesn't fail.
+        user_2 = get_user_model().objects.get(
+            email="testuser@example.com",
+        )
         get_data = {"user": {"id": user}}
 
         request = FakeRequest(data=get_data, method="GET", user=user)
 
         context = {"request": request, "view": FakeView(request, WhoIsSerializer)}
-        serializer = WhoIsSerializer(instance=user, data=get_data, context=context)
+        serializer = WhoIsSerializer(instance=user_2, data=get_data, context=context)
 
         fields = serializer.get_fields()
         assert tuple(fields.keys()) == ("id", "email", "name", "groups", "is_superuser")
