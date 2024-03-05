@@ -545,29 +545,17 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
             employee_number="abcd-1234",
         )
 
-    @pytest.fixture
-    def valid_timesheet_data(self):
-        return {
-            "id": 1,
-            "employee": 1,
-            "period_start": date(2024, 2, 15),
-            "period_end": date(2024, 2, 29),
-        }
-
-    #
-    # what am I going to test
+    #   what am I going to test
     # - the validity of the exclude serializer
     # - test excluding fields during creation
-    # - test excluding fields during update
     # - test excluding fields during partial update
     # - test not excluding fields when not specified in meta
 
-    def test_exclude_update_field(self, employee, valid_timesheet_data):
+    def test_exclude_update_field(self, employee):
         t = Timesheet.objects.create(
-            **{
-                **valid_timesheet_data,
-                "employee": employee,
-            }
+            period_start=date(2024, 2, 15),
+            period_end=date(2024, 2, 29),
+            employee=employee,
         )
         put_data = {
             "period_start": "2024-02-16",
