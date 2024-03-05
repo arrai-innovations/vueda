@@ -6,10 +6,8 @@ from vueda.user.models import AbstractVUEDAUser
 
 
 class User(AbstractVUEDAUser):
-    pass
-
     class Meta(BaseModelMeta):
-        pass
+        default_related_name = "users"
 
 
 class Employee(SimpleHistoryModelMixin, models.Model):
@@ -17,16 +15,24 @@ class Employee(SimpleHistoryModelMixin, models.Model):
     employee_number = models.CharField(max_length=255)
 
     class Meta(BaseModelMeta):
-        pass
+        default_related_name = "employees"
 
 
 class Timesheet(SimpleHistoryModelMixin, models.Model):
     period_start = models.DateField()
     period_end = models.DateField()
     employee = models.ForeignKey("Employee", on_delete=models.CASCADE)
+    supervisor = models.ForeignKey(
+        "Employee", on_delete=models.CASCADE, null=True, related_name="timesheet_supervisors"
+    )
 
     class Meta(BaseModelMeta):
-        pass
+        default_related_name = "timesheets"
+
+    def __str__(self):
+        return (
+            f"Timesheet for the employee: {self.employee.employee_number} on {self.period_start} to {self.period_end}"
+        )
 
 
 class TimesheetEntry(SimpleHistoryModelMixin, models.Model):
@@ -35,4 +41,4 @@ class TimesheetEntry(SimpleHistoryModelMixin, models.Model):
     hours = models.DecimalField(max_digits=5, decimal_places=2)
 
     class Meta(BaseModelMeta):
-        pass
+        default_related_name = "timesheet_entries"

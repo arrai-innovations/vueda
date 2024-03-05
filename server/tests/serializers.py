@@ -53,5 +53,6 @@ class TimesheetSerializerExclude(
 ):
     class Meta:
         model = Timesheet
-        fields = ["id", "period_start", "period_end", "employee"]
+        fields = ["id", "period_start", "period_end", "employee", "supervisor"]
         exclude_update_fields = ["employee"]
+        exclude_create_fields = ["supervisor"]
