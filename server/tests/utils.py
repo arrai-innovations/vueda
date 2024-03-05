@@ -20,9 +20,10 @@ class FakeRequest:
 
 
 class FakeView:
-    def __init__(self, request, serializer_class):
+    def __init__(self, request, serializer_class, action=None):
         self.request = request
         self.serializer_class = serializer_class
+        self.action = action
 
     def get_serializer_class(self):
         return self.serializer_class

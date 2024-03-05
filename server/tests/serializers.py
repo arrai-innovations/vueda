@@ -4,11 +4,13 @@ from rest_framework import serializers
 from tests.models import Employee
 from tests.models import Timesheet
 from tests.models import TimesheetEntry
+from vueda.core.serializers import ExcludeFieldsSerializerMixin
 from vueda.core.serializers import FlexFieldsWriteableNestedSerializerMixin
 from vueda.core.serializers import NoExtraFieldsSerializerMixin
 
 
 class EmployeeSerializer(NoExtraFieldsSerializerMixin, FlexFieldsSerializerMixin, serializers.ModelSerializer):
+
     class Meta:
         model = Employee
         fields = ["id", "user", "employee_number"]
@@ -41,3 +43,15 @@ class TimesheetSerializer(
 
     def get_foo(self, instance):
         return "bar"
+
+
+class TimesheetSerializerExclude(
+    ExcludeFieldsSerializerMixin,
+    FlexFieldsWriteableNestedSerializerMixin,
+    FlexFieldsSerializerMixin,
+    serializers.ModelSerializer,
+):
+    class Meta:
+        model = Timesheet
+        fields = ["id", "period_start", "period_end", "employee"]
+        exclude_update_fields = ["employee"]

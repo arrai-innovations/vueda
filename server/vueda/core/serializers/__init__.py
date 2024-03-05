@@ -80,11 +80,10 @@ class ExcludeFieldsSerializerMixin:
     def get_extra_kwargs(self):
         kwargs = super().get_extra_kwargs()
         action = self.context["view"].action
-
-        for exclude_actions in ["create", ["update", "partial_update"]]:
+        for exclude_actions in [["create"], ["update", "partial_update"]]:
             for exclude_action in exclude_actions:
                 exclude_for = getattr(self.Meta, f"exclude_{exclude_actions[0]}_fields", None)
-                if action == exclude_action and exclude_for:
+                if action in exclude_action and exclude_for:
                     for field in exclude_for:
                         kwargs.setdefault(field, {})
                         kwargs[field]["read_only"] = True
