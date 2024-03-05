@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db.models import Max
 from rest_framework import status as drf_status
@@ -16,9 +17,10 @@ class WhoIsView(CoreWhoIsView):
     serializer_class = WhoIsSerializer
 
     def get_object(self):
-        user_model = super().get_object()
-        return user_model.objects.annotate(current_history_id=Max("history_records__history_id")).get(
-            pk=self.request.user.pk
+        return (
+            get_user_model()
+            .objects.annotate(current_history_id=Max("history_records__history_id"))
+            .get(pk=self.request.user.pk)
         )
 
 

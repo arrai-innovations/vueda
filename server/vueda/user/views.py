@@ -37,7 +37,7 @@ class WhoIsView(RetrieveAPIView):
 
     def get_object(self):
         if self.request.user.pk:
-            return get_user_model()
+            return get_user_model().objects.get(pk=self.request.user.pk)
         return self.request.user
 
 
