@@ -11,6 +11,7 @@ from tests.conftest import BaseTestUserMixin
 from tests.models import Employee
 from tests.models import Timesheet
 from tests.serializers import TimesheetSerializer
+from tests.serializers import TimesheetSerializerExclude
 from tests.utils import FakeRequest
 from tests.utils import FakeView
 
@@ -519,3 +520,62 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             assert e.detail["label10"][0].code == "invalid"
         else:
             pytest.fail("Serializer is valid when it should not be")
+
+
+@pytest.mark.django_db
+class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create = {
+        "Timesheet Updater": [
+            ("tests", "Timesheet", "update"),
+        ]
+    }
+
+    users_to_create = {
+        "test_my_user@example.com": {
+            "name": "Test User update",
+            "password": "testpass",
+            "groups": ["Timesheet Updater"],
+        },
+    }
+
+    @pytest.fixture
+    def employee(self):
+        return Employee.objects.create(
+            user=self.users["test_my_user@example.com"],
+            employee_number="abcd-1234",
+        )
+
+    #   what am I going to test
+    # - the validity of the exclude serializer
+    # - test excluding fields during creation
+    # - test excluding fields during partial update
+    # - test not excluding fields when not specified in meta
+
+    def test_exclude_update_field(self, employee):
+        t = Timesheet.objects.create(
+            period_start=date(2024, 2, 15),
+            period_end=date(2024, 2, 29),
+            employee=employee,
+        )
+        put_data = {
+            "period_start": "2024-02-16",
+            "period_end": "2024-02-28",
+        }
+
+        request = FakeRequest(data=put_data, method="PUT")
+        context = {
+            "request": request,
+            "view": FakeView(request, TimesheetSerializerExclude, "update"),
+        }
+
+        serializer = TimesheetSerializerExclude(instance=t, data=put_data, context=context)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
+            pytest.fail(f"Serializer is not valid: {e}")
+        serializer.save()
+
+        assert serializer.data["period_start"] == "2024-02-16"
+        assert serializer.data["period_end"] == "2024-02-28"
+        assert (serializer.get_extra_kwargs()["employee"])["read_only"] is True
