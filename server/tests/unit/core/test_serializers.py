@@ -413,6 +413,11 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
             "password": "testpass",
             "groups": ["Timesheet Updater"],
         },
+        "test_my_user2@example.com": {
+            "name": "Test User update",
+            "password": "testpass2",
+            "groups": ["Timesheet Updater"],
+        },
     }
 
     @pytest.fixture
@@ -420,6 +425,13 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
         return Employee.objects.create(
             user=self.users["test_my_user@example.com"],
             employee_number="abcd-1234",
+        )
+
+    @pytest.fixture
+    def employee2(self):
+        return Employee.objects.create(
+            user=self.users["test_my_user2@example.com"],
+            employee_number="abcd-234",
         )
 
     def test_exclude_update_field(self, employee):
@@ -470,5 +482,32 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
         except ValidationError as e:
             pytest.fail(f"Serializer is not valid: {e}")
         obj = serializer.save()
-        print(obj)
         assert obj.supervisor is None
+
+    def test_exclude_partial_update_fields(self, employee, employee2):
+        t = Timesheet.objects.create(
+            period_start=date(2024, 2, 15),
+            period_end=date(2024, 2, 29),
+            employee=employee,
+        )
+        patch_data = {
+            "period_start": "2024-02-05",
+            "employee": f"{employee2.pk}",
+        }
+
+        request = FakeRequest(data=patch_data, method="PATCH")
+        context = {
+            "request": request,
+            "view": FakeView(request, TimesheetSerializerExclude, "partial_update"),
+        }
+        serializer = TimesheetSerializerExclude(instance=t, data=patch_data, context=context, partial=True)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
+            pytest.fail(f"Serializer is not valid: {e}")
+        obj = serializer.save()
+
+        assert obj.period_start == date(2024, 2, 5)
+        assert obj.period_end == date(2024, 2, 29)
+        assert obj.employee == employee
