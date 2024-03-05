@@ -434,6 +434,7 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
             employee_number="abcd-234",
         )
 
+    # This tests the validity of the serializer as well
     def test_exclude_update_field(self, employee):
         t = Timesheet.objects.create(
             period_start=date(2024, 2, 15),
@@ -500,6 +501,7 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
             "request": request,
             "view": FakeView(request, TimesheetSerializerExclude, "partial_update"),
         }
+        # "partial = True" must be passed in the serializer to make the serializer partial
         serializer = TimesheetSerializerExclude(instance=t, data=patch_data, context=context, partial=True)
 
         try:
