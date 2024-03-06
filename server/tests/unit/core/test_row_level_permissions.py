@@ -30,7 +30,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         "test_super_user@example.com": {
             "name": "Test Super User",
             "password": "testpass",
-            "is_super_user": True,
+            "is_superuser": True,
             "groups": [],
         },
         "test_admin@example.com": {

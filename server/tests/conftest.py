@@ -175,6 +175,7 @@ class BaseTestUserMixin:
                     defaults={
                         "name": user_data["name"],
                         "is_active": True,
+                        "is_superuser": user_data.get("is_superuser", False),
                     },
                 )
                 user.set_password(user_data["password"])
