@@ -63,7 +63,6 @@ class Product(SimpleHistoryModelMixin, models.Model):
             True if the user has the permission, False if the user does not have the permission, None if the check is not
             applicable due to there being no row level permissions for the model.
             """
-            # breakpoint()
             pass
 
         @classmethod
@@ -74,14 +73,16 @@ class Product(SimpleHistoryModelMixin, models.Model):
             Return of False means the user does not have the permission, and we can stop checking.
             Return of Q means we need to filter the rows based on the row level permissions.
             """
-            # breakpoint()
             if user.is_superuser:
                 return None
-
-            elif user.has_perm("tests.list_product"):
-                return True
 
             elif user.has_perm("tests.purchase_product"):
                 return Q(available_for_sale=True)
 
+            elif user.has_perm("tests.list_product"):
+                return True
+
             return False
+
+    def __str__(self):
+        return self.name
