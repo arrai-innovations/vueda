@@ -18,6 +18,7 @@ DATABASES["default"]["ATOMIC_REQUESTS"] = True
 TEST_POSTGRES_DB = env("TEST_POSTGRES_DB")
 
 INSTALLED_APPS += [  # noqa: F405
+    "django_extensions",
     "tests.apps.TestsConfig",
 ]
 AUTH_USER_MODEL = "tests.User"

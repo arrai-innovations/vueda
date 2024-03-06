@@ -10,6 +10,7 @@ vueda = {path = ".", editable = true}
 [dev-packages]
 # flake8 related, sync with .pre-commit-config.yaml
 black = "==24.1.1"
+django_extensions = "==3.2.3"
 dlint = "==0.14.1"
 flake8 = "==6.1.0"
 flake8-assertive = "==2.1.0"
