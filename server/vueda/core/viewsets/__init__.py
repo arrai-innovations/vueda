@@ -55,9 +55,6 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
     """
 
     def apply_row_level_filter(self, queryset):
-
-        # breakpoint()
-
         model = queryset.model
         row_level_permissions = getattr(model, "RowLevelPermissions", None)
         if row_level_permissions is not None:
@@ -78,16 +75,11 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
          with other drf actions, specifically encountered with create
          not finding it's created object
         """
-        # breakpoint()
-
-        queryset = super().list(request, *args, **kwargs)
-
         # future: when updating drf, check that the copied code is still the same
         # code from drf
-        queryset = self.filter_queryset(queryset)
+        queryset = self.filter_queryset(self.get_queryset())
         # our addition
 
-        # breakpoint()
         queryset = self.apply_row_level_filter(queryset)
         # end addition
 
@@ -246,5 +238,5 @@ class DeactivateActionViewSetMixin:
         )
 
 
-class VuedaViewSet(ListRowLevelViewSetMixin, NoExtraFieldsForViewSetMixin, viewsets.ModelViewSet):
+class VuedaViewSet(NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
     pass
