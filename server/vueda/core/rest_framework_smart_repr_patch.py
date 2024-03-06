@@ -7,6 +7,8 @@ from rest_framework.utils import representation
 from rest_framework.utils.representation import manager_repr
 
 
+# Future: When this is fixed, we can remove this.
+# https://github.com/encode/django-rest-framework/issues/9274
 def smart_repr(value):
     if isinstance(value, models.Manager):
         return manager_repr(value)
