@@ -1,6 +1,11 @@
+from typing import Optional
+from typing import Union
+
 from django.db import models
+from django.db.models import Q
 
 from vueda.core.models import BaseModelMeta
+from vueda.core.permissions import BaseRowLevelPermissions
 from vueda.history.models import SimpleHistoryModelMixin
 from vueda.user.models import AbstractVUEDAUser
 
@@ -42,3 +47,41 @@ class TimesheetEntry(SimpleHistoryModelMixin, models.Model):
 
     class Meta(BaseModelMeta):
         default_related_name = "timesheet_entries"
+
+
+class Product(SimpleHistoryModelMixin, models.Model):
+    name = models.CharField(max_length=255)
+    available_for_sale = models.BooleanField(db_default=True)
+
+    class Meta(BaseModelMeta):
+        default_related_name = "products"
+
+    class RowLevelPermissions(BaseRowLevelPermissions):
+        @classmethod
+        def check_instance(cls, model, obj, perm, user, perm_type) -> Optional[bool]:
+            """
+            True if the user has the permission, False if the user does not have the permission, None if the check is not
+            applicable due to there being no row level permissions for the model.
+            """
+            # breakpoint()
+            pass
+
+        @classmethod
+        def check_queryset(cls, queryset, perm, user, perm_type) -> Union[Q, bool, None]:
+            """
+            Return of None means do not filter based on row level permissions.
+            Return of True means the user has the permission without needing to check the rows.
+            Return of False means the user does not have the permission, and we can stop checking.
+            Return of Q means we need to filter the rows based on the row level permissions.
+            """
+            # breakpoint()
+            if user.is_superuser:
+                return None
+
+            elif user.has_perm("tests.list_product"):
+                return True
+
+            elif user.has_perm("tests.purchase_product"):
+                return Q(available_for_sale=True)
+
+            return False

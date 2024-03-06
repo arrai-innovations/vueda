@@ -80,7 +80,7 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, PermissionsMixin
                 perm_type = perm.split(".")[1].split("_")[0]  # create, read, update, delete, list, etc.
                 model = obj.__class__
                 # noinspection PyProtectedMember
-                row_level_permissions = getattr(model._meta, "row_level_permissions", None)
+                row_level_permissions = getattr(model, "RowLevelPermissions", None)
                 if row_level_permissions:
                     # duck typing, if it has the method, good enough
                     result = row_level_permissions.check_instance(model, obj, perm, self, perm_type)

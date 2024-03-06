@@ -1,5 +1,6 @@
 import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
+from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 
@@ -88,3 +89,12 @@ class ExcludeFieldsSerializerMixin:
                         kwargs.setdefault(field, {})
                         kwargs[field]["read_only"] = True
         return kwargs
+
+
+class VuedaSerializerMixin(
+    NoExtraFieldsSerializerMixin,
+    FlexFieldsWriteableNestedSerializerMixin,
+    flex_serializers.FlexFieldsSerializerMixin,
+    serializers.ModelSerializer,
+):
+    pass

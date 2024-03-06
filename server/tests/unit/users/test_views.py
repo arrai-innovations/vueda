@@ -11,9 +11,6 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
         "Timesheet Reader": [
             ("tests", "Timesheet", "read"),
         ],
-        "Timesheet Updater": [
-            ("tests", "Timesheet", "update"),
-        ],
     }
 
     users_to_create = {
@@ -22,18 +19,13 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
             "password": "testpass",
             "groups": ["Timesheet Reader"],
         },
-        "test_user+timesheet+updater@example.com": {
-            "name": "Test User updater",
-            "password": "testpass",
-            "groups": ["Timesheet Updater"],
-        },
     }
 
     def test_as_user(self, api_client):
         user = self.users["test_user+timesheet+reader@example.com"]
         api_client.force_authenticate(user=user)
 
-        url = reverse("who-is", args=(user.pk,))
+        url = reverse("who-is")
         response = api_client.get(url, format="json")
 
         assert response.status_code == 200

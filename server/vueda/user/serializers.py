@@ -6,8 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from vueda.core.serializers import FlexFieldsWriteableNestedSerializerMixin
-from vueda.core.serializers import NoExtraFieldsSerializerMixin
+from vueda.core.serializers import VuedaSerializerMixin
 
 
 User = get_user_model()
@@ -35,7 +34,7 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
-class WhoIsSerializer(NoExtraFieldsSerializerMixin, serializers.ModelSerializer):
+class WhoIsSerializer(VuedaSerializerMixin):
     """
     This is a serializer for the current user, it is simpler than the other user serializers.
     """
@@ -60,9 +59,7 @@ class WhoIsSerializer(NoExtraFieldsSerializerMixin, serializers.ModelSerializer)
         return fields
 
 
-class UserSerializer(
-    NoExtraFieldsSerializerMixin, FlexFieldsWriteableNestedSerializerMixin, serializers.ModelSerializer
-):
+class UserSerializer(VuedaSerializerMixin):
     password_confirm = serializers.CharField(write_only=True, required=False)
 
     class Meta:
