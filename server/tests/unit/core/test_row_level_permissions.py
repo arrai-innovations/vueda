@@ -57,6 +57,83 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         "Orange": {"available_for_sale": False},
     }
 
+    def test_retrieve_product_super_user(self, api_client):
+        user = self.users["test_super_user@example.com"]
+        api_client.force_authenticate(user=user)
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+        product = Product.objects.get(name="Apple")
+
+        detail_url = reverse("tests.product-detail", args=(product.pk,))
+
+        response = api_client.get(
+            detail_url,
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+
+    def test_retrieve_product_true(self, api_client):
+        user = self.users["test_admin@example.com"]
+        api_client.force_authenticate(user=user)
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+        product = Product.objects.get(name="Banana")  # Admin can access products that are not for sale.
+
+        detail_url = reverse("tests.product-detail", args=(product.pk,))
+
+        response = api_client.get(
+            detail_url,
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        assert response.data["name"] == "Banana"
+
+    def test_retrieve_product_available_for_sale_true(self, api_client):
+        user = self.users["test_customer@example.com"]
+        api_client.force_authenticate(user=user)
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+        product = Product.objects.get(name="Apple")
+
+        detail_url = reverse("tests.product-detail", args=(product.pk,))
+
+        response = api_client.get(
+            detail_url,
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        assert response.data["name"] == "Apple"
+
+    def test_retrieve_product_available_for_sale_false(self, api_client):
+        user = self.users["test_customer@example.com"]
+        api_client.force_authenticate(user=user)
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+        product = Product.objects.get(name="Banana")
+
+        detail_url = reverse("tests.product-detail", args=(product.pk,))
+
+        response = api_client.get(
+            detail_url,
+            format="json",
+        )
+
+        self.assert_response(response, 404)
+
+    def test_retrieve_product_false(self, api_client):
+        user = self.users["test_employee@example.com"]
+        api_client.force_authenticate(user=user)
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+        product = Product.objects.get(name="Apple")
+
+        detail_url = reverse("tests.product-detail", args=(product.pk,))
+
+        response = api_client.get(
+            detail_url,
+            format="json",
+        )
+
+        self.assert_response(response, 404)
+
     def test_list_products_filtered_by_q(self, api_client):
         user = self.users["test_customer@example.com"]
         api_client.force_authenticate(user=user)
