@@ -69,7 +69,7 @@ class Product(SimpleHistoryModelMixin, models.Model):
             elif user.has_perm("tests.purchase_product"):
                 return obj.available_for_sale
 
-            elif user.has_perm("tests.manage_products"):
+            elif user.has_perm("tests.manage_product"):
                 return True
 
             return False
@@ -88,7 +88,7 @@ class Product(SimpleHistoryModelMixin, models.Model):
             elif user.has_perm("tests.purchase_product"):
                 return Q(available_for_sale=True)
 
-            elif user.has_perm("tests.list_product"):
+            elif user.has_perm("tests.manage_product"):
                 return True
 
             return False

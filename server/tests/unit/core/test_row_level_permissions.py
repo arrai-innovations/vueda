@@ -13,7 +13,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         "Admin": [
             ("tests", "Product", "read"),
             ("tests", "Product", "list"),
-            ("tests", "Product", "manage_products"),
+            ("tests", "Product", "manage"),
         ],
         "Customer": [
             ("tests", "Product", "read"),
