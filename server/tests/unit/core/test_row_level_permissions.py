@@ -14,6 +14,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
             ("tests", "Product", "list"),
         ],
         "Customer": [
+            ("tests", "Product", "list"),
             ("tests", "Product", "purchase"),
         ],
     }
@@ -49,7 +50,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         "Orange": {"available_for_sale": False},
     }
 
-    def test_list_products(self, api_client):
+    def test_list_products_filtered_by_q(self, api_client):
         user = self.users["test_customer@example.com"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
@@ -61,9 +62,5 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
             format="json",
         )
 
-        self.assert_response(response, 201)
-
-        # assert response.data["employee"] == e1.pk
-        # assert response.data["period_start"] == "2024-03-01"
-        # assert response.data["period_end"] == "2024-03-15"
-        # assert response.data["id"]
+        self.assert_response(response, 200)
+        assert {x["name"] for x in response.data["results"]} == {"Apple", "Mango"}
