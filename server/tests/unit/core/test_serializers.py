@@ -91,129 +91,6 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         assert "employee" not in response.data
         assert "une" in response.data
 
-    # def tested_update_timesheet_with_non_existing_field_in_expand(self, api_client):
-    #     user = self.users["test_my_user@example.com"]
-    #     api_client.force_authenticate(user=user)
-    #
-    #     # creates an employee
-    #     e1 = Employee.objects.create(
-    #         user=user,
-    #         employee_number="abcd-1234",
-    #     )
-    #
-    #     # creates a timesheet
-    #     t1 = Timesheet.objects.create(
-    #         employee=e1,
-    #         period_start=date(2024, 2, 15),
-    #         period_end=date(2024, 2, 29),
-    #     )
-    #
-    #     # generate a URL for a single timesheet by its primary key
-    #     url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
-    #
-    #     # retrieves a single timesheet with a non-existing field, using fields 'param'
-    #     response = api_client.put(
-    #         url,
-    #         data={
-    #             settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["une"],
-    #             settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["employee2"],
-    #             "employee": e1.pk,
-    #             "period_start": date(2024, 2, 16),
-    #             "period_end": date(2024, 2, 25),
-    #         },
-    #         format="json",
-    #     )
-    #
-    #     # validates that the response code is an error -- bad request
-    #     self.assert_response(response, 400)
-    #     print(response.data)
-    #
-    #     # Validate the response body content
-    #     assert "une" not in response.data
-    #
-    # def test_update_timesheet_expand_without_fields_with_non_existing_field(self, api_client):
-    #     user = self.users["test_my_user@example.com"]
-    #     api_client.force_authenticate(user=user)
-    #
-    #     # creates an employee
-    #     e1 = Employee.objects.create(
-    #         user=user,
-    #         employee_number="abcd-1234",
-    #     )
-    #     # Create a timesheet
-    #     t1 = Timesheet.objects.create(
-    #         employee=e1,
-    #         period_start=date(2024, 2, 15),
-    #         period_end=date(2024, 2, 29),
-    #     )
-    #
-    #     # Generate a URL for the timesheet by its primary key
-    #     url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
-    #
-    #     # retrieves a single timesheet with a non-existing field, using fields 'param'
-    #     response = api_client.put(
-    #         url,
-    #         data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["employee2"]},
-    #         format="json",
-    #     )
-    #     print(response.data)
-    #     # validates that the response code is an error -- bad request
-    #     self.assert_response(response, 400)
-    #
-    #     # Validate the response body content
-    #     assert "une" not in response.data
-    #
-    # def test_expand_employee_with_existing_fields(self, api_client):
-    #     user = self.users["test_my_user@example.com"]
-    #     api_client.force_authenticate(user=user)
-    #
-    #     # creates an employee
-    #     e1 = Employee.objects.create(
-    #         user=user,
-    #         employee_number="abcd-1234",
-    #     )
-    #     # Create a timesheet
-    #     t1 = Timesheet.objects.create(
-    #         employee=e1,
-    #         period_start=date(2024, 2, 15),
-    #         period_end=date(2024, 2, 29),
-    #     )
-    #
-    #     # Generate a URL for the timesheet by its primary key
-    #     url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
-    #
-    #     # updates a single timesheet with an existing field
-    #     response = api_client.put(
-    #         url,
-    #         data={
-    #             settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["employee"],
-    #             settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["employee"],
-    #             "employee": {
-    #                 "id": e1.pk,
-    #                 "user": user.pk,
-    #                 "employee_number": "abcd-234",
-    #             },
-    #             "period_start": date(2024, 2, 16),
-    #             "period_end": date(2024, 2, 25),
-    #             "timesheet_entry": [{
-    #                 "date": date(2024, 2, 18),
-    #                 "hours": 7.5
-    #             }]
-    #         },
-    #         format="json",
-    #     )
-    #     print("curr test ", response.data)
-    #
-    #     # validates that the response code is as expected -- good
-    #
-    #     assert 'employee' in response.data
-    #     employee_data = response.data['employee']
-    #     print("The employee data is ", employee_data)
-    #     self.assert_response(response, 200)  # self OK success status
-    #     assert employee_data['employee_number'] == "abcd-1234"
-    #
-    #  # def test_expand_exployee_with_non_existing_fields(self, api_client):
-
     def test_expand_with_existing_expands(self, api_client):
         user = self.users["test_my_user@example.com"]
         api_client.force_authenticate(user=user)
@@ -536,6 +413,11 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
             "password": "testpass",
             "groups": ["Timesheet Updater"],
         },
+        "test_my_user2@example.com": {
+            "name": "Test User update",
+            "password": "testpass2",
+            "groups": ["Timesheet Updater"],
+        },
     }
 
     @pytest.fixture
@@ -545,12 +427,14 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
             employee_number="abcd-1234",
         )
 
-    #   what am I going to test
-    # - the validity of the exclude serializer
-    # - test excluding fields during creation
-    # - test excluding fields during partial update
-    # - test not excluding fields when not specified in meta
+    @pytest.fixture
+    def employee2(self):
+        return Employee.objects.create(
+            user=self.users["test_my_user2@example.com"],
+            employee_number="abcd-234",
+        )
 
+    # This tests the validity of the serializer as well
     def test_exclude_update_field(self, employee):
         t = Timesheet.objects.create(
             period_start=date(2024, 2, 15),
@@ -579,3 +463,53 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
         assert serializer.data["period_start"] == "2024-02-16"
         assert serializer.data["period_end"] == "2024-02-28"
         assert (serializer.get_extra_kwargs()["employee"])["read_only"] is True
+
+    def test_exclude_create_field(self, employee):
+        post_data = {
+            "period_start": "2024-03-01",
+            "period_end": "2024-03-15",
+            "employee": f"{employee.pk}",
+            "supervisor": f"{employee.pk}",
+        }
+        request = FakeRequest(data=post_data, method="POST")
+        context = {
+            "request": request,
+            "view": FakeView(request, TimesheetSerializerExclude, "create"),
+        }
+        serializer = TimesheetSerializerExclude(data=post_data, context=context)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
+            pytest.fail(f"Serializer is not valid: {e}")
+        obj = serializer.save()
+        assert obj.supervisor is None
+
+    def test_exclude_partial_update_fields(self, employee, employee2):
+        t = Timesheet.objects.create(
+            period_start=date(2024, 2, 15),
+            period_end=date(2024, 2, 29),
+            employee=employee,
+        )
+        patch_data = {
+            "period_start": "2024-02-05",
+            "employee": f"{employee2.pk}",
+        }
+
+        request = FakeRequest(data=patch_data, method="PATCH")
+        context = {
+            "request": request,
+            "view": FakeView(request, TimesheetSerializerExclude, "partial_update"),
+        }
+        # "partial = True" must be passed in the serializer to make the serializer partial
+        serializer = TimesheetSerializerExclude(instance=t, data=patch_data, context=context, partial=True)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
+            pytest.fail(f"Serializer is not valid: {e}")
+        obj = serializer.save()
+
+        assert obj.period_start == date(2024, 2, 5)
+        assert obj.period_end == date(2024, 2, 29)
+        assert obj.employee == employee
