@@ -63,7 +63,16 @@ class Product(SimpleHistoryModelMixin, models.Model):
             True if the user has the permission, False if the user does not have the permission, None if the check is not
             applicable due to there being no row level permissions for the model.
             """
-            pass
+            if user.is_superuser:
+                return None
+
+            elif user.has_perm("tests.purchase_product"):
+                return obj.available_for_sale
+
+            elif user.has_perm("tests.manage_products"):
+                return True
+
+            return False
 
         @classmethod
         def check_queryset(cls, queryset, perm, user, perm_type) -> Union[Q, bool, None]:
