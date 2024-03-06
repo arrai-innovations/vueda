@@ -11,11 +11,18 @@ from tests.models import Product
 class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, BaseTestUserMixin):
     groups_to_create = {
         "Admin": [
+            ("tests", "Product", "read"),
             ("tests", "Product", "list"),
+            ("tests", "Product", "manage_products"),
         ],
         "Customer": [
+            ("tests", "Product", "read"),
             ("tests", "Product", "list"),
             ("tests", "Product", "purchase"),
+        ],
+        "Employee": [
+            ("tests", "Product", "read"),
+            ("tests", "Product", "list"),
         ],
     }
 
@@ -39,7 +46,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         "test_employee@example.com": {
             "name": "Test Employee",
             "password": "testpass",
-            "groups": [],
+            "groups": ["Employee"],
         },
     }
 
