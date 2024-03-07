@@ -104,7 +104,7 @@ class BaseTestAssertResponseMixin:
                 print(
                     f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response.data}"
                 )
-        assert response.status_code == expected_status_code
+        assert response.status_code == expected_status_code, response.data
 
 
 class BaseTestGroupMixin:
@@ -175,6 +175,7 @@ class BaseTestUserMixin:
                     defaults={
                         "name": user_data["name"],
                         "is_active": True,
+                        "is_superuser": user_data.get("is_superuser", False),
                     },
                 )
                 user.set_password(user_data["password"])

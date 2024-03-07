@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
+from rest_framework import viewsets
 from rest_framework import viewsets as drf_viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -55,18 +56,18 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
 
     def apply_row_level_filter(self, queryset):
         model = queryset.model
-        row_level_permission = getattr(model, "row_level_permission", None)
-        if row_level_permission is not None:
-            optional_q = row_level_permission.check_queryset(
+        row_level_permissions = getattr(model, "RowLevelPermissions", None)
+        if row_level_permissions is not None:
+            optional_q = row_level_permissions.check_queryset(
                 queryset, f"{model._meta.app_label}.list_{model._meta.model_name}", self.request.user, "list"
             )
             if isinstance(optional_q, Q):
                 return queryset.filter(optional_q)
             if optional_q is False:
-                return model.objects.none()
+                return queryset.none()
             # else, optional_q is None, so we don't filter
             # or optional_q is True, so we don't filter
-            return queryset
+        return queryset
 
     def list(self, request, *args, **kwargs):
         """
@@ -78,6 +79,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         # code from drf
         queryset = self.filter_queryset(self.get_queryset())
         # our addition
+
         queryset = self.apply_row_level_filter(queryset)
         # end addition
 
@@ -113,6 +115,8 @@ class NoExtraFieldsForViewSetMixin:
         """
         if you provide fields to filter by that are not filtered by the filter class, you get a 500 error
         """
+        # breakpoint()
+
         if hasattr(self, "filterset_class"):
             # get_fields() only gets fields from the meta, not declared fields on the filterset.
             fields = set(self.filterset_class.get_filters().keys())
@@ -232,3 +236,7 @@ class DeactivateActionViewSetMixin:
             {"detail": f"{instance.__class__.__name__} with id {instance.pk} has been activated."},
             status=200,
         )
+
+
+class VuedaViewSet(NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
+    pass

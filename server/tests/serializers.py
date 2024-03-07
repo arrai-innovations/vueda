@@ -1,33 +1,27 @@
-from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers
 
 from tests.models import Employee
+from tests.models import Product
 from tests.models import Timesheet
 from tests.models import TimesheetEntry
 from vueda.core.serializers import ExcludeFieldsSerializerMixin
-from vueda.core.serializers import FlexFieldsWriteableNestedSerializerMixin
-from vueda.core.serializers import NoExtraFieldsSerializerMixin
+from vueda.core.serializers import VuedaSerializerMixin
 
 
-class EmployeeSerializer(NoExtraFieldsSerializerMixin, FlexFieldsSerializerMixin, serializers.ModelSerializer):
+class EmployeeSerializer(VuedaSerializerMixin):
 
     class Meta:
         model = Employee
         fields = ["id", "user", "employee_number"]
 
 
-class TimesheetEntrySerializer(NoExtraFieldsSerializerMixin, FlexFieldsSerializerMixin, serializers.ModelSerializer):
+class TimesheetEntrySerializer(VuedaSerializerMixin):
     class Meta:
         model = TimesheetEntry
         fields = ["id", "timesheet", "date", "hours"]
 
 
-class TimesheetSerializer(
-    NoExtraFieldsSerializerMixin,
-    FlexFieldsWriteableNestedSerializerMixin,
-    FlexFieldsSerializerMixin,
-    serializers.ModelSerializer,
-):
+class TimesheetSerializer(VuedaSerializerMixin):
     class Meta:
         model = Timesheet
         fields = ["id", "period_start", "period_end", "employee"]
@@ -45,14 +39,15 @@ class TimesheetSerializer(
         return "bar"
 
 
-class TimesheetSerializerExclude(
-    ExcludeFieldsSerializerMixin,
-    FlexFieldsWriteableNestedSerializerMixin,
-    FlexFieldsSerializerMixin,
-    serializers.ModelSerializer,
-):
+class TimesheetSerializerExclude(ExcludeFieldsSerializerMixin, VuedaSerializerMixin):
     class Meta:
         model = Timesheet
         fields = ["id", "period_start", "period_end", "employee", "supervisor"]
         exclude_update_fields = ["employee"]
         exclude_create_fields = ["supervisor"]
+
+
+class ProductSerializer(VuedaSerializerMixin):
+    class Meta:
+        model = Product
+        fields = ["id", "name", "available_for_sale"]
