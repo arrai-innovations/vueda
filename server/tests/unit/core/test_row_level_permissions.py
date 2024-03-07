@@ -134,6 +134,33 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
 
         self.assert_response(response, 404)
 
+    def test_list_products_super_user(self, api_client):
+        user = self.users["test_super_user@example.com"]
+        api_client.force_authenticate(user=user)
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+
+        list_url = reverse("tests.product-list")
+        response = api_client.get(
+            list_url,
+            format="json",
+        )
+        self.assert_response(response, 200)
+        assert {x["name"] for x in response.data["results"]} == {"Apple", "Banana", "Mango", "Orange"}
+
+    def test_list_products_true(self, api_client):
+        user = self.users["test_admin@example.com"]
+        api_client.force_authenticate(user=user)
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+
+        list_url = reverse("tests.product-list")
+        response = api_client.get(
+            list_url,
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        assert {x["name"] for x in response.data["results"]} == {"Apple", "Banana", "Mango", "Orange"}
+
     def test_list_products_filtered_by_q(self, api_client):
         user = self.users["test_customer@example.com"]
         api_client.force_authenticate(user=user)
@@ -149,29 +176,16 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         self.assert_response(response, 200)
         assert {x["name"] for x in response.data["results"]} == {"Apple", "Mango"}
 
-    def test_list_products_for_all_permissions_user(self, api_client):
-        user = self.users["test_admin@example.com"]
+    def test_list_product_false(self, api_client):
+        user = self.users["test_employee@example.com"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
 
         list_url = reverse("tests.product-list")
-        response = api_client.get(
-            list_url,
-            format="json",
-        )
 
-        self.assert_response(response, 200)
-        assert {x["name"] for x in response.data["results"]} == {"Apple", "Banana", "Mango", "Orange"}
-
-    def test_list_products_for_super_user(self, api_client):
-        user = self.users["test_super_user@example.com"]
-        api_client.force_authenticate(user=user)
-        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
-
-        list_url = reverse("tests.product-list")
         response = api_client.get(
             list_url,
             format="json",
         )
         self.assert_response(response, 200)
-        assert {x["name"] for x in response.data["results"]} == {"Apple", "Banana", "Mango", "Orange"}
+        assert not response.data["results"]
