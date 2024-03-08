@@ -48,6 +48,8 @@ class TimesheetSerializerExclude(ExcludeFieldsSerializerMixin, VuedaSerializerMi
 
 
 class ProductSerializer(VuedaSerializerMixin):
+    buzz_words = serializers.ListField(child=serializers.CharField())
+
     class Meta:
         model = Product
-        fields = ["id", "name", "available_for_sale"]
+        fields = ["id", "name", "available_for_sale", "buzz_words"]

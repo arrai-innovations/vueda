@@ -56,5 +56,9 @@ class BaseArrayInFilter(BaseArrayFilter):
         super().__init__(*args, **kwargs)
 
 
+class CharArrayInFilter(BaseArrayInFilter, filters.CharFilter):
+    pass
+
+
 class NumberArrayFilter(BaseArrayInFilter, filters.NumberFilter):
     pass

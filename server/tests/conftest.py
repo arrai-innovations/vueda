@@ -1,5 +1,7 @@
 import asyncio
 import hashlib
+from collections import OrderedDict
+from urllib.parse import urlencode
 
 import pytest
 from django import db
@@ -8,6 +10,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.db import models
+from django.urls import reverse
 from psycopg import connect
 from psycopg import sql
 from rest_framework.test import APIClient
@@ -185,3 +189,207 @@ class BaseTestUserMixin:
                     user.groups.add(group)
                 self._users[email] = user
         return self._users
+
+
+class BaseTestCommonModelViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
+    model: models.Model = None
+
+    def list_url(self):
+        return reverse(f"{self.model._meta.label_lower}-list")
+
+    def detail_url(self, pk):
+        return reverse(f"{self.model._meta.label_lower}-detail", kwargs={"pk": pk})
+
+    @pytest.fixture
+    def page_data(self):
+        self.model.objects.create(**self.page_data_arguments(0))
+        return self.model.objects.all()
+
+    def page_data_arguments(self, index):
+        raise NotImplementedError
+
+    @staticmethod
+    def convert_response(response):
+        # the response.data nested serializers can be OrderedDicts, since tests skip JSON serialization.
+        # we need to convert them to dicts
+        return {k: dict(v) if isinstance(v, OrderedDict) else v for k, v in response.data.items()}
+
+    def get_default_response(self, arguments):
+        return {key: arguments[key] for key in arguments}
+
+
+class BaseTestListModelViewSet(BaseTestCommonModelViewSet):
+    @pytest.fixture
+    def list_keys_arguments(self):
+        raise NotImplementedError
+
+    @pytest.fixture
+    def list_querystring(self):
+        return {}
+
+    # page_data is needed for object creation, even though it isn't used directly in test_list.
+    def test_list(self, page_data, authenticated_client, list_keys_arguments, list_querystring):
+        keys = set(["id", "current_history_id"] + list_keys_arguments)
+
+        # Do we have a workflow?
+        if hasattr(self.model, "workflow"):
+            keys.update(
+                {
+                    "workflow_state_code": "draft",
+                    "workflow_state_name": "Draft",
+                }
+            )
+
+        response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
+        assert response.status_code == 200, f"{response.status_code} != 200, response.data: {response.data}"
+        response_info = {x: y for x, y in response.data.items() if x == "results"}
+        current_history_id = response_info["results"][0]["current_history_id"]
+        assert current_history_id is not None
+        assert keys == set(response_info["results"][0].keys())
+
+
+class BaseTestDetailModelViewSet(BaseTestCommonModelViewSet):
+    @pytest.fixture
+    def detail_querystring(self):
+        return {}
+
+
+class BaseTestCreateModelViewSet(BaseTestCommonModelViewSet):
+    expected_create_status_code = 201
+
+    @pytest.fixture
+    def create_arguments(self):
+        raise NotImplementedError
+
+    @pytest.fixture
+    def expected_create_response(self, create_arguments):
+        return self.get_default_response(create_arguments)
+
+    def update_expected_create_response(self, expected_create_response, new_instance):
+        expected_create_response.update(
+            {
+                "id": new_instance.id,
+                "current_history_id": new_instance.history.latest().history_id,
+            }
+        )
+
+        # Do we have a workflow?
+        if hasattr(new_instance, "workflow") and "workflow_state_code" not in expected_create_response:
+            expected_create_response.update(
+                {
+                    "workflow_state_code": "draft",
+                    "workflow_state_name": "Draft",
+                }
+            )
+
+    def after_create(self, new_instance, expected_create_response):
+        pass
+
+    # page_data is needed for object creation, even though it isn't used directly in test_list.
+    def test_create(
+        self, page_data, authenticated_client, create_arguments, expected_create_response, detail_querystring
+    ):
+        status_code = self.expected_create_status_code
+        qs = f"?{urlencode(detail_querystring, doseq=True)}" if detail_querystring else ""
+        response = authenticated_client.post(self.list_url() + qs, data=create_arguments, format="json")
+        new_instance = self.model.objects.latest("pk")
+        assert (
+            response.status_code == status_code
+        ), f"{response.status_code} != {status_code}, response.data: {response.data}"
+        assert new_instance is not None
+        self.update_expected_create_response(expected_create_response, new_instance)
+        if status_code == 201:
+            assert expected_create_response == self.convert_response(response)
+        self.after_create(new_instance, expected_create_response)
+
+
+class BaseTestRetrieveModelViewSet(BaseTestCommonModelViewSet):
+    @pytest.fixture
+    def expected_retrieve_response(self, page_data):
+        raise NotImplementedError
+
+    def update_expected_retrieve_response(self, expected_retrieve_response, instance):
+        # Do we have a workflow?
+        if hasattr(instance, "workflow") and "workflow_state_code" not in expected_retrieve_response:
+            expected_retrieve_response.update(
+                {
+                    "workflow_state_code": "draft",
+                    "workflow_state_name": "Draft",
+                }
+            )
+
+    def test_retrieve(self, page_data, authenticated_client, expected_retrieve_response, detail_querystring):
+        instance = page_data.first()
+        response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
+        self.update_expected_retrieve_response(expected_retrieve_response, instance)
+        assert response.status_code == 200, f"{response.status_code} != 200, response.data: {response.data}"
+        assert expected_retrieve_response == response.data
+
+
+class BaseTestDestroyModelViewSet(BaseTestCommonModelViewSet):
+    def test_destroy(self, page_data, authenticated_client):
+        pk = page_data.first().id
+        response = authenticated_client.delete(self.detail_url(pk))
+        assert response.status_code == 204, f"{response.status_code} != 204, response.data: {response.data}"
+        assert not self.model.objects.filter(pk=pk).exists()
+
+
+class BaseTestUpdateModelViewSet(BaseTestCommonModelViewSet):
+    expected_update_status_code = 200
+
+    @pytest.fixture
+    def update_arguments(self, page_data):
+        raise NotImplementedError
+
+    @pytest.fixture
+    def expected_update_response(self, update_arguments):
+        return self.get_default_response(update_arguments)
+
+    def update_expected_update_response(self, expected_update_response, updated_instance):
+        expected_update_response["current_history_id"] = updated_instance.history.latest().history_id
+
+        # Do we have a workflow?
+        if hasattr(updated_instance, "workflow") and "workflow_state_code" not in expected_update_response:
+            expected_update_response.update(
+                {
+                    "workflow_state_code": "draft",
+                    "workflow_state_name": "Draft",
+                }
+            )
+
+    def after_update(self, updated_instance, expected_update_response):
+        pass
+
+    def test_update(
+        self,
+        page_data,
+        authenticated_client,
+        update_arguments,
+        expected_update_response,
+        detail_querystring,
+    ):
+        status_code = self.expected_update_status_code
+        qs = f"?{urlencode(detail_querystring, doseq=True)}" if detail_querystring else ""
+        response = authenticated_client.put(
+            self.detail_url(page_data.first().id) + qs, data=update_arguments, format="json"
+        )
+        updated_instance = self.model.objects.all().first()
+        assert (
+            response.status_code == status_code
+        ), f"{response.status_code} != {status_code}, response.data: {response.data}"
+        assert updated_instance is not None
+        self.update_expected_update_response(expected_update_response, updated_instance)
+        if status_code == 200:
+            assert expected_update_response == self.convert_response(response)
+        self.after_update(updated_instance, expected_update_response)
+
+
+class BaseTestModelViewSet(
+    BaseTestListModelViewSet,
+    BaseTestDetailModelViewSet,
+    BaseTestCreateModelViewSet,
+    BaseTestRetrieveModelViewSet,
+    BaseTestDestroyModelViewSet,
+    BaseTestUpdateModelViewSet,
+):
+    pass
