@@ -193,6 +193,7 @@ class BaseTestUserMixin:
 
 class BaseTestCommonModelViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
     model: models.Model = None
+    page_data_arguments = ()
 
     def list_url(self):
         return reverse(f"{self.model._meta.label_lower}-list")
@@ -202,11 +203,9 @@ class BaseTestCommonModelViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin,
 
     @pytest.fixture
     def page_data(self):
-        self.model.objects.create(**self.page_data_arguments(0))
+        for data in self.page_data_arguments:
+            self.model.objects.create(**data)
         return self.model.objects.all()
-
-    def page_data_arguments(self, index):
-        raise NotImplementedError
 
     @staticmethod
     def convert_response(response):
@@ -218,18 +217,16 @@ class BaseTestCommonModelViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin,
         return {key: arguments[key] for key in arguments}
 
 
-class BaseTestListModelViewSet(BaseTestCommonModelViewSet):
-    @pytest.fixture
-    def list_keys_arguments(self):
-        raise NotImplementedError
+class BaseTestListModelViewSet:
+    list_keys_arguments = set()
 
     @pytest.fixture
     def list_querystring(self):
         return {}
 
     # page_data is needed for object creation, even though it isn't used directly in test_list.
-    def test_list(self, page_data, authenticated_client, list_keys_arguments, list_querystring):
-        keys = set(["id", "current_history_id"] + list_keys_arguments)
+    def test_list(self, page_data, authenticated_client, list_querystring):
+        keys = {"id", "current_history_id"}.union(self.list_keys_arguments)
 
         # Do we have a workflow?
         if hasattr(self.model, "workflow"):
@@ -248,13 +245,13 @@ class BaseTestListModelViewSet(BaseTestCommonModelViewSet):
         assert keys == set(response_info["results"][0].keys())
 
 
-class BaseTestDetailModelViewSet(BaseTestCommonModelViewSet):
+class BaseTestDetailModelViewSet:
     @pytest.fixture
     def detail_querystring(self):
         return {}
 
 
-class BaseTestCreateModelViewSet(BaseTestCommonModelViewSet):
+class BaseTestCreateModelViewSet:
     expected_create_status_code = 201
 
     @pytest.fixture
@@ -263,7 +260,7 @@ class BaseTestCreateModelViewSet(BaseTestCommonModelViewSet):
 
     @pytest.fixture
     def expected_create_response(self, create_arguments):
-        return self.get_default_response(create_arguments)
+        return dict(create_arguments)
 
     def update_expected_create_response(self, expected_create_response, new_instance):
         expected_create_response.update(
@@ -303,7 +300,7 @@ class BaseTestCreateModelViewSet(BaseTestCommonModelViewSet):
         self.after_create(new_instance, expected_create_response)
 
 
-class BaseTestRetrieveModelViewSet(BaseTestCommonModelViewSet):
+class BaseTestRetrieveModelViewSet:
     @pytest.fixture
     def expected_retrieve_response(self, page_data):
         raise NotImplementedError
@@ -326,7 +323,7 @@ class BaseTestRetrieveModelViewSet(BaseTestCommonModelViewSet):
         assert expected_retrieve_response == response.data
 
 
-class BaseTestDestroyModelViewSet(BaseTestCommonModelViewSet):
+class BaseTestDestroyModelViewSet:
     def test_destroy(self, page_data, authenticated_client):
         pk = page_data.first().id
         response = authenticated_client.delete(self.detail_url(pk))
@@ -334,7 +331,7 @@ class BaseTestDestroyModelViewSet(BaseTestCommonModelViewSet):
         assert not self.model.objects.filter(pk=pk).exists()
 
 
-class BaseTestUpdateModelViewSet(BaseTestCommonModelViewSet):
+class BaseTestUpdateModelViewSet:
     expected_update_status_code = 200
 
     @pytest.fixture
@@ -343,7 +340,11 @@ class BaseTestUpdateModelViewSet(BaseTestCommonModelViewSet):
 
     @pytest.fixture
     def expected_update_response(self, update_arguments):
-        return self.get_default_response(update_arguments)
+        return dict(update_arguments)
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        raise NotImplementedError
 
     def update_expected_update_response(self, expected_update_response, updated_instance):
         expected_update_response["current_history_id"] = updated_instance.history.latest().history_id
@@ -385,11 +386,12 @@ class BaseTestUpdateModelViewSet(BaseTestCommonModelViewSet):
 
 
 class BaseTestModelViewSet(
-    BaseTestListModelViewSet,
+    # BaseTestListModelViewSet,
     BaseTestDetailModelViewSet,
-    BaseTestCreateModelViewSet,
+    # BaseTestCreateModelViewSet,
     BaseTestRetrieveModelViewSet,
-    BaseTestDestroyModelViewSet,
-    BaseTestUpdateModelViewSet,
+    # BaseTestDestroyModelViewSet,
+    # BaseTestUpdateModelViewSet,
+    BaseTestCommonModelViewSet,
 ):
     pass
