@@ -66,10 +66,7 @@ class FlexFieldsWriteableNestedSerializerMixin(
         return super().to_internal_value(data)
 
     def update_or_create_direct_relations(self, attrs, relations):
-        from ipdb import launch_ipdb_on_exception
-
-        with launch_ipdb_on_exception():
-            return super().update_or_create_direct_relations(attrs, relations)
+        return super().update_or_create_direct_relations(attrs, relations)
 
 
 class ExcludeFieldsSerializerMixin:
