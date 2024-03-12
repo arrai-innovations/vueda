@@ -386,12 +386,12 @@ class BaseTestUpdateModelViewSet:
 
 
 class BaseTestModelViewSet(
-    # BaseTestListModelViewSet,
+    BaseTestListModelViewSet,
     BaseTestDetailModelViewSet,
-    # BaseTestCreateModelViewSet,
+    BaseTestCreateModelViewSet,
     BaseTestRetrieveModelViewSet,
-    # BaseTestDestroyModelViewSet,
-    # BaseTestUpdateModelViewSet,
+    BaseTestDestroyModelViewSet,
+    BaseTestUpdateModelViewSet,
     BaseTestCommonModelViewSet,
 ):
     pass
