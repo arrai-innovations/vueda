@@ -261,13 +261,14 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             )
         }
 
-        context["view"] = FakeView(context["request"], TimesheetSerializer)
         t = Timesheet.objects.create(
             **{
                 **valid_timesheet_data,
                 "employee": employee,
             }
         )
+
+        context["view"] = FakeView(context["request"], TimesheetSerializer, queryset=Timesheet.objects.filter(pk=t.id))
 
         # simulate an update as if it was done through the view with flex fields
         serializer = TimesheetSerializer(instance=t, data=put_data, context=context)
@@ -329,13 +330,13 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             "request": FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["employee", "foo"]}, put_data, "PUT")
         }
 
-        context["view"] = FakeView(context["request"], TimesheetSerializer)
         t = Timesheet.objects.create(
             **{
                 **valid_timesheet_data,
                 "employee": employee,
             }
         )
+        context["view"] = FakeView(context["request"], TimesheetSerializer, queryset=Timesheet.objects.filter(pk=t.id))
 
         # simulate an update as if it was done through the view with flex fields
         serializer = TimesheetSerializer(instance=t, data=put_data, context=context)
@@ -449,7 +450,7 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
         request = FakeRequest(data=put_data, method="PUT")
         context = {
             "request": request,
-            "view": FakeView(request, TimesheetSerializerExclude, "update"),
+            "view": FakeView(request, TimesheetSerializerExclude, "update", queryset=Timesheet.objects.filter(pk=t.id)),
         }
 
         serializer = TimesheetSerializerExclude(instance=t, data=put_data, context=context)
@@ -471,10 +472,20 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
             "employee": f"{employee.pk}",
             "supervisor": f"{employee.pk}",
         }
+
+        def get_queryset():
+            # We can't pass in the supervisor, because it becomes None, not a number.
+            timesheet = Timesheet.objects.get(
+                period_start="2024-03-01",
+                period_end="2024-03-15",
+                employee=f"{employee.pk}",
+            )
+            return Timesheet.objects.filter(pk=timesheet.pk)
+
         request = FakeRequest(data=post_data, method="POST")
         context = {
             "request": request,
-            "view": FakeView(request, TimesheetSerializerExclude, "create"),
+            "view": FakeView(request, TimesheetSerializerExclude, "create", queryset=get_queryset),
         }
         serializer = TimesheetSerializerExclude(data=post_data, context=context)
 
@@ -499,7 +510,9 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
         request = FakeRequest(data=patch_data, method="PATCH")
         context = {
             "request": request,
-            "view": FakeView(request, TimesheetSerializerExclude, "partial_update"),
+            "view": FakeView(
+                request, TimesheetSerializerExclude, "partial_update", queryset=Timesheet.objects.filter(pk=t.id)
+            ),
         }
         # "partial = True" must be passed in the serializer to make the serializer partial
         serializer = TimesheetSerializerExclude(instance=t, data=patch_data, context=context, partial=True)
