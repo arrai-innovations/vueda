@@ -3,6 +3,8 @@ import rest_flex_fields.serializers as flex_serializers
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
+
 
 class NoExtraFieldsSerializerMixin:
     """
@@ -92,6 +94,7 @@ class VuedaSerializerMixin(
     NoExtraFieldsSerializerMixin,
     FlexFieldsWriteableNestedSerializerMixin,
     flex_serializers.FlexFieldsSerializerMixin,
+    SimpleHistorySerializerMixin,
     serializers.ModelSerializer,
 ):
     pass
