@@ -1,6 +1,7 @@
 from typing import Optional
 from typing import Union
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Q
 
@@ -52,6 +53,7 @@ class TimesheetEntry(SimpleHistoryModelMixin, models.Model):
 class Product(SimpleHistoryModelMixin, models.Model):
     name = models.CharField(max_length=255)
     available_for_sale = models.BooleanField(db_default=True)
+    buzz_words = ArrayField(models.CharField(max_length=255, blank=True), null=True)
 
     class Meta(BaseModelMeta):
         default_related_name = "products"

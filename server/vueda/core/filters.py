@@ -1,11 +1,11 @@
 from django.db.models.constants import LOOKUP_SEP
 from django.utils.translation import gettext_lazy as _
-from django_filters import rest_framework as filters
+from django_filters import rest_framework
 
 from vueda.core.fields.form import BaseArrayField
 
 
-class BaseArrayFilter(filters.Filter):
+class BaseArrayFilter(rest_framework.Filter):
     """
     Base class for array type filters, such as IN and RANGE.
     """
@@ -47,7 +47,7 @@ class BaseArrayFilter(filters.Filter):
         expression_name = "".join(p.capitalize() for p in parts)
 
         # DateTimeYearInField
-        return str(f"{type_name}{expression_name}Field")
+        return f"{type_name}{expression_name}Field"
 
 
 class BaseArrayInFilter(BaseArrayFilter):
@@ -56,5 +56,13 @@ class BaseArrayInFilter(BaseArrayFilter):
         super().__init__(*args, **kwargs)
 
 
-class NumberArrayFilter(BaseArrayInFilter, filters.NumberFilter):
+class NumberArrayFilter(BaseArrayInFilter, rest_framework.NumberFilter):
+    pass
+
+
+class IdInFilterSet(rest_framework.FilterSet):
+    id = NumberArrayFilter(field_name="id", lookup_expr="in")
+
+
+class VuedaFilterSet(IdInFilterSet, rest_framework.FilterSet):
     pass

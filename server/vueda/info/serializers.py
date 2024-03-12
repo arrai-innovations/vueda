@@ -114,15 +114,15 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         serializer = self.canonical.serializer  # type: serializers.ModelSerializer
 
         fields = []
-        for field in serializer.get_fields().items():
-            many = isinstance(field[1], serializers.ListField)
+        for field_name, field in serializer.get_fields().items():
+            many = isinstance(field, serializers.ListField)
             fields.append(
                 {
-                    "name": field[0],
-                    "type": field[1].child.__class__.__name__ if many else field[1].__class__.__name__,
+                    "name": field_name,
+                    "type": field.child.__class__.__name__ if many else field.__class__.__name__,
                     "many": many,
-                    "read_only": field[1].read_only,
-                    "required": field[1].required,
+                    "read_only": field.read_only,
+                    "required": field.required,
                 }
             )
         return fields

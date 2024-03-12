@@ -8,6 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from vueda.core.models import ActivatableBaseModel
+from vueda.history.viewsets import SimpleHistoryViewSetMixin
 
 
 class AtomicCreateModelViewSetMixin(drf_viewsets.mixins.CreateModelMixin):
@@ -238,5 +239,7 @@ class DeactivateActionViewSetMixin:
         )
 
 
-class VuedaViewSet(NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
+class VuedaViewSet(
+    NoExtraFieldsForViewSetMixin, SimpleHistoryViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet
+):
     pass

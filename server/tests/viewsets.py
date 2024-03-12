@@ -1,3 +1,4 @@
+from tests.filtersets import ProductFilterSet
 from tests.models import Product
 from tests.models import Timesheet
 from tests.serializers import ProductSerializer
@@ -16,3 +17,4 @@ class ProductViewSet(VuedaViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [ObjectPermissions]
+    filterset_class = ProductFilterSet
