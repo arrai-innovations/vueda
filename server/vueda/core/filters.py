@@ -47,7 +47,7 @@ class BaseArrayFilter(rest_framework.Filter):
         expression_name = "".join(p.capitalize() for p in parts)
 
         # DateTimeYearInField
-        return str(f"{type_name}{expression_name}Field")
+        return f"{type_name}{expression_name}Field"
 
 
 class BaseArrayInFilter(BaseArrayFilter):
