@@ -1,12 +1,12 @@
 from django_filters import rest_framework
 
 from tests import models
-from vueda.core.filters import CharArrayInFilter
+from vueda.core.filters import VuedaFilterSet
 
 
-class ProductFilterSet(rest_framework.FilterSet):
-    buzz_words = CharArrayInFilter(field_name="buzz_words", lookup_expr="in")
+class ProductFilterSet(VuedaFilterSet):
+    buzz_words = rest_framework.Filter(field_name="buzz_words", lookup_expr="contains")
 
     class Meta:
         model = models.Product
-        fields = ["buzz_words"]
+        fields = ["id", "buzz_words"]
