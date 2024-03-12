@@ -243,6 +243,7 @@ class BaseTestListModelViewSet:
         current_history_id = response_info["results"][0]["current_history_id"]
         assert current_history_id is not None
         assert keys == set(response_info["results"][0].keys())
+        assert {x["id"] for x in response_info["results"]} == set(list_querystring["id"])
 
 
 class BaseTestDetailModelViewSet:
