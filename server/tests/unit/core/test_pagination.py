@@ -3,6 +3,7 @@ from django.urls import reverse
 
 from tests.conftest import BaseTestCommonModelViewSet
 from tests.models import Product
+from vueda.core.pagination import VUEDAPageNumberPagination
 
 
 @pytest.mark.django_db
@@ -59,3 +60,12 @@ class TestPagination(BaseTestCommonModelViewSet):
         assert response_data["perPage"] == 5
         assert response_data["totalPages"] == 3
         assert response_data["totalRecords"] == len(self.page_data_arguments)
+
+    def test_page_size_query_param(self, settings):
+        assert VUEDAPageNumberPagination.page_size_query_param == settings.PAGE_SIZE_QUERY_PARAM
+
+    def test_page_query_param(self, settings):
+        assert VUEDAPageNumberPagination.page_query_param == settings.PAGE_QUERY_PARAM
+
+    def test_max_page_size(self, settings):
+        assert VUEDAPageNumberPagination.max_page_size == settings.MAX_PAGE_SIZE
