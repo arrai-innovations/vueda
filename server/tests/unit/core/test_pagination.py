@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.urls import reverse
 
@@ -53,19 +55,73 @@ class TestPagination(BaseTestCommonModelViewSet):
         return api_client
 
     def test_get_paginated_response(self, authenticated_client, page_data):
+        # because rest framework loads settings on class import there's no way to override through 'settings'
+        VUEDAPageNumberPagination.page_size = 5
+        VUEDAPageNumberPagination.max_page_size = 200
+        VUEDAPageNumberPagination.page_query_param = "p"
+        VUEDAPageNumberPagination.page_size_query_param = "ps"
+
         url = reverse("tests.product-list")
-        response = authenticated_client.get(url, data={"ps": 5}, format="json")
+        response = authenticated_client.get(url, data={"ps": "5"}, format="json")
         response_data = {x: y for x, y in response.data.items() if x != "results"}
         assert response.status_code == 200
         assert response_data["perPage"] == 5
         assert response_data["totalPages"] == 3
         assert response_data["totalRecords"] == len(self.page_data_arguments)
 
-    def test_page_size_query_param(self, settings):
-        assert VUEDAPageNumberPagination.page_size_query_param == settings.PAGE_SIZE_QUERY_PARAM
+    def test_page_size_query_param(self, settings, authenticated_client, page_data):
+        settings.PAGE_SIZE_QUERY_PARAM = "our_ps"
+        VUEDAPageNumberPagination.page_size = 100
+        VUEDAPageNumberPagination.max_page_size = 200
+        VUEDAPageNumberPagination.page_query_param = "p"
 
-    def test_page_query_param(self, settings):
-        assert VUEDAPageNumberPagination.page_query_param == settings.PAGE_QUERY_PARAM
+        # Store the original function, so we can call it in the mocked function.
+        orig_get_page_size = VUEDAPageNumberPagination.get_page_size
 
-    def test_max_page_size(self, settings):
-        assert VUEDAPageNumberPagination.max_page_size == settings.MAX_PAGE_SIZE
+        def get_page_size(self, request):
+            # Store the result on the mocked function, so we can assert it later.
+            mocked_get_page_size._returned_page_size = page_size = orig_get_page_size(self, request)
+            return page_size
+
+        with patch.object(VUEDAPageNumberPagination, "get_page_size", get_page_size) as mocked_get_page_size:
+            VUEDAPageNumberPagination.page_size_query_param = "our_ps"
+            url = reverse("tests.product-list")
+            authenticated_client.get(url, data={"our_ps": "151"}, format="json")
+
+            assert mocked_get_page_size._returned_page_size == 151
+
+    def test_page_query_param(self, settings, authenticated_client, page_data):
+        settings.PAGE_QUERY_PARAM = "our_p"
+        VUEDAPageNumberPagination.page_size = 5
+        VUEDAPageNumberPagination.max_page_size = 200
+        VUEDAPageNumberPagination.page_query_param = "our_p"
+        VUEDAPageNumberPagination.page_size_query_param = "ps"
+
+        url = reverse("tests.product-list")
+        response = authenticated_client.get(url, data={"ps": "5", "our_p": 3}, format="json")
+        response_data = {x: y for x, y in response.data.items() if x != "results"}
+        assert response.status_code == 200
+        assert response_data["perPage"] == 5
+        assert response_data["totalPages"] == 3
+        assert len(response.data["results"]) == 3
+        assert response_data["totalRecords"] == len(self.page_data_arguments)
+
+    def test_max_page_size(self, authenticated_client, page_data):
+        VUEDAPageNumberPagination.max_page_size = 99
+        VUEDAPageNumberPagination.page_size = 100
+        VUEDAPageNumberPagination.page_query_param = "p"
+        VUEDAPageNumberPagination.page_size_query_param = "ps"
+
+        # Store the original function, so we can call it in the mocked function.
+        orig_get_page_size = VUEDAPageNumberPagination.get_page_size
+
+        def get_page_size(self, request):
+            # Store the result on the mocked function, so we can assert it later.
+            mocked_get_page_size._returned_page_size = page_size = orig_get_page_size(self, request)
+            return page_size
+
+        with patch.object(VUEDAPageNumberPagination, "get_page_size", get_page_size) as mocked_get_page_size:
+            url = reverse("tests.product-list")
+            authenticated_client.get(url, data={"ps": "100"}, format="json")
+
+            assert mocked_get_page_size._returned_page_size == 99
