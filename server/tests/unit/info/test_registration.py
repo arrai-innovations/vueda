@@ -7,7 +7,7 @@ from vueda.info import registration
 
 @pytest.mark.django_db
 class TestRegistration:
-    def test_register_function(self):
+    def test_register_decorator(self):
         from tests.models import Timesheet
         from tests.serializers import TimesheetSerializer
         from vueda.core.viewsets import VuedaViewSet
@@ -25,7 +25,7 @@ class TestRegistration:
             # A default serializer is created if one isn't defined, but it won't have the model on it.
             assert not hasattr(registered_item["serializer"], "model")
 
-    def test_register_decorator(self):
+    def test_register_function(self):
         from tests.models import Product
         from tests.serializers import ProductSerializer
         from vueda.core.viewsets import VuedaViewSet
