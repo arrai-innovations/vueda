@@ -4,7 +4,7 @@ from django.utils.functional import cached_property
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers
 
-from vueda.info.register import get_registration
+from vueda.info.registration import get_registration
 
 
 class PermissionSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer):

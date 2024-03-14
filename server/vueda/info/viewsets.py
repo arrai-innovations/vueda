@@ -3,7 +3,7 @@ from rest_framework import generics
 from rest_framework.viewsets import GenericViewSet
 
 from vueda.core.viewsets import FlexFieldsMixin
-from vueda.info.register import get_registered_content_types
+from vueda.info.registration import get_registered_content_types
 from vueda.info.serializers import ModelInfoSerializer
 
 
