@@ -8,7 +8,6 @@ from vueda.info import registration
 @pytest.mark.django_db
 class TestRegistration:
     def test_register_decorator(self):
-        from tests.models import Timesheet
         from tests.serializers import TimesheetSerializer
         from vueda.core.viewsets import VuedaViewSet
 
@@ -17,7 +16,7 @@ class TestRegistration:
 
         @info.register(TimesheetSerializer)
         class TimesheetViewSet(VuedaViewSet):
-            queryset = Timesheet.objects.all()
+            pass
 
         assert len(_registry) == 1
         for registered_item in _registry.values():
