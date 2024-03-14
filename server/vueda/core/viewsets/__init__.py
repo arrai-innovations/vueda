@@ -116,8 +116,6 @@ class NoExtraFieldsForViewSetMixin:
         """
         if you provide fields to filter by that are not filtered by the filter class, you get a 500 error
         """
-        # breakpoint()
-
         if hasattr(self, "filterset_class"):
             # get_fields() only gets fields from the meta, not declared fields on the filterset.
             fields = set(self.filterset_class.get_filters().keys())
