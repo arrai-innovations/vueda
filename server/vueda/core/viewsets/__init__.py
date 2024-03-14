@@ -102,15 +102,17 @@ class NoExtraFieldsForViewSetMixin:
     fields specified in REST Flex Fields settings.
     """
 
-    extra_allowed_fields = (
-        settings.PAGE_QUERY_PARAM,
-        settings.PAGE_SIZE_QUERY_PARAM,
-        settings.REST_FLEX_FIELDS["EXPAND_PARAM"],
-        settings.REST_FLEX_FIELDS["FIELDS_PARAM"],
-        settings.REST_FLEX_FIELDS["OMIT_PARAM"],
-        settings.REST_FRAMEWORK["SEARCH_PARAM"],
-        settings.REST_FRAMEWORK["ORDERING_PARAM"],
-    )
+    @staticmethod
+    def get_extra_allowed_fields():
+        return (
+            settings.PAGE_QUERY_PARAM,
+            settings.PAGE_SIZE_QUERY_PARAM,
+            settings.REST_FLEX_FIELDS["EXPAND_PARAM"],
+            settings.REST_FLEX_FIELDS["FIELDS_PARAM"],
+            settings.REST_FLEX_FIELDS["OMIT_PARAM"],
+            settings.REST_FRAMEWORK["SEARCH_PARAM"],
+            settings.REST_FRAMEWORK["ORDERING_PARAM"],
+        )
 
     def list(self, request, *args, **kwargs):
         """
@@ -122,7 +124,7 @@ class NoExtraFieldsForViewSetMixin:
             # get_fields() only gets fields from the meta, not declared fields on the filterset.
             fields = set(self.filterset_class.get_filters().keys())
             # pagination and expanding are allowed
-            fields.update(self.extra_allowed_fields)
+            fields.update(self.get_extra_allowed_fields())
             for key in request.query_params.keys():
                 if key not in fields:
                     return Response(
