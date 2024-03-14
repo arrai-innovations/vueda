@@ -1,3 +1,4 @@
+import sys
 from copy import deepcopy
 
 from django.core.exceptions import ImproperlyConfigured
@@ -77,3 +78,12 @@ def get_registered_content_types():
     :return: All the registered content types.
     """
     return _registry.keys()
+
+
+# Required for testing, so we can have separate registry dictionaries for each test.
+if "pytest" in sys.modules:
+
+    def get_empty_registry():
+        global _registry
+        _registry = {}
+        return _registry
