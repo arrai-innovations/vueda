@@ -64,7 +64,7 @@ class Cart(models.Model):
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.PROTECT)
     product_option = models.ForeignKey(ProductOption, on_delete=models.PROTECT)
-    quantity = models.IntegerField(db_default=0, max_digits=7, decimal_places=0)
+    quantity = models.IntegerField(db_default=0)
 
     class Meta(BaseModelMeta):
         pass
@@ -88,7 +88,7 @@ class Order(SimpleHistoryModelMixin, models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.PROTECT)
     product_option = models.ForeignKey(ProductOption, on_delete=models.PROTECT)
-    quantity = models.IntegerField(db_default=0, max_digits=7, decimal_places=0)
+    quantity = models.IntegerField(db_default=0)
 
     class Meta(BaseModelMeta):
         pass
@@ -111,7 +111,7 @@ class InventoryRecordReason(models.Model):
 class InventoryRecord(models.Model):
     product_option = models.ForeignKey(ProductOption, on_delete=models.PROTECT)
     when = models.DateTimeField(auto_now_add=True, verbose_name="Date / Time", db_index=True)
-    quantity = models.IntegerField(db_default=0, max_digits=7, decimal_places=0)
+    quantity = models.IntegerField(db_default=0)
     reason = models.ForeignKey(InventoryRecordReason, on_delete=models.PROTECT)
     # A flag, which is set via a management command, run nightly, to ignore records that are completely used.
     archived = models.BooleanField(db_default=False, db_index=True)
