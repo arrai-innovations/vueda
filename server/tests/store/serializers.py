@@ -68,6 +68,25 @@ class ProductSerializer(serializers.ModelSerializer):
             )
         }
 
+    def validate(self, data):
+        data = super().validate(data)
+
+        distributor_id = data["product"].distributor_id
+        option_type_id = data["option_type_id"]
+        name = data["name"]
+
+        queryset = Product.object.filter(
+            product__distributor_id=distributor_id, option_type_id=option_type_id, name=name
+        )
+
+        if self.instance:
+            queryset = queryset.exclude(pk=self.pk)
+
+        if queryset.exists():
+            raise serializers.ValidationError("A product with this distributor, option_type, and name already exists.")
+
+        return data
+
 
 class OptionTypeSerializer(serializers.ModelSerializer):
     class Meta:
