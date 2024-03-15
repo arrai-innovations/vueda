@@ -20,6 +20,7 @@ TEST_POSTGRES_DB = env("TEST_POSTGRES_DB")
 INSTALLED_APPS += [  # noqa: F405
     "django_extensions",
     "tests.apps.TestsConfig",
+    "tests.store.apps.StoreConfig",
 ]
 AUTH_USER_MODEL = "tests.User"
 
