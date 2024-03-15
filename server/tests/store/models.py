@@ -69,7 +69,7 @@ class OrderState(Lookup):
         pass
 
 
-class Order(SimpleHistoryModelMixin, models.Model):
+class CustomerOrder(SimpleHistoryModelMixin, models.Model):
     order_number = models.DecimalField(max_digits=7, decimal_places=0)
     when = models.DateTimeField(auto_now_add=True, verbose_name="Date / Time", db_index=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
@@ -80,7 +80,7 @@ class Order(SimpleHistoryModelMixin, models.Model):
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.PROTECT)
+    customer_order = models.ForeignKey(CustomerOrder, on_delete=models.PROTECT)
     product_option = models.ForeignKey(ProductOption, on_delete=models.PROTECT)
     quantity = models.IntegerField(db_default=0)
 
