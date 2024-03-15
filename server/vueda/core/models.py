@@ -6,7 +6,7 @@ class BaseModelMeta:
 
 
 class Lookup(models.Model):
-    code = models.CharField(max_length=255, unique=True)
+    code = models.CharField(max_length=255, unique=True, db_index=True)
     name = models.CharField(max_length=255)
 
     class Meta:
