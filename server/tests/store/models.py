@@ -2,7 +2,6 @@
 
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models import UniqueConstraint
 
 from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
@@ -46,12 +45,7 @@ class ProductOption(SimpleHistoryModelMixin, models.Model):
     disabled = models.BooleanField(db_default=False)
 
     class Meta(BaseModelMeta):
-        constraints = [
-            UniqueConstraint(
-                name="product_option_unique_constraint_name_type_distributor",
-                fields=["product__distributor_id", "option_type_id", "name"],
-            )
-        ]
+        pass
 
 
 class Cart(models.Model):
