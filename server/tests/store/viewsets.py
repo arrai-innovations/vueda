@@ -50,9 +50,9 @@ class CartItemViewSet(VuedaViewSet):
     permission_classes = [ObjectPermissions]
 
 
-class OrderViewSet(VuedaViewSet):
-    queryset = my_models.Order.objects.all()
-    serializer_class = my_serializers.OrderSerializer
+class CustomerOrderViewSet(VuedaViewSet):
+    queryset = my_models.CustomerOrder.objects.all()
+    serializer_class = my_serializers.CustomerOrderSerializer
     permission_classes = [ObjectPermissions]
 
 

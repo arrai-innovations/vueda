@@ -7,11 +7,11 @@ from vueda.user.serializers import UserSerializer
 from .models import Cart
 from .models import CartItem
 from .models import Customer
+from .models import CustomerOrder
 from .models import Distributor
 from .models import InventoryRecord
 from .models import InventoryRecordReason
 from .models import OptionType
-from .models import Order
 from .models import OrderItem
 from .models import Product
 from .models import ProductOption
@@ -193,9 +193,9 @@ class CartItemSerializer(serializers.ModelSerializer):
         }
 
 
-class OrderSerializer(serializers.ModelSerializer):
+class CustomerOrderSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Order
+        model = CustomerOrder
         fields = [
             "id",
             "customer",
@@ -224,7 +224,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         ]
         expandable_fields = {
             "order": (
-                OrderSerializer,
+                CustomerOrderSerializer,
                 {
                     "fields": [
                         "id",
@@ -267,7 +267,7 @@ class InventoryRecordSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "product",
-            "date_and_time",
+            "when",
             "quantity",
             "reason",
             "is_added",
@@ -306,7 +306,7 @@ class InventoryRecordSerializer(serializers.ModelSerializer):
                     "fields": [
                         "id",
                         "product",
-                        "date_and_time",
+                        "when",
                         "quantity",
                         "reason",
                         "is_added",
