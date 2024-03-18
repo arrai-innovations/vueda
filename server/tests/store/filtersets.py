@@ -39,11 +39,13 @@ class OrderItemFilterSet(VuedaFilterSet):
 
     class Meta:
         model = my_models.ProductOption
-        fields = ["quantity"]
+        fields = [
+            "quantity",
+        ]
 
 
 class InventoryRecordFilterSet(VuedaFilterSet):
-    date_and_time_range = rest_framework.DateTimeFromToRangeFilter(field_name="date_and_time")
+    when_range = rest_framework.DateTimeFromToRangeFilter(field_name="when")
     reason_exact = rest_framework.CharFilter(field_name="reason", lookup_expr="exact")
     is_added_exact = rest_framework.BooleanFilter(field_name="is_added", lookup_expr="exact")
     quantity = rest_framework.NumberFilter(field_name="quantity", lookup_expr=["lte", "gte", "exact"])
@@ -53,4 +55,4 @@ class InventoryRecordFilterSet(VuedaFilterSet):
 
     class Meta:
         model = my_models.InventoryRecord
-        fields = ["date_and_time", "reason", "is_added", "quantity", "cost", "price", "margin"]
+        fields = ["when", "reason", "is_added", "quantity", "cost", "price", "margin"]
