@@ -2,6 +2,7 @@ import datetime
 from decimal import Decimal
 
 import pytest
+from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
@@ -15,6 +16,29 @@ from tests.store.models import OrderItem
 from tests.store.models import OrderState
 from tests.store.models import Product
 from tests.store.models import ProductOption
+from tests.store.serializers import CartItemSerializer
+from tests.store.serializers import CartSerializer
+from tests.store.serializers import CustomerOrderSerializer
+from tests.store.serializers import CustomerSerializer
+from tests.store.serializers import DistributorSerializer
+from tests.store.serializers import InventoryRecordReasonSerializer
+from tests.store.serializers import InventoryRecordSerializer
+from tests.store.serializers import OptionTypeSerializer
+from tests.store.serializers import OrderItemSerializer
+from tests.store.serializers import ProductOptionSerializer
+from tests.store.serializers import ProductSerializer
+from tests.store.viewsets import CartItemViewSet
+from tests.store.viewsets import CartViewSet
+from tests.store.viewsets import CustomerOrderViewSet
+from tests.store.viewsets import CustomerViewSet
+from tests.store.viewsets import DistributorViewSet
+from tests.store.viewsets import InventoryRecordReasonViewSet
+from tests.store.viewsets import InventoryRecordViewSet
+from tests.store.viewsets import OptionTypeViewSet
+from tests.store.viewsets import OrderItemViewSet
+from tests.store.viewsets import ProductOptionViewSet
+from tests.store.viewsets import ProductViewSet
+from vueda import info
 
 
 class TestData(BaseTestUserMixin, BaseTestGroupMixin):
@@ -696,7 +720,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                             stored_inventory_record = inventory_record_data["identifier"]
                             del inventory_record_data["identifier"]
                         inventory_record = InventoryRecord.objects.create(**inventory_record_data)
-                        inventory_records[inventory_record.pk] = inventory_records
+                        inventory_records[inventory_record.pk] = inventory_record
                         if stored_inventory_record:
                             stored_inventory_records[stored_inventory_record] = inventory_record
 
@@ -709,8 +733,45 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
 @pytest.mark.django_db
 class TestModelInfoSerializer:
     @pytest.fixture
-    def get_test_data(self):
+    def test_data(self):
         return TestData()
 
-    def test_something(self, get_test_data):
-        pass
+    @staticmethod
+    def register_viewsets():
+        info.register(CustomerSerializer, CustomerViewSet)
+        info.register(DistributorSerializer, DistributorViewSet)
+        info.register(ProductSerializer, ProductViewSet)
+        info.register(OptionTypeSerializer, OptionTypeViewSet)
+        info.register(ProductOptionSerializer, ProductOptionViewSet)
+        info.register(CartSerializer, CartViewSet)
+        info.register(CartItemSerializer, CartItemViewSet)
+        info.register(CustomerOrderSerializer, CustomerOrderViewSet)
+        info.register(OrderItemSerializer, OrderItemViewSet)
+        info.register(InventoryRecordReasonSerializer, InventoryRecordReasonViewSet)
+        info.register(InventoryRecordSerializer, InventoryRecordViewSet)
+
+    def test_something(self, test_data, api_client):
+        self.register_viewsets()
+
+        # Check with Joel.  I'm assuming fetching model info shouldn't require someone to be logged in.
+        response = api_client.get(reverse("model_info-list"), format="json")
+        assert response.data["totalRecords"] == 11
+
+        # The data will look like:
+        # OrderedDict([
+        #   ('results', [
+        #      OrderedDict([('app_label', 'store'), ('model', 'distributor')]),
+        #      OrderedDict([('app_label', 'store'), ('model', 'optiontype')]),
+        #      OrderedDict([('app_label', 'store'), ('model', 'customer')]),
+        #      OrderedDict([('app_label', 'store'), ('model', 'cart')]),
+        #      OrderedDict([('app_label', 'store'), ('model', 'customerorder')]),
+        #      OrderedDict([('app_label', 'store'), ('model', 'inventoryrecordreason')]),
+        #      OrderedDict([('app_label', 'store'), ('model', 'product')]),
+        #      OrderedDict([('app_label', 'store'), ('model', 'productoption')]),
+        #      OrderedDict([('app_label', 'store'), ('model', 'orderitem')]),
+        #      OrderedDict([('app_label', 'store'), ('model', 'inventoryrecord')]),
+        #      OrderedDict([('app_label', 'store'), ('model', 'cartitem')])]),
+        #   ('perPage', 100),
+        #   ('totalPages', 1),
+        #   ('totalRecords', 11)
+        # ])
