@@ -10,7 +10,7 @@ from vueda.info.serializers import ModelInfoSerializer
 
 class ModelInfoViewSet(FlexFieldsMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
     """
-    This viewsets is for providing metadata about models, including fields, actions, and permissions
+    This viewset is for providing metadata about models, including fields, actions, and permissions
     to front-end clients. This is a read-only viewset.
 
     You should be able to list all models, and get information about a specific model.
@@ -30,9 +30,9 @@ class ModelInfoViewSet(FlexFieldsMixin, mixins.ListModelMixin, mixins.RetrieveMo
     def get_queryset(self):
         return ContentType.objects.all().filter(pk__in=get_registered_content_types())
 
-    def dispatch(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         self.object = self.get_object(kwargs["app_label"], kwargs["model"])
-        return super().dispatch(request, *args, **kwargs)
+        return super().get(request, *args, **kwargs)
 
     # noinspection PyMethodOverriding
     def get_object(self, app_label, model):
