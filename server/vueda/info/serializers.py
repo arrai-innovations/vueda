@@ -54,7 +54,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
     class Meta:
         model = ContentType
-        fields = ["app_label", "model"]
+        fields = ["id", "app_label", "model"]
         expandable_fields = {
             "permissions": (
                 PermissionSerializer,
@@ -86,8 +86,8 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         fields = super().get_fields()
         if self.context["view"].action == "list":
             # don't do the expensive work when listing all models
-            # strip out fields that aren't app_label and model
-            fields = {field: fields[field] for field in ["app_label", "model"]}
+            # strip out fields that aren't id, app_label and model
+            fields = {field: fields[field] for field in ["id", "app_label", "model"]}
         return fields
 
     def get_model_class(self):

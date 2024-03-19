@@ -44,11 +44,11 @@ from vueda import info
 class TestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create = {
         "Admin": [
-            ("store", "Product", "list"),
+            ("contenttypes", "ContentType", "read"),
             ("contenttypes", "ContentType", "list"),
         ],
         "Customer": [
-            ("store", "Product", "list"),
+            ("contenttypes", "ContentType", "read"),
             ("contenttypes", "ContentType", "list"),
         ],
     }
@@ -762,21 +762,33 @@ class TestModelInfoSerializer:
         response = api_client.get(reverse("model_info-list"), format="json")
         assert response.data["totalRecords"] == 11
 
-        # The data will look like:
-        # OrderedDict([
-        #   ('results', [
-        #      OrderedDict([('app_label', 'store'), ('model', 'distributor')]),
-        #      OrderedDict([('app_label', 'store'), ('model', 'optiontype')]),
-        #      OrderedDict([('app_label', 'store'), ('model', 'customer')]),
-        #      OrderedDict([('app_label', 'store'), ('model', 'cart')]),
-        #      OrderedDict([('app_label', 'store'), ('model', 'customerorder')]),
-        #      OrderedDict([('app_label', 'store'), ('model', 'inventoryrecordreason')]),
-        #      OrderedDict([('app_label', 'store'), ('model', 'product')]),
-        #      OrderedDict([('app_label', 'store'), ('model', 'productoption')]),
-        #      OrderedDict([('app_label', 'store'), ('model', 'orderitem')]),
-        #      OrderedDict([('app_label', 'store'), ('model', 'inventoryrecord')]),
-        #      OrderedDict([('app_label', 'store'), ('model', 'cartitem')])]),
-        #   ('perPage', 100),
-        #   ('totalPages', 1),
-        #   ('totalRecords', 11)
-        # ])
+    def test_info_detail_distributor(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+        response = api_client.get(reverse("model_info-list"), format="json")
+        for item in response.data["results"]:
+            if item["model"] == "distributor":
+                pk = item["id"]
+        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
+        assert response.data["totalRecords"] == 11
+
+    # The data will look like:
+    # OrderedDict([
+    #   ('results', [
+    #      OrderedDict([('app_label', 'store'), ('model', 'distributor')]),
+    #      OrderedDict([('app_label', 'store'), ('model', 'optiontype')]),
+    #      OrderedDict([('app_label', 'store'), ('model', 'customer')]),
+    #      OrderedDict([('app_label', 'store'), ('model', 'cart')]),
+    #      OrderedDict([('app_label', 'store'), ('model', 'customerorder')]),
+    #      OrderedDict([('app_label', 'store'), ('model', 'inventoryrecordreason')]),
+    #      OrderedDict([('app_label', 'store'), ('model', 'product')]),
+    #      OrderedDict([('app_label', 'store'), ('model', 'productoption')]),
+    #      OrderedDict([('app_label', 'store'), ('model', 'orderitem')]),
+    #      OrderedDict([('app_label', 'store'), ('model', 'inventoryrecord')]),
+    #      OrderedDict([('app_label', 'store'), ('model', 'cartitem')])]),
+    #   ('perPage', 100),
+    #   ('totalPages', 1),
+    #   ('totalRecords', 11)
+    # ])
