@@ -52,31 +52,48 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
     Effectively, this is a custom model serializer for content types.
     """
 
+    model_actions = serializers.SerializerMethodField()
+    model_expands = serializers.SerializerMethodField()
+    model_fields = serializers.SerializerMethodField()
+    model_filtering = serializers.SerializerMethodField()
+    model_ordering = serializers.SerializerMethodField()
+    model_permissions = serializers.SerializerMethodField()
+
     class Meta:
         model = ContentType
-        fields = ["id", "app_label", "model"]
+        fields = [
+            "id",
+            "app_label",
+            "model",
+            "model_permissions",
+            "model_fields",
+            "model_actions",
+            "model_expands",
+            "model_ordering",
+            "model_filtering",
+        ]
         expandable_fields = {
-            "permissions": (
+            "model_permissions": (
                 PermissionSerializer,
                 {"many": True, "read_only": True, "source": "get_model_permissions"},
             ),
-            "fields": (
+            "model_fields": (
                 FieldSerializer,
                 {"many": True, "read_only": True, "source": "get_model_fields"},
             ),
-            "actions": (
+            "model_actions": (
                 ActionSerializer,
                 {"many": True, "read_only": True, "source": "get_model_actions"},
             ),
-            "expands": (
+            "model_expands": (
                 ExpandSerializer,
                 {"many": True, "read_only": True, "source": "get_model_expands"},
             ),
-            "ordering": (
+            "model_ordering": (
                 OrderingSerializer,
                 {"many": True, "read_only": True, "source": "get_model_ordering"},
             ),
-            "filtering": (
+            "model_filtering": (
                 FilteringSerializer,
                 {"many": True, "read_only": True, "source": "get_model_filtering"},
             ),
@@ -97,24 +114,25 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
     def canonical(self):
         return get_registration(self.instance.pk)
 
-    def get_model_permissions(self):
+    def get_model_permissions(self, instance):
         """
         Get the permissions for a model.
         """
-        return list(Permission.objects.filter(content_type=self.instance).values("codename", "name"))
+        return list(Permission.objects.filter(content_type=instance).values("codename", "name"))
 
     # re: naming, we don't want to conflict with super's get_fields, we are unrelated to that method
-    def get_model_fields(self):
+    def get_model_fields(self, instance):
         """
         Get the fields for a model and their own metadata.
         """
+        # breakpoint()
         # the front-end doesn't care about model fields, but serializer fields.
         # we need to get a canonical serializer for the model to determine what fields are available
         # todo: this is a placeholder
-        serializer = self.canonical.serializer  # type: serializers.ModelSerializer
+        serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
 
         fields = []
-        for field_name, field in serializer.get_fields().items():
+        for field_name, field in serializer().get_fields().items():
             many = isinstance(field, serializers.ListField)
             fields.append(
                 {
@@ -127,7 +145,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
             )
         return fields
 
-    def get_model_actions(self):
+    def get_model_actions(self, instance):
         """
         Get the actions for a model and their own metadata.
         """
@@ -141,7 +159,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
             for action in ["list", "retrieve", "create", "update", "partial_update", "destroy"]
         ]
 
-    def get_model_expands(self):
+    def get_model_expands(self, instance):
         """
         Get the expands for a model and their own metadata.
         """
@@ -155,7 +173,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
             for expand in ["expand1", "expand2"]
         ]
 
-    def get_model_ordering(self):
+    def get_model_ordering(self, instance):
         """
         Get the ordering fields for a model and their own metadata.
         """
@@ -169,7 +187,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
             for field in ["order1", "order2"]
         ]
 
-    def get_model_filtering(self):
+    def get_model_filtering(self, instance):
         """
         Get the filtering fields for a model and their own metadata.
         """
