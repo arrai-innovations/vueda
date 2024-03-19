@@ -218,12 +218,12 @@ class OrderItemSerializer(serializers.ModelSerializer):
         model = OrderItem
         fields = [
             "id",
-            "order",
+            "customer_order",
             "product_option",
             "quantity",
         ]
         expandable_fields = {
-            "order": (
+            "customer_order": (
                 CustomerOrderSerializer,
                 {
                     "fields": [
@@ -266,7 +266,7 @@ class InventoryRecordSerializer(serializers.ModelSerializer):
         model = InventoryRecord
         fields = [
             "id",
-            "product",
+            "product_option",
             "when",
             "quantity",
             "reason",
@@ -278,13 +278,17 @@ class InventoryRecordSerializer(serializers.ModelSerializer):
             "margin",
         ]
         expandable_fields = {
-            "product": (
-                ProductSerializer,
+            "product_option": (
+                ProductOptionSerializer,
                 {
                     "fields": [
                         "id",
-                        "distributor",
+                        "product",
+                        "option_type",
                         "name",
+                        "sku",
+                        "gtin",
+                        "price",
                         "disabled",
                     ],
                 },
