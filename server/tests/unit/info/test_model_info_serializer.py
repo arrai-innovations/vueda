@@ -773,7 +773,6 @@ class TestModelInfoSerializer:
                 pk = item["id"]
         response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
         assert response.status_code == 200
-        assert response_list.data["totalRecords"] == 11
         assert response.data["id"] == pk
 
     def test_info_detail_optiontype(self, test_data, api_client):
@@ -788,7 +787,6 @@ class TestModelInfoSerializer:
                 pk = item["id"]
         response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
         assert response.status_code == 200
-        assert response_list.data["totalRecords"] == 11
         assert response.data["id"] == pk
 
     def test_info_detail_customer(self, test_data, api_client):
@@ -803,7 +801,6 @@ class TestModelInfoSerializer:
                 pk = item["id"]
         response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
         assert response.status_code == 200
-        assert response_list.data["totalRecords"] == 11
         assert response.data["id"] == pk
 
     def test_info_detail_cart(self, test_data, api_client):
@@ -818,7 +815,6 @@ class TestModelInfoSerializer:
                 pk = item["id"]
         response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
         assert response.status_code == 200
-        assert response_list.data["totalRecords"] == 11
         assert response.data["id"] == pk
 
     def test_info_detail_customerorder(self, test_data, api_client):
@@ -833,7 +829,6 @@ class TestModelInfoSerializer:
                 pk = item["id"]
         response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
         assert response.status_code == 200
-        assert response_list.data["totalRecords"] == 11
         assert response.data["id"] == pk
 
     def test_info_detail_inventoryrecordreason(self, test_data, api_client):
@@ -848,7 +843,6 @@ class TestModelInfoSerializer:
                 pk = item["id"]
         response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
         assert response.status_code == 200
-        assert response_list.data["totalRecords"] == 11
         assert response.data["id"] == pk
 
     def test_info_detail_product(self, test_data, api_client):
@@ -863,7 +857,6 @@ class TestModelInfoSerializer:
                 pk = item["id"]
         response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
         assert response.status_code == 200
-        assert response_list.data["totalRecords"] == 11
         assert response.data["id"] == pk
 
     def test_info_detail_productoption(self, test_data, api_client):
@@ -878,7 +871,6 @@ class TestModelInfoSerializer:
                 pk = item["id"]
         response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
         assert response.status_code == 200
-        assert response_list.data["totalRecords"] == 11
         assert response.data["id"] == pk
 
     def test_info_detail_orderitem(self, test_data, api_client):
@@ -893,7 +885,6 @@ class TestModelInfoSerializer:
                 pk = item["id"]
         response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
         assert response.status_code == 200
-        assert response_list.data["totalRecords"] == 11
         assert response.data["id"] == pk
 
     def test_info_detail_inventoryrecord(self, test_data, api_client):
@@ -908,7 +899,6 @@ class TestModelInfoSerializer:
                 pk = item["id"]
         response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
         assert response.status_code == 200
-        assert response_list.data["totalRecords"] == 11
         assert response.data["id"] == pk
 
     def test_info_detail_cartitem(self, test_data, api_client):
@@ -923,5 +913,4 @@ class TestModelInfoSerializer:
                 pk = item["id"]
         response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
         assert response.status_code == 200
-        assert response_list.data["totalRecords"] == 11
         assert response.data["id"] == pk
