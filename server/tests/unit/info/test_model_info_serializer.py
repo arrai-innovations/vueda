@@ -767,28 +767,161 @@ class TestModelInfoSerializer:
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
-        response = api_client.get(reverse("model_info-list"), format="json")
-        for item in response.data["results"]:
+        response_list = api_client.get(reverse("model_info-list"), format="json")
+        for item in response_list.data["results"]:
             if item["model"] == "distributor":
                 pk = item["id"]
         response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
-        assert response.data["totalRecords"] == 11
+        assert response.status_code == 200
+        assert response_list.data["totalRecords"] == 11
+        assert response.data["id"] == pk
 
-    # The data will look like:
-    # OrderedDict([
-    #   ('results', [
-    #      OrderedDict([('app_label', 'store'), ('model', 'distributor')]),
-    #      OrderedDict([('app_label', 'store'), ('model', 'optiontype')]),
-    #      OrderedDict([('app_label', 'store'), ('model', 'customer')]),
-    #      OrderedDict([('app_label', 'store'), ('model', 'cart')]),
-    #      OrderedDict([('app_label', 'store'), ('model', 'customerorder')]),
-    #      OrderedDict([('app_label', 'store'), ('model', 'inventoryrecordreason')]),
-    #      OrderedDict([('app_label', 'store'), ('model', 'product')]),
-    #      OrderedDict([('app_label', 'store'), ('model', 'productoption')]),
-    #      OrderedDict([('app_label', 'store'), ('model', 'orderitem')]),
-    #      OrderedDict([('app_label', 'store'), ('model', 'inventoryrecord')]),
-    #      OrderedDict([('app_label', 'store'), ('model', 'cartitem')])]),
-    #   ('perPage', 100),
-    #   ('totalPages', 1),
-    #   ('totalRecords', 11)
-    # ])
+    def test_info_detail_optiontype(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response_list = api_client.get(reverse("model_info-list"), format="json")
+        for item in response_list.data["results"]:
+            if item["model"] == "optiontype":
+                pk = item["id"]
+        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
+        assert response.status_code == 200
+        assert response_list.data["totalRecords"] == 11
+        assert response.data["id"] == pk
+
+    def test_info_detail_customer(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response_list = api_client.get(reverse("model_info-list"), format="json")
+        for item in response_list.data["results"]:
+            if item["model"] == "customer":
+                pk = item["id"]
+        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
+        assert response.status_code == 200
+        assert response_list.data["totalRecords"] == 11
+        assert response.data["id"] == pk
+
+    def test_info_detail_cart(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response_list = api_client.get(reverse("model_info-list"), format="json")
+        for item in response_list.data["results"]:
+            if item["model"] == "cart":
+                pk = item["id"]
+        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
+        assert response.status_code == 200
+        assert response_list.data["totalRecords"] == 11
+        assert response.data["id"] == pk
+
+    def test_info_detail_customerorder(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response_list = api_client.get(reverse("model_info-list"), format="json")
+        for item in response_list.data["results"]:
+            if item["model"] == "customerorder":
+                pk = item["id"]
+        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
+        assert response.status_code == 200
+        assert response_list.data["totalRecords"] == 11
+        assert response.data["id"] == pk
+
+    def test_info_detail_inventoryrecordreason(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response_list = api_client.get(reverse("model_info-list"), format="json")
+        for item in response_list.data["results"]:
+            if item["model"] == "inventoryrecordreason":
+                pk = item["id"]
+        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
+        assert response.status_code == 200
+        assert response_list.data["totalRecords"] == 11
+        assert response.data["id"] == pk
+
+    def test_info_detail_product(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response_list = api_client.get(reverse("model_info-list"), format="json")
+        for item in response_list.data["results"]:
+            if item["model"] == "product":
+                pk = item["id"]
+        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
+        assert response.status_code == 200
+        assert response_list.data["totalRecords"] == 11
+        assert response.data["id"] == pk
+
+    def test_info_detail_productoption(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response_list = api_client.get(reverse("model_info-list"), format="json")
+        for item in response_list.data["results"]:
+            if item["model"] == "productoption":
+                pk = item["id"]
+        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
+        assert response.status_code == 200
+        assert response_list.data["totalRecords"] == 11
+        assert response.data["id"] == pk
+
+    def test_info_detail_orderitem(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response_list = api_client.get(reverse("model_info-list"), format="json")
+        for item in response_list.data["results"]:
+            if item["model"] == "orderitem":
+                pk = item["id"]
+        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
+        assert response.status_code == 200
+        assert response_list.data["totalRecords"] == 11
+        assert response.data["id"] == pk
+
+    def test_info_detail_inventoryrecord(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response_list = api_client.get(reverse("model_info-list"), format="json")
+        for item in response_list.data["results"]:
+            if item["model"] == "inventoryrecord":
+                pk = item["id"]
+        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
+        assert response.status_code == 200
+        assert response_list.data["totalRecords"] == 11
+        assert response.data["id"] == pk
+
+    def test_info_detail_cartitem(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response_list = api_client.get(reverse("model_info-list"), format="json")
+        for item in response_list.data["results"]:
+            if item["model"] == "cartitem":
+                pk = item["id"]
+        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
+        assert response.status_code == 200
+        assert response_list.data["totalRecords"] == 11
+        assert response.data["id"] == pk
