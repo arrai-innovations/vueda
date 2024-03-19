@@ -45,9 +45,11 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create = {
         "Admin": [
             ("store", "Product", "list"),
+            ("contenttypes", "ContentType", "list"),
         ],
         "Customer": [
             ("store", "Product", "list"),
+            ("contenttypes", "ContentType", "list"),
         ],
     }
 
@@ -738,6 +740,7 @@ class TestModelInfoSerializer:
 
     @staticmethod
     def register_viewsets():
+        info.registration.get_empty_registry()
         info.register(CustomerSerializer, CustomerViewSet)
         info.register(DistributorSerializer, DistributorViewSet)
         info.register(ProductSerializer, ProductViewSet)
@@ -750,10 +753,12 @@ class TestModelInfoSerializer:
         info.register(InventoryRecordReasonSerializer, InventoryRecordReasonViewSet)
         info.register(InventoryRecordSerializer, InventoryRecordViewSet)
 
-    def test_something(self, test_data, api_client):
+    def test_info_list(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
         self.register_viewsets()
 
-        # Check with Joel.  I'm assuming fetching model info shouldn't require someone to be logged in.
         response = api_client.get(reverse("model_info-list"), format="json")
         assert response.data["totalRecords"] == 11
 
