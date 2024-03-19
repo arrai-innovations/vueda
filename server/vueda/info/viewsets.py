@@ -3,6 +3,7 @@ from rest_framework import generics
 from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 
+from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import FlexFieldsMixin
 from vueda.info.registration import get_registered_content_types
 from vueda.info.serializers import ModelInfoSerializer
@@ -24,8 +25,9 @@ class ModelInfoViewSet(FlexFieldsMixin, mixins.ListModelMixin, mixins.RetrieveMo
     """
 
     object = None  # type: ContentType
-
+    queryset = ContentType.objects.all()
     serializer_class = ModelInfoSerializer
+    permission_classes = [ObjectPermissions]
 
     def get_queryset(self):
         return ContentType.objects.all().filter(pk__in=get_registered_content_types())
