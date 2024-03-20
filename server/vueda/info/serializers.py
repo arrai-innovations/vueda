@@ -15,6 +15,7 @@ class PermissionSerializer(FlexFieldsSerializerMixin, serializers.ModelSerialize
 
     class Meta:
         model = Permission
+        fields = ["id", "name", "codename", "app_label", "model"]
 
 
 class FieldSerializer(FlexFieldsSerializerMixin, serializers.Serializer):
