@@ -13,6 +13,7 @@ from .models import InventoryRecord
 from .models import InventoryRecordReason
 from .models import OptionType
 from .models import OrderItem
+from .models import OrderState
 from .models import Product
 from .models import ProductOption
 
@@ -193,12 +194,25 @@ class CartItemSerializer(serializers.ModelSerializer):
         }
 
 
+class OrderStateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderState
+        fields = [
+            "id",
+            "code",
+            "name",
+        ]
+
+
 class CustomerOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomerOrder
         fields = [
             "id",
+            "order_number",
+            "when",
             "customer",
+            "order_state",
         ]
         expandable_fields = {
             "customer": (
@@ -209,7 +223,17 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
                         "user",
                     ],
                 },
-            )
+            ),
+            "order_state": (
+                OrderStateSerializer,
+                {
+                    "fields": [
+                        "id",
+                        "code",
+                        "name",
+                    ]
+                },
+            ),
         }
 
 
@@ -228,7 +252,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
                 {
                     "fields": [
                         "id",
+                        "order_number",
+                        "when",
                         "customer",
+                        "order_state",
                     ],
                 },
             ),
