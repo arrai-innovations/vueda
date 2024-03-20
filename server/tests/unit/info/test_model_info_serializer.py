@@ -760,6 +760,7 @@ class TestModelInfoSerializer:
         self.register_viewsets()
 
         response = api_client.get(reverse("model_info-list"), format="json")
+        assert response.status_code == 200
         assert response.data["totalRecords"] == 11
 
     def test_info_detail_distributor(self, test_data, api_client):
