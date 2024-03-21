@@ -1,6 +1,6 @@
-from vueda.core.routers import IncludeAppInRouteNameRouter
+from vueda.core.routers import ContentTypeRouter
 from vueda.info.viewsets import ModelInfoViewSet
 
 
-info_router = IncludeAppInRouteNameRouter()
-info_router.register("model_info", ModelInfoViewSet, basename="model_info")
+info_router = ContentTypeRouter()
+info_router.register("model_info", ModelInfoViewSet, basename="info.model_info")
