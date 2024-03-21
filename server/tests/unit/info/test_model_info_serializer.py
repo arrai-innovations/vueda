@@ -2,6 +2,7 @@ import datetime
 from decimal import Decimal
 
 import pytest
+from django.conf import settings
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -759,8 +760,8 @@ class TestModelInfoSerializer:
 
         self.register_viewsets()
 
-        response = api_client.get(reverse("model_info-list"), format="json")
-        assert response.status_code == 200
+        response = api_client.get(reverse("info.model_info-list"), format="json")
+        assert response.status_code == 200, response.data
         assert response.data["totalRecords"] == 11
 
     def test_info_detail_distributor(self, test_data, api_client):
@@ -768,13 +769,32 @@ class TestModelInfoSerializer:
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
-        response_list = api_client.get(reverse("model_info-list"), format="json")
+        response_list = api_client.get(reverse("info.model_info-list"), format="json")
         for item in response_list.data["results"]:
             if item["model"] == "distributor":
-                pk = item["id"]
-        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
-        assert response.status_code == 200
-        assert response.data["id"] == pk
+                app_label = item["app_label"]
+                model = item["model"]
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    app_label,
+                    model,
+                ),
+            ),
+            format="json",
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                    "model_permissions",
+                    "model_fields",
+                    "model_actions",
+                    "model_expands",
+                    "model_ordering",
+                    "model_filtering",
+                ],
+            },
+        )
+        assert response.status_code == 200, response.data
 
     def test_info_detail_optiontype(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -782,13 +802,22 @@ class TestModelInfoSerializer:
 
         self.register_viewsets()
 
-        response_list = api_client.get(reverse("model_info-list"), format="json")
+        response_list = api_client.get(reverse("info.model_info-list"), format="json")
         for item in response_list.data["results"]:
             if item["model"] == "optiontype":
-                pk = item["id"]
-        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
-        assert response.status_code == 200
-        assert response.data["id"] == pk
+                app_label = item["app_label"]
+                model = item["model"]
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    app_label,
+                    model,
+                ),
+            ),
+            format="json",
+        )
+        assert response.status_code == 200, response.data
 
     def test_info_detail_customer(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -796,13 +825,22 @@ class TestModelInfoSerializer:
 
         self.register_viewsets()
 
-        response_list = api_client.get(reverse("model_info-list"), format="json")
+        response_list = api_client.get(reverse("info.model_info-list"), format="json")
         for item in response_list.data["results"]:
             if item["model"] == "customer":
-                pk = item["id"]
-        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
-        assert response.status_code == 200
-        assert response.data["id"] == pk
+                app_label = item["app_label"]
+                model = item["model"]
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    app_label,
+                    model,
+                ),
+            ),
+            format="json",
+        )
+        assert response.status_code == 200, response.data
 
     def test_info_detail_cart(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -810,13 +848,22 @@ class TestModelInfoSerializer:
 
         self.register_viewsets()
 
-        response_list = api_client.get(reverse("model_info-list"), format="json")
+        response_list = api_client.get(reverse("info.model_info-list"), format="json")
         for item in response_list.data["results"]:
             if item["model"] == "cart":
-                pk = item["id"]
-        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
-        assert response.status_code == 200
-        assert response.data["id"] == pk
+                app_label = item["app_label"]
+                model = item["model"]
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    app_label,
+                    model,
+                ),
+            ),
+            format="json",
+        )
+        assert response.status_code == 200, response.data
 
     def test_info_detail_customerorder(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -824,13 +871,22 @@ class TestModelInfoSerializer:
 
         self.register_viewsets()
 
-        response_list = api_client.get(reverse("model_info-list"), format="json")
+        response_list = api_client.get(reverse("info.model_info-list"), format="json")
         for item in response_list.data["results"]:
             if item["model"] == "customerorder":
-                pk = item["id"]
-        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
-        assert response.status_code == 200
-        assert response.data["id"] == pk
+                app_label = item["app_label"]
+                model = item["model"]
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    app_label,
+                    model,
+                ),
+            ),
+            format="json",
+        )
+        assert response.status_code == 200, response.data
 
     def test_info_detail_inventoryrecordreason(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -838,13 +894,22 @@ class TestModelInfoSerializer:
 
         self.register_viewsets()
 
-        response_list = api_client.get(reverse("model_info-list"), format="json")
+        response_list = api_client.get(reverse("info.model_info-list"), format="json")
         for item in response_list.data["results"]:
             if item["model"] == "inventoryrecordreason":
-                pk = item["id"]
-        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
-        assert response.status_code == 200
-        assert response.data["id"] == pk
+                app_label = item["app_label"]
+                model = item["model"]
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    app_label,
+                    model,
+                ),
+            ),
+            format="json",
+        )
+        assert response.status_code == 200, response.data
 
     def test_info_detail_product(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -852,13 +917,22 @@ class TestModelInfoSerializer:
 
         self.register_viewsets()
 
-        response_list = api_client.get(reverse("model_info-list"), format="json")
+        response_list = api_client.get(reverse("info.model_info-list"), format="json")
         for item in response_list.data["results"]:
             if item["model"] == "product":
-                pk = item["id"]
-        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
-        assert response.status_code == 200
-        assert response.data["id"] == pk
+                app_label = item["app_label"]
+                model = item["model"]
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    app_label,
+                    model,
+                ),
+            ),
+            format="json",
+        )
+        assert response.status_code == 200, response.data
 
     def test_info_detail_productoption(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -866,13 +940,22 @@ class TestModelInfoSerializer:
 
         self.register_viewsets()
 
-        response_list = api_client.get(reverse("model_info-list"), format="json")
+        response_list = api_client.get(reverse("info.model_info-list"), format="json")
         for item in response_list.data["results"]:
             if item["model"] == "productoption":
-                pk = item["id"]
-        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
-        assert response.status_code == 200
-        assert response.data["id"] == pk
+                app_label = item["app_label"]
+                model = item["model"]
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    app_label,
+                    model,
+                ),
+            ),
+            format="json",
+        )
+        assert response.status_code == 200, response.data
 
     def test_info_detail_orderitem(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -880,13 +963,22 @@ class TestModelInfoSerializer:
 
         self.register_viewsets()
 
-        response_list = api_client.get(reverse("model_info-list"), format="json")
+        response_list = api_client.get(reverse("info.model_info-list"), format="json")
         for item in response_list.data["results"]:
             if item["model"] == "orderitem":
-                pk = item["id"]
-        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
-        assert response.status_code == 200
-        assert response.data["id"] == pk
+                app_label = item["app_label"]
+                model = item["model"]
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    app_label,
+                    model,
+                ),
+            ),
+            format="json",
+        )
+        assert response.status_code == 200, response.data
 
     def test_info_detail_inventoryrecord(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -894,13 +986,22 @@ class TestModelInfoSerializer:
 
         self.register_viewsets()
 
-        response_list = api_client.get(reverse("model_info-list"), format="json")
+        response_list = api_client.get(reverse("info.model_info-list"), format="json")
         for item in response_list.data["results"]:
             if item["model"] == "inventoryrecord":
-                pk = item["id"]
-        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
-        assert response.status_code == 200
-        assert response.data["id"] == pk
+                app_label = item["app_label"]
+                model = item["model"]
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    app_label,
+                    model,
+                ),
+            ),
+            format="json",
+        )
+        assert response.status_code == 200, response.data
 
     def test_info_detail_cartitem(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -908,10 +1009,19 @@ class TestModelInfoSerializer:
 
         self.register_viewsets()
 
-        response_list = api_client.get(reverse("model_info-list"), format="json")
+        response_list = api_client.get(reverse("info.model_info-list"), format="json")
         for item in response_list.data["results"]:
             if item["model"] == "cartitem":
-                pk = item["id"]
-        response = api_client.get(reverse("model_info-detail", args=(pk,)), format="json")
-        assert response.status_code == 200
-        assert response.data["id"] == pk
+                app_label = item["app_label"]
+                model = item["model"]
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    app_label,
+                    model,
+                ),
+            ),
+            format="json",
+        )
+        assert response.status_code == 200, response.data
