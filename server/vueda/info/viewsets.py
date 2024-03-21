@@ -41,11 +41,10 @@ class ModelInfoViewSet(FlexFieldsMixin, generics.ListAPIView, generics.RetrieveA
         return ContentType.objects.all().filter(pk__in=get_registered_content_types())
 
     # noinspection PyMethodOverriding
-    def get_object(self, pk):
-        return generics.get_object_or_404(ContentType, pk=pk)
+    def get_object(self, app_label, model):
+        return generics.get_object_or_404(ContentType, app_label=app_label, model=model.replace("_", ""))
 
     def retrieve(self, request, *args, **kwargs):
-        pk = kwargs.pop("pk")
-        instance = self.get_object(pk)
+        instance = self.get_object(kwargs["app_label"], kwargs["model"])
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
