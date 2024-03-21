@@ -50,10 +50,8 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         """
         Get the fields for a model and their own metadata.
         """
-        # breakpoint()
         # the front-end doesn't care about model fields, but serializer fields.
         # we need to get a canonical serializer for the model to determine what fields are available
-        # todo: this is a placeholder
         serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
 
         fields = []
