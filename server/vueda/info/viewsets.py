@@ -28,14 +28,6 @@ class ModelInfoViewSet(FlexFieldsMixin, generics.ListAPIView, generics.RetrieveA
     queryset = ContentType.objects.all()
     serializer_class = ModelInfoSerializer
     permission_classes = [ObjectPermissions]
-    permit_retrieve_expands = [
-        "model_permissions",
-        "model_fields",
-        "model_actions",
-        "model_expands",
-        "model_ordering",
-        "model_filtering",
-    ]
 
     def get_queryset(self):
         return ContentType.objects.all().filter(pk__in=get_registered_content_types())

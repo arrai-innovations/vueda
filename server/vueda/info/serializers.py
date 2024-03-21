@@ -7,43 +7,6 @@ from rest_framework import serializers
 from vueda.info.registration import get_registration
 
 
-class PermissionSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer):
-    name = serializers.CharField()
-    codename = serializers.CharField()
-    app_label = serializers.CharField(source="content_type.app_label", read_only=True)
-    model = serializers.CharField(source="content_type.model", read_only=True)
-
-    class Meta:
-        model = Permission
-        fields = ["id", "name", "codename", "app_label", "model"]
-
-
-class FieldSerializer(FlexFieldsSerializerMixin, serializers.Serializer):
-    name = serializers.CharField()
-    type = serializers.CharField()
-
-
-class ActionSerializer(FlexFieldsSerializerMixin, serializers.Serializer):
-    name = serializers.CharField()
-    method = serializers.CharField()
-    pass
-
-
-class ExpandSerializer(FlexFieldsSerializerMixin, serializers.Serializer):
-    name = serializers.CharField()
-    type = serializers.CharField()
-
-
-class OrderingSerializer(FlexFieldsSerializerMixin, serializers.Serializer):
-    name = serializers.CharField()
-    type = serializers.CharField()
-
-
-class FilteringSerializer(FlexFieldsSerializerMixin, serializers.Serializer):
-    name = serializers.CharField()
-    type = serializers.CharField()
-
-
 class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer):
     """
     A serializer for providing metadata about models, including fields, actions, and permissions.
@@ -53,60 +16,21 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
     Effectively, this is a custom model serializer for content types.
     """
 
-    model_actions = serializers.SerializerMethodField()
-    model_expands = serializers.SerializerMethodField()
-    model_fields = serializers.SerializerMethodField()
-    model_filtering = serializers.SerializerMethodField()
-    model_ordering = serializers.SerializerMethodField()
-    model_permissions = serializers.SerializerMethodField()
-
     class Meta:
         model = ContentType
         fields = [
             "id",
             "app_label",
             "model",
-            "model_permissions",
-            "model_fields",
-            "model_actions",
-            "model_expands",
-            "model_ordering",
-            "model_filtering",
         ]
         expandable_fields = {
-            "model_permissions": (
-                PermissionSerializer,
-                {"many": True, "read_only": True, "source": "get_model_permissions"},
-            ),
-            "model_fields": (
-                FieldSerializer,
-                {"many": True, "read_only": True, "source": "get_model_fields"},
-            ),
-            "model_actions": (
-                ActionSerializer,
-                {"many": True, "read_only": True, "source": "get_model_actions"},
-            ),
-            "model_expands": (
-                ExpandSerializer,
-                {"many": True, "read_only": True, "source": "get_model_expands"},
-            ),
-            "model_ordering": (
-                OrderingSerializer,
-                {"many": True, "read_only": True, "source": "get_model_ordering"},
-            ),
-            "model_filtering": (
-                FilteringSerializer,
-                {"many": True, "read_only": True, "source": "get_model_filtering"},
-            ),
+            "model_permissions": (serializers.SerializerMethodField),
+            "model_fields": (serializers.SerializerMethodField),
+            "model_actions": (serializers.SerializerMethodField),
+            "model_expands": (serializers.SerializerMethodField),
+            "model_ordering": (serializers.SerializerMethodField),
+            "model_filtering": (serializers.SerializerMethodField),
         }
-
-    def get_fields(self):
-        fields = super().get_fields()
-        if self.context["view"].action == "list":
-            # don't do the expensive work when listing all models
-            # strip out fields that aren't id, app_label and model
-            fields = {field: fields[field] for field in ["id", "app_label", "model"]}
-        return fields
 
     def get_model_class(self):
         return self.instance.model_class()
