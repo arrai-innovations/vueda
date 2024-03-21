@@ -1,7 +1,6 @@
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import generics
 from rest_framework import mixins
-from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from vueda.core.permissions import ObjectPermissions
@@ -33,11 +32,7 @@ class ModelInfoViewSet(FlexFieldsMixin, mixins.ListModelMixin, mixins.RetrieveMo
     def get_queryset(self):
         return ContentType.objects.all().filter(pk__in=get_registered_content_types())
 
-    # noinspection PyMethodOverriding
-    def get_object(self, app_label, model):
-        return generics.get_object_or_404(ContentType, app_label=app_label, model=model.replace("_", ""))
-
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object(kwargs["app_label"], kwargs["model"])
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+    def get_object(self):
+        return generics.get_object_or_404(
+            ContentType, app_label=self.kwargs["app_label"], model=self.kwargs["model"].replace("_", "")
+        )
