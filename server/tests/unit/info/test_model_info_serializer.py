@@ -1,5 +1,4 @@
 import datetime
-from collections import OrderedDict
 from decimal import Decimal
 
 import pytest
@@ -1044,9 +1043,9 @@ class TestModelInfoSerializer:
             assert "codename" in model_permission, "codename field is missing in model_permissions object"
             for expected_model_permission in expected_data:
                 if model_permission["codename"] == expected_model_permission["codename"]:
-                    assert set(model_permission.keys()) == set(expected_model_permission.keys())
+                    assert set(model_permission.keys()) == set(expected_model_permission.keys()), model_permission
                     for key in model_permission.keys():
-                        assert model_permission[key] == expected_model_permission[key]
+                        assert model_permission[key] == expected_model_permission[key], model_permission
 
     def check_model_fields_data(self, response_data, expected_data):
         data = response_data.data["model_fields"]
@@ -1055,9 +1054,20 @@ class TestModelInfoSerializer:
             assert "name" in model_field, "name field is missing in model_fields object"
             for expected_model_field in expected_data:
                 if model_field["name"] == expected_model_field["name"]:
-                    assert set(model_field.keys()) == set(expected_model_field.keys())
+                    assert set(model_field.keys()) == set(expected_model_field.keys()), model_field
                     for key in model_field.keys():
-                        assert model_field[key] == expected_model_field[key]
+                        if key == "choices":
+                            if type(expected_model_field[key]) is list:
+                                # Special case where inventory records are not distinct enough,
+                                # so we added when, but don't want to compare dates, so strip them here.
+                                assert (
+                                    sorted([value.split(" - ")[1] for value in model_field[key].values()])
+                                    == expected_model_field[key]
+                                ), model_field
+                            else:
+                                assert set(model_field[key].values()) == expected_model_field[key], model_field
+                        else:
+                            assert model_field[key] == expected_model_field[key], model_field
 
     def check_model_expands_data(self, response_data, expected_data):
         data = response_data.data["model_expands"]
@@ -1066,9 +1076,9 @@ class TestModelInfoSerializer:
             assert "name" in model_expand, "name field is missing in model_expands object"
             for expected_model_expand in expected_data:
                 if model_expand["name"] == expected_model_expand["name"]:
-                    assert set(model_expand.keys()) == set(expected_model_expand.keys())
+                    assert set(model_expand.keys()) == set(expected_model_expand.keys()), model_expand
                     for key in model_expand.keys():
-                        assert model_expand[key] == expected_model_expand[key]
+                        assert model_expand[key] == expected_model_expand[key], model_expand
 
     def test_info_list(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -1279,7 +1289,7 @@ class TestModelInfoSerializer:
         self.check_model_expands_data(
             response,
             [
-                {"name": "user", "description": "Expand user", "fields": ["id", "email", "name"]},
+                {"name": "user", "fields": ["id", "email", "name"]},
             ],
         )
         self.check_model_fields_data(
@@ -1300,13 +1310,11 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": OrderedDict(
-                        [
-                            (143, "test_admin@example.com"),
-                            (144, "test_customer_1@example.com"),
-                            (145, "test_customer_2@example.com"),
-                        ]
-                    ),
+                    "choices": {
+                        "test_admin@example.com",
+                        "test_customer_1@example.com",
+                        "test_customer_2@example.com",
+                    },
                 },
             ],
         )
@@ -1358,7 +1366,16 @@ class TestModelInfoSerializer:
         self.check_model_expands_data(
             response,
             [
-                {"name": "customer", "description": "Expand customer", "fields": ["id", "user"]},
+                {"name": "customer", "fields": ["id", "user"]},
+                {
+                    "name": "cart_items",
+                    "fields": [
+                        "id",
+                        "user",
+                        "product_options",
+                        "quantity",
+                    ],
+                },
             ],
         )
         self.check_model_fields_data(
@@ -1379,7 +1396,23 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": OrderedDict([(10, "Customer object (10)"), (9, "Customer object (9)")]),
+                    "choices": {"test_customer_1@example.com", "test_customer_2@example.com"},
+                },
+                {
+                    "name": "last_modified",
+                    "label": None,
+                    "type": "DateTimeField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "cart_items",
+                    "label": None,
+                    "type": "ManyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
                 },
             ],
         )
@@ -1432,8 +1465,8 @@ class TestModelInfoSerializer:
         self.check_model_expands_data(
             response,
             [
-                {"name": "customer", "description": "Expand customer", "fields": ["id", "user"]},
-                {"name": "order_state", "description": "Expand order_state", "fields": ["id", "code", "name"]},
+                {"name": "customer", "fields": ["id", "user"]},
+                {"name": "order_state", "fields": ["id", "code", "name"]},
             ],
         )
         self.check_model_fields_data(
@@ -1471,7 +1504,7 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": OrderedDict([(12, "Customer object (12)"), (11, "Customer object (11)")]),
+                    "choices": {"test_customer_1@example.com", "test_customer_2@example.com"},
                 },
                 {
                     "name": "order_state",
@@ -1480,14 +1513,12 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": OrderedDict(
-                        [
-                            (21, "name: New, code:new"),
-                            (22, "name: Packed, code:packed"),
-                            (23, "name: Returned, code:returned"),
-                            (24, "name: Shipped, code:shipped"),
-                        ]
-                    ),
+                    "choices": {
+                        "New",
+                        "Packed",
+                        "Returned",
+                        "Shipped",
+                    },
                 },
             ],
         )
@@ -1627,7 +1658,7 @@ class TestModelInfoSerializer:
         self.check_model_expands_data(
             response,
             [
-                {"name": "distributor", "description": "Expand distributor", "fields": ["id", "name"]},
+                {"name": "distributor", "fields": ["id", "name"]},
             ],
         )
         self.check_model_fields_data(
@@ -1648,13 +1679,11 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": OrderedDict(
-                        [
-                            (22, "Distributor object (22)"),
-                            (24, "Distributor object (24)"),
-                            (23, "Distributor object (23)"),
-                        ]
-                    ),
+                    "choices": {
+                        "T-Shirt Corp.",
+                        "Tasty Treats Assoc.",
+                        "Vibrant Looks Inc.",
+                    },
                 },
                 {
                     "name": "name",
@@ -1724,10 +1753,9 @@ class TestModelInfoSerializer:
         self.check_model_expands_data(
             response,
             [
-                {"name": "option_type", "description": "Expand option_type", "fields": ["id", "code", "name"]},
+                {"name": "option_type", "fields": ["id", "code", "name"]},
                 {
                     "name": "product",
-                    "description": "Expand product",
                     "fields": ["id", "distributor", "name", "disabled"],
                 },
             ],
@@ -1750,16 +1778,14 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": OrderedDict(
-                        [
-                            (51, "Product object (51)"),
-                            (52, "Product object (52)"),
-                            (54, "Product object (54)"),
-                            (50, "Product object (50)"),
-                            (53, "Product object (53)"),
-                            (49, "Product object (49)"),
-                        ]
-                    ),
+                    "choices": {
+                        "Men's White T-Shirt",
+                        "Paint",
+                        "Shaped Cookies For Drapes",
+                        "Spray Paint",
+                        "Square Cookies For Squares",
+                        "Women's White T-Shirt",
+                    },
                 },
                 {
                     "name": "option_type",
@@ -1768,13 +1794,11 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": False,
-                    "choices": OrderedDict(
-                        [
-                            (25, "name: Size, code:size"),
-                            (26, "name: Colour, code:colour"),
-                            (27, "name: Flavour, code:flavour"),
-                        ]
-                    ),
+                    "choices": {
+                        "Size",
+                        "Colour",
+                        "Flavour",
+                    },
                 },
                 {
                     "name": "name",
@@ -1875,12 +1899,10 @@ class TestModelInfoSerializer:
             [
                 {
                     "name": "customer_order",
-                    "description": "Expand customer_order",
                     "fields": ["id", "order_number", "when", "customer", "order_state"],
                 },
                 {
                     "name": "product_option",
-                    "description": "Expand product_option",
                     "fields": ["id", "product", "option_type", "name", "sku", "gtin", "price", "disabled"],
                 },
             ],
@@ -1903,15 +1925,7 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": OrderedDict(
-                        [
-                            (50, "CustomerOrder object (50)"),
-                            (48, "CustomerOrder object (48)"),
-                            (49, "CustomerOrder object (49)"),
-                            (47, "CustomerOrder object (47)"),
-                            (46, "CustomerOrder object (46)"),
-                        ]
-                    ),
+                    "choices": {"1001", "1002", "1003", "1004", "1005"},
                 },
                 {
                     "name": "product_option",
@@ -1920,20 +1934,18 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": OrderedDict(
-                        [
-                            (99, "ProductOption object (99)"),
-                            (96, "ProductOption object (96)"),
-                            (100, "ProductOption object (100)"),
-                            (95, "ProductOption object (95)"),
-                            (92, "ProductOption object (92)"),
-                            (93, "ProductOption object (93)"),
-                            (94, "ProductOption object (94)"),
-                            (97, "ProductOption object (97)"),
-                            (98, "ProductOption object (98)"),
-                            (91, "ProductOption object (91)"),
-                        ]
-                    ),
+                    "choices": {
+                        "Explosive Dynamite",
+                        "Gentle Cinnamon",
+                        "Large",
+                        "Medium",
+                        "Pearl Whisper",
+                        "Red",
+                        "Royal Crimson",
+                        "Small",
+                        "Sweet Sugar",
+                        "White",
+                    },
                 },
                 {
                     "name": "quantity",
@@ -1997,13 +2009,11 @@ class TestModelInfoSerializer:
             [
                 {
                     "name": "product_option",
-                    "description": "Expand product_option",
                     "fields": ["id", "product", "option_type", "name", "sku", "gtin", "price", "disabled"],
                 },
-                {"name": "reason", "description": "Expand reason", "fields": ["id", "name", "code", "is_added_reason"]},
+                {"name": "reason", "fields": ["id", "name", "code", "is_added_reason"]},
                 {
                     "name": "added_inventory_record",
-                    "description": "Expand added_inventory_record",
                     "fields": [
                         "id",
                         "product",
@@ -2021,7 +2031,6 @@ class TestModelInfoSerializer:
                 },
                 {
                     "name": "order_item",
-                    "description": "Expand order_item",
                     "fields": ["id", "order", "product_option", "quantity"],
                 },
             ],
@@ -2044,20 +2053,18 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": OrderedDict(
-                        [
-                            (105, "ProductOption object (105)"),
-                            (107, "ProductOption object (107)"),
-                            (101, "ProductOption object (101)"),
-                            (102, "ProductOption object (102)"),
-                            (109, "ProductOption object (109)"),
-                            (108, "ProductOption object (108)"),
-                            (106, "ProductOption object (106)"),
-                            (104, "ProductOption object (104)"),
-                            (110, "ProductOption object (110)"),
-                            (103, "ProductOption object (103)"),
-                        ]
-                    ),
+                    "choices": {
+                        "Explosive Dynamite",
+                        "Gentle Cinnamon",
+                        "Large",
+                        "Medium",
+                        "Pearl Whisper",
+                        "Red",
+                        "Royal Crimson",
+                        "Small",
+                        "Sweet Sugar",
+                        "White",
+                    },
                 },
                 {
                     "name": "when",
@@ -2084,14 +2091,12 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": OrderedDict(
-                        [
-                            (41, "damaged_inventory"),
-                            (42, "order_fulfillment"),
-                            (43, "received_inventory"),
-                            (44, "returned_inventory"),
-                        ]
-                    ),
+                    "choices": {
+                        "Damaged Inventory",
+                        "Order Fulfillment",
+                        "Received Inventory",
+                        "Returned Inventory",
+                    },
                 },
                 {
                     "name": "archived",
@@ -2125,52 +2130,50 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": False,
-                    "choices": OrderedDict(
-                        [
-                            (421, "InventoryRecord object (421)"),
-                            (422, "InventoryRecord object (422)"),
-                            (423, "InventoryRecord object (423)"),
-                            (424, "InventoryRecord object (424)"),
-                            (425, "InventoryRecord object (425)"),
-                            (426, "InventoryRecord object (426)"),
-                            (427, "InventoryRecord object (427)"),
-                            (428, "InventoryRecord object (428)"),
-                            (429, "InventoryRecord object (429)"),
-                            (430, "InventoryRecord object (430)"),
-                            (431, "InventoryRecord object (431)"),
-                            (432, "InventoryRecord object (432)"),
-                            (433, "InventoryRecord object (433)"),
-                            (434, "InventoryRecord object (434)"),
-                            (435, "InventoryRecord object (435)"),
-                            (436, "InventoryRecord object (436)"),
-                            (437, "InventoryRecord object (437)"),
-                            (438, "InventoryRecord object (438)"),
-                            (439, "InventoryRecord object (439)"),
-                            (440, "InventoryRecord object (440)"),
-                            (441, "InventoryRecord object (441)"),
-                            (442, "InventoryRecord object (442)"),
-                            (443, "InventoryRecord object (443)"),
-                            (444, "InventoryRecord object (444)"),
-                            (445, "InventoryRecord object (445)"),
-                            (446, "InventoryRecord object (446)"),
-                            (447, "InventoryRecord object (447)"),
-                            (448, "InventoryRecord object (448)"),
-                            (449, "InventoryRecord object (449)"),
-                            (450, "InventoryRecord object (450)"),
-                            (451, "InventoryRecord object (451)"),
-                            (452, "InventoryRecord object (452)"),
-                            (453, "InventoryRecord object (453)"),
-                            (454, "InventoryRecord object (454)"),
-                            (455, "InventoryRecord object (455)"),
-                            (456, "InventoryRecord object (456)"),
-                            (457, "InventoryRecord object (457)"),
-                            (458, "InventoryRecord object (458)"),
-                            (459, "InventoryRecord object (459)"),
-                            (460, "InventoryRecord object (460)"),
-                            (461, "InventoryRecord object (461)"),
-                            (462, "InventoryRecord object (462)"),
-                        ]
-                    ),
+                    "choices": [
+                        "Damaged Inventory 1x Royal Crimson",
+                        "Damaged Inventory 2x Medium",
+                        "Order Fulfillment 1x Small",
+                        "Order Fulfillment 2x Large",
+                        "Order Fulfillment 2x Medium",
+                        "Order Fulfillment 2x Sweet Sugar",
+                        "Order Fulfillment 2x Sweet Sugar",
+                        "Order Fulfillment 2x White",
+                        "Order Fulfillment 3x Pearl Whisper",
+                        "Order Fulfillment 3x Red",
+                        "Order Fulfillment 3x Royal Crimson",
+                        "Order Fulfillment 3x White",
+                        "Order Fulfillment 4x Explosive Dynamite",
+                        "Order Fulfillment 4x Large",
+                        "Order Fulfillment 4x Pearl Whisper",
+                        "Order Fulfillment 4x Red",
+                        "Order Fulfillment 4x Sweet Sugar",
+                        "Order Fulfillment 5x Small",
+                        "Order Fulfillment 6x Explosive Dynamite",
+                        "Order Fulfillment 6x Gentle Cinnamon",
+                        "Order Fulfillment 6x Gentle Cinnamon",
+                        "Order Fulfillment 6x Medium",
+                        "Order Fulfillment 6x Medium",
+                        "Order Fulfillment 6x Royal Crimson",
+                        "Order Fulfillment 8x Explosive Dynamite",
+                        "Received Inventory 12x Explosive Dynamite",
+                        "Received Inventory 12x Explosive Dynamite",
+                        "Received Inventory 12x Medium",
+                        "Received Inventory 12x Medium",
+                        "Received Inventory 12x Royal Crimson",
+                        "Received Inventory 12x White",
+                        "Received Inventory 15x Red",
+                        "Received Inventory 6x Gentle Cinnamon",
+                        "Received Inventory 6x Gentle Cinnamon",
+                        "Received Inventory 6x Large",
+                        "Received Inventory 6x Small",
+                        "Received Inventory 6x Small",
+                        "Received Inventory 6x Sweet Sugar",
+                        "Received Inventory 6x Sweet Sugar",
+                        "Received Inventory 8x Pearl Whisper",
+                        "Returned Inventory 2x Medium",
+                        "Returned Inventory 2x Royal Crimson",
+                    ],
                 },
                 {
                     "name": "order_item",
@@ -2179,32 +2182,30 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": False,
-                    "choices": OrderedDict(
-                        [
-                            (221, "OrderItem object (221)"),
-                            (222, "OrderItem object (222)"),
-                            (223, "OrderItem object (223)"),
-                            (224, "OrderItem object (224)"),
-                            (225, "OrderItem object (225)"),
-                            (226, "OrderItem object (226)"),
-                            (227, "OrderItem object (227)"),
-                            (228, "OrderItem object (228)"),
-                            (229, "OrderItem object (229)"),
-                            (230, "OrderItem object (230)"),
-                            (231, "OrderItem object (231)"),
-                            (232, "OrderItem object (232)"),
-                            (233, "OrderItem object (233)"),
-                            (234, "OrderItem object (234)"),
-                            (235, "OrderItem object (235)"),
-                            (236, "OrderItem object (236)"),
-                            (237, "OrderItem object (237)"),
-                            (238, "OrderItem object (238)"),
-                            (239, "OrderItem object (239)"),
-                            (240, "OrderItem object (240)"),
-                            (241, "OrderItem object (241)"),
-                            (242, "OrderItem object (242)"),
-                        ]
-                    ),
+                    "choices": {
+                        "1001 - 3x Red",
+                        "1001 - 5x Small",
+                        "1001 - 6x Gentle Cinnamon",
+                        "1001 - 6x Medium",
+                        "1002 - 3x Pearl Whisper",
+                        "1002 - 4x Large",
+                        "1002 - 4x Royal Crimson",
+                        "1002 - 4x Sweet Sugar",
+                        "1002 - 6x Medium",
+                        "1002 - 8x Explosive Dynamite",
+                        "1003 - 2x Medium",
+                        "1003 - 2x White",
+                        "1003 - 4x Explosive Dynamite",
+                        "1003 - 4x Red",
+                        "1004 - 2x Large",
+                        "1004 - 3x Royal Crimson",
+                        "1004 - 4x Pearl Whisper",
+                        "1004 - 4x Sweet Sugar",
+                        "1004 - 6x Explosive Dynamite",
+                        "1004 - 6x Small",
+                        "1005 - 3x White",
+                        "1005 - 6x Gentle Cinnamon",
+                    },
                 },
                 {
                     "name": "price",
@@ -2276,10 +2277,9 @@ class TestModelInfoSerializer:
         self.check_model_expands_data(
             response,
             [
-                {"name": "cart", "description": "Expand cart", "fields": ["id", "customer"]},
+                {"name": "cart", "fields": ["id", "customer"]},
                 {
                     "name": "product_option",
-                    "description": "Expand product_option",
                     "fields": ["id", "product", "option_type", "name", "sku", "gtin", "price", "disabled"],
                 },
             ],
@@ -2302,6 +2302,9 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
+                    "choices": {
+                        "test_customer_1@example.com",
+                    },
                 },
                 {
                     "name": "product_option",
@@ -2310,20 +2313,18 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": OrderedDict(
-                        [
-                            (116, "ProductOption object (116)"),
-                            (117, "ProductOption object (117)"),
-                            (119, "ProductOption object (119)"),
-                            (113, "ProductOption object (113)"),
-                            (120, "ProductOption object (120)"),
-                            (115, "ProductOption object (115)"),
-                            (114, "ProductOption object (114)"),
-                            (112, "ProductOption object (112)"),
-                            (118, "ProductOption object (118)"),
-                            (111, "ProductOption object (111)"),
-                        ]
-                    ),
+                    "choices": {
+                        "Explosive Dynamite",
+                        "Gentle Cinnamon",
+                        "Large",
+                        "Medium",
+                        "Pearl Whisper",
+                        "Red",
+                        "Royal Crimson",
+                        "Small",
+                        "Sweet Sugar",
+                        "White",
+                    },
                 },
                 {
                     "name": "quantity",
