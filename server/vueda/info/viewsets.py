@@ -33,6 +33,8 @@ class ModelInfoViewSet(FlexFieldsMixin, mixins.ListModelMixin, mixins.RetrieveMo
         return ContentType.objects.all().filter(pk__in=get_registered_content_types())
 
     def get_object(self):
-        return generics.get_object_or_404(
+        obj = generics.get_object_or_404(
             ContentType, app_label=self.kwargs["app_label"], model=self.kwargs["model"].replace("_", "")
         )
+        self.check_object_permissions(self.request, obj)
+        return obj
