@@ -1,10 +1,24 @@
+import inspect
+
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.utils.functional import cached_property
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
-from rest_framework import serializers
+from rest_framework import serializers  # noqa F401
+from rest_framework import viewsets  # noqa F401
 
+from vueda.core.viewsets import VuedaViewSet  # noqa F401
 from vueda.info.registration import get_registration
+
+
+METHOD_MAPPING = {
+    "create": "post",
+    "destroy": "delete",
+    "list": "get",
+    "partial_update": "patch",
+    "retrieve": "get",
+    "update": "put",
+}
 
 
 class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer):
@@ -24,12 +38,12 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
             "model",
         ]
         expandable_fields = {
-            "model_permissions": (serializers.SerializerMethodField),
-            "model_fields": (serializers.SerializerMethodField),
-            "model_actions": (serializers.SerializerMethodField),
-            "model_expands": (serializers.SerializerMethodField),
-            "model_ordering": (serializers.SerializerMethodField),
-            "model_filtering": (serializers.SerializerMethodField),
+            "model_permissions": serializers.SerializerMethodField,
+            "model_fields": serializers.SerializerMethodField,
+            "model_actions": serializers.SerializerMethodField,
+            "model_expands": serializers.SerializerMethodField,
+            "model_ordering": serializers.SerializerMethodField,
+            "model_filtering": serializers.SerializerMethodField,
         }
 
     def get_model_class(self):
@@ -89,14 +103,43 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         Get the actions for a model and their own metadata.
         """
         # To do this, we'll need to have a canonical viewset for each model
-        # todo: this is a placeholder
-        return [
-            {
+        viewset = self.canonical["viewset"]  # type: VuedaViewSet
+
+        meta = viewset.queryset.model._meta
+        app_label = meta.app_label
+        model_name = meta.model_name
+
+        action_data = []
+        for action in ("list", "retrieve", "create", "update", "partial_update", "destroy"):
+            action_item_data = {
                 "name": action,
-                "description": f"Action {action}",
+                "description": f"{action} {app_label}.{model_name}",
+                "detail": action != "list",
+                "method_names": [METHOD_MAPPING[action]],
             }
-            for action in ["list", "retrieve", "create", "update", "partial_update", "destroy"]
-        ]
+            if action != "list":
+                parameters = viewset.detail_args
+                if parameters:
+                    action_item_data["parameters"] = parameters
+            action_data.append(action_item_data)
+
+        for extra_action in viewset.get_extra_actions():
+            signature = inspect.signature(extra_action)
+            parameters = signature.parameters if extra_action.detail else ()
+
+            extra_action_data = {
+                "name": extra_action.url_name,
+                "description": f"{extra_action.url_name} {app_label}.{model_name}",
+                "detail": extra_action.detail,
+                "method_names": list(extra_action.mapping.keys()),
+            }
+            parameters = [parameter for parameter in parameters if parameter not in ("self", "request")]
+            if parameters:
+                extra_action_data["parameters"] = parameters
+
+            action_data.append(extra_action_data)
+
+        return action_data
 
     def get_model_expands(self, instance):
         """
@@ -107,7 +150,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
         if hasattr(serializer.Meta, "expandable_fields"):
             return [
-                {"name": expand, "description": f"Expand {expand}", "fields": expand_data[1]["fields"]}
+                {"name": expand, "fields": expand_data[1]["fields"]}
                 for expand, expand_data in serializer.Meta.expandable_fields.items()
             ]
 
