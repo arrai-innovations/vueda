@@ -2,10 +2,12 @@
 
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.db.models import Max
 
 from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
 from vueda.history.models import SimpleHistoryModelMixin
+from vueda.workflow.models import HasWorkflowModelMixin
 
 
 class Customer(SimpleHistoryModelMixin, models.Model):
@@ -45,11 +47,12 @@ class ProductOption(SimpleHistoryModelMixin, models.Model):
     disabled = models.BooleanField(db_default=False)
 
     class Meta(BaseModelMeta):
-        pass
+        default_related_name = "product_options"
 
 
 class Cart(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
+    last_modified = models.DateTimeField(auto_now=True)
 
     class Meta(BaseModelMeta):
         pass
@@ -61,7 +64,7 @@ class CartItem(models.Model):
     quantity = models.IntegerField(db_default=0)
 
     class Meta(BaseModelMeta):
-        pass
+        default_related_name = "cart_items"
 
 
 class OrderState(Lookup):
@@ -69,7 +72,7 @@ class OrderState(Lookup):
         pass
 
 
-class CustomerOrder(SimpleHistoryModelMixin, models.Model):
+class CustomerOrder(HasWorkflowModelMixin, SimpleHistoryModelMixin, models.Model):
     order_number = models.DecimalField(max_digits=7, decimal_places=0)
     when = models.DateTimeField(auto_now_add=True, verbose_name="Date / Time", db_index=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
@@ -77,6 +80,13 @@ class CustomerOrder(SimpleHistoryModelMixin, models.Model):
 
     class Meta(BaseModelMeta):
         pass
+
+    @classmethod
+    def get_next_order_number(cls):
+        # This is a poor way to do this, but is sufficient for testing.
+        customer_order_data = CustomerOrder.objects.aggregate(last_order_number=Max("order_number"))
+        last_order_number = customer_order_data["last_order_number"]
+        return last_order_number + 1
 
 
 class OrderItem(models.Model):
