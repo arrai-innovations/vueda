@@ -1,5 +1,6 @@
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import generics
+from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 
 from vueda.core.viewsets import FlexFieldsMixin
@@ -7,7 +8,7 @@ from vueda.info.registration import get_registered_content_types
 from vueda.info.serializers import ModelInfoSerializer
 
 
-class ModelInfoViewSet(FlexFieldsMixin, generics.ListAPIView, generics.RetrieveAPIView, GenericViewSet):
+class ModelInfoViewSet(FlexFieldsMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
     """
     This viewsets is for providing metadata about models, including fields, actions, and permissions
     to front-end clients. This is a read-only viewset.
