@@ -16,9 +16,15 @@ class Customer(SimpleHistoryModelMixin, models.Model):
     class Meta(BaseModelMeta):
         pass
 
+    def __str__(self):
+        return self.user.email
+
 
 class Distributor(SimpleHistoryModelMixin, models.Model):
     name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
 
 
 class Product(SimpleHistoryModelMixin, models.Model):
@@ -31,10 +37,16 @@ class Product(SimpleHistoryModelMixin, models.Model):
             ["distributor", "name"],
         ]
 
+    def __str__(self):
+        return self.name
+
 
 class OptionType(Lookup):
     class Meta(BaseModelMeta):
         pass
+
+    def __str__(self):
+        return self.name
 
 
 class ProductOption(SimpleHistoryModelMixin, models.Model):
@@ -49,6 +61,9 @@ class ProductOption(SimpleHistoryModelMixin, models.Model):
     class Meta(BaseModelMeta):
         default_related_name = "product_options"
 
+    def __str__(self):
+        return self.name
+
 
 class Cart(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
@@ -56,6 +71,9 @@ class Cart(models.Model):
 
     class Meta(BaseModelMeta):
         pass
+
+    def __str__(self):
+        return self.customer.user.email
 
 
 class CartItem(models.Model):
@@ -66,10 +84,16 @@ class CartItem(models.Model):
     class Meta(BaseModelMeta):
         default_related_name = "cart_items"
 
+    def __str__(self):
+        return f"{self.customer_order.order_number} - {self.quantity}x {self.product_option.name}"
+
 
 class OrderState(Lookup):
     class Meta(BaseModelMeta):
         pass
+
+    def __str__(self):
+        return self.name
 
 
 class CustomerOrder(HasWorkflowModelMixin, SimpleHistoryModelMixin, models.Model):
@@ -80,6 +104,9 @@ class CustomerOrder(HasWorkflowModelMixin, SimpleHistoryModelMixin, models.Model
 
     class Meta(BaseModelMeta):
         pass
+
+    def __str__(self):
+        return str(self.order_number)
 
     @classmethod
     def get_next_order_number(cls):
@@ -97,6 +124,9 @@ class OrderItem(models.Model):
     class Meta(BaseModelMeta):
         pass
 
+    def __str__(self):
+        return f"{self.customer_order.order_number} - {self.quantity}x {self.product_option.name}"
+
 
 class InventoryRecordReason(models.Model):
     name = models.CharField(max_length=255, verbose_name="Reason")
@@ -108,7 +138,7 @@ class InventoryRecordReason(models.Model):
         unique_together = ("code", "is_added_reason")
 
     def __str__(self):
-        return self.code
+        return self.name
 
 
 # No history on inventory, since we only add records.
@@ -140,3 +170,6 @@ class InventoryRecord(models.Model):
 
     price = models.DecimalField(max_digits=12, decimal_places=2, null=True)
     margin = models.DecimalField(max_digits=12, decimal_places=2, null=True)
+
+    def __str__(self):
+        return f"{self.when} - {self.reason.name} {self.quantity}x {self.product_option.name}"
