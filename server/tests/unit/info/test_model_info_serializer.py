@@ -1080,6 +1080,17 @@ class TestModelInfoSerializer:
                     for key in model_expand.keys():
                         assert model_expand[key] == expected_model_expand[key], model_expand
 
+    def check_model_actions_data(self, response_data, expected_data):
+        data = response_data.data["model_actions"]
+        assert {x["name"] for x in data} == {x["name"] for x in expected_data}
+        for model_action in data:
+            assert "name" in model_action, "name field is missing in model_actions object"
+            for expected_model_action in expected_data:
+                if model_action["name"] == expected_model_action["name"]:
+                    assert set(model_action.keys()) == set(expected_model_action.keys()), model_action
+                    for key in model_action.keys():
+                        assert model_action[key] == expected_model_action[key], model_action
+
     def test_info_list(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
         api_client.force_authenticate(user=user)
@@ -1160,7 +1171,62 @@ class TestModelInfoSerializer:
         )
 
         # model_ordering
+
         # model_actions
+
+        self.check_model_actions_data(
+            response,
+            [
+                {
+                    "name": "list",
+                    "description": "list store.distributor",
+                    "detail": False,
+                    "method_names": ["get"],
+                },
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.distributor",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.distributor",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.distributor",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.distributor",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.distributor",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "current",
+                    "description": "current store.distributor",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+            ],
+        )
 
     def test_info_detail_optiontype(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -1241,6 +1307,48 @@ class TestModelInfoSerializer:
             ],
         )
 
+        self.check_model_actions_data(
+            response,
+            [
+                {"name": "list", "description": "list store.optiontype", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.optiontype",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.optiontype",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.optiontype",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.optiontype",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.optiontype",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
+            ],
+        )
+
     def test_info_detail_customer(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
         api_client.force_authenticate(user=user)
@@ -1315,6 +1423,55 @@ class TestModelInfoSerializer:
                         "test_customer_1@example.com",
                         "test_customer_2@example.com",
                     },
+                },
+            ],
+        )
+
+        self.check_model_actions_data(
+            response,
+            [
+                {"name": "list", "description": "list store.customer", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.customer",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.customer",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.customer",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.customer",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.customer",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "current",
+                    "description": "current store.customer",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
                 },
             ],
         )
@@ -1413,6 +1570,61 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
+                },
+            ],
+        )
+
+        self.check_model_actions_data(
+            response,
+            [
+                {"name": "list", "description": "list store.cart", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.cart",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.cart",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.cart",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.cart",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.cart",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "abandoned-carts-count",
+                    "description": "abandoned-carts-count store.cart",
+                    "detail": False,
+                    "method_names": ["get"],
+                },
+                {
+                    "name": "create-order",
+                    "description": "create-order store.cart",
+                    "detail": True,
+                    "method_names": ["put", "patch"],
+                    "parameters": ["pk"],
                 },
             ],
         )
@@ -1523,6 +1735,55 @@ class TestModelInfoSerializer:
             ],
         )
 
+        self.check_model_actions_data(
+            response,
+            [
+                {"name": "list", "description": "list store.customerorder", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.customerorder",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.customerorder",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.customerorder",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.customerorder",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.customerorder",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "current",
+                    "description": "current store.customerorder",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+            ],
+        )
+
     def test_info_detail_inventoryrecordreason(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
         api_client.force_authenticate(user=user)
@@ -1606,6 +1867,53 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
+                },
+            ],
+        )
+
+        self.check_model_actions_data(
+            response,
+            [
+                {
+                    "name": "list",
+                    "description": "list store.inventoryrecordreason",
+                    "detail": False,
+                    "method_names": ["get"],
+                },
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.inventoryrecordreason",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.inventoryrecordreason",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.inventoryrecordreason",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.inventoryrecordreason",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.inventoryrecordreason",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
                 },
             ],
         )
@@ -1701,6 +2009,55 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
+                },
+            ],
+        )
+
+        self.check_model_actions_data(
+            response,
+            [
+                {"name": "list", "description": "list store.product", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.product",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.product",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.product",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.product",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.product",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "current",
+                    "description": "current store.product",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
                 },
             ],
         )
@@ -1848,6 +2205,55 @@ class TestModelInfoSerializer:
             ],
         )
 
+        self.check_model_actions_data(
+            response,
+            [
+                {"name": "list", "description": "list store.productoption", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.productoption",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.productoption",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.productoption",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.productoption",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.productoption",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "current",
+                    "description": "current store.productoption",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+            ],
+        )
+
     def test_info_detail_orderitem(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
         api_client.force_authenticate(user=user)
@@ -1956,6 +2362,48 @@ class TestModelInfoSerializer:
                     "required": True,
                     "max_value": 2147483647,
                     "min_value": -2147483648,
+                },
+            ],
+        )
+
+        self.check_model_actions_data(
+            response,
+            [
+                {"name": "list", "description": "list store.orderitem", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.orderitem",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.orderitem",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.orderitem",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.orderitem",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.orderitem",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
                 },
             ],
         )
@@ -2230,6 +2678,48 @@ class TestModelInfoSerializer:
             ],
         )
 
+        self.check_model_actions_data(
+            response,
+            [
+                {"name": "list", "description": "list store.inventoryrecord", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.inventoryrecord",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.inventoryrecord",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.inventoryrecord",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.inventoryrecord",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.inventoryrecord",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
+            ],
+        )
+
     def test_info_detail_cartitem(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
         api_client.force_authenticate(user=user)
@@ -2335,6 +2825,48 @@ class TestModelInfoSerializer:
                     "required": True,
                     "max_value": 2147483647,
                     "min_value": -2147483648,
+                },
+            ],
+        )
+
+        self.check_model_actions_data(
+            response,
+            [
+                {"name": "list", "description": "list store.cartitem", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.cartitem",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.cartitem",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.cartitem",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.cartitem",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.cartitem",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
                 },
             ],
         )
