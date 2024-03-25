@@ -199,7 +199,7 @@ class DeactivateActionViewSetMixin:
     """
 
     @action(detail=True, methods=["patch"])
-    def deactivate(self, request, *args, **kwargs):
+    def deactivate(self, request):
         instance = self.get_object()
         if not isinstance(instance, ActivatableBaseModel):
             return Response(
@@ -219,7 +219,7 @@ class DeactivateActionViewSetMixin:
         )
 
     @action(detail=True, methods=["patch"])
-    def activate(self, request, *args, **kwargs):
+    def activate(self, request):
         instance = self.get_object()
         if not isinstance(instance, ActivatableBaseModel):
             return Response(
@@ -239,7 +239,9 @@ class DeactivateActionViewSetMixin:
         )
 
 
-class VuedaViewSet(
-    NoExtraFieldsForViewSetMixin, SimpleHistoryViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet
-):
+class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
+    detail_args = ["pk"]
+
+
+class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):
     pass
