@@ -2,6 +2,7 @@
 
 from rest_framework import serializers
 
+from vueda.core.serializers import VuedaSerializerMixin
 from vueda.user.serializers import UserSerializer
 
 from .models import Cart
@@ -18,7 +19,7 @@ from .models import Product
 from .models import ProductOption
 
 
-class CustomerSerializer(serializers.ModelSerializer):
+class CustomerSerializer(VuedaSerializerMixin):
     class Meta:
         model = Customer
         fields = [
@@ -39,7 +40,7 @@ class CustomerSerializer(serializers.ModelSerializer):
         }
 
 
-class DistributorSerializer(serializers.ModelSerializer):
+class DistributorSerializer(VuedaSerializerMixin):
     class Meta:
         model = Distributor
         fields = [
@@ -48,7 +49,7 @@ class DistributorSerializer(serializers.ModelSerializer):
         ]
 
 
-class ProductSerializer(serializers.ModelSerializer):
+class ProductSerializer(VuedaSerializerMixin):
     class Meta:
         model = Product
         fields = [
@@ -89,7 +90,7 @@ class ProductSerializer(serializers.ModelSerializer):
         return data
 
 
-class OptionTypeSerializer(serializers.ModelSerializer):
+class OptionTypeSerializer(VuedaSerializerMixin):
     class Meta:
         model = OptionType
         fields = [
@@ -99,7 +100,7 @@ class OptionTypeSerializer(serializers.ModelSerializer):
         ]
 
 
-class ProductOptionSerializer(serializers.ModelSerializer):
+class ProductOptionSerializer(VuedaSerializerMixin):
     class Meta:
         model = ProductOption
         fields = [
@@ -137,12 +138,14 @@ class ProductOptionSerializer(serializers.ModelSerializer):
         }
 
 
-class CartSerializer(serializers.ModelSerializer):
+class CartSerializer(VuedaSerializerMixin):
     class Meta:
         model = Cart
         fields = [
             "id",
             "customer",
+            "last_modified",
+            "cart_items",
         ]
         expandable_fields = {
             "customer": (
@@ -153,11 +156,22 @@ class CartSerializer(serializers.ModelSerializer):
                         "user",
                     ],
                 },
-            )
+            ),
+            "cart_items": (
+                "tests.store.serializers.CartItemSerializer",
+                {
+                    "fields": [
+                        "id",
+                        "user",
+                        "product_options",
+                        "quantity",
+                    ],
+                },
+            ),
         }
 
 
-class CartItemSerializer(serializers.ModelSerializer):
+class CartItemSerializer(VuedaSerializerMixin):
     class Meta:
         model = CartItem
         fields = [
@@ -194,7 +208,7 @@ class CartItemSerializer(serializers.ModelSerializer):
         }
 
 
-class OrderStateSerializer(serializers.ModelSerializer):
+class OrderStateSerializer(VuedaSerializerMixin):
     class Meta:
         model = OrderState
         fields = [
@@ -204,7 +218,7 @@ class OrderStateSerializer(serializers.ModelSerializer):
         ]
 
 
-class CustomerOrderSerializer(serializers.ModelSerializer):
+class CustomerOrderSerializer(VuedaSerializerMixin):
     class Meta:
         model = CustomerOrder
         fields = [
@@ -237,7 +251,7 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
         }
 
 
-class OrderItemSerializer(serializers.ModelSerializer):
+class OrderItemSerializer(VuedaSerializerMixin):
     class Meta:
         model = OrderItem
         fields = [
@@ -277,7 +291,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         }
 
 
-class InventoryRecordReasonSerializer(serializers.ModelSerializer):
+class InventoryRecordReasonSerializer(VuedaSerializerMixin):
     class Meta:
         model = InventoryRecordReason
         fields = [
@@ -288,7 +302,7 @@ class InventoryRecordReasonSerializer(serializers.ModelSerializer):
         ]
 
 
-class InventoryRecordSerializer(serializers.ModelSerializer):
+class InventoryRecordSerializer(VuedaSerializerMixin):
     class Meta:
         model = InventoryRecord
         fields = [
