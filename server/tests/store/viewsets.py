@@ -19,6 +19,7 @@ class CustomerViewSet(VuedaHistoryViewSet):
     queryset = my_models.Customer.objects.all()
     serializer_class = my_serializers.CustomerSerializer
     permission_classes = [ObjectPermissions]
+    ordering_fields = ["user__email"]
 
 
 class DistributorViewSet(VuedaHistoryViewSet):
@@ -26,6 +27,7 @@ class DistributorViewSet(VuedaHistoryViewSet):
     serializer_class = my_serializers.DistributorSerializer
     permission_classes = [ObjectPermissions]
     filterset_class = my_filtersets.DistributorFilterSet
+    ordering_fields = ["name"]
 
 
 class ProductViewSet(VuedaHistoryViewSet):
@@ -33,12 +35,14 @@ class ProductViewSet(VuedaHistoryViewSet):
     serializer_class = my_serializers.ProductSerializer
     permission_classes = [ObjectPermissions]
     filterset_class = my_filtersets.ProductFilterSet
+    ordering_fields = ["distributor__name", "name", "disabled"]
 
 
 class OptionTypeViewSet(VuedaViewSet):
     queryset = my_models.OptionType.objects.all()
     serializer_class = my_serializers.OptionTypeSerializer
     permission_classes = [ObjectPermissions]
+    ordering_fields = ["name"]
 
 
 class ProductOptionViewSet(VuedaHistoryViewSet):
@@ -46,6 +50,7 @@ class ProductOptionViewSet(VuedaHistoryViewSet):
     serializer_class = my_serializers.ProductOptionSerializer
     permission_classes = [ObjectPermissions]
     filterset_class = my_filtersets.ProductOptionFilterSet
+    ordering_fields = ["name", "option_type", "sku", "gtin", "price"]
 
 
 class CartViewSet(VuedaViewSet):
@@ -53,6 +58,7 @@ class CartViewSet(VuedaViewSet):
     serializer_class = my_serializers.CartSerializer
     permission_classes = [ObjectPermissions & (IsCartOrOrderCreator | IsAdminUser)]
     permitted_expands = ["cart_items", "customer"]
+    ordering_fields = ["customer__user__email", "last_modified"]
 
     @action(detail=True, methods=["put", "patch"], permission_classes=(IsCartOrOrderCreator,))
     def create_order(self, request, pk):
@@ -90,12 +96,14 @@ class CartItemViewSet(VuedaViewSet):
     queryset = my_models.CartItem.objects.all()
     serializer_class = my_serializers.CartItemSerializer
     permission_classes = [ObjectPermissions]
+    ordering_fields = ["product_option__name", "quantity"]
 
 
 class CustomerOrderViewSet(VuedaHistoryViewSet):
     queryset = my_models.CustomerOrder.objects.all()
     serializer_class = my_serializers.CustomerOrderSerializer
     permission_classes = [ObjectPermissions]
+    ordering_fields = ["order_number", "customer__user__email", "when", "order_state"]
 
 
 class OrderItemViewSet(VuedaViewSet):
@@ -103,12 +111,14 @@ class OrderItemViewSet(VuedaViewSet):
     serializer_class = my_serializers.OrderItemSerializer
     permission_classes = [ObjectPermissions]
     filterset_class = my_filtersets.OrderItemFilterSet
+    ordering_fields = ["order_number", "product_option__name", "quantity"]
 
 
 class InventoryRecordReasonViewSet(VuedaViewSet):
     queryset = my_models.InventoryRecordReason.objects.all()
     serializer_class = my_serializers.InventoryRecordReasonSerializer
     permission_classes = [ObjectPermissions]
+    ordering_fields = ["name"]
 
 
 class InventoryRecordViewSet(VuedaViewSet):
@@ -116,3 +126,4 @@ class InventoryRecordViewSet(VuedaViewSet):
     serializer_class = my_serializers.InventoryRecordSerializer
     permission_classes = [ObjectPermissions]
     filterset_class = my_filtersets.InventoryRecordFilterSet
+    ordering_fields = ["when", "reason", "quantity"]
