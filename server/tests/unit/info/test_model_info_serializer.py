@@ -8,6 +8,8 @@ from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.store.models import Cart
+from tests.store.models import CartItem
 from tests.store.models import Customer
 from tests.store.models import CustomerOrder
 from tests.store.models import Distributor
@@ -46,12 +48,33 @@ from vueda import info
 class TestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create = {
         "Admin": [
-            ("contenttypes", "ContentType", "read"),
             ("contenttypes", "ContentType", "list"),
+            ("contenttypes", "ContentType", "read"),
+            ("store", "Cart", "create"),
+            ("store", "Cart", "delete"),
+            ("store", "Cart", "list"),
+            ("store", "Cart", "read"),
+            ("store", "Cart", "update"),
+            ("store", "CartItem", "read"),
+            ("store", "CustomerOrder", "create"),
+            ("store", "CustomerOrder", "delete"),
+            ("store", "CustomerOrder", "list"),
+            ("store", "CustomerOrder", "read"),
+            ("store", "CustomerOrder", "update"),
         ],
         "Customer": [
-            ("contenttypes", "ContentType", "read"),
             ("contenttypes", "ContentType", "list"),
+            ("contenttypes", "ContentType", "read"),
+            ("store", "Cart", "create"),
+            ("store", "Cart", "delete"),
+            ("store", "Cart", "read"),
+            ("store", "Cart", "update"),
+            ("store", "CartItem", "read"),
+            ("store", "CartItem", "list"),
+            ("store", "CartItem", "update"),
+            ("store", "CartItem", "delete"),
+            ("store", "CustomerOrder", "create"),
+            ("store", "CustomerOrder", "read"),
         ],
     }
 
@@ -982,6 +1005,15 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
         self.product_options = product_options
         self.order_items = order_items
         self.inventory_records = inventory_records
+
+        # Make a cart for one of the customers.
+        cart = Cart.objects.create(customer=customers["test_customer_1@example.com"])
+        self.carts = [cart]
+        CartItem.objects.create(
+            cart=cart,
+            product_option=self.product_options["Medium"],
+            quantity=1,
+        )
 
 
 @pytest.mark.django_db
