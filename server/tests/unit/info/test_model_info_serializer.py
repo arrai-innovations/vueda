@@ -1270,9 +1270,9 @@ class TestModelInfoSerializer:
                     "required": True,
                     "choices": OrderedDict(
                         [
-                            (10, "test_admin@example.com"),
-                            (11, "test_customer_1@example.com"),
-                            (12, "test_customer_2@example.com"),
+                            (143, "test_admin@example.com"),
+                            (144, "test_customer_1@example.com"),
+                            (145, "test_customer_2@example.com"),
                         ]
                     ),
                 },
