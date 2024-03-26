@@ -1,5 +1,6 @@
 import inspect
 
+import django_filters
 from django.contrib.admin.utils import get_fields_from_path
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -227,10 +228,33 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
             for field_name in filterset.Meta.fields:
                 field = get_fields_from_path(model, field_name)[-1]
                 field_type = FIELD_TYPE_MAPPING.get(field.get_internal_type(), "alpha")
+                available_filters = []
+                for available_filter in filterset.get_filters().values():
+                    if available_filter.field_name == field_name:
+                        available_filter_data = {}
+                        lookup_exprs = []
+                        if available_filter.label:
+                            available_filter_data["label"] = available_filter.label
+                        if "required" in available_filter.extra and available_filter.extra["required"]:
+                            available_filter_data["required"] = True
+                        if available_filter.lookup_expr:
+                            if isinstance(available_filter.lookup_expr, (list, tuple)):
+                                lookup_exprs.extend(available_filter.lookup_expr)
+                            else:
+                                lookup_exprs.append(available_filter.lookup_expr)
+                        if issubclass(available_filter.__class__, django_filters.RangeFilter) or issubclass(
+                            available_filter.__class__, django_filters.NumericRangeFilter
+                        ):
+                            lookup_exprs.append("range")  # Can have a start, stop, or start and stop value.
+                        if lookup_exprs:
+                            available_filter_data["lookup_exprs"] = lookup_exprs
+                        available_filters.append(available_filter_data)
+
                 filtering_data.append(
                     {
                         "name": field_name,
                         "type": field_type,
+                        "filters": available_filters,
                     }
                 )
 
