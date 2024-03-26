@@ -219,9 +219,20 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         """
         # Similar to actions, we'll need to have a canonical viewset to determine what fields are available
         viewset = self.canonical["viewset"]  # type: viewsets.VuedaViewSet
+        model = viewset.queryset.model
+        filtering_data = []
 
         if hasattr(viewset, "filterset_class"):
             filterset = viewset.filterset_class
-            return filterset.Meta.fields.copy()
+            for field_name in filterset.Meta.fields:
+                deferred_field = getattr(model, field_name)
+                field = deferred_field.field
+                field_type = FIELD_TYPE_MAPPING.get(field.get_internal_type(), "alpha")
+                filtering_data.append(
+                    {
+                        "name": field_name,
+                        "type": field_type,
+                    }
+                )
 
-        return []
+        return filtering_data
