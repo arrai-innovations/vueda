@@ -111,7 +111,7 @@ class OrderItemViewSet(VuedaViewSet):
     serializer_class = my_serializers.OrderItemSerializer
     permission_classes = [ObjectPermissions]
     filterset_class = my_filtersets.OrderItemFilterSet
-    ordering_fields = ["order_number", "product_option__name", "quantity"]
+    ordering_fields = ["customer_order__order_number", "product_option__name", "quantity"]
 
 
 class InventoryRecordReasonViewSet(VuedaViewSet):
