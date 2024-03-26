@@ -1026,16 +1026,27 @@ class TestModelInfoSerializer:
         info.register(InventoryRecordReasonSerializer, InventoryRecordReasonViewSet)
         info.register(InventoryRecordSerializer, InventoryRecordViewSet)
 
-    def check_model_permissions_data(self, response_data, expected_data):
-        data = response_data.data["model_permissions"]
-        assert {x["codename"] for x in data} == {x["codename"] for x in expected_data}
-        for model_permission in data:
-            assert "codename" in model_permission, "codename field is missing in model_permissions object"
-            for expected_model_permission in expected_data:
-                if model_permission["codename"] == expected_model_permission["codename"]:
-                    assert set(model_permission.keys()) == set(expected_model_permission.keys()), model_permission
-                    for key in model_permission.keys():
-                        assert model_permission[key] == expected_model_permission[key], model_permission
+    def check_model_actions_data(self, response_data, expected_data):
+        data = response_data.data["model_actions"]
+        assert {x["name"] for x in data} == {x["name"] for x in expected_data}
+        for model_action in data:
+            assert "name" in model_action, "name field is missing in model_actions object"
+            for expected_model_action in expected_data:
+                if model_action["name"] == expected_model_action["name"]:
+                    assert set(model_action.keys()) == set(expected_model_action.keys()), model_action
+                    for key in model_action.keys():
+                        assert model_action[key] == expected_model_action[key], model_action
+
+    def check_model_expands_data(self, response_data, expected_data):
+        data = response_data.data["model_expands"]
+        assert {x["name"] for x in data} == {x["name"] for x in expected_data}
+        for model_expand in data:
+            assert "name" in model_expand, "name field is missing in model_expands object"
+            for expected_model_expand in expected_data:
+                if model_expand["name"] == expected_model_expand["name"]:
+                    assert set(model_expand.keys()) == set(expected_model_expand.keys()), model_expand
+                    for key in model_expand.keys():
+                        assert model_expand[key] == expected_model_expand[key], model_expand
 
     def check_model_fields_data(self, response_data, expected_data):
         data = response_data.data["model_fields"]
@@ -1059,27 +1070,38 @@ class TestModelInfoSerializer:
                         else:
                             assert model_field[key] == expected_model_field[key], model_field
 
-    def check_model_expands_data(self, response_data, expected_data):
-        data = response_data.data["model_expands"]
+    def check_model_filtering_data(self, response_data, expected_data):
+        data = response_data.data["model_filtering"]
         assert {x["name"] for x in data} == {x["name"] for x in expected_data}
-        for model_expand in data:
-            assert "name" in model_expand, "name field is missing in model_expands object"
-            for expected_model_expand in expected_data:
-                if model_expand["name"] == expected_model_expand["name"]:
-                    assert set(model_expand.keys()) == set(expected_model_expand.keys()), model_expand
-                    for key in model_expand.keys():
-                        assert model_expand[key] == expected_model_expand[key], model_expand
+        for model_filter in data:
+            assert "name" in model_filter, "name field is missing in model_filtering object"
+            for expected_model_filter in expected_data:
+                if model_filter["name"] == expected_model_filter["name"]:
+                    assert set(model_filter.keys()) == set(expected_model_filter.keys()), model_filter
+                    for key in model_filter.keys():
+                        assert model_filter[key] == expected_model_filter[key], model_filter
 
-    def check_model_actions_data(self, response_data, expected_data):
-        data = response_data.data["model_actions"]
+    def check_model_ordering_data(self, response_data, expected_data):
+        data = response_data.data["model_ordering"]
         assert {x["name"] for x in data} == {x["name"] for x in expected_data}
-        for model_action in data:
-            assert "name" in model_action, "name field is missing in model_actions object"
-            for expected_model_action in expected_data:
-                if model_action["name"] == expected_model_action["name"]:
-                    assert set(model_action.keys()) == set(expected_model_action.keys()), model_action
-                    for key in model_action.keys():
-                        assert model_action[key] == expected_model_action[key], model_action
+        for model_order in data:
+            assert "name" in model_order, "name field is missing in model_ordering object"
+            for expected_model_order in expected_data:
+                if model_order["name"] == expected_model_order["name"]:
+                    assert set(model_order.keys()) == set(expected_model_order.keys()), model_order
+                    for key in model_order.keys():
+                        assert model_order[key] == expected_model_order[key], model_order
+
+    def check_model_permissions_data(self, response_data, expected_data):
+        data = response_data.data["model_permissions"]
+        assert {x["codename"] for x in data} == {x["codename"] for x in expected_data}
+        for model_permission in data:
+            assert "codename" in model_permission, "codename field is missing in model_permissions object"
+            for expected_model_permission in expected_data:
+                if model_permission["codename"] == expected_model_permission["codename"]:
+                    assert set(model_permission.keys()) == set(expected_model_permission.keys()), model_permission
+                    for key in model_permission.keys():
+                        assert model_permission[key] == expected_model_permission[key], model_permission
 
     def test_info_list(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -1088,6 +1110,7 @@ class TestModelInfoSerializer:
         self.register_viewsets()
 
         response = api_client.get(reverse("info.model_info-list"), format="json")
+
         assert response.status_code == 200, response.data
         assert response.data["totalRecords"] == 11
 
@@ -1114,62 +1137,17 @@ class TestModelInfoSerializer:
             format="json",
             data={
                 settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_permissions",
-                    "model_fields",
                     "model_actions",
                     "model_expands",
-                    "model_ordering",
+                    "model_fields",
                     "model_filtering",
+                    "model_ordering",
+                    "model_permissions",
                 ],
             },
         )
 
         assert response.status_code == 200, response.data
-        assert response.data["model_expands"] == []
-        assert response.data["model_filtering"] == [
-            {
-                "name": "name",
-                "type": "alpha",
-            },
-        ]
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "create_distributor", "name": "Can create distributor"},
-                {"codename": "delete_distributor", "name": "Can delete distributor"},
-                {"codename": "list_distributor", "name": "Can list distributor"},
-                {"codename": "read_distributor", "name": "Can read distributor"},
-                {"codename": "update_distributor", "name": "Can update distributor"},
-            ],
-        )
-
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "name",
-                    "label": None,
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-            ],
-        )
-
-        # model_ordering
-
-        # model_actions
-
         self.check_model_actions_data(
             response,
             [
@@ -1223,6 +1201,46 @@ class TestModelInfoSerializer:
                 },
             ],
         )
+        self.check_model_expands_data(response, [])
+        self.check_model_fields_data(
+            response,
+            [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "name",
+                    "label": None,
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+            ],
+        )
+        self.check_model_filtering_data(response, [{"name": "name", "type": "alpha"}])
+        self.check_model_ordering_data(
+            response,
+            [
+                {"name": "name", "type": "alpha"},
+            ],
+        )
+        self.check_model_permissions_data(
+            response,
+            [
+                {"codename": "create_distributor", "name": "Can create distributor"},
+                {"codename": "delete_distributor", "name": "Can delete distributor"},
+                {"codename": "list_distributor", "name": "Can list distributor"},
+                {"codename": "read_distributor", "name": "Can read distributor"},
+                {"codename": "update_distributor", "name": "Can update distributor"},
+            ],
+        )
 
     def test_info_detail_optiontype(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -1258,51 +1276,6 @@ class TestModelInfoSerializer:
         )
 
         assert response.status_code == 200, response.data
-        assert response.data["model_filtering"] == []
-        assert response.data["model_expands"] == []
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "create_optiontype", "name": "Can create option type"},
-                {"codename": "delete_optiontype", "name": "Can delete option type"},
-                {"codename": "list_optiontype", "name": "Can list option type"},
-                {"codename": "read_optiontype", "name": "Can read option type"},
-                {"codename": "update_optiontype", "name": "Can update option type"},
-            ],
-        )
-
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "code",
-                    "label": None,
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-                {
-                    "name": "name",
-                    "label": None,
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-            ],
-        )
-
         self.check_model_actions_data(
             response,
             [
@@ -1344,6 +1317,55 @@ class TestModelInfoSerializer:
                 },
             ],
         )
+        self.check_model_expands_data(response, [])
+        self.check_model_fields_data(
+            response,
+            [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "code",
+                    "label": None,
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+                {
+                    "name": "name",
+                    "label": None,
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+            ],
+        )
+        self.check_model_filtering_data(response, [])
+        self.check_model_ordering_data(
+            response,
+            [
+                {"name": "name", "type": "alpha"},
+            ],
+        )
+        self.check_model_permissions_data(
+            response,
+            [
+                {"codename": "create_optiontype", "name": "Can create option type"},
+                {"codename": "delete_optiontype", "name": "Can delete option type"},
+                {"codename": "list_optiontype", "name": "Can list option type"},
+                {"codename": "read_optiontype", "name": "Can read option type"},
+                {"codename": "update_optiontype", "name": "Can update option type"},
+            ],
+        )
 
     def test_info_detail_customer(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -1379,50 +1401,6 @@ class TestModelInfoSerializer:
         )
 
         assert response.status_code == 200, response.data
-        assert response.data["model_filtering"] == []
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "create_customer", "name": "Can create customer"},
-                {"codename": "delete_customer", "name": "Can delete customer"},
-                {"codename": "list_customer", "name": "Can list customer"},
-                {"codename": "read_customer", "name": "Can read customer"},
-                {"codename": "update_customer", "name": "Can update customer"},
-            ],
-        )
-        self.check_model_expands_data(
-            response,
-            [
-                {"name": "user", "fields": ["id", "email", "name"]},
-            ],
-        )
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "user",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "choices": {
-                        "test_admin@example.com",
-                        "test_customer_1@example.com",
-                        "test_customer_2@example.com",
-                    },
-                },
-            ],
-        )
-
         self.check_model_actions_data(
             response,
             [
@@ -1471,6 +1449,53 @@ class TestModelInfoSerializer:
                 },
             ],
         )
+        self.check_model_expands_data(
+            response,
+            [
+                {"name": "user", "fields": ["id", "email", "name"]},
+            ],
+        )
+        self.check_model_fields_data(
+            response,
+            [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "user",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": {
+                        "test_admin@example.com",
+                        "test_customer_1@example.com",
+                        "test_customer_2@example.com",
+                    },
+                },
+            ],
+        )
+        self.check_model_filtering_data(response, [])
+        self.check_model_ordering_data(
+            response,
+            [{"name": "user__email", "type": "alpha"}],
+        )
+        self.check_model_permissions_data(
+            response,
+            [
+                {"codename": "create_customer", "name": "Can create customer"},
+                {"codename": "delete_customer", "name": "Can delete customer"},
+                {"codename": "list_customer", "name": "Can list customer"},
+                {"codename": "read_customer", "name": "Can read customer"},
+                {"codename": "update_customer", "name": "Can update customer"},
+            ],
+        )
 
     def test_info_detail_cart(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -1504,16 +1529,60 @@ class TestModelInfoSerializer:
                 ],
             },
         )
+
         assert response.status_code == 200, response.data
-        assert response.data["model_filtering"] == []
-        self.check_model_permissions_data(
+        self.check_model_actions_data(
             response,
             [
-                {"codename": "create_cart", "name": "Can create cart"},
-                {"codename": "delete_cart", "name": "Can delete cart"},
-                {"codename": "list_cart", "name": "Can list cart"},
-                {"codename": "read_cart", "name": "Can read cart"},
-                {"codename": "update_cart", "name": "Can update cart"},
+                {"name": "list", "description": "list store.cart", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.cart",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.cart",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.cart",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.cart",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.cart",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "abandoned-carts-count",
+                    "description": "abandoned-carts-count store.cart",
+                    "detail": False,
+                    "method_names": ["get"],
+                },
+                {
+                    "name": "create-order",
+                    "description": "create-order store.cart",
+                    "detail": True,
+                    "method_names": ["put", "patch"],
+                    "parameters": ["pk"],
+                },
             ],
         )
         self.check_model_expands_data(
@@ -1569,59 +1638,19 @@ class TestModelInfoSerializer:
                 },
             ],
         )
-
-        self.check_model_actions_data(
+        self.check_model_filtering_data(response, [])
+        self.check_model_ordering_data(
+            response,
+            [{"name": "customer__user__email", "type": "alpha"}, {"name": "last_modified", "type": "datetime"}],
+        )
+        self.check_model_permissions_data(
             response,
             [
-                {"name": "list", "description": "list store.cart", "detail": False, "method_names": ["get"]},
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.cart",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.cart",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.cart",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.cart",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.cart",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "abandoned-carts-count",
-                    "description": "abandoned-carts-count store.cart",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "create-order",
-                    "description": "create-order store.cart",
-                    "detail": True,
-                    "method_names": ["put", "patch"],
-                    "parameters": ["pk"],
-                },
+                {"codename": "create_cart", "name": "Can create cart"},
+                {"codename": "delete_cart", "name": "Can delete cart"},
+                {"codename": "list_cart", "name": "Can list cart"},
+                {"codename": "read_cart", "name": "Can read cart"},
+                {"codename": "update_cart", "name": "Can update cart"},
             ],
         )
 
@@ -1657,17 +1686,54 @@ class TestModelInfoSerializer:
                 ],
             },
         )
-        assert response.status_code == 200, response.data
 
-        assert response.data["model_filtering"] == []
-        self.check_model_permissions_data(
+        assert response.status_code == 200, response.data
+        self.check_model_actions_data(
             response,
             [
-                {"codename": "create_customerorder", "name": "Can create customer order"},
-                {"codename": "delete_customerorder", "name": "Can delete customer order"},
-                {"codename": "list_customerorder", "name": "Can list customer order"},
-                {"codename": "read_customerorder", "name": "Can read customer order"},
-                {"codename": "update_customerorder", "name": "Can update customer order"},
+                {"name": "list", "description": "list store.customerorder", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.customerorder",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.customerorder",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.customerorder",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.customerorder",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.customerorder",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "current",
+                    "description": "current store.customerorder",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
             ],
         )
         self.check_model_expands_data(
@@ -1730,53 +1796,24 @@ class TestModelInfoSerializer:
                 },
             ],
         )
-
-        self.check_model_actions_data(
+        self.check_model_filtering_data(response, [])
+        self.check_model_ordering_data(
             response,
             [
-                {"name": "list", "description": "list store.customerorder", "detail": False, "method_names": ["get"]},
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.customerorder",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.customerorder",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.customerorder",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.customerorder",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.customerorder",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "current",
-                    "description": "current store.customerorder",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
+                {"name": "order_number", "type": "numeric"},
+                {"name": "customer__user__email", "type": "alpha"},
+                {"name": "when", "type": "datetime"},
+                {"name": "order_state", "type": "alpha"},
+            ],
+        )
+        self.check_model_permissions_data(
+            response,
+            [
+                {"codename": "create_customerorder", "name": "Can create customer order"},
+                {"codename": "delete_customerorder", "name": "Can delete customer order"},
+                {"codename": "list_customerorder", "name": "Can list customer order"},
+                {"codename": "read_customerorder", "name": "Can read customer order"},
+                {"codename": "update_customerorder", "name": "Can update customer order"},
             ],
         )
 
@@ -1814,59 +1851,6 @@ class TestModelInfoSerializer:
         )
 
         assert response.status_code == 200, response.data
-
-        assert response.data["model_filtering"] == []
-        assert response.data["model_expands"] == []
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "add_inventoryrecordreason", "name": "Can add inventory record reason"},
-                {"codename": "change_inventoryrecordreason", "name": "Can change inventory record reason"},
-                {"codename": "delete_inventoryrecordreason", "name": "Can delete inventory record reason"},
-                {"codename": "view_inventoryrecordreason", "name": "Can view inventory record reason"},
-            ],
-        )
-
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "name",
-                    "label": "Reason",
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-                {
-                    "name": "code",
-                    "label": None,
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-                {
-                    "name": "is_added_reason",
-                    "label": None,
-                    "type": "BooleanField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                },
-            ],
-        )
-
         self.check_model_actions_data(
             response,
             [
@@ -1913,6 +1897,62 @@ class TestModelInfoSerializer:
                 },
             ],
         )
+        self.check_model_expands_data(response, [])
+        self.check_model_fields_data(
+            response,
+            [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "name",
+                    "label": "Reason",
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+                {
+                    "name": "code",
+                    "label": None,
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+                {
+                    "name": "is_added_reason",
+                    "label": None,
+                    "type": "BooleanField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                },
+            ],
+        )
+        self.check_model_filtering_data(response, [])
+        self.check_model_ordering_data(
+            response,
+            [
+                {"name": "name", "type": "alpha"},
+            ],
+        )
+        self.check_model_permissions_data(
+            response,
+            [
+                {"codename": "add_inventoryrecordreason", "name": "Can add inventory record reason"},
+                {"codename": "change_inventoryrecordreason", "name": "Can change inventory record reason"},
+                {"codename": "delete_inventoryrecordreason", "name": "Can delete inventory record reason"},
+                {"codename": "view_inventoryrecordreason", "name": "Can view inventory record reason"},
+            ],
+        )
 
     def test_info_detail_product(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -1948,24 +1988,53 @@ class TestModelInfoSerializer:
         )
 
         assert response.status_code == 200, response.data
-        assert response.data["model_filtering"] == [
-            {
-                "name": "name",
-                "type": "alpha",
-            },
-            {
-                "name": "disabled",
-                "type": "boolean",
-            },
-        ]
-        self.check_model_permissions_data(
+
+        self.check_model_actions_data(
             response,
             [
-                {"codename": "create_product", "name": "Can create product"},
-                {"codename": "delete_product", "name": "Can delete product"},
-                {"codename": "list_product", "name": "Can list product"},
-                {"codename": "read_product", "name": "Can read product"},
-                {"codename": "update_product", "name": "Can update product"},
+                {"name": "list", "description": "list store.product", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.product",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.product",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.product",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.product",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.product",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "current",
+                    "description": "current store.product",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
             ],
         )
         self.check_model_expands_data(
@@ -2017,53 +2086,29 @@ class TestModelInfoSerializer:
                 },
             ],
         )
-
-        self.check_model_actions_data(
+        self.check_model_filtering_data(
             response,
             [
-                {"name": "list", "description": "list store.product", "detail": False, "method_names": ["get"]},
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.product",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.product",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.product",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.product",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.product",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "current",
-                    "description": "current store.product",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
+                {"name": "name", "type": "alpha"},
+                {"name": "disabled", "type": "boolean"},
+            ],
+        )
+        self.check_model_ordering_data(
+            response,
+            [
+                {"name": "distributor__name", "type": "alpha"},
+                {"name": "name", "type": "alpha"},
+                {"name": "disabled", "type": "boolean"},
+            ],
+        )
+        self.check_model_permissions_data(
+            response,
+            [
+                {"codename": "create_product", "name": "Can create product"},
+                {"codename": "delete_product", "name": "Can delete product"},
+                {"codename": "list_product", "name": "Can list product"},
+                {"codename": "read_product", "name": "Can read product"},
+                {"codename": "update_product", "name": "Can update product"},
             ],
         )
 
@@ -2101,32 +2146,52 @@ class TestModelInfoSerializer:
         )
 
         assert response.status_code == 200, response.data
-        assert response.data["model_filtering"] == [
-            {
-                "name": "name",
-                "type": "alpha",
-            },
-            {
-                "name": "sku",
-                "type": "alpha",
-            },
-            {
-                "name": "price",
-                "type": "numeric",
-            },
-            {
-                "name": "disabled",
-                "type": "boolean",
-            },
-        ]
-        self.check_model_permissions_data(
+        self.check_model_actions_data(
             response,
             [
-                {"codename": "create_productoption", "name": "Can create product option"},
-                {"codename": "delete_productoption", "name": "Can delete product option"},
-                {"codename": "list_productoption", "name": "Can list product option"},
-                {"codename": "read_productoption", "name": "Can read product option"},
-                {"codename": "update_productoption", "name": "Can update product option"},
+                {"name": "list", "description": "list store.productoption", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.productoption",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.productoption",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.productoption",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.productoption",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.productoption",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "current",
+                    "description": "current store.productoption",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
             ],
         )
         self.check_model_expands_data(
@@ -2226,53 +2291,33 @@ class TestModelInfoSerializer:
                 },
             ],
         )
-
-        self.check_model_actions_data(
+        self.check_model_filtering_data(
             response,
             [
-                {"name": "list", "description": "list store.productoption", "detail": False, "method_names": ["get"]},
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.productoption",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.productoption",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.productoption",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.productoption",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.productoption",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "current",
-                    "description": "current store.productoption",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
+                {"name": "name", "type": "alpha"},
+                {"name": "sku", "type": "alpha"},
+                {"name": "price", "type": "numeric"},
+                {"name": "disabled", "type": "boolean"},
+            ],
+        )
+        self.check_model_ordering_data(
+            response,
+            [
+                {"name": "name", "type": "alpha"},
+                {"name": "option_type", "type": "alpha"},
+                {"name": "sku", "type": "alpha"},
+                {"name": "gtin", "type": "alpha"},
+                {"name": "price", "type": "numeric"},
+            ],
+        )
+        self.check_model_permissions_data(
+            response,
+            [
+                {"codename": "create_productoption", "name": "Can create product option"},
+                {"codename": "delete_productoption", "name": "Can delete product option"},
+                {"codename": "list_productoption", "name": "Can list product option"},
+                {"codename": "read_productoption", "name": "Can read product option"},
+                {"codename": "update_productoption", "name": "Can update product option"},
             ],
         )
 
@@ -2310,21 +2355,45 @@ class TestModelInfoSerializer:
         )
 
         assert response.status_code == 200, response.data
-
-        assert response.data["model_filtering"] == [
-            {
-                "name": "quantity",
-                "type": "numeric",
-            },
-        ]
-        self.check_model_permissions_data(
+        self.check_model_actions_data(
             response,
             [
-                {"codename": "create_orderitem", "name": "Can create order item"},
-                {"codename": "delete_orderitem", "name": "Can delete order item"},
-                {"codename": "list_orderitem", "name": "Can list order item"},
-                {"codename": "read_orderitem", "name": "Can read order item"},
-                {"codename": "update_orderitem", "name": "Can update order item"},
+                {"name": "list", "description": "list store.orderitem", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.orderitem",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.orderitem",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.orderitem",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.orderitem",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.orderitem",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
             ],
         )
         self.check_model_expands_data(
@@ -2392,46 +2461,28 @@ class TestModelInfoSerializer:
                 },
             ],
         )
-
-        self.check_model_actions_data(
+        self.check_model_filtering_data(
             response,
             [
-                {"name": "list", "description": "list store.orderitem", "detail": False, "method_names": ["get"]},
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.orderitem",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.orderitem",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.orderitem",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.orderitem",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.orderitem",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
+                {"name": "quantity", "type": "numeric"},
+            ],
+        )
+        self.check_model_ordering_data(
+            response,
+            [
+                {"name": "customer_order__order_number", "type": "numeric"},
+                {"name": "product_option__name", "type": "alpha"},
+                {"name": "quantity", "type": "numeric"},
+            ],
+        )
+        self.check_model_permissions_data(
+            response,
+            [
+                {"codename": "create_orderitem", "name": "Can create order item"},
+                {"codename": "delete_orderitem", "name": "Can delete order item"},
+                {"codename": "list_orderitem", "name": "Can list order item"},
+                {"codename": "read_orderitem", "name": "Can read order item"},
+                {"codename": "update_orderitem", "name": "Can update order item"},
             ],
         )
 
@@ -2469,43 +2520,46 @@ class TestModelInfoSerializer:
         )
 
         assert response.status_code == 200, response.data
-        assert response.data["model_filtering"] == [
-            {
-                "name": "when",
-                "type": "datetime",
-            },
-            {
-                "name": "reason",
-                "type": "alpha",
-            },
-            {
-                "name": "is_added",
-                "type": "boolean",
-            },
-            {
-                "name": "quantity",
-                "type": "numeric",
-            },
-            {
-                "name": "cost",
-                "type": "numeric",
-            },
-            {
-                "name": "price",
-                "type": "numeric",
-            },
-            {
-                "name": "margin",
-                "type": "numeric",
-            },
-        ]
-        self.check_model_permissions_data(
+
+        self.check_model_actions_data(
             response,
             [
-                {"codename": "add_inventoryrecord", "name": "Can add inventory record"},
-                {"codename": "change_inventoryrecord", "name": "Can change inventory record"},
-                {"codename": "delete_inventoryrecord", "name": "Can delete inventory record"},
-                {"codename": "view_inventoryrecord", "name": "Can view inventory record"},
+                {"name": "list", "description": "list store.inventoryrecord", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.inventoryrecord",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.inventoryrecord",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.inventoryrecord",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.inventoryrecord",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.inventoryrecord",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
             ],
         )
         self.check_model_expands_data(
@@ -2732,46 +2786,33 @@ class TestModelInfoSerializer:
                 },
             ],
         )
-
-        self.check_model_actions_data(
+        self.check_model_filtering_data(
             response,
             [
-                {"name": "list", "description": "list store.inventoryrecord", "detail": False, "method_names": ["get"]},
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.inventoryrecord",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.inventoryrecord",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.inventoryrecord",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.inventoryrecord",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.inventoryrecord",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
+                {"name": "when", "type": "datetime"},
+                {"name": "reason", "type": "alpha"},
+                {"name": "is_added", "type": "boolean"},
+                {"name": "quantity", "type": "numeric"},
+                {"name": "cost", "type": "numeric"},
+                {"name": "price", "type": "numeric"},
+                {"name": "margin", "type": "numeric"},
+            ],
+        )
+        self.check_model_ordering_data(
+            response,
+            [
+                {"name": "when", "type": "datetime"},
+                {"name": "reason", "type": "alpha"},
+                {"name": "quantity", "type": "numeric"},
+            ],
+        )
+        self.check_model_permissions_data(
+            response,
+            [
+                {"codename": "add_inventoryrecord", "name": "Can add inventory record"},
+                {"codename": "change_inventoryrecord", "name": "Can change inventory record"},
+                {"codename": "delete_inventoryrecord", "name": "Can delete inventory record"},
+                {"codename": "view_inventoryrecord", "name": "Can view inventory record"},
             ],
         )
 
@@ -2807,16 +2848,47 @@ class TestModelInfoSerializer:
                 ],
             },
         )
+
         assert response.status_code == 200, response.data
-        assert response.data["model_filtering"] == []
-        self.check_model_permissions_data(
+        self.check_model_actions_data(
             response,
             [
-                {"codename": "create_cartitem", "name": "Can create cart item"},
-                {"codename": "delete_cartitem", "name": "Can delete cart item"},
-                {"codename": "list_cartitem", "name": "Can list cart item"},
-                {"codename": "read_cartitem", "name": "Can read cart item"},
-                {"codename": "update_cartitem", "name": "Can update cart item"},
+                {"name": "list", "description": "list store.cartitem", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "retrieve",
+                    "description": "retrieve store.cartitem",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "description": "create store.cartitem",
+                    "detail": True,
+                    "method_names": ["post"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "update",
+                    "description": "update store.cartitem",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "description": "partial_update store.cartitem",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "description": "destroy store.cartitem",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
             ],
         )
         self.check_model_expands_data(
@@ -2883,45 +2955,18 @@ class TestModelInfoSerializer:
                 },
             ],
         )
-
-        self.check_model_actions_data(
+        self.check_model_filtering_data(response, [])
+        self.check_model_ordering_data(
+            response,
+            [{"name": "product_option__name", "type": "alpha"}, {"name": "quantity", "type": "numeric"}],
+        )
+        self.check_model_permissions_data(
             response,
             [
-                {"name": "list", "description": "list store.cartitem", "detail": False, "method_names": ["get"]},
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.cartitem",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.cartitem",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.cartitem",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.cartitem",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.cartitem",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
+                {"codename": "create_cartitem", "name": "Can create cart item"},
+                {"codename": "delete_cartitem", "name": "Can delete cart item"},
+                {"codename": "list_cartitem", "name": "Can list cart item"},
+                {"codename": "read_cartitem", "name": "Can read cart item"},
+                {"codename": "update_cartitem", "name": "Can update cart item"},
             ],
         )
