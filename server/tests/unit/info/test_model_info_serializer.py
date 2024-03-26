@@ -1126,7 +1126,12 @@ class TestModelInfoSerializer:
 
         assert response.status_code == 200, response.data
         assert response.data["model_expands"] == []
-        assert response.data["model_filtering"] == ["name"]
+        assert response.data["model_filtering"] == [
+            {
+                "name": "name",
+                "type": "alpha",
+            },
+        ]
         self.check_model_permissions_data(
             response,
             [
@@ -1943,7 +1948,16 @@ class TestModelInfoSerializer:
         )
 
         assert response.status_code == 200, response.data
-        assert response.data["model_filtering"] == ["name", "disabled"]
+        assert response.data["model_filtering"] == [
+            {
+                "name": "name",
+                "type": "alpha",
+            },
+            {
+                "name": "disabled",
+                "type": "boolean",
+            },
+        ]
         self.check_model_permissions_data(
             response,
             [
@@ -2087,7 +2101,24 @@ class TestModelInfoSerializer:
         )
 
         assert response.status_code == 200, response.data
-        assert response.data["model_filtering"] == ["name", "sku", "price", "disabled"]
+        assert response.data["model_filtering"] == [
+            {
+                "name": "name",
+                "type": "alpha",
+            },
+            {
+                "name": "sku",
+                "type": "alpha",
+            },
+            {
+                "name": "price",
+                "type": "numeric",
+            },
+            {
+                "name": "disabled",
+                "type": "boolean",
+            },
+        ]
         self.check_model_permissions_data(
             response,
             [
@@ -2280,7 +2311,12 @@ class TestModelInfoSerializer:
 
         assert response.status_code == 200, response.data
 
-        assert response.data["model_filtering"] == ["quantity"]
+        assert response.data["model_filtering"] == [
+            {
+                "name": "quantity",
+                "type": "numeric",
+            },
+        ]
         self.check_model_permissions_data(
             response,
             [
@@ -2433,7 +2469,36 @@ class TestModelInfoSerializer:
         )
 
         assert response.status_code == 200, response.data
-        assert response.data["model_filtering"] == ["when", "reason", "is_added", "quantity", "cost", "price", "margin"]
+        assert response.data["model_filtering"] == [
+            {
+                "name": "when",
+                "type": "datetime",
+            },
+            {
+                "name": "reason",
+                "type": "alpha",
+            },
+            {
+                "name": "is_added",
+                "type": "boolean",
+            },
+            {
+                "name": "quantity",
+                "type": "numeric",
+            },
+            {
+                "name": "cost",
+                "type": "numeric",
+            },
+            {
+                "name": "price",
+                "type": "numeric",
+            },
+            {
+                "name": "margin",
+                "type": "numeric",
+            },
+        ]
         self.check_model_permissions_data(
             response,
             [
