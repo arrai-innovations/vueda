@@ -733,18 +733,18 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                                 "inventory_records": (
                                     {
                                         "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2024, 1, 12, 12, 0, 0),
+                                        "when": datetime.datetime(2023, 12, 5, 12, 0, 0),
                                         "quantity": 15,
                                         "reason": ("received_inventory", True),
-                                        "archived": True,
+                                        "archived": False,
                                         "is_added": True,
                                         "cost": Decimal("25.00"),
                                     },
                                     {
-                                        "when": datetime.datetime(2024, 1, 13, 13, 0, 0),
+                                        "when": datetime.datetime(2023, 12, 13, 13, 0, 0),
                                         "quantity": 3,
                                         "reason": ("order_fulfillment", False),
-                                        "archived": True,
+                                        "archived": False,
                                         "is_added": False,
                                         "added_inventory_record": "inventory_record_1",
                                         "order_item": "order_item_1",
@@ -752,10 +752,10 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                                         "margin": Decimal("14.99"),
                                     },
                                     {
-                                        "when": datetime.datetime(2024, 2, 5, 11, 0, 0),
+                                        "when": datetime.datetime(2024, 1, 7, 13, 0, 0),
                                         "quantity": 4,
                                         "reason": ("order_fulfillment", False),
-                                        "archived": True,
+                                        "archived": False,
                                         "is_added": False,
                                         "added_inventory_record": "inventory_record_1",
                                         "order_item": "order_item_2",
@@ -787,18 +787,18 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                                 "inventory_records": (
                                     {
                                         "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2024, 2, 23, 12, 0, 0),
+                                        "when": datetime.datetime(2023, 12, 5, 12, 0, 0),
                                         "quantity": 12,
                                         "reason": ("received_inventory", True),
-                                        "archived": True,
+                                        "archived": False,
                                         "is_added": True,
                                         "cost": Decimal("30.00"),
                                     },
                                     {
-                                        "when": datetime.datetime(2024, 2, 24, 13, 0, 0),
+                                        "when": datetime.datetime(2024, 1, 7, 13, 0, 0),
                                         "quantity": 2,
                                         "reason": ("order_fulfillment", False),
-                                        "archived": True,
+                                        "archived": False,
                                         "is_added": False,
                                         "added_inventory_record": "inventory_record_1",
                                         "order_item": "order_item_1",
@@ -806,10 +806,10 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                                         "margin": Decimal("14.99"),
                                     },
                                     {
-                                        "when": datetime.datetime(2024, 2, 5, 11, 0, 0),
+                                        "when": datetime.datetime(2024, 3, 13, 16, 0, 0),
                                         "quantity": 3,
                                         "reason": ("order_fulfillment", False),
-                                        "archived": True,
+                                        "archived": False,
                                         "is_added": False,
                                         "added_inventory_record": "inventory_record_1",
                                         "order_item": "order_item_2",
@@ -846,18 +846,18 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                                 "inventory_records": (
                                     {
                                         "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2024, 2, 1, 11, 0, 0),
+                                        "when": datetime.datetime(2023, 12, 5, 12, 0, 0),
                                         "quantity": 8,
                                         "reason": ("received_inventory", True),
-                                        "archived": True,
+                                        "archived": False,
                                         "is_added": True,
                                         "cost": Decimal("30.00"),
                                     },
                                     {
-                                        "when": datetime.datetime(2024, 2, 5, 11, 0, 0),
+                                        "when": datetime.datetime(2023, 12, 13, 14, 0, 0),
                                         "quantity": 3,
                                         "reason": ("order_fulfillment", False),
-                                        "archived": True,
+                                        "archived": False,
                                         "is_added": False,
                                         "added_inventory_record": "inventory_record_1",
                                         "order_item": "order_item_1",
@@ -865,10 +865,10 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                                         "margin": Decimal("19.99"),
                                     },
                                     {
-                                        "when": datetime.datetime(2024, 2, 5, 11, 0, 0),
+                                        "when": datetime.datetime(2024, 3, 13, 12, 0, 0),
                                         "quantity": 4,
                                         "reason": ("order_fulfillment", False),
-                                        "archived": True,
+                                        "archived": False,
                                         "is_added": False,
                                         "added_inventory_record": "inventory_record_1",
                                         "order_item": "order_item_2",
@@ -900,26 +900,26 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                                 "inventory_records": (
                                     {
                                         "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2024, 3, 5, 11, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "cost": Decimal("35.00"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 2, 29, 11, 0, 0),
+                                        "when": datetime.datetime(2023, 12, 5, 12, 0, 0),
                                         "quantity": 12,
                                         "reason": ("received_inventory", True),
                                         "archived": True,
                                         "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
                                         "order_item": "order_item_1",
+                                        "cost": Decimal("35.00"),
+                                    },
+                                    {
+                                        "when": datetime.datetime(2023, 12, 13, 14, 0, 0),
+                                        "quantity": 6,
+                                        "reason": ("order_fulfillment", False),
+                                        "archived": False,
+                                        "is_added": False,
+                                        "added_inventory_record": "inventory_record_1",
                                         "price": Decimal("54.99"),
                                         "margin": Decimal("19.99"),
                                     },
                                     {
-                                        "when": datetime.datetime(2024, 3, 5, 11, 0, 0),
+                                        "when": datetime.datetime(2024, 3, 13, 12, 0, 0),
                                         "quantity": 3,
                                         "reason": ("order_fulfillment", False),
                                         "archived": True,
@@ -930,18 +930,8 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                                         "margin": Decimal("19.99"),
                                     },
                                     {
-                                        "when": datetime.datetime(2024, 3, 8, 10, 15, 0),
-                                        "quantity": 1,
-                                        "reason": ("damaged_inventory", False),
-                                        "archived": True,
-                                        "is_added": True,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "cost": Decimal("35.00"),
-                                        "margin": Decimal("0.00"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 3, 8, 10, 0, 0),
-                                        "quantity": 2,
+                                        "when": datetime.datetime(2024, 3, 17, 10, 0, 0),
+                                        "quantity": 3,
                                         "reason": ("returned_inventory", True),
                                         "archived": True,
                                         "is_added": True,
@@ -1106,6 +1096,7 @@ class TestModelInfoSerializer:
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
+
         response_list = api_client.get(reverse("info.model_info-list"), format="json")
         for item in response_list.data["results"]:
             if item["model"] == "distributor":
@@ -2579,7 +2570,6 @@ class TestModelInfoSerializer:
                     "read_only": False,
                     "required": False,
                     "choices": [
-                        "Damaged Inventory 1x Royal Crimson",
                         "Damaged Inventory 2x Medium",
                         "Order Fulfillment 1x Small",
                         "Order Fulfillment 2x Large",
@@ -2620,7 +2610,7 @@ class TestModelInfoSerializer:
                         "Received Inventory 6x Sweet Sugar",
                         "Received Inventory 8x Pearl Whisper",
                         "Returned Inventory 2x Medium",
-                        "Returned Inventory 2x Royal Crimson",
+                        "Returned Inventory 3x Royal Crimson",
                     ],
                 },
                 {
