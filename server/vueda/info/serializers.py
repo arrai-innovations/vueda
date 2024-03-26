@@ -21,6 +21,40 @@ METHOD_MAPPING = {
 }
 
 
+FIELD_TYPE_MAPPING = {
+    "AutoField": "alpha",
+    "BigAutoField": "alpha",
+    "BigIntegerField": "numeric",
+    "BinaryField": "alpha",
+    "BooleanField": "boolean",
+    "CharField": "alpha",
+    "CICharField": "alpha",
+    "CIEmailField": "alpha",
+    "CITextField": "alpha",
+    "DateField": "date",
+    "DateTimeField": "datetime",
+    "DecimalField": "numeric",
+    "DurationField": "numeric",
+    "FileField": "alpha",
+    "FilePathField": "alpha",
+    "FloatField": "numeric",
+    "GenericIPAddressField": "alpha",
+    "IntegerField": "numeric",
+    "IPAddressField": "alpha",
+    "JSONField": "alpha",
+    "ManyToManyField": "alpha",
+    "PositiveBigIntegerField": "numeric",
+    "PositiveIntegerField": "numeric",
+    "PositiveSmallIntegerField": "numeric",
+    "SlugField": "alpha",
+    "SmallAutoField": "alpha",
+    "SmallIntegerField": "numeric",
+    "TextField": "alpha",
+    "TimeField": "time",
+    "UUIDField": "alpha",
+}
+
+
 class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer):
     """
     A serializer for providing metadata about models, including fields, actions, and permissions.
@@ -161,14 +195,23 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         Get the ordering fields for a model and their own metadata.
         """
         # Similar to actions, we'll need to have a canonical viewset to determine what fields are available
-        # todo: this is a placeholder
-        return [
-            {
-                "name": field,
-                "type": "boolean",  # vs alpha vs numeric
-            }
-            for field in ["order1", "order2"]
-        ]
+        viewset = self.canonical["viewset"]  # type: viewsets.VuedaViewSet
+        model = viewset.queryset.model
+        ordering_data = []
+
+        if hasattr(viewset, "ordering_fields"):
+            for field_name in viewset.ordering_fields:
+                deferred_field = getattr(model, field_name)
+                field = deferred_field.field
+                field_type = FIELD_TYPE_MAPPING.get(field.get_internal_type(), "alpha")
+                ordering_data.append(
+                    {
+                        "name": field_name,
+                        "type": field_type,
+                    }
+                )
+
+        return ordering_data
 
     def get_model_filtering(self, instance):
         """
