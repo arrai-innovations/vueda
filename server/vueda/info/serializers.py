@@ -1,5 +1,6 @@
 import inspect
 
+from django.contrib.admin.utils import get_fields_from_path
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.utils.functional import cached_property
@@ -201,8 +202,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
         if hasattr(viewset, "ordering_fields"):
             for field_name in viewset.ordering_fields:
-                deferred_field = getattr(model, field_name)
-                field = deferred_field.field
+                field = get_fields_from_path(model, field_name)[-1]
                 field_type = FIELD_TYPE_MAPPING.get(field.get_internal_type(), "alpha")
                 ordering_data.append(
                     {
@@ -225,8 +225,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         if hasattr(viewset, "filterset_class"):
             filterset = viewset.filterset_class
             for field_name in filterset.Meta.fields:
-                deferred_field = getattr(model, field_name)
-                field = deferred_field.field
+                field = get_fields_from_path(model, field_name)[-1]
                 field_type = FIELD_TYPE_MAPPING.get(field.get_internal_type(), "alpha")
                 filtering_data.append(
                     {
