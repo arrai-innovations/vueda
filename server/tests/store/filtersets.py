@@ -4,19 +4,16 @@ import tests.store.models as my_models
 from vueda.core.filters import VuedaFilterSet
 
 
-# product listings or search functionality
 class ProductFilterSet(VuedaFilterSet):
-    name_contains = rest_framework.CharFilter(field_name="name", lookup_expr="contains")
-    disabled_exact = rest_framework.BooleanFilter(field_name="disabled", lookup_expr="exact")
+    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr=["exact", "contains"])
 
     class Meta:
         model = my_models.Product
         fields = ["name", "disabled"]
 
 
-# significant distributors, filter based on their name
 class DistributorFilterSet(VuedaFilterSet):
-    name_contains = rest_framework.CharFilter(field_name="name", lookup_expr="contains")
+    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr=["exact", "contains"])
 
     class Meta:
         model = my_models.Distributor
@@ -24,10 +21,9 @@ class DistributorFilterSet(VuedaFilterSet):
 
 
 class ProductOptionFilterSet(VuedaFilterSet):
-    name_contains = rest_framework.CharFilter(field_name="name", lookup_expr="contains")
-    sku_contains = rest_framework.Filter(field_name="sku", lookup_expr="contains")
-    price = rest_framework.Filter(field_name="price", lookup_expr=["lte", "gte"])
-    disabled_exact = rest_framework.BooleanFilter(field_name="disabled", lookup_expr="exact")
+    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr=["exact", "contains"])
+    sku = rest_framework.CharFilter(field_name="sku", label="SKU", lookup_expr=["exact", "contains"])
+    price = rest_framework.NumericRangeFilter(field_name="price", label="Price", lookup_expr=[])
 
     class Meta:
         model = my_models.ProductOption
@@ -35,7 +31,7 @@ class ProductOptionFilterSet(VuedaFilterSet):
 
 
 class OrderItemFilterSet(VuedaFilterSet):
-    quantity = rest_framework.NumberFilter(field_name="quantity", lookup_expr=["lte", "gte", "exact"])
+    quantity = rest_framework.NumericRangeFilter(field_name="quantity", label="Quantity", lookup_expr=[])
 
     class Meta:
         model = my_models.ProductOption
@@ -45,13 +41,14 @@ class OrderItemFilterSet(VuedaFilterSet):
 
 
 class InventoryRecordFilterSet(VuedaFilterSet):
-    when_range = rest_framework.DateTimeFromToRangeFilter(field_name="when")
-    reason_exact = rest_framework.CharFilter(field_name="reason", lookup_expr="exact")
-    is_added_exact = rest_framework.BooleanFilter(field_name="is_added", lookup_expr="exact")
-    quantity = rest_framework.NumberFilter(field_name="quantity", lookup_expr=["lte", "gte", "exact"])
-    cost = rest_framework.NumberFilter(field_name="cost", lookup_expr=["lte", "gte", "exact"])
-    price = rest_framework.NumberFilter(field_name="price", lookup_expr=["lte", "gte", "exact"])
-    margin = rest_framework.NumberFilter(field_name="price", lookup_expr=["lte", "gte", "exact"])
+    when = rest_framework.DateTimeFromToRangeFilter(field_name="when", label="When", lookup_expr=[])
+    is_added_exact = rest_framework.BooleanFilter(
+        field_name="is_added", label="isAdded", lookup_expr="exact", required=True
+    )
+    quantity = rest_framework.NumericRangeFilter(field_name="quantity", label="Quantity", lookup_expr=[])
+    cost = rest_framework.NumericRangeFilter(field_name="cost", label="Cost", lookup_expr=[])
+    price = rest_framework.NumericRangeFilter(field_name="price", label="Price", lookup_expr=[])
+    margin = rest_framework.NumericRangeFilter(field_name="margin", label="Margin", lookup_expr=[])
 
     class Meta:
         model = my_models.InventoryRecord

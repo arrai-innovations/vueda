@@ -1224,7 +1224,24 @@ class TestModelInfoSerializer:
                 },
             ],
         )
-        self.check_model_filtering_data(response, [{"name": "name", "type": "alpha"}])
+        self.check_model_filtering_data(
+            response,
+            [
+                {
+                    "name": "name",
+                    "type": "alpha",
+                    "filters": [
+                        {
+                            "label": "Name",
+                            "lookup_exprs": [
+                                "exact",
+                                "contains",
+                            ],
+                        },
+                    ],
+                },
+            ],
+        )
         self.check_model_ordering_data(
             response,
             [
@@ -1279,7 +1296,12 @@ class TestModelInfoSerializer:
         self.check_model_actions_data(
             response,
             [
-                {"name": "list", "description": "list store.optiontype", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "list",
+                    "description": "list store.optiontype",
+                    "detail": False,
+                    "method_names": ["get"],
+                },
                 {
                     "name": "retrieve",
                     "description": "retrieve store.optiontype",
@@ -1404,7 +1426,12 @@ class TestModelInfoSerializer:
         self.check_model_actions_data(
             response,
             [
-                {"name": "list", "description": "list store.customer", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "list",
+                    "description": "list store.customer",
+                    "detail": False,
+                    "method_names": ["get"],
+                },
                 {
                     "name": "retrieve",
                     "description": "retrieve store.customer",
@@ -1452,7 +1479,14 @@ class TestModelInfoSerializer:
         self.check_model_expands_data(
             response,
             [
-                {"name": "user", "fields": ["id", "email", "name"]},
+                {
+                    "name": "user",
+                    "fields": [
+                        "id",
+                        "email",
+                        "name",
+                    ],
+                },
             ],
         )
         self.check_model_fields_data(
@@ -1484,7 +1518,9 @@ class TestModelInfoSerializer:
         self.check_model_filtering_data(response, [])
         self.check_model_ordering_data(
             response,
-            [{"name": "user__email", "type": "alpha"}],
+            [
+                {"name": "user__email", "type": "alpha"},
+            ],
         )
         self.check_model_permissions_data(
             response,
@@ -1534,7 +1570,12 @@ class TestModelInfoSerializer:
         self.check_model_actions_data(
             response,
             [
-                {"name": "list", "description": "list store.cart", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "list",
+                    "description": "list store.cart",
+                    "detail": False,
+                    "method_names": ["get"],
+                },
                 {
                     "name": "retrieve",
                     "description": "retrieve store.cart",
@@ -1588,7 +1629,13 @@ class TestModelInfoSerializer:
         self.check_model_expands_data(
             response,
             [
-                {"name": "customer", "fields": ["id", "user"]},
+                {
+                    "name": "customer",
+                    "fields": [
+                        "id",
+                        "user",
+                    ],
+                },
                 {
                     "name": "cart_items",
                     "fields": [
@@ -1618,7 +1665,10 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {"test_customer_1@example.com", "test_customer_2@example.com"},
+                    "choices": {
+                        "test_customer_1@example.com",
+                        "test_customer_2@example.com",
+                    },
                 },
                 {
                     "name": "last_modified",
@@ -1641,7 +1691,10 @@ class TestModelInfoSerializer:
         self.check_model_filtering_data(response, [])
         self.check_model_ordering_data(
             response,
-            [{"name": "customer__user__email", "type": "alpha"}, {"name": "last_modified", "type": "datetime"}],
+            [
+                {"name": "customer__user__email", "type": "alpha"},
+                {"name": "last_modified", "type": "datetime"},
+            ],
         )
         self.check_model_permissions_data(
             response,
@@ -1691,7 +1744,12 @@ class TestModelInfoSerializer:
         self.check_model_actions_data(
             response,
             [
-                {"name": "list", "description": "list store.customerorder", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "list",
+                    "description": "list store.customerorder",
+                    "detail": False,
+                    "method_names": ["get"],
+                },
                 {
                     "name": "retrieve",
                     "description": "retrieve store.customerorder",
@@ -1739,8 +1797,21 @@ class TestModelInfoSerializer:
         self.check_model_expands_data(
             response,
             [
-                {"name": "customer", "fields": ["id", "user"]},
-                {"name": "order_state", "fields": ["id", "code", "name"]},
+                {
+                    "name": "customer",
+                    "fields": [
+                        "id",
+                        "user",
+                    ],
+                },
+                {
+                    "name": "order_state",
+                    "fields": [
+                        "id",
+                        "code",
+                        "name",
+                    ],
+                },
             ],
         )
         self.check_model_fields_data(
@@ -1778,7 +1849,10 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {"test_customer_1@example.com", "test_customer_2@example.com"},
+                    "choices": {
+                        "test_customer_1@example.com",
+                        "test_customer_2@example.com",
+                    },
                 },
                 {
                     "name": "order_state",
@@ -1992,7 +2066,12 @@ class TestModelInfoSerializer:
         self.check_model_actions_data(
             response,
             [
-                {"name": "list", "description": "list store.product", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "list",
+                    "description": "list store.product",
+                    "detail": False,
+                    "method_names": ["get"],
+                },
                 {
                     "name": "retrieve",
                     "description": "retrieve store.product",
@@ -2040,7 +2119,13 @@ class TestModelInfoSerializer:
         self.check_model_expands_data(
             response,
             [
-                {"name": "distributor", "fields": ["id", "name"]},
+                {
+                    "name": "distributor",
+                    "fields": [
+                        "id",
+                        "name",
+                    ],
+                },
             ],
         )
         self.check_model_fields_data(
@@ -2089,8 +2174,30 @@ class TestModelInfoSerializer:
         self.check_model_filtering_data(
             response,
             [
-                {"name": "name", "type": "alpha"},
-                {"name": "disabled", "type": "boolean"},
+                {
+                    "name": "name",
+                    "type": "alpha",
+                    "filters": [
+                        {
+                            "label": "Name",
+                            "lookup_exprs": [
+                                "exact",
+                                "contains",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "disabled",
+                    "type": "boolean",
+                    "filters": [
+                        {
+                            "lookup_exprs": [
+                                "exact",
+                            ],
+                        },
+                    ],
+                },
             ],
         )
         self.check_model_ordering_data(
@@ -2149,7 +2256,12 @@ class TestModelInfoSerializer:
         self.check_model_actions_data(
             response,
             [
-                {"name": "list", "description": "list store.productoption", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "list",
+                    "description": "list store.productoption",
+                    "detail": False,
+                    "method_names": ["get"],
+                },
                 {
                     "name": "retrieve",
                     "description": "retrieve store.productoption",
@@ -2197,10 +2309,22 @@ class TestModelInfoSerializer:
         self.check_model_expands_data(
             response,
             [
-                {"name": "option_type", "fields": ["id", "code", "name"]},
+                {
+                    "name": "option_type",
+                    "fields": [
+                        "id",
+                        "code",
+                        "name",
+                    ],
+                },
                 {
                     "name": "product",
-                    "fields": ["id", "distributor", "name", "disabled"],
+                    "fields": [
+                        "id",
+                        "distributor",
+                        "name",
+                        "disabled",
+                    ],
                 },
             ],
         )
@@ -2294,10 +2418,55 @@ class TestModelInfoSerializer:
         self.check_model_filtering_data(
             response,
             [
-                {"name": "name", "type": "alpha"},
-                {"name": "sku", "type": "alpha"},
-                {"name": "price", "type": "numeric"},
-                {"name": "disabled", "type": "boolean"},
+                {
+                    "name": "name",
+                    "type": "alpha",
+                    "filters": [
+                        {
+                            "label": "Name",
+                            "lookup_exprs": [
+                                "exact",
+                                "contains",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "sku",
+                    "type": "alpha",
+                    "filters": [
+                        {
+                            "label": "SKU",
+                            "lookup_exprs": [
+                                "exact",
+                                "contains",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "price",
+                    "type": "numeric",
+                    "filters": [
+                        {
+                            "label": "Price",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "disabled",
+                    "type": "boolean",
+                    "filters": [
+                        {
+                            "lookup_exprs": [
+                                "exact",
+                            ],
+                        },
+                    ],
+                },
             ],
         )
         self.check_model_ordering_data(
@@ -2358,7 +2527,12 @@ class TestModelInfoSerializer:
         self.check_model_actions_data(
             response,
             [
-                {"name": "list", "description": "list store.orderitem", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "list",
+                    "description": "list store.orderitem",
+                    "detail": False,
+                    "method_names": ["get"],
+                },
                 {
                     "name": "retrieve",
                     "description": "retrieve store.orderitem",
@@ -2401,11 +2575,26 @@ class TestModelInfoSerializer:
             [
                 {
                     "name": "customer_order",
-                    "fields": ["id", "order_number", "when", "customer", "order_state"],
+                    "fields": [
+                        "id",
+                        "order_number",
+                        "when",
+                        "customer",
+                        "order_state",
+                    ],
                 },
                 {
                     "name": "product_option",
-                    "fields": ["id", "product", "option_type", "name", "sku", "gtin", "price", "disabled"],
+                    "fields": [
+                        "id",
+                        "product",
+                        "option_type",
+                        "name",
+                        "sku",
+                        "gtin",
+                        "price",
+                        "disabled",
+                    ],
                 },
             ],
         )
@@ -2427,7 +2616,13 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {"1001", "1002", "1003", "1004", "1005"},
+                    "choices": {
+                        "1001",
+                        "1002",
+                        "1003",
+                        "1004",
+                        "1005",
+                    },
                 },
                 {
                     "name": "product_option",
@@ -2464,7 +2659,18 @@ class TestModelInfoSerializer:
         self.check_model_filtering_data(
             response,
             [
-                {"name": "quantity", "type": "numeric"},
+                {
+                    "name": "quantity",
+                    "type": "numeric",
+                    "filters": [
+                        {
+                            "label": "Quantity",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
             ],
         )
         self.check_model_ordering_data(
@@ -2524,7 +2730,12 @@ class TestModelInfoSerializer:
         self.check_model_actions_data(
             response,
             [
-                {"name": "list", "description": "list store.inventoryrecord", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "list",
+                    "description": "list store.inventoryrecord",
+                    "detail": False,
+                    "method_names": ["get"],
+                },
                 {
                     "name": "retrieve",
                     "description": "retrieve store.inventoryrecord",
@@ -2567,9 +2778,26 @@ class TestModelInfoSerializer:
             [
                 {
                     "name": "product_option",
-                    "fields": ["id", "product", "option_type", "name", "sku", "gtin", "price", "disabled"],
+                    "fields": [
+                        "id",
+                        "product",
+                        "option_type",
+                        "name",
+                        "sku",
+                        "gtin",
+                        "price",
+                        "disabled",
+                    ],
                 },
-                {"name": "reason", "fields": ["id", "name", "code", "is_added_reason"]},
+                {
+                    "name": "reason",
+                    "fields": [
+                        "id",
+                        "name",
+                        "code",
+                        "is_added_reason",
+                    ],
+                },
                 {
                     "name": "added_inventory_record",
                     "fields": [
@@ -2589,7 +2817,12 @@ class TestModelInfoSerializer:
                 },
                 {
                     "name": "order_item",
-                    "fields": ["id", "order", "product_option", "quantity"],
+                    "fields": [
+                        "id",
+                        "order",
+                        "product_option",
+                        "quantity",
+                    ],
                 },
             ],
         )
@@ -2789,13 +3022,95 @@ class TestModelInfoSerializer:
         self.check_model_filtering_data(
             response,
             [
-                {"name": "when", "type": "datetime"},
-                {"name": "reason", "type": "alpha"},
-                {"name": "is_added", "type": "boolean"},
-                {"name": "quantity", "type": "numeric"},
-                {"name": "cost", "type": "numeric"},
-                {"name": "price", "type": "numeric"},
-                {"name": "margin", "type": "numeric"},
+                {
+                    "name": "when",
+                    "type": "datetime",
+                    "filters": [
+                        {
+                            "label": "When",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "reason",
+                    "type": "alpha",
+                    "filters": [
+                        {
+                            "lookup_exprs": [
+                                "exact",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "is_added",
+                    "type": "boolean",
+                    "filters": [
+                        {
+                            "lookup_exprs": [
+                                "exact",
+                            ],
+                        },
+                        {
+                            "label": "isAdded",
+                            "lookup_exprs": [
+                                "exact",
+                            ],
+                            "required": True,
+                        },
+                    ],
+                },
+                {
+                    "name": "quantity",
+                    "type": "numeric",
+                    "filters": [
+                        {
+                            "label": "Quantity",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "cost",
+                    "type": "numeric",
+                    "filters": [
+                        {
+                            "label": "Cost",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "price",
+                    "type": "numeric",
+                    "filters": [
+                        {
+                            "label": "Price",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "margin",
+                    "type": "numeric",
+                    "filters": [
+                        {
+                            "label": "Margin",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
             ],
         )
         self.check_model_ordering_data(
@@ -2853,7 +3168,12 @@ class TestModelInfoSerializer:
         self.check_model_actions_data(
             response,
             [
-                {"name": "list", "description": "list store.cartitem", "detail": False, "method_names": ["get"]},
+                {
+                    "name": "list",
+                    "description": "list store.cartitem",
+                    "detail": False,
+                    "method_names": ["get"],
+                },
                 {
                     "name": "retrieve",
                     "description": "retrieve store.cartitem",
@@ -2894,10 +3214,25 @@ class TestModelInfoSerializer:
         self.check_model_expands_data(
             response,
             [
-                {"name": "cart", "fields": ["id", "customer"]},
+                {
+                    "name": "cart",
+                    "fields": [
+                        "id",
+                        "customer",
+                    ],
+                },
                 {
                     "name": "product_option",
-                    "fields": ["id", "product", "option_type", "name", "sku", "gtin", "price", "disabled"],
+                    "fields": [
+                        "id",
+                        "product",
+                        "option_type",
+                        "name",
+                        "sku",
+                        "gtin",
+                        "price",
+                        "disabled",
+                    ],
                 },
             ],
         )
@@ -2958,7 +3293,10 @@ class TestModelInfoSerializer:
         self.check_model_filtering_data(response, [])
         self.check_model_ordering_data(
             response,
-            [{"name": "product_option__name", "type": "alpha"}, {"name": "quantity", "type": "numeric"}],
+            [
+                {"name": "product_option__name", "type": "alpha"},
+                {"name": "quantity", "type": "numeric"},
+            ],
         )
         self.check_model_permissions_data(
             response,
