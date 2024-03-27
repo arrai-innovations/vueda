@@ -242,8 +242,8 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                                 lookup_exprs.extend(available_filter.lookup_expr)
                             else:
                                 lookup_exprs.append(available_filter.lookup_expr)
-                        if issubclass(available_filter.__class__, django_filters.RangeFilter) or issubclass(
-                            available_filter.__class__, django_filters.NumericRangeFilter
+                        if isinstance(available_filter, django_filters.RangeFilter) or isinstance(
+                            available_filter, django_filters.NumericRangeFilter
                         ):
                             lookup_exprs.append("range")  # Can have a start, stop, or start and stop value.
                         if lookup_exprs:
