@@ -3,7 +3,7 @@ import sys
 from signal import SIGINT
 from traceback import format_exception_only
 
-from .update import update_for_main
+from vueda.update import update_for_main
 
 
 def version(args):
