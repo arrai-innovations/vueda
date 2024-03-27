@@ -108,23 +108,35 @@ TransitionSource
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("store", "0004_create_order_fulfillment_workflow"),
+        ("store", "0004_make_sure_content_types_exist"),
+        ("workflow", "0001_initial"),
     ]
 
     operations = [
         migrations.RunSQL(
             sql="""
-            SELECT
-                'Order Fulfillment' AS name,
-                'order_fulfillment' AS code,
-                content_type_id
-            INTO
+            INSERT INTO
                 workflow_workflow
-            FROM
-                django_content_type
-            WHERE
-                app_label = 'store' AND
-                model = 'customerorder';""",
+            (
+                name,
+                code,
+                content_type_id
+            )
+            VALUES
+            (
+                'Order Fulfillment',
+                'order_fulfillment',
+                (
+                    SELECT
+                        id
+                    FROM
+                        django_content_type
+                    WHERE
+                        app_label = 'store' AND
+                        model = 'customerorder'
+                )
+            )
+            ;""",
             reverse_sql="DELETE FROM workflow_workflow WHERE code = 'order_fulfillment';",
         ),
         migrations.RunSQL(
