@@ -222,7 +222,7 @@ class BaseTestListModelViewSet:
 
     @pytest.fixture
     def list_querystring(self):
-        return {"ps": 100}  # ps is required, or code blows up in rest framework.pagination.get_page_size.
+        return {}
 
     # page_data is needed for object creation, even though it isn't used directly in test_list.
     def test_list(self, page_data, authenticated_client, list_querystring):
