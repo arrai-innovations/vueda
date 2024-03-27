@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 from django.http import QueryDict
 
 
@@ -33,3 +35,15 @@ class FakeView:
         if callable(self.queryset):
             return self.queryset()
         return self.queryset
+
+
+# Because rest framework loads settings on class import there's no way to
+# override through 'settings', but we will do it regardless, to be thorough.
+@contextmanager
+def adjust_page_size(settings, value):
+    orig_value = settings.REST_FRAMEWORK["PAGE_SIZE"]
+    settings.REST_FRAMEWORK["PAGE_SIZE"] = value
+    try:
+        yield
+    finally:
+        settings.REST_FRAMEWORK["PAGE_SIZE"] = orig_value

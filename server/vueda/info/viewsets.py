@@ -3,6 +3,7 @@ from rest_framework import generics
 from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 
+from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import FlexFieldsMixin
 from vueda.info.registration import get_registered_content_types
 from vueda.info.serializers import ModelInfoSerializer
@@ -10,7 +11,7 @@ from vueda.info.serializers import ModelInfoSerializer
 
 class ModelInfoViewSet(FlexFieldsMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
     """
-    This viewsets is for providing metadata about models, including fields, actions, and permissions
+    This viewset is for providing metadata about models, including fields, actions, and permissions
     to front-end clients. This is a read-only viewset.
 
     You should be able to list all models, and get information about a specific model.
@@ -24,16 +25,16 @@ class ModelInfoViewSet(FlexFieldsMixin, mixins.ListModelMixin, mixins.RetrieveMo
     """
 
     object = None  # type: ContentType
-
+    queryset = ContentType.objects.all()
     serializer_class = ModelInfoSerializer
+    permission_classes = [ObjectPermissions]
 
     def get_queryset(self):
         return ContentType.objects.all().filter(pk__in=get_registered_content_types())
 
-    def dispatch(self, request, *args, **kwargs):
-        self.object = self.get_object(kwargs["app_label"], kwargs["model"])
-        return super().dispatch(request, *args, **kwargs)
-
-    # noinspection PyMethodOverriding
-    def get_object(self, app_label, model):
-        return generics.get_object_or_404(ContentType, app_label=app_label, model=model.replace("_", ""))
+    def get_object(self):
+        obj = generics.get_object_or_404(
+            ContentType, app_label=self.kwargs["app_label"], model=self.kwargs["model"].replace("_", "")
+        )
+        self.check_object_permissions(self.request, obj)
+        return obj

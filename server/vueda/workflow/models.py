@@ -199,43 +199,10 @@ class TransitionSource(models.Model):
         return f"transition: {self.transition}, source:{self.source}"
 
 
-class ObjectState(SimpleHistoryModelMixin):
-    """
-    A workflow object is a row in the database that represents an object that has a workflow and a state.
-    """
-
-    workflow = models.ForeignKey(
-        "Workflow",
-        on_delete=models.PROTECT,
-    )
-    object_id = models.PositiveIntegerField()
-    state = models.ForeignKey(
-        "State",
-        on_delete=models.PROTECT,
-    )
-    object_state_proxy = GenericRelation(
-        "ObjectStateProxy",
-        content_type_field="content_type",
-        object_id_field="object_id",
-    )
-
-    class Meta:
-        default_related_name = "object_states"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["workflow", "object_id"],
-                name="unique_object_state",
-            )
-        ]
-
-    def __str__(self):
-        return f"workflow: {self.workflow}, object:{self.object_id}, state:{self.state}"
-
-
 class ObjectStateProxy(models.Model):
     """
     A view that adds workflow's content type as a calculated field on object state.
-     Used for HasWorkflowMixin.object_states GenericRelation (reverse GenericForeignKey).
+    Used for HasWorkflowMixin.object_states GenericRelation (reverse GenericForeignKey).
     """
 
     workflow = models.ForeignKey(
@@ -267,6 +234,39 @@ class ObjectStateProxy(models.Model):
         return f"workflow: {self.workflow}, object:{self.object}, state:{self.state}"
 
 
+class ObjectState(SimpleHistoryModelMixin):
+    """
+    A workflow object is a row in the database that represents an object that has a workflow and a state.
+    """
+
+    workflow = models.ForeignKey(
+        "Workflow",
+        on_delete=models.PROTECT,
+    )
+    object_id = models.PositiveIntegerField()
+    state = models.ForeignKey(
+        "State",
+        on_delete=models.PROTECT,
+    )
+    object_state_proxy = GenericRelation(
+        ObjectStateProxy,
+        content_type_field="content_type",
+        object_id_field="object_id",
+    )
+
+    class Meta:
+        default_related_name = "object_states"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["workflow", "object_id"],
+                name="unique_object_state",
+            )
+        ]
+
+    def __str__(self):
+        return f"workflow: {self.workflow}, object:{self.object_id}, state:{self.state}"
+
+
 class HasWorkflowModelMixin(models.Model):
     """
     Model-level utility methods for objects with workflow.
@@ -274,7 +274,7 @@ class HasWorkflowModelMixin(models.Model):
 
     # there is no generic one to one, so this is plural despite the fact that there is only one
     object_states_proxy = GenericRelation(
-        "workflows.ObjectStateProxy",
+        ObjectStateProxy,
         content_type_field="content_type_id",
         object_id_field="object_id",
     )
