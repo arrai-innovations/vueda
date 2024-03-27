@@ -69,6 +69,7 @@ extended in your application, ensuring both control and adaptability.
     ```console
     (MyVuedaServer)[you@your MyVuedaServer]$ pipenv install
     ```
+6. Install the os python test package. For python 3.11 it is called `python3.11-test`.
 
 ### Setup
 
