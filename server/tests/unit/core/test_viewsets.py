@@ -65,7 +65,7 @@ class TestProductViewSet(BaseTestModelViewSet):
     @pytest.fixture
     def list_querystring(self, page_data):
         ids = tuple(page_data.filter(name__in=("Apple", "Banana", "Mango")).values_list("pk", flat=True))
-        return {"id": ids, "ps": 100}
+        return {"id": ids}
 
     @pytest.fixture
     def update_arguments(self, page_data):
