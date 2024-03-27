@@ -107,7 +107,6 @@ TransitionSource
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("store", "0004_create_order_fulfillment_workflow"),
     ]
@@ -118,14 +117,79 @@ class Migration(migrations.Migration):
             SELECT
                 'Order Fulfillment' AS name,
                 'order_fulfillment' AS code,
-                content_type
+                content_type_id
             INTO
-                workflows_workflow
+                workflow_workflow
             FROM
                 django_content_type
             WHERE
                 app_label = 'store' AND
                 model = 'customerorder';""",
-            reverse_sql="DELETE FROM workflows_workflow WHERE code = 'order_fulfillment';",
+            reverse_sql="DELETE FROM workflow_workflow WHERE code = 'order_fulfillment';",
+        ),
+        migrations.RunSQL(
+            sql="""
+                SELECT
+                    'fulfill_orders' AS permission,
+                INTO
+                    workflow_workflowpermission
+                FROM
+                    workflow_workflow
+                WHERE
+                   code = 'order_fulfillment';""",
+            reverse_sql="DELETE FROM workflow_workflowpermission WHERE permission = 'fulfill_orders';",
+        ),
+        migrations.RunSQL(
+            sql="""
+                SELECT
+                    'New', 'Packed', 'Returned', 'Shipped', 'On Hold', 'Cancelled' AS name,
+                    'new', 'packed', 'returned', 'shipped', 'on_hold', 'cancelled' AS code,
+                INTO
+                    workflow_state
+                FROM
+                    workflow_workflow
+                WHERE
+                    code = 'order_fulfillment';""",
+            reverse_sql="DELETE FROM workflow_state WHERE code IN ('new', 'packed', 'returned', 'shipped', 'on_hold', 'cancelled');",
+        ),
+        migrations.RunSQL(
+            sql="""
+                   SELECT
+                       'Cancel Order', 'Hold Order', 'Pack Order', 'Return Order', 'Ship Order' AS name,
+                       'cancel_order', 'hold_order', 'pack_order', 'return_order', 'ship_order' AS code,
+                       'cancelled', 'on_hold', 'packed', 'packed', 'returned', 'shipped' AS target,
+                   INTO
+                       workflow_transition
+                   FROM
+                       workflow_workflow
+                   WHERE
+                       code = 'order_fulfillment';""",
+            reverse_sql="DELETE FROM workflow_transition WHERE code IN ('cancel_order', 'hold_order', 'pack_order', 'return_order', 'ship_order');",
+        ),
+        migrations.RunSQL(
+            sql="""
+                   SELECT
+                       'cancel_order', 'hold_order', 'pack_order', 'ship_order' AS transition,
+                       'fulfill_orders', 'fulfill_orders', 'fulfill_orders', 'fulfill_orders' AS permission,
+                   INTO
+                       workflow_transitionpermission
+                   FROM
+                       workflow_transition
+                   WHERE
+                       code in ('cancel_order', 'hold_order', 'pack_order', 'return_order', 'ship_order' );""",
+            reverse_sql="DELETE FROM workflow_transitionpermission WHERE transition IN ('cancel_order', 'hold_order', 'pack_order', 'ship_order');",
+        ),
+        migrations.RunSQL(
+            sql="""
+                   SELECT
+                       'new', 'new', 'new', 'packed', 'shipped' AS source,
+                       'cancel_order', 'hold_order', 'pack_order', 'ship_order', 'return_order' AS transition,
+                   INTO
+                       workflow_transitionsource
+                   FROM
+                       workflow_transition
+                   WHERE
+                      code in ('cancel_order', 'hold_order', 'pack_order', 'return_order', 'ship_order' );""",
+            reverse_sql="DELETE FROM workflow_transitionsource WHERE transition IN ('cancel_order', 'hold_order', 'pack_order', 'ship_order', 'return_order');",
         ),
     ]
