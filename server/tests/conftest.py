@@ -108,7 +108,7 @@ class BaseTestAssertResponseMixin:
                 print(
                     f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response.data}"
                 )
-        assert response.status_code == expected_status_code, response.data
+        assert response.status_code == expected_status_code, str(response.data)
 
 
 class BaseTestGroupMixin:
