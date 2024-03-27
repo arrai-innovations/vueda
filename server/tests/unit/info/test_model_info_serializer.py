@@ -1935,6 +1935,7 @@ class TestModelInfoSerializer:
                 {"name": "order_state", "type": "alpha"},
             ],
         )
+
         self.check_model_permissions_data(
             response,
             [
@@ -1943,6 +1944,7 @@ class TestModelInfoSerializer:
                 {"codename": "list_customerorder", "name": "Can list customer order"},
                 {"codename": "read_customerorder", "name": "Can read customer order"},
                 {"codename": "update_customerorder", "name": "Can update customer order"},
+                {"codename": "fulfill_orders", "name": "Can Fulfill Orders"},
             ],
         )
 
