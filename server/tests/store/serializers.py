@@ -2,21 +2,20 @@
 
 from rest_framework import serializers
 
+from tests.store.models import Cart
+from tests.store.models import CartItem
+from tests.store.models import Customer
+from tests.store.models import CustomerOrder
+from tests.store.models import Distributor
+from tests.store.models import InventoryRecord
+from tests.store.models import InventoryRecordReason
+from tests.store.models import OptionType
+from tests.store.models import OrderItem
+from tests.store.models import OrderState
+from tests.store.models import Product
+from tests.store.models import ProductOption
 from vueda.core.serializers import VuedaSerializerMixin
 from vueda.user.serializers import UserSerializer
-
-from .models import Cart
-from .models import CartItem
-from .models import Customer
-from .models import CustomerOrder
-from .models import Distributor
-from .models import InventoryRecord
-from .models import InventoryRecordReason
-from .models import OptionType
-from .models import OrderItem
-from .models import OrderState
-from .models import Product
-from .models import ProductOption
 
 
 class CustomerSerializer(VuedaSerializerMixin):
