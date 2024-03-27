@@ -1201,7 +1201,20 @@ class TestModelInfoSerializer:
                 },
             ],
         )
-        self.check_model_expands_data(response, [])
+        self.check_model_expands_data(
+            response,
+            [
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
+                },
+            ],
+        )
         self.check_model_fields_data(
             response,
             [
@@ -1221,6 +1234,14 @@ class TestModelInfoSerializer:
                     "read_only": False,
                     "required": True,
                     "max_length": 255,
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
                 },
             ],
         )
@@ -1487,6 +1508,15 @@ class TestModelInfoSerializer:
                         "name",
                     ],
                 },
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
+                },
             ],
         )
         self.check_model_fields_data(
@@ -1512,6 +1542,14 @@ class TestModelInfoSerializer:
                         "test_customer_1@example.com",
                         "test_customer_2@example.com",
                     },
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
                 },
             ],
         )
@@ -1812,6 +1850,15 @@ class TestModelInfoSerializer:
                         "name",
                     ],
                 },
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
+                },
             ],
         )
         self.check_model_fields_data(
@@ -1867,6 +1914,14 @@ class TestModelInfoSerializer:
                         "Returned",
                         "Shipped",
                     },
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
                 },
             ],
         )
@@ -2126,6 +2181,15 @@ class TestModelInfoSerializer:
                         "name",
                     ],
                 },
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
+                },
             ],
         )
         self.check_model_fields_data(
@@ -2168,6 +2232,14 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
                 },
             ],
         )
@@ -2326,6 +2398,15 @@ class TestModelInfoSerializer:
                         "disabled",
                     ],
                 },
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
+                },
             ],
         )
         self.check_model_fields_data(
@@ -2412,6 +2493,14 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
                 },
             ],
         )

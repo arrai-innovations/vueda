@@ -90,11 +90,14 @@ class ExcludeFieldsSerializerMixin:
         return kwargs
 
 
-class VuedaSerializerMixin(
+class VuedaSerializer(
     NoExtraFieldsSerializerMixin,
     FlexFieldsWriteableNestedSerializerMixin,
     flex_serializers.FlexFieldsSerializerMixin,
-    SimpleHistorySerializerMixin,
     serializers.ModelSerializer,
 ):
+    pass
+
+
+class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):
     pass

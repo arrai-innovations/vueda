@@ -5,27 +5,26 @@ from tests.models import Product
 from tests.models import Timesheet
 from tests.models import TimesheetEntry
 from vueda.core.serializers import ExcludeFieldsSerializerMixin
-from vueda.core.serializers import VuedaSerializerMixin
-from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
+from vueda.core.serializers import VuedaHistorySerializer
 
 
-class EmployeeSerializer(VuedaSerializerMixin):
+class EmployeeSerializer(VuedaHistorySerializer):
 
-    class Meta:
+    class Meta(VuedaHistorySerializer.Meta):
         model = Employee
-        fields = ["id", "user", "employee_number"] + SimpleHistorySerializerMixin.Meta.fields
+        fields = ["id", "user", "employee_number"] + VuedaHistorySerializer.Meta.fields
 
 
-class TimesheetEntrySerializer(VuedaSerializerMixin):
+class TimesheetEntrySerializer(VuedaHistorySerializer):
     class Meta:
         model = TimesheetEntry
-        fields = ["id", "timesheet", "date", "hours"] + SimpleHistorySerializerMixin.Meta.fields
+        fields = ["id", "timesheet", "date", "hours"] + VuedaHistorySerializer.Meta.fields
 
 
-class TimesheetSerializer(VuedaSerializerMixin):
+class TimesheetSerializer(VuedaHistorySerializer):
     class Meta:
         model = Timesheet
-        fields = ["id", "period_start", "period_end", "employee"] + SimpleHistorySerializerMixin.Meta.fields
+        fields = ["id", "period_start", "period_end", "employee"] + VuedaHistorySerializer.Meta.fields
 
         expandable_fields = {
             "timesheet_entry": (TimesheetEntrySerializer, {"many": True}),
@@ -40,8 +39,8 @@ class TimesheetSerializer(VuedaSerializerMixin):
         return "bar"
 
 
-class TimesheetSerializerExclude(ExcludeFieldsSerializerMixin, VuedaSerializerMixin):
-    class Meta:
+class TimesheetSerializerExclude(ExcludeFieldsSerializerMixin, VuedaHistorySerializer):
+    class Meta(VuedaHistorySerializer.Meta):
         model = Timesheet
         fields = [
             "id",
@@ -49,14 +48,14 @@ class TimesheetSerializerExclude(ExcludeFieldsSerializerMixin, VuedaSerializerMi
             "period_end",
             "employee",
             "supervisor",
-        ] + SimpleHistorySerializerMixin.Meta.fields
+        ] + VuedaHistorySerializer.Meta.fields
         exclude_update_fields = ["employee"]
         exclude_create_fields = ["supervisor"]
 
 
-class ProductSerializer(VuedaSerializerMixin):
+class ProductSerializer(VuedaHistorySerializer):
     buzz_words = serializers.ListField(child=serializers.CharField())
 
-    class Meta:
+    class Meta(VuedaHistorySerializer.Meta):
         model = Product
-        fields = ["id", "name", "available_for_sale", "buzz_words"] + SimpleHistorySerializerMixin.Meta.fields
+        fields = ["id", "name", "available_for_sale", "buzz_words"] + VuedaHistorySerializer.Meta.fields
