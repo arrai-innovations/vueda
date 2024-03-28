@@ -35,9 +35,9 @@ SECRET_KEY = "test_secret_key"
 # Settings needed to see the permissions and workflows views.
 # Permissions have been removed from the view, since we don't have a way to login yet.
 DEBUG = True
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", [])
 SITE_ID = 1
-STATIC_ROOT = env("STATIC_ROOT")
+STATIC_ROOT = env("STATIC_ROOT", "")
 STATIC_URL = "static/"
 TEMPLATES = [
     {
