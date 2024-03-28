@@ -1,4 +1,4 @@
-from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.contrib.auth.mixins import PermissionRequiredMixin  # noqa: F401
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
 from django.views.generic import TemplateView
@@ -40,12 +40,13 @@ class HasWorkflowViewMixin:
 HasWorkflowViewSetMixin = HasWorkflowViewMixin
 
 
-class WorkflowOverviewView(PermissionRequiredMixin, TemplateView):
+# PermissionRequiredMixin
+class WorkflowOverviewView(TemplateView):
     """
     Provide an overview of workflows, showing states and transitions for each content type, grouped by app.
     """
 
-    template_name = "workflows.jinja2"
+    template_name = "workflow/overview.html"
 
     permission_required = ("workflow.read_workflow",)
 
