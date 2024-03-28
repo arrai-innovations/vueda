@@ -52,7 +52,8 @@ class WorkflowOverviewView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        workflows = (
+        context["workflows"] = []
+        for workflow in (
             Workflow.objects.all()
             .select_related("content_type", "initial_state")
             .prefetch_related(
@@ -64,23 +65,48 @@ class WorkflowOverviewView(TemplateView):
                 "transitions__transition_sources",
                 "workflow_permissions",
             )
-        )
-        # organize workflows by app
-        context["apps"] = {}
-        for workflow in workflows:
-            app_label = workflow.content_type.app_label
-            model_cls = workflow.content_type.model_class()
-            if app_label not in context["apps"]:
-                context["apps"][app_label] = {}
-            context["apps"][app_label][model_cls] = workflow
-        # we want to warn about model classes that have workflow, but do not inherit from HasWorkflowMixin.
-        context["models_without_workflow_row"] = []
-        for workflow in workflows:
-            model = workflow.content_type.model_class()
-            if not issubclass(model, HasWorkflowModelMixin):
-                context["models_without_workflow_row"].append(
-                    (workflow.content_type.app_label, workflow.content_type.model, model.__name__)
-                )
+        ):
+            workflow = {
+                "pk": workflow.pk,
+                "content_type_id": workflow.content_type.pk,
+                "app_label": workflow.content_type.app_label,
+                "model": workflow.content_type.model,
+                "has_mixin": issubclass(workflow.content_type.model_class(), HasWorkflowModelMixin),
+            }
+            states = []
+
+            """
+            # State
+            workflow
+            # InitialState
+            workflow
+            state
+
+            # Transition
+            workflow
+            target
+            # TransitionPermission
+            transition
+            permission
+            # TransitionSource
+            transition
+            source
+
+            # WorkflowPermission
+            workflow
+            permission
+
+            # StatePermission
+            state
+            permission
+            group
+            grant_or_deny
+            """
+
+            workflow["states"] = states
+
+            context["workflows"].append(workflow)
+
         # we also want to warn about model classes that inherit from HasWorkflowMixin, but do not have a workflow.
         context["models_without_workflow_mixin"] = []
         for model in HasWorkflowModelMixin.__subclasses__():
