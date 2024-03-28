@@ -183,14 +183,16 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         """
         # Similar to actions, we'll need to have a canonical serializer to determine what expands are available
         serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
+        expands_data = []
 
         if hasattr(serializer.Meta, "expandable_fields"):
-            return [
-                {"name": expand, "fields": expand_data[1]["fields"]}
-                for expand, expand_data in serializer.Meta.expandable_fields.items()
-            ]
+            for field_name, (_field, expand_options) in serializer.Meta.expandable_fields.items():
+                expand_item = {"name": field_name}
+                if "fields" in expand_options:
+                    expand_item["fields"] = expand_options["fields"]
+                expands_data.append(expand_item)
 
-        return []
+        return expands_data
 
     def get_model_ordering(self, instance):
         """

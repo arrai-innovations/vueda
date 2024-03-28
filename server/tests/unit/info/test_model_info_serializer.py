@@ -1033,9 +1033,9 @@ class TestModelInfoSerializer:
             assert "name" in model_action, "name field is missing in model_actions object"
             for expected_model_action in expected_data:
                 if model_action["name"] == expected_model_action["name"]:
-                    assert set(model_action.keys()) == set(expected_model_action.keys()), model_action
+                    assert set(model_action.keys()) == set(expected_model_action.keys()), str(model_action)
                     for key in model_action.keys():
-                        assert model_action[key] == expected_model_action[key], model_action
+                        assert model_action[key] == expected_model_action[key], str(model_action)
 
     def check_model_expands_data(self, response_data, expected_data):
         data = response_data.data["model_expands"]
@@ -1044,9 +1044,9 @@ class TestModelInfoSerializer:
             assert "name" in model_expand, "name field is missing in model_expands object"
             for expected_model_expand in expected_data:
                 if model_expand["name"] == expected_model_expand["name"]:
-                    assert set(model_expand.keys()) == set(expected_model_expand.keys()), model_expand
+                    assert set(model_expand.keys()) == set(expected_model_expand.keys()), str(model_expand)
                     for key in model_expand.keys():
-                        assert model_expand[key] == expected_model_expand[key], model_expand
+                        assert model_expand[key] == expected_model_expand[key], str(model_expand)
 
     def check_model_fields_data(self, response_data, expected_data):
         data = response_data.data["model_fields"]
@@ -1055,7 +1055,7 @@ class TestModelInfoSerializer:
             assert "name" in model_field, "name field is missing in model_fields object"
             for expected_model_field in expected_data:
                 if model_field["name"] == expected_model_field["name"]:
-                    assert set(model_field.keys()) == set(expected_model_field.keys()), model_field
+                    assert set(model_field.keys()) == set(expected_model_field.keys()), str(model_field)
                     for key in model_field.keys():
                         if key == "choices":
                             if type(expected_model_field[key]) is list:
@@ -1064,11 +1064,11 @@ class TestModelInfoSerializer:
                                 assert (
                                     sorted([value.split(" - ")[1] for value in model_field[key].values()])
                                     == expected_model_field[key]
-                                ), model_field
+                                ), str(model_field)
                             else:
-                                assert set(model_field[key].values()) == expected_model_field[key], model_field
+                                assert set(model_field[key].values()) == expected_model_field[key], str(model_field)
                         else:
-                            assert model_field[key] == expected_model_field[key], model_field
+                            assert model_field[key] == expected_model_field[key], str(model_field)
 
     def check_model_filtering_data(self, response_data, expected_data):
         data = response_data.data["model_filtering"]
@@ -1077,9 +1077,9 @@ class TestModelInfoSerializer:
             assert "name" in model_filter, "name field is missing in model_filtering object"
             for expected_model_filter in expected_data:
                 if model_filter["name"] == expected_model_filter["name"]:
-                    assert set(model_filter.keys()) == set(expected_model_filter.keys()), model_filter
+                    assert set(model_filter.keys()) == set(expected_model_filter.keys()), str(model_filter)
                     for key in model_filter.keys():
-                        assert model_filter[key] == expected_model_filter[key], model_filter
+                        assert model_filter[key] == expected_model_filter[key], str(model_filter)
 
     def check_model_ordering_data(self, response_data, expected_data):
         data = response_data.data["model_ordering"]
@@ -1088,9 +1088,9 @@ class TestModelInfoSerializer:
             assert "name" in model_order, "name field is missing in model_ordering object"
             for expected_model_order in expected_data:
                 if model_order["name"] == expected_model_order["name"]:
-                    assert set(model_order.keys()) == set(expected_model_order.keys()), model_order
+                    assert set(model_order.keys()) == set(expected_model_order.keys()), str(model_order)
                     for key in model_order.keys():
-                        assert model_order[key] == expected_model_order[key], model_order
+                        assert model_order[key] == expected_model_order[key], str(model_order)
 
     def check_model_permissions_data(self, response_data, expected_data):
         data = response_data.data["model_permissions"]
@@ -1099,9 +1099,9 @@ class TestModelInfoSerializer:
             assert "codename" in model_permission, "codename field is missing in model_permissions object"
             for expected_model_permission in expected_data:
                 if model_permission["codename"] == expected_model_permission["codename"]:
-                    assert set(model_permission.keys()) == set(expected_model_permission.keys()), model_permission
+                    assert set(model_permission.keys()) == set(expected_model_permission.keys()), str(model_permission)
                     for key in model_permission.keys():
-                        assert model_permission[key] == expected_model_permission[key], model_permission
+                        assert model_permission[key] == expected_model_permission[key], str(model_permission)
 
     def test_info_list(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -1111,7 +1111,7 @@ class TestModelInfoSerializer:
 
         response = api_client.get(reverse("info.model_info-list"), format="json")
 
-        assert response.status_code == 200, response.data
+        assert response.status_code == 200, str(response.data)
         assert response.data["totalRecords"] == 11
 
     def test_info_detail_distributor(self, test_data, api_client):
@@ -1147,7 +1147,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, response.data
+        assert response.status_code == 200, str(response.data)
         self.check_model_actions_data(
             response,
             [
@@ -1201,7 +1201,20 @@ class TestModelInfoSerializer:
                 },
             ],
         )
-        self.check_model_expands_data(response, [])
+        self.check_model_expands_data(
+            response,
+            [
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
+                },
+            ],
+        )
         self.check_model_fields_data(
             response,
             [
@@ -1221,6 +1234,14 @@ class TestModelInfoSerializer:
                     "read_only": False,
                     "required": True,
                     "max_length": 255,
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
                 },
             ],
         )
@@ -1292,7 +1313,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, response.data
+        assert response.status_code == 200, str(response.data)
         self.check_model_actions_data(
             response,
             [
@@ -1422,7 +1443,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, response.data
+        assert response.status_code == 200, str(response.data)
         self.check_model_actions_data(
             response,
             [
@@ -1487,6 +1508,15 @@ class TestModelInfoSerializer:
                         "name",
                     ],
                 },
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
+                },
             ],
         )
         self.check_model_fields_data(
@@ -1512,6 +1542,14 @@ class TestModelInfoSerializer:
                         "test_customer_1@example.com",
                         "test_customer_2@example.com",
                     },
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
                 },
             ],
         )
@@ -1566,7 +1604,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, response.data
+        assert response.status_code == 200, str(response.data)
         self.check_model_actions_data(
             response,
             [
@@ -1740,7 +1778,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, response.data
+        assert response.status_code == 200, str(response.data)
         self.check_model_actions_data(
             response,
             [
@@ -1812,6 +1850,15 @@ class TestModelInfoSerializer:
                         "name",
                     ],
                 },
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
+                },
             ],
         )
         self.check_model_fields_data(
@@ -1868,6 +1915,14 @@ class TestModelInfoSerializer:
                         "Shipped",
                     },
                 },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
             ],
         )
         self.check_model_filtering_data(response, [])
@@ -1880,6 +1935,7 @@ class TestModelInfoSerializer:
                 {"name": "order_state", "type": "alpha"},
             ],
         )
+
         self.check_model_permissions_data(
             response,
             [
@@ -1888,6 +1944,7 @@ class TestModelInfoSerializer:
                 {"codename": "list_customerorder", "name": "Can list customer order"},
                 {"codename": "read_customerorder", "name": "Can read customer order"},
                 {"codename": "update_customerorder", "name": "Can update customer order"},
+                {"codename": "fulfill_orders", "name": "Can Fulfill Orders"},
             ],
         )
 
@@ -1924,7 +1981,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, response.data
+        assert response.status_code == 200, str(response.data)
         self.check_model_actions_data(
             response,
             [
@@ -2061,7 +2118,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, response.data
+        assert response.status_code == 200, str(response.data)
 
         self.check_model_actions_data(
             response,
@@ -2126,6 +2183,15 @@ class TestModelInfoSerializer:
                         "name",
                     ],
                 },
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
+                },
             ],
         )
         self.check_model_fields_data(
@@ -2168,6 +2234,14 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
                 },
             ],
         )
@@ -2252,7 +2326,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, response.data
+        assert response.status_code == 200, str(response.data)
         self.check_model_actions_data(
             response,
             [
@@ -2325,6 +2399,15 @@ class TestModelInfoSerializer:
                         "name",
                         "disabled",
                     ],
+                },
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
                 },
             ],
         )
@@ -2412,6 +2495,14 @@ class TestModelInfoSerializer:
                     "many": False,
                     "read_only": False,
                     "required": True,
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
                 },
             ],
         )
@@ -2523,7 +2614,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, response.data
+        assert response.status_code == 200, str(response.data)
         self.check_model_actions_data(
             response,
             [
@@ -2725,7 +2816,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, response.data
+        assert response.status_code == 200, str(response.data)
 
         self.check_model_actions_data(
             response,
@@ -3164,7 +3255,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, response.data
+        assert response.status_code == 200, str(response.data)
         self.check_model_actions_data(
             response,
             [
