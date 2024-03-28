@@ -45,16 +45,16 @@ class TestRegistration:
             assert registered_item["serializer"] == ProductSerializer
 
     def test_register_improperly(self):
-        from vueda.core.serializers import VuedaSerializerMixin
-        from vueda.core.viewsets import VuedaViewSet
+        from vueda.core.serializers import VuedaHistorySerializer
+        from vueda.core.viewsets import VuedaHistoryViewSet
 
         # Make the registry a new dictionary, so tests don't pollute each other.
         registration.get_empty_registry()
 
-        class TestSerializer(VuedaSerializerMixin):
+        class TestSerializer(VuedaHistorySerializer):
             pass
 
-        class TestViewSet(VuedaViewSet):
+        class TestViewSet(VuedaHistoryViewSet):
             pass
 
         with pytest.raises(ImproperlyConfigured):
