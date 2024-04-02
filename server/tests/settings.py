@@ -50,6 +50,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
             ],
             "debug": True,
+            "string_if_invalid": "Invalid",
         },
     },
 ]
