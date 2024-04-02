@@ -68,7 +68,8 @@ class Migration(migrations.Migration):
                 workflow_workflowpermission
             (workflow_id, permission_id)
             VALUES
-                ((SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'), (SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'));
+                ((SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'), (SELECT id FROM auth_permission WHERE codename = 'fulfill_orders')),
+                ((SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'), (SELECT id FROM auth_permission WHERE codename = 'delete_customerorder'));
             """,
             reverse_sql="DELETE FROM workflow_workflowpermission WHERE workflow_id IN (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment');",
         ),
@@ -127,7 +128,9 @@ class Migration(migrations.Migration):
                 ((SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'), (SELECT id FROM workflow_transition WHERE code = 'hold_order')),
                 ((SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'), (SELECT id FROM workflow_transition WHERE code = 'pack_order')),
                 ((SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'), (SELECT id FROM workflow_transition WHERE code = 'ship_order')),
-                ((SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'), (SELECT id FROM workflow_transition WHERE code = 'return_order'));
+                ((SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'), (SELECT id FROM workflow_transition WHERE code = 'return_order')),
+                ((SELECT id FROM auth_permission WHERE codename = 'delete_customerorder'), (SELECT id FROM workflow_transition WHERE code = 'cancel_order')),
+                ((SELECT id FROM auth_permission WHERE codename = 'delete_customerorder'), (SELECT id FROM workflow_transition WHERE code = 'return_order'));
             """,
             reverse_sql="""
             DELETE FROM
@@ -152,6 +155,8 @@ class Migration(migrations.Migration):
                 ((SELECT id FROM workflow_transition WHERE code = 'hold_order'), (SELECT id FROM workflow_state WHERE code = 'new')),
                 ((SELECT id FROM workflow_transition WHERE code = 'pack_order'), (SELECT id FROM workflow_state WHERE code = 'new')),
                 ((SELECT id FROM workflow_transition WHERE code = 'ship_order'), (SELECT id FROM workflow_state WHERE code = 'packed')),
+                ((SELECT id FROM workflow_transition WHERE code = 'cancel_order'), (SELECT id FROM workflow_state WHERE code = 'packed')),
+                ((SELECT id FROM workflow_transition WHERE code = 'cancel_order'), (SELECT id FROM workflow_state WHERE code = 'on_hold')),
                 ((SELECT id FROM workflow_transition WHERE code = 'return_order'), (SELECT id FROM workflow_state WHERE code = 'shipped'));
             """,
             reverse_sql="""
