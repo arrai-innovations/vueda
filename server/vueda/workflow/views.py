@@ -6,7 +6,6 @@ from django.views.generic import TemplateView
 
 from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import StatePermission
-from vueda.workflow.models import TransitionPermission
 from vueda.workflow.models import Workflow
 
 
@@ -70,10 +69,13 @@ class WorkflowOverviewView(TemplateView):
         ):
             workflow_item = {
                 "pk": workflow.pk,
+                "code": workflow.code,
+                "name": workflow.name,
                 "content_type_id": workflow.content_type.pk,
                 "app_label": workflow.content_type.app_label,
                 "model": workflow.content_type.model,
                 "has_mixin": issubclass(workflow.content_type.model_class(), HasWorkflowModelMixin),
+                "permission_ids": [permission.permission_id for permission in workflow.workflow_permissions.all()],
             }
             states = []
             for state in workflow.states.all():
@@ -88,26 +90,21 @@ class WorkflowOverviewView(TemplateView):
 
             transitions = []
             for transition in workflow.transitions.all():
-                permission = transition.transition_permissions.first()
+
                 transition_item = {
                     "pk": transition.pk,
                     "name": transition.name,
                     "code": transition.code,
                     "target_id": transition.target_id,
-                    "permission_id": permission.permission_id if permission else None,
+                    "permission_ids": [
+                        permission.permission_id for permission in transition.transition_permissions.all()
+                    ],
+                    "source_ids": [source.source_id for source in transition.transition_sources.all()],
                 }
                 transitions.append(transition_item)
             workflow_item["transitions"] = transitions
 
             """
-            # TransitionSource
-            transition
-            source
-
-            # WorkflowPermission
-            workflow
-            permission
-
             # StatePermission
             state
             permission
@@ -118,10 +115,16 @@ class WorkflowOverviewView(TemplateView):
             context["workflows"].append(workflow_item)
 
         context["permissions"] = {}
-        for permission in Permission.objects.filter(
-            id__in=TransitionPermission.objects.values_list("permission_id", flat=True).distinct()
+        for pk, name, codename, app_label, model in Permission.objects.values_list(
+            "pk", "name", "codename", "content_type__app_label", "content_type__model"
         ):
-            context["permissions"][permission.id] = permission
+            context["permissions"][pk] = {
+                "pk": pk,
+                "name": name,
+                "codename": codename,
+                "app_label": app_label,
+                "model": model,
+            }
 
         # we also want to warn about model classes that inherit from HasWorkflowMixin, but do not have a workflow.
         context["models_without_workflow_mixin"] = []
