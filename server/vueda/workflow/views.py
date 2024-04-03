@@ -41,8 +41,7 @@ class HasWorkflowViewMixin:
 HasWorkflowViewSetMixin = HasWorkflowViewMixin
 
 
-# PermissionRequiredMixin
-class WorkflowOverviewView(TemplateView):
+class WorkflowOverviewView(PermissionRequiredMixin, TemplateView):
     """
     Provide an overview of workflows, showing states and transitions for each content type, grouped by app.
     """
