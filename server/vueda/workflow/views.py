@@ -4,6 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
 from django.views.generic import TemplateView
 
+from vueda.user.mixins import LogoutMixin
 from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import StatePermission
 from vueda.workflow.models import Workflow
@@ -41,7 +42,7 @@ class HasWorkflowViewMixin:
 HasWorkflowViewSetMixin = HasWorkflowViewMixin
 
 
-class WorkflowOverviewView(PermissionRequiredMixin, TemplateView):
+class WorkflowOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView):
     """
     Provide an overview of workflows, showing states and transitions for each content type, grouped by app.
     """
