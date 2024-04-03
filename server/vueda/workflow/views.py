@@ -1,8 +1,10 @@
-from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.contrib.auth.mixins import PermissionRequiredMixin  # noqa: F401
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
 from django.views.generic import TemplateView
 
+from vueda.user.mixins import LogoutMixin
 from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import StatePermission
 from vueda.workflow.models import Workflow
@@ -40,18 +42,19 @@ class HasWorkflowViewMixin:
 HasWorkflowViewSetMixin = HasWorkflowViewMixin
 
 
-class WorkflowOverviewView(PermissionRequiredMixin, TemplateView):
+class WorkflowOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView):
     """
     Provide an overview of workflows, showing states and transitions for each content type, grouped by app.
     """
 
-    template_name = "workflows.jinja2"
+    template_name = "workflow/overview.html"
 
     permission_required = ("workflow.read_workflow",)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        workflows = (
+        context["workflows"] = []
+        for workflow in (
             Workflow.objects.all()
             .select_related("content_type", "initial_state")
             .prefetch_related(
@@ -63,23 +66,66 @@ class WorkflowOverviewView(PermissionRequiredMixin, TemplateView):
                 "transitions__transition_sources",
                 "workflow_permissions",
             )
-        )
-        # organize workflows by app
-        context["apps"] = {}
-        for workflow in workflows:
-            app_label = workflow.content_type.app_label
-            model_cls = workflow.content_type.model_class()
-            if app_label not in context["apps"]:
-                context["apps"][app_label] = {}
-            context["apps"][app_label][model_cls] = workflow
-        # we want to warn about model classes that have workflow, but do not inherit from HasWorkflowMixin.
-        context["models_without_workflow_row"] = []
-        for workflow in workflows:
-            model = workflow.content_type.model_class()
-            if not issubclass(model, HasWorkflowModelMixin):
-                context["models_without_workflow_row"].append(
-                    (workflow.content_type.app_label, workflow.content_type.model, model.__name__)
-                )
+        ):
+            workflow_item = {
+                "pk": workflow.pk,
+                "code": workflow.code,
+                "name": workflow.name,
+                "content_type_id": workflow.content_type.pk,
+                "app_label": workflow.content_type.app_label,
+                "model": workflow.content_type.model,
+                "has_mixin": issubclass(workflow.content_type.model_class(), HasWorkflowModelMixin),
+                "permission_ids": [permission.permission_id for permission in workflow.workflow_permissions.all()],
+            }
+            states = []
+            for state in workflow.states.all():
+                state_item = {
+                    "pk": state.pk,
+                    "name": state.name,
+                    "code": state.code,
+                    "initial_state": workflow.initial_state.state_id == state.id,
+                }
+                states.append(state_item)
+            workflow_item["states"] = states
+
+            transitions = []
+            for transition in workflow.transitions.all():
+
+                transition_item = {
+                    "pk": transition.pk,
+                    "name": transition.name,
+                    "code": transition.code,
+                    "target_id": transition.target_id,
+                    "permission_ids": [
+                        permission.permission_id for permission in transition.transition_permissions.all()
+                    ],
+                    "source_ids": [source.source_id for source in transition.transition_sources.all()],
+                }
+                transitions.append(transition_item)
+            workflow_item["transitions"] = transitions
+
+            """
+            # StatePermission
+            state
+            permission
+            group
+            grant_or_deny
+            """
+
+            context["workflows"].append(workflow_item)
+
+        context["permissions"] = {}
+        for pk, name, codename, app_label, model in Permission.objects.values_list(
+            "pk", "name", "codename", "content_type__app_label", "content_type__model"
+        ):
+            context["permissions"][pk] = {
+                "pk": pk,
+                "name": name,
+                "codename": codename,
+                "app_label": app_label,
+                "model": model,
+            }
+
         # we also want to warn about model classes that inherit from HasWorkflowMixin, but do not have a workflow.
         context["models_without_workflow_mixin"] = []
         for model in HasWorkflowModelMixin.__subclasses__():
