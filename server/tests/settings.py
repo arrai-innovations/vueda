@@ -36,6 +36,10 @@ SECRET_KEY = "test_secret_key"
 # Permissions have been removed from the view, since we don't have a way to login yet.
 DEBUG = True
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
+CSRF_COOKIE_HTTPONLY = True
+LOGIN_URL = "/routes/tests/login/"
+SECURE_BROWSER_XSS_FILTER = True
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SITE_ID = 1
 STATIC_ROOT = env("STATIC_ROOT", default="")
 STATIC_URL = "static/"
