@@ -23,7 +23,28 @@ function checkForTypeError(error) {
     }
 }
 
-export default defineStore("user", {
+/**
+ * storeUser - pinia store for user state
+ * Usage:
+ * ```js
+ *   import { storeUser } from "vueda-client";
+ *   const user = storeUser();
+ *
+ *   user.loggedIn; // reactive boolean for login state, true if logged-in
+ *   user.loggedInUser; // reactive object for user details
+ *   user.initialized; // reactive boolean for initialization state, true if initialized
+ *   user.loading; // reactive boolean for loading state, true if loading
+ *   user.error; // reactive object for error details
+ *   user.errored; // reactive boolean for error state, true if errored
+ *   user.initializingPromise; // promise for initialization
+ *
+ *   user.init(); // fetch the current user, with initialization wrapping
+ *   user.login({username: "username", password: "password"}); // login
+ *   user.logout(); // logout
+ *   user.whoAmI(); // fetch the current user
+ */
+export default defineStore({
+    id: "user",
     state: () => ({
         loggedIn: false,
         loggedInUser: {},
@@ -46,7 +67,7 @@ export default defineStore("user", {
                 if (response.status === 200) {
                     const user = await response.json();
                     this.loggedIn = !!user.id;
-                    this.details = user;
+                    this.loggedInUser = user;
                 } else {
                     // noinspection ExceptionCaughtLocallyJS
                     throw new UserError("Failed to get current user", response);

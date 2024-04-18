@@ -1,4 +1,3 @@
-export * from "./useDarkMode.js";
 export * from "./useField.js";
 export * from "./useForm.js";
 export * from "./useIsActive.js";
@@ -9,7 +8,6 @@ export * from "./useVersion.js";
 export * from "./useWidget.js";
 export * from "./useWindowShortcut.js";
 export * from "./useWorkflow.js";
-export { default as useDarkMode } from "./useDarkMode.js";
 export { default as useField } from "./useField.js";
 export { default as useForm } from "./useForm.js";
 export { default as useIsActive } from "./useIsActive.js";
