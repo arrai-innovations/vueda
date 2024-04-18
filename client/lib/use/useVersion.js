@@ -3,7 +3,7 @@ import { VITE_PACKAGE_VERSION, VersionSymbol } from "@vueda/utils/index.js";
 import semvarGT from "semver/functions/gt.js";
 import { computed, inject, provide, readonly, ref, watch } from "vue";
 
-// import dispatcher from "@vueda/utils/dispatcher";
+// import dispatcher from "@vueda/utils/dispatcher.js";
 
 export default function useVersion() {
     let version = inject(VersionSymbol, null);

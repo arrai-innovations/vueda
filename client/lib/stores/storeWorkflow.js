@@ -1,11 +1,10 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
-import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname";
-import { getCSRFValue } from "@vueda/utils/csrf";
-import { getJsonOrText } from "@vueda/utils/fetchSupport";
+import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
+import { getCSRFValue } from "@vueda/utils/csrf.js";
+import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
 import get from "lodash-es/get.js";
-import memoize from "lodash-es/memoize.js";
 import set from "lodash-es/set.js";
-import snakeCase from "lodash-es/snakeCase.js";
 import { defineStore } from "pinia";
 import { unref } from "vue";
 
@@ -31,8 +30,8 @@ class WorkflowError extends Error {
 
 /**
  * updateState - update the target array with the source object, or add the source object to the target array
- * @param target
- * @param source
+ * @param target - array of objects
+ * @param source - object to update or add
  */
 const updateState = (target, source) => {
     const index = target.findIndex(
@@ -80,8 +79,6 @@ const fetchHelper = async (url, options = {}, messagePrefix, emptyResponseValue)
     return responseData;
 };
 
-const memoizedSnakeCase = memoize(snakeCase);
-
 const makeModelKey = (app, model) => `${memoizedSnakeCase(app)}.${memoizedSnakeCase(model)}`;
 const makeResultObject = (app, model, id) => ({
     app: unref(app),
@@ -104,10 +101,10 @@ const executeTransitionUrl = (result) =>
  *  or possible states for models
  * Usage:
  * ```js
- *     import { ref } from "vue";
- *     import { useWorkflowStore } from "@vueda/store";
+ *     import { ref, unref, computed } from "vue";
+ *     import { storeWorkflowStore } from "vueda-client";
  *     import { useArrayFind } from "@vueuse/core";
- *     const workflowStore = useWorkflowStore();
+ *     const workflowStore = storeWorkflowStore();
  *
  *     workflowStore.objectStates; // array of objects with app, model, id, and state
  *     workflowStore.objectTransitions; // array of objects with app, model, id, and transitions

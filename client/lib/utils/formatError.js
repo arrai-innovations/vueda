@@ -1,4 +1,4 @@
-import { combineErrors } from "@vueda/utils/errors";
+import { combineErrors } from "@vueda/utils/errors.js";
 
 export default function formatError(error) {
     const errorArray = combineErrors(error);

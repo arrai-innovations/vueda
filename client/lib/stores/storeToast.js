@@ -9,6 +9,27 @@ class ToastError extends Error {
     }
 }
 
+/**
+ * storeToast - pinia store for toast state
+ * Usage:
+ * ```js
+ *  import { storeToast } from "vueda-client";
+ *  const toast = storeToast();
+ *
+ *  toast.toasts; // reactive array of toasts
+ *  toast.toastDismissTimeouts; // reactive object of toast dismiss timeouts
+ *
+ *  toast.addToast({message: "message", autoDismiss: 5000}); // add a toast
+ *  toast.removeToast(id); // remove a toast
+ *
+ *  developers using storeToast in their component may add more properties for features they support.
+ *   *  example toast definition, for properties used in the store:
+ *  {
+ *    id: "id", // optional, will be generated if not provided, must be unique
+ *    timestamp: DateTime.now().toISO(), // example would be "2021-08-01T12:00:00.000-04:00"
+ *    autoDismiss: 5000, // auto dismiss in milliseconds, or falsey for no auto dismiss
+ *  };
+ */
 export default defineStore({
     id: "storeToast",
     state: () => ({
