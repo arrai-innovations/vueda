@@ -7,12 +7,12 @@ import { computed, toRef, watch } from "vue";
 
 const props = defineProps({
     ...fieldProps,
-    max: {
-        type: Date,
+    maxValue: {
+        type: [Date, String],
         default: undefined,
     },
-    min: {
-        type: Date,
+    minValue: {
+        type: [Date, String],
         default: undefined,
     },
 });
@@ -29,19 +29,19 @@ const valueAsDate = computed(() => {
     return null;
 });
 watch(
-    [toRef(props, "max"), valueAsDate],
-    ([max, value]) => {
-        if (max && value > max) {
-            fieldContext.updateError(props.name, "max", `Must be ${max} or less.`);
+    [toRef(props, "maxValue"), valueAsDate],
+    ([maxValue, value]) => {
+        if (maxValue && value > maxValue) {
+            fieldContext.updateError(props.name, "maxValue", `Must be ${maxValue} or less.`);
         }
     },
     { immediate: true },
 );
 watch(
-    [toRef(props, "min"), valueAsDate],
-    ([min, value]) => {
-        if (min && value < min) {
-            fieldContext.updateError(props.name, "min", `Must be ${min} or more.`);
+    [toRef(props, "minValue"), valueAsDate],
+    ([minValue, value]) => {
+        if (minValue && value < minValue) {
+            fieldContext.updateError(props.name, "minValue", `Must be ${minValue} or more.`);
         }
     },
     { immediate: true },

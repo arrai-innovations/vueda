@@ -11,11 +11,11 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    max: {
+    maxLength: {
         type: Number,
         default: undefined,
     },
-    min: {
+    minLength: {
         type: Number,
         default: undefined,
     },
@@ -46,19 +46,19 @@ watch(
     { immediate: true },
 );
 watch(
-    [toRef(props, "max"), toRef(fieldContext, "value")],
-    ([max, value]) => {
-        if (max && value.length > max) {
-            fieldContext.updateError(props.name, "max-length", `Must be ${max} characters or less.`);
+    [toRef(props, "maxLength"), toRef(fieldContext, "value")],
+    ([maxLength, value]) => {
+        if (maxLength && value.length > maxLength) {
+            fieldContext.updateError(props.name, "maxLength", `Must be ${maxLength} characters or less.`);
         }
     },
     { immediate: true },
 );
 watch(
-    [toRef(props, "min"), toRef(fieldContext, "value")],
-    ([min, value]) => {
-        if (min && value.length < min) {
-            fieldContext.updateError(props.name, "min-length", `Must be ${min} characters or more.`);
+    [toRef(props, "minLength"), toRef(fieldContext, "value")],
+    ([minLength, value]) => {
+        if (minLength && value.length < minLength) {
+            fieldContext.updateError(props.name, "minLength", `Must be ${minLength} characters or more.`);
         }
     },
     { immediate: true },

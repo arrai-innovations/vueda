@@ -11,6 +11,7 @@ export default function useForm(props) {
         errors: {},
         messages: {},
         dirty: {},
+        doSubmit: undefined,
     });
     form.initialValues = toRef(() => props.initialValues);
 
@@ -78,6 +79,9 @@ export default function useForm(props) {
             throw new Error("No name provided to deleteDirty");
         }
     };
+    const updateDoSubmit = (fn) => {
+        form.doSubmit = fn;
+    };
 
     watch(
         () => props.initialValues,
@@ -101,6 +105,7 @@ export default function useForm(props) {
         deleteMessage,
         updateDirty,
         deleteDirty,
+        updateDoSubmit,
     });
     provide(FormContextSymbol, formContext);
     return formContext;

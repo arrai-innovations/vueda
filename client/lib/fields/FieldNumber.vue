@@ -7,11 +7,11 @@ import { computed, toRef, watch } from "vue";
 
 const props = defineProps({
     ...fieldProps,
-    max: {
+    maxValue: {
         type: Number,
         default: undefined,
     },
-    min: {
+    minValue: {
         type: Number,
         default: undefined,
     },
@@ -26,19 +26,19 @@ const combinedProps = computed(() => ({
     ...props,
 }));
 watch(
-    [toRef(props, "max"), toRef(fieldContext, "value")],
-    ([max, value]) => {
-        if (max && value > max) {
-            fieldContext.updateError(props.name, "max", `Must be ${max} or less.`);
+    [toRef(props, "maxValue"), toRef(fieldContext, "value")],
+    ([maxValue, value]) => {
+        if (maxValue && value > maxValue) {
+            fieldContext.updateError(props.name, "maxValue", `Must be ${maxValue} or less.`);
         }
     },
     { immediate: true },
 );
 watch(
-    [toRef(props, "min"), toRef(fieldContext, "value")],
-    ([min, value]) => {
-        if (min && value < min) {
-            fieldContext.updateError(props.name, "min", `Must be ${min} or more.`);
+    [toRef(props, "minValue"), toRef(fieldContext, "value")],
+    ([minValue, value]) => {
+        if (minValue && value < minValue) {
+            fieldContext.updateError(props.name, "minValue", `Must be ${minValue} or more.`);
         }
     },
     { immediate: true },

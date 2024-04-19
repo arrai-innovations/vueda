@@ -2,13 +2,20 @@
 import useForm from "@vueda/use/useForm.js";
 
 const props = defineProps({
-    initialValues: Object,
+    initialValues: {
+        type: Object,
+        default: () => ({}),
+    },
 });
 const emit = defineEmits(["submit"]);
 const form = useForm(props);
 const handleSubmit = () => {
     emit("submit", form);
 };
+const doSubmit = () => {
+    handleSubmit();
+};
+form.updateDoSubmit(doSubmit);
 defineExpose({ form });
 </script>
 

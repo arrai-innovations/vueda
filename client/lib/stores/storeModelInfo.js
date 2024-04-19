@@ -68,6 +68,33 @@ const modelInfoUrl = (app, model) =>
  *
  *   // reactive model info
  *   const modelInfo = computed(() => modelInfoStore.modelInfos[`${unref(myApp)}.${unref(myModel)}`]);
+ *
+ *   // model info properties
+ *   const fields = computed(() => unref(modelInfo)?.fields);
+ *
+ *   const field = computed(() => unref(fields)?.[0]);
+ *   // a field has the following properties always:
+ *   field.name // The name of the field.
+ *   field.label // The label of the field.
+ *   field.type // The type of the field.
+ *   field.many // A boolean indicating whether the field is a `ListField`.
+ *   field.readOnly // A boolean indicating whether the field is read-only.
+ *   field.required // A boolean indicating whether the field is required.
+ *   // a field may optionally have the following properties:
+ *   field.helpText // The help text for the field.
+ *   field.maxValue // The maximum value for the field.
+ *   field.minValue // The minimum value for the field.
+ *   field.maxLength // The maximum length for the field.
+ *   field.minLength // The minimum length for the field.
+ *   field.maxDigits // The maximum number of digits for the field.
+ *   field.decimalPlaces // The number of decimal places for the field.
+ *   field.choices // The choices for the field.
+ *
+ *   const actions = computed(() => unref(modelInfo)?.actions);
+ *   const expands = computed(() => unref(modelInfo)?.expands);
+ *   const ordering = computed(() => unref(modelInfo)?.ordering);
+ *   const filtering = computed(() => unref(modelInfo)?.filtering);
+ *   const permissions = computed(() => unref(modelInfo)?.permissions);
  * ```
  */
 export default defineStore({
