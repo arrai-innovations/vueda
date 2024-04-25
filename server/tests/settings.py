@@ -62,9 +62,19 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.template.context_processors.static",
                 "django.template.context_processors.request",
+                "django.contrib.messages.context_processors.messages",
             ],
             "debug": True,
             "string_if_invalid": "Invalid",
+        },
+    },
+    {
+        "BACKEND": "django.template.backends.jinja2.Jinja2",
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.contrib.messages.context_processors.messages",
+            ],
         },
     },
 ]
