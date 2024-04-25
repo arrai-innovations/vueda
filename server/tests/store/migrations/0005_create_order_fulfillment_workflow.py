@@ -32,9 +32,29 @@ class Migration(migrations.Migration):
                         app_label = 'store' AND
                         model = 'customerorder'
                 )
-            )
-            ;""",
-            reverse_sql="DELETE FROM workflow_workflow WHERE code = 'order_fulfillment';",
+            );""",
+            reverse_sql="""
+            DELETE FROM
+                workflow_workflow
+            WHERE
+                code = 'order_fulfillment';""",
+        ),
+        migrations.RunSQL(
+            sql="""
+            INSERT INTO
+                auth_group
+                (
+                    name
+                )
+            VALUES
+                (
+                    'Admin'
+                );""",
+            reverse_sql="""
+            DELETE FROM
+                auth_group
+            WHERE
+                name = 'Admin';""",
         ),
         migrations.RunSQL(
             sql="""
@@ -58,55 +78,221 @@ class Migration(migrations.Migration):
                             AND model = 'customerorder'
                     ),
                     'fulfill_orders'
-                );
-            """,
-            reverse_sql="DELETE FROM auth_permission WHERE codename = 'fulfill_orders';",
+                );""",
+            reverse_sql="""
+            DELETE FROM
+                auth_permission
+            WHERE
+                codename = 'fulfill_orders';""",
+        ),
+        migrations.RunSQL(
+            sql="""
+            INSERT INTO
+                auth_group_permissions
+                (
+                    group_id,
+                    permission_id
+                )
+            VALUES
+                (
+                    (SELECT id FROM auth_group WHERE name = 'Admin'),
+                    (SELECT id FROM auth_permission WHERE codename = 'update_orderitem')
+                );""",
+            reverse_sql="""
+            DELETE FROM
+                auth_group_permissions
+            WHERE
+                auth_group_id IN (
+                    SELECT
+                        id
+                    FROM
+                        auth_group
+                    WHERE
+                        name = 'Admin'
+                );""",
         ),
         migrations.RunSQL(
             sql="""
             INSERT INTO
                 workflow_workflowpermission
-            (workflow_id, permission_id)
+                (
+                    workflow_id,
+                    permission_id
+                )
             VALUES
-                ((SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'), (SELECT id FROM auth_permission WHERE codename = 'fulfill_orders')),
-                ((SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'), (SELECT id FROM auth_permission WHERE codename = 'delete_customerorder'));
-            """,
-            reverse_sql="DELETE FROM workflow_workflowpermission WHERE workflow_id IN (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment');",
-        ),
-        migrations.RunSQL(
-            sql="""
-            INSERT INTO workflow_state (name, code, workflow_id)
-            VALUES
-                ('New', 'new', (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')),
-                ('Packed', 'packed', (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')),
-                ('Returned', 'returned', (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')),
-                ('Shipped', 'shipped', (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')),
-                ('On Hold', 'on_hold', (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')),
-                ('Cancelled', 'cancelled', (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'));
-            """,
-            reverse_sql="DELETE FROM workflow_state WHERE workflow_id IN (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment');",
-        ),
-        migrations.RunSQL(
-            sql="""
-                INSERT INTO workflow_initialstate (workflow_id, state_id)
-                VALUES
-                    ((SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'), (SELECT id FROM workflow_state WHERE code = 'new'));
-                """,
+                (
+                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM auth_permission WHERE codename = 'fulfill_orders')
+                ),
+                (
+                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM auth_permission WHERE codename = 'delete_customerorder')
+                );""",
             reverse_sql="""
-                DELETE FROM workflow_initialstate WHERE
-                    workflow_id IN (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment');
-                """,
+            DELETE FROM
+                workflow_workflowpermission
+            WHERE
+                workflow_id IN (
+                    SELECT
+                        id
+                    FROM
+                        workflow_workflow
+                    WHERE
+                        code = 'order_fulfillment'
+                );""",
+        ),
+        migrations.RunSQL(
+            sql="""
+            INSERT INTO
+                workflow_state
+                (
+                    name,
+                    code,
+                    workflow_id
+                )
+            VALUES
+                (
+                    'New',
+                    'new',
+                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')
+                ),
+                (
+                    'Packed',
+                    'packed',
+                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')
+                ),
+                (
+                    'Returned',
+                    'returned',
+                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')
+                ),
+                (
+                    'Shipped',
+                    'shipped',
+                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')
+                ),
+                (
+                    'On Hold',
+                    'on_hold',
+                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')
+                ),
+                (
+                    'Cancelled',
+                    'cancelled',
+                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')
+                );""",
+            reverse_sql="""
+                DELETE FROM
+                    workflow_state
+                WHERE
+                    workflow_id IN (
+                        SELECT
+                            id
+                        FROM
+                            workflow_workflow
+                        WHERE
+                            code = 'order_fulfillment'
+                    );""",
+        ),
+        migrations.RunSQL(
+            sql="""
+                INSERT INTO
+                    workflow_initialstate
+                    (
+                        workflow_id,
+                        state_id
+                    )
+                VALUES
+                    (
+                        (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                        (SELECT id FROM workflow_state WHERE code = 'new')
+                    );""",
+            reverse_sql="""
+                DELETE FROM
+                    workflow_initialstate
+                WHERE
+                    workflow_id IN (
+                        SELECT
+                            id
+                        FROM
+                            workflow_workflow
+                        WHERE
+                            code = 'order_fulfillment'
+                    );""",
+        ),
+        migrations.RunSQL(
+            sql="""
+                INSERT INTO
+                    workflow_statepermission
+                    (
+                        state_id,
+                        permission_id,
+                        group_id,
+                        grant_or_deny
+                    )
+                VALUES
+                    (
+                        (SELECT id FROM workflow_state WHERE code = 'shipped'),
+                        (SELECT id FROM auth_permission WHERE codename = 'update_orderitem'),
+                        (SELECT id FROM auth_group WHERE name = 'Admin'),
+                        FALSE
+                    );""",
+            reverse_sql="""
+                DELETE FROM
+                    workflow_statepermission
+                WHERE
+                    state_id IN (
+                        SELECT
+                            id
+                        FROM
+                            workflow_workflow
+                        WHERE
+                            code = 'order_fulfillment'
+                    )
+                    AND
+                    permission_id in (
+                        SELECT
+                            id
+                        FROM
+                            auth_permission
+                        WHERE
+                            codename = 'update_orderitem'
+                    );""",
         ),
         migrations.RunSQL(
             sql="""
             INSERT INTO workflow_transition (name, code, workflow_id, target_id)
             VALUES
-                ('Cancel Order', 'cancel_order', (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'), (SELECT id FROM workflow_state WHERE code = 'cancelled')),
-                ('Hold Order', 'hold_order', (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'), (SELECT id FROM workflow_state WHERE code = 'on_hold')),
-                ('Pack Order', 'pack_order', (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'), (SELECT id FROM workflow_state WHERE code = 'packed')),
-                ('Return Order', 'return_order', (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'), (SELECT id FROM workflow_state WHERE code = 'returned')),
-                ('Ship Order', 'ship_order', (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'), (SELECT id FROM workflow_state WHERE code = 'shipped'));
-            """,
+                (
+                    'Cancel Order',
+                    'cancel_order',
+                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM workflow_state WHERE code = 'cancelled')
+                ),
+                (
+                    'Hold Order',
+                    'hold_order',
+                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM workflow_state WHERE code = 'on_hold')
+                ),
+                (
+                    'Pack Order',
+                    'pack_order',
+                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM workflow_state WHERE code = 'packed')
+                ),
+                (
+                    'Return Order',
+                    'return_order',
+                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM workflow_state WHERE code = 'returned')
+                ),
+                (
+                    'Ship Order',
+                    'ship_order',
+                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM workflow_state WHERE code = 'shipped')
+                );""",
             reverse_sql="""
             DELETE FROM
                 workflow_transition
@@ -122,16 +308,41 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-            INSERT INTO workflow_transitionpermission (permission_id, transition_id)
+            INSERT INTO
+                workflow_transitionpermission
+                (
+                    permission_id,
+                    transition_id
+                )
             VALUES
-                ((SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'), (SELECT id FROM workflow_transition WHERE code = 'cancel_order')),
-                ((SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'), (SELECT id FROM workflow_transition WHERE code = 'hold_order')),
-                ((SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'), (SELECT id FROM workflow_transition WHERE code = 'pack_order')),
-                ((SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'), (SELECT id FROM workflow_transition WHERE code = 'ship_order')),
-                ((SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'), (SELECT id FROM workflow_transition WHERE code = 'return_order')),
-                ((SELECT id FROM auth_permission WHERE codename = 'delete_customerorder'), (SELECT id FROM workflow_transition WHERE code = 'cancel_order')),
-                ((SELECT id FROM auth_permission WHERE codename = 'delete_customerorder'), (SELECT id FROM workflow_transition WHERE code = 'return_order'));
-            """,
+                (
+                    (SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'),
+                    (SELECT id FROM workflow_transition WHERE code = 'cancel_order')
+                ),
+                (
+                    (SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'),
+                    (SELECT id FROM workflow_transition WHERE code = 'hold_order')
+                ),
+                (
+                    (SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'),
+                    (SELECT id FROM workflow_transition WHERE code = 'pack_order')
+                ),
+                (
+                    (SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'),
+                    (SELECT id FROM workflow_transition WHERE code = 'ship_order')
+                ),
+                (
+                    (SELECT id FROM auth_permission WHERE codename = 'fulfill_orders'),
+                    (SELECT id FROM workflow_transition WHERE code = 'return_order')
+                ),
+                (
+                    (SELECT id FROM auth_permission WHERE codename = 'delete_customerorder'),
+                    (SELECT id FROM workflow_transition WHERE code = 'cancel_order')
+                ),
+                (
+                    (SELECT id FROM auth_permission WHERE codename = 'delete_customerorder'),
+                    (SELECT id FROM workflow_transition WHERE code = 'return_order')
+                );""",
             reverse_sql="""
             DELETE FROM
                 workflow_transitionpermission
@@ -149,16 +360,41 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-            INSERT INTO workflow_transitionsource (transition_id, source_id)
+            INSERT INTO
+                workflow_transitionsource
+                (
+                    transition_id,
+                    source_id
+                )
             VALUES
-                ((SELECT id FROM workflow_transition WHERE code = 'cancel_order'), (SELECT id FROM workflow_state WHERE code = 'new')),
-                ((SELECT id FROM workflow_transition WHERE code = 'hold_order'), (SELECT id FROM workflow_state WHERE code = 'new')),
-                ((SELECT id FROM workflow_transition WHERE code = 'pack_order'), (SELECT id FROM workflow_state WHERE code = 'new')),
-                ((SELECT id FROM workflow_transition WHERE code = 'ship_order'), (SELECT id FROM workflow_state WHERE code = 'packed')),
-                ((SELECT id FROM workflow_transition WHERE code = 'cancel_order'), (SELECT id FROM workflow_state WHERE code = 'packed')),
-                ((SELECT id FROM workflow_transition WHERE code = 'cancel_order'), (SELECT id FROM workflow_state WHERE code = 'on_hold')),
-                ((SELECT id FROM workflow_transition WHERE code = 'return_order'), (SELECT id FROM workflow_state WHERE code = 'shipped'));
-            """,
+                (
+                    (SELECT id FROM workflow_transition WHERE code = 'cancel_order'),
+                    (SELECT id FROM workflow_state WHERE code = 'new')
+                ),
+                (
+                    (SELECT id FROM workflow_transition WHERE code = 'hold_order'),
+                    (SELECT id FROM workflow_state WHERE code = 'new')
+                ),
+                (
+                    (SELECT id FROM workflow_transition WHERE code = 'pack_order'),
+                    (SELECT id FROM workflow_state WHERE code = 'new')
+                ),
+                (
+                    (SELECT id FROM workflow_transition WHERE code = 'ship_order'),
+                    (SELECT id FROM workflow_state WHERE code = 'packed')
+                ),
+                (
+                    (SELECT id FROM workflow_transition WHERE code = 'cancel_order'),
+                    (SELECT id FROM workflow_state WHERE code = 'packed')
+                ),
+                (
+                    (SELECT id FROM workflow_transition WHERE code = 'cancel_order'),
+                    (SELECT id FROM workflow_state WHERE code = 'on_hold')
+                ),
+                (
+                    (SELECT id FROM workflow_transition WHERE code = 'return_order'),
+                    (SELECT id FROM workflow_state WHERE code = 'shipped')
+                );""",
             reverse_sql="""
             DELETE FROM
                 workflow_transitionsource
