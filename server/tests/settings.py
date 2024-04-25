@@ -36,6 +36,16 @@ SECRET_KEY = "test_secret_key"
 # Permissions have been removed from the view, since we don't have a way to login yet.
 DEBUG = True
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "KEY_PREFIX": "pacms-",
+        "LOCATION": env("REDIS_URL"),
+        "OPTIONS": {
+            "pool_class": "redis.BlockingConnectionPool",
+        },
+    }
+}
 CSRF_COOKIE_HTTPONLY = True
 LOGIN_URL = "/routes/tests/login/"
 SECURE_BROWSER_XSS_FILTER = True
