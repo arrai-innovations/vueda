@@ -55,7 +55,7 @@ class WorkflowPermission(models.Model):
         return f"workflow: {self.workflow}, permission:{self.permission}"
 
 
-class State(Lookup):
+class State(models.Model):
     """
     A particular condition an object of the workflow can have.
     """
@@ -64,10 +64,15 @@ class State(Lookup):
         "Workflow",
         on_delete=models.CASCADE,
     )
+    code = models.CharField(max_length=255, db_index=True)
+    name = models.CharField(max_length=255)
 
     class Meta:
         default_related_name = "states"
         constraints = [models.UniqueConstraint(fields=["workflow", "code"], name="unique_state_code")]
+
+    def __str__(self):
+        return f"name: {self.name}, code:{self.code}"
 
 
 class StatePermission(models.Model):
@@ -123,7 +128,7 @@ class InitialState(models.Model):
         return f"workflow: {self.workflow}, state:{self.state}"
 
 
-class Transition(Lookup):
+class Transition(models.Model):
     """
     A transition is a change to a target state. Transitions can have multiple sources.
      Transitions can be executed by users.
@@ -133,6 +138,8 @@ class Transition(Lookup):
         "Workflow",
         on_delete=models.PROTECT,
     )
+    code = models.CharField(max_length=255, db_index=True)
+    name = models.CharField(max_length=255)
     target = models.ForeignKey(
         "State",
         on_delete=models.PROTECT,
@@ -143,6 +150,9 @@ class Transition(Lookup):
         constraints = [
             models.UniqueConstraint(fields=["workflow", "code"], name="unique_transition_code"),
         ]
+
+    def __str__(self):
+        return f"name: {self.name}, code:{self.code}"
 
 
 class TransitionPermission(models.Model):
