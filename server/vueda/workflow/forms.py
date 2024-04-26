@@ -110,6 +110,48 @@ class ValidateTransitionNotUsedForm(forms.ModelForm):
         return cleaned_data
 
 
+class FilteredSelectsModelFormset(forms.models.BaseModelFormSet):
+    def get_form_kwargs(self, index):
+        form_kwargs = super().get_form_kwargs(index)
+        for field_name, field in self.form.base_fields.items():
+            if isinstance(field, forms.ModelChoiceField) and field_name in {"target"}:
+                field.queryset = field.queryset.filter(
+                    workflow_id__in=self.queryset.values_list("workflow_id", flat=True)
+                )
+        return form_kwargs
+
+
+class FilteredInlineSelectsInlineFormsetBase(forms.models.BaseInlineFormSet):
+    filtered_fields = {}
+    filtered_by_instance_field = None
+
+    def get_form_kwargs(self, index):
+        form_kwargs = super().get_form_kwargs(index)
+        for field_name, field in self.form.base_fields.items():
+            if isinstance(field, forms.ModelChoiceField) and field_name in self.filtered_fields:
+                # Because we are changing the queryset on the class, in order to display select boxes that
+                # are filtered correctly, we need to store the original queryset/  Otherwise, when you
+                # look at the second object of a specific type, we would end up with an empty select box.
+                if not hasattr(field, "_original_queryset"):
+                    field._original_queryset = field.queryset
+                filtered_by_value = getattr(
+                    self.instance,
+                    self.filtered_by_instance_field,
+                )
+                field.queryset = field._original_queryset.filter(workflow_id=filtered_by_value)
+        return form_kwargs
+
+
+class FilteredWorkflowSelectsInlineFormset(FilteredInlineSelectsInlineFormsetBase):
+    filtered_fields = frozenset({"state", "target"})
+    filtered_by_instance_field = "pk"
+
+
+class FilteredTransitionSelectsInlineFormset(FilteredInlineSelectsInlineFormsetBase):
+    filtered_fields = frozenset({"source"})
+    filtered_by_instance_field = "workflow_id"
+
+
 # Using a class for the model formset requires the FORM_RENDERER setting to be set.
 # Using this function doesn't require the setting to be set.
 WorkflowModelFormSet = forms.modelformset_factory(
@@ -150,6 +192,7 @@ InitialStateFormSet = forms.inlineformset_factory(
     fk_name="workflow",
     min_num=1,
     max_num=1,
+    formset=FilteredWorkflowSelectsInlineFormset,
 )
 
 
@@ -180,6 +223,7 @@ TransitionFormSet = forms.inlineformset_factory(
     ],
     fk_name="workflow",
     form=ValidateTransitionNotUsedForm,
+    formset=FilteredWorkflowSelectsInlineFormset,
     help_texts={
         "code": _("lowercase with underscores"),
     },
@@ -222,6 +266,7 @@ TransitionModelFormSet = forms.modelformset_factory(
         "code",
         "target",
     ],
+    formset=FilteredSelectsModelFormset,
     help_texts={
         "code": _("lowercase with underscores"),
     },
@@ -249,4 +294,5 @@ TransitionSourceFormSet = forms.inlineformset_factory(
         "source",
     ],
     fk_name="transition",
+    formset=FilteredTransitionSelectsInlineFormset,
 )
