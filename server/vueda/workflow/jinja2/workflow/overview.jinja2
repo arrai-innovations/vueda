@@ -67,8 +67,10 @@
                     <div class="sticky sticky-3">
                         <div>
                             <h3>
+                                <code class="workflow">{{ workflow.code }}</code>&emsp;
+                                <code class="name">{{ workflow.name }}</code>&emsp;
                                 <code class="django">.{{ workflow.content_type.model }}</code>&emsp;
-                                <code class="python">{{ model.__name__ }}</code>&emsp;
+                                <code class="python">{{ model.__name__ }}</code>
                             </h3>
                             {% if has_perm('delete_workflow') and workflow.pk in delete_workflow %}
                                 <div class="control sticky-control">
