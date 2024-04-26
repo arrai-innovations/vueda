@@ -63,11 +63,10 @@ class ValidateStateNotUsedForm(forms.ModelForm):
 
         if "DELETE" in self.changed_data:
             used_by = []
-            if self.instance.workflow.initial_state and self.instance == self.instance.workflow.initial_state.state:
-                used_by.append("Initial State")
+            errors = []
 
             if self.instance.object_states.exists():
-                used_by.append("Site Objects")
+                errors.append("This state is used by objects in the site.  It cannot be deleted.")
 
             if self.instance.state_permissions.exists():
                 used_by.append("State Permissions")
@@ -79,7 +78,20 @@ class ValidateStateNotUsedForm(forms.ModelForm):
                 used_by.append("Transitions")
 
             if used_by:
-                raise ValidationError({"DELETE": f"This state is used by {', '.join(used_by)}"})
+                errors.append(
+                    f"This state is used by {', '.join(used_by)}.  Please delete these before deleting the state."
+                )
+
+            # If you are deleting the initial state as well as the state, then allow deletion.
+            if (
+                self.instance.workflow.initial_state
+                and self.instance == self.instance.workflow.initial_state.state
+                and "initial_state-0-DELETE" not in self.data
+            ):
+                errors.append("This state is used by Initial State.  You can delete it at the same time as the state.")
+
+            if errors:
+                raise ValidationError({"DELETE": errors})
 
         return cleaned_data
 
