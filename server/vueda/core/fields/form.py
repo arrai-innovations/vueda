@@ -3,6 +3,19 @@ from django import forms
 from vueda.core.widgets import BaseArrayWidget
 
 
+class ContentTypeModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        """
+        Convert objects into strings and generate the labels for the choices
+        presented by this object. Subclasses can override this method to
+        customize the display of the choices.
+        """
+        model = obj.model_class()
+        if not model:
+            return obj.model
+        return f"{model._meta.app_config.name} | {model._meta.verbose_name}"
+
+
 class BaseArrayField(forms.Field):
     """
     Base field for validating native arrays. Value validation is performed by

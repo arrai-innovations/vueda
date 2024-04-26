@@ -5,12 +5,13 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalChanges
 
+from vueda.core.fields import form as core_form
 from vueda.workflow import models
 
 
 class RemoveHistoricalContentTypesForm(forms.ModelForm):
     # Remove the historical content types.
-    content_type = forms.ModelChoiceField(
+    content_type = core_form.ContentTypeModelChoiceField(
         queryset=ContentType.objects.exclude(
             pk__in=[
                 content_type.pk
