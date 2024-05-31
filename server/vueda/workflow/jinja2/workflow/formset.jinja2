@@ -5,7 +5,7 @@
 {% set has_add_button = min_num_forms != max_num_forms %}
 <div class="sticky sticky-edit-2 sticky-edit-{{ class }}">
     <div>
-        <h2>{{ name }}</h2>
+        <h2{% if not has_add_button %} class="no-add-button"{% endif %}>{{ name }}</h2>
         {% if has_add_button %}
         <div class="centered-button"><button type="button" class="button-add-inline" data-inline="{{ formset.prefix }}">Add {{ name }}</button></div>
         {% endif %}
