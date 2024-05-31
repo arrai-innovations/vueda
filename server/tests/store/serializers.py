@@ -1,5 +1,5 @@
 # Serializers to use with info.
-
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from tests.store.models import Cart
@@ -20,6 +20,10 @@ from vueda.user.serializers import UserSerializer
 
 
 class CustomerSerializer(VuedaHistorySerializer):
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=get_user_model().objects.filter(is_system=False),
+    )
+
     class Meta(VuedaHistorySerializer.Meta):
         model = Customer
         fields = [
