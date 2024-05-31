@@ -9,14 +9,15 @@ from vueda.core.fields import form as core_form
 from vueda.workflow import models
 
 
-class RemoveHistoricalContentTypesForm(forms.ModelForm):
-    # Remove the historical content types.
+class WorkflowAddForm(forms.ModelForm):
+    # Remove the historical content types, vueda.workflow, and django.contrib apps.
     content_type = core_form.ContentTypeModelChoiceField(
         queryset=ContentType.objects.exclude(
             pk__in=[
                 content_type.pk
                 for content_type in ContentType.objects.all()
                 if issubclass(content_type.model_class(), HistoricalChanges)
+                or content_type.app_label in ("workflow", "auth", "contenttypes", "sessions", "sites")
             ]
         ).order_by("app_label", "model"),
     )
@@ -26,6 +27,17 @@ class RemoveHistoricalContentTypesForm(forms.ModelForm):
         model = models.Workflow
         fields = [
             "content_type",
+            "name",
+            "code",
+        ]
+
+
+class WorkflowEditForm(forms.ModelForm):
+    name = forms.CharField(max_length=255, required=True)
+
+    class Meta:
+        model = models.Workflow
+        fields = [
             "name",
             "code",
         ]
@@ -127,9 +139,12 @@ class FilteredSelectsModelFormset(forms.models.BaseModelFormSet):
         form_kwargs = super().get_form_kwargs(index)
         for field_name, field in self.form.base_fields.items():
             if isinstance(field, forms.ModelChoiceField) and field_name in {"target"}:
-                field.queryset = field.queryset.filter(
-                    workflow_id__in=self.queryset.values_list("workflow_id", flat=True)
-                )
+                if not hasattr(field, "_original_queryset"):
+                    field._original_queryset = field.queryset
+                if self.queryset:  # This is None when adding.
+                    field.queryset = field._original_queryset.filter(
+                        workflow_id__in=self.queryset.values_list("workflow_id", flat=True)
+                    )
         return form_kwargs
 
 
@@ -166,7 +181,7 @@ class FilteredTransitionSelectsInlineFormset(FilteredInlineSelectsInlineFormsetB
 
 # Using a class for the model formset requires the FORM_RENDERER setting to be set.
 # Using this function doesn't require the setting to be set.
-WorkflowModelFormSet = forms.modelformset_factory(
+WorkflowModelAddFormSet = forms.modelformset_factory(
     models.Workflow,
     extra=0,
     fields=[
@@ -174,7 +189,22 @@ WorkflowModelFormSet = forms.modelformset_factory(
         "name",
         "code",
     ],
-    form=RemoveHistoricalContentTypesForm,
+    form=WorkflowAddForm,
+    help_texts={
+        "code": _("lowercase with underscores"),
+    },
+    min_num=1,  # So an empty form causes validation errors.
+)
+
+
+WorkflowModelEditFormSet = forms.modelformset_factory(
+    models.Workflow,
+    extra=0,
+    fields=[
+        "name",
+        "code",
+    ],
+    form=WorkflowEditForm,
     help_texts={
         "code": _("lowercase with underscores"),
     },

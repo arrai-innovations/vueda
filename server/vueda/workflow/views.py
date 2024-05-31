@@ -11,7 +11,6 @@ from django.views import View
 from django.views.generic import TemplateView
 
 from vueda.user.mixins import LogoutMixin
-from vueda.workflow import forms
 from vueda.workflow import models
 from vueda.workflow.mixins import WorkflowUrlsMixin
 from vueda.workflow.models import Workflow
@@ -72,29 +71,30 @@ class WorkflowOverviewView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMix
                 "transitions__transition_sources",
                 "workflow_permissions",
             )
+            .order_by("content_type__app_label", "content_type__model")
         )
         # organize workflows by app
         context["apps"] = {}
+        context["models_without_workflow_mixin"] = []
         for workflow in workflows:
             app_label = workflow.content_type.app_label
             model_cls = workflow.content_type.model_class()
             if app_label not in context["apps"]:
                 context["apps"][app_label] = {}
             context["apps"][app_label][model_cls] = workflow
-        # we want to warn about model classes that have workflow, but do not inherit from HasWorkflowMixin.
-        context["models_without_workflow_row"] = []
-        for workflow in workflows:
-            model = workflow.content_type.model_class()
-            if not issubclass(model, models.HasWorkflowModelMixin):
-                context["models_without_workflow_row"].append(
-                    (workflow.content_type.app_label, workflow.content_type.model, model.__name__)
+
+            # we want to warn about model classes that have workflow, but do not inherit from HasWorkflowMixin.
+            if not issubclass(model_cls, models.HasWorkflowModelMixin):
+                context["models_without_workflow_mixin"].append(
+                    (workflow.content_type.app_label, workflow.content_type.model, model_cls.__name__)
                 )
+
         # we also want to warn about model classes that inherit from HasWorkflowMixin, but do not have a workflow.
-        context["models_without_workflow_mixin"] = []
+        context["models_without_workflow_row"] = []
         for model in models.HasWorkflowModelMixin.__subclasses__():
             content_type = ContentType.objects.get_for_model(model)
             if not models.Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).exists():
-                context["models_without_workflow_mixin"].append(
+                context["models_without_workflow_row"].append(
                     (content_type.app_label, content_type.model, model.__name__)
                 )
         return context
@@ -126,16 +126,22 @@ class WorkflowAddView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, T
     permission_required = ("workflow.add_workflow",)
 
     def get(self, request, *args, **kwargs):
+        # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
+        from vueda.workflow import forms
+
         context = self.get_context_data(**kwargs)
         context["title"] = "Workflow"
-        context["formset"] = forms.WorkflowModelFormSet(queryset=models.Workflow.objects.none())
+        context["formset"] = forms.WorkflowModelAddFormSet(queryset=models.Workflow.objects.none())
 
         return render(request, self.get_template_names(), context)
 
     def post(self, request, *args, **kwargs):
+        # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
+        from vueda.workflow import forms
+
         context = self.get_context_data(**kwargs)
         context["title"] = "Workflow"
-        context["formset"] = formset = forms.WorkflowModelFormSet(request.POST, request.FILES)
+        context["formset"] = formset = forms.WorkflowModelAddFormSet(request.POST, request.FILES)
 
         if formset.is_valid():
             instance = formset.save()
@@ -155,13 +161,16 @@ class WorkflowEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, 
     permission_required = ("workflow.change_workflow",)
 
     def get(self, request, *args, **kwargs):
+        # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
+        from vueda.workflow import forms
+
         pk = kwargs["pk"]
         queryset = models.Workflow.objects.filter(pk=pk)
         model_instance = queryset.get()
 
         context = self.get_context_data(**kwargs)
         context["title"] = "Workflow"
-        context["formset"] = forms.WorkflowModelFormSet(queryset=queryset)
+        context["formset"] = forms.WorkflowModelEditFormSet(queryset=queryset)
         context["inline_formsets"] = (
             {
                 "class": "workflow-permissions",
@@ -188,13 +197,16 @@ class WorkflowEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, 
         return render(request, self.get_template_names(), context)
 
     def post(self, request, *args, **kwargs):
+        # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
+        from vueda.workflow import forms
+
         pk = kwargs["pk"]
         queryset = models.Workflow.objects.filter(pk=pk)
         model_instance = queryset.get()
 
         context = self.get_context_data(**kwargs)
         context["title"] = "Workflow"
-        context["formset"] = forms.WorkflowModelFormSet(request.POST, request.FILES)
+        context["formset"] = forms.WorkflowModelEditFormSet(request.POST, request.FILES)
         context["inline_formsets"] = (
             {
                 "class": "workflow-permissions",
@@ -271,6 +283,9 @@ class WorkflowStateEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMi
     permission_required = ("workflow.change_state",)
 
     def get(self, request, *args, **kwargs):
+        # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
+        from vueda.workflow import forms
+
         pk = kwargs["pk"]
         queryset = models.State.objects.filter(pk=pk)
         model_instance = queryset.get()
@@ -289,6 +304,9 @@ class WorkflowStateEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMi
         return render(request, self.get_template_names(), context)
 
     def post(self, request, *args, **kwargs):
+        # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
+        from vueda.workflow import forms
+
         pk = kwargs["pk"]
         queryset = models.State.objects.filter(pk=pk)
         model_instance = queryset.get()
@@ -334,6 +352,9 @@ class WorkflowTransitionEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequi
     permission_required = ("workflow.change_transition",)
 
     def get(self, request, *args, **kwargs):
+        # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
+        from vueda.workflow import forms
+
         pk = kwargs["pk"]
         queryset = models.Transition.objects.filter(pk=pk)
         model_instance = queryset.get()
@@ -357,6 +378,9 @@ class WorkflowTransitionEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequi
         return render(request, self.get_template_names(), context)
 
     def post(self, request, *args, **kwargs):
+        # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
+        from vueda.workflow import forms
+
         pk = kwargs["pk"]
         queryset = models.Transition.objects.filter(pk=pk)
         model_instance = queryset.get()
