@@ -125,6 +125,8 @@ extended in your application, ensuring both control and adaptability.
 
 ### Usage
 
+Note: Permissions and Groups associated with Workflows that are being deleted, must not be deleted until the workflow has been deleted from any servers, since they don't have history.
+
 <!-- #todo: document -->
 
 ## Development
