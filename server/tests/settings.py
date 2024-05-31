@@ -21,6 +21,9 @@ INSTALLED_APPS += [  # noqa: F405
     "django_extensions",
     "tests.apps.TestsConfig",
     "tests.store.apps.StoreConfig",
+    "tests.workflow_added.apps.WorkflowAddedConfig",
+    "tests.workflow_changed.apps.WorkflowChangedConfig",
+    "tests.workflow_deleted.apps.WorkflowDeletedConfig",
 ]
 AUTH_USER_MODEL = "tests.User"
 
