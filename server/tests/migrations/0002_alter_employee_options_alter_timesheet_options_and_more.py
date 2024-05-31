@@ -9,6 +9,8 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("tests", "0001_initial"),
+        ("user", "0001_initial"),
+        ("workflow", "0003_historicalinitialstate_historicalstate_and_more"),
     ]
 
     operations = [

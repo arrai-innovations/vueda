@@ -22,25 +22,38 @@ from vueda.workflow.exceptions import InvalidTransitionError
 User = get_user_model()
 
 
-class Workflow(Lookup):
+class Workflow(SimpleHistoryModelMixin, Lookup):
     """
     A workflow is a collection of states and transitions.
     """
 
     content_type = models.OneToOneField(ContentType, on_delete=models.CASCADE, related_name="workflow")
+    # If a workflow or content type is deleted locally, then we need to know what the app label
+    # was for the deleted workflow, so we can add that workflow to the migration to delete.
+    historical_app_label = models.CharField(max_length=255, blank=True)
+    historical_model = models.CharField(max_length=255, blank=True)
 
     class Meta:
         default_related_name = "workflows"
         constraints = [models.UniqueConstraint(fields=["code"], name="unique_workflow_code")]
 
+    def save(self, *args, **kwargs):
+        self.historical_app_label = self.content_type.app_label
+        self.historical_model = self.content_type.model
 
-class WorkflowPermission(models.Model):
+        super().save(*args, **kwargs)
+
+
+class WorkflowPermission(SimpleHistoryModelMixin):
     """
     The permissions that are required to get available transitions for a given object or execute a transition.
     """
 
     workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE)
     permission = models.ForeignKey("auth.Permission", on_delete=models.CASCADE)
+    historical_permission_codename = models.CharField(max_length=100, blank=True)
+    historical_permission_content_type_app_label = models.CharField(max_length=100, blank=True)
+    historical_permission_content_type_model_name = models.CharField(max_length=100, blank=True)
 
     class Meta:
         default_related_name = "workflow_permissions"
@@ -54,8 +67,17 @@ class WorkflowPermission(models.Model):
     def __str__(self):
         return f"workflow: {self.workflow}, permission:{self.permission}"
 
+    def save(self, *args, **kwargs):
+        # Set the historical permission codename, so if the permission is deleted,
+        # we don't just have an id that may not be the same on the server.
+        self.historical_permission_codename = self.permission.codename
+        self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+        self.historical_permission_content_type_model_name = self.permission.content_type.model
 
-class State(models.Model):
+        super().save(*args, **kwargs)
+
+
+class State(SimpleHistoryModelMixin):
     """
     A particular condition an object of the workflow can have.
     """
@@ -75,7 +97,7 @@ class State(models.Model):
         return f"name: {self.name}, code:{self.code}"
 
 
-class StatePermission(models.Model):
+class StatePermission(SimpleHistoryModelMixin):
     """
     The state of an object can grant additional or deny existing permissions at a row level.
     """
@@ -88,10 +110,14 @@ class StatePermission(models.Model):
         "auth.Permission",
         on_delete=models.CASCADE,
     )
+    historical_permission_codename = models.CharField(max_length=100, blank=True)
+    historical_permission_content_type_app_label = models.CharField(max_length=100, blank=True)
+    historical_permission_content_type_model_name = models.CharField(max_length=100, blank=True)
     group = models.ForeignKey(
         "auth.Group",
         on_delete=models.CASCADE,
     )
+    historical_group_name = models.CharField(max_length=150, blank=True)
     grant_or_deny = models.BooleanField()  # True = grant, False = deny
 
     class Meta:
@@ -104,8 +130,17 @@ class StatePermission(models.Model):
             f" grant_or_deny:{'grant' if self.grant_or_deny else 'deny'}"
         )
 
+    def save(self, *args, **kwargs):
+        # Set the historical permission codename, so if the permission is deleted,
+        # we don't just have an id that may not be the same on the server.
+        self.historical_permission_codename = self.permission.codename
+        self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+        self.historical_permission_content_type_model_name = self.permission.content_type.model
+        self.historical_group_name = self.group.name
+        super().save(*args, **kwargs)
 
-class InitialState(models.Model):
+
+class InitialState(SimpleHistoryModelMixin):
     """
     The initial state of an object of the workflow.
     """
@@ -128,7 +163,7 @@ class InitialState(models.Model):
         return f"workflow: {self.workflow}, state:{self.state}"
 
 
-class Transition(models.Model):
+class Transition(SimpleHistoryModelMixin):
     """
     A transition is a change to a target state. Transitions can have multiple sources.
      Transitions can be executed by users.
@@ -155,7 +190,7 @@ class Transition(models.Model):
         return f"name: {self.name}, code:{self.code}"
 
 
-class TransitionPermission(models.Model):
+class TransitionPermission(SimpleHistoryModelMixin):
     """
     The permissions that are required to execute a transition.
     """
@@ -168,6 +203,9 @@ class TransitionPermission(models.Model):
         "auth.Permission",
         on_delete=models.CASCADE,
     )
+    historical_permission_codename = models.CharField(max_length=100, blank=True)
+    historical_permission_content_type_app_label = models.CharField(max_length=100, blank=True)
+    historical_permission_content_type_model_name = models.CharField(max_length=100, blank=True)
 
     class Meta:
         default_related_name = "transition_permissions"
@@ -181,8 +219,16 @@ class TransitionPermission(models.Model):
     def __str__(self):
         return f"transition: {self.transition}, permission:{self.permission}"
 
+    def save(self, *args, **kwargs):
+        # Set the historical permission codename, so if the permission is deleted,
+        # we don't just have an id that may not be the same on the server.
+        self.historical_permission_codename = self.permission.codename
+        self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+        self.historical_permission_content_type_model_name = self.permission.content_type.model
+        super().save(*args, **kwargs)
 
-class TransitionSource(models.Model):
+
+class TransitionSource(SimpleHistoryModelMixin):
     """
     A transition can have multiple sources.
     """
