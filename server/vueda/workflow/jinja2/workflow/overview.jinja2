@@ -85,14 +85,14 @@
                         </div>
                     </div>
                     <div class="workflow_permissions">
-                        {% for workflow_permission in workflow.workflow_permissions.all() %}
+                        {% for workflow_permission in workflow.workflow_permissions.order_by('historical_permission_content_type_app_label', 'historical_permission_content_type_model_name', 'historical_permission_codename') %}
                             <div class="transition_permission">
                                 <code class="permission">{{ workflow_permission.permission.codename }}</code>
                             </div>
                         {% endfor %}
                     </div>
                     <div class="states">
-                        {% for state in workflow.states.all() %}
+                        {% for state in workflow.states.order_by('code') %}
                             <div class="state">
                                 <div>
                                     <h4>
@@ -107,7 +107,7 @@
                                     </div>
                                 </div>
                                 <div class="state_permissions">
-                                    {% for state_permission in state.state_permissions.all() %}
+                                    {% for state_permission in state.state_permissions.order_by('historical_permission_content_type_app_label', 'historical_permission_content_type_model_name', 'historical_permission_codename') %}
                                         <div class="state_permission">
                                             <span class="{{ 'grants' if state_permission.grant_or_deny else 'denies' }}">
                                                 {{ 'Grants' if state_permission.grant_or_deny else 'Denies' }}
@@ -122,7 +122,7 @@
                         {% endfor %}
                     </div>
                     <div class="transitions">
-                        {% for transition in workflow.transitions.all() %}
+                        {% for transition in workflow.transitions.order_by('code') %}
                             <div class="transition">
                                 <div>
                                     <h4>
@@ -139,7 +139,7 @@
                                     </div>
                                 </div>
                                 <div class="transition_permissions">
-                                    {% for transition_permission in transition.transition_permissions.all() %}
+                                    {% for transition_permission in transition.transition_permissions.order_by('historical_permission_content_type_app_label', 'historical_permission_content_type_model_name', 'historical_permission_codename') %}
                                         <div class="transition_permission">
                                             <code class="permission">{{ transition_permission.permission.codename }}</code>
                                         </div>
