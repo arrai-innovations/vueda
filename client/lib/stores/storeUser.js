@@ -1,6 +1,7 @@
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
+import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
 
 class UserError extends Error {
@@ -42,6 +43,7 @@ function checkForTypeError(error) {
  *   user.login({username: "username", password: "password"}); // login
  *   user.logout(); // logout
  *   user.whoAmI(); // fetch the current user
+ * ```
  */
 export default defineStore({
     id: "user",
@@ -60,18 +62,18 @@ export default defineStore({
                 this.initialized = false;
             }
             try {
-                const response = await fetch(`${httpOrHttpsHostname}/routes/users/who-am-i/`, {
+                const response = await fetch(`${httpOrHttpsHostname}/${getUrl("userCurrentUser")}/`, {
                     method: "GET",
                     credentials: "include",
                 });
-                if (response.status === 200) {
-                    const user = await response.json();
-                    this.loggedIn = !!user.id;
-                    this.loggedInUser = user;
-                } else {
+                if (!response.ok) {
                     // noinspection ExceptionCaughtLocallyJS
                     throw new UserError("Failed to get current user", response);
                 }
+                // non-logged in users still 200, just empty user.
+                const user = await response.json();
+                this.loggedIn = !!user.id;
+                this.loggedInUser = user;
             } catch (error) {
                 checkForTypeError(error);
                 throw error;
@@ -82,7 +84,7 @@ export default defineStore({
         async login(payload) {
             let response;
             try {
-                response = await fetch(`${httpOrHttpsHostname}/routes/users/login/`, {
+                response = await fetch(`${httpOrHttpsHostname}/${getUrl("userLogin")}/`, {
                     method: "POST",
                     headers: {
                         "X-CSRFToken": getCSRFValue(),
@@ -115,7 +117,7 @@ export default defineStore({
             }
             let response;
             try {
-                response = await fetch(`${httpOrHttpsHostname}/routes/users/logout/`, {
+                response = await fetch(`${httpOrHttpsHostname}/${getUrl("userLogout")}/`, {
                     method: "POST",
                     headers: {
                         "X-CSRFToken": getCSRFValue(),
