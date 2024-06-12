@@ -1,0 +1,61 @@
+import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
+import storeModelConfig from "@vueda/stores/storeModelConfig.js";
+import storeModelInfo from "@vueda/stores/storeModelInfo";
+import useIsActive from "@vueda/use/useIsActive";
+import { reactive, watch } from "vue";
+
+/**
+ * @typedef {Object} Ref - A Vue ref object.
+ * @property {Function} value - The value of the ref.
+ * @private
+ */
+
+/**
+ * Provides a reactive configuration for a given app and model.
+ * Uses configuration from storeModelConfig if available, otherwise falls back to model info from storeModelInfo.
+ *
+ * @param {Ref<string>} app - The app name
+ * @param {Ref<string>} model - The model name
+ * @returns {Object} An object containing reactive fields and actions for create, update, read, and list views.
+ */
+export default function useModelConfig(app, model) {
+    const modelInfoStore = storeModelInfo();
+    const modelConfigStore = storeModelConfig();
+    const isActive = useIsActive();
+    const returnObject = reactive({
+        loading: false,
+        error: null,
+        errored: false,
+        info: {},
+        config: {},
+    });
+
+    // Watch for changes in isActive, app, model to update modelInfo and modelConfig
+    watch(
+        [isActive, app, model],
+        async ([active, app, model], [, oldApp, oldModel]) => {
+            if (!active) {
+                return; // we'll pick up again when the component is active
+            }
+            if (oldApp && oldModel && (app !== oldApp || model !== oldModel)) {
+                returnObject.loading = true;
+                returnObject.error = null;
+                returnObject.errored = false;
+                try {
+                    const modelInfo = await modelInfoStore.fetchModelInfo(app, model);
+                    const modelConfig = await modelConfigStore.getConfig(app, model);
+                    assignReactiveObject(returnObject.info, modelInfo);
+                    assignReactiveObject(returnObject.config, modelConfig);
+                } catch (e) {
+                    returnObject.error = e;
+                    returnObject.errored = true;
+                } finally {
+                    returnObject.loading = false;
+                }
+            }
+        },
+        { immediate: true },
+    );
+
+    return returnObject;
+}

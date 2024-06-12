@@ -3,6 +3,7 @@ import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
+import { getUrl } from "@vueda/utils/urls.js";
 import get from "lodash-es/get.js";
 import set from "lodash-es/set.js";
 import { defineStore } from "pinia";
@@ -86,15 +87,15 @@ const makeResultObject = (app, model, id) => ({
     id: unref(id),
 });
 const modelStatesUrl = (app, model) =>
-    `${httpOrHttpsHostname}/routes/workflows/states/${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
+    `${httpOrHttpsHostname}/${getUrl("workflowStates")}/${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
 const objectStatesUrl = (result) =>
-    `${httpOrHttpsHostname}/routes/workflows/object-state/${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
+    `${httpOrHttpsHostname}/${getUrl("workflowObjectState")}/${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
 const objectTransitionsUrl = (result) =>
-    `${httpOrHttpsHostname}/routes/workflows/object-transitions/${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
+    `${httpOrHttpsHostname}/${getUrl("workflowObjectTransitions")}/${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
 const objectHistoriesUrl = (result) =>
-    `${httpOrHttpsHostname}/routes/workflows/object-history/${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
+    `${httpOrHttpsHostname}/${getUrl("workflowObjectHistory")}/${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
 const executeTransitionUrl = (result) =>
-    `${httpOrHttpsHostname}/routes/workflows/execute-transition/${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
+    `${httpOrHttpsHostname}/${getUrl("workflowExecuteTransition")}/${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
 
 /**
  * storeWorkflow - pinia store for current workflow states, available transitions, and workflow histories for objects

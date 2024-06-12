@@ -1,5 +1,159 @@
-<script setup></script>
+<script setup>
+import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
+import LoadingSpinner from "@vueda/components/LoadingSpinner.vue";
+import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
+import { useCombinedClasses } from "@vueda/use/index.js";
+import useIsActive from "@vueda/use/useIsActive.js";
+import useModelConfig from "@vueda/use/useModelConfig.js";
+import { computed, reactive, toRef } from "vue";
 
-<template></template>
+defineOptions({
+    inheritAttrs: false,
+});
+const props = defineProps({
+    app: {
+        type: String,
+        required: true,
+    },
+    model: {
+        type: String,
+        required: true,
+    },
+    listFields: {
+        type: Array,
+        default: () => [],
+    },
+    variant: {
+        type: String,
+        default: "default",
+    },
+    outerClass: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
+    headerClass: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
+    titleClass: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
+    loadingClass: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
+    listActionsClass: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
+    listActionClass: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
+    detailActionsClass: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
+    detailActionClass: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
+    objectGridVariant: {
+        type: String,
+        default: "default",
+    },
+    // as long as there are no collisions, $attrs can be used to pass through any other props to objects-grid
+});
 
-<style scoped></style>
+const isActive = useIsActive();
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+const calculatedListFields = computed(() => {
+    // if they don't pass listFields, use the modelConfig fields.
+    //  modelConfig fields already falls back to models fields supplied by the server
+    return props.listFields || modelConfig.config.fields.map((f) => f.name);
+});
+const calculatedListFieldsObjs = computed(() => {
+    return modelConfig.config.fields.filter((f) => calculatedListFields.value.includes(f.name));
+});
+const validAndActive = computed(() => !!(isActive.value && props.app && props.model));
+const instanceListProps = reactive({
+    crudArgs: {
+        app: toRef(props, "app"),
+        model: toRef(props, "model"),
+    },
+    listArgs: {
+        f: calculatedListFields,
+    },
+    intendToList: validAndActive,
+    intendToSubscribe: validAndActive,
+});
+const instanceList = useList({
+    props: instanceListProps,
+});
+const sorting = reactive({
+    state: {
+        sortable: toRef(modelConfig.config, "listSortable"),
+        sorted: [],
+    },
+    updateSorted: (sorted) => {
+        // todo: objects-grid handles the display and calling this to indicate desired sorts.
+        //  we need to handle getting the server to sort the objects, by updating the listArgs
+        assignReactiveObject(sorting.state.sorted, sorted);
+    },
+});
+const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
+const combinedClasses = useCombinedClasses("@vueda/views/ViewList.vue", props);
+</script>
+
+<template>
+    <div :class="combinedClasses.outerClass">
+        <div :class="combinedClasses.headerClass">
+            <h1 :class="combinedClasses.titleClass">
+                {{ modelInfo?.verbose_name_plural || "Items" }}
+                <loading-spinner v-if="modelConfig.loading" :class="combinedClasses.loadingClass" />
+            </h1>
+        </div>
+        <!-- todo: filters/search -->
+        <!-- todo: pagination -->
+        <!-- todo: hide/show columns -->
+        <!-- todo: collection level actions -->
+        <div :class="combinedClasses.listActionsClass">
+            <div
+                v-for="actionName in modelConfig.config.listActions"
+                :key="actionName"
+                :class="combinedClasses.listActionClass"
+            >
+                <!-- todo: action buttons -->
+                {{ actionName }}
+            </div>
+        </div>
+        <!-- todo: bulk object level actions -->
+        <div :class="combinedClasses.detailActionsClass">
+            <div
+                v-for="actionName in modelConfig.config.detailActions"
+                :key="actionName"
+                :class="combinedClasses.detailActionClass"
+            >
+                <!-- todo: action buttons -->
+                {{ actionName }}
+            </div>
+        </div>
+        <!-- todo: a column that allows selecting objects for bulk detail actions -->
+        <objects-grid
+            ref="objectsGridRef"
+            v-bind="$attrs"
+            :calculated-objects="instanceList.state.calculatedObjects"
+            :data-qa="`view-list-${app}-${model}-objects-grid`"
+            :fields="calculatedListFieldsObjs"
+            :loading="loading"
+            :objects-in-order="instanceList.state.objectsInOrder"
+            :related-objects="instanceList.state.relatedObjects"
+            :sortable="sorting.state.sortable"
+            :sorted="sorting.state.sorted"
+            :variant="objectGridVariant"
+            @update:sorted="sorting.updateSorted"
+        >
+        </objects-grid>
+    </div>
+</template>

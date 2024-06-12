@@ -2,6 +2,7 @@ import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
+import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
 
 /**
@@ -50,7 +51,7 @@ const fetchHelper = async (url, options = {}, messagePrefix) => {
 };
 
 const modelInfoUrl = (app, model) =>
-    `${httpOrHttpsHostname}/routes/info/model_info/${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
+    `${httpOrHttpsHostname}/${getUrl("infoModelInfo")}/${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
 
 /**
  * storeModelInfo - store for model info
@@ -68,6 +69,11 @@ const modelInfoUrl = (app, model) =>
  *
  *   // reactive model info
  *   const modelInfo = computed(() => modelInfoStore.modelInfos[`${unref(myApp)}.${unref(myModel)}`]);
+ *
+ *   modelInfo.app_label // The app label of the model.
+ *   modelInfo.model // The python model class name (lowercase).
+ *   modelInfo.verbose_name // The verbose name of the model.
+ *   modelInfo.verbose_name_plural // The verbose name plural of the model.
  *
  *   // model info properties
  *   const fields = computed(() => unref(modelInfo)?.fields);
@@ -91,16 +97,49 @@ const modelInfoUrl = (app, model) =>
  *   field.choices // The choices for the field.
  *
  *   const actions = computed(() => unref(modelInfo)?.actions);
+ *   const action = computed(() => unref(actions)?.[0]);
+ *   // an action has the following properties:
+ *   action.name // The name of the action.
+ *   action.description // The description of the action.
+ *   action.detail // A boolean indicating whether the action is a detail view.
+ *   action.methodNames // An array of HTTP methods (e.g., GET, POST) for the action.
+ *   action.parameters // An optional array of parameters required for the action.
+ *
  *   const expands = computed(() => unref(modelInfo)?.expands);
+ *   const expand = computed(() => unref(expands)?.[0]);
+ *   // an expand has the following properties:
+ *   expand.name // The name of the expand field.
+ *   expand.fields // An optional array of fields that can be expanded.
+ *
  *   const ordering = computed(() => unref(modelInfo)?.ordering);
+ *   const order = computed(() => unref(ordering)?.[0]);
+ *   // an order information for a field has the following properties:
+ *   order.name // The name of the ordering field.
+ *   order.type // The type of the ordering field (e.g., "alpha", "numeric").
+ *
  *   const filtering = computed(() => unref(modelInfo)?.filtering);
+ *   const filter = computed(() => unref(filtering)?.[0]);
+ *   // a filter information for a field has the following properties:
+ *   filter.name // The name of the filtering field.
+ *   filter.type // The type of the filtering field (e.g., "alpha", "numeric").
+ *   filter.filters // An array of available filters for the field.
+ *   // an available filter has the following properties:
+ *   filter.filters.label // The label of the filter.
+ *   filter.filters.required // A boolean indicating whether the filter is required.
+ *   filter.filters.lookupExprs // An array of lookup expressions for the filter.
+ *
  *   const permissions = computed(() => unref(modelInfo)?.permissions);
+ *   const permission = computed(() => unref(permissions)?.[0]);
+ *   // a permission has the following properties:
+ *   permission.codename // The codename of the permission.
+ *   permission.name // The name of the permission.
  * ```
  */
 export default defineStore({
     id: "modelInfo",
     state: () => ({
         modelInfos: {},
+        existingPromises: {},
     }),
     actions: {
         async fetchModelInfo(app, model) {
@@ -109,14 +148,24 @@ export default defineStore({
             if (existing) {
                 return existing;
             }
-            this.modelInfos[key] = await fetchHelper(
-                modelInfoUrl(app, model),
-                {
-                    method: "GET",
-                },
-                "Failed to fetch model info",
-            );
-            return this.modelInfos[key];
+            if (!this.existingPromises[key]) {
+                this.existingPromises[key] = fetchHelper(
+                    modelInfoUrl(app, model),
+                    {
+                        method: "GET",
+                    },
+                    "Failed to fetch model info",
+                )
+                    .then((data) => {
+                        this.modelInfos[key] = data;
+                        return data;
+                    })
+                    .finally(() => {
+                        delete this.existingPromises[key];
+                    });
+            }
+
+            return this.existingPromises[key];
         },
     },
 });
