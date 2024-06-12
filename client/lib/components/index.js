@@ -1,2 +1,12 @@
-export * from "./FormWrapper.vue";
-export { default as FormWrapper } from "./FormWrapper.vue";
+export * from "@vueda/components/FormFeedback.vue";
+export * from "@vueda/components/FormHelpText.vue";
+export * from "@vueda/components/FormLabel.vue";
+export * from "@vueda/components/FormModel.vue";
+export * from "@vueda/components/FormWrapper.vue";
+export * from "@vueda/components/LoadingSpinner.vue";
+export { default as FormFeedback } from "@vueda/components/FormFeedback.vue";
+export { default as FormHelpText } from "@vueda/components/FormHelpText.vue";
+export { default as FormLabel } from "@vueda/components/FormLabel.vue";
+export { default as FormModel } from "@vueda/components/FormModel.vue";
+export { default as FormWrapper } from "@vueda/components/FormWrapper.vue";
+export { default as LoadingSpinner } from "@vueda/components/LoadingSpinner.vue";

@@ -28,6 +28,7 @@ class ToastError extends Error {
  *    id: "id", // optional, will be generated if not provided, must be unique
  *    timestamp: DateTime.now().toISO(), // example would be "2021-08-01T12:00:00.000-04:00"
  *    autoDismiss: 5000, // auto dismiss in milliseconds, or falsey for no auto dismiss
+ *    autoDismissProgress: 0, // updated by the store to show progress of auto dismiss
  *  };
  */
 export default defineStore({
@@ -35,6 +36,7 @@ export default defineStore({
     state: () => ({
         toasts: [],
         toastDismissTimeouts: {},
+        progressInterval: null,
     }),
     actions: {
         addToast(toastDefinition) {
@@ -49,6 +51,18 @@ export default defineStore({
                     this.removeToast(id);
                 }, myToastDefinition.autoDismiss);
             }
+            if (!this.progressInterval) {
+                this.progressInterval = setInterval(() => {
+                    this.toasts.forEach((toast) => {
+                        if (toast.autoDismiss) {
+                            const timeElapsed = DateTime.now()
+                                .diff(DateTime.fromISO(toast.timestamp))
+                                .as("milliseconds");
+                            toast.autoDismissProgress = (timeElapsed / toast.autoDismiss) * 100;
+                        }
+                    });
+                }, 100);
+            }
             return id;
         },
         removeToast(toastId) {
@@ -61,6 +75,10 @@ export default defineStore({
                 delete this.toastDismissTimeouts[toastId];
             }
             this.toasts.splice(index, 1);
+            if (this.toasts.length === 0) {
+                clearInterval(this.progressInterval);
+                this.progressInterval = null;
+            }
         },
     },
 });

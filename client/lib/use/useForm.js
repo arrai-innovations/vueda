@@ -1,30 +1,32 @@
-import { del } from "@arrai-innovations/reactive-helpers";
-import { FormContextSymbol } from "@vueda/utils/index.js";
+import { assignReactiveObject, del } from "@arrai-innovations/reactive-helpers";
+import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import set from "lodash-es/set.js";
 import { provide, reactive, readonly, toRef, watch } from "vue";
 
 export default function useForm(props) {
-    const form = reactive({
+    const state = reactive({
         values: {},
         errors: {},
         messages: {},
         dirty: {},
+        anyDirty: false,
+        doSubmit: undefined,
     });
-    form.initialValues = toRef(() => props.initialValues);
+    state.initialValues = toRef(() => props.initialValues);
 
     const updateFormValue = (name, value) => {
         if (name) {
-            set(form.values, name, value);
+            set(state.values, name, value);
         } else {
             throw new Error("No name provided to updateFormValue");
         }
     };
     const deleteFormValue = (name) => {
         if (name) {
-            if (get(form.values, name) !== undefined) {
-                del(form.values, name);
+            if (get(state.values, name) !== undefined) {
+                del(state.values, name);
             }
         } else {
             throw new Error("No name provided to deleteFormValue");
@@ -32,7 +34,7 @@ export default function useForm(props) {
     };
     const updateError = (name, code, message) => {
         if (name && code && message) {
-            set(form.errors, `${name}.${code}`, message);
+            set(state.errors, `${name}.${code}`, message);
         } else {
             throw new Error("No name or code or message provided to updateError");
         }
@@ -40,8 +42,8 @@ export default function useForm(props) {
     const deleteError = (name, code) => {
         if (name) {
             const key = code ? `${name}.${code}` : name;
-            if (get(form.errors, key)) {
-                del(form.errors, key);
+            if (get(state.errors, key)) {
+                del(state.errors, key);
             }
         } else {
             throw new Error("No name provided to deleteError");
@@ -49,7 +51,7 @@ export default function useForm(props) {
     };
     const updateMessage = (name, code, message) => {
         if (name && code && message) {
-            set(form.messages, `${name}.${code}`, message);
+            set(state.messages, `${name}.${code}`, message);
         } else {
             throw new Error("No name or code or message provided to updateMessage");
         }
@@ -57,33 +59,45 @@ export default function useForm(props) {
     const deleteMessage = (name, code) => {
         if (name) {
             const key = code ? `${name}.${code}` : name;
-            if (get(form.messages, key)) {
-                del(form.messages, key);
+            if (get(state.messages, key)) {
+                del(state.messages, key);
             }
         } else {
             throw new Error("No name provided to deleteMessage");
         }
     };
-    const updateDirty = (name, value) => {
+    const setDirty = (name) => {
         if (name) {
-            set(form.dirty, name, value);
+            set(state.dirty, name, true);
+            // only you can prevent over-reactivity
+            if (!state.anyDirty) {
+                state.anyDirty = true;
+            }
         } else {
             throw new Error("No name provided to updateDirty");
         }
     };
-    const deleteDirty = (name) => {
+    const clearDirty = (name) => {
         if (name) {
-            del(form.dirty, name);
+            del(state.dirty, name);
+            state.anyDirty = Object.keys(state.dirty).length > 0;
         } else {
             throw new Error("No name provided to deleteDirty");
         }
+    };
+    const resetAllDirty = () => {
+        assignReactiveObject(state.dirty, {});
+        state.anyDirty = false;
+    };
+    const updateDoSubmit = (fn) => {
+        state.doSubmit = fn;
     };
 
     watch(
         () => props.initialValues,
         (initialValues) => {
             if (initialValues) {
-                form.values = cloneDeep(initialValues);
+                state.values = cloneDeep(initialValues);
             }
         },
         {
@@ -92,15 +106,17 @@ export default function useForm(props) {
         },
     );
     const formContext = readonly({
-        form,
+        state,
         updateFormValue,
         deleteFormValue,
         updateError,
         deleteError,
         updateMessage,
         deleteMessage,
-        updateDirty,
-        deleteDirty,
+        setDirty,
+        clearDirty,
+        resetAllDirty,
+        updateDoSubmit,
     });
     provide(FormContextSymbol, formContext);
     return formContext;

@@ -38,7 +38,7 @@ vueda-client
 
 ## About
 
-[vueda-client] offers a dynamic Vue.js frontend framework, perfectly tailored
+[vueda-client] offers a dynamic Vue.js frontend framework, tailored
 for seamless integration with Django REST Framework backends and designed to
 complement [vueda-server]. This client library enables rapid development of
 reactive user interfaces in Django-Vue projects. It features components and
@@ -47,8 +47,8 @@ These tools allow client-side configuration and leverage server-supplied model
 and field metadata to drive forms, fields, views, and routes dynamically.
 Prioritizing developer flexibility, [vueda-client] provides extensive
 customization and theming options for its default components. It also includes
-advanced authentication, navigation, and permission management features, all
-meticulously crafted to integrate smoothly with the corresponding backend
+authentication, navigation, and permission management features, all
+crafted to integrate smoothly with the corresponding backend
 services of [vueda-server].
 
 ## Install

@@ -1,17 +1,15 @@
 <script setup>
-import FieldHelp from "@vueda/fields/FieldHelp.vue";
-import FieldLabel from "@vueda/fields/FieldLabel.vue";
-import FieldMessages from "@vueda/fields/FieldMessages.vue";
 import useField, { fieldProps } from "@vueda/use/useField.js";
-import { computed, toRef, watch } from "vue";
+import { FormContextSymbol } from "@vueda/utils/index.js";
+import { computed, inject, toRef, watch } from "vue";
 
 const props = defineProps({
     ...fieldProps,
-    max: {
+    maxValue: {
         type: Number,
         default: undefined,
     },
-    min: {
+    minValue: {
         type: Number,
         default: undefined,
     },
@@ -20,25 +18,26 @@ const props = defineProps({
         default: undefined,
     },
 });
+const formContext = inject(FormContextSymbol);
 const fieldContext = useField(props);
-const combinedProps = computed(() => ({
-    ...fieldContext,
-    ...props,
-}));
 watch(
-    [toRef(props, "max"), toRef(fieldContext, "value")],
-    ([max, value]) => {
-        if (max && value > max) {
-            fieldContext.updateError(props.name, "max", `Must be ${max} or less.`);
+    [toRef(props, "maxValue"), toRef(fieldContext, "value")],
+    ([maxValue, value]) => {
+        if (maxValue && value > maxValue) {
+            formContext.updateError(props.name, "maxValue", `Must be ${maxValue} or less.`);
+        } else {
+            formContext.deleteError(props.name, "maxValue");
         }
     },
     { immediate: true },
 );
 watch(
-    [toRef(props, "min"), toRef(fieldContext, "value")],
-    ([min, value]) => {
-        if (min && value < min) {
-            fieldContext.updateError(props.name, "min", `Must be ${min} or more.`);
+    [toRef(props, "minValue"), toRef(fieldContext, "value")],
+    ([minValue, value]) => {
+        if (minValue && value < minValue) {
+            formContext.updateError(props.name, "minValue", `Must be ${minValue} or more.`);
+        } else {
+            formContext.deleteError(props.name, "minValue");
         }
     },
     { immediate: true },
@@ -62,29 +61,25 @@ watch(
             const stepScaled = step * factor;
             const valueScaled = value * factor;
             if (valueScaled % stepScaled !== 0) {
-                fieldContext.updateError(props.name, "step", `Must be a multiple of ${step}.`);
+                formContext.updateError(props.name, "step", `Must be a multiple of ${step}.`);
             }
         } else {
-            fieldContext.deleteError(props.name, "step");
+            formContext.deleteError(props.name, "step");
+        }
+    },
+    { immediate: true },
+);
+watch(
+    toRef(fieldContext, "fieldValue"),
+    (newValue) => {
+        const coercedValue = +newValue;
+        if (coercedValue !== fieldContext.value) {
+            fieldContext.value = coercedValue;
         }
     },
     { immediate: true },
 );
 </script>
 <template>
-    <div>
-        <field-label v-if="label || $slots.label" :for="name" :label="label">
-            <slot v-if="$slots.label" name="label" v-bind="combinedProps" />
-        </field-label>
-        <slot v-bind="combinedProps" />
-        <field-help v-if="help || $slots.help" :help="help">
-            <slot v-if="$slots.help" name="help" v-bind="combinedProps" />
-        </field-help>
-        <field-messages :messages="fieldContext.errors">
-            <slot v-if="$slots.errors" name="errors" v-bind="combinedProps" />
-        </field-messages>
-        <field-messages :messages="fieldContext.messages">
-            <slot v-if="$slots.messages" name="messages" v-bind="combinedProps" />
-        </field-messages>
-    </div>
+    <slot />
 </template>

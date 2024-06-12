@@ -1,12 +1,19 @@
-import { useIsActive } from "@vueda/use/useIsActive.js";
+import useIsActive from "@vueda/use/useIsActive.js";
 import { onMounted, onUnmounted } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 
+/**
+ * useLeaveUnload - A hook that listens for route changes and warns the user if they have unsaved changes.
+ * @param state
+ * @property {boolean} state.dirty - Whether the form is dirty.
+ * @property {boolean} state.submitting - Whether the form is submitting.
+ * @returns {void}
+ */
 export default function useLeaveUnload(state) {
     const isActive = useIsActive();
 
     const beforeRouteLeaveListener = () => {
-        if (isActive.value && state.isModified && !state.submitting) {
+        if (isActive.value && state.dirty && !state.submitting) {
             const answer = window.confirm("You have unsaved changes, are you sure to leave?");
             // cancel the navigation and stay on the same page
             if (!answer) {
@@ -15,7 +22,7 @@ export default function useLeaveUnload(state) {
         }
     };
     const beforeUnloadListener = (event) => {
-        if (isActive.value && state.isModified && !state.submitting) {
+        if (isActive.value && state.dirty && !state.submitting) {
             if (import.meta.env.DEV) {
                 // these tend to stack up in auto reloading dev, which is annoying
                 console.log("unload unsaved changes would have fired");

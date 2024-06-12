@@ -2,6 +2,7 @@
 import TextAlign from "@tiptap/extension-text-align";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/vue-3";
+import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import useWidget, { widgetEmits, widgetProps } from "@vueda/use/useWidget.js";
 import { unref } from "vue";
 
@@ -40,11 +41,27 @@ const props = defineProps({
             TextAlign.configure({ types: ["paragraph", "list"] }),
         ],
     },
+    variant: {
+        type: String,
+        default: "default",
+    },
+    outerClass: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
+    menuClass: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
+    editorClass: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
 });
 const emit = defineEmits([...widgetEmits]);
-const { combinedName, combinedValue } = useWidget(props, emit);
+const widget = useWidget(props, emit);
 const editor = useEditor({
-    content: props.combinedValue,
+    content: widget.combinedValue,
     extensions: props.extensions,
     injectCSS: false,
     editable: !props.disabled,
@@ -57,15 +74,18 @@ const editor = useEditor({
     onUpdate: () => {
         const unrefEditor = unref(editor);
         const html = unrefEditor.getHTML();
-        if (props.fieldValue !== html) {
-            emit("update:field-value", unrefEditor.getHTML());
+        if (widget.combinedValue !== html) {
+            // let useWidget emit the change
+            widget.combinedValue = html;
+            widget.makeDirty();
         }
     },
 });
+const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetHtml.vue", props);
 </script>
 <template>
-    <div>
-        <component :is="menuComponent" :disabled="disabled" :editor="editor" />
-        <editor-content v-bind="$attrs" :editor="editor" />
+    <div :class="combinedClasses.outerClass">
+        <component :is="menuComponent" :class="combinedClasses.menuClass" :disabled="disabled" :editor="editor" />
+        <editor-content :class="combinedClasses.editorClass" v-bind="$attrs" :editor="editor" />
     </div>
 </template>
