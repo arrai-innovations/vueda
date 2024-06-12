@@ -1,6 +1,7 @@
 export * from "./useCombinedClasses.js";
 export * from "./useField.js";
 export * from "./useForm.js";
+export * from "./useFormModel.js";
 export * from "./useIsActive.js";
 export * from "./useLeaveUnload.js";
 export * from "./useModelConfig.js";
@@ -11,6 +12,7 @@ export * from "./useWindowShortcut.js";
 export { default as useCombinedClasses } from "./useCombinedClasses.js";
 export { default as useField } from "./useField.js";
 export { default as useForm } from "./useForm.js";
+export { default as useFormModel } from "./useFormModel.js";
 export { default as useIsActive } from "./useIsActive.js";
 export { default as useLeaveUnload } from "./useLeaveUnload.js";
 export { default as useModelConfig } from "./useModelConfig.js";

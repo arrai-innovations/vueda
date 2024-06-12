@@ -14,7 +14,7 @@ const props = defineProps({
     },
 });
 const fieldContext = useField(props);
-const valueAsDate = computed(() => {
+const valueAsDateTime = computed(() => {
     const value = fieldContext.value;
     if (value) {
         return new Date(value);
@@ -22,7 +22,7 @@ const valueAsDate = computed(() => {
     return null;
 });
 watch(
-    [toRef(props, "maxValue"), valueAsDate],
+    [toRef(props, "maxValue"), valueAsDateTime],
     ([maxValue, value]) => {
         if (maxValue && value > maxValue) {
             fieldContext.updateError(props.name, "maxValue", `Must be ${maxValue} or less.`);
@@ -31,7 +31,7 @@ watch(
     { immediate: true },
 );
 watch(
-    [toRef(props, "minValue"), valueAsDate],
+    [toRef(props, "minValue"), valueAsDateTime],
     ([minValue, value]) => {
         if (minValue && value < minValue) {
             fieldContext.updateError(props.name, "minValue", `Must be ${minValue} or more.`);
@@ -40,6 +40,4 @@ watch(
     { immediate: true },
 );
 </script>
-<template>
-    <slot />
-</template>
+<template><slot /></template>

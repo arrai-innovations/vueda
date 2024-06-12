@@ -1,7 +1,4 @@
 <script setup>
-import FieldHelp from "@vueda/fields/FieldHelp.vue";
-import FieldLabel from "@vueda/fields/FieldLabel.vue";
-import FieldMessages from "@vueda/fields/FieldMessages.vue";
 import useField, { fieldProps } from "@vueda/use/useField.js";
 import { computed, toRef, watch } from "vue";
 
@@ -29,10 +26,6 @@ const props = defineProps({
     },
 });
 const fieldContext = useField(props);
-const combinedProps = computed(() => ({
-    ...fieldContext,
-    ...props,
-}));
 watch(
     [toRef(props, "trim"), toRef(fieldContext, "value")],
     ([trim, value]) => {
@@ -49,7 +42,7 @@ watch(
     [toRef(props, "maxLength"), toRef(fieldContext, "value")],
     ([maxLength, value]) => {
         if (maxLength && value.length > maxLength) {
-            fieldContext.updateError(props.name, "maxLength", `Must be ${maxLength} characters or less.`);
+            fieldContext.updateError("maxLength", `Must be ${maxLength} characters or less.`);
         }
     },
     { immediate: true },
@@ -58,7 +51,7 @@ watch(
     [toRef(props, "minLength"), toRef(fieldContext, "value")],
     ([minLength, value]) => {
         if (minLength && value.length < minLength) {
-            fieldContext.updateError(props.name, "minLength", `Must be ${minLength} characters or more.`);
+            fieldContext.updateError("minLength", `Must be ${minLength} characters or more.`);
         }
     },
     { immediate: true },
@@ -81,28 +74,24 @@ watch(
             patternRegex &&
             !patternRegex.test(value)
         ) {
-            fieldContext.updateError(props.name, "pattern", `Must match "${patternForMessage || patternRegex}".`);
+            fieldContext.updateError("pattern", `Must match "${patternForMessage || patternRegex}".`);
         } else {
-            fieldContext.deleteError(props.name, "pattern");
+            fieldContext.deleteError("pattern");
+        }
+    },
+    { immediate: true },
+);
+watch(
+    toRef(fieldContext, "fieldValue"),
+    (newValue) => {
+        const coercedValue = newValue.toString();
+        if (coercedValue !== fieldContext.value) {
+            fieldContext.value = coercedValue;
         }
     },
     { immediate: true },
 );
 </script>
 <template>
-    <div>
-        <field-label v-if="label || $slots.label" :for="name" :label="label">
-            <slot v-if="$slots.label" name="label" v-bind="combinedProps" />
-        </field-label>
-        <slot v-bind="combinedProps" />
-        <field-help v-if="help || $slots.help" :help="help">
-            <slot v-if="$slots.help" name="help" v-bind="combinedProps" />
-        </field-help>
-        <field-messages :messages="fieldContext.errors">
-            <slot v-if="$slots.errors" name="errors" v-bind="combinedProps" />
-        </field-messages>
-        <field-messages :messages="fieldContext.messages">
-            <slot v-if="$slots.messages" name="messages" v-bind="combinedProps" />
-        </field-messages>
-    </div>
+    <slot />
 </template>

@@ -1,6 +1,6 @@
 // useWidget.js
 import { FieldContextSymbol } from "@vueda/utils/index.js";
-import { computed, inject, reactive } from "vue";
+import { computed, inject, readonly } from "vue";
 
 export const widgetProps = {
     name: {
@@ -36,11 +36,23 @@ export default function useWidget(props, emit) {
             }
         },
     });
-    return reactive({
+    const makeDirty = () => {
+        if (!fieldContext.dirty) {
+            fieldContext.setDirty();
+        }
+    };
+    const clearDirty = () => {
+        if (fieldContext.dirty) {
+            fieldContext.clearDirty();
+        }
+    };
+    return readonly({
         widgetId: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
         combinedValue,
         combinedName: computed(() => {
             return props.name || fieldContext.name;
         }),
+        makeDirty,
+        clearDirty,
     });
 }

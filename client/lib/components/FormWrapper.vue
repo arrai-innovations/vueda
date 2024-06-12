@@ -1,5 +1,6 @@
 <script setup>
 import useForm from "@vueda/use/useForm.js";
+import { toRef, watch } from "vue";
 
 const props = defineProps({
     initialValues: {
@@ -7,11 +8,14 @@ const props = defineProps({
         default: () => ({}),
     },
 });
-const emit = defineEmits(["submit"]);
+const emit = defineEmits(["submit", "dirty"]);
 const form = useForm(props);
 const handleSubmit = () => {
     emit("submit", form);
 };
+watch(toRef(form, "anyDirty"), (dirty) => {
+    emit("dirty", dirty);
+});
 const doSubmit = () => {
     handleSubmit();
 };

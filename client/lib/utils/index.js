@@ -4,6 +4,7 @@ export * from "./csrf.js";
 export * from "./crudSupport.js";
 export * from "./errors.js";
 export * from "./fetchSupport.js";
+export * from "./fieldMapping.js";
 export * from "./formatError.js";
 export * from "./memoized.js";
 export * from "./symbols.js";

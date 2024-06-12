@@ -1,6 +1,7 @@
 <script setup>
 import useField, { fieldProps } from "@vueda/use/useField.js";
-import { computed, toRef, watch } from "vue";
+import { FormContextSymbol } from "@vueda/utils/symbols.js";
+import { computed, inject, toRef, watch } from "vue";
 
 const props = defineProps({
     ...fieldProps,
@@ -13,28 +14,33 @@ const props = defineProps({
         default: undefined,
     },
 });
+const formContext = inject(FormContextSymbol);
 const fieldContext = useField(props);
-const valueAsDate = computed(() => {
+const valueAsTime = computed(() => {
     const value = fieldContext.value;
     if (value) {
-        return new Date(value);
+        return new Date(`1970-01-01T${value}Z`);
     }
     return null;
 });
 watch(
-    [toRef(props, "maxValue"), valueAsDate],
+    [toRef(props, "maxValue"), valueAsTime],
     ([maxValue, value]) => {
         if (maxValue && value > maxValue) {
-            fieldContext.updateError(props.name, "maxValue", `Must be ${maxValue} or less.`);
+            formContext.updateError(props.name, "maxValue", `Must be ${maxValue} or less.`);
+        } else {
+            formContext.deleteError(props.name, "maxValue");
         }
     },
     { immediate: true },
 );
 watch(
-    [toRef(props, "minValue"), valueAsDate],
+    [toRef(props, "minValue"), valueAsTime],
     ([minValue, value]) => {
         if (minValue && value < minValue) {
-            fieldContext.updateError(props.name, "minValue", `Must be ${minValue} or more.`);
+            formContext.updateError(props.name, "minValue", `Must be ${minValue} or more.`);
+        } else {
+            formContext.deleteError(props.name, "minValue");
         }
     },
     { immediate: true },
