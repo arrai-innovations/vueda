@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
                 )
             VALUES
                 (
-                    'Can Fulfill Orders',
+                    'Can fulfill orders',
                     (
                         SELECT
                             id

@@ -66,13 +66,12 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
     Effectively, this is a custom model serializer for content types.
     """
 
+    verbose_name = serializers.SerializerMethodField()
+    verbose_name_plural = serializers.SerializerMethodField()
+
     class Meta:
         model = ContentType
-        fields = [
-            "id",
-            "app_label",
-            "model",
-        ]
+        fields = ["id", "app_label", "model", "verbose_name", "verbose_name_plural"]
         expandable_fields = {
             "model_permissions": serializers.SerializerMethodField,
             "model_fields": serializers.SerializerMethodField,
@@ -88,6 +87,12 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
     @cached_property
     def canonical(self):
         return get_registration(self.instance.pk)
+
+    def get_verbose_name(self, instance):
+        return instance.model_class()._meta.verbose_name
+
+    def get_verbose_name_plural(self, instance):
+        return instance.model_class()._meta.verbose_name_plural
 
     def get_model_permissions(self, instance):
         """
@@ -150,10 +155,11 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
             action_item_data = {
                 "name": action,
                 "description": f"{action} {app_label}.{model_name}",
-                "detail": action != "list",
+                "detail": False,
                 "method_names": [METHOD_MAPPING[action]],
             }
-            if action != "list":
+            if action not in ("list", "create"):
+                action_item_data["detail"] = True
                 parameters = viewset.detail_args
                 if parameters:
                     action_item_data["parameters"] = parameters

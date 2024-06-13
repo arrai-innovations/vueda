@@ -1,5 +1,7 @@
 import datetime
+from collections import defaultdict
 from decimal import Decimal
+from pprint import pformat
 
 import pytest
 from django.conf import settings
@@ -42,6 +44,1370 @@ from tests.store.viewsets import OrderItemViewSet
 from tests.store.viewsets import ProductOptionViewSet
 from tests.store.viewsets import ProductViewSet
 from vueda import info
+
+
+DETAIL_PARAMETRIZE = [
+    (
+        "store",
+        "distributor",
+        {
+            "expected_actions": {
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+                "current",
+            },
+            "expected_expands": [
+                {"name": "first_history_entry"},
+                {"name": "history"},
+                {"name": "last_history_entry"},
+            ],
+            "expected_fields": [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "name",
+                    "label": None,
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+            ],
+            "expected_filtering": [
+                {
+                    "name": "name",
+                    "type": "alpha",
+                    "filters": [
+                        {
+                            "label": "Name",
+                            "lookup_exprs": [
+                                "exact",
+                                "contains",
+                            ],
+                        },
+                    ],
+                },
+            ],
+            "expected_ordering": [
+                {"name": "name", "type": "alpha"},
+            ],
+            "expected_permissions": [
+                {"codename": "create_distributor", "name": "Can create distributor"},
+                {"codename": "delete_distributor", "name": "Can delete distributor"},
+                {"codename": "list_distributor", "name": "Can list distributor"},
+                {"codename": "read_distributor", "name": "Can read distributor"},
+                {"codename": "update_distributor", "name": "Can update distributor"},
+            ],
+        },
+    ),
+    (
+        "store",
+        "optiontype",
+        {
+            "expected_actions": {
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+            },
+            "expected_expands": [],
+            "expected_fields": [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "code",
+                    "label": None,
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+                {
+                    "name": "name",
+                    "label": None,
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+            ],
+            "expected_filtering": [],
+            "expected_ordering": [
+                {"name": "name", "type": "alpha"},
+            ],
+            "expected_permissions": [
+                {"codename": "create_optiontype", "name": "Can create option type"},
+                {"codename": "delete_optiontype", "name": "Can delete option type"},
+                {"codename": "list_optiontype", "name": "Can list option type"},
+                {"codename": "read_optiontype", "name": "Can read option type"},
+                {"codename": "update_optiontype", "name": "Can update option type"},
+            ],
+        },
+    ),
+    (
+        "store",
+        "customer",
+        {
+            "expected_actions": {
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+                "current",
+            },
+            "expected_expands": [
+                {
+                    "name": "user",
+                    "fields": [
+                        "id",
+                        "email",
+                        "name",
+                    ],
+                },
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
+                },
+            ],
+            "expected_fields": [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "user",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": {
+                        "test_admin@example.com",
+                        "test_customer_1@example.com",
+                        "test_customer_2@example.com",
+                    },
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+            ],
+            "expected_filtering": [],
+            "expected_ordering": [
+                {"name": "user__email", "type": "alpha"},
+            ],
+            "expected_permissions": [
+                {"codename": "create_customer", "name": "Can create customer"},
+                {"codename": "delete_customer", "name": "Can delete customer"},
+                {"codename": "list_customer", "name": "Can list customer"},
+                {"codename": "read_customer", "name": "Can read customer"},
+                {"codename": "update_customer", "name": "Can update customer"},
+            ],
+        },
+    ),
+    (
+        "store",
+        "cart",
+        {
+            "expected_actions": {
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+                "abandoned-carts-count",
+                "create-order",
+            },
+            "expected_expands": [
+                {
+                    "name": "customer",
+                    "fields": [
+                        "id",
+                        "user",
+                    ],
+                },
+                {
+                    "name": "cart_items",
+                    "fields": [
+                        "id",
+                        "user",
+                        "product_options",
+                        "quantity",
+                    ],
+                },
+            ],
+            "expected_fields": [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "customer",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": {
+                        "test_customer_1@example.com",
+                        "test_customer_2@example.com",
+                    },
+                },
+                {
+                    "name": "last_modified",
+                    "label": None,
+                    "type": "DateTimeField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "cart_items",
+                    "label": None,
+                    "type": "ManyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                },
+            ],
+            "expected_filtering": [],
+            "expected_ordering": [
+                {"name": "customer__user__email", "type": "alpha"},
+                {"name": "last_modified", "type": "datetime"},
+            ],
+            "expected_permissions": [
+                {"codename": "create_cart", "name": "Can create cart"},
+                {"codename": "delete_cart", "name": "Can delete cart"},
+                {"codename": "list_cart", "name": "Can list cart"},
+                {"codename": "read_cart", "name": "Can read cart"},
+                {"codename": "update_cart", "name": "Can update cart"},
+            ],
+        },
+    ),
+    (
+        "store",
+        "customerorder",
+        {
+            "expected_actions": {
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+                "current",
+            },
+            "expected_expands": [
+                {
+                    "name": "customer",
+                    "fields": [
+                        "id",
+                        "user",
+                    ],
+                },
+                {
+                    "name": "order_state",
+                    "fields": [
+                        "id",
+                        "code",
+                        "name",
+                    ],
+                },
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
+                },
+            ],
+            "expected_fields": [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "order_number",
+                    "label": None,
+                    "type": "DecimalField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_digits": 7,
+                },
+                {
+                    "name": "when",
+                    "label": "Date / Time",
+                    "type": "DateTimeField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "customer",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": {
+                        "test_customer_1@example.com",
+                        "test_customer_2@example.com",
+                    },
+                },
+                {
+                    "name": "order_state",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": {
+                        "New",
+                        "Packed",
+                        "Returned",
+                        "Shipped",
+                    },
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+            ],
+            "expected_filtering": [],
+            "expected_ordering": [
+                {"name": "order_number", "type": "numeric"},
+                {"name": "customer__user__email", "type": "alpha"},
+                {"name": "when", "type": "datetime"},
+                {"name": "order_state", "type": "alpha"},
+            ],
+            "expected_permissions": [
+                {"codename": "create_customerorder", "name": "Can create customer order"},
+                {"codename": "delete_customerorder", "name": "Can delete customer order"},
+                {"codename": "list_customerorder", "name": "Can list customer order"},
+                {"codename": "read_customerorder", "name": "Can read customer order"},
+                {"codename": "update_customerorder", "name": "Can update customer order"},
+                {"codename": "fulfill_orders", "name": "Can fulfill orders"},
+            ],
+        },
+    ),
+    (
+        "store",
+        "inventoryrecordreason",
+        {
+            "expected_actions": {
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+            },
+            "expected_expands": [],
+            "expected_fields": [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "name",
+                    "label": "Reason",
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+                {
+                    "name": "code",
+                    "label": None,
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+                {
+                    "name": "is_added_reason",
+                    "label": None,
+                    "type": "BooleanField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                },
+            ],
+            "expected_filtering": [],
+            "expected_ordering": [
+                {"name": "name", "type": "alpha"},
+            ],
+            "expected_permissions": [
+                {"codename": "create_inventoryrecordreason", "name": "Can create inventory record reason"},
+                {"codename": "delete_inventoryrecordreason", "name": "Can delete inventory record reason"},
+                {"codename": "list_inventoryrecordreason", "name": "Can list inventory record reason"},
+                {"codename": "read_inventoryrecordreason", "name": "Can read inventory record reason"},
+                {"codename": "update_inventoryrecordreason", "name": "Can update inventory record reason"},
+            ],
+        },
+    ),
+    (
+        "store",
+        "product",
+        {
+            "expected_actions": {
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+                "current",
+            },
+            "expected_expands": [
+                {
+                    "name": "distributor",
+                    "fields": [
+                        "id",
+                        "name",
+                    ],
+                },
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
+                },
+            ],
+            "expected_fields": [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "distributor",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": {
+                        "T-Shirt Corp.",
+                        "Tasty Treats Assoc.",
+                        "Vibrant Looks Inc.",
+                    },
+                },
+                {
+                    "name": "name",
+                    "label": None,
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+                {
+                    "name": "disabled",
+                    "label": None,
+                    "type": "BooleanField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+            ],
+            "expected_filtering": [
+                {
+                    "name": "name",
+                    "type": "alpha",
+                    "filters": [
+                        {
+                            "label": "Name",
+                            "lookup_exprs": [
+                                "exact",
+                                "contains",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "disabled",
+                    "type": "boolean",
+                    "filters": [
+                        {
+                            "lookup_exprs": [
+                                "exact",
+                            ],
+                        },
+                    ],
+                },
+            ],
+            "expected_ordering": [
+                {"name": "distributor__name", "type": "alpha"},
+                {"name": "name", "type": "alpha"},
+                {"name": "disabled", "type": "boolean"},
+            ],
+            "expected_permissions": [
+                {"codename": "create_product", "name": "Can create product"},
+                {"codename": "delete_product", "name": "Can delete product"},
+                {"codename": "list_product", "name": "Can list product"},
+                {"codename": "read_product", "name": "Can read product"},
+                {"codename": "update_product", "name": "Can update product"},
+            ],
+        },
+    ),
+    (
+        "store",
+        "productoption",
+        {
+            "expected_actions": {
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+                "current",
+            },
+            "expected_expands": [
+                {
+                    "name": "option_type",
+                    "fields": [
+                        "id",
+                        "code",
+                        "name",
+                    ],
+                },
+                {
+                    "name": "product",
+                    "fields": [
+                        "id",
+                        "distributor",
+                        "name",
+                        "disabled",
+                    ],
+                },
+                {
+                    "name": "first_history_entry",
+                },
+                {
+                    "name": "history",
+                },
+                {
+                    "name": "last_history_entry",
+                },
+            ],
+            "expected_fields": [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "product",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": {
+                        "Men's White T-Shirt",
+                        "Paint",
+                        "Shaped Cookies For Drapes",
+                        "Spray Paint",
+                        "Square Cookies For Squares",
+                        "Women's White T-Shirt",
+                    },
+                },
+                {
+                    "name": "option_type",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": False,
+                    "choices": {
+                        "Size",
+                        "Colour",
+                        "Flavour",
+                    },
+                },
+                {
+                    "name": "name",
+                    "label": None,
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+                {
+                    "name": "sku",
+                    "label": None,
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+                {
+                    "name": "gtin",
+                    "label": None,
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                },
+                {
+                    "name": "price",
+                    "label": None,
+                    "type": "DecimalField",
+                    "many": False,
+                    "read_only": False,
+                    "required": False,
+                    "max_digits": 12,
+                    "decimal_places": 2,
+                },
+                {
+                    "name": "disabled",
+                    "label": None,
+                    "type": "BooleanField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                },
+                {
+                    "name": "current_history_id",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+            ],
+            "expected_filtering": [
+                {
+                    "name": "name",
+                    "type": "alpha",
+                    "filters": [
+                        {
+                            "label": "Name",
+                            "lookup_exprs": [
+                                "exact",
+                                "contains",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "sku",
+                    "type": "alpha",
+                    "filters": [
+                        {
+                            "label": "SKU",
+                            "lookup_exprs": [
+                                "exact",
+                                "contains",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "price",
+                    "type": "numeric",
+                    "filters": [
+                        {
+                            "label": "Price",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "disabled",
+                    "type": "boolean",
+                    "filters": [
+                        {
+                            "lookup_exprs": [
+                                "exact",
+                            ],
+                        },
+                    ],
+                },
+            ],
+            "expected_ordering": [
+                {"name": "name", "type": "alpha"},
+                {"name": "option_type", "type": "alpha"},
+                {"name": "sku", "type": "alpha"},
+                {"name": "gtin", "type": "alpha"},
+                {"name": "price", "type": "numeric"},
+            ],
+            "expected_permissions": [
+                {"codename": "create_productoption", "name": "Can create product option"},
+                {"codename": "delete_productoption", "name": "Can delete product option"},
+                {"codename": "list_productoption", "name": "Can list product option"},
+                {"codename": "read_productoption", "name": "Can read product option"},
+                {"codename": "update_productoption", "name": "Can update product option"},
+            ],
+        },
+    ),
+    (
+        "store",
+        "orderitem",
+        {
+            "expected_actions": {
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+            },
+            "expected_expands": [
+                {
+                    "name": "customer_order",
+                    "fields": [
+                        "id",
+                        "order_number",
+                        "when",
+                        "customer",
+                        "order_state",
+                    ],
+                },
+                {
+                    "name": "product_option",
+                    "fields": [
+                        "id",
+                        "product",
+                        "option_type",
+                        "name",
+                        "sku",
+                        "gtin",
+                        "price",
+                        "disabled",
+                    ],
+                },
+            ],
+            "expected_fields": [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "customer_order",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": {
+                        "1001",
+                        "1002",
+                        "1003",
+                        "1004",
+                        "1005",
+                    },
+                },
+                {
+                    "name": "product_option",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": {
+                        "Explosive Dynamite",
+                        "Gentle Cinnamon",
+                        "Large",
+                        "Medium",
+                        "Pearl Whisper",
+                        "Red",
+                        "Royal Crimson",
+                        "Small",
+                        "Sweet Sugar",
+                        "White",
+                    },
+                },
+                {
+                    "name": "quantity",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
+                },
+            ],
+            "expected_filtering": [
+                {
+                    "name": "quantity",
+                    "type": "numeric",
+                    "filters": [
+                        {
+                            "label": "Quantity",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
+            ],
+            "expected_ordering": [
+                {"name": "customer_order__order_number", "type": "numeric"},
+                {"name": "product_option__name", "type": "alpha"},
+                {"name": "quantity", "type": "numeric"},
+            ],
+            "expected_permissions": [
+                {"codename": "create_orderitem", "name": "Can create order item"},
+                {"codename": "delete_orderitem", "name": "Can delete order item"},
+                {"codename": "list_orderitem", "name": "Can list order item"},
+                {"codename": "read_orderitem", "name": "Can read order item"},
+                {"codename": "update_orderitem", "name": "Can update order item"},
+            ],
+        },
+    ),
+    (
+        "store",
+        "inventoryrecord",
+        {
+            "expected_actions": {
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+            },
+            "expected_expands": [
+                {
+                    "name": "product_option",
+                    "fields": [
+                        "id",
+                        "product",
+                        "option_type",
+                        "name",
+                        "sku",
+                        "gtin",
+                        "price",
+                        "disabled",
+                    ],
+                },
+                {
+                    "name": "reason",
+                    "fields": [
+                        "id",
+                        "name",
+                        "code",
+                        "is_added_reason",
+                    ],
+                },
+                {
+                    "name": "added_inventory_record",
+                    "fields": [
+                        "id",
+                        "product",
+                        "when",
+                        "quantity",
+                        "reason",
+                        "archived",
+                        "is_added",
+                        "cost",
+                        "added_inventory_record",
+                        "order_item",
+                        "price",
+                        "margin",
+                    ],
+                },
+                {
+                    "name": "order_item",
+                    "fields": [
+                        "id",
+                        "order",
+                        "product_option",
+                        "quantity",
+                    ],
+                },
+            ],
+            "expected_fields": [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "product_option",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": {
+                        "Explosive Dynamite",
+                        "Gentle Cinnamon",
+                        "Large",
+                        "Medium",
+                        "Pearl Whisper",
+                        "Red",
+                        "Royal Crimson",
+                        "Small",
+                        "Sweet Sugar",
+                        "White",
+                    },
+                },
+                {
+                    "name": "when",
+                    "label": "Date / Time",
+                    "type": "DateTimeField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "quantity",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
+                },
+                {
+                    "name": "reason",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": {
+                        "Damaged Inventory",
+                        "Order Fulfillment",
+                        "Received Inventory",
+                        "Returned Inventory",
+                    },
+                },
+                {
+                    "name": "archived",
+                    "label": None,
+                    "type": "BooleanField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                },
+                {
+                    "name": "is_added",
+                    "label": None,
+                    "type": "BooleanField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                },
+                {
+                    "name": "cost",
+                    "label": None,
+                    "type": "DecimalField",
+                    "many": False,
+                    "read_only": False,
+                    "required": False,
+                    "max_digits": 12,
+                },
+                {
+                    "name": "added_inventory_record",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": False,
+                    "choices": [
+                        "Damaged Inventory 2x Medium",
+                        "Order Fulfillment 1x Small",
+                        "Order Fulfillment 2x Large",
+                        "Order Fulfillment 2x Medium",
+                        "Order Fulfillment 2x Sweet Sugar",
+                        "Order Fulfillment 2x Sweet Sugar",
+                        "Order Fulfillment 2x White",
+                        "Order Fulfillment 3x Pearl Whisper",
+                        "Order Fulfillment 3x Red",
+                        "Order Fulfillment 3x Royal Crimson",
+                        "Order Fulfillment 3x White",
+                        "Order Fulfillment 4x Explosive Dynamite",
+                        "Order Fulfillment 4x Large",
+                        "Order Fulfillment 4x Pearl Whisper",
+                        "Order Fulfillment 4x Red",
+                        "Order Fulfillment 4x Sweet Sugar",
+                        "Order Fulfillment 5x Small",
+                        "Order Fulfillment 6x Explosive Dynamite",
+                        "Order Fulfillment 6x Gentle Cinnamon",
+                        "Order Fulfillment 6x Gentle Cinnamon",
+                        "Order Fulfillment 6x Medium",
+                        "Order Fulfillment 6x Medium",
+                        "Order Fulfillment 6x Royal Crimson",
+                        "Order Fulfillment 8x Explosive Dynamite",
+                        "Received Inventory 12x Explosive Dynamite",
+                        "Received Inventory 12x Explosive Dynamite",
+                        "Received Inventory 12x Medium",
+                        "Received Inventory 12x Medium",
+                        "Received Inventory 12x Royal Crimson",
+                        "Received Inventory 12x White",
+                        "Received Inventory 15x Red",
+                        "Received Inventory 6x Gentle Cinnamon",
+                        "Received Inventory 6x Gentle Cinnamon",
+                        "Received Inventory 6x Large",
+                        "Received Inventory 6x Small",
+                        "Received Inventory 6x Small",
+                        "Received Inventory 6x Sweet Sugar",
+                        "Received Inventory 6x Sweet Sugar",
+                        "Received Inventory 8x Pearl Whisper",
+                        "Returned Inventory 2x Medium",
+                        "Returned Inventory 3x Royal Crimson",
+                    ],
+                },
+                {
+                    "name": "order_item",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": False,
+                    "choices": {
+                        "1001 - 3x Red",
+                        "1001 - 5x Small",
+                        "1001 - 6x Gentle Cinnamon",
+                        "1001 - 6x Medium",
+                        "1002 - 3x Pearl Whisper",
+                        "1002 - 4x Large",
+                        "1002 - 4x Royal Crimson",
+                        "1002 - 4x Sweet Sugar",
+                        "1002 - 6x Medium",
+                        "1002 - 8x Explosive Dynamite",
+                        "1003 - 2x Medium",
+                        "1003 - 2x White",
+                        "1003 - 4x Explosive Dynamite",
+                        "1003 - 4x Red",
+                        "1004 - 2x Large",
+                        "1004 - 3x Royal Crimson",
+                        "1004 - 4x Pearl Whisper",
+                        "1004 - 4x Sweet Sugar",
+                        "1004 - 6x Explosive Dynamite",
+                        "1004 - 6x Small",
+                        "1005 - 3x White",
+                        "1005 - 6x Gentle Cinnamon",
+                    },
+                },
+                {
+                    "name": "price",
+                    "label": None,
+                    "type": "DecimalField",
+                    "many": False,
+                    "read_only": False,
+                    "required": False,
+                    "max_digits": 12,
+                    "decimal_places": 2,
+                },
+                {
+                    "name": "margin",
+                    "label": None,
+                    "type": "DecimalField",
+                    "many": False,
+                    "read_only": False,
+                    "required": False,
+                    "max_digits": 12,
+                    "decimal_places": 2,
+                },
+            ],
+            "expected_filtering": [
+                {
+                    "name": "when",
+                    "type": "datetime",
+                    "filters": [
+                        {
+                            "label": "When",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "reason",
+                    "type": "alpha",
+                    "filters": [
+                        {
+                            "lookup_exprs": [
+                                "exact",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "is_added",
+                    "type": "boolean",
+                    "filters": [
+                        {
+                            "lookup_exprs": [
+                                "exact",
+                            ],
+                        },
+                        {
+                            "label": "isAdded",
+                            "lookup_exprs": [
+                                "exact",
+                            ],
+                            "required": True,
+                        },
+                    ],
+                },
+                {
+                    "name": "quantity",
+                    "type": "numeric",
+                    "filters": [
+                        {
+                            "label": "Quantity",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "cost",
+                    "type": "numeric",
+                    "filters": [
+                        {
+                            "label": "Cost",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "price",
+                    "type": "numeric",
+                    "filters": [
+                        {
+                            "label": "Price",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "margin",
+                    "type": "numeric",
+                    "filters": [
+                        {
+                            "label": "Margin",
+                            "lookup_exprs": [
+                                "range",
+                            ],
+                        },
+                    ],
+                },
+            ],
+            "expected_ordering": [
+                {"name": "when", "type": "datetime"},
+                {"name": "reason", "type": "alpha"},
+                {"name": "quantity", "type": "numeric"},
+            ],
+            "expected_permissions": [
+                {"codename": "create_inventoryrecord", "name": "Can create inventory record"},
+                {"codename": "delete_inventoryrecord", "name": "Can delete inventory record"},
+                {"codename": "list_inventoryrecord", "name": "Can list inventory record"},
+                {"codename": "read_inventoryrecord", "name": "Can read inventory record"},
+                {"codename": "update_inventoryrecord", "name": "Can update inventory record"},
+            ],
+        },
+    ),
+    (
+        "store",
+        "cartitem",
+        {
+            "expected_actions": {
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+            },
+            "expected_expands": [
+                {
+                    "name": "cart",
+                    "fields": [
+                        "id",
+                        "customer",
+                    ],
+                },
+                {
+                    "name": "product_option",
+                    "fields": [
+                        "id",
+                        "product",
+                        "option_type",
+                        "name",
+                        "sku",
+                        "gtin",
+                        "price",
+                        "disabled",
+                    ],
+                },
+            ],
+            "expected_fields": [
+                {
+                    "name": "id",
+                    "label": "ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                },
+                {
+                    "name": "cart",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": {
+                        "test_customer_1@example.com",
+                    },
+                },
+                {
+                    "name": "product_option",
+                    "label": None,
+                    "type": "PrimaryKeyRelatedField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": {
+                        "Explosive Dynamite",
+                        "Gentle Cinnamon",
+                        "Large",
+                        "Medium",
+                        "Pearl Whisper",
+                        "Red",
+                        "Royal Crimson",
+                        "Small",
+                        "Sweet Sugar",
+                        "White",
+                    },
+                },
+                {
+                    "name": "quantity",
+                    "label": None,
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
+                },
+            ],
+            "expected_filtering": [],
+            "expected_ordering": [
+                {"name": "product_option__name", "type": "alpha"},
+                {"name": "quantity", "type": "numeric"},
+            ],
+            "expected_permissions": [
+                {"codename": "create_cartitem", "name": "Can create cart item"},
+                {"codename": "delete_cartitem", "name": "Can delete cart item"},
+                {"codename": "list_cartitem", "name": "Can list cart item"},
+                {"codename": "read_cartitem", "name": "Can read cart item"},
+                {"codename": "update_cartitem", "name": "Can update cart item"},
+            ],
+        },
+    ),
+]
 
 
 class TestData(BaseTestUserMixin, BaseTestGroupMixin):
@@ -1005,6 +2371,12 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
         )
 
 
+def idfn(val):
+    if isinstance(val, dict):
+        return None
+    return val
+
+
 @pytest.mark.django_db
 class TestModelInfoSerializer:
     @pytest.fixture
@@ -1026,9 +2398,37 @@ class TestModelInfoSerializer:
         info.register(InventoryRecordReasonSerializer, InventoryRecordReasonViewSet)
         info.register(InventoryRecordSerializer, InventoryRecordViewSet)
 
-    def check_model_actions_data(self, response_data, expected_data):
+    @staticmethod
+    def get_default_action(name, app_label, model_name):
+        # Define common default values
+        methods_dict = defaultdict(lambda: ["get"])
+        methods_dict.update(
+            {
+                "create": ["post"],
+                "update": ["put"],
+                "partial_update": ["patch"],
+                "destroy": ["delete"],
+                "create-order": ["post"],
+            }
+        )
+        defaults = {
+            "name": name,
+            "description": f"{name} {app_label}.{model_name}",
+            "method_names": methods_dict[name],
+            "detail": False,
+        }
+        # Update with specific defaults for certain actions
+        if name not in ["list", "create", "abandoned-carts-count"]:
+            defaults["detail"] = True
+            defaults["parameters"] = ["pk"]
+        return defaults
+
+    def check_model_actions_data(self, response_data, expected_actions, app_label, model_name):
         data = response_data.data["model_actions"]
-        assert {x["name"] for x in data} == {x["name"] for x in expected_data}
+        assert {x["name"] for x in data} == expected_actions
+
+        expected_data = [self.get_default_action(name, app_label, model_name) for name in expected_actions]
+
         for model_action in data:
             assert "name" in model_action, "name field is missing in model_actions object"
             for expected_model_action in expected_data:
@@ -1037,7 +2437,8 @@ class TestModelInfoSerializer:
                     for key in model_action.keys():
                         assert model_action[key] == expected_model_action[key], str(model_action)
 
-    def check_model_expands_data(self, response_data, expected_data):
+    @staticmethod
+    def check_model_expands_data(response_data, expected_data):
         data = response_data.data["model_expands"]
         assert {x["name"] for x in data} == {x["name"] for x in expected_data}
         for model_expand in data:
@@ -1070,7 +2471,8 @@ class TestModelInfoSerializer:
                         else:
                             assert model_field[key] == expected_model_field[key], str(model_field)
 
-    def check_model_filtering_data(self, response_data, expected_data):
+    @staticmethod
+    def check_model_filtering_data(response_data, expected_data):
         data = response_data.data["model_filtering"]
         assert {x["name"] for x in data} == {x["name"] for x in expected_data}
         for model_filter in data:
@@ -1081,7 +2483,8 @@ class TestModelInfoSerializer:
                     for key in model_filter.keys():
                         assert model_filter[key] == expected_model_filter[key], str(model_filter)
 
-    def check_model_ordering_data(self, response_data, expected_data):
+    @staticmethod
+    def check_model_ordering_data(response_data, expected_data):
         data = response_data.data["model_ordering"]
         assert {x["name"] for x in data} == {x["name"] for x in expected_data}
         for model_order in data:
@@ -1092,7 +2495,8 @@ class TestModelInfoSerializer:
                     for key in model_order.keys():
                         assert model_order[key] == expected_model_order[key], str(model_order)
 
-    def check_model_permissions_data(self, response_data, expected_data):
+    @staticmethod
+    def check_model_permissions_data(response_data, expected_data):
         data = response_data.data["model_permissions"]
         assert {x["codename"] for x in data} == {x["codename"] for x in expected_data}
         for model_permission in data:
@@ -1114,24 +2518,30 @@ class TestModelInfoSerializer:
         assert response.status_code == 200, str(response.data)
         assert response.data["totalRecords"] == 11
 
-    def test_info_detail_distributor(self, test_data, api_client):
+    @pytest.mark.parametrize(
+        "app_label, model_name, kwargs",
+        DETAIL_PARAMETRIZE,  # pytest likes to dump the whole def, so we move the parameterize details elsewhere
+        ids=idfn,
+    )
+    def test_info_detail(
+        self,
+        test_data,
+        api_client,
+        app_label,
+        model_name,
+        kwargs,
+    ):
         user = test_data.users["test_customer_1@example.com"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
 
-        response_list = api_client.get(reverse("info.model_info-list"), format="json")
-        for item in response_list.data["results"]:
-            if item["model"] == "distributor":
-                app_label = item["app_label"]
-                model = item["model"]
-
         response = api_client.get(
             reverse(
                 "info.model_info-detail",
                 args=(
                     app_label,
-                    model,
+                    model_name,
                 ),
             ),
             format="json",
@@ -1147,2255 +2557,10 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, str(response.data)
-        self.check_model_actions_data(
-            response,
-            [
-                {
-                    "name": "list",
-                    "description": "list store.distributor",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.distributor",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.distributor",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.distributor",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.distributor",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.distributor",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "current",
-                    "description": "current store.distributor",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-            ],
-        )
-        self.check_model_expands_data(
-            response,
-            [
-                {
-                    "name": "first_history_entry",
-                },
-                {
-                    "name": "history",
-                },
-                {
-                    "name": "last_history_entry",
-                },
-            ],
-        )
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "name",
-                    "label": None,
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-                {
-                    "name": "current_history_id",
-                    "label": None,
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-            ],
-        )
-        self.check_model_filtering_data(
-            response,
-            [
-                {
-                    "name": "name",
-                    "type": "alpha",
-                    "filters": [
-                        {
-                            "label": "Name",
-                            "lookup_exprs": [
-                                "exact",
-                                "contains",
-                            ],
-                        },
-                    ],
-                },
-            ],
-        )
-        self.check_model_ordering_data(
-            response,
-            [
-                {"name": "name", "type": "alpha"},
-            ],
-        )
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "create_distributor", "name": "Can create distributor"},
-                {"codename": "delete_distributor", "name": "Can delete distributor"},
-                {"codename": "list_distributor", "name": "Can list distributor"},
-                {"codename": "read_distributor", "name": "Can read distributor"},
-                {"codename": "update_distributor", "name": "Can update distributor"},
-            ],
-        )
-
-    def test_info_detail_optiontype(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response_list = api_client.get(reverse("info.model_info-list"), format="json")
-        for item in response_list.data["results"]:
-            if item["model"] == "optiontype":
-                app_label = item["app_label"]
-                model = item["model"]
-
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    app_label,
-                    model,
-                ),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_permissions",
-                    "model_fields",
-                    "model_actions",
-                    "model_expands",
-                    "model_ordering",
-                    "model_filtering",
-                ],
-            },
-        )
-
-        assert response.status_code == 200, str(response.data)
-        self.check_model_actions_data(
-            response,
-            [
-                {
-                    "name": "list",
-                    "description": "list store.optiontype",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.optiontype",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.optiontype",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.optiontype",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.optiontype",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.optiontype",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-            ],
-        )
-        self.check_model_expands_data(response, [])
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "code",
-                    "label": None,
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-                {
-                    "name": "name",
-                    "label": None,
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-            ],
-        )
-        self.check_model_filtering_data(response, [])
-        self.check_model_ordering_data(
-            response,
-            [
-                {"name": "name", "type": "alpha"},
-            ],
-        )
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "create_optiontype", "name": "Can create option type"},
-                {"codename": "delete_optiontype", "name": "Can delete option type"},
-                {"codename": "list_optiontype", "name": "Can list option type"},
-                {"codename": "read_optiontype", "name": "Can read option type"},
-                {"codename": "update_optiontype", "name": "Can update option type"},
-            ],
-        )
-
-    def test_info_detail_customer(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response_list = api_client.get(reverse("info.model_info-list"), format="json")
-        for item in response_list.data["results"]:
-            if item["model"] == "customer":
-                app_label = item["app_label"]
-                model = item["model"]
-
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    app_label,
-                    model,
-                ),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_permissions",
-                    "model_fields",
-                    "model_actions",
-                    "model_expands",
-                    "model_ordering",
-                    "model_filtering",
-                ],
-            },
-        )
-
-        assert response.status_code == 200, str(response.data)
-        self.check_model_actions_data(
-            response,
-            [
-                {
-                    "name": "list",
-                    "description": "list store.customer",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.customer",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.customer",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.customer",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.customer",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.customer",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "current",
-                    "description": "current store.customer",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-            ],
-        )
-        self.check_model_expands_data(
-            response,
-            [
-                {
-                    "name": "user",
-                    "fields": [
-                        "id",
-                        "email",
-                        "name",
-                    ],
-                },
-                {
-                    "name": "first_history_entry",
-                },
-                {
-                    "name": "history",
-                },
-                {
-                    "name": "last_history_entry",
-                },
-            ],
-        )
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "user",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "choices": {
-                        "test_admin@example.com",
-                        "test_customer_1@example.com",
-                        "test_customer_2@example.com",
-                    },
-                },
-                {
-                    "name": "current_history_id",
-                    "label": None,
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-            ],
-        )
-        self.check_model_filtering_data(response, [])
-        self.check_model_ordering_data(
-            response,
-            [
-                {"name": "user__email", "type": "alpha"},
-            ],
-        )
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "create_customer", "name": "Can create customer"},
-                {"codename": "delete_customer", "name": "Can delete customer"},
-                {"codename": "list_customer", "name": "Can list customer"},
-                {"codename": "read_customer", "name": "Can read customer"},
-                {"codename": "update_customer", "name": "Can update customer"},
-            ],
-        )
-
-    def test_info_detail_cart(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response_list = api_client.get(reverse("info.model_info-list"), format="json")
-        for item in response_list.data["results"]:
-            if item["model"] == "cart":
-                app_label = item["app_label"]
-                model = item["model"]
-
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    app_label,
-                    model,
-                ),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_permissions",
-                    "model_fields",
-                    "model_actions",
-                    "model_expands",
-                    "model_ordering",
-                    "model_filtering",
-                ],
-            },
-        )
-
-        assert response.status_code == 200, str(response.data)
-        self.check_model_actions_data(
-            response,
-            [
-                {
-                    "name": "list",
-                    "description": "list store.cart",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.cart",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.cart",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.cart",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.cart",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.cart",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "abandoned-carts-count",
-                    "description": "abandoned-carts-count store.cart",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "create-order",
-                    "description": "create-order store.cart",
-                    "detail": True,
-                    "method_names": ["put", "patch"],
-                    "parameters": ["pk"],
-                },
-            ],
-        )
-        self.check_model_expands_data(
-            response,
-            [
-                {
-                    "name": "customer",
-                    "fields": [
-                        "id",
-                        "user",
-                    ],
-                },
-                {
-                    "name": "cart_items",
-                    "fields": [
-                        "id",
-                        "user",
-                        "product_options",
-                        "quantity",
-                    ],
-                },
-            ],
-        )
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "customer",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "choices": {
-                        "test_customer_1@example.com",
-                        "test_customer_2@example.com",
-                    },
-                },
-                {
-                    "name": "last_modified",
-                    "label": None,
-                    "type": "DateTimeField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "cart_items",
-                    "label": None,
-                    "type": "ManyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                },
-            ],
-        )
-        self.check_model_filtering_data(response, [])
-        self.check_model_ordering_data(
-            response,
-            [
-                {"name": "customer__user__email", "type": "alpha"},
-                {"name": "last_modified", "type": "datetime"},
-            ],
-        )
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "create_cart", "name": "Can create cart"},
-                {"codename": "delete_cart", "name": "Can delete cart"},
-                {"codename": "list_cart", "name": "Can list cart"},
-                {"codename": "read_cart", "name": "Can read cart"},
-                {"codename": "update_cart", "name": "Can update cart"},
-            ],
-        )
-
-    def test_info_detail_customerorder(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response_list = api_client.get(reverse("info.model_info-list"), format="json")
-        for item in response_list.data["results"]:
-            if item["model"] == "customerorder":
-                app_label = item["app_label"]
-                model = item["model"]
-
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    app_label,
-                    model,
-                ),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_permissions",
-                    "model_fields",
-                    "model_actions",
-                    "model_expands",
-                    "model_ordering",
-                    "model_filtering",
-                ],
-            },
-        )
-
-        assert response.status_code == 200, str(response.data)
-        self.check_model_actions_data(
-            response,
-            [
-                {
-                    "name": "list",
-                    "description": "list store.customerorder",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.customerorder",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.customerorder",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.customerorder",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.customerorder",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.customerorder",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "current",
-                    "description": "current store.customerorder",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-            ],
-        )
-        self.check_model_expands_data(
-            response,
-            [
-                {
-                    "name": "customer",
-                    "fields": [
-                        "id",
-                        "user",
-                    ],
-                },
-                {
-                    "name": "order_state",
-                    "fields": [
-                        "id",
-                        "code",
-                        "name",
-                    ],
-                },
-                {
-                    "name": "first_history_entry",
-                },
-                {
-                    "name": "history",
-                },
-                {
-                    "name": "last_history_entry",
-                },
-            ],
-        )
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "order_number",
-                    "label": None,
-                    "type": "DecimalField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_digits": 7,
-                },
-                {
-                    "name": "when",
-                    "label": "Date / Time",
-                    "type": "DateTimeField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "customer",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "choices": {
-                        "test_customer_1@example.com",
-                        "test_customer_2@example.com",
-                    },
-                },
-                {
-                    "name": "order_state",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "choices": {
-                        "New",
-                        "Packed",
-                        "Returned",
-                        "Shipped",
-                    },
-                },
-                {
-                    "name": "current_history_id",
-                    "label": None,
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-            ],
-        )
-        self.check_model_filtering_data(response, [])
-        self.check_model_ordering_data(
-            response,
-            [
-                {"name": "order_number", "type": "numeric"},
-                {"name": "customer__user__email", "type": "alpha"},
-                {"name": "when", "type": "datetime"},
-                {"name": "order_state", "type": "alpha"},
-            ],
-        )
-
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "create_customerorder", "name": "Can create customer order"},
-                {"codename": "delete_customerorder", "name": "Can delete customer order"},
-                {"codename": "list_customerorder", "name": "Can list customer order"},
-                {"codename": "read_customerorder", "name": "Can read customer order"},
-                {"codename": "update_customerorder", "name": "Can update customer order"},
-                {"codename": "fulfill_orders", "name": "Can Fulfill Orders"},
-            ],
-        )
-
-    def test_info_detail_inventoryrecordreason(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response_list = api_client.get(reverse("info.model_info-list"), format="json")
-        for item in response_list.data["results"]:
-            if item["model"] == "inventoryrecordreason":
-                app_label = item["app_label"]
-                model = item["model"]
-
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    app_label,
-                    model,
-                ),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_permissions",
-                    "model_fields",
-                    "model_actions",
-                    "model_expands",
-                    "model_ordering",
-                    "model_filtering",
-                ],
-            },
-        )
-
-        assert response.status_code == 200, str(response.data)
-        self.check_model_actions_data(
-            response,
-            [
-                {
-                    "name": "list",
-                    "description": "list store.inventoryrecordreason",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.inventoryrecordreason",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.inventoryrecordreason",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.inventoryrecordreason",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.inventoryrecordreason",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.inventoryrecordreason",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-            ],
-        )
-        self.check_model_expands_data(response, [])
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "name",
-                    "label": "Reason",
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-                {
-                    "name": "code",
-                    "label": None,
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-                {
-                    "name": "is_added_reason",
-                    "label": None,
-                    "type": "BooleanField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                },
-            ],
-        )
-        self.check_model_filtering_data(response, [])
-        self.check_model_ordering_data(
-            response,
-            [
-                {"name": "name", "type": "alpha"},
-            ],
-        )
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "add_inventoryrecordreason", "name": "Can add inventory record reason"},
-                {"codename": "change_inventoryrecordreason", "name": "Can change inventory record reason"},
-                {"codename": "delete_inventoryrecordreason", "name": "Can delete inventory record reason"},
-                {"codename": "view_inventoryrecordreason", "name": "Can view inventory record reason"},
-            ],
-        )
-
-    def test_info_detail_product(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response_list = api_client.get(reverse("info.model_info-list"), format="json")
-        for item in response_list.data["results"]:
-            if item["model"] == "product":
-                app_label = item["app_label"]
-                model = item["model"]
-
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    app_label,
-                    model,
-                ),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_permissions",
-                    "model_fields",
-                    "model_actions",
-                    "model_expands",
-                    "model_ordering",
-                    "model_filtering",
-                ],
-            },
-        )
-
-        assert response.status_code == 200, str(response.data)
-
-        self.check_model_actions_data(
-            response,
-            [
-                {
-                    "name": "list",
-                    "description": "list store.product",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.product",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.product",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.product",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.product",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.product",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "current",
-                    "description": "current store.product",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-            ],
-        )
-        self.check_model_expands_data(
-            response,
-            [
-                {
-                    "name": "distributor",
-                    "fields": [
-                        "id",
-                        "name",
-                    ],
-                },
-                {
-                    "name": "first_history_entry",
-                },
-                {
-                    "name": "history",
-                },
-                {
-                    "name": "last_history_entry",
-                },
-            ],
-        )
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "distributor",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "choices": {
-                        "T-Shirt Corp.",
-                        "Tasty Treats Assoc.",
-                        "Vibrant Looks Inc.",
-                    },
-                },
-                {
-                    "name": "name",
-                    "label": None,
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-                {
-                    "name": "disabled",
-                    "label": None,
-                    "type": "BooleanField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                },
-                {
-                    "name": "current_history_id",
-                    "label": None,
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-            ],
-        )
-        self.check_model_filtering_data(
-            response,
-            [
-                {
-                    "name": "name",
-                    "type": "alpha",
-                    "filters": [
-                        {
-                            "label": "Name",
-                            "lookup_exprs": [
-                                "exact",
-                                "contains",
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "name": "disabled",
-                    "type": "boolean",
-                    "filters": [
-                        {
-                            "lookup_exprs": [
-                                "exact",
-                            ],
-                        },
-                    ],
-                },
-            ],
-        )
-        self.check_model_ordering_data(
-            response,
-            [
-                {"name": "distributor__name", "type": "alpha"},
-                {"name": "name", "type": "alpha"},
-                {"name": "disabled", "type": "boolean"},
-            ],
-        )
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "create_product", "name": "Can create product"},
-                {"codename": "delete_product", "name": "Can delete product"},
-                {"codename": "list_product", "name": "Can list product"},
-                {"codename": "read_product", "name": "Can read product"},
-                {"codename": "update_product", "name": "Can update product"},
-            ],
-        )
-
-    def test_info_detail_productoption(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response_list = api_client.get(reverse("info.model_info-list"), format="json")
-        for item in response_list.data["results"]:
-            if item["model"] == "productoption":
-                app_label = item["app_label"]
-                model = item["model"]
-
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    app_label,
-                    model,
-                ),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_permissions",
-                    "model_fields",
-                    "model_actions",
-                    "model_expands",
-                    "model_ordering",
-                    "model_filtering",
-                ],
-            },
-        )
-
-        assert response.status_code == 200, str(response.data)
-        self.check_model_actions_data(
-            response,
-            [
-                {
-                    "name": "list",
-                    "description": "list store.productoption",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.productoption",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.productoption",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.productoption",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.productoption",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.productoption",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "current",
-                    "description": "current store.productoption",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-            ],
-        )
-        self.check_model_expands_data(
-            response,
-            [
-                {
-                    "name": "option_type",
-                    "fields": [
-                        "id",
-                        "code",
-                        "name",
-                    ],
-                },
-                {
-                    "name": "product",
-                    "fields": [
-                        "id",
-                        "distributor",
-                        "name",
-                        "disabled",
-                    ],
-                },
-                {
-                    "name": "first_history_entry",
-                },
-                {
-                    "name": "history",
-                },
-                {
-                    "name": "last_history_entry",
-                },
-            ],
-        )
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "product",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "choices": {
-                        "Men's White T-Shirt",
-                        "Paint",
-                        "Shaped Cookies For Drapes",
-                        "Spray Paint",
-                        "Square Cookies For Squares",
-                        "Women's White T-Shirt",
-                    },
-                },
-                {
-                    "name": "option_type",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": False,
-                    "choices": {
-                        "Size",
-                        "Colour",
-                        "Flavour",
-                    },
-                },
-                {
-                    "name": "name",
-                    "label": None,
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-                {
-                    "name": "sku",
-                    "label": None,
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-                {
-                    "name": "gtin",
-                    "label": None,
-                    "type": "CharField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_length": 255,
-                },
-                {
-                    "name": "price",
-                    "label": None,
-                    "type": "DecimalField",
-                    "many": False,
-                    "read_only": False,
-                    "required": False,
-                    "max_digits": 12,
-                    "decimal_places": 2,
-                },
-                {
-                    "name": "disabled",
-                    "label": None,
-                    "type": "BooleanField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                },
-                {
-                    "name": "current_history_id",
-                    "label": None,
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-            ],
-        )
-        self.check_model_filtering_data(
-            response,
-            [
-                {
-                    "name": "name",
-                    "type": "alpha",
-                    "filters": [
-                        {
-                            "label": "Name",
-                            "lookup_exprs": [
-                                "exact",
-                                "contains",
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "name": "sku",
-                    "type": "alpha",
-                    "filters": [
-                        {
-                            "label": "SKU",
-                            "lookup_exprs": [
-                                "exact",
-                                "contains",
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "name": "price",
-                    "type": "numeric",
-                    "filters": [
-                        {
-                            "label": "Price",
-                            "lookup_exprs": [
-                                "range",
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "name": "disabled",
-                    "type": "boolean",
-                    "filters": [
-                        {
-                            "lookup_exprs": [
-                                "exact",
-                            ],
-                        },
-                    ],
-                },
-            ],
-        )
-        self.check_model_ordering_data(
-            response,
-            [
-                {"name": "name", "type": "alpha"},
-                {"name": "option_type", "type": "alpha"},
-                {"name": "sku", "type": "alpha"},
-                {"name": "gtin", "type": "alpha"},
-                {"name": "price", "type": "numeric"},
-            ],
-        )
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "create_productoption", "name": "Can create product option"},
-                {"codename": "delete_productoption", "name": "Can delete product option"},
-                {"codename": "list_productoption", "name": "Can list product option"},
-                {"codename": "read_productoption", "name": "Can read product option"},
-                {"codename": "update_productoption", "name": "Can update product option"},
-            ],
-        )
-
-    def test_info_detail_orderitem(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response_list = api_client.get(reverse("info.model_info-list"), format="json")
-        for item in response_list.data["results"]:
-            if item["model"] == "orderitem":
-                app_label = item["app_label"]
-                model = item["model"]
-
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    app_label,
-                    model,
-                ),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_permissions",
-                    "model_fields",
-                    "model_actions",
-                    "model_expands",
-                    "model_ordering",
-                    "model_filtering",
-                ],
-            },
-        )
-
-        assert response.status_code == 200, str(response.data)
-        self.check_model_actions_data(
-            response,
-            [
-                {
-                    "name": "list",
-                    "description": "list store.orderitem",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.orderitem",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.orderitem",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.orderitem",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.orderitem",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.orderitem",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-            ],
-        )
-        self.check_model_expands_data(
-            response,
-            [
-                {
-                    "name": "customer_order",
-                    "fields": [
-                        "id",
-                        "order_number",
-                        "when",
-                        "customer",
-                        "order_state",
-                    ],
-                },
-                {
-                    "name": "product_option",
-                    "fields": [
-                        "id",
-                        "product",
-                        "option_type",
-                        "name",
-                        "sku",
-                        "gtin",
-                        "price",
-                        "disabled",
-                    ],
-                },
-            ],
-        )
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "customer_order",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "choices": {
-                        "1001",
-                        "1002",
-                        "1003",
-                        "1004",
-                        "1005",
-                    },
-                },
-                {
-                    "name": "product_option",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "choices": {
-                        "Explosive Dynamite",
-                        "Gentle Cinnamon",
-                        "Large",
-                        "Medium",
-                        "Pearl Whisper",
-                        "Red",
-                        "Royal Crimson",
-                        "Small",
-                        "Sweet Sugar",
-                        "White",
-                    },
-                },
-                {
-                    "name": "quantity",
-                    "label": None,
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_value": 2147483647,
-                    "min_value": -2147483648,
-                },
-            ],
-        )
-        self.check_model_filtering_data(
-            response,
-            [
-                {
-                    "name": "quantity",
-                    "type": "numeric",
-                    "filters": [
-                        {
-                            "label": "Quantity",
-                            "lookup_exprs": [
-                                "range",
-                            ],
-                        },
-                    ],
-                },
-            ],
-        )
-        self.check_model_ordering_data(
-            response,
-            [
-                {"name": "customer_order__order_number", "type": "numeric"},
-                {"name": "product_option__name", "type": "alpha"},
-                {"name": "quantity", "type": "numeric"},
-            ],
-        )
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "create_orderitem", "name": "Can create order item"},
-                {"codename": "delete_orderitem", "name": "Can delete order item"},
-                {"codename": "list_orderitem", "name": "Can list order item"},
-                {"codename": "read_orderitem", "name": "Can read order item"},
-                {"codename": "update_orderitem", "name": "Can update order item"},
-            ],
-        )
-
-    def test_info_detail_inventoryrecord(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response_list = api_client.get(reverse("info.model_info-list"), format="json")
-        for item in response_list.data["results"]:
-            if item["model"] == "inventoryrecord":
-                app_label = item["app_label"]
-                model = item["model"]
-
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    app_label,
-                    model,
-                ),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_permissions",
-                    "model_fields",
-                    "model_actions",
-                    "model_expands",
-                    "model_ordering",
-                    "model_filtering",
-                ],
-            },
-        )
-
-        assert response.status_code == 200, str(response.data)
-
-        self.check_model_actions_data(
-            response,
-            [
-                {
-                    "name": "list",
-                    "description": "list store.inventoryrecord",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.inventoryrecord",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.inventoryrecord",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.inventoryrecord",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.inventoryrecord",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.inventoryrecord",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-            ],
-        )
-        self.check_model_expands_data(
-            response,
-            [
-                {
-                    "name": "product_option",
-                    "fields": [
-                        "id",
-                        "product",
-                        "option_type",
-                        "name",
-                        "sku",
-                        "gtin",
-                        "price",
-                        "disabled",
-                    ],
-                },
-                {
-                    "name": "reason",
-                    "fields": [
-                        "id",
-                        "name",
-                        "code",
-                        "is_added_reason",
-                    ],
-                },
-                {
-                    "name": "added_inventory_record",
-                    "fields": [
-                        "id",
-                        "product",
-                        "when",
-                        "quantity",
-                        "reason",
-                        "archived",
-                        "is_added",
-                        "cost",
-                        "added_inventory_record",
-                        "order_item",
-                        "price",
-                        "margin",
-                    ],
-                },
-                {
-                    "name": "order_item",
-                    "fields": [
-                        "id",
-                        "order",
-                        "product_option",
-                        "quantity",
-                    ],
-                },
-            ],
-        )
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "product_option",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "choices": {
-                        "Explosive Dynamite",
-                        "Gentle Cinnamon",
-                        "Large",
-                        "Medium",
-                        "Pearl Whisper",
-                        "Red",
-                        "Royal Crimson",
-                        "Small",
-                        "Sweet Sugar",
-                        "White",
-                    },
-                },
-                {
-                    "name": "when",
-                    "label": "Date / Time",
-                    "type": "DateTimeField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "quantity",
-                    "label": None,
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_value": 2147483647,
-                    "min_value": -2147483648,
-                },
-                {
-                    "name": "reason",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "choices": {
-                        "Damaged Inventory",
-                        "Order Fulfillment",
-                        "Received Inventory",
-                        "Returned Inventory",
-                    },
-                },
-                {
-                    "name": "archived",
-                    "label": None,
-                    "type": "BooleanField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                },
-                {
-                    "name": "is_added",
-                    "label": None,
-                    "type": "BooleanField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                },
-                {
-                    "name": "cost",
-                    "label": None,
-                    "type": "DecimalField",
-                    "many": False,
-                    "read_only": False,
-                    "required": False,
-                    "max_digits": 12,
-                },
-                {
-                    "name": "added_inventory_record",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": False,
-                    "choices": [
-                        "Damaged Inventory 2x Medium",
-                        "Order Fulfillment 1x Small",
-                        "Order Fulfillment 2x Large",
-                        "Order Fulfillment 2x Medium",
-                        "Order Fulfillment 2x Sweet Sugar",
-                        "Order Fulfillment 2x Sweet Sugar",
-                        "Order Fulfillment 2x White",
-                        "Order Fulfillment 3x Pearl Whisper",
-                        "Order Fulfillment 3x Red",
-                        "Order Fulfillment 3x Royal Crimson",
-                        "Order Fulfillment 3x White",
-                        "Order Fulfillment 4x Explosive Dynamite",
-                        "Order Fulfillment 4x Large",
-                        "Order Fulfillment 4x Pearl Whisper",
-                        "Order Fulfillment 4x Red",
-                        "Order Fulfillment 4x Sweet Sugar",
-                        "Order Fulfillment 5x Small",
-                        "Order Fulfillment 6x Explosive Dynamite",
-                        "Order Fulfillment 6x Gentle Cinnamon",
-                        "Order Fulfillment 6x Gentle Cinnamon",
-                        "Order Fulfillment 6x Medium",
-                        "Order Fulfillment 6x Medium",
-                        "Order Fulfillment 6x Royal Crimson",
-                        "Order Fulfillment 8x Explosive Dynamite",
-                        "Received Inventory 12x Explosive Dynamite",
-                        "Received Inventory 12x Explosive Dynamite",
-                        "Received Inventory 12x Medium",
-                        "Received Inventory 12x Medium",
-                        "Received Inventory 12x Royal Crimson",
-                        "Received Inventory 12x White",
-                        "Received Inventory 15x Red",
-                        "Received Inventory 6x Gentle Cinnamon",
-                        "Received Inventory 6x Gentle Cinnamon",
-                        "Received Inventory 6x Large",
-                        "Received Inventory 6x Small",
-                        "Received Inventory 6x Small",
-                        "Received Inventory 6x Sweet Sugar",
-                        "Received Inventory 6x Sweet Sugar",
-                        "Received Inventory 8x Pearl Whisper",
-                        "Returned Inventory 2x Medium",
-                        "Returned Inventory 3x Royal Crimson",
-                    ],
-                },
-                {
-                    "name": "order_item",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": False,
-                    "choices": {
-                        "1001 - 3x Red",
-                        "1001 - 5x Small",
-                        "1001 - 6x Gentle Cinnamon",
-                        "1001 - 6x Medium",
-                        "1002 - 3x Pearl Whisper",
-                        "1002 - 4x Large",
-                        "1002 - 4x Royal Crimson",
-                        "1002 - 4x Sweet Sugar",
-                        "1002 - 6x Medium",
-                        "1002 - 8x Explosive Dynamite",
-                        "1003 - 2x Medium",
-                        "1003 - 2x White",
-                        "1003 - 4x Explosive Dynamite",
-                        "1003 - 4x Red",
-                        "1004 - 2x Large",
-                        "1004 - 3x Royal Crimson",
-                        "1004 - 4x Pearl Whisper",
-                        "1004 - 4x Sweet Sugar",
-                        "1004 - 6x Explosive Dynamite",
-                        "1004 - 6x Small",
-                        "1005 - 3x White",
-                        "1005 - 6x Gentle Cinnamon",
-                    },
-                },
-                {
-                    "name": "price",
-                    "label": None,
-                    "type": "DecimalField",
-                    "many": False,
-                    "read_only": False,
-                    "required": False,
-                    "max_digits": 12,
-                    "decimal_places": 2,
-                },
-                {
-                    "name": "margin",
-                    "label": None,
-                    "type": "DecimalField",
-                    "many": False,
-                    "read_only": False,
-                    "required": False,
-                    "max_digits": 12,
-                    "decimal_places": 2,
-                },
-            ],
-        )
-        self.check_model_filtering_data(
-            response,
-            [
-                {
-                    "name": "when",
-                    "type": "datetime",
-                    "filters": [
-                        {
-                            "label": "When",
-                            "lookup_exprs": [
-                                "range",
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "name": "reason",
-                    "type": "alpha",
-                    "filters": [
-                        {
-                            "lookup_exprs": [
-                                "exact",
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "name": "is_added",
-                    "type": "boolean",
-                    "filters": [
-                        {
-                            "lookup_exprs": [
-                                "exact",
-                            ],
-                        },
-                        {
-                            "label": "isAdded",
-                            "lookup_exprs": [
-                                "exact",
-                            ],
-                            "required": True,
-                        },
-                    ],
-                },
-                {
-                    "name": "quantity",
-                    "type": "numeric",
-                    "filters": [
-                        {
-                            "label": "Quantity",
-                            "lookup_exprs": [
-                                "range",
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "name": "cost",
-                    "type": "numeric",
-                    "filters": [
-                        {
-                            "label": "Cost",
-                            "lookup_exprs": [
-                                "range",
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "name": "price",
-                    "type": "numeric",
-                    "filters": [
-                        {
-                            "label": "Price",
-                            "lookup_exprs": [
-                                "range",
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "name": "margin",
-                    "type": "numeric",
-                    "filters": [
-                        {
-                            "label": "Margin",
-                            "lookup_exprs": [
-                                "range",
-                            ],
-                        },
-                    ],
-                },
-            ],
-        )
-        self.check_model_ordering_data(
-            response,
-            [
-                {"name": "when", "type": "datetime"},
-                {"name": "reason", "type": "alpha"},
-                {"name": "quantity", "type": "numeric"},
-            ],
-        )
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "add_inventoryrecord", "name": "Can add inventory record"},
-                {"codename": "change_inventoryrecord", "name": "Can change inventory record"},
-                {"codename": "delete_inventoryrecord", "name": "Can delete inventory record"},
-                {"codename": "view_inventoryrecord", "name": "Can view inventory record"},
-            ],
-        )
-
-    def test_info_detail_cartitem(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response_list = api_client.get(reverse("info.model_info-list"), format="json")
-        for item in response_list.data["results"]:
-            if item["model"] == "cartitem":
-                app_label = item["app_label"]
-                model = item["model"]
-
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    app_label,
-                    model,
-                ),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_permissions",
-                    "model_fields",
-                    "model_actions",
-                    "model_expands",
-                    "model_ordering",
-                    "model_filtering",
-                ],
-            },
-        )
-
-        assert response.status_code == 200, str(response.data)
-        self.check_model_actions_data(
-            response,
-            [
-                {
-                    "name": "list",
-                    "description": "list store.cartitem",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "retrieve",
-                    "description": "retrieve store.cartitem",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "description": "create store.cartitem",
-                    "detail": True,
-                    "method_names": ["post"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "update",
-                    "description": "update store.cartitem",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "description": "partial_update store.cartitem",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "description": "destroy store.cartitem",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-            ],
-        )
-        self.check_model_expands_data(
-            response,
-            [
-                {
-                    "name": "cart",
-                    "fields": [
-                        "id",
-                        "customer",
-                    ],
-                },
-                {
-                    "name": "product_option",
-                    "fields": [
-                        "id",
-                        "product",
-                        "option_type",
-                        "name",
-                        "sku",
-                        "gtin",
-                        "price",
-                        "disabled",
-                    ],
-                },
-            ],
-        )
-        self.check_model_fields_data(
-            response,
-            [
-                {
-                    "name": "id",
-                    "label": "ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
-                    "required": False,
-                },
-                {
-                    "name": "cart",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "choices": {
-                        "test_customer_1@example.com",
-                    },
-                },
-                {
-                    "name": "product_option",
-                    "label": None,
-                    "type": "PrimaryKeyRelatedField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "choices": {
-                        "Explosive Dynamite",
-                        "Gentle Cinnamon",
-                        "Large",
-                        "Medium",
-                        "Pearl Whisper",
-                        "Red",
-                        "Royal Crimson",
-                        "Small",
-                        "Sweet Sugar",
-                        "White",
-                    },
-                },
-                {
-                    "name": "quantity",
-                    "label": None,
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": False,
-                    "required": True,
-                    "max_value": 2147483647,
-                    "min_value": -2147483648,
-                },
-            ],
-        )
-        self.check_model_filtering_data(response, [])
-        self.check_model_ordering_data(
-            response,
-            [
-                {"name": "product_option__name", "type": "alpha"},
-                {"name": "quantity", "type": "numeric"},
-            ],
-        )
-        self.check_model_permissions_data(
-            response,
-            [
-                {"codename": "create_cartitem", "name": "Can create cart item"},
-                {"codename": "delete_cartitem", "name": "Can delete cart item"},
-                {"codename": "list_cartitem", "name": "Can list cart item"},
-                {"codename": "read_cartitem", "name": "Can read cart item"},
-                {"codename": "update_cartitem", "name": "Can update cart item"},
-            ],
-        )
+        assert response.status_code == 200, pformat(response.data)
+        self.check_model_actions_data(response, kwargs["expected_actions"], app_label, model_name)
+        self.check_model_expands_data(response, kwargs["expected_expands"])
+        self.check_model_fields_data(response, kwargs["expected_fields"])
+        self.check_model_filtering_data(response, kwargs["expected_filtering"])
+        self.check_model_ordering_data(response, kwargs["expected_ordering"])
+        self.check_model_permissions_data(response, kwargs["expected_permissions"])
