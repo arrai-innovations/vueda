@@ -39,32 +39,6 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
             INSERT INTO
-                auth_permission
-                (
-                    name,
-                    content_type_id,
-                    codename
-                )
-            VALUES
-                (
-                    'Can Fulfill Orders',
-                    (
-                        SELECT
-                            id
-                        FROM
-                            django_content_type
-                        WHERE
-                            app_label = 'store'
-                            AND model = 'customerorder'
-                    ),
-                    'fulfill_orders'
-                );
-            """,
-            reverse_sql="DELETE FROM auth_permission WHERE codename = 'fulfill_orders';",
-        ),
-        migrations.RunSQL(
-            sql="""
-            INSERT INTO
                 workflow_workflowpermission
             (workflow_id, permission_id)
             VALUES
