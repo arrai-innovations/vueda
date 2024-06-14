@@ -227,7 +227,7 @@ class ObjectStateProxy(models.Model):
 
     class Meta:
         managed = False
-        db_table = "workflows_objectstateproxy"
+        db_table = "vueda_workflow_objectstateproxy"
         default_related_name = "object_states_proxy"
 
     def __str__(self):
