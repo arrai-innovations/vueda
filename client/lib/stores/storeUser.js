@@ -61,6 +61,9 @@ export default defineStore({
             if (this.initialized) {
                 this.initialized = false;
             }
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
             try {
                 const response = await fetch(`${httpOrHttpsHostname}${getUrl("userCurrentUser")}`, {
                     method: "GET",
@@ -76,13 +79,21 @@ export default defineStore({
                 this.loggedInUser = user;
             } catch (error) {
                 checkForTypeError(error);
+                this.error = error;
+                this.errored = true;
                 throw error;
             } finally {
-                this.initialized = true;
+                this.loading = false;
+                if (!this.initialized) {
+                    this.initialized = true;
+                }
             }
         },
         async login(payload) {
             let response;
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
             try {
                 response = await fetch(`${httpOrHttpsHostname}${getUrl("userLogin")}`, {
                     method: "POST",
@@ -102,7 +113,11 @@ export default defineStore({
                 }
             } catch (error) {
                 checkForTypeError(error);
+                this.error = error;
+                this.errored = true;
                 throw error;
+            } finally {
+                this.loading = false;
             }
             throw new UserError("Failed to login", response);
         },
@@ -116,6 +131,9 @@ export default defineStore({
                 }
             }
             let response;
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
             try {
                 response = await fetch(`${httpOrHttpsHostname}${getUrl("userLogout")}`, {
                     method: "POST",
@@ -130,7 +148,11 @@ export default defineStore({
                 }
             } catch (error) {
                 checkForTypeError(error);
+                this.error = error;
+                this.errored = true;
                 throw error;
+            } finally {
+                this.loading = false;
             }
             throw new UserError("Failed to logout", response);
         },
