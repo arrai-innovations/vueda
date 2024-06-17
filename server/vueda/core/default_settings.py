@@ -33,7 +33,7 @@ def get_defaults(env: Env):
         "TIME_ZONE": env("TIME_ZONE"),  # like "UTC" or "America/Edmonton"
         "USE_I18N": True,
         "USE_TZ": True,
-        "ALLOWED_HOSTS": env.list("ALLOWED_HOSTS"),  # like "host" or "host:port"
+        "ALLOWED_HOSTS": env.list("ALLOWED_HOSTS"),  # like "host", not "host:port" or "http(s)://host"
         "DATABASES": {"default": env.db("DATABASE_URL")},  # like "postgres://user:password@host:5432/dbname"
         "EMAIL_BACKEND": env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"),
         "EMAIL_TIMEOUT": 5,
