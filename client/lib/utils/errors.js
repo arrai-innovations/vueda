@@ -3,6 +3,17 @@ import get from "lodash-es/get.js";
 import isArray from "lodash-es/isArray.js";
 import zipObject from "lodash-es/zipObject.js";
 
+/**
+ * FormValidationError - error class for form validation errors
+ * @param responseData - response data
+ * @param response - fetch response
+ * @constructor
+ * @extends {Error}
+ * @property {Response} response - fetch response
+ * @property {Object} responseData - response data
+ * @property {Object} messages - error messages
+ * @property {Object} serverStack - server stack trace
+ */
 export class FormValidationError extends Error {
     constructor(responseData, response) {
         super("Form validation error");

@@ -1,6 +1,7 @@
 <script setup>
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useWidget, { widgetEmits, widgetProps } from "@vueda/use/useWidget.js";
+import InputText from "primevue/inputtext";
 
 defineOptions({
     inheritAttrs: false,
@@ -41,7 +42,7 @@ const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetInput.vue", pro
         <span v-if="$slots.prefix" :class="combinedClasses.prefixClass">
             <slot name="prefix" />
         </span>
-        <input
+        <InputText
             v-model="widget.combinedValue"
             :class="combinedClasses.inputClass"
             :name="widget.combinedName"

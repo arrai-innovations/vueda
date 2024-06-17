@@ -1,5 +1,6 @@
-import { useToast } from "@vueda/use/useToast.js";
-import { VITE_PACKAGE_VERSION, VersionSymbol } from "@vueda/utils/index.js";
+import useToast from "@vueda/use/useToast.js";
+import { VITE_PACKAGE_VERSION } from "@vueda/utils/constants.js";
+import { VersionSymbol } from "@vueda/utils/symbols.js";
 import semvarGT from "semver/functions/gt.js";
 import { computed, inject, provide, readonly, ref, watch } from "vue";
 

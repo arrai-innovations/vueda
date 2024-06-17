@@ -34,7 +34,7 @@ import { computed, reactive, toRef } from "vue";
  * @property {VariantName} props.variant The variant name.
  * @returns {Object.<SpotName, CSSObject>} An object containing the combined classes for each spot.
  */
-export function useCombinedClasses(componentName, props) {
+export default function useCombinedClasses(componentName, props) {
     const themeStore = storeTheme();
     const combinedClasses = reactive({});
     const componentConfig = computed(() => themeStore.components[componentName]);

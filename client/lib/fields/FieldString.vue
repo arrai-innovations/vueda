@@ -29,7 +29,7 @@ const fieldContext = useField(props);
 watch(
     [toRef(props, "trim"), toRef(fieldContext, "value")],
     ([trim, value]) => {
-        if (trim) {
+        if (trim && value !== undefined && value !== null) {
             const trimmed = value.trim();
             if (trimmed !== value) {
                 fieldContext.value = value.trim();
@@ -84,6 +84,9 @@ watch(
 watch(
     toRef(fieldContext, "fieldValue"),
     (newValue) => {
+        if (newValue === undefined || newValue === null) {
+            return;
+        }
         const coercedValue = newValue.toString();
         if (coercedValue !== fieldContext.value) {
             fieldContext.value = coercedValue;

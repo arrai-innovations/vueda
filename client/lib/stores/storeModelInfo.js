@@ -51,7 +51,7 @@ const fetchHelper = async (url, options = {}, messagePrefix) => {
 };
 
 const modelInfoUrl = (app, model) =>
-    `${httpOrHttpsHostname}/${getUrl("infoModelInfo")}/${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
+    `${httpOrHttpsHostname}${getUrl("infoModelInfo")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
 
 /**
  * storeModelInfo - store for model info

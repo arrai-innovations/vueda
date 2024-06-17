@@ -2,7 +2,7 @@
 import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import LoadingSpinner from "@vueda/components/LoadingSpinner.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
-import { useCombinedClasses } from "@vueda/use/index.js";
+import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useIsActive from "@vueda/use/useIsActive.js";
 import useModelConfig from "@vueda/use/useModelConfig.js";
 import { computed, reactive, toRef } from "vue";
@@ -71,10 +71,10 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const calculatedListFields = computed(() => {
     // if they don't pass listFields, use the modelConfig fields.
     //  modelConfig fields already falls back to models fields supplied by the server
-    return props.listFields || modelConfig.config.fields.map((f) => f.name);
+    return props.listFields || modelConfig.config.fields.map((f) => f.name) || [];
 });
 const calculatedListFieldsObjs = computed(() => {
-    return modelConfig.config.fields.filter((f) => calculatedListFields.value.includes(f.name));
+    return modelConfig.config.fields?.filter((f) => calculatedListFields.value?.includes(f.name)) || [];
 });
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model));
 const instanceListProps = reactive({
@@ -82,11 +82,12 @@ const instanceListProps = reactive({
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
-    listArgs: {
+    retrieveArgs: {
         f: calculatedListFields,
     },
+    listArgs: {},
     intendToList: validAndActive,
-    intendToSubscribe: validAndActive,
+    // intendToSubscribe: validAndActive,
 });
 const instanceList = useList({
     props: instanceListProps,
@@ -110,7 +111,7 @@ const combinedClasses = useCombinedClasses("@vueda/views/ViewList.vue", props);
     <div :class="combinedClasses.outerClass">
         <div :class="combinedClasses.headerClass">
             <h1 :class="combinedClasses.titleClass">
-                {{ modelInfo?.verbose_name_plural || "Items" }}
+                {{ modelConfig.info?.verbose_name_plural || "Items" }}
                 <loading-spinner v-if="modelConfig.loading" :class="combinedClasses.loadingClass" />
             </h1>
         </div>

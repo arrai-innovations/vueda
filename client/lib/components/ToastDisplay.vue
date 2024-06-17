@@ -1,8 +1,8 @@
 <script setup>
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import DateTimeDisplay from "@vueda/components/DateTimeDisplay.vue";
-import { storeToast } from "@vueda/stores/index.js";
-import { useCombinedClasses } from "@vueda/use/index.js";
+import storeToast from "@vueda/stores/storeToast.js";
+import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import isEqual from "lodash-es/isEqual.js";
 import { reactive, useAttrs, watch } from "vue";
 

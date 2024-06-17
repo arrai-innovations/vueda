@@ -3,38 +3,51 @@ import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import set from "lodash-es/set.js";
-import { provide, reactive, readonly, toRef, watch } from "vue";
+import { provide, reactive, readonly, ref, toRef, watch } from "vue";
 
 export default function useForm(props) {
-    const state = reactive({
-        values: {},
-        errors: {},
-        messages: {},
-        dirty: {},
-        anyDirty: false,
-        doSubmit: undefined,
-    });
-    state.initialValues = toRef(() => props.initialValues);
+    const values = reactive({});
+    const errors = reactive({});
+    const messages = reactive({});
+    const dirty = reactive({});
+    const anyDirty = ref(false);
+    const doSubmit = ref(undefined);
+    const initialValues = toRef(() => props.initialValues);
 
-    const updateFormValue = (name, value) => {
-        if (name) {
-            set(state.values, name, value);
-        } else {
-            throw new Error("No name provided to updateFormValue");
-        }
+    const reset = () => {
+        assignReactiveObject(values, initialValues.value);
+        assignReactiveObject(errors, {});
+        assignReactiveObject(messages, {});
+        assignReactiveObject(dirty, {});
+        anyDirty.value = false;
     };
-    const deleteFormValue = (name) => {
+    const updateValue = (name, value) => {
         if (name) {
-            if (get(state.values, name) !== undefined) {
-                del(state.values, name);
+            set(values, name, value);
+            // if there was a server error, clear it
+            if (get(errors, `${name}.server`)) {
+                del(errors, `${name}.server`);
             }
         } else {
-            throw new Error("No name provided to deleteFormValue");
+            throw new Error("No name provided to updateValue");
+        }
+    };
+    const deleteValue = (name) => {
+        if (name) {
+            if (get(values, name) !== undefined) {
+                del(values, name);
+            }
+            // if there was a server error, clear it
+            if (get(errors, `${name}.server`)) {
+                del(errors, `${name}.server`);
+            }
+        } else {
+            throw new Error("No name provided to deleteValue");
         }
     };
     const updateError = (name, code, message) => {
         if (name && code && message) {
-            set(state.errors, `${name}.${code}`, message);
+            set(errors, `${name}.${code}`, message);
         } else {
             throw new Error("No name or code or message provided to updateError");
         }
@@ -42,8 +55,8 @@ export default function useForm(props) {
     const deleteError = (name, code) => {
         if (name) {
             const key = code ? `${name}.${code}` : name;
-            if (get(state.errors, key)) {
-                del(state.errors, key);
+            if (get(errors, key)) {
+                del(errors, key);
             }
         } else {
             throw new Error("No name provided to deleteError");
@@ -51,7 +64,7 @@ export default function useForm(props) {
     };
     const updateMessage = (name, code, message) => {
         if (name && code && message) {
-            set(state.messages, `${name}.${code}`, message);
+            set(messages, `${name}.${code}`, message);
         } else {
             throw new Error("No name or code or message provided to updateMessage");
         }
@@ -59,8 +72,8 @@ export default function useForm(props) {
     const deleteMessage = (name, code) => {
         if (name) {
             const key = code ? `${name}.${code}` : name;
-            if (get(state.messages, key)) {
-                del(state.messages, key);
+            if (get(messages, key)) {
+                del(messages, key);
             }
         } else {
             throw new Error("No name provided to deleteMessage");
@@ -68,10 +81,10 @@ export default function useForm(props) {
     };
     const setDirty = (name) => {
         if (name) {
-            set(state.dirty, name, true);
+            set(dirty, name, true);
             // only you can prevent over-reactivity
-            if (!state.anyDirty) {
-                state.anyDirty = true;
+            if (!anyDirty.value) {
+                anyDirty.value = true;
             }
         } else {
             throw new Error("No name provided to updateDirty");
@@ -79,25 +92,35 @@ export default function useForm(props) {
     };
     const clearDirty = (name) => {
         if (name) {
-            del(state.dirty, name);
-            state.anyDirty = Object.keys(state.dirty).length > 0;
+            del(dirty, name);
+            anyDirty.value = Object.keys(dirty).length > 0;
         } else {
             throw new Error("No name provided to deleteDirty");
         }
     };
     const resetAllDirty = () => {
-        assignReactiveObject(state.dirty, {});
-        state.anyDirty = false;
+        assignReactiveObject(dirty, {});
+        anyDirty.value = false;
     };
     const updateDoSubmit = (fn) => {
-        state.doSubmit = fn;
+        doSubmit.value = fn;
     };
-
+    /**
+     * handleServerFormValidationError - take django form validation messages from a
+     *  FormValidationError and put them in the form context as errors
+     * @param {FormValidationError} error - the error to handle
+     */
+    const handleServerFormValidationError = (error) => {
+        const messages = error.messages;
+        for (const [name, message] of Object.entries(messages)) {
+            updateError(name, "server", message);
+        }
+    };
     watch(
         () => props.initialValues,
         (initialValues) => {
             if (initialValues) {
-                state.values = cloneDeep(initialValues);
+                assignReactiveObject(values, cloneDeep(initialValues));
             }
         },
         {
@@ -106,9 +129,16 @@ export default function useForm(props) {
         },
     );
     const formContext = readonly({
-        state,
-        updateFormValue,
-        deleteFormValue,
+        values,
+        errors,
+        messages,
+        dirty,
+        anyDirty,
+        doSubmit,
+        initialValues,
+        reset,
+        updateValue,
+        deleteValue,
         updateError,
         deleteError,
         updateMessage,
@@ -117,6 +147,7 @@ export default function useForm(props) {
         clearDirty,
         resetAllDirty,
         updateDoSubmit,
+        handleServerFormValidationError,
     });
     provide(FormContextSymbol, formContext);
     return formContext;

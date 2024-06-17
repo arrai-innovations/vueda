@@ -5,7 +5,7 @@ import FieldNumber from "@vueda/fields/FieldNumber.vue";
 import FieldObject from "@vueda/fields/FieldObject.vue";
 import FieldString from "@vueda/fields/FieldString.vue";
 import storeModelInfo from "@vueda/stores/storeModelInfo.js";
-import { memoizedSnakeCase } from "@vueda/utils/index.js";
+import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
 import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";

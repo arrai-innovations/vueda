@@ -1,7 +1,7 @@
 <script setup>
 import { faDownLong, faUpDown, faUpLong } from "@arrai-innovations/sharp-solid-svg-icons";
 import { FontAwesomeIcon } from "@arrai-innovations/vue-fontawesome";
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 import get from "lodash-es/get.js";
 import { computed, ref } from "vue";

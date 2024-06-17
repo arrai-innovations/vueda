@@ -4,7 +4,7 @@ import FormHelpText from "@vueda/components/FormHelpText.vue";
 import FormLabel from "@vueda/components/FormLabel.vue";
 import FormWrapper from "@vueda/components/FormWrapper.vue";
 import LoadingSpinner from "@vueda/components/LoadingSpinner.vue";
-import { useCombinedClasses } from "@vueda/use/index.js";
+import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useFormModel from "@vueda/use/useFormModel.js";
 import { reactive } from "vue";
 

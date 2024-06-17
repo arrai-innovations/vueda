@@ -19,6 +19,7 @@ watch(toRef(form, "anyDirty"), (dirty) => {
 const doSubmit = () => {
     handleSubmit();
 };
+
 form.updateDoSubmit(doSubmit);
 defineExpose({ form });
 </script>

@@ -11,7 +11,7 @@ import isEmpty from "lodash-es/isEmpty";
 export async function waitForInitialising() {
     const userStore = storeUser();
     if (!userStore.initialized) {
-        await userStore.whoAmI();
+        await userStore.fetchCurrentUser();
     }
     return userStore;
 }

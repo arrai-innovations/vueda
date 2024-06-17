@@ -2,7 +2,7 @@
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import LoadingSpinner from "@vueda/components/LoadingSpinner.vue";
 import storeToast from "@vueda/stores/storeToast.js";
-import { useCombinedClasses } from "@vueda/use/index.js";
+import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useModelConfig from "@vueda/use/useModelConfig";
 import isEmpty from "lodash-es/isEmpty";
 import { reactive, ref, toRef } from "vue";

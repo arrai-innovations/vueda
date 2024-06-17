@@ -87,15 +87,15 @@ const makeResultObject = (app, model, id) => ({
     id: unref(id),
 });
 const modelStatesUrl = (app, model) =>
-    `${httpOrHttpsHostname}/${getUrl("workflowStates")}/${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
+    `${httpOrHttpsHostname}${getUrl("workflowStates")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
 const objectStatesUrl = (result) =>
-    `${httpOrHttpsHostname}/${getUrl("workflowObjectState")}/${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
+    `${httpOrHttpsHostname}${getUrl("workflowObjectState")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
 const objectTransitionsUrl = (result) =>
-    `${httpOrHttpsHostname}/${getUrl("workflowObjectTransitions")}/${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
+    `${httpOrHttpsHostname}${getUrl("workflowObjectTransitions")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
 const objectHistoriesUrl = (result) =>
-    `${httpOrHttpsHostname}/${getUrl("workflowObjectHistory")}/${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
+    `${httpOrHttpsHostname}${getUrl("workflowObjectHistory")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
 const executeTransitionUrl = (result) =>
-    `${httpOrHttpsHostname}/${getUrl("workflowExecuteTransition")}/${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
+    `${httpOrHttpsHostname}${getUrl("workflowExecuteTransition")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
 
 /**
  * storeWorkflow - pinia store for current workflow states, available transitions, and workflow histories for objects

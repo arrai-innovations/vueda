@@ -1,7 +1,9 @@
 <script setup>
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, inject } from "vue";
+import isEmpty from "lodash-es/isEmpty.js";
+import InlineMessage from "primevue/inlinemessage";
+import { inject, ref, toRef, watch } from "vue";
 
 const props = defineProps({
     type: {
@@ -10,8 +12,9 @@ const props = defineProps({
         validator: (value) => ["error", "message"].includes(value),
     },
     messages: {
-        type: Array,
+        type: Object,
         default: null,
+        description: "Messages to display, in code: message pairs",
     },
     variant: {
         type: String,
@@ -35,15 +38,29 @@ const props = defineProps({
     },
 });
 const fieldContext = inject(FieldContextSymbol);
-const computedMessages = computed(() => props.messages || fieldContext[`${props.type}s`]?.[fieldContext.name] || []);
-const combinedClasses = useCombinedClasses("@vueda/fields/FormFeedback.vue", props);
+const feedbackItems = ref([]);
+
+watch(
+    [toRef(fieldContext, "errors"), toRef(fieldContext, "messages"), toRef(props, "type"), toRef(props, "messages")],
+    ([errors, messages]) => {
+        if (props.messages) {
+            feedbackItems.value = Object.values(props.messages);
+            return;
+        }
+        feedbackItems.value = props.type === "error" ? errors : messages;
+    },
+    { immediate: true },
+);
+
+const combinedClasses = useCombinedClasses("@vueda/components/FormFeedback.vue", props);
 </script>
 <template>
-    <div v-if="computedMessages?.length" :class="combinedClasses[`{type}sClass`]">
-        <ul>
-            <li v-for="message in computedMessages" :key="message" :class="combinedClasses[`{type}Class`]">
-                {{ message }}
-            </li>
-        </ul>
+    <div v-if="!isEmpty(feedbackItems)" :class="combinedClasses[`{type}sClass`]">
+        <InlineMessage
+            v-for="message in Object.values(feedbackItems)"
+            :key="message"
+            :severity="type === 'message' ? 'info' : 'error'"
+            >{{ message }}</InlineMessage
+        >
     </div>
 </template>

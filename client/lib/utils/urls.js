@@ -1,13 +1,17 @@
 const defaultUrls = {
-    infoModelInfo: "/api/info/model-info/",
-    userCurrentUser: "/api/user/current-user/",
-    userLogin: "/api/user/login/",
-    userLogout: "/api/user/logout/",
-    workflowExecuteTransition: "/api/workflow/workflow/execute-transition/",
-    workflowObjectHistory: "/api/workflow/workflow/object-history/",
-    workflowObjectState: "/api/workflow/workflow/object-state/",
-    workflowObjectTransitions: "/api/workflow/workflow/object-transitions/",
-    workflowStates: "/api/workflow/workflow/states/",
+    historyObjectHistory: "/routes/history/object-history/:app/:model/:pk/",
+    infoModelInfo: "/routes/info/model-info/",
+    modelDetail: "/routes/:app/:model/:pk/",
+    modelList: "/routes/:app/:model/",
+    userCurrentUser: "/routes/vueda.user/who-is/",
+    userLogin: "/routes/vueda.user/login/",
+    userLogout: "/routes/vueda.user/logout/",
+    workflowList: "/routes/workflow/workflow/",
+    workflowRetrieveTransition: "/routes/workflow/workflow/:app/:model/",
+    workflowExecuteTransition: "/routes/workflow/workflow/:app/:model/execute-transition/:pk/",
+    workflowObjectState: "/routes/workflow/workflow/:app/:model/object-state/:pk/",
+    workflowObjectTransitions: "/routes/workflow/workflow/:app/:model/object-transitions/:pk/",
+    workflowStates: "/routes/workflow/workflow/states/",
 };
 
 const customUrls = {};

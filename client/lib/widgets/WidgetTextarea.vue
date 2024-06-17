@@ -1,5 +1,5 @@
 <script setup>
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useWidget, { widgetEmits, widgetProps } from "@vueda/use/useWidget.js";
 
 defineOptions({

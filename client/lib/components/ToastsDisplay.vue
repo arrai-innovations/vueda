@@ -1,7 +1,7 @@
 <script setup>
 import ToastDisplay from "@vueda/components/ToastDisplay.vue";
 import storeToast from "@vueda/stores/storeToast.js";
-import { useCombinedClasses } from "@vueda/use/index.js";
+import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 
 const props = defineProps({
     variant: {

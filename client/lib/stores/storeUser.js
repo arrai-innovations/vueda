@@ -42,7 +42,7 @@ function checkForTypeError(error) {
  *   user.init(); // fetch the current user, with initialization wrapping
  *   user.login({username: "username", password: "password"}); // login
  *   user.logout(); // logout
- *   user.whoAmI(); // fetch the current user
+ *   user.fetchCurrentUser(); // fetch the current user
  * ```
  */
 export default defineStore({
@@ -57,12 +57,12 @@ export default defineStore({
         initializingPromise: undefined,
     }),
     actions: {
-        async whoAmI() {
+        async fetchCurrentUser() {
             if (this.initialized) {
                 this.initialized = false;
             }
             try {
-                const response = await fetch(`${httpOrHttpsHostname}/${getUrl("userCurrentUser")}/`, {
+                const response = await fetch(`${httpOrHttpsHostname}${getUrl("userCurrentUser")}`, {
                     method: "GET",
                     credentials: "include",
                 });
@@ -84,7 +84,7 @@ export default defineStore({
         async login(payload) {
             let response;
             try {
-                response = await fetch(`${httpOrHttpsHostname}/${getUrl("userLogin")}/`, {
+                response = await fetch(`${httpOrHttpsHostname}${getUrl("userLogin")}`, {
                     method: "POST",
                     headers: {
                         "X-CSRFToken": getCSRFValue(),
@@ -94,7 +94,7 @@ export default defineStore({
                     body: JSON.stringify(payload),
                 });
                 if (response.status === 204) {
-                    return this.whoAmI();
+                    return this.fetchCurrentUser();
                 }
                 if (response.status === 400) {
                     const data = await response.json();
@@ -110,14 +110,14 @@ export default defineStore({
             if (!this.loggedIn) {
                 // why call logout if you're not logged in?
                 // confirm the user state
-                await this.whoAmI();
+                await this.fetchCurrentUser();
                 if (!this.loggedIn) {
                     return;
                 }
             }
             let response;
             try {
-                response = await fetch(`${httpOrHttpsHostname}/${getUrl("userLogout")}/`, {
+                response = await fetch(`${httpOrHttpsHostname}${getUrl("userLogout")}`, {
                     method: "POST",
                     headers: {
                         "X-CSRFToken": getCSRFValue(),
@@ -126,7 +126,7 @@ export default defineStore({
                     credentials: "include",
                 });
                 if (response.status === 200) {
-                    return this.whoAmI();
+                    return this.fetchCurrentUser();
                 }
             } catch (error) {
                 checkForTypeError(error);
@@ -136,7 +136,7 @@ export default defineStore({
         },
         async init() {
             if (!this.initialized) {
-                this.initialzingPromise = await this.whoAmI();
+                this.initialzingPromise = await this.fetchCurrentUser();
             }
             if (this.initializingPromise) {
                 await this.initializingPromise;

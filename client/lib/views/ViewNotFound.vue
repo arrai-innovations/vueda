@@ -1,5 +1,5 @@
 <script setup>
-import { useSuggestRoute } from "@vueda/use/index.js";
+import useSuggestRoute from "@vueda/use/useSuggestRoute.js";
 import { useRouter } from "vue-router";
 
 const router = useRouter();

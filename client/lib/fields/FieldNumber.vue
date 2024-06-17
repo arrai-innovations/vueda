@@ -1,6 +1,6 @@
 <script setup>
 import useField, { fieldProps } from "@vueda/use/useField.js";
-import { FormContextSymbol } from "@vueda/utils/index.js";
+import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, toRef, watch } from "vue";
 
 const props = defineProps({

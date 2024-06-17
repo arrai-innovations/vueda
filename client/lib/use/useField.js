@@ -2,7 +2,7 @@ import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
-import { computed, inject, provide, readonly, toRef, watch } from "vue";
+import { computed, inject, provide, reactive, readonly, watch } from "vue";
 
 export const fieldProps = {
     name: {
@@ -50,59 +50,78 @@ export default function useField(props, functions) {
     });
     const value = computed({
         get() {
-            return get(formContext.values, props.name);
+            return formContext ? get(formContext.values, props.name) : undefined;
         },
         set(value) {
-            formContext.updateFormValue(props.name, value);
+            if (formContext) {
+                formContext.updateValue(props.name, value);
+            }
         },
     });
     const messages = computed(() => {
-        return get(formContext.messages, props.name);
+        return formContext ? get(formContext.messages, props.name) : {};
     });
     const errors = computed(() => {
-        return get(formContext.errors, props.name);
+        return formContext ? get(formContext.errors, props.name) : {};
     });
     const dirty = computed(() => {
-        return get(formContext.dirty, props.name);
+        return formContext ? get(formContext.dirty, props.name) : false;
     });
     const checkRequired = () => {
-        if (dirty.value && props.required && !requiredFn(value.value)) {
-            formContext.updateError(props.name, "required", requiredMessage.value);
-        } else {
-            formContext.deleteError(props.name, "required");
-        }
-    };
-    const checkIfChanged = (newValue, oldValue) => {
-        if (newValue !== oldValue) {
-            checkRequired();
-            if (props.validate) {
-                const result = props.validate(value.value);
-                if (result === true) {
-                    formContext.deleteError(props.name, "validate");
-                } else {
-                    formContext.updateError(props.name, "validate", result);
-                }
+        if (props.required && dirty.value && formContext) {
+            if (!requiredFn(value.value)) {
+                formContext.updateError(props.name, "required", requiredMessage.value);
             } else {
-                formContext.deleteError(props.name, "validate");
+                formContext.deleteError(props.name, "required");
             }
         }
     };
+
+    const checkCustomValidation = () => {
+        if (props.validate && dirty.value && formContext) {
+            const result = props.validate(value.value);
+            if (result === true) {
+                formContext.deleteError(props.name, "validate");
+            } else {
+                formContext.updateError(props.name, "validate", result);
+            }
+        }
+    };
+
     watch(
         () => cloneDeep(value.value),
         (newValue, oldValue) => {
             if (!isEqual(newValue, oldValue)) {
                 checkRequired();
+                checkCustomValidation();
             }
         },
         { deep: true },
     );
-    watch(toRef(props, "required"), checkIfChanged, {
-        // only one checkIfChanged needs to be immediate
-        immediate: true,
-    });
-    watch(toRef(props, "requiredMessage"), checkIfChanged);
-    watch(dirty, checkIfChanged);
-    watch(toRef(props, "validate"), checkIfChanged);
+
+    watch(
+        () => ({
+            required: props.required,
+            requiredMessage: props.requiredMessage,
+            validate: props.validate,
+            dirty: dirty.value,
+            formContext: formContext,
+        }),
+        (newProps, oldProps) => {
+            const requiredChanged = newProps.required !== oldProps?.required;
+            const requiredMessageChanged = newProps.requiredMessage !== oldProps?.requiredMessage;
+            const validateChanged = newProps.validate !== oldProps?.validate;
+            const dirtyChanged = newProps.dirty !== oldProps?.dirty;
+            const formContextChanged = newProps.formContext !== oldProps?.formContext;
+            if (requiredChanged || requiredMessageChanged || dirtyChanged || formContextChanged) {
+                checkRequired();
+            }
+            if (validateChanged || dirtyChanged || formContextChanged) {
+                checkCustomValidation();
+            }
+        },
+        { immediate: true },
+    );
     // watch(
     //     toRef(props, "name"),
     //     (newValue, oldValue) => {
@@ -111,36 +130,52 @@ export default function useField(props, functions) {
     //         }
     //     },
     // );
-    const returnObj = readonly({
-        name,
-        help,
-        value,
-        messages,
-        errors,
-        dirty,
-        updateFormValue: (value) => {
-            formContext.updateFormValue(name.value, value);
+    const returnObj = reactive({
+        name: readonly(name),
+        help: readonly(help),
+        value: readonly(value),
+        messages: readonly(messages),
+        errors: readonly(errors),
+        dirty: readonly(dirty),
+        updateValue: (value) => {
+            if (formContext) {
+                formContext.updateValue(name.value, value);
+            }
         },
-        deleteFormValue: () => {
-            formContext.deleteFormValue(name.value);
+        deleteValue: () => {
+            if (formContext) {
+                formContext.deleteValue(name.value);
+            }
         },
         updateError: (code, message) => {
-            formContext.updateError(name.value, code, message);
+            if (formContext) {
+                formContext.updateError(name.value, code, message);
+            }
         },
         deleteError: (code) => {
-            formContext.deleteError(name.value, code);
+            if (formContext) {
+                formContext.deleteError(name.value, code);
+            }
         },
         updateMessage: (code, message) => {
-            formContext.updateMessage(name.value, code, message);
+            if (formContext) {
+                formContext.updateMessage(name.value, code, message);
+            }
         },
         deleteMessage: (code) => {
-            formContext.deleteMessage(name.value, code);
+            if (formContext) {
+                formContext.deleteMessage(name.value, code);
+            }
         },
         setDirty: () => {
-            formContext.setDirty(name.value);
+            if (formContext) {
+                formContext.setDirty(name.value);
+            }
         },
         clearDirty: () => {
-            formContext.clearDirty(name.value);
+            if (formContext) {
+                formContext.clearDirty(name.value);
+            }
         },
     });
     provide(FieldContextSymbol, returnObj);

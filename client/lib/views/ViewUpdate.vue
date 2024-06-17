@@ -1,10 +1,11 @@
 <script setup>
 import { useObject } from "@arrai-innovations/reactive-helpers";
+import FormModel from "@vueda/components/FormModel.vue";
 import LoadingSpinner from "@vueda/components/LoadingSpinner.vue";
-import { FormModel } from "@vueda/components/index.js";
 import storeModelConfig from "@vueda/stores/storeModelConfig.js";
-import { useCombinedClasses, useLeaveUnload } from "@vueda/use/index.js";
+import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useIsActive from "@vueda/use/useIsActive.js";
+import useLeaveUnload from "@vueda/use/useLeaveUnload.js";
 import useModelConfig from "@vueda/use/useModelConfig.js";
 import { computed, reactive, toRef } from "vue";
 
