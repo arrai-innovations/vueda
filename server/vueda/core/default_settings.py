@@ -123,15 +123,10 @@ def get_defaults(env: Env):
         "CACHES": {
             "default": {
                 "BACKEND": "django.core.cache.backends.redis.RedisCache",
+                "KEY_PREFIX": "vueda-",
                 "LOCATION": env("REDIS_URL"),
                 "OPTIONS": {
-                    "CLIENT_CLASS": "django_redis.client.DefaultClient",
-                    "PARSER_CLASS": "redis.connection.HiredisParser",
-                    "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
-                    # Mimicking memcache behavior.
-                    # https://github.com/jazzband/django-redis#memcached-exceptions-behavior
-                    "IGNORE_EXCEPTIONS": True,
-                    "PREFIX": "example_cache",
+                    "pool_class": "redis.BlockingConnectionPool",
                 },
             }
         },
