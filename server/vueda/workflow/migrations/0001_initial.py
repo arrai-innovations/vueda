@@ -8,7 +8,7 @@ from django.db import migrations
 from django.db import models
 
 
-with open(os.path.join("vueda", "workflow", "sql", "view-workflows_objectstateproxy.sql"), mode="r") as f:
+with open(os.path.join("vueda", "workflow", "sql", "view-vueda_workflow_objectstateproxy.sql"), mode="r") as f:
     forwards_sql = f.read()
 
 
@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
                 ("object_id", models.PositiveIntegerField()),
             ],
             options={
-                "db_table": "workflows_objectstateproxy",
+                "db_table": "vueda_workflow_objectstateproxy",
                 "managed": False,
                 "default_related_name": "object_states_proxy",
             },
@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
                 ("grant_or_deny", models.BooleanField()),
                 ("group", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="auth.group")),
                 ("permission", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="auth.permission")),
-                ("state", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="workflow.state")),
+                ("state", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="vueda_workflow.state")),
             ],
             options={
                 "default_related_name": "state_permissions",
@@ -65,7 +65,7 @@ class Migration(migrations.Migration):
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("code", models.CharField(db_index=True, max_length=255, unique=True)),
                 ("name", models.CharField(max_length=255)),
-                ("target", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="workflow.state")),
+                ("target", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="vueda_workflow.state")),
             ],
             options={
                 "default_related_name": "transitions",
@@ -78,7 +78,7 @@ class Migration(migrations.Migration):
                 ("permission", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="auth.permission")),
                 (
                     "transition",
-                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="workflow.transition"),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="vueda_workflow.transition"),
                 ),
             ],
             options={
@@ -89,10 +89,10 @@ class Migration(migrations.Migration):
             name="TransitionSource",
             fields=[
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("source", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="workflow.state")),
+                ("source", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="vueda_workflow.state")),
                 (
                     "transition",
-                    models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="workflow.transition"),
+                    models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="vueda_workflow.transition"),
                 ),
             ],
             options={
@@ -121,20 +121,23 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="transition",
             name="workflow",
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="workflow.workflow"),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="vueda_workflow.workflow"),
         ),
         migrations.AddField(
             model_name="state",
             name="workflow",
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="workflow.workflow"),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="vueda_workflow.workflow"),
         ),
         migrations.CreateModel(
             name="ObjectState",
             fields=[
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("object_id", models.PositiveIntegerField()),
-                ("state", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="workflow.state")),
-                ("workflow", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="workflow.workflow")),
+                ("state", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="vueda_workflow.state")),
+                (
+                    "workflow",
+                    models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="vueda_workflow.workflow"),
+                ),
             ],
             options={
                 "default_related_name": "object_states",
@@ -144,13 +147,13 @@ class Migration(migrations.Migration):
             name="InitialState",
             fields=[
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("state", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="workflow.state")),
+                ("state", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="vueda_workflow.state")),
                 (
                     "workflow",
                     models.OneToOneField(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="initial_state",
-                        to="workflow.workflow",
+                        to="vueda_workflow.workflow",
                     ),
                 ),
             ],
@@ -185,7 +188,7 @@ class Migration(migrations.Migration):
                         db_constraint=False,
                         on_delete=django.db.models.deletion.DO_NOTHING,
                         related_name="history_records",
-                        to="workflow.objectstate",
+                        to="vueda_workflow.objectstate",
                     ),
                 ),
                 (
@@ -196,7 +199,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.DO_NOTHING,
                         related_name="+",
-                        to="workflow.state",
+                        to="vueda_workflow.state",
                     ),
                 ),
                 (
@@ -207,7 +210,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.DO_NOTHING,
                         related_name="+",
-                        to="workflow.workflow",
+                        to="vueda_workflow.workflow",
                     ),
                 ),
             ],
@@ -224,7 +227,10 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("permission", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="auth.permission")),
-                ("workflow", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="workflow.workflow")),
+                (
+                    "workflow",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="vueda_workflow.workflow"),
+                ),
             ],
             options={
                 "default_related_name": "workflow_permissions",
@@ -270,6 +276,6 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql=forwards_sql,
-            reverse_sql="DROP VIEW IF EXISTS workflows_objectstateproxy;",
+            reverse_sql="DROP VIEW IF EXISTS vueda_workflow_objectstateproxy;",
         ),
     ]
