@@ -8,7 +8,14 @@ from django.db import migrations
 from django.db import models
 
 
-with open(os.path.join("vueda", "workflow", "sql", "view-vueda_workflow_objectstateproxy.sql"), mode="r") as f:
+sql_location = os.path.join(
+    os.path.abspath(os.path.dirname(__file__)),
+    "..",
+    "sql",
+    "view-vueda_workflow_objectstateproxy.sql",
+)
+
+with open(sql_location, mode="r") as f:
     forwards_sql = f.read()
 
 
