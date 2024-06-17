@@ -156,8 +156,8 @@ def get_defaults(env: Env):
             "ORDERING_PARAM": "o",
         },
         "REST_AUTH": {
-            "LOGIN_SERIALIZER": "vueda.core.serializers.LoginSerializer",
-            "USER_DETAILS_SERIALIZER": "vueda.core.serializers.WhoAmISerializer",
+            "LOGIN_SERIALIZER": "vueda.user.serializers.LoginSerializer",
+            "USER_DETAILS_SERIALIZER": "vueda.user.serializers.WhoIsSerializer",
             "TOKEN_MODEL": None,
         },
         "REST_FLEX_FIELDS": {
