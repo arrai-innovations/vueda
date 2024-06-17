@@ -103,7 +103,7 @@ class CustomerOrder(HasWorkflowModelMixin, SimpleHistoryModelMixin, models.Model
     order_state = models.ForeignKey(OrderState, on_delete=models.PROTECT)
 
     class Meta(BaseModelMeta):
-        pass
+        permissions = [("fulfill_orders", "Can fulfill orders")]
 
     def __str__(self):
         return str(self.order_number)
@@ -133,7 +133,7 @@ class InventoryRecordReason(models.Model):
     code = models.CharField(max_length=255, db_index=True)
     is_added_reason = models.BooleanField(db_index=True)
 
-    class Meta:
+    class Meta(BaseModelMeta):
         default_related_name = "inventory_record_reason"
         unique_together = ("code", "is_added_reason")
 
@@ -170,6 +170,9 @@ class InventoryRecord(models.Model):
 
     price = models.DecimalField(max_digits=12, decimal_places=2, null=True)
     margin = models.DecimalField(max_digits=12, decimal_places=2, null=True)
+
+    class Meta(BaseModelMeta):
+        pass
 
     def __str__(self):
         return f"{self.when} - {self.reason.name} {self.quantity}x {self.product_option.name}"

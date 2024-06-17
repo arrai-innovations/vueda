@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalinitialstate
+                    vueda_workflow_historicalinitialstate
                 (
                     id,
                     history_date,
@@ -41,14 +41,14 @@ class Migration(migrations.Migration):
                     I.state_id,
                     I.workflow_id
                 FROM
-                    workflow_initialstate I,
+                    vueda_workflow_initialstate I,
                     SYSTEM_USER
                 WHERE
                     I.workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'order_fulfillment'
                     );""",
@@ -65,7 +65,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalstate
+                    vueda_workflow_historicalstate
                 (
                     id,
                     code,
@@ -88,14 +88,14 @@ class Migration(migrations.Migration):
                     SYSTEM_USER.id,
                     S.workflow_id
                 FROM
-                    workflow_state S,
+                    vueda_workflow_state S,
                     SYSTEM_USER
                 WHERE
                     S.workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'order_fulfillment'
                     );""",
@@ -112,7 +112,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalstatepermission
+                    vueda_workflow_historicalstatepermission
                 (
                     id,
                     grant_or_deny,
@@ -145,16 +145,16 @@ class Migration(migrations.Migration):
                     S.historical_group_name,
                     S.state_id
                 FROM
-                    workflow_statepermission S,
+                    vueda_workflow_statepermission S,
                     SYSTEM_USER
                 WHERE
                     S.state_id IN (
                         SELECT
                             WS.id
                         FROM
-                            workflow_state WS
+                            vueda_workflow_state WS
                         JOIN
-                            workflow_workflow W ON WS.workflow_id = W.id
+                            vueda_workflow_workflow W ON WS.workflow_id = W.id
                         WHERE
                             W.code = 'order_fulfillment'
                     )
@@ -181,7 +181,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicaltransition
+                    vueda_workflow_historicaltransition
                 (
                     id,
                     code,
@@ -206,14 +206,14 @@ class Migration(migrations.Migration):
                     T.target_id,
                     T.workflow_id
                 FROM
-                    workflow_transition T,
+                    vueda_workflow_transition T,
                     SYSTEM_USER
                 WHERE
                     workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'order_fulfillment'
                     );""",
@@ -230,7 +230,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicaltransitionpermission
+                    vueda_workflow_historicaltransitionpermission
                 (
                     id,
                     history_date,
@@ -257,16 +257,16 @@ class Migration(migrations.Migration):
                     T.historical_permission_content_type_model_name,
                     T.transition_id
                 FROM
-                    workflow_transitionpermission T,
+                    vueda_workflow_transitionpermission T,
                     SYSTEM_USER
                 WHERE
                     transition_id IN (
                         SELECT
                             WT.id
                         FROM
-                            workflow_transition WT
+                            vueda_workflow_transition WT
                         JOIN
-                            workflow_workflow W ON WT.workflow_id = W.id
+                            vueda_workflow_workflow W ON WT.workflow_id = W.id
                         WHERE
                             W.code = 'order_fulfillment'
                     );""",
@@ -283,7 +283,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicaltransitionsource
+                    vueda_workflow_historicaltransitionsource
                 (
                     id,
                     history_date,
@@ -304,16 +304,16 @@ class Migration(migrations.Migration):
                     T.source_id,
                     T.transition_id
                 FROM
-                    workflow_transitionsource T,
+                    vueda_workflow_transitionsource T,
                     SYSTEM_USER
                 WHERE
                     transition_id IN (
                         SELECT
                             WT.id
                         FROM
-                            workflow_transition WT
+                            vueda_workflow_transition WT
                         JOIN
-                            workflow_workflow W ON WT.workflow_id = W.id
+                            vueda_workflow_workflow W ON WT.workflow_id = W.id
                         WHERE
                             W.code = 'order_fulfillment'
                     );""",
@@ -330,7 +330,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalworkflow
+                    vueda_workflow_historicalworkflow
                 (
                     id,
                     code,
@@ -357,7 +357,7 @@ class Migration(migrations.Migration):
                     W.id,
                     SYSTEM_USER.id
                 FROM
-                    workflow_workflow W,
+                    vueda_workflow_workflow W,
                     SYSTEM_USER
                 WHERE
                     W.code = 'order_fulfillment';""",
@@ -374,7 +374,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalworkflowpermission
+                    vueda_workflow_historicalworkflowpermission
                 (
                     id,
                     history_date,
@@ -401,14 +401,14 @@ class Migration(migrations.Migration):
                     W.historical_permission_content_type_model_name,
                     W.workflow_id
                 FROM
-                    workflow_workflowpermission W,
+                    vueda_workflow_workflowpermission W,
                     SYSTEM_USER
                 WHERE
                     workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'order_fulfillment'
                     );""",

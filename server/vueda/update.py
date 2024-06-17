@@ -436,7 +436,7 @@ def update_for_main(subparsers=None):
     Add the update command to a parser & wrap the update class for use as a subcommand.
     """
     terminal_size = shutil.get_terminal_size((80, 20))
-    cmd = Update(stdout=sys.stdout, stderr=sys.stderr, terminal_size=terminal_size[0])
+    cmd = Update(stdout=sys.stdout, stderr=sys.stderr, terminal_width=terminal_size[0])
     if subparsers:
         parser_args = cmd.parser_args(subparsers)
         parser_args["name"] = parser_args.pop("prog")

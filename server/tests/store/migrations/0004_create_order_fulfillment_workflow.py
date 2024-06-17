@@ -20,7 +20,7 @@ def make_sure_permissions_exist(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ("store", "0003_alter_productoption_options"),
-        ("workflow", "0004_historicalstatepermission_historical_permission_codename_and_more"),
+        ("vueda_workflow", "0004_historicalstatepermission_historical_permission_codename_and_more"),
     ]
 
     operations = [
@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
             INSERT INTO
-                workflow_workflow
+                vueda_workflow_workflow
             (
                 name,
                 code,
@@ -54,7 +54,7 @@ class Migration(migrations.Migration):
             );""",
             reverse_sql="""
             DELETE FROM
-                workflow_workflow
+                vueda_workflow_workflow
             WHERE
                 code = 'order_fulfillment';""",
         ),
@@ -74,44 +74,6 @@ class Migration(migrations.Migration):
                 auth_group
             WHERE
                 name = 'Admin';""",
-        ),
-        migrations.RunSQL(
-            sql="""
-            INSERT INTO
-                auth_permission
-                (
-                    name,
-                    content_type_id,
-                    codename
-                )
-            VALUES
-                (
-                    'Can Fulfill Orders',
-                    (
-                        SELECT
-                            id
-                        FROM
-                            django_content_type
-                        WHERE
-                            app_label = 'store'
-                            AND model = 'customerorder'
-                    ),
-                    'fulfill_orders'
-                );""",
-            reverse_sql="""
-            DELETE FROM
-                auth_permission
-            WHERE
-                codename = 'fulfill_orders'
-                AND content_type_id = (
-                    SELECT
-                        id
-                    FROM
-                        django_content_type
-                    WHERE
-                        app_label = 'store'
-                        AND model = 'customerorder'
-                );""",
         ),
         migrations.RunSQL(
             sql="""
@@ -158,7 +120,7 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
             INSERT INTO
-                workflow_workflowpermission
+                vueda_workflow_workflowpermission
                 (
                     workflow_id,
                     permission_id,
@@ -168,7 +130,7 @@ class Migration(migrations.Migration):
                 )
             VALUES
                 (
-                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment'),
                     (
                         SELECT
                             id
@@ -191,7 +153,7 @@ class Migration(migrations.Migration):
                     'customerorder'
                 ),
                 (
-                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment'),
                     (
                         SELECT
                             id
@@ -215,13 +177,13 @@ class Migration(migrations.Migration):
                 );""",
             reverse_sql="""
             DELETE FROM
-                workflow_workflowpermission
+                vueda_workflow_workflowpermission
             WHERE
                 workflow_id IN (
                     SELECT
                         id
                     FROM
-                        workflow_workflow
+                        vueda_workflow_workflow
                     WHERE
                         code = 'order_fulfillment'
                 );""",
@@ -229,7 +191,7 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
             INSERT INTO
-                workflow_state
+                vueda_workflow_state
                 (
                     name,
                     code,
@@ -239,42 +201,42 @@ class Migration(migrations.Migration):
                 (
                     'New',
                     'new',
-                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment')
                 ),
                 (
                     'Packed',
                     'packed',
-                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment')
                 ),
                 (
                     'Returned',
                     'returned',
-                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment')
                 ),
                 (
                     'Shipped',
                     'shipped',
-                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment')
                 ),
                 (
                     'On Hold',
                     'on_hold',
-                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment')
                 ),
                 (
                     'Cancelled',
                     'cancelled',
-                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment')
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment')
                 );""",
             reverse_sql="""
                 DELETE FROM
-                    workflow_state
+                    vueda_workflow_state
                 WHERE
                     workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'order_fulfillment'
                     );""",
@@ -282,26 +244,26 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
                 INSERT INTO
-                    workflow_initialstate
+                    vueda_workflow_initialstate
                     (
                         workflow_id,
                         state_id
                     )
                 VALUES
                     (
-                        (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                        (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment'),
                         (
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_state
                             WHERE
                                 code = 'new'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'order_fulfillment'
                                 )
@@ -309,13 +271,13 @@ class Migration(migrations.Migration):
                     );""",
             reverse_sql="""
                 DELETE FROM
-                    workflow_initialstate
+                    vueda_workflow_initialstate
                 WHERE
                     workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'order_fulfillment'
                     );""",
@@ -323,7 +285,7 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
                 INSERT INTO
-                    workflow_statepermission
+                    vueda_workflow_statepermission
                     (
                         state_id,
                         permission_id,
@@ -340,14 +302,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_state
                             WHERE
                                 code = 'shipped'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'order_fulfillment'
                                 )
@@ -378,15 +340,15 @@ class Migration(migrations.Migration):
                     );""",
             reverse_sql="""
                 DELETE FROM
-                    workflow_statepermission
+                    vueda_workflow_statepermission
                 WHERE
                     state_id IN (
                         SELECT
                             S.id
                         FROM
-                            workflow_state S
+                            vueda_workflow_state S
                         JOIN
-                            workflow_workflow W ON S.workflow_id = W.id
+                            vueda_workflow_workflow W ON S.workflow_id = W.id
                         WHERE
                             W.code = 'order_fulfillment'
                     )
@@ -401,24 +363,24 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-            INSERT INTO workflow_transition (name, code, workflow_id, target_id)
+            INSERT INTO vueda_workflow_transition (name, code, workflow_id, target_id)
             VALUES
                 (
                     'Cancel Order',
                     'cancel_order',
-                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment'),
                     (
                         SELECT
                             id
                         FROM
-                            workflow_state
+                            vueda_workflow_state
                         WHERE
                             code = 'cancelled'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -427,19 +389,19 @@ class Migration(migrations.Migration):
                 (
                     'Hold Order',
                     'hold_order',
-                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment'),
                     (
                         SELECT
                             id
                         FROM
-                            workflow_state
+                            vueda_workflow_state
                         WHERE
                             code = 'on_hold'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -448,19 +410,19 @@ class Migration(migrations.Migration):
                 (
                     'Pack Order',
                     'pack_order',
-                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment'),
                     (
                         SELECT
                             id
                         FROM
-                            workflow_state
+                            vueda_workflow_state
                         WHERE
                             code = 'packed'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -469,19 +431,19 @@ class Migration(migrations.Migration):
                 (
                     'Return Order',
                     'return_order',
-                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment'),
                     (
                         SELECT
                             id
                         FROM
-                            workflow_state
+                            vueda_workflow_state
                         WHERE
                             code = 'returned'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -490,19 +452,19 @@ class Migration(migrations.Migration):
                 (
                     'Ship Order',
                     'ship_order',
-                    (SELECT id FROM workflow_workflow WHERE code = 'order_fulfillment'),
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'order_fulfillment'),
                     (
                         SELECT
                             id
                         FROM
-                            workflow_state
+                            vueda_workflow_state
                         WHERE
                             code = 'shipped'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -510,13 +472,13 @@ class Migration(migrations.Migration):
                 );""",
             reverse_sql="""
             DELETE FROM
-                workflow_transition
+                vueda_workflow_transition
             WHERE
                 workflow_id = (
                     SELECT
                         id
                     FROM
-                        workflow_workflow
+                        vueda_workflow_workflow
                     WHERE
                         code = 'order_fulfillment'
                 );""",
@@ -524,7 +486,7 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
             INSERT INTO
-                workflow_transitionpermission
+                vueda_workflow_transitionpermission
                 (
                     permission_id,
                     historical_permission_codename,
@@ -558,14 +520,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'cancel_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -596,14 +558,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'hold_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -634,14 +596,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'pack_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -672,14 +634,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'ship_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -710,14 +672,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'return_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -748,14 +710,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'cancel_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -786,14 +748,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'return_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -801,7 +763,7 @@ class Migration(migrations.Migration):
                 );""",
             reverse_sql="""
             DELETE FROM
-                workflow_transitionpermission
+                vueda_workflow_transitionpermission
             WHERE
                 transition_id IN (
                     SELECT
@@ -809,7 +771,7 @@ class Migration(migrations.Migration):
                     FROM
                         workflow_transition T
                     JOIN
-                        workflow_workflow W ON T.workflow_id = W.id
+                        vueda_workflow_workflow W ON T.workflow_id = W.id
                     WHERE
                         W.code = 'order_fulfillment'
                 );""",
@@ -828,14 +790,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'cancel_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -844,14 +806,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_state
+                            vueda_workflow_state
                         WHERE
                             code = 'new'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -862,14 +824,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'hold_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -878,14 +840,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_state
+                            vueda_workflow_state
                         WHERE
                             code = 'new'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -896,14 +858,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'pack_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -912,14 +874,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_state
+                            vueda_workflow_state
                         WHERE
                             code = 'new'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -930,14 +892,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'ship_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -946,14 +908,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_state
+                            vueda_workflow_state
                         WHERE
                             code = 'packed'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -964,14 +926,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'cancel_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -980,14 +942,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_state
+                            vueda_workflow_state
                         WHERE
                             code = 'packed'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -998,14 +960,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'cancel_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -1014,14 +976,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_state
+                            vueda_workflow_state
                         WHERE
                             code = 'on_hold'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -1032,14 +994,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'return_order'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -1048,14 +1010,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_state
+                            vueda_workflow_state
                         WHERE
                             code = 'shipped'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'order_fulfillment'
                             )
@@ -1063,15 +1025,15 @@ class Migration(migrations.Migration):
                 );""",
             reverse_sql="""
             DELETE FROM
-                workflow_transitionsource
+                vueda_workflow_transitionsource
             WHERE
                 transition_id IN (
                     SELECT
                         T.id
                     FROM
-                        workflow_transition T
+                        vueda_workflow_transition T
                     JOIN
-                        workflow_workflow W ON T.workflow_id = W.id
+                        vueda_workflow_workflow W ON T.workflow_id = W.id
                     WHERE
                         W.code = 'order_fulfillment'
                 );""",

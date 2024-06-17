@@ -60,7 +60,7 @@ class CartViewSet(VuedaViewSet):
     permitted_expands = ["cart_items", "customer"]
     ordering_fields = ["customer__user__email", "last_modified"]
 
-    @action(detail=True, methods=["put", "patch"], permission_classes=(IsCartOrOrderCreator,))
+    @action(detail=True, methods=["post"], permission_classes=(IsCartOrOrderCreator,))
     def create_order(self, request, pk):
         cart = self.queryset.filter(pk=pk).first()
         if cart is None:

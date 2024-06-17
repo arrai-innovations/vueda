@@ -84,6 +84,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
+                "permissions": [("fulfill_orders", "Can fulfill orders")],
             },
         ),
         migrations.CreateModel(
