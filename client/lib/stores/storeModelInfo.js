@@ -149,15 +149,46 @@ export default defineStore({
                 return existing;
             }
             if (!this.existingPromises[key]) {
+                const retrieveArgs = {
+                    f: [
+                        "app_label",
+                        "model",
+                        "verbose_name",
+                        "verbose_name_plural",
+                        "model_fields",
+                        "model_actions",
+                        "model_expands",
+                        "model_ordering",
+                        "model_filtering",
+                        "model_permissions",
+                    ],
+                    e: [
+                        "model_fields",
+                        "model_actions",
+                        "model_expands",
+                        "model_ordering",
+                        "model_filtering",
+                        "model_permissions",
+                    ],
+                };
                 this.existingPromises[key] = fetchHelper(
-                    modelInfoUrl(app, model),
+                    modelInfoUrl(app, model) + `?${new URLSearchParams(retrieveArgs).toString()}`,
                     {
                         method: "GET",
                     },
                     "Failed to fetch model info",
                 )
                     .then((data) => {
-                        this.modelInfos[key] = data;
+                        // server is serving all the expands as model_ to avoid server side conflicts
+                        // that is just noise client side, so we'll clean it up here
+                        this.modelInfos[key] = Object.fromEntries(
+                            Object.entries(data).map(([k, v]) => {
+                                if (k.startsWith("model_")) {
+                                    return [k.slice(6), v];
+                                }
+                                return [k, v];
+                            }),
+                        );
                         return data;
                     })
                     .finally(() => {

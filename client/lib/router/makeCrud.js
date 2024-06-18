@@ -13,13 +13,18 @@ import partial from "lodash-es/partial";
  * @param {Array<string>} [params.views=['list', 'create', 'update', 'read']] - The views to generate routes for.
  * @param {Object} [params.titles={}] - Custom titles for the views.
  * @param {string} [params.pathPrefix=''] - The prefix to add to the path.
+ * @param {string} [params.authRedirect=null] - The route to redirect to if the user is not authenticated.
+ * @param {Array<string>} [params.groups=null] - The groups required to access the views.
+ * @param {Object} [params.groupsRedirect=null] - The route to redirect to if the user is not in the required groups.
  * @returns {Array<Object>} The generated routes.
  */
 export function makeCRUDRoutes({
     components,
     app,
     model,
-    groups,
+    authRedirect = null,
+    groups = null,
+    groupsRedirect = null,
     views = ["list", "create", "update", "read"],
     titles = {},
     pathPrefix = "",
@@ -32,20 +37,23 @@ export function makeCRUDRoutes({
     const pluralizedTitle = getPluralizedTitle(capitalizedTitle);
 
     const beforeEnter = [];
-    if (groups) {
-        beforeEnter.push(requireAuth);
-        beforeEnter.push(
-            partial(
-                requireGroups,
-                {
-                    title: "Permission Denied",
-                    message: "You do not have permission to access",
-                    variant: "error",
-                    autoDismiss: false,
-                },
-                groups,
-            ),
-        );
+    if (authRedirect) {
+        beforeEnter.push(partial(requireAuth, authRedirect));
+        if (groups) {
+            beforeEnter.push(
+                partial(
+                    requireGroups,
+                    {
+                        title: "Permission Denied",
+                        message: "You do not have permission to access",
+                        variant: "error",
+                        autoDismiss: false,
+                    },
+                    groups,
+                    groupsRedirect, // you'll be authed but not a member when you get here
+                ),
+            );
+        }
     }
 
     views.forEach((view) => {

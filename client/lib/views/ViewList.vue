@@ -1,4 +1,5 @@
 <script setup>
+import { getCapitalizedTitle } from "../utils/crudSupport.js";
 import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
@@ -105,13 +106,14 @@ const sorting = reactive({
 });
 const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
 const combinedClasses = useCombinedClasses("@vueda/views/ViewList.vue", props);
+const verboseNamePlural = computed(() => getCapitalizedTitle(modelConfig.info?.verbose_name_plural || "items"));
 </script>
 
 <template>
     <div :class="combinedClasses.outerClass">
         <div :class="combinedClasses.headerClass">
             <h1 :class="combinedClasses.titleClass">
-                {{ modelConfig.info?.verbose_name_plural || "Items" }}
+                {{ verboseNamePlural }}
                 <loading-spinner-inline v-if="modelConfig.loading" :class="combinedClasses.loadingClass" />
             </h1>
         </div>

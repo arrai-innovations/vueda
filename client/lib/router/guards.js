@@ -28,7 +28,7 @@ export async function waitForInitialising() {
  *        path: '/auth-required/',
  *        name: 'auth-required',
  *        component: () => import('@/views/ViewAuthRequired.vue'),
- *        beforeEnter: requireAuth,
+ *        beforeEnter: partial(requireAuth, { name: "log-in" }),
  *      },
  *     ...
  *   ];
@@ -38,15 +38,15 @@ export async function waitForInitialising() {
  *   });
  *   export default router;
  *   ```
- *
+ * @param {Object} redirectTo Where to redirect the user if they are not authenticated.
  * @param {Object} to Where the user is trying to go.
  *
  * @returns {Object} The route object.
  */
-export async function requireAuth(to) {
+export async function requireAuth(redirectTo, to) {
     const userStore = await waitForInitialising();
     if (!userStore.loggedIn) {
-        return { name: "log-in", query: { redirect: to.fullPath } };
+        return { ...redirectTo, query: { ...redirectTo.query, redirect: to.fullPath } };
     }
 }
 
@@ -62,7 +62,7 @@ export async function requireAuth(to) {
  *       path: '/unauth-required/',
  *       name: 'unauth-required',
  *       component: () => import('@/views/ViewUnauthRequired.vue'),
- *       beforeEnter: requireUnauth,
+ *       beforeEnter: partial(requireUnauth, { name: "welcome" }),
  *     },
  *     ...
  *   ];
@@ -72,13 +72,15 @@ export async function requireAuth(to) {
  *   });
  *   export default router;
  *   ```
+ * @param {Object} redirectTo Where to redirect the user if they are authenticated.
+ * @param {Object} to Where the user is trying to go. (Not used)
  *
  * @returns {Object} The route object, if a redirect is needed.
  */
-export async function requireUnauth() {
+export async function requireUnauth(redirectTo /*, to*/) {
     const userStore = await waitForInitialising();
     if (userStore.loggedIn) {
-        return { name: "home" };
+        return redirectTo;
     }
 }
 
@@ -147,13 +149,17 @@ export async function requireInitialized() {
  * @param {Object} toastArgs - The arguments for the denial toast message.
  *  toastArgs.message will have the denied url appended. See storeToast for more details.
  * @param {Array<string>} groups - The groups the user must have ONE of.
- * @param to - Where the user is trying to go.
+ * @param {Object|string} redirectTo - Where to redirect the user if they are not a group member.
+ * @param {Object} to - Where the user is trying to go.
  * @returns {Promise<boolean>}
  */
-export async function requireGroups(toastArgs, groups, to) {
+export async function requireGroups(toastArgs, groups, redirectTo, to) {
     const userStore = await waitForInitialising();
     const toastStore = storeToast();
     if (isEmpty(groups)) {
+        return true;
+    }
+    if (userStore.loggedInUser?.is_superuser) {
         return true;
     }
     if (groups.some((group) => userStore.loggedInUser?.groups?.includes(group))) {
@@ -163,4 +169,5 @@ export async function requireGroups(toastArgs, groups, to) {
         ...toastArgs,
         message: `${toastArgs.message} ${to.fullPath}`,
     });
+    return redirectTo;
 }

@@ -33,11 +33,15 @@ export default function useModelConfig(app, model) {
     // Watch for changes in isActive, app, model to update modelInfo and modelConfig
     watch(
         [isActive, app, model],
-        async ([active, app, model], [, oldApp, oldModel]) => {
+        async ([active, app, model], [oldActive, oldApp, oldModel]) => {
             if (!active) {
                 return; // we'll pick up again when the component is active
             }
-            if (oldApp && oldModel && (app !== oldApp || model !== oldModel)) {
+            if (oldActive === active && app === oldApp && model === oldModel) {
+                return; // no change, no need to update
+            }
+            // todo: we could look at implementing cancelling of fetches if the app/model changes while loading
+            if (app && model && !returnObject.loading) {
                 returnObject.loading = true;
                 returnObject.error = null;
                 returnObject.errored = false;
