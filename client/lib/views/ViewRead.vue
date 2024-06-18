@@ -1,6 +1,6 @@
 <script setup>
 import { useObject } from "@arrai-innovations/reactive-helpers";
-import LoadingSpinner from "@vueda/components/LoadingSpinner.vue";
+import LoadingSpinner from "@vueda/components/LoadingSpinnerBlock.vue";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useIsActive from "@vueda/use/useIsActive.js";
 import useModelConfig from "@vueda/use/useModelConfig.js";

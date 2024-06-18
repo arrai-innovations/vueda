@@ -1,7 +1,7 @@
 <script setup>
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import FormModel from "@vueda/components/FormModel.vue";
-import LoadingSpinner from "@vueda/components/LoadingSpinner.vue";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useLeaveUnload from "@vueda/use/useLeaveUnload.js";
 import useModelConfig from "@vueda/use/useModelConfig.js";
@@ -103,7 +103,7 @@ const combinedClasses = useCombinedClasses("@vueda/views/ViewCreate.vue", props)
         <div :class="combinedClasses.headerClass">
             <h1 :class="combinedClasses.titleClass">
                 {{ `Create ${modelConfig.info?.verbose_name}` || "Create Item" }}
-                <loading-spinner v-if="modelConfig.loading" :class="combinedClasses.loadingClass" />
+                <loading-spinner-inline v-if="modelConfig.loading" :class="combinedClasses.loadingClass" />
             </h1>
         </div>
         <div :class="combinedClasses.bodyClass">

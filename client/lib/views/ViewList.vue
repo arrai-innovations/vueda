@@ -1,6 +1,6 @@
 <script setup>
 import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
-import LoadingSpinner from "@vueda/components/LoadingSpinner.vue";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useIsActive from "@vueda/use/useIsActive.js";
@@ -112,7 +112,7 @@ const combinedClasses = useCombinedClasses("@vueda/views/ViewList.vue", props);
         <div :class="combinedClasses.headerClass">
             <h1 :class="combinedClasses.titleClass">
                 {{ modelConfig.info?.verbose_name_plural || "Items" }}
-                <loading-spinner v-if="modelConfig.loading" :class="combinedClasses.loadingClass" />
+                <loading-spinner-inline v-if="modelConfig.loading" :class="combinedClasses.loadingClass" />
             </h1>
         </div>
         <!-- todo: filters/search -->

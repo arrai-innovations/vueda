@@ -1,6 +1,6 @@
 <script setup>
 import { useObject } from "@arrai-innovations/reactive-helpers";
-import LoadingSpinner from "@vueda/components/LoadingSpinner.vue";
+import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import storeToast from "@vueda/stores/storeToast.js";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useModelConfig from "@vueda/use/useModelConfig";
@@ -80,5 +80,5 @@ const combinedClasses = useCombinedClasses("@vueda/views/ViewDelete.vue", props)
             <button @click="router.back()">Cancel</button>
         </div>
     </div>
-    <div v-else><loading-spinner /></div>
+    <div v-else><loading-spinner-block /></div>
 </template>
