@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicaltransitionsource
+                    vueda_workflow_historicaltransitionsource
                 (
                     id,
                     history_date,
@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
                 )
                 SELECT
                     T.id,
-                    now(),
+                    '2024-05-15 20:00:01',
                     'Migration - 0004_delete_workflow',
                     '-',
                     T.id,
@@ -42,16 +42,16 @@ class Migration(migrations.Migration):
                     T.source_id,
                     T.transition_id
                 FROM
-                    workflow_transitionsource T,
+                    vueda_workflow_transitionsource T,
                     SYSTEM_USER
                 WHERE
                     transition_id IN (
                         SELECT
                             WT.id
                         FROM
-                            workflow_transition WT
+                            vueda_workflow_transition WT
                         JOIN
-                            workflow_workflow W ON WT.workflow_id = W.id
+                            vueda_workflow_workflow W ON WT.workflow_id = W.id
                         WHERE
                             W.code = 'deleted_workflow'
                     );""",
@@ -60,21 +60,21 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
                 DELETE FROM
-                    workflow_transitionsource
+                    vueda_workflow_transitionsource
                 WHERE
                     transition_id IN (
                         SELECT
                             T.id
                         FROM
-                            workflow_transition T
+                            vueda_workflow_transition T
                         JOIN
-                            workflow_workflow W ON T.workflow_id = W.id
+                            vueda_workflow_workflow W ON T.workflow_id = W.id
                         WHERE
                             W.code = 'deleted_workflow'
                     );""",
             reverse_sql="""
                 INSERT INTO
-                    workflow_transitionsource
+                    vueda_workflow_transitionsource
                     (
                         transition_id,
                         source_id
@@ -85,14 +85,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_transition
+                                vueda_workflow_transition
                             WHERE
                                 code = 'go_to_state_2'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -101,14 +101,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_state
                             WHERE
                                 code = 'state_1'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -119,14 +119,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_transition
+                                vueda_workflow_transition
                             WHERE
                                 code = 'go_to_state_1'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -135,14 +135,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_state
                             WHERE
                                 code = 'state_2'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -153,14 +153,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_transition
+                                vueda_workflow_transition
                             WHERE
                                 code = 'go_to_state_1'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -169,14 +169,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_state
                             WHERE
                                 code = 'state_3'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -194,7 +194,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicaltransitionpermission
+                    vueda_workflow_historicaltransitionpermission
                 (
                     id,
                     history_date,
@@ -210,7 +210,7 @@ class Migration(migrations.Migration):
                 )
                 SELECT
                     T.id,
-                    now(),
+                    '2024-05-15 20:00:02',
                     'Migration - 0004_delete_workflow',
                     '-',
                     T.id,
@@ -221,16 +221,16 @@ class Migration(migrations.Migration):
                     T.historical_permission_content_type_model_name,
                     T.transition_id
                 FROM
-                    workflow_transitionpermission T,
+                    vueda_workflow_transitionpermission T,
                     SYSTEM_USER
                 WHERE
                     transition_id IN (
                         SELECT
                             WT.id
                         FROM
-                            workflow_transition WT
+                            vueda_workflow_transition WT
                         JOIN
-                            workflow_workflow W ON WT.workflow_id = W.id
+                            vueda_workflow_workflow W ON WT.workflow_id = W.id
                         WHERE
                             W.code = 'deleted_workflow'
                     );""",
@@ -239,21 +239,21 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
                 DELETE FROM
-                    workflow_transitionpermission
+                    vueda_workflow_transitionpermission
                 WHERE
                     transition_id IN (
                         SELECT
                             T.id
                         FROM
-                            workflow_transition T
+                            vueda_workflow_transition T
                         JOIN
-                            workflow_workflow W ON T.workflow_id = W.id
+                            vueda_workflow_workflow W ON T.workflow_id = W.id
                         WHERE
                             W.code = 'deleted_workflow'
                     );""",
             reverse_sql="""
                 INSERT INTO
-                    workflow_transitionpermission
+                    vueda_workflow_transitionpermission
                     (
                         permission_id,
                         historical_permission_codename,
@@ -287,14 +287,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_transition
+                                vueda_workflow_transition
                             WHERE
                                 code = 'go_to_state_2'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -325,14 +325,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_transition
+                                vueda_workflow_transition
                             WHERE
                                 code = 'go_to_state_1'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -363,14 +363,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_transition
+                                vueda_workflow_transition
                             WHERE
                                 code = 'go_to_state_1'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -388,7 +388,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicaltransition
+                    vueda_workflow_historicaltransition
                 (
                     id,
                     code,
@@ -405,7 +405,7 @@ class Migration(migrations.Migration):
                     T.id,
                     T.code,
                     T.name,
-                    now(),
+                    '2024-05-15 20:00:03',
                     'Migration - 0004_delete_workflow',
                     '-',
                     T.id,
@@ -413,14 +413,14 @@ class Migration(migrations.Migration):
                     T.target_id,
                     T.workflow_id
                 FROM
-                    workflow_transition T,
+                    vueda_workflow_transition T,
                     SYSTEM_USER
                 WHERE
                     workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'deleted_workflow'
                     );""",
@@ -429,35 +429,49 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
                 DELETE FROM
-                    workflow_transition
+                    vueda_workflow_transition
                 WHERE
                     workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'deleted_workflow'
                     );""",
             reverse_sql="""
-                INSERT INTO workflow_transition (name, code, workflow_id, target_id)
+                INSERT INTO
+                    vueda_workflow_transition
+                (
+                    name,
+                    code,
+                    workflow_id,
+                    target_id
+                )
                 VALUES
                     (
                         'Go To State 2',
                         'go_to_state_2',
-                        (SELECT id FROM workflow_workflow WHERE code = 'deleted_workflow'),
                         (
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'deleted_workflow'
+                        ),
+                        (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_state
                             WHERE
                                 code = 'state_2'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -466,19 +480,26 @@ class Migration(migrations.Migration):
                     (
                         'Go To State 1',
                         'go_to_state_1',
-                        (SELECT id FROM workflow_workflow WHERE code = 'deleted_workflow'),
                         (
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'deleted_workflow'
+                        ),
+                        (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_state
                             WHERE
                                 code = 'state_1'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -487,19 +508,26 @@ class Migration(migrations.Migration):
                     (
                         'Go To State 3',
                         'go_to_state_3',
-                        (SELECT id FROM workflow_workflow WHERE code = 'deleted_workflow'),
                         (
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'deleted_workflow'
+                        ),
+                        (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_state
                             WHERE
                                 code = 'state_3'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -517,7 +545,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalstatepermission
+                    vueda_workflow_historicalstatepermission
                 (
                     id,
                     grant_or_deny,
@@ -537,7 +565,7 @@ class Migration(migrations.Migration):
                 SELECT
                     S.id,
                     S.grant_or_deny,
-                    now(),
+                    '2024-05-15 20:00:04',
                     'Migration - 0004_delete_workflow',
                     '-',
                     S.group_id,
@@ -550,16 +578,16 @@ class Migration(migrations.Migration):
                     S.historical_group_name,
                     S.state_id
                 FROM
-                    workflow_statepermission S,
+                    vueda_workflow_statepermission S,
                     SYSTEM_USER
                 WHERE
                     S.state_id IN (
                         SELECT
                             WS.id
                         FROM
-                            workflow_state WS
+                            vueda_workflow_state WS
                         JOIN
-                            workflow_workflow W ON WS.workflow_id = W.id
+                            vueda_workflow_workflow W ON WS.workflow_id = W.id
                         WHERE
                             W.code = 'deleted_workflow'
                     )
@@ -586,7 +614,7 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
                 DELETE FROM
-                    workflow_statepermission
+                    vueda_workflow_statepermission
                 WHERE
                     historical_permission_codename = 'can_do_something'
                     AND
@@ -596,7 +624,7 @@ class Migration(migrations.Migration):
                     AND
                     historical_group_name = 'WorkflowDeletedAdmin';
                 DELETE FROM
-                    workflow_statepermission
+                    vueda_workflow_statepermission
                 WHERE
                     historical_permission_codename = 'can_do_something_else'
                     AND
@@ -606,7 +634,7 @@ class Migration(migrations.Migration):
                     AND
                     historical_group_name = 'WorkflowDeletedWorker';
                 DELETE FROM
-                    workflow_statepermission
+                    vueda_workflow_statepermission
                 WHERE
                     historical_permission_codename = 'update_workflowdeleted'
                     AND
@@ -617,7 +645,7 @@ class Migration(migrations.Migration):
                     historical_group_name = 'WorkflowDeletedAdmin';""",
             reverse_sql="""
                 INSERT INTO
-                    workflow_statepermission
+                    vueda_workflow_statepermission
                     (
                         state_id,
                         permission_id,
@@ -634,14 +662,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_state
                             WHERE
                                 code = 'state_1'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -675,14 +703,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_state
                             WHERE
                                 code = 'state_1'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -716,14 +744,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_state
                             WHERE
                                 code = 'state_2'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -764,7 +792,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalinitialstate
+                    vueda_workflow_historicalinitialstate
                 (
                     id,
                     history_date,
@@ -777,7 +805,7 @@ class Migration(migrations.Migration):
                 )
                 SELECT
                     I.id,
-                    now(),
+                    '2024-05-15 20:00:05',
                     'Migration - 0004_delete_workflow',
                     '-',
                     I.id,
@@ -785,14 +813,14 @@ class Migration(migrations.Migration):
                     I.state_id,
                     I.workflow_id
                 FROM
-                    workflow_initialstate I,
+                    vueda_workflow_initialstate I,
                     SYSTEM_USER
                 WHERE
                     I.workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'deleted_workflow'
                     );""",
@@ -801,38 +829,45 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
                 DELETE FROM
-                    workflow_initialstate
+                    vueda_workflow_initialstate
                 WHERE
                     workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'deleted_workflow'
                     );""",
             reverse_sql="""
                 INSERT INTO
-                    workflow_initialstate
+                    vueda_workflow_initialstate
                     (
                         workflow_id,
                         state_id
                     )
                 VALUES
                     (
-                        (SELECT id FROM workflow_workflow WHERE code = 'deleted_workflow'),
                         (
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'deleted_workflow'
+                        ),
+                        (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_state
                             WHERE
                                 code = 'state_1'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
@@ -850,7 +885,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalstate
+                    vueda_workflow_historicalstate
                 (
                     id,
                     code,
@@ -866,21 +901,21 @@ class Migration(migrations.Migration):
                     S.id,
                     S.code,
                     S.name,
-                    now(),
+                    '2024-05-15 20:00:06',
                     'Migration - 0004_delete_workflow',
                     '-',
                     S.id,
                     SYSTEM_USER.id,
                     S.workflow_id
                 FROM
-                    workflow_state S,
+                    vueda_workflow_state S,
                     SYSTEM_USER
                 WHERE
                     S.workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'deleted_workflow'
                     );""",
@@ -889,19 +924,19 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
                 DELETE FROM
-                    workflow_state
+                    vueda_workflow_state
                 WHERE
                     workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'deleted_workflow'
                     );""",
             reverse_sql="""
                 INSERT INTO
-                    workflow_state
+                    vueda_workflow_state
                     (
                         name,
                         code,
@@ -911,17 +946,38 @@ class Migration(migrations.Migration):
                     (
                         'State 1',
                         'state_1',
-                        (SELECT id FROM workflow_workflow WHERE code = 'deleted_workflow')
+                        (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'deleted_workflow'
+                        )
                     ),
                     (
                         'State 2',
                         'state_2',
-                        (SELECT id FROM workflow_workflow WHERE code = 'deleted_workflow')
+                        (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'deleted_workflow'
+                        )
                     ),
                     (
                         'State 3',
                         'state_3',
-                        (SELECT id FROM workflow_workflow WHERE code = 'deleted_workflow')
+                        (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'deleted_workflow'
+                        )
                     );""",
         ),
         migrations.RunSQL(
@@ -935,7 +991,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalworkflowpermission
+                    vueda_workflow_historicalworkflowpermission
                 (
                     id,
                     history_date,
@@ -951,7 +1007,7 @@ class Migration(migrations.Migration):
                 )
                 SELECT
                     W.id,
-                    now(),
+                    '2024-05-15 20:00:07',
                     'Migration - 0004_delete_workflow',
                     '-',
                     W.id,
@@ -962,14 +1018,14 @@ class Migration(migrations.Migration):
                     W.historical_permission_content_type_model_name,
                     W.workflow_id
                 FROM
-                    workflow_workflowpermission W,
+                    vueda_workflow_workflowpermission W,
                     SYSTEM_USER
                 WHERE
                     workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'deleted_workflow'
                     );""",
@@ -978,19 +1034,19 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
                 DELETE FROM
-                    workflow_workflowpermission
+                    vueda_workflow_workflowpermission
                 WHERE
                     workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'deleted_workflow'
                     );""",
             reverse_sql="""
                 INSERT INTO
-                    workflow_workflowpermission
+                    vueda_workflow_workflowpermission
                     (
                         workflow_id,
                         permission_id,
@@ -1000,7 +1056,14 @@ class Migration(migrations.Migration):
                     )
                 VALUES
                     (
-                        (SELECT id FROM workflow_workflow WHERE code = 'deleted_workflow'),
+                        (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'deleted_workflow'
+                        ),
                         (
                             SELECT
                                 id
@@ -1023,7 +1086,14 @@ class Migration(migrations.Migration):
                         'workflowdeleted'
                     ),
                     (
-                        (SELECT id FROM workflow_workflow WHERE code = 'deleted_workflow'),
+                        (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'deleted_workflow'
+                        ),
                         (
                             SELECT
                                 id
@@ -1111,57 +1181,6 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
                 DELETE FROM
-                    auth_permission
-                WHERE
-                    codename in ('can_do_something', 'can_do_something_else')
-                    AND content_type_id = (
-                        SELECT
-                            id
-                        FROM
-                            django_content_type
-                        WHERE
-                            app_label = 'workflow_deleted'
-                            AND model = 'workflowdeleted'
-                    );""",
-            reverse_sql="""
-                INSERT INTO
-                    auth_permission
-                    (
-                        name,
-                        content_type_id,
-                        codename
-                    )
-                VALUES
-                    (
-                        'Can Do Something',
-                        (
-                            SELECT
-                                id
-                            FROM
-                                django_content_type
-                            WHERE
-                                app_label = 'workflow_deleted'
-                                AND model = 'workflowdeleted'
-                        ),
-                        'can_do_something'
-                    ),
-                    (
-                        'Can Do Something Else',
-                        (
-                            SELECT
-                                id
-                            FROM
-                                django_content_type
-                            WHERE
-                                app_label = 'workflow_deleted'
-                                AND model = 'workflowdeleted'
-                        ),
-                        'can_do_something_else'
-                    );""",
-        ),
-        migrations.RunSQL(
-            sql="""
-                DELETE FROM
                     auth_group
                 WHERE
                     name in ('WorkflowDeletedAdmin', 'WorkflowDeletedWorker');""",
@@ -1190,7 +1209,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalworkflow
+                    vueda_workflow_historicalworkflow
                 (
                     id,
                     code,
@@ -1210,14 +1229,14 @@ class Migration(migrations.Migration):
                     W.name,
                     'workflow_deleted',
                     'workflowdeleted',
-                    now(),
+                    '2024-05-15 20:00:08',
                     'Migration - 0004_delete_workflow',
                     '-',
                     W.content_type_id,
                     W.id,
                     SYSTEM_USER.id
                 FROM
-                    workflow_workflow W,
+                    vueda_workflow_workflow W,
                     SYSTEM_USER
                 WHERE
                     W.code = 'deleted_workflow';""",
@@ -1226,12 +1245,12 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
                 DELETE FROM
-                    workflow_workflow
+                    vueda_workflow_workflow
                 WHERE
                     code = 'deleted_workflow';""",
             reverse_sql="""
                 INSERT INTO
-                    workflow_workflow
+                    vueda_workflow_workflow
                 (
                     name,
                     code,
