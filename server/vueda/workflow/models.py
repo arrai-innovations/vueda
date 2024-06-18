@@ -8,6 +8,7 @@ from django.contrib.auth.models import Group
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.exceptions import PermissionDenied
 from django.db import models
 from django.db.models import QuerySet
@@ -37,6 +38,9 @@ class Workflow(SimpleHistoryModelMixin, Lookup):
         default_related_name = "workflows"
         constraints = [models.UniqueConstraint(fields=["code"], name="unique_workflow_code")]
 
+    def __str__(self):
+        return f"name: {self.name}, code: {self.code}"
+
     def save(self, *args, **kwargs):
         self.historical_app_label = self.content_type.app_label
         self.historical_model = self.content_type.model
@@ -65,7 +69,25 @@ class WorkflowPermission(SimpleHistoryModelMixin):
         ]
 
     def __str__(self):
-        return f"workflow: {self.workflow}, permission:{self.permission}"
+        # When debugging where an object has been deleted, get data from the history rather than blow up.
+        deleted_workflow = False
+        try:
+            workflow = self.workflow
+        except ObjectDoesNotExist:
+            deleted_workflow = True
+            workflow = Workflow.history.filter(id=self.workflow_id).latest()
+
+        deleted_permission = False
+        try:
+            permission = self.permission
+        except ObjectDoesNotExist:
+            deleted_permission = True
+            permission = self.historical_permission_codename
+
+        return (
+            f"{'deleted ' if deleted_workflow else ''}workflow: {workflow}, "
+            f"{'deleted ' if deleted_permission else ''}permission: {permission}"
+        )
 
     def save(self, *args, **kwargs):
         # Set the historical permission codename, so if the permission is deleted,
@@ -94,7 +116,7 @@ class State(SimpleHistoryModelMixin):
         constraints = [models.UniqueConstraint(fields=["workflow", "code"], name="unique_state_code")]
 
     def __str__(self):
-        return f"name: {self.name}, code:{self.code}"
+        return f"name: {self.name}, code: {self.code}"
 
 
 class StatePermission(SimpleHistoryModelMixin):
@@ -125,9 +147,25 @@ class StatePermission(SimpleHistoryModelMixin):
         constraints = [models.UniqueConstraint(fields=["state", "permission", "group"], name="unique_state_permission")]
 
     def __str__(self):
+        # When debugging where an object has been deleted, get data from the history rather than blow up.
+        deleted_state = False
+        try:
+            state = self.state
+        except ObjectDoesNotExist:
+            deleted_state = True
+            state = State.history.filter(id=self.state_id).latest()
+
+        deleted_permission = False
+        try:
+            permission = self.permission
+        except ObjectDoesNotExist:
+            deleted_permission = True
+            permission = self.historical_permission_codename
+
         return (
-            f"state: {self.state}, permission:{self.permission},"
-            f" grant_or_deny:{'grant' if self.grant_or_deny else 'deny'}"
+            f"{'deleted ' if deleted_state else ''}state: {state}, "
+            f"{'deleted ' if deleted_permission else ''}permission: {permission}, "
+            f"grant_or_deny: {'grant' if self.grant_or_deny else 'deny'}"
         )
 
     def save(self, *args, **kwargs):
@@ -160,7 +198,25 @@ class InitialState(SimpleHistoryModelMixin):
         constraints = [models.UniqueConstraint(fields=["workflow", "state"], name="unique_workflow_initial_state")]
 
     def __str__(self):
-        return f"workflow: {self.workflow}, state:{self.state}"
+        # When debugging where an object has been deleted, get data from the history rather than blow up.
+        deleted_workflow = False
+        try:
+            workflow = self.workflow
+        except ObjectDoesNotExist:
+            deleted_workflow = True
+            workflow = Workflow.history.filter(id=self.workflow_id).latest()
+
+        deleted_state = False
+        try:
+            state = self.state
+        except ObjectDoesNotExist:
+            deleted_state = True
+            state = State.history.filter(id=self.state_id).latest()
+
+        return (
+            f"{'deleted ' if deleted_workflow else ''}workflow: {workflow}, "
+            f"{'deleted ' if deleted_state else ''}state: {state} "
+        )
 
 
 class Transition(SimpleHistoryModelMixin):
@@ -187,7 +243,18 @@ class Transition(SimpleHistoryModelMixin):
         ]
 
     def __str__(self):
-        return f"name: {self.name}, code:{self.code}"
+        return f"name: {self.name}, code: {self.code}"
+
+    def __str__(self):
+        # When debugging where an object has been deleted, get data from the history rather than blow up.
+        deleted_state = False
+        try:
+            state = self.source
+        except ObjectDoesNotExist:
+            deleted_state = True
+            state = State.history.filter(id=self.target_id).latest()
+
+        return f"name: {self.name}, code: {self.code}, " f"{'deleted ' if deleted_state else ''}target: {state}"
 
 
 class TransitionPermission(SimpleHistoryModelMixin):
@@ -217,7 +284,25 @@ class TransitionPermission(SimpleHistoryModelMixin):
         ]
 
     def __str__(self):
-        return f"transition: {self.transition}, permission:{self.permission}"
+        # When debugging where an object has been deleted, get data from the history rather than blow up.
+        deleted_transition = False
+        try:
+            transition = self.transition
+        except ObjectDoesNotExist:
+            deleted_transition = True
+            transition = Transition.history.filter(id=self.transition_id).latest()
+
+        deleted_permission = False
+        try:
+            permission = self.permission
+        except ObjectDoesNotExist:
+            deleted_permission = True
+            permission = self.historical_permission_codename
+
+        return (
+            f"{'deleted ' if deleted_transition else ''}transition: {transition}, "
+            f"{'deleted ' if deleted_permission else ''}permission: {permission}"
+        )
 
     def save(self, *args, **kwargs):
         # Set the historical permission codename, so if the permission is deleted,
@@ -252,7 +337,25 @@ class TransitionSource(SimpleHistoryModelMixin):
         ]
 
     def __str__(self):
-        return f"transition: {self.transition}, source:{self.source}"
+        # When debugging where an object has been deleted, get data from the history rather than blow up.
+        deleted_transition = False
+        try:
+            transition = self.transition
+        except ObjectDoesNotExist:
+            deleted_transition = True
+            transition = Transition.history.filter(id=self.transition_id).latest()
+
+        deleted_state = False
+        try:
+            state = self.source
+        except ObjectDoesNotExist:
+            deleted_state = True
+            state = State.history.filter(id=self.source_id).latest()
+
+        return (
+            f"{'deleted ' if deleted_transition else ''}transition: {transition}, "
+            f"{'deleted ' if deleted_state else ''}source: {state}"
+        )
 
 
 class ObjectStateProxy(models.Model):
