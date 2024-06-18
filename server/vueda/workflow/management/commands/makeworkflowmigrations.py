@@ -1618,7 +1618,6 @@ class Command(BaseCommand):
                 f"{NEWLINE}{NEWLINE}",
                 f"from django.apps import apps as django_apps{NEWLINE}",
                 f"from django.contrib.auth.management import create_permissions{NEWLINE}",
-                f"from django.db.migrations import RunSQL{NEWLINE}",
                 "from django.utils import timezone",
             ]
 
