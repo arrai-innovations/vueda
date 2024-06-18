@@ -5,6 +5,7 @@ from pathlib import Path
 # noinspection PyPackageRequirements
 from environ import environ  # noqa
 
+from tests.custom_migration_operations import clean_migrations
 from vueda.core.default_settings import get_defaults
 
 
@@ -71,3 +72,10 @@ TEMPLATES = [
         },
     },
 ]
+
+
+# Some tests create migrations.  This is an issue for local development, because if these
+# migrations exist when you run tests, they will blow up, causing all the tests to fail.
+# So, we need to clean them up before migrations are imported.  The only place I know of
+# that runs before migrations are imported, is here.
+clean_migrations()
