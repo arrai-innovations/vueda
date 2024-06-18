@@ -38,10 +38,10 @@ watch(
 );
 
 watch([hours, minutes, seconds], () => {
-    const newValue = formatDuration();
+    const coercedValue = formatDuration();
     // only you can prevent infinite reactivity loops
-    if (fieldContext.value !== newValue) {
-        fieldContext.value = newValue;
+    if (fieldContext.value !== coercedValue) {
+        fieldContext.updateValue(coercedValue);
     }
 });
 </script>

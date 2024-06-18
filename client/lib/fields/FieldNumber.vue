@@ -1,7 +1,6 @@
 <script setup>
 import useField, { fieldProps } from "@vueda/use/useField.js";
-import { FormContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, inject, toRef, watch } from "vue";
+import { computed, toRef, watch } from "vue";
 
 const props = defineProps({
     ...fieldProps,
@@ -18,15 +17,14 @@ const props = defineProps({
         default: undefined,
     },
 });
-const formContext = inject(FormContextSymbol);
 const fieldContext = useField(props);
 watch(
     [toRef(props, "maxValue"), toRef(fieldContext, "value")],
     ([maxValue, value]) => {
         if (maxValue && value > maxValue) {
-            formContext.updateError(props.name, "maxValue", `Must be ${maxValue} or less.`);
+            fieldContext.updateError("maxValue", `Must be ${maxValue} or less.`);
         } else {
-            formContext.deleteError(props.name, "maxValue");
+            fieldContext.deleteError("maxValue");
         }
     },
     { immediate: true },
@@ -35,9 +33,9 @@ watch(
     [toRef(props, "minValue"), toRef(fieldContext, "value")],
     ([minValue, value]) => {
         if (minValue && value < minValue) {
-            formContext.updateError(props.name, "minValue", `Must be ${minValue} or more.`);
+            fieldContext.updateError("minValue", `Must be ${minValue} or more.`);
         } else {
-            formContext.deleteError(props.name, "minValue");
+            fieldContext.deleteError("minValue");
         }
     },
     { immediate: true },
@@ -61,10 +59,12 @@ watch(
             const stepScaled = step * factor;
             const valueScaled = value * factor;
             if (valueScaled % stepScaled !== 0) {
-                formContext.updateError(props.name, "step", `Must be a multiple of ${step}.`);
+                fieldContext.updateError("step", `Must be a multiple of ${step}.`);
+            } else {
+                fieldContext.deleteError("step");
             }
         } else {
-            formContext.deleteError(props.name, "step");
+            fieldContext.deleteError("step");
         }
     },
     { immediate: true },
@@ -74,7 +74,7 @@ watch(
     (newValue) => {
         const coercedValue = +newValue;
         if (coercedValue !== fieldContext.value) {
-            fieldContext.value = coercedValue;
+            fieldContext.updateValue(coercedValue);
         }
     },
     { immediate: true },

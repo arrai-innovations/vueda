@@ -12,7 +12,7 @@ watch(
     (newValue) => {
         const coercedValue = !!newValue;
         if (coercedValue !== fieldContext.value) {
-            fieldContext.value = coercedValue;
+            fieldContext.updateValue(coercedValue);
         }
     },
     { immediate: true },

@@ -25,7 +25,9 @@ watch(
     [toRef(props, "maxValue"), valueAsDateTime],
     ([maxValue, value]) => {
         if (maxValue && value > maxValue) {
-            fieldContext.updateError(props.name, "maxValue", `Must be ${maxValue} or less.`);
+            fieldContext.updateError("maxValue", `Must be ${maxValue} or less.`);
+        } else {
+            fieldContext.deleteError("maxValue");
         }
     },
     { immediate: true },
@@ -34,7 +36,9 @@ watch(
     [toRef(props, "minValue"), valueAsDateTime],
     ([minValue, value]) => {
         if (minValue && value < minValue) {
-            fieldContext.updateError(props.name, "minValue", `Must be ${minValue} or more.`);
+            fieldContext.updateError("minValue", `Must be ${minValue} or more.`);
+        } else {
+            fieldContext.deleteError("minValue");
         }
     },
     { immediate: true },
