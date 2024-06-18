@@ -92,5 +92,4 @@ export default function () {
             themeStore.registerVariant(componentName, variantName, defaultVariants[componentName][variantName]);
         }
     }
-    console.log(themeStore);
 }
