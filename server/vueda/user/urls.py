@@ -1,5 +1,5 @@
-from django.conf import settings
-from django.contrib.auth import views
+from dj_rest_auth.views import LoginView
+from dj_rest_auth.views import LogoutView
 from django.urls import path
 
 from vueda.user.views import WhoIsView
@@ -7,10 +7,6 @@ from vueda.user.views import WhoIsView
 
 urlpatterns = [
     path("who-is/", WhoIsView.as_view(), name="who-is"),
+    path("login/", LoginView.as_view(), name="login"),
+    path("logout/", LogoutView.as_view(), name="logout"),
 ]
-
-if settings.DEBUG:
-    urlpatterns += [
-        path("login/", views.LoginView.as_view(), name="login"),
-        path("logout/", views.LogoutView.as_view(), name="logout"),
-    ]

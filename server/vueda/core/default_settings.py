@@ -33,7 +33,7 @@ def get_defaults(env: Env):
         "TIME_ZONE": env("TIME_ZONE"),  # like "UTC" or "America/Edmonton"
         "USE_I18N": True,
         "USE_TZ": True,
-        "ALLOWED_HOSTS": env.list("ALLOWED_HOSTS"),  # like "host" or "host:port"
+        "ALLOWED_HOSTS": env.list("ALLOWED_HOSTS"),  # like "host", not "host:port" or "http(s)://host"
         "DATABASES": {"default": env.db("DATABASE_URL")},  # like "postgres://user:password@host:5432/dbname"
         "EMAIL_BACKEND": env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"),
         "EMAIL_TIMEOUT": 5,
@@ -123,15 +123,10 @@ def get_defaults(env: Env):
         "CACHES": {
             "default": {
                 "BACKEND": "django.core.cache.backends.redis.RedisCache",
+                "KEY_PREFIX": "vueda-",
                 "LOCATION": env("REDIS_URL"),
                 "OPTIONS": {
-                    "CLIENT_CLASS": "django_redis.client.DefaultClient",
-                    "PARSER_CLASS": "redis.connection.HiredisParser",
-                    "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
-                    # Mimicking memcache behavior.
-                    # https://github.com/jazzband/django-redis#memcached-exceptions-behavior
-                    "IGNORE_EXCEPTIONS": True,
-                    "PREFIX": "example_cache",
+                    "pool_class": "redis.BlockingConnectionPool",
                 },
             }
         },
@@ -156,8 +151,8 @@ def get_defaults(env: Env):
             "ORDERING_PARAM": "o",
         },
         "REST_AUTH": {
-            "LOGIN_SERIALIZER": "vueda.core.serializers.LoginSerializer",
-            "USER_DETAILS_SERIALIZER": "vueda.core.serializers.WhoAmISerializer",
+            "LOGIN_SERIALIZER": "vueda.user.serializers.LoginSerializer",
+            "USER_DETAILS_SERIALIZER": "vueda.user.serializers.WhoIsSerializer",
             "TOKEN_MODEL": None,
         },
         "REST_FLEX_FIELDS": {
