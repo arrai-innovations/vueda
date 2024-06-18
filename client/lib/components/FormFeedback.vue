@@ -1,9 +1,13 @@
 <script setup>
+import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
-import { FieldContextSymbol } from "@vueda/utils/symbols.js";
+import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
+import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
+import get from "lodash-es/get.js";
 import isEmpty from "lodash-es/isEmpty.js";
+import isEqual from "lodash-es/isEqual.js";
 import InlineMessage from "primevue/inlinemessage";
-import { inject, ref, toRef, watch } from "vue";
+import { inject, reactive, watch } from "vue";
 
 const props = defineProps({
     type: {
@@ -37,17 +41,31 @@ const props = defineProps({
         default: () => [],
     },
 });
-const fieldContext = inject(FieldContextSymbol);
-const feedbackItems = ref([]);
+const formContext = inject(FormContextSymbol, null);
+const fieldContext = inject(FieldContextSymbol, null);
+const feedbackItems = reactive({});
 
 watch(
-    [toRef(fieldContext, "errors"), toRef(fieldContext, "messages"), toRef(props, "type"), toRef(props, "messages")],
-    ([errors, messages]) => {
-        if (props.messages) {
-            feedbackItems.value = Object.values(props.messages);
-            return;
+    // formContext/fieldContext can be null, so we need to watch in a way that'll handle that
+    () => [
+        fieldContext,
+        fieldContext?.errors,
+        fieldContext?.messages,
+        formContext,
+        get(formContext?.errors, NON_FIELD_ERRORS_KEY, undefined),
+        get(formContext?.messages, NON_FIELD_ERRORS_KEY, undefined),
+        props.type,
+        props.messages,
+    ],
+    ([fieldContext, errors, messages, formContext, formErrors, formMessages, propsType, propsMessages]) => {
+        if (propsMessages) {
+            assignReactiveObject(feedbackItems, propsMessages);
+        } else if (!fieldContext && formContext) {
+            // if we are in a form but not in a field, we should show the form's errors
+            assignReactiveObject(feedbackItems, (propsType === "error" ? formErrors : formMessages) || {});
+        } else if (fieldContext && !isEqual(propsType === "error" ? errors : messages, feedbackItems)) {
+            assignReactiveObject(feedbackItems, (propsType === "error" ? errors : messages) || {});
         }
-        feedbackItems.value = props.type === "error" ? errors : messages;
     },
     { immediate: true },
 );
