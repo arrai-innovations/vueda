@@ -3,7 +3,7 @@ import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
 import FormLabel from "@vueda/components/FormLabel.vue";
 import FormWrapper from "@vueda/components/FormWrapper.vue";
-import LoadingSpinner from "@vueda/components/LoadingSpinner.vue";
+import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useFormModel from "@vueda/use/useFormModel.js";
 import { reactive } from "vue";
@@ -70,8 +70,11 @@ const combinedClasses = useCombinedClasses("@vueda/components/FormModel.vue", pr
             >
                 <component :is="formModel.fieldComponents[fieldObj.name]" v-bind="fieldObj">
                     <template v-if="!$slots[`field-${fieldObj.name}`]" #default>
-                        <form-label />
-                        <component :is="formModel.widgetComponents[fieldObj.name]" />
+                        <form-label>
+                            <template #default>
+                                <component :is="formModel.widgetComponents[fieldObj.name]" />
+                            </template>
+                        </form-label>
                         <form-help-text />
                         <form-feedback type="error" />
                         <form-feedback type="message" />
@@ -82,7 +85,7 @@ const combinedClasses = useCombinedClasses("@vueda/components/FormModel.vue", pr
         </template>
     </form-wrapper>
     <template v-else>
-        <loading-spinner />
+        <loading-spinner-block />
         Loading model information.
     </template>
 </template>
