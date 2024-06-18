@@ -5,6 +5,11 @@ from django.contrib.auth.management import create_permissions
 from django.db import DEFAULT_DB_ALIAS
 from django.db import migrations
 
+from tests import custom_migration_operations
+
+
+SKIPPABLE_ENV_VARIABLE = "migration_skip_workflow_added"
+
 
 def make_sure_permissions_exist(apps, schema_editor):
     app = django_apps.get_app_config("workflow_added")
@@ -25,10 +30,10 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(make_sure_permissions_exist, reverse_code=migrations.RunPython.noop),
-        migrations.RunSQL(
+        custom_migration_operations.SkippableRunSQL(
             sql="""
             INSERT INTO
-                workflow_workflow
+                vueda_workflow_workflow
             (
                 name,
                 code,
@@ -54,11 +59,13 @@ class Migration(migrations.Migration):
             );""",
             reverse_sql="""
             DELETE FROM
-                workflow_workflow
+                vueda_workflow_workflow
             WHERE
                 code = 'added_workflow';""",
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        migrations.RunSQL(
+        custom_migration_operations.SkippableRunSQL(
             sql="""
                 WITH SYSTEM_USER AS (
                     SELECT
@@ -69,7 +76,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalworkflow
+                    vueda_workflow_historicalworkflow
                 (
                     id,
                     code,
@@ -96,11 +103,13 @@ class Migration(migrations.Migration):
                     W.id,
                     SYSTEM_USER.id
                 FROM
-                    workflow_workflow W,
+                    vueda_workflow_workflow W,
                     SYSTEM_USER
                 WHERE
                     W.code = 'added_workflow';""",
             reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
         migrations.RunSQL(
             sql="""
@@ -184,10 +193,10 @@ class Migration(migrations.Migration):
                         name IN ('WorkflowAddedAdmin', 'WorkflowAddedWorker')
                 );""",
         ),
-        migrations.RunSQL(
+        custom_migration_operations.SkippableRunSQL(
             sql="""
             INSERT INTO
-                workflow_workflowpermission
+                vueda_workflow_workflowpermission
                 (
                     workflow_id,
                     permission_id,
@@ -197,7 +206,7 @@ class Migration(migrations.Migration):
                 )
             VALUES
                 (
-                    (SELECT id FROM workflow_workflow WHERE code = 'added_workflow'),
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'added_workflow'),
                     (
                         SELECT
                             id
@@ -220,7 +229,7 @@ class Migration(migrations.Migration):
                     'workflowadded'
                 ),
                 (
-                    (SELECT id FROM workflow_workflow WHERE code = 'added_workflow'),
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'added_workflow'),
                     (
                         SELECT
                             id
@@ -244,18 +253,20 @@ class Migration(migrations.Migration):
                 );""",
             reverse_sql="""
             DELETE FROM
-                workflow_workflowpermission
+                vueda_workflow_workflowpermission
             WHERE
                 workflow_id IN (
                     SELECT
                         id
                     FROM
-                        workflow_workflow
+                        vueda_workflow_workflow
                     WHERE
                         code = 'added_workflow'
                 );""",
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        migrations.RunSQL(
+        custom_migration_operations.SkippableRunSQL(
             sql="""
                 WITH SYSTEM_USER AS (
                     SELECT
@@ -266,7 +277,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalworkflowpermission
+                    vueda_workflow_historicalworkflowpermission
                 (
                     id,
                     history_date,
@@ -293,58 +304,23 @@ class Migration(migrations.Migration):
                     W.historical_permission_content_type_model_name,
                     W.workflow_id
                 FROM
-                    workflow_workflowpermission W,
+                    vueda_workflow_workflowpermission W,
                     SYSTEM_USER
                 WHERE
-                    workflow_id IN (
+                    W.workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'added_workflow'
-                    );""",
+                    )
+                    AND W.historical_permission_codename = 'can_do_something';""",
             reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        migrations.RunSQL(
-            sql="""
-            INSERT INTO
-                workflow_state
-                (
-                    name,
-                    code,
-                    workflow_id
-                )
-            VALUES
-                (
-                    'State 1',
-                    'state_1',
-                    (SELECT id FROM workflow_workflow WHERE code = 'added_workflow')
-                ),
-                (
-                    'State 2',
-                    'state_2',
-                    (SELECT id FROM workflow_workflow WHERE code = 'added_workflow')
-                ),
-                (
-                    'State 3',
-                    'state_3',
-                    (SELECT id FROM workflow_workflow WHERE code = 'added_workflow')
-                );""",
-            reverse_sql="""
-                DELETE FROM
-                    workflow_state
-                WHERE
-                    workflow_id IN (
-                        SELECT
-                            id
-                        FROM
-                            workflow_workflow
-                        WHERE
-                            code = 'added_workflow'
-                    );""",
-        ),
-        migrations.RunSQL(
+        custom_migration_operations.SkippableRunSQL(
             sql="""
                 WITH SYSTEM_USER AS (
                     SELECT
@@ -355,7 +331,122 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalstate
+                    vueda_workflow_historicalworkflowpermission
+                (
+                    id,
+                    history_date,
+                    history_change_reason,
+                    history_type,
+                    history_relation_id,
+                    history_user_id,
+                    permission_id,
+                    historical_permission_codename,
+                    historical_permission_content_type_app_label,
+                    historical_permission_content_type_model_name,
+                    workflow_id
+                )
+                SELECT
+                    W.id,
+                    '2024-05-13 14:30:03',
+                    'Migration - 0002_create_workflow_deleted_permissions',
+                    '+',
+                    W.id,
+                    SYSTEM_USER.id,
+                    W.permission_id,
+                    W.historical_permission_codename,
+                    W.historical_permission_content_type_app_label,
+                    W.historical_permission_content_type_model_name,
+                    W.workflow_id
+                FROM
+                    vueda_workflow_workflowpermission W,
+                    SYSTEM_USER
+                WHERE
+                    W.workflow_id IN (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_workflow
+                        WHERE
+                            code = 'added_workflow'
+                    )
+                    AND W.historical_permission_codename = 'can_do_something_else';""",
+            reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+            INSERT INTO
+                vueda_workflow_state
+                (
+                    name,
+                    code,
+                    workflow_id
+                )
+            VALUES
+                (
+                    'State 1',
+                    'state_1',
+                    (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_workflow
+                        WHERE
+                            code = 'added_workflow'
+                    )
+                ),
+                (
+                    'State 2',
+                    'state_2',
+                    (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_workflow
+                        WHERE
+                            code = 'added_workflow'
+                    )
+                ),
+                (
+                    'State 3',
+                    'state_3',
+                    (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_workflow
+                        WHERE
+                            code = 'added_workflow'
+                    )
+                );""",
+            reverse_sql="""
+                DELETE FROM
+                    vueda_workflow_state
+                WHERE
+                    workflow_id IN (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_workflow
+                        WHERE
+                            code = 'added_workflow'
+                    );""",
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+                WITH SYSTEM_USER AS (
+                    SELECT
+                        id
+                    FROM
+                        tests_user
+                    WHERE
+                        is_system = TRUE
+                )
+                INSERT INTO
+                    vueda_workflow_historicalstate
                 (
                     id,
                     code,
@@ -371,68 +462,30 @@ class Migration(migrations.Migration):
                     S.id,
                     S.code,
                     S.name,
-                    '2024-05-13 14:30:03',
+                    '2024-05-13 14:30:04',
                     'Migration - 0002_create_workflow_deleted_permissions',
                     '+',
                     S.id,
                     SYSTEM_USER.id,
                     S.workflow_id
                 FROM
-                    workflow_state S,
+                    vueda_workflow_state S,
                     SYSTEM_USER
                 WHERE
                     S.workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'added_workflow'
-                    );""",
-            reverse_sql=migrations.RunSQL.noop,
-        ),
-        migrations.RunSQL(
-            sql="""
-                INSERT INTO
-                    workflow_initialstate
-                    (
-                        workflow_id,
-                        state_id
                     )
-                VALUES
-                    (
-                        (SELECT id FROM workflow_workflow WHERE code = 'added_workflow'),
-                        (
-                            SELECT
-                                id
-                            FROM
-                                workflow_state
-                            WHERE
-                                code = 'state_1'
-                                AND workflow_id = (
-                                    SELECT
-                                        id
-                                    FROM
-                                        workflow_workflow
-                                    WHERE
-                                        code = 'added_workflow'
-                                )
-                        )
-                    );""",
-            reverse_sql="""
-                DELETE FROM
-                    workflow_initialstate
-                WHERE
-                    workflow_id IN (
-                        SELECT
-                            id
-                        FROM
-                            workflow_workflow
-                        WHERE
-                            code = 'added_workflow'
-                    );""",
+                    AND S.code = 'state_1';""",
+            reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        migrations.RunSQL(
+        custom_migration_operations.SkippableRunSQL(
             sql="""
                 WITH SYSTEM_USER AS (
                     SELECT
@@ -443,7 +496,157 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalinitialstate
+                    vueda_workflow_historicalstate
+                (
+                    id,
+                    code,
+                    name,
+                    history_date,
+                    history_change_reason,
+                    history_type,
+                    history_relation_id,
+                    history_user_id,
+                    workflow_id
+                )
+                SELECT
+                    S.id,
+                    S.code,
+                    S.name,
+                    '2024-05-13 14:30:05',
+                    'Migration - 0002_create_workflow_deleted_permissions',
+                    '+',
+                    S.id,
+                    SYSTEM_USER.id,
+                    S.workflow_id
+                FROM
+                    vueda_workflow_state S,
+                    SYSTEM_USER
+                WHERE
+                    S.workflow_id IN (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_workflow
+                        WHERE
+                            code = 'added_workflow'
+                    )
+                    AND S.code = 'state_2';""",
+            reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+                WITH SYSTEM_USER AS (
+                    SELECT
+                        id
+                    FROM
+                        tests_user
+                    WHERE
+                        is_system = TRUE
+                )
+                INSERT INTO
+                    vueda_workflow_historicalstate
+                (
+                    id,
+                    code,
+                    name,
+                    history_date,
+                    history_change_reason,
+                    history_type,
+                    history_relation_id,
+                    history_user_id,
+                    workflow_id
+                )
+                SELECT
+                    S.id,
+                    S.code,
+                    S.name,
+                    '2024-05-13 14:30:06',
+                    'Migration - 0002_create_workflow_deleted_permissions',
+                    '+',
+                    S.id,
+                    SYSTEM_USER.id,
+                    S.workflow_id
+                FROM
+                    vueda_workflow_state S,
+                    SYSTEM_USER
+                WHERE
+                    S.workflow_id IN (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_workflow
+                        WHERE
+                            code = 'added_workflow'
+                    )
+                    AND S.code = 'state_3';""",
+            reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+                INSERT INTO
+                    vueda_workflow_initialstate
+                    (
+                        workflow_id,
+                        state_id
+                    )
+                VALUES
+                    (
+                        (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'added_workflow'
+                        ),
+                        (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_state
+                            WHERE
+                                code = 'state_1'
+                                AND workflow_id = (
+                                    SELECT
+                                        id
+                                    FROM
+                                        vueda_workflow_workflow
+                                    WHERE
+                                        code = 'added_workflow'
+                                )
+                        )
+                    );""",
+            reverse_sql="""
+                DELETE FROM
+                    vueda_workflow_initialstate
+                WHERE
+                    workflow_id IN (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_workflow
+                        WHERE
+                            code = 'added_workflow'
+                    );""",
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+                WITH SYSTEM_USER AS (
+                    SELECT
+                        id
+                    FROM
+                        tests_user
+                    WHERE
+                        is_system = TRUE
+                )
+                INSERT INTO
+                    vueda_workflow_historicalinitialstate
                 (
                     id,
                     history_date,
@@ -456,7 +659,7 @@ class Migration(migrations.Migration):
                 )
                 SELECT
                     I.id,
-                    '2024-05-13 14:30:04',
+                    '2024-05-13 14:30:07',
                     'Migration - 0002_create_workflow_deleted_permissions',
                     '+',
                     I.id,
@@ -464,23 +667,25 @@ class Migration(migrations.Migration):
                     I.state_id,
                     I.workflow_id
                 FROM
-                    workflow_initialstate I,
+                    vueda_workflow_initialstate I,
                     SYSTEM_USER
                 WHERE
                     I.workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'added_workflow'
                     );""",
             reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        migrations.RunSQL(
+        custom_migration_operations.SkippableRunSQL(
             sql="""
                 INSERT INTO
-                    workflow_statepermission
+                    vueda_workflow_statepermission
                     (
                         state_id,
                         permission_id,
@@ -497,14 +702,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_state
                             WHERE
                                 code = 'state_1'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'added_workflow'
                                 )
@@ -529,7 +734,14 @@ class Migration(migrations.Migration):
                         'can_do_something',
                         'workflow_added',
                         'workflowadded',
-                        (SELECT id FROM auth_group WHERE name = 'WorkflowAddedAdmin'),
+                        (
+                            SELECT
+                                id
+                            FROM
+                                auth_group
+                            WHERE
+                                name = 'WorkflowAddedAdmin'
+                        ),
                         'WorkflowAddedAdmin',
                         FALSE
                     ),
@@ -538,14 +750,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_state
                             WHERE
                                 code = 'state_1'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'added_workflow'
                                 )
@@ -570,7 +782,14 @@ class Migration(migrations.Migration):
                         'can_do_something_else',
                         'workflow_added',
                         'workflowadded',
-                        (SELECT id FROM auth_group WHERE name = 'WorkflowAddedWorker'),
+                        (
+                            SELECT
+                                id
+                            FROM
+                                auth_group
+                             WHERE
+                                name = 'WorkflowAddedWorker'
+                        ),
                         'WorkflowAddedWorker',
                         TRUE
                     ),
@@ -579,14 +798,14 @@ class Migration(migrations.Migration):
                             SELECT
                                 id
                             FROM
-                                workflow_state
+                                vueda_workflow_state
                             WHERE
                                 code = 'state_2'
                                 AND workflow_id = (
                                     SELECT
                                         id
                                     FROM
-                                        workflow_workflow
+                                        vueda_workflow_workflow
                                     WHERE
                                         code = 'added_workflow'
                                 )
@@ -611,13 +830,20 @@ class Migration(migrations.Migration):
                         'update_workflowadded',
                         'workflow_added',
                         'workflowadded',
-                        (SELECT id FROM auth_group WHERE name = 'WorkflowAddedAdmin'),
+                        (
+                            SELECT
+                                id
+                            FROM
+                                auth_group
+                            WHERE
+                                name = 'WorkflowAddedAdmin'
+                        ),
                         'WorkflowAddedAdmin',
                         TRUE
                     );""",
             reverse_sql="""
                 DELETE FROM
-                    workflow_statepermission
+                    vueda_workflow_statepermission
                 WHERE
                     historical_permission_codename = 'can_do_something'
                     AND
@@ -627,7 +853,7 @@ class Migration(migrations.Migration):
                     AND
                     historical_group_name = 'WorkflowAddedAdmin';
                 DELETE FROM
-                    workflow_statepermission
+                    vueda_workflow_statepermission
                 WHERE
                     historical_permission_codename = 'can_do_something_else'
                     AND
@@ -637,7 +863,7 @@ class Migration(migrations.Migration):
                     AND
                     historical_group_name = 'WorkflowAddedWorker';
                 DELETE FROM
-                    workflow_statepermission
+                    vueda_workflow_statepermission
                 WHERE
                     historical_permission_codename = 'update_workflowadded'
                     AND
@@ -646,8 +872,10 @@ class Migration(migrations.Migration):
                     historical_permission_content_type_model_name = 'workflowadded'
                     AND
                     historical_group_name = 'WorkflowAddedAdmin';""",
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        migrations.RunSQL(
+        custom_migration_operations.SkippableRunSQL(
             sql="""
                 WITH SYSTEM_USER AS (
                     SELECT
@@ -658,7 +886,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicalstatepermission
+                    vueda_workflow_historicalstatepermission
                 (
                     id,
                     grant_or_deny,
@@ -678,7 +906,7 @@ class Migration(migrations.Migration):
                 SELECT
                     S.id,
                     S.grant_or_deny,
-                    '2024-05-13 14:30:05',
+                    '2024-05-13 14:30:08',
                     'Migration - 0002_create_workflow_deleted_permissions',
                     '+',
                     S.group_id,
@@ -691,16 +919,16 @@ class Migration(migrations.Migration):
                     S.historical_group_name,
                     S.state_id
                 FROM
-                    workflow_statepermission S,
+                    vueda_workflow_statepermission S,
                     SYSTEM_USER
                 WHERE
                     S.state_id IN (
                         SELECT
                             WS.id
                         FROM
-                            workflow_state WS
+                            vueda_workflow_state WS
                         JOIN
-                            workflow_workflow W ON WS.workflow_id = W.id
+                            vueda_workflow_workflow W ON WS.workflow_id = W.id
                         WHERE
                             W.code = 'added_workflow'
                     )
@@ -711,7 +939,7 @@ class Migration(migrations.Migration):
                         FROM
                             auth_permission
                         WHERE
-                            codename IN ('can_do_something', 'can_do_something_else', 'update_workflowadded')
+                            codename = 'can_do_something'
                             AND content_type_id = (
                                 SELECT
                                     id
@@ -723,88 +951,10 @@ class Migration(migrations.Migration):
                             )
                     );""",
             reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        migrations.RunSQL(
-            sql="""
-            INSERT INTO workflow_transition (name, code, workflow_id, target_id)
-            VALUES
-                (
-                    'Go To State 2',
-                    'go_to_state_2',
-                    (SELECT id FROM workflow_workflow WHERE code = 'added_workflow'),
-                    (
-                        SELECT
-                            id
-                        FROM
-                            workflow_state
-                        WHERE
-                            code = 'state_2'
-                            AND workflow_id = (
-                                SELECT
-                                    id
-                                FROM
-                                    workflow_workflow
-                                WHERE
-                                    code = 'added_workflow'
-                            )
-                    )
-                ),
-                (
-                    'Go To State 1',
-                    'go_to_state_1',
-                    (SELECT id FROM workflow_workflow WHERE code = 'added_workflow'),
-                    (
-                        SELECT
-                            id
-                        FROM
-                            workflow_state
-                        WHERE
-                            code = 'state_1'
-                            AND workflow_id = (
-                                SELECT
-                                    id
-                                FROM
-                                    workflow_workflow
-                                WHERE
-                                    code = 'added_workflow'
-                            )
-                    )
-                ),
-                (
-                    'Go To State 3',
-                    'go_to_state_3',
-                    (SELECT id FROM workflow_workflow WHERE code = 'added_workflow'),
-                    (
-                        SELECT
-                            id
-                        FROM
-                            workflow_state
-                        WHERE
-                            code = 'state_3'
-                            AND workflow_id = (
-                                SELECT
-                                    id
-                                FROM
-                                    workflow_workflow
-                                WHERE
-                                    code = 'added_workflow'
-                            )
-                    )
-                );""",
-            reverse_sql="""
-            DELETE FROM
-                workflow_transition
-            WHERE
-                workflow_id IN (
-                    SELECT
-                        id
-                    FROM
-                        workflow_workflow
-                    WHERE
-                        code = 'added_workflow'
-                );""",
-        ),
-        migrations.RunSQL(
+        custom_migration_operations.SkippableRunSQL(
             sql="""
                 WITH SYSTEM_USER AS (
                     SELECT
@@ -815,7 +965,254 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicaltransition
+                    vueda_workflow_historicalstatepermission
+                (
+                    id,
+                    grant_or_deny,
+                    history_date,
+                    history_change_reason,
+                    history_type,
+                    group_id,
+                    history_relation_id,
+                    history_user_id,
+                    permission_id,
+                    historical_permission_codename,
+                    historical_permission_content_type_app_label,
+                    historical_permission_content_type_model_name,
+                    historical_group_name,
+                    state_id
+                )
+                SELECT
+                    S.id,
+                    S.grant_or_deny,
+                    '2024-05-13 14:30:09',
+                    'Migration - 0002_create_workflow_deleted_permissions',
+                    '+',
+                    S.group_id,
+                    S.id,
+                    SYSTEM_USER.id,
+                    S.permission_id,
+                    S.historical_permission_codename,
+                    S.historical_permission_content_type_app_label,
+                    S.historical_permission_content_type_model_name,
+                    S.historical_group_name,
+                    S.state_id
+                FROM
+                    vueda_workflow_statepermission S,
+                    SYSTEM_USER
+                WHERE
+                    S.state_id IN (
+                        SELECT
+                            WS.id
+                        FROM
+                            vueda_workflow_state WS
+                        JOIN
+                            vueda_workflow_workflow W ON WS.workflow_id = W.id
+                        WHERE
+                            W.code = 'added_workflow'
+                    )
+                    AND
+                    S.permission_id IN (
+                        SELECT
+                            id
+                        FROM
+                            auth_permission
+                        WHERE
+                            codename = 'can_do_something_else'
+                            AND content_type_id = (
+                                SELECT
+                                    id
+                                FROM
+                                    django_content_type
+                                WHERE
+                                    app_label = 'workflow_added'
+                                    AND model = 'workflowadded'
+                            )
+                    );""",
+            reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+                WITH SYSTEM_USER AS (
+                    SELECT
+                        id
+                    FROM
+                        tests_user
+                    WHERE
+                        is_system = TRUE
+                )
+                INSERT INTO
+                    vueda_workflow_historicalstatepermission
+                (
+                    id,
+                    grant_or_deny,
+                    history_date,
+                    history_change_reason,
+                    history_type,
+                    group_id,
+                    history_relation_id,
+                    history_user_id,
+                    permission_id,
+                    historical_permission_codename,
+                    historical_permission_content_type_app_label,
+                    historical_permission_content_type_model_name,
+                    historical_group_name,
+                    state_id
+                )
+                SELECT
+                    S.id,
+                    S.grant_or_deny,
+                    '2024-05-13 14:30:10',
+                    'Migration - 0002_create_workflow_deleted_permissions',
+                    '+',
+                    S.group_id,
+                    S.id,
+                    SYSTEM_USER.id,
+                    S.permission_id,
+                    S.historical_permission_codename,
+                    S.historical_permission_content_type_app_label,
+                    S.historical_permission_content_type_model_name,
+                    S.historical_group_name,
+                    S.state_id
+                FROM
+                    vueda_workflow_statepermission S,
+                    SYSTEM_USER
+                WHERE
+                    S.state_id IN (
+                        SELECT
+                            WS.id
+                        FROM
+                            vueda_workflow_state WS
+                        JOIN
+                            vueda_workflow_workflow W ON WS.workflow_id = W.id
+                        WHERE
+                            W.code = 'added_workflow'
+                    )
+                    AND
+                    S.permission_id IN (
+                        SELECT
+                            id
+                        FROM
+                            auth_permission
+                        WHERE
+                            codename = 'update_workflowadded'
+                            AND content_type_id = (
+                                SELECT
+                                    id
+                                FROM
+                                    django_content_type
+                                WHERE
+                                    app_label = 'workflow_added'
+                                    AND model = 'workflowadded'
+                            )
+                    );""",
+            reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+            INSERT INTO
+                vueda_workflow_transition
+            (
+                name,
+                code,
+                workflow_id,
+                target_id
+            )
+            VALUES
+                (
+                    'Go To State 1',
+                    'go_to_state_1',
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'added_workflow'),
+                    (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_state
+                        WHERE
+                            code = 'state_1'
+                            AND workflow_id = (
+                                SELECT
+                                    id
+                                FROM
+                                    vueda_workflow_workflow
+                                WHERE
+                                    code = 'added_workflow'
+                            )
+                    )
+                ),
+                (
+                    'Go To State 2',
+                    'go_to_state_2',
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'added_workflow'),
+                    (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_state
+                        WHERE
+                            code = 'state_2'
+                            AND workflow_id = (
+                                SELECT
+                                    id
+                                FROM
+                                    vueda_workflow_workflow
+                                WHERE
+                                    code = 'added_workflow'
+                            )
+                    )
+                ),
+                (
+                    'Go To State 3',
+                    'go_to_state_3',
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'added_workflow'),
+                    (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_state
+                        WHERE
+                            code = 'state_3'
+                            AND workflow_id = (
+                                SELECT
+                                    id
+                                FROM
+                                    vueda_workflow_workflow
+                                WHERE
+                                    code = 'added_workflow'
+                            )
+                    )
+                );""",
+            reverse_sql="""
+            DELETE FROM
+                vueda_workflow_transition
+            WHERE
+                workflow_id IN (
+                    SELECT
+                        id
+                    FROM
+                        vueda_workflow_workflow
+                    WHERE
+                        code = 'added_workflow'
+                );""",
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+                WITH SYSTEM_USER AS (
+                    SELECT
+                        id
+                    FROM
+                        tests_user
+                    WHERE
+                        is_system = TRUE
+                )
+                INSERT INTO
+                    vueda_workflow_historicaltransition
                 (
                     id,
                     code,
@@ -832,7 +1229,7 @@ class Migration(migrations.Migration):
                     T.id,
                     T.code,
                     T.name,
-                    '2024-05-13 14:30:06',
+                    '2024-05-13 14:30:11',
                     'Migration - 0002_create_workflow_deleted_permissions',
                     '+',
                     T.id,
@@ -840,23 +1237,130 @@ class Migration(migrations.Migration):
                     T.target_id,
                     T.workflow_id
                 FROM
-                    workflow_transition T,
+                    vueda_workflow_transition T,
                     SYSTEM_USER
                 WHERE
-                    workflow_id IN (
+                    T.workflow_id IN (
                         SELECT
                             id
                         FROM
-                            workflow_workflow
+                            vueda_workflow_workflow
                         WHERE
                             code = 'added_workflow'
-                    );""",
+                    )
+                    AND T.code = 'go_to_state_1';""",
             reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        migrations.RunSQL(
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+                WITH SYSTEM_USER AS (
+                    SELECT
+                        id
+                    FROM
+                        tests_user
+                    WHERE
+                        is_system = TRUE
+                )
+                INSERT INTO
+                    vueda_workflow_historicaltransition
+                (
+                    id,
+                    code,
+                    name,
+                    history_date,
+                    history_change_reason,
+                    history_type,
+                    history_relation_id,
+                    history_user_id,
+                    target_id,
+                    workflow_id
+                )
+                SELECT
+                    T.id,
+                    T.code,
+                    T.name,
+                    '2024-05-13 14:30:12',
+                    'Migration - 0002_create_workflow_deleted_permissions',
+                    '+',
+                    T.id,
+                    SYSTEM_USER.id,
+                    T.target_id,
+                    T.workflow_id
+                FROM
+                    vueda_workflow_transition T,
+                    SYSTEM_USER
+                WHERE
+                    T.workflow_id IN (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_workflow
+                        WHERE
+                            code = 'added_workflow'
+                    )
+                    AND T.code = 'go_to_state_2';""",
+            reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+                WITH SYSTEM_USER AS (
+                    SELECT
+                        id
+                    FROM
+                        tests_user
+                    WHERE
+                        is_system = TRUE
+                )
+                INSERT INTO
+                    vueda_workflow_historicaltransition
+                (
+                    id,
+                    code,
+                    name,
+                    history_date,
+                    history_change_reason,
+                    history_type,
+                    history_relation_id,
+                    history_user_id,
+                    target_id,
+                    workflow_id
+                )
+                SELECT
+                    T.id,
+                    T.code,
+                    T.name,
+                    '2024-05-13 14:30:13',
+                    'Migration - 0002_create_workflow_deleted_permissions',
+                    '+',
+                    T.id,
+                    SYSTEM_USER.id,
+                    T.target_id,
+                    T.workflow_id
+                FROM
+                    vueda_workflow_transition T,
+                    SYSTEM_USER
+                WHERE
+                    T.workflow_id IN (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_workflow
+                        WHERE
+                            code = 'added_workflow'
+                    )
+                    AND T.code = 'go_to_state_3';""",
+            reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
             sql="""
             INSERT INTO
-                workflow_transitionpermission
+                vueda_workflow_transitionpermission
                 (
                     permission_id,
                     historical_permission_codename,
@@ -890,14 +1394,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'go_to_state_2'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'added_workflow'
                             )
@@ -928,14 +1432,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'go_to_state_1'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'added_workflow'
                             )
@@ -966,14 +1470,14 @@ class Migration(migrations.Migration):
                         SELECT
                             id
                         FROM
-                            workflow_transition
+                            vueda_workflow_transition
                         WHERE
                             code = 'go_to_state_1'
                             AND workflow_id = (
                                 SELECT
                                     id
                                 FROM
-                                    workflow_workflow
+                                    vueda_workflow_workflow
                                 WHERE
                                     code = 'added_workflow'
                             )
@@ -981,20 +1485,22 @@ class Migration(migrations.Migration):
                 );""",
             reverse_sql="""
             DELETE FROM
-                workflow_transitionpermission
+                vueda_workflow_transitionpermission
             WHERE
                 transition_id IN (
                     SELECT
                         T.id
                     FROM
-                        workflow_transition T
+                        vueda_workflow_transition T
                     JOIN
-                        workflow_workflow W ON T.workflow_id = W.id
+                        vueda_workflow_workflow W ON T.workflow_id = W.id
                     WHERE
                         W.code = 'added_workflow'
                 );""",
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        migrations.RunSQL(
+        custom_migration_operations.SkippableRunSQL(
             sql="""
                 WITH SYSTEM_USER AS (
                     SELECT
@@ -1005,7 +1511,7 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicaltransitionpermission
+                    vueda_workflow_historicaltransitionpermission
                 (
                     id,
                     history_date,
@@ -1021,7 +1527,7 @@ class Migration(migrations.Migration):
                 )
                 SELECT
                     T.id,
-                    '2024-05-13 14:30:07',
+                    '2024-05-13 14:30:14',
                     'Migration - 0002_create_workflow_deleted_permissions',
                     '+',
                     T.id,
@@ -1032,148 +1538,25 @@ class Migration(migrations.Migration):
                     T.historical_permission_content_type_model_name,
                     T.transition_id
                 FROM
-                    workflow_transitionpermission T,
+                    vueda_workflow_transitionpermission T,
                     SYSTEM_USER
                 WHERE
-                    transition_id IN (
+                    T.transition_id IN (
                         SELECT
                             WT.id
                         FROM
-                            workflow_transition WT
+                            vueda_workflow_transition WT
                         JOIN
-                            workflow_workflow W ON WT.workflow_id = W.id
+                            vueda_workflow_workflow W ON WT.workflow_id = W.id
                         WHERE
                             W.code = 'added_workflow'
-                    );""",
+                    )
+                    AND T.historical_permission_codename = 'can_do_something';""",
             reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        migrations.RunSQL(
-            sql="""
-            INSERT INTO
-                workflow_transitionsource
-                (
-                    transition_id,
-                    source_id
-                )
-            VALUES
-                (
-                    (
-                        SELECT
-                            id
-                        FROM
-                            workflow_transition
-                        WHERE
-                            code = 'go_to_state_2'
-                            AND workflow_id = (
-                                SELECT
-                                    id
-                                FROM
-                                    workflow_workflow
-                                WHERE
-                                    code = 'added_workflow'
-                            )
-                    ),
-                    (
-                        SELECT
-                            id
-                        FROM
-                            workflow_state
-                        WHERE
-                            code = 'state_1'
-                            AND workflow_id = (
-                                SELECT
-                                    id
-                                FROM
-                                    workflow_workflow
-                                WHERE
-                                    code = 'added_workflow'
-                            )
-                    )
-                ),
-                (
-                    (
-                        SELECT
-                            id
-                        FROM
-                            workflow_transition
-                        WHERE
-                            code = 'go_to_state_1'
-                            AND workflow_id = (
-                                SELECT
-                                    id
-                                FROM
-                                    workflow_workflow
-                                WHERE
-                                    code = 'added_workflow'
-                            )
-                    ),
-                    (
-                        SELECT
-                            id
-                        FROM
-                            workflow_state
-                        WHERE
-                            code = 'state_2'
-                            AND workflow_id = (
-                                SELECT
-                                    id
-                                FROM
-                                    workflow_workflow
-                                WHERE
-                                    code = 'added_workflow'
-                            )
-                    )
-                ),
-                (
-                    (
-                        SELECT
-                            id
-                        FROM
-                            workflow_transition
-                        WHERE
-                            code = 'go_to_state_1'
-                            AND workflow_id = (
-                                SELECT
-                                    id
-                                FROM
-                                    workflow_workflow
-                                WHERE
-                                    code = 'added_workflow'
-                            )
-                    ),
-                    (
-                        SELECT
-                            id
-                        FROM
-                            workflow_state
-                        WHERE
-                            code = 'state_3'
-                            AND workflow_id = (
-                                SELECT
-                                    id
-                                FROM
-                                    workflow_workflow
-                                WHERE
-                                    code = 'added_workflow'
-                            )
-                    )
-                );""",
-            reverse_sql="""
-            DELETE FROM
-                workflow_transitionsource
-            WHERE
-                transition_id IN (
-                    SELECT
-                        T.id
-                    FROM
-                        workflow_transition T
-                    JOIN
-                        workflow_workflow W ON T.workflow_id = W.id
-                    WHERE
-                        W.code = 'added_workflow'
-                );""",
-        ),
-        migrations.RunSQL(
+        custom_migration_operations.SkippableRunSQL(
             sql="""
                 WITH SYSTEM_USER AS (
                     SELECT
@@ -1184,7 +1567,247 @@ class Migration(migrations.Migration):
                         is_system = TRUE
                 )
                 INSERT INTO
-                    workflow_historicaltransitionsource
+                    vueda_workflow_historicaltransitionpermission
+                (
+                    id,
+                    history_date,
+                    history_change_reason,
+                    history_type,
+                    history_relation_id,
+                    history_user_id,
+                    permission_id,
+                    historical_permission_codename,
+                    historical_permission_content_type_app_label,
+                    historical_permission_content_type_model_name,
+                    transition_id
+                )
+                SELECT
+                    T.id,
+                    '2024-05-13 14:30:15',
+                    'Migration - 0002_create_workflow_deleted_permissions',
+                    '+',
+                    T.id,
+                    SYSTEM_USER.id,
+                    T.permission_id,
+                    T.historical_permission_codename,
+                    T.historical_permission_content_type_app_label,
+                    T.historical_permission_content_type_model_name,
+                    T.transition_id
+                FROM
+                    vueda_workflow_transitionpermission T,
+                    SYSTEM_USER
+                WHERE
+                    T.transition_id IN (
+                        SELECT
+                            WT.id
+                        FROM
+                            vueda_workflow_transition WT
+                        JOIN
+                            vueda_workflow_workflow W ON WT.workflow_id = W.id
+                        WHERE
+                            W.code = 'added_workflow'
+                    )
+                    AND T.historical_permission_codename = 'can_do_something_else';""",
+            reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+                WITH SYSTEM_USER AS (
+                    SELECT
+                        id
+                    FROM
+                        tests_user
+                    WHERE
+                        is_system = TRUE
+                )
+                INSERT INTO
+                    vueda_workflow_historicaltransitionpermission
+                (
+                    id,
+                    history_date,
+                    history_change_reason,
+                    history_type,
+                    history_relation_id,
+                    history_user_id,
+                    permission_id,
+                    historical_permission_codename,
+                    historical_permission_content_type_app_label,
+                    historical_permission_content_type_model_name,
+                    transition_id
+                )
+                SELECT
+                    T.id,
+                    '2024-05-13 14:30:16',
+                    'Migration - 0002_create_workflow_deleted_permissions',
+                    '+',
+                    T.id,
+                    SYSTEM_USER.id,
+                    T.permission_id,
+                    T.historical_permission_codename,
+                    T.historical_permission_content_type_app_label,
+                    T.historical_permission_content_type_model_name,
+                    T.transition_id
+                FROM
+                    vueda_workflow_transitionpermission T,
+                    SYSTEM_USER
+                WHERE
+                    T.transition_id IN (
+                        SELECT
+                            WT.id
+                        FROM
+                            vueda_workflow_transition WT
+                        JOIN
+                            vueda_workflow_workflow W ON WT.workflow_id = W.id
+                        WHERE
+                            W.code = 'added_workflow'
+                    )
+                    AND T.historical_permission_codename = 'update_workflowadded';""",
+            reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+            INSERT INTO
+                vueda_workflow_transitionsource
+                (
+                    transition_id,
+                    source_id
+                )
+            VALUES
+                (
+                    (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_transition
+                        WHERE
+                            code = 'go_to_state_2'
+                            AND workflow_id = (
+                                SELECT
+                                    id
+                                FROM
+                                    vueda_workflow_workflow
+                                WHERE
+                                    code = 'added_workflow'
+                            )
+                    ),
+                    (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_state
+                        WHERE
+                            code = 'state_1'
+                            AND workflow_id = (
+                                SELECT
+                                    id
+                                FROM
+                                    vueda_workflow_workflow
+                                WHERE
+                                    code = 'added_workflow'
+                            )
+                    )
+                ),
+                (
+                    (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_transition
+                        WHERE
+                            code = 'go_to_state_1'
+                            AND workflow_id = (
+                                SELECT
+                                    id
+                                FROM
+                                    vueda_workflow_workflow
+                                WHERE
+                                    code = 'added_workflow'
+                            )
+                    ),
+                    (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_state
+                        WHERE
+                            code = 'state_2'
+                            AND workflow_id = (
+                                SELECT
+                                    id
+                                FROM
+                                    vueda_workflow_workflow
+                                WHERE
+                                    code = 'added_workflow'
+                            )
+                    )
+                ),
+                (
+                    (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_transition
+                        WHERE
+                            code = 'go_to_state_1'
+                            AND workflow_id = (
+                                SELECT
+                                    id
+                                FROM
+                                    vueda_workflow_workflow
+                                WHERE
+                                    code = 'added_workflow'
+                            )
+                    ),
+                    (
+                        SELECT
+                            id
+                        FROM
+                            vueda_workflow_state
+                        WHERE
+                            code = 'state_3'
+                            AND workflow_id = (
+                                SELECT
+                                    id
+                                FROM
+                                    vueda_workflow_workflow
+                                WHERE
+                                    code = 'added_workflow'
+                            )
+                    )
+                );""",
+            reverse_sql="""
+            DELETE FROM
+                vueda_workflow_transitionsource
+            WHERE
+                transition_id IN (
+                    SELECT
+                        T.id
+                    FROM
+                        vueda_workflow_transition T
+                    JOIN
+                        vueda_workflow_workflow W ON T.workflow_id = W.id
+                    WHERE
+                        W.code = 'added_workflow'
+                );""",
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+                WITH SYSTEM_USER AS (
+                    SELECT
+                        id
+                    FROM
+                        tests_user
+                    WHERE
+                        is_system = TRUE
+                )
+                INSERT INTO
+                    vueda_workflow_historicaltransitionsource
                 (
                     id,
                     history_date,
@@ -1197,7 +1820,7 @@ class Migration(migrations.Migration):
                 )
                 SELECT
                     T.id,
-                    '2024-05-13 14:30:08',
+                    '2024-05-13 14:30:17',
                     'Migration - 0002_create_workflow_deleted_permissions',
                     '+',
                     T.id,
@@ -1205,19 +1828,122 @@ class Migration(migrations.Migration):
                     T.source_id,
                     T.transition_id
                 FROM
-                    workflow_transitionsource T,
+                    vueda_workflow_transitionsource T,
                     SYSTEM_USER
                 WHERE
-                    transition_id IN (
+                    T.source_id IN (
                         SELECT
-                            WT.id
+                            WS.id
                         FROM
-                            workflow_transition WT
+                            vueda_workflow_state WS
                         JOIN
-                            workflow_workflow W ON WT.workflow_id = W.id
+                            vueda_workflow_workflow W ON WS.workflow_id = W.id
                         WHERE
                             W.code = 'added_workflow'
+                            AND WS.code = 'state_1'
                     );""",
             reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+                WITH SYSTEM_USER AS (
+                    SELECT
+                        id
+                    FROM
+                        tests_user
+                    WHERE
+                        is_system = TRUE
+                )
+                INSERT INTO
+                    vueda_workflow_historicaltransitionsource
+                (
+                    id,
+                    history_date,
+                    history_change_reason,
+                    history_type,
+                    history_relation_id,
+                    history_user_id,
+                    source_id,
+                    transition_id
+                )
+                SELECT
+                    T.id,
+                    '2024-05-13 14:30:18',
+                    'Migration - 0002_create_workflow_deleted_permissions',
+                    '+',
+                    T.id,
+                    SYSTEM_USER.id,
+                    T.source_id,
+                    T.transition_id
+                FROM
+                    vueda_workflow_transitionsource T,
+                    SYSTEM_USER
+                WHERE
+                    T.source_id IN (
+                        SELECT
+                            WS.id
+                        FROM
+                            vueda_workflow_state WS
+                        JOIN
+                            vueda_workflow_workflow W ON WS.workflow_id = W.id
+                        WHERE
+                            W.code = 'added_workflow'
+                            AND WS.code = 'state_2'
+                    );""",
+            reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
+        ),
+        custom_migration_operations.SkippableRunSQL(
+            sql="""
+                WITH SYSTEM_USER AS (
+                    SELECT
+                        id
+                    FROM
+                        tests_user
+                    WHERE
+                        is_system = TRUE
+                )
+                INSERT INTO
+                    vueda_workflow_historicaltransitionsource
+                (
+                    id,
+                    history_date,
+                    history_change_reason,
+                    history_type,
+                    history_relation_id,
+                    history_user_id,
+                    source_id,
+                    transition_id
+                )
+                SELECT
+                    T.id,
+                    '2024-05-13 14:30:19',
+                    'Migration - 0002_create_workflow_deleted_permissions',
+                    '+',
+                    T.id,
+                    SYSTEM_USER.id,
+                    T.source_id,
+                    T.transition_id
+                FROM
+                    vueda_workflow_transitionsource T,
+                    SYSTEM_USER
+                WHERE
+                    T.source_id IN (
+                        SELECT
+                            WS.id
+                        FROM
+                            vueda_workflow_state WS
+                        JOIN
+                            vueda_workflow_workflow W ON WS.workflow_id = W.id
+                        WHERE
+                            W.code = 'added_workflow'
+                            AND WS.code = 'state_3'
+                    );""",
+            reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
     ]
