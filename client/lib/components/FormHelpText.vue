@@ -1,5 +1,4 @@
 <script setup>
-import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";
 
@@ -17,12 +16,11 @@ const props = defineProps({
         default: () => [],
     },
 });
-const fieldContext = inject(FieldContextSymbol);
+const fieldContext = inject(FieldContextSymbol, null);
 const computedHelp = computed(() => props.help || fieldContext.help);
-const combinedClasses = useCombinedClasses("@vueda/components/FormHelpText.vue", props);
 </script>
 <template>
-    <div :class="combinedClasses.helpClass">
+    <div v-if="computedHelp || $slots.default">
         <slot :help="computedHelp">{{ computedHelp }}</slot>
     </div>
 </template>
