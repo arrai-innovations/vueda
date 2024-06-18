@@ -43,7 +43,7 @@ SECRET_KEY = "test_secret_key"
 
 # Settings needed to see the permissions and workflows views.
 # Permissions have been removed from the view, since we don't have a way to login yet.
-LOGIN_URL = "/routes/tests/login/"
+LOGIN_URL = "/routes/tests/local-login/"
 SECURE_BROWSER_XSS_FILTER = True
 SESSION_COOKIE_SECURE = False
 TEMPLATES = [
