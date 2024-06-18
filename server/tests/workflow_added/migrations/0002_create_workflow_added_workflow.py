@@ -125,57 +125,6 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
             INSERT INTO
-                auth_permission
-                (
-                    name,
-                    content_type_id,
-                    codename
-                )
-            VALUES
-                (
-                    'Can Do Something',
-                    (
-                        SELECT
-                            id
-                        FROM
-                            django_content_type
-                        WHERE
-                            app_label = 'workflow_added'
-                            AND model = 'workflowadded'
-                    ),
-                    'can_do_something'
-                ),
-                (
-                    'Can Do Something Else',
-                    (
-                        SELECT
-                            id
-                        FROM
-                            django_content_type
-                        WHERE
-                            app_label = 'workflow_added'
-                            AND model = 'workflowadded'
-                    ),
-                    'can_do_something_else'
-                );""",
-            reverse_sql="""
-            DELETE FROM
-                auth_permission
-            WHERE
-                codename IN ('can_do_something', 'can_do_something_else')
-                AND content_type_id = (
-                    SELECT
-                        id
-                    FROM
-                        django_content_type
-                    WHERE
-                        app_label = 'workflow_added'
-                        AND model = 'workflowadded'
-                );""",
-        ),
-        migrations.RunSQL(
-            sql="""
-            INSERT INTO
                 auth_group_permissions
                 (
                     group_id,

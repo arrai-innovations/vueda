@@ -26,6 +26,11 @@ class Migration(migrations.Migration):
             ],
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
+                "permissions": (
+                    ("can_do_something", "Can do something"),
+                    ("can_do_something_else", "Can do something else"),
+                    ("can_do_another_thing", "Can do another thing"),
+                ),
             },
         ),
         migrations.CreateModel(
