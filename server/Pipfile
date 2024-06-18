@@ -26,6 +26,7 @@ flake8-pep3101 = "==2.1.0"
 flake8-print = "==5.0.0"
 pep8-naming = "==0.13.3"
 pylint-django = "==2.5.5"
+pytest-json-report = "==1.5.0"
 
 # build related
 wheel = ">=0.42.0,<1"

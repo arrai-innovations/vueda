@@ -21,6 +21,9 @@ from psycopg import sql
 from rest_framework.test import APIClient
 
 
+pytest_plugins = ["pytest_jsonreport"]
+
+
 @pytest.fixture
 def api_client():
     """
