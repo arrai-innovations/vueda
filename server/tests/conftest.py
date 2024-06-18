@@ -1,5 +1,8 @@
 import asyncio
+import contextlib
 import hashlib
+import importlib
+import io
 from collections import OrderedDict
 from urllib.parse import urlencode
 
@@ -10,6 +13,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.core.management import call_command
 from django.db import models
 from django.urls import reverse
 from psycopg import connect
@@ -396,3 +400,36 @@ class BaseTestModelViewSet(
     BaseTestCommonModelViewSet,
 ):
     pass
+
+
+class BaseTestCallCommand:
+    # @staticmethod
+    def call_command(self, *args):
+        """
+        Call a management command and capture the results.
+
+        Args:
+            *args: All arguments are passed to call command.
+
+        Returns:
+            tuple:
+                boolean: False if erred calling the command, True otherwise.
+                string: The captured results or error text.
+        """
+        err = io.StringIO()
+        out = io.StringIO()
+
+        # If we don't do this, sometimes we can't import a newly created migration.
+        # Do it here, so we don't need to know which calls require it, and which don't.
+        importlib.invalidate_caches()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            call_command(*args)
+
+        # Did an error occur?
+        if err.tell():
+            err.seek(0)
+            return False, err.read()
+
+        # Return the results.
+        out.seek(0)
+        return True, out.readlines()
