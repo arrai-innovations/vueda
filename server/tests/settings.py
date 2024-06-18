@@ -45,6 +45,7 @@ SECRET_KEY = "test_secret_key"
 # Permissions have been removed from the view, since we don't have a way to login yet.
 LOGIN_URL = "/routes/tests/login/"
 SECURE_BROWSER_XSS_FILTER = True
+SESSION_COOKIE_SECURE = False
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
