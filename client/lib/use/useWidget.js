@@ -16,7 +16,7 @@ export const widgetProps = {
 export const widgetEmits = ["update:modelValue"];
 
 export default function useWidget(props, emit) {
-    const fieldContext = inject(FieldContextSymbol);
+    const fieldContext = inject(FieldContextSymbol, null);
     const combinedValue = computed({
         get: () => {
             if (props.modelValue) {

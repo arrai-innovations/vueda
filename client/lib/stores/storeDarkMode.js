@@ -13,8 +13,8 @@ const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
  *
  *   darkMode.isDark; // reactive boolean for dark mode, true if dark mode is enabled
  *
- *   darkMode.initializeDarkMode(); // get dark mode from local storage or prefers
- *   darkMode.toggleDarkMode(); // toggle dark mode
+ *   darkMode.init(); // get dark mode from local storage or prefers
+ *   darkMode.toggle(); // toggle dark mode
  * ```
  */
 export default defineStore({
@@ -23,11 +23,11 @@ export default defineStore({
         isDark: false,
     }),
     actions: {
-        initializeDarkMode() {
+        init() {
             const storedDarkMode = localStorage.getItem(darkModeLocalStorageKey);
             this.isDark = storedDarkMode !== null ? JSON.parse(storedDarkMode) : prefers();
         },
-        toggleDarkMode() {
+        toggle() {
             this.isDark = !this.isDark;
             localStorage.setItem(darkModeLocalStorageKey, JSON.stringify(this.isDark));
         },

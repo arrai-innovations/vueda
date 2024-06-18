@@ -2,7 +2,7 @@ import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
-import { computed, inject, provide, reactive, readonly, watch } from "vue";
+import { computed, inject, provide, reactive, watch } from "vue";
 
 export const fieldProps = {
     name: {
@@ -36,7 +36,7 @@ export function defaultValidateRequired(value) {
 }
 
 export default function useField(props, functions) {
-    const formContext = inject(FormContextSymbol);
+    const formContext = inject(FormContextSymbol, null);
 
     const requiredFn = functions?.required || defaultValidateRequired;
     const requiredMessage = computed(() => {
@@ -45,18 +45,14 @@ export default function useField(props, functions) {
     const name = computed(() => {
         return props.name;
     });
+    const label = computed(() => {
+        return props.label || props.name;
+    });
     const help = computed(() => {
         return props.help || "";
     });
-    const value = computed({
-        get() {
-            return formContext ? get(formContext.values, props.name) : undefined;
-        },
-        set(value) {
-            if (formContext) {
-                formContext.updateValue(props.name, value);
-            }
-        },
+    const value = computed(() => {
+        return formContext ? get(formContext.values, props.name) : undefined;
     });
     const messages = computed(() => {
         return formContext ? get(formContext.messages, props.name) : {};
@@ -131,12 +127,13 @@ export default function useField(props, functions) {
     //     },
     // );
     const returnObj = reactive({
-        name: readonly(name),
-        help: readonly(help),
-        value: readonly(value),
-        messages: readonly(messages),
-        errors: readonly(errors),
-        dirty: readonly(dirty),
+        name,
+        label,
+        help,
+        value,
+        messages,
+        errors,
+        dirty,
         updateValue: (value) => {
             if (formContext) {
                 formContext.updateValue(name.value, value);
