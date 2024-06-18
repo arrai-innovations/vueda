@@ -13,6 +13,8 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ("tests", "0005_alter_user_managers"),
+        ("vueda_workflow", "0002_statepermission_historical_group_name_and_more"),
     ]
 
     operations = [

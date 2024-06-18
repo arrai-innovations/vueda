@@ -20,7 +20,7 @@ def make_sure_permissions_exist(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ("store", "0003_alter_productoption_options"),
-        ("vueda_workflow", "0004_historicalstatepermission_historical_permission_codename_and_more"),
+        ("vueda_workflow", "0002_statepermission_historical_group_name_and_more"),
     ]
 
     operations = [
@@ -779,7 +779,7 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql="""
             INSERT INTO
-                workflow_transitionsource
+                vueda_workflow_transitionsource
                 (
                     transition_id,
                     source_id
