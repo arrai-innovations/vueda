@@ -11,7 +11,10 @@
 - [Usage](#usage)
   - [Install](#install)
   - [Setup](#setup)
-  - [Usage](#usage-1)
+  - [Workflow Management](#workflow-management)
+    - [Adding a workflow](#adding-a-workflow)
+    - [Deleting a Workflow](#deleting-a-workflow)
+  - [Workflow Management Command](#workflow-management-command)
 - [Development](#development)
   - [Environment](#environment)
   - [Dependency Management](#dependency-management)
@@ -123,9 +126,55 @@ extended in your application, ensuring both control and adaptability.
        )
     ```
 
-### Usage
+### Workflow Management
 
-Note: Permissions and Groups associated with Workflows that are being deleted, must not be deleted until the workflow has been deleted from any servers, since they don't have history.
+#### Adding a workflow
+
+1. Go to the workflow overview page at `/routes/workflow/overview/`.
+2. Create a superuser if you need one and then log in.
+3. Click the `Add Workflow` button.
+4. Fill out the form and save. You will be redirected to the edit form.
+5. Because initial state and transitions require a state to be selected when the edit form is saved, but no states exist by default, state changes will be saved if they don't have any validation errors, even if the server generates other validation errors. This is on purpose, so the state drop down will update, allowing you to select a state.
+6. When the states and transitions have been created, you can access their edit forms from the workflow overview page. These forms allow you to add/edit/delete state permissions, transition permissions, and transition sources.
+7. Once the workflow has been created the way you want it, you can use the [Workflow Management Command](#workflow-management-command).
+
+#### Deleting a Workflow
+
+If you have a model that used the workflow, you will need to remove the association to any workflow objects on the model before you can delete the workflow.
+
+NOTE: Instruction 7 needs to have specific things deleted at the same time to prevent blow ups.
+
+1. Go to the workflow overview page at `/routes/workflow/overview/`.
+2. Create a superuser if you need one and then log in.
+3. Edit each of the states that have state permissions, check delete on each and save.
+4. Edit each of the transitions that have transition permissions and transition sources, check delete on each and save.
+5. Edit the workflow.
+6. Check the workflow permissions, transitions, and states that are not used by the initial state, and save.
+7. Check the last remaining state and the initial state that uses it, and save.
+8. Then you can go to the workflow overview page and click the delete workflow button that will appear.
+9. Once the workflow has been deleted, you can use the [Workflow Management Command](#workflow-management-command).
+
+NOTE: Permissions and Groups associated with Workflows that are being deleted, must not be deleted until the workflow has been deleted from any servers, since they don't have history.
+
+### Workflow Management Command
+
+A management command to automate the creation of migrations that reflect workflow changes made locally. These generated migrations can be migrated forwards and backwards, and do not use ids, since they can be different between databases.
+
+`python manage.py makeworkflowmigrations`
+
+Similar to django `makemigrations`, you can specify the app_label(s) you want to make migrations for, or all if none are specified.
+
+If you are the user that made the changes to workflow manually, then you will want to fake this migration, since you already have the changes.
+
+Some additional options were added to the management command, mainly for testing.
+
+`--dry-run` - Use this to see the output of what the management command would do. No migrations are actually created when this is specified.
+
+`--keep-history-date` - If this is specified, then when migrations are run, the history that is created for the changes will use the history dates from the history records that were created when the workflow was created/edited/deleted. This is mainly used for testing.
+
+`--env-guarded-operations` - This causes created migrations to not run the migration sql, when the environment variable.
+
+`skip_migration_when_setting_up_db` is 'true'. When testing, we use this to basically fake and roll back a migration, then remove the environment variable and run the migrations manually. This is probably only needed for tests.
 
 <!-- #todo: document -->
 
