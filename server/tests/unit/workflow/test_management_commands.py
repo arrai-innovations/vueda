@@ -4,6 +4,7 @@ import subprocess
 
 import pytest
 from django.db.migrations.recorder import MigrationRecorder
+from django.utils.timezone import now
 
 from tests.conftest import BaseTestCallCommand
 from tests.custom_migration_operations import clean_migrations
@@ -54,7 +55,7 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
 
         assert "Creating empty migration for workflow changes." in results
         assert (
-            "Modified migration '0003_workflow_migrations_2024_06_18.py' to migrate workflow for workflow_added."
+            f"Modified migration '0003_workflow_migrations_{now().date().strftime('%Y_%m_%d')}.py' to migrate workflow for workflow_added."
             in results
         )
 
