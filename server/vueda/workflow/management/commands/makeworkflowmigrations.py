@@ -1072,7 +1072,7 @@ class Command(BaseCommand):
             "--env-guarded-operations",
             action="store_true",
             help=(
-                "This causes created migrations to have no operations when the environment "
+                "This causes created migrations to not run the migration sql, when the environment "
                 "variable 'skip_migration_when_setting_up_db' is 'true'.  In a test you can "
                 "use this to fake and roll back a migration, then update the environment "
                 "variable and run the migration manually.  If not set, the test for the "
