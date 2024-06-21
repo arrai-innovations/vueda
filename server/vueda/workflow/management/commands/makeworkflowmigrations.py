@@ -1079,6 +1079,15 @@ class Command(BaseCommand):
                 "environment variable will not be added into the migration."
             ),
         )
+        parser.add_argument(
+            "--import-instead",
+            action="store_true",
+            help=(
+                "This causes created migrations to not copy functions from the management command "
+                "into the migration.  Imports are added instead.  This is used by tests, so the "
+                "coverage report will reflect actual code usage."
+            ),
+        )
 
     def _call_command(self, *args):
         err = io.StringIO()
@@ -1581,8 +1590,7 @@ class Command(BaseCommand):
                 backwards[1:1] = [GUARDED_TEXT]
                 backwards = "\n".join(backwards)
 
-            # Changed data and forwards/reverse functions.
-            lines[class_index - 1 : class_index] = [
+            copied_code = [
                 f'''{NEWLINE}history_change_reason = "Workflow Migration - {migration_name.replace('.py', '')}"''',
                 f"{NEWLINE}keep_history_date = {self.keep_history_date}",
                 f'{NEWLINE}migration_app_label = "{app_label}"',
@@ -1590,25 +1598,34 @@ class Command(BaseCommand):
                 f"{NEWLINE}changed_data = {pformat(changed_data, width=20)}{NEWLINE}{NEWLINE}",
                 f"{forwards}{NEWLINE}{NEWLINE}",
                 f"{backwards}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(handle_workflow)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(handle_workflow_permission)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(handle_state)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(handle_state_permission)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(handle_initial_state)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(handle_transition)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(handle_transition_permission)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(handle_transition_source)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(add_history_to_data)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(apply_and_save_changes)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(get_id_values_from_item)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(get_id_values_from_dict)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(make_sure_permissions_exist)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(make_sure_permissions_exist)}{NEWLINE}{NEWLINE}",
                 f"{inspect.getsource(SkippableRunSQL)}{NEWLINE}{NEWLINE}",
             ]
 
+            if not self.import_instead:
+                copied_code.extend(
+                    [
+                        f"{inspect.getsource(handle_workflow)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(handle_workflow_permission)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(handle_state)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(handle_state_permission)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(handle_initial_state)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(handle_transition)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(handle_transition_permission)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(handle_transition_source)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(add_history_to_data)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(apply_and_save_changes)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(get_id_values_from_item)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(get_id_values_from_dict)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(make_sure_permissions_exist)}{NEWLINE}{NEWLINE}",
+                    ]
+                )
+
+            # Changed data and forwards/reverse functions.
+            lines[class_index - 1 : class_index] = copied_code
+
             # Migration Modified Comment - Used to find the latest migration we modified using this management command.
-            lines[generated_index + 1 : generated_index + 1] = [
+
+            copied_imports = [
                 MIGRATION_MODIFIED_COMMENT,
                 "import copy",
                 f"{NEWLINE}import datetime",
@@ -1618,6 +1635,27 @@ class Command(BaseCommand):
                 f"from django.contrib.auth.management import create_permissions{NEWLINE}",
                 "from django.utils import timezone",
             ]
+
+            if self.import_instead:
+                copied_imports.extend(
+                    [
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_workflow{NEWLINE}",
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_workflow_permission{NEWLINE}",
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_state{NEWLINE}",
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_state_permission{NEWLINE}",
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_initial_state{NEWLINE}",
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_transition{NEWLINE}",
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_transition_permission{NEWLINE}",
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_transition_source{NEWLINE}",
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import add_history_to_data{NEWLINE}",
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import apply_and_save_changes{NEWLINE}",
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import get_id_values_from_item{NEWLINE}",
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import get_id_values_from_dict{NEWLINE}",
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import make_sure_permissions_exist{NEWLINE}",
+                    ]
+                )
+
+            lines[generated_index + 1 : generated_index + 1] = copied_imports
 
             f.seek(0)
             f.writelines(lines)
@@ -1663,6 +1701,7 @@ class Command(BaseCommand):
         self.dry_run = options["dry_run"]
         self.keep_history_date = options["keep_history_date"]
         self.env_guarded_operations = options["env_guarded_operations"]
+        self.import_instead = options["import_instead"]
 
         # If you pass in a specific app, validate that it exists.
         app_labels = set(app_labels)

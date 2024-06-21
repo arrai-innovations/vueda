@@ -109,7 +109,9 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
 
     @pytest.mark.django_db
     def test_workflow_added(self):
-        succeeded, results = self.call_command("makeworkflowmigrations", "workflow_added", "--env-guarded-operations")
+        succeeded, results = self.call_command(
+            "makeworkflowmigrations", "workflow_added", "--env-guarded-operations", "--import-instead"
+        )
         if not succeeded:
             pytest.fail("".join(results), pytrace=False)
 
@@ -134,8 +136,6 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
         results = subprocess.run(
             [
                 "pytest",
-                "-cov",
-                "--cov-append",
                 "-vv",
                 "-s",
                 "--json-report",
@@ -404,7 +404,9 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand):
 
     @pytest.mark.django_db
     def test_workflow_changed(self):
-        succeeded, results = self.call_command("makeworkflowmigrations", "workflow_changed", "--env-guarded-operations")
+        succeeded, results = self.call_command(
+            "makeworkflowmigrations", "workflow_changed", "--env-guarded-operations", "--import-instead"
+        )
         if not succeeded:
             pytest.fail("".join(results), pytrace=False)
 
@@ -429,8 +431,6 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand):
         results = subprocess.run(
             [
                 "pytest",
-                "-cov",
-                "--cov-append",
                 "-vv",
                 "-s",
                 "--json-report",
@@ -850,7 +850,9 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand):
 
     @pytest.mark.django_db
     def test_workflow_deleted(self):
-        succeeded, results = self.call_command("makeworkflowmigrations", "workflow_deleted", "--env-guarded-operations")
+        succeeded, results = self.call_command(
+            "makeworkflowmigrations", "workflow_deleted", "--env-guarded-operations", "--import-instead"
+        )
         if not succeeded:
             pytest.fail("".join(results), pytrace=False)
 
@@ -875,8 +877,6 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand):
         results = subprocess.run(
             [
                 "pytest",
-                "-cov",
-                "--cov-append",
                 "-vv",
                 "-s",
                 "--json-report",
