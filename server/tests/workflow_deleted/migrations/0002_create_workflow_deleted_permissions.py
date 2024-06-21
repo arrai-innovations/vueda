@@ -23,10 +23,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(
-            code=make_sure_permissions_exist,
-            reverse_code=migrations.RunPython.noop,
-        ),
+        migrations.RunPython(code=make_sure_permissions_exist, reverse_code=migrations.RunPython.noop),
         migrations.RunSQL(
             sql="""
             INSERT INTO
