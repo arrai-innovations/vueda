@@ -134,6 +134,8 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
         results = subprocess.run(
             [
                 "pytest",
+                "-cov",
+                "--cov-append",
                 "-vv",
                 "-s",
                 "--json-report",
@@ -427,6 +429,8 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand):
         results = subprocess.run(
             [
                 "pytest",
+                "-cov",
+                "--cov-append",
                 "-vv",
                 "-s",
                 "--json-report",
@@ -871,6 +875,8 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand):
         results = subprocess.run(
             [
                 "pytest",
+                "-cov",
+                "--cov-append",
                 "-vv",
                 "-s",
                 "--json-report",
