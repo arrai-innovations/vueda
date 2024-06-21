@@ -335,9 +335,6 @@ changed_data = [
 
 
 def forwards_migrate_workflow(apps, schema_editor):
-    if os.environ.get("skip_migration_when_setting_up_db", "").lower() == "true":  # For testing.
-        return
-
     for changed_item in copy.deepcopy(changed_data):  # Copied, so tests can migrate fowards and backwards.
         match changed_item["model_name"]:
             case "workflow":
@@ -366,9 +363,6 @@ def forwards_migrate_workflow(apps, schema_editor):
 
 
 def backwards_migrate_workflow(apps, schema_editor):
-    if os.environ.get("skip_migration_when_setting_up_db", "").lower() == "true":  # For testing.
-        return
-
     # Make sure we go through the changed_data in reverse order, so we undo things correctly.
     for changed_item in reversed(copy.deepcopy(changed_data)):  # Copied, so tests can migrate fowards and backwards.
         match changed_item["history_type"]:
@@ -429,7 +423,7 @@ def handle_workflow(apps, changed_item, *, reversing=False):
             historical_workflow.objects.create(**data)
 
         case "changed":
-            workflow = model_workflow.objects.get(**data["id"])
+            workflow = model_workflow.objects.get(**get_id_values_from_dict(data["id"], reversing=reversing))
 
             del data["id"]
 
@@ -1103,7 +1097,7 @@ def get_id_values_from_item(values, reversing=False):
 def get_id_values_from_dict(id_data, reversing=False):
     results = {}
     for field_name, values in id_data.items():
-        results[field_name] = get_id_values_from_item(values)
+        results[field_name] = get_id_values_from_item(values, reversing)
 
     return results
 

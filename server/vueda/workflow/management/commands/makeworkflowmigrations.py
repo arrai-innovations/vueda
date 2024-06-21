@@ -188,7 +188,7 @@ def handle_workflow(apps, changed_item, *, reversing=False):
             historical_workflow.objects.create(**data)
 
         case "changed":
-            workflow = model_workflow.objects.get(**data["id"])
+            workflow = model_workflow.objects.get(**get_id_values_from_dict(data["id"], reversing=reversing))
 
             del data["id"]
 
@@ -843,7 +843,7 @@ def get_id_values_from_item(values, reversing=False):
 def get_id_values_from_dict(id_data, reversing=False):
     results = {}
     for field_name, values in id_data.items():
-        results[field_name] = get_id_values_from_item(values)
+        results[field_name] = get_id_values_from_item(values, reversing)
 
     return results
 
@@ -1420,17 +1420,15 @@ class Command(BaseCommand):
                 field_name = workflow_model_field_names_to_attname[model_name][field_name]
 
                 if field_name not in current_changes:
-                    self._parse_related_fields_into_changes_data(extra_data_diff, change, field_name, ct)
+                    new, old = self._parse_related_fields_into_changes_data(extra_data_diff, change, field_name, ct)
 
-                    current_changes[field_name] = change.new
+                    current_changes[field_name] = new
 
         # Add in the id information, so we can change, delete, and reverse add.
         match model_name:
             case "workflow":
-                record = historical_diff.new_record if historical_type == "added" else historical_diff.old_record
-
                 current_changes["id"] = {
-                    "code": record.code,
+                    "code": current_changes["code"],
                 }
 
             case "workflowpermission":
