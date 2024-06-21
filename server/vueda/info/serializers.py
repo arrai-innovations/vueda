@@ -88,10 +88,10 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
     def canonical(self):
         return get_registration(self.instance.pk)
 
-    def get_verbose_name(self, instance):
+    def get_verbose_name(self, instance: object) -> str:
         return instance.model_class()._meta.verbose_name
 
-    def get_verbose_name_plural(self, instance):
+    def get_verbose_name_plural(self, instance: object) -> str:
         return instance.model_class()._meta.verbose_name_plural
 
     def get_model_permissions(self, instance):
