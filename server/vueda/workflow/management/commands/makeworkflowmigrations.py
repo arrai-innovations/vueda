@@ -1631,9 +1631,6 @@ class Command(BaseCommand):
                 f"{NEWLINE}import datetime",
                 f"{NEWLINE}import os" if self.env_guarded_operations else "",
                 f"{NEWLINE}{NEWLINE}",
-                f"from django.apps import apps as django_apps{NEWLINE}",
-                f"from django.contrib.auth.management import create_permissions{NEWLINE}",
-                "from django.utils import timezone",
             ]
 
             if self.import_instead:
@@ -1647,11 +1644,16 @@ class Command(BaseCommand):
                         f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_transition{NEWLINE}",
                         f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_transition_permission{NEWLINE}",
                         f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_transition_source{NEWLINE}",
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import add_history_to_data{NEWLINE}",
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import apply_and_save_changes{NEWLINE}",
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import get_id_values_from_item{NEWLINE}",
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import get_id_values_from_dict{NEWLINE}",
                         f"from vueda.workflow.management.commands.makeworkflowmigrations import make_sure_permissions_exist{NEWLINE}",
+                    ]
+                )
+
+            else:
+                copied_imports.extend(
+                    [
+                        f"from django.apps import apps as django_apps{NEWLINE}",
+                        f"from django.contrib.auth.management import create_permissions{NEWLINE}",
+                        "from django.utils import timezone",
                     ]
                 )
 
