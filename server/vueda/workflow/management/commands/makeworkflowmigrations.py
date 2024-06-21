@@ -92,7 +92,7 @@ MIGRATION_MODIFIED_COMMENT = (
 changed_data = ()
 history_change_reason = ""
 keep_history_date = False
-migration_app_label = "workflow"
+migration_app_label = "vueda_workflow"
 
 
 #############################################################################
@@ -1599,6 +1599,7 @@ class Command(BaseCommand):
                 f"{forwards}{NEWLINE}{NEWLINE}",
                 f"{backwards}{NEWLINE}{NEWLINE}",
                 f"{inspect.getsource(SkippableRunSQL)}{NEWLINE}{NEWLINE}",
+                f"{inspect.getsource(make_sure_permissions_exist)}{NEWLINE}{NEWLINE}",
             ]
 
             if not self.import_instead:
@@ -1616,7 +1617,6 @@ class Command(BaseCommand):
                         f"{inspect.getsource(apply_and_save_changes)}{NEWLINE}{NEWLINE}",
                         f"{inspect.getsource(get_id_values_from_item)}{NEWLINE}{NEWLINE}",
                         f"{inspect.getsource(get_id_values_from_dict)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(make_sure_permissions_exist)}{NEWLINE}{NEWLINE}",
                     ]
                 )
 
@@ -1631,12 +1631,14 @@ class Command(BaseCommand):
                 f"{NEWLINE}import datetime",
                 f"{NEWLINE}import os" if self.env_guarded_operations else "",
                 f"{NEWLINE}{NEWLINE}",
+                f"from django.apps import apps as django_apps{NEWLINE}",
+                f"from django.contrib.auth.management import create_permissions{NEWLINE}",
             ]
 
             if self.import_instead:
                 copied_imports.extend(
                     [
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_workflow{NEWLINE}",
+                        f"{NEWLINE}from vueda.workflow.management.commands.makeworkflowmigrations import handle_workflow{NEWLINE}",
                         f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_workflow_permission{NEWLINE}",
                         f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_state{NEWLINE}",
                         f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_state_permission{NEWLINE}",
@@ -1651,8 +1653,6 @@ class Command(BaseCommand):
             else:
                 copied_imports.extend(
                     [
-                        f"from django.apps import apps as django_apps{NEWLINE}",
-                        f"from django.contrib.auth.management import create_permissions{NEWLINE}",
                         "from django.utils import timezone",
                     ]
                 )
