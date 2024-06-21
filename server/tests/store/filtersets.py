@@ -34,7 +34,7 @@ class OrderItemFilterSet(VuedaFilterSet):
     quantity = rest_framework.NumericRangeFilter(field_name="quantity", label="Quantity", lookup_expr=[])
 
     class Meta:
-        model = my_models.ProductOption
+        model = my_models.OrderItem
         fields = [
             "quantity",
         ]
