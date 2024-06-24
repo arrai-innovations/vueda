@@ -173,7 +173,7 @@ Git tags are used to indicate to CircleCI that a commit is considered a release.
 
 ```console
 (vueda-server)[you@your vueda-server]$ git tag v1.0.1
-(vueda-server)[you@your vueda-server]$  git push --tags
+(vueda-server)[you@your vueda-server]$ git push --tags
 ```
 
 Tags will have GitHub releases created and be published to our pypi index.
