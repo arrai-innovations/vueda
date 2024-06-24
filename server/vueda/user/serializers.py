@@ -1,3 +1,4 @@
+from dj_rest_auth.serializers import TokenSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.contrib.auth import password_validation
@@ -141,3 +142,11 @@ class ResetPasswordSerializer(serializers.Serializer):
         except ValidationError as err:
             raise serializers.ValidationError(" ".join(err))
         return value
+
+
+# If you have "TOKEN_MODEL": None in settings, then you will need to
+# use this token serializer in order to generate API documentation.
+# https://github.com/iMerica/dj-rest-auth/issues/517
+class VuedaTokenSerializer(TokenSerializer, serializers.ModelSerializer):
+    def get_fields(self):
+        return {}

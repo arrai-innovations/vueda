@@ -26,13 +26,10 @@ flake8-pep3101 = "==2.1.0"
 flake8-print = "==5.0.0"
 pep8-naming = "==0.13.3"
 pylint-django = "==2.5.5"
-
 # build related
 wheel = ">=0.42.0,<1"
-
 # sync with .pre-commit-config.yaml
 isort = "==5.13.2"
-
 # other
 coverage = ">=7.3.3"
 ipdb = ">=0.13.13"
@@ -45,7 +42,6 @@ pytest-django = ">=4.7.0"
 pytest-order = ">=1.2.0"
 pytest-sugar = ">=0.9.7"
 pytest-xdist = ">=3.5.0"
-
 # test requirements
 #channels = ">=4.0.0,<5"
 #channels-redis = ">=4.1.0,<5"
@@ -55,9 +51,10 @@ psycopg = {extras = ["c"], version = ">=3.1.15,<4"}
 #redis = ">=5.0.1,<6"
 #uvicorn = { extras = ["standard"], version = ">=0.24.0.post1,<0.25" }
 #wheel = ">=0.42.0,<1"
-
 # Workflow / Permissions Views
 gunicorn = ">=21.2.0"
+# API document creation
+drf-spectacular = ">=0.27.2,<0.28"
 
 [requires]
 python_version = "3.11"
