@@ -16,6 +16,7 @@
   - [Environment](#environment)
   - [Dependency Management](#dependency-management)
   - [Hooks](#hooks)
+  - [API Documentation Generation](#api-documentation-generation)
   - [Updating](#updating)
   - [Tagging Releases](#tagging-releases)
 - [Testing](#testing)
@@ -157,6 +158,19 @@ pre-commit installed at .git/hooks/pre-commit
 (vueda-server)[you@your vueda-server]$ pre-commit install --hook-type commit-msg
 pre-commit installed at .git/hooks/commit-msg
 ```
+
+### API Documentation Generation
+
+With the dev packages installed, you can call the following two commands:
+
+```console
+(vueda-server)[you@your vueda-server]$ python manage.py spectacular --color --file schema.yml
+(vueda-server)[you@your vueda-server]$ npx @redocly/cli build-docs schema.yml
+```
+
+The first command will generate the `schema.yml` file.
+The second command will install the code if needed and generate a `redoc-static.html` file from the `schema.yml` file.
+If you would like, you can get json by clicking the download button when viewing the html.
 
 ### Updating
 
