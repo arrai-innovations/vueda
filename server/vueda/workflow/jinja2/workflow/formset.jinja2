@@ -1,0 +1,30 @@
+{% set initial_forms = formset.management_form.cleaned_data['INITIAL_FORMS'] if formset.management_form.is_bound else formset.management_form.initial['INITIAL_FORMS'] %}
+{% set max_num_forms = formset.management_form.cleaned_data['MAX_NUM_FORMS'] if formset.management_form.is_bound else formset.management_form.initial['MAX_NUM_FORMS'] %}
+{% set min_num_forms = formset.management_form.cleaned_data['MIN_NUM_FORMS'] if formset.management_form.is_bound else formset.management_form.initial['MIN_NUM_FORMS'] %}
+{% set total_forms = formset.management_form.cleaned_data['TOTAL_FORMS'] if formset.management_form.is_bound else formset.management_form.initial['TOTAL_FORMS'] %}
+{% set has_add_button = min_num_forms != max_num_forms %}
+<div class="sticky sticky-edit-2 sticky-edit-{{ class }}">
+    <div>
+        <h2{% if not has_add_button %} class="no-add-button"{% endif %}>{{ name }}</h2>
+        {% if has_add_button %}
+        <div class="centered-button"><button type="button" class="button-add-inline" data-inline="{{ formset.prefix }}">Add {{ name }}</button></div>
+        {% endif %}
+    </div>
+</div>
+<div class="formset {{ class }}" data-formset="{{ formset.prefix }}">
+    {{ formset.management_form }}
+    {{ formset.non_form_errors() }}
+
+    {% for inline_admin_form in formset %}
+        {% set is_extra_form = loop.index == total_forms and has_add_button %}
+        {% set loop_index = loop.index %}
+        {% for form in inline_admin_form %}
+            <div class="field{% if form.widget_type == 'hidden' %} hidden{% endif %}{% if form.errors %} errors{% endif %}{% if is_extra_form %} extra_field{% endif %}" data-field-name="{{ form.name }}" data-widget-type="{{ form.widget_type }}" data-prefix="{{ inline_admin_form.prefix }}">
+                {{ form.errors }}
+                {{ form.label_tag() }}
+                {% if form.help_text %}<div class="helptext">{{ form.help_text }}</div>{% endif %}
+                {{ form.as_widget() }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+</div>

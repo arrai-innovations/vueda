@@ -9,6 +9,8 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("tests", "0001_initial"),
+        ("vueda_user", "0001_initial"),
+        ("vueda_workflow", "0002_statepermission_historical_group_name_and_more"),
     ]
 
     operations = [

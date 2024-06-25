@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("store", "0005_create_order_fulfillment_workflow"),
+        ("store", "0005_add_history_to_workflow"),
     ]
 
     operations = [

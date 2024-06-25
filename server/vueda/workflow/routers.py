@@ -3,4 +3,4 @@ from vueda.workflow.viewsets import WorkflowViewSet
 
 
 workflow_router = ContentTypeRouter()
-workflow_router.register("workflow", WorkflowViewSet, basename="workflow.workflow")
+workflow_router.register("workflows", WorkflowViewSet, basename="workflow.workflow")

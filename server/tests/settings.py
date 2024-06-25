@@ -5,6 +5,7 @@ from pathlib import Path
 # noinspection PyPackageRequirements
 from environ import environ  # noqa
 
+from tests.custom_migration_operations import clean_migrations
 from vueda.core.default_settings import get_defaults
 
 
@@ -27,6 +28,9 @@ TEST_POSTGRES_DB = env("TEST_POSTGRES_DB")
 LOCAL_APPS = [
     "tests.apps.TestsConfig",
     "tests.store.apps.StoreConfig",
+    "tests.workflow_added.apps.WorkflowAddedConfig",
+    "tests.workflow_changed.apps.WorkflowChangedConfig",
+    "tests.workflow_deleted.apps.WorkflowDeletedConfig",
 ]
 
 # noinspection PyUnresolvedReferences
@@ -40,8 +44,9 @@ SECRET_KEY = "test_secret_key"
 
 # Settings needed to see the permissions and workflows views.
 # Permissions have been removed from the view, since we don't have a way to login yet.
-LOGIN_URL = "/routes/tests/login/"
+LOGIN_URL = "/routes/tests/local-login/"
 SECURE_BROWSER_XSS_FILTER = True
+SESSION_COOKIE_SECURE = False
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -51,9 +56,26 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.template.context_processors.static",
                 "django.template.context_processors.request",
+                "django.contrib.messages.context_processors.messages",
             ],
             "debug": True,
             "string_if_invalid": "Invalid",
         },
     },
+    {
+        "BACKEND": "django.template.backends.jinja2.Jinja2",
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
 ]
+
+
+# Some tests create migrations.  This is an issue for local development, because if these
+# migrations exist when you run tests, they will blow up, causing all the tests to fail.
+# So, we need to clean them up before migrations are imported.  The only place I know of
+# that runs before migrations are imported, is here.
+clean_migrations()

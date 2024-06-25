@@ -2,8 +2,8 @@ from django.conf import settings
 from django.urls import include
 from django.urls import path
 
+from vueda.workflow import views
 from vueda.workflow.routers import workflow_router
-from vueda.workflow.views import WorkflowOverviewView
 
 
 urlpatterns = [
@@ -11,5 +11,10 @@ urlpatterns = [
 ]
 if settings.DEBUG:
     urlpatterns += [
-        path("overview/", WorkflowOverviewView.as_view(), name="workflow-overview"),
+        path("overview/", views.WorkflowOverviewView.as_view(), name="workflow-overview"),
+        path("add/", views.WorkflowAddView.as_view(), name="workflow-add"),
+        path("delete/<int:pk>/", views.WorkflowDeleteView.as_view(), name="workflow-delete"),
+        path("edit/<int:pk>/", views.WorkflowEditView.as_view(), name="workflow-edit"),
+        path("edit/state/<int:pk>/", views.WorkflowStateEditView.as_view(), name="state-edit"),
+        path("edit/transition/<int:pk>/", views.WorkflowTransitionEditView.as_view(), name="transition-edit"),
     ]

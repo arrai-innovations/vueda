@@ -10,7 +10,7 @@ from vueda.history.models import SimpleHistoryModelMixin
 from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class Customer(SimpleHistoryModelMixin, models.Model):
+class Customer(HasWorkflowModelMixin, SimpleHistoryModelMixin, models.Model):
     user = models.OneToOneField(get_user_model(), on_delete=models.PROTECT)
 
     class Meta(BaseModelMeta):
