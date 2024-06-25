@@ -1,3 +1,5 @@
+import logging
+
 from django.db.backends.postgresql.psycopg_any import IsolationLevel
 from environ import Env
 
@@ -215,6 +217,9 @@ def get_defaults(env: Env):
             "MAILGUN_WEBHOOK_SIGNING_KEY": env("MAILGUN_WEBHOOK_SIGNING_KEY"),
             "WEBHOOK_SECRET": env("ANYMAIL_WEBHOOK_SECRET"),
         },
+        **{  # our own settings regarding to `vueda update` cli.
+            "DATABASE_BACKUP_DIR": env("DATABASE_BACKUP_DIR"),
+        },
     }
     if return_dict["DEBUG"]:
         return_dict["CORS_PREFLIGHT_MAX_AGE"] = 600  # 10 minutes
@@ -231,3 +236,17 @@ def get_defaults(env: Env):
         + return_dict["LOCAL_APPS"]
     )
     return return_dict
+
+
+def get_production_defaults(env: Env):
+    """
+    Additional settings for production environments, causing env to require things that aren't required in development.
+    """
+    return {
+        **{  # sentry settings
+            "SENTRY_DSN": env("SENTRY_DSN"),  # like "https://{longhash}@{shorthash}.ingest.us.sentry.io/{someid}"
+            "SENTRY_LOG_LEVEL": env.int("SENTRY_LOG_LEVEL", default=logging.INFO),
+            "SENTRY_ENVIRONMENT": env("SENTRY_ENVIRONMENT", default="production"),
+            "SENTRY_TRACES_SAMPLE_RATE": env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.1),
+        },
+    }

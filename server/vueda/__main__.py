@@ -1,4 +1,6 @@
 import argparse
+import os
+import os.path
 import sys
 from signal import SIGINT
 from traceback import format_exception_only
@@ -42,6 +44,30 @@ def main():
     args = parser.parse_args()
 
     commands[args.subcommand](args)
+
+
+def setup_django_settings_module():
+    """
+    use environ to check .env.local then .env for DEBUG. If not set, default to False.
+    if DEBUG is True, use config.settings.local, else use config.settings.production
+    """
+    from environ import Env
+
+    # check that .env / .env.local are in the cwd.
+    # there should aways be a .env
+    # complain if there is no .env
+    cwd = os.getcwd()
+    if not os.path.isfile(os.path.join(cwd, ".env")):
+        print(f"ERROR: No .env file found in {cwd}", file=sys.stderr)
+        sys.exit(1)
+
+    env = Env()
+    env.read_env(".env.local")
+    env.read_env(".env")
+
+    debug = env.bool("DEBUG", default=False)
+
+    return "config.settings.local" if debug else "config.settings.production"
 
 
 if __name__ == "__main__":

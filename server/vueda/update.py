@@ -9,6 +9,7 @@ from traceback import format_exception
 
 from argparse_color_formatter import ColorHelpFormatter
 from argparse_color_formatter import ColorTextWrapper
+from django.conf import settings
 
 from vueda.cli import NoExitArgumentParser
 from vueda.cli import blue_color
@@ -18,13 +19,6 @@ from vueda.cli import getch
 from vueda.cli import open_orange
 from vueda.cli import orange_color
 from vueda.cli import reset_prompt
-
-
-# todo: how do we get the project's config?
-config = None
-
-
-# todo: the steps are badass centric for now. we'll need to update them or change which steps exist for vueda.
 
 
 def get_tag():
@@ -41,8 +35,7 @@ def get_tag():
 class Update:
     """
     Helper for updating a vueda-server installation. Includes steps for backing up the database, pulling the latest code,
-    installing dependencies, collecting static files, migrating the database, running post-update commands and reporting
-    deployment to sentry.
+    installing dependencies, collecting static files, migrating the database and running post-update commands.
 
     This class is designed to be used as a command line tool, but it can also be used as a library.
 
@@ -73,7 +66,6 @@ class Update:
                 ("static", self.static),
                 ("migrate", self.migrate),
                 ("post", self.post),
-                ("report", self.report),
             ]
         )
         self.parser = parser if parser else self.get_parser()
@@ -87,8 +79,7 @@ class Update:
             "prog": "update",  # this is also the subcommand name. colors here would make the subcommand hard to type
             "description": f"Helper for update a {blue_color('vueda-server')} installation. Includes steps for backing"
             f" up the database, pulling the latest code, installing dependencies, collecting static"
-            f" files, migrating the database, running post-update commands and reporting deployment"
-            f" to sentry.",
+            f" files, migrating the database and running post-update commands.",
         }
 
     def add_arguments(self):
@@ -185,7 +176,7 @@ class Update:
             return
         tags = ["HEAD"] + tags.stdout.decode().splitlines()
         question = "Which tag would you like to check out?"
-        default_tag = tags[1] if len(tags) > 1 and not config.DJANGO_DEBUG_MODE else "HEAD"
+        default_tag = tags[1] if len(tags) > 1 and not settings.DEBUG else "HEAD"
         desired_tag = ""
         while desired_tag not in tags:
             # show head and last 5
@@ -229,9 +220,9 @@ class Update:
         Clean up backups older than a week. Create a new database backup.
         """
         # get config up front in this command, so we are not halfway through and throw an error
-        backup_dir = os.path.expanduser(config.DATABASE_BACKUP_DIR)
-        database_name = config.DATABASE_NAME
-        database_user = config.DATABASE_USER
+        backup_dir = os.path.expanduser(settings.DATABASE_BACKUP_DIR)
+        database_name = settings["DATABASES"]["default"]["NAME"]
+        database_user = settings["DATABASES"]["default"]["USER"]
 
         backup_dir_blue = blue_color(backup_dir)
         rev_sp = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True)
@@ -303,32 +294,30 @@ class Update:
         Use sync so deploys get locked files, and so devs don't change the lock unintentionally.
         """
         install_cmd = ["pipenv", "sync"]
-        if config.DJANGO_DEBUG_MODE:
+        if settings.DEBUG:
             install_cmd.append("--dev")
             print(
-                self.wrap_text(f"{orange_color('Warning')}: Installing dev requirements, based on DJANGO_DEBUG_MODE"),
+                self.wrap_text(f"{orange_color('Warning')}: Installing dev requirements, based on settings.DEBUG"),
                 file=self.stdout,
             )
         else:
             print(
-                self.wrap_text(f"{blue_color('Info')}: Installing production requirements, based on DJANGO_DEBUG_MODE"),
+                self.wrap_text(f"{blue_color('Info')}: Installing production requirements, based on settings.DEBUG"),
                 file=self.stdout,
             )
 
         self.echo_and_eval(install_cmd)
         if self.exit_code:
             return self.exit_code
-        clean_pipenv = self.ask("Do you want to clean extraneous packages in the pipenv?", ["y", "n"], "y")
-        if clean_pipenv == "y":
-            self.echo_and_eval(["pipenv", "clean"])
-            if self.exit_code:
-                return self.exit_code
+        self.echo_and_eval(["pipenv", "clean"])
+        if self.exit_code:
+            return self.exit_code
 
     def static(self):
         """
         Run Django management command 'collectstatic', if on a live site.
         """
-        if not config.DJANGO_DEBUG_MODE:
+        if not settings.DEBUG:
             self.echo_and_eval(["pipenv", "run", "python", "manage.py", "collectstatic", "--noinput", "--traceback"])
             if self.exit_code:
                 return self.exit_code
@@ -352,63 +341,9 @@ class Update:
 
     def post(self):
         """
-        Run Badass management command `run_post_migration`
+        Run post-update commands. This is historical at the moment.
         """
-        self.echo_and_eval(["pipenv", "run", "python", "manage.py", "run_post_migration", "--traceback"])
-        if self.exit_code:
-            return self.exit_code
-
-    def report(self):
-        """
-        Let Sentry know about our deployment.
-        """
-        if not config.DJANGO_DEBUG_MODE:
-            # get config up front in this command, so we are not halfway through and throw an error
-            sentry_environment = config.SENTRY_ENVIRONMENT
-            sentry_deploy_url = config.SENTRY_DEPLOY_URL
-            sentry_project = config.SENTRY_PROJECT
-            sentry_auth_token = config.SENTRY_AUTH_TOKEN
-
-            sentry_org_sp = subprocess.run(
-                ["git", "remote", "get-url", "origin"],
-                capture_output=True,
-            )
-            if sentry_org_sp.returncode != 0:
-                self.print_trace("Could not get Sentry organization", sentry_org_sp.stderr.decode())
-                self.exit_code = sentry_org_sp.returncode
-                return
-            sentry_org = sentry_org_sp.stdout.decode().strip().split(":")[1].split("/")[0]
-            exact_tag_sp = get_tag()
-            if exact_tag_sp.returncode != 0:
-                self.print_trace("Current HEAD is not a tag.", exact_tag_sp.stderr.decode())
-                self.exit_code = exact_tag_sp.returncode
-                return
-            exact_tag = exact_tag_sp.stdout.decode().strip()
-            self.echo_and_eval(
-                [
-                    "sentry-cli",
-                    "deploys",
-                    "new",
-                    "--env",
-                    sentry_environment,
-                    "--release",
-                    f"{sentry_project}-{exact_tag}",
-                    "--url",
-                    sentry_deploy_url,
-                ],
-                extra_env={
-                    "SENTRY_ORG": sentry_org,
-                    "SENTRY_PROJECT": sentry_project,
-                    "SENTRY_AUTH_TOKEN": sentry_auth_token,
-                },
-            )
-            if self.exit_code:
-                return self.exit_code
-        else:
-            print(
-                self.wrap_text(f"{orange_color('Skipping')}: Sentry reporting is only run on live sites"),
-                file=self.stdout,
-            )
+        pass
 
     def run(self, parsed_args: argparse.Namespace):
         """
@@ -442,11 +377,11 @@ def update_for_main(subparsers=None):
         parser_args["name"] = parser_args.pop("prog")
         cmd.parser = subparsers.add_parser(**parser_args)
     cmd.add_arguments()
-    return cmd.run, cmd.parser
+    return cmd
 
 
 if __name__ == "__main__":
     subparsers = None
-    update_call, update_parser = update_for_main(subparsers)
-    args = update_parser.parse_args()
-    update_call(args)
+    command = update_for_main(subparsers)
+    args = command.parser.parse_args()
+    command.run(args)
