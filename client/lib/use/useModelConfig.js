@@ -2,6 +2,7 @@ import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import storeModelConfig from "@vueda/stores/storeModelConfig.js";
 import storeModelInfo from "@vueda/stores/storeModelInfo";
 import useIsActive from "@vueda/use/useIsActive";
+import useLoadingError from "@vueda/use/useLoadingError.js";
 import { reactive, watch } from "vue";
 
 /**
@@ -19,13 +20,15 @@ import { reactive, watch } from "vue";
  * @returns {Object} An object containing reactive fields and actions for create, update, read, and list views.
  */
 export default function useModelConfig(app, model) {
+    const loadingError = useLoadingError();
     const modelInfoStore = storeModelInfo();
     const modelConfigStore = storeModelConfig();
     const isActive = useIsActive();
     const returnObject = reactive({
-        loading: false,
-        error: null,
-        errored: false,
+        loading: loadingError.loading,
+        error: loadingError.error,
+        errored: loadingError.errored,
+        clearError: loadingError.clearError,
         info: {},
         config: {},
     });
@@ -42,19 +45,17 @@ export default function useModelConfig(app, model) {
             }
             // todo: we could look at implementing cancelling of fetches if the app/model changes while loading
             if (app && model && !returnObject.loading) {
-                returnObject.loading = true;
-                returnObject.error = null;
-                returnObject.errored = false;
+                loadingError.clearError();
+                loadingError.setLoading();
                 try {
                     const modelInfo = await modelInfoStore.fetchModelInfo(app, model);
                     const modelConfig = await modelConfigStore.getConfig(app, model);
                     assignReactiveObject(returnObject.info, modelInfo);
                     assignReactiveObject(returnObject.config, modelConfig);
                 } catch (e) {
-                    returnObject.error = e;
-                    returnObject.errored = true;
+                    loadingError.setError(e);
                 } finally {
-                    returnObject.loading = false;
+                    loadingError.clearLoading();
                 }
             }
         },

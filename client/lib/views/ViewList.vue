@@ -1,6 +1,7 @@
 <script setup>
 import { getCapitalizedTitle } from "../utils/crudSupport.js";
 import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
+import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
@@ -107,16 +108,23 @@ const sorting = reactive({
 const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
 const combinedClasses = useCombinedClasses("@vueda/views/ViewList.vue", props);
 const verboseNamePlural = computed(() => getCapitalizedTitle(modelConfig.info?.verbose_name_plural || "items"));
+const errored = computed(() => modelConfig.errored || instanceList.state.errored);
+const error = computed(() => modelConfig.error || instanceList.state.error);
+const dismissError = () => {
+    modelConfig.clearError();
+    instanceList.clearError();
+};
 </script>
 
 <template>
-    <div :class="combinedClasses.outerClass">
-        <div :class="combinedClasses.headerClass">
+    <div class="flex flex-col gap-1 w-full max-w-full">
+        <div class="prose dark:prose-invert">
             <h1 :class="combinedClasses.titleClass">
                 {{ verboseNamePlural }}
                 <loading-spinner-inline v-if="modelConfig.loading" :class="combinedClasses.loadingClass" />
             </h1>
         </div>
+        <error-display :error="error" :errored="errored" @dismiss-error="dismissError" />
         <!-- todo: filters/search -->
         <!-- todo: pagination -->
         <!-- todo: hide/show columns -->

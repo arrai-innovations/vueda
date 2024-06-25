@@ -38,11 +38,16 @@ const fetchHelper = async (url, options = {}, messagePrefix) => {
         "X-CSRFToken": getCSRFValue(),
     };
     const headers = { ...defaultHeaders, ...options.headers };
-    const response = await fetch(url, {
-        ...options,
-        headers,
-        credentials: "include",
-    });
+    let response;
+    try {
+        response = await fetch(url, {
+            ...options,
+            headers,
+            credentials: "include",
+        });
+    } catch (error) {
+        throw new ModelInfoError(messagePrefix, error, {});
+    }
     const responseData = await getJsonOrText(response);
     if (!response.ok) {
         throw new ModelInfoError(messagePrefix, response, responseData);
