@@ -1,7 +1,4 @@
 from django.db import transaction
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter
-from drf_spectacular.utils import extend_schema
 from rest_framework import status as drf_status
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -11,6 +8,9 @@ from rest_framework.mixins import ListModelMixin
 from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.response import Response
 
+from vueda.core.open_api import conditional_extend_schema_decorator
+from vueda.core.open_api import conditional_open_api_parameter
+from vueda.core.open_api import conditional_open_api_types
 from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import Workflow
 from vueda.workflow.serializers import WorkflowSerializer
@@ -39,7 +39,9 @@ class WorkflowViewSet(RetrieveModelMixin, ListModelMixin, viewsets.GenericViewSe
             raise PermissionDenied("You do not have permission to perform this action.")
         return super().check_permissions(request)
 
-    @extend_schema(parameters=[OpenApiParameter("object_id", OpenApiTypes.STR, location="path")])
+    @conditional_extend_schema_decorator(
+        parameters=[conditional_open_api_parameter("object_id", conditional_open_api_types().STR, location="path")]
+    )
     @action(detail=True, methods=["get"], url_path=r"object-state/(?P<object_id>[^/.]+)")
     def object_state(self, request, *args, **kwargs):
         user = request.user
@@ -68,12 +70,16 @@ class WorkflowViewSet(RetrieveModelMixin, ListModelMixin, viewsets.GenericViewSe
             response_data["current_history_id"] = current_history_id
         return Response(response_data)
 
-    @extend_schema(parameters=[OpenApiParameter("object_id", OpenApiTypes.STR, location="path")])
+    @conditional_extend_schema_decorator(
+        parameters=[conditional_open_api_parameter("object_id", conditional_open_api_types().STR, location="path")]
+    )
     @action(detail=True, methods=["get"], url_path=r"object-transitions/(?P<object_id>[^/.]+)")
     def object_transitions(self, request, *args, **kwargs):
         return Response(list(self.object.available_transitions(request.user).order_by("name").values("code", "name")))
 
-    @extend_schema(parameters=[OpenApiParameter("object_id", OpenApiTypes.STR, location="path")])
+    @conditional_extend_schema_decorator(
+        parameters=[conditional_open_api_parameter("object_id", conditional_open_api_types().STR, location="path")]
+    )
     @action(detail=True, methods=["patch"], url_path=r"execute-transition/(?P<object_id>[^/.]+)")
     def execute_transition(self, request, *args, **kwargs):
         with transaction.atomic():
