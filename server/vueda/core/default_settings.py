@@ -117,7 +117,6 @@ def get_defaults(env: Env):
                 "simple_history",
                 "django_filters",
                 "generic_relations",
-                "drf_spectacular",
             ],
         ),
         "LOCAL_APPS": env.list("LOCAL_APPS", default=[]),
@@ -150,7 +149,6 @@ def get_defaults(env: Env):
             "UPLOADED_FILES_USE_URL": True,
             "EXCEPTION_HANDLER": "vueda.core.exceptions.debug_stack_exception_handler",
             "ORDERING_PARAM": "o",
-            "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
         },
         "REST_AUTH": {
             "LOGIN_SERIALIZER": "vueda.user.serializers.LoginSerializer",
@@ -162,13 +160,6 @@ def get_defaults(env: Env):
             "EXPAND_PARAM": "e",
             "FIELDS_PARAM": "f",
             "OMIT_PARAM": "om",
-        },
-        "SPECTACULAR_SETTINGS": {
-            "TITLE": "Vueda API",
-            "DESCRIPTION": "Vueda is designed for projects that integrate Vue.js frontends with Django REST Framework backends. This server library enhances Django's native authentication and permissions systems with default DRF classes and optimizes integration with django-filter, drf-flex-fields, and drf-writable-nested. It offers essential out-of-the-box functionalities such as custom workflow management, audit trails (with DRF support for django-simple-history), and row-level permissions. Additionally, vueda-server provides DRF classes to expose Django model details to the frontend, filtered by user permissions. It is built with customization in mind, offering most features as base classes that can be extended in your application, ensuring both control and adaptability.",
-            "VERSION": "1.0.0",
-            "SERVE_INCLUDE_SCHEMA": False,
-            "PREPROCESSING_HOOKS": ["vueda.core.spectacular_hooks.preprocessing_hooks"],
         },
         "TEST_RUNNER": "django.test.runner.DiscoverRunner",
         "TEST_POSTGRES_DB": env("TEST_POSTGRES_DB", default="dbname=postgres user=postgres"),
@@ -218,6 +209,37 @@ def get_defaults(env: Env):
     }
     if return_dict["DEBUG"]:
         return_dict["CORS_PREFLIGHT_MAX_AGE"] = 600  # 10 minutes
+
+    try:
+        import drf_spectacular  # noqa F401
+    except ImportError:
+        pass
+    else:
+        return_dict["THIRD_PARTY_APPS"] += ["drf_spectacular"]
+        return_dict["REST_FRAMEWORK"]["DEFAULT_SCHEMA_CLASS"] = "drf_spectacular.openapi.AutoSchema"
+        return_dict["SPECTACULAR_SETTINGS"] = {
+            "TITLE": "Vueda API",
+            "DESCRIPTION": "Vueda is designed for projects that integrate Vue.js frontends with Django REST Framework backends. This server library enhances Django's native authentication and permissions systems with default DRF classes and optimizes integration with django-filter, drf-flex-fields, and drf-writable-nested. It offers essential out-of-the-box functionalities such as custom workflow management, audit trails (with DRF support for django-simple-history), and row-level permissions. Additionally, vueda-server provides DRF classes to expose Django model details to the frontend, filtered by user permissions. It is built with customization in mind, offering most features as base classes that can be extended in your application, ensuring both control and adaptability.",
+            "VERSION": "1.0.0",
+            "TAGS": [
+                {
+                    "name": "info",
+                    "x-displayName": "Info",
+                    "description": "This model is used to fetch information about models in the project.  It can return information about fields, permissions, actions, expands, filtering, and ordering.",
+                },
+                {
+                    "name": "workflow",
+                    "x-displayName": "Workflow",
+                    "description": "This model is used to provide workflow for models in the project that need it.  It provides a way to get information about the workflow, states, transitions, and the state an object is in.  It also provides a way to execute a transition on an object.",
+                },
+            ],
+            "SHOW_REQUEST_BODY": True,
+            "SHOW_RESPONSE_BODY": True,
+            "DEFAULT_MODEL_DEPTH": None,
+            "SERVE_INCLUDE_SCHEMA": False,
+            "PREPROCESSING_HOOKS": ["vueda.core.spectacular_hooks.preprocessing_hooks"],
+        }
+
     return_dict["DATABASES"]["default"]["ATOMIC_REQUESTS"] = True
     if "OPTIONS" not in return_dict["DATABASES"]["default"]:
         return_dict["DATABASES"]["default"]["OPTIONS"] = {}
