@@ -36,8 +36,11 @@ def register(canonical_serializer, canonical_viewset=None):
             f"{canonical_viewset} and {canonical_serializer}.  Either a model needs to be "
             f"defined in the serializer Meta or a queryset needs to be defined on the viewset."
         )
-
-    content_type = ContentType.objects.get_for_model(model)
+    try:
+        content_type = ContentType.objects.get_for_model(model)
+    except Exception as e:
+        print(f"Error: {e}")
+        return
 
     if content_type.pk in _registry:
         # Content_type doesn't have a method to return "app.model".
