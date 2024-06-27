@@ -8,3 +8,14 @@ def preprocessing_hooks(endpoints):
         filtered_endpoints.append((path, path_regex, method, callback))
 
     return filtered_endpoints
+
+
+# We can't register cart in app.ready, because it hits the db with a content type query.
+def register_cart_with_model_info(endpoints):
+    from tests.store.serializers import CartSerializer
+    from tests.store.viewsets import CartViewSet
+    from vueda import info
+
+    info.register(CartSerializer, CartViewSet)
+
+    return endpoints

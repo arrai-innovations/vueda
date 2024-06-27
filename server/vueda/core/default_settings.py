@@ -242,7 +242,10 @@ def get_defaults(env: Env):
             "SHOW_RESPONSE_BODY": True,
             "DEFAULT_MODEL_DEPTH": None,
             "SERVE_INCLUDE_SCHEMA": False,
-            "PREPROCESSING_HOOKS": ["vueda.core.spectacular_hooks.preprocessing_hooks"],
+            "PREPROCESSING_HOOKS": [
+                "vueda.core.spectacular_hooks.preprocessing_hooks",
+                "vueda.core.spectacular_hooks.register_cart_with_model_info",
+            ],
         }
 
     return_dict["DATABASES"]["default"]["ATOMIC_REQUESTS"] = True
