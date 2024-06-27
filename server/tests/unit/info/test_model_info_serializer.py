@@ -319,7 +319,13 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                 },
             ],
-            "expected_filtering": [],
+            "expected_filtering": [
+                {
+                    "name": "last_modified",
+                    "type": "datetime",
+                    "filters": [{"label": "Last modified", "lookup_exprs": ["range"]}],
+                }
+            ],
             "expected_ordering": [
                 {"name": "customer__user__email", "type": "alpha"},
                 {"name": "last_modified", "type": "datetime"},
