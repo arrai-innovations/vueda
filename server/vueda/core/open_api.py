@@ -1,3 +1,10 @@
+from copy import deepcopy
+
+from rest_framework import serializers
+
+from vueda.info.registration import get_registered_content_types
+
+
 # These decorators and functions exist, so drf-spectacular can remain a
 # dev package, but we can still decorate things for open api generation.
 
@@ -174,3 +181,83 @@ def conditional_open_api_types():
         return AlwaysGetNone()
 
     return OpenApiTypes
+
+
+class ModelBase:
+    def _get_instance(self, serializer):
+        content_types = get_registered_content_types()
+        return serializer.Meta.model.objects.get(pk=tuple(content_types)[0])
+
+    def _get_field_type(self, key, value):
+        value_type = type(value)
+        if value_type is str:
+            return serializers.CharField(read_only=True)
+
+        elif value_type is bool:
+            return serializers.BooleanField(read_only=True)
+
+        elif value_type in (list, tuple):
+            sub_value = value[0]
+            if type(sub_value) is dict:
+                from drf_spectacular.utils import inline_serializer
+
+                sub_value_fields = {}
+                for value_key, value_value in sub_value.items():
+                    sub_value_fields[value_key] = self._get_field_type(value_key, value_value)
+
+                serializer = inline_serializer(key, fields=sub_value_fields)
+                return serializer
+
+            else:
+                return serializers.ListField(child=self._get_field_type(key, sub_value))
+
+    def _generate_fields(self, field_data):
+        field_data = deepcopy(field_data)
+
+        for key, value in field_data.items():
+            field_data[key] = self._get_field_type(key, value)
+
+        return field_data
+
+    def get_serializer_function(self):
+        return None
+
+    def get_fields(self):
+        model_info_serializer = self.parent.parent
+        instance = self._get_instance(model_info_serializer)
+        model_info_serializer.instance = instance
+        func = self._get_serializer_function_name()
+        model_func = getattr(model_info_serializer, func)
+        data = model_func(instance)
+        model_info_serializer.instance = None
+        return self._generate_fields(data[0])
+
+
+class ModelActions(ModelBase, serializers.Serializer):
+    def _get_serializer_function_name(self):
+        return "get_model_actions"
+
+
+class ModelExpands(ModelBase, serializers.Serializer):
+    def _get_serializer_function_name(self):
+        return "get_model_expands"
+
+
+class ModelFields(ModelBase, serializers.Serializer):
+    def _get_serializer_function_name(self):
+        return "get_model_fields"
+
+
+class ModelFiltering(ModelBase, serializers.Serializer):
+    def _get_serializer_function_name(self):
+        return "get_model_filtering"
+
+
+class ModelOrdering(ModelBase, serializers.Serializer):
+    def _get_serializer_function_name(self):
+        return "get_model_ordering"
+
+
+class ModelPermissions(ModelBase, serializers.Serializer):
+    def _get_serializer_function_name(self):
+        return "get_model_permissions"

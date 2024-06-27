@@ -9,6 +9,7 @@ from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers  # noqa F401
 from rest_framework import viewsets  # noqa F401
 
+from vueda.core import open_api
 from vueda.core.viewsets import VuedaViewSet  # noqa F401
 from vueda.info.registration import get_registration
 
@@ -267,3 +268,18 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 )
 
         return filtering_data
+
+
+# This adds the expands as default, so we can get back the data and
+class OpenAPIModelInfoSerializer(ModelInfoSerializer):
+    def get_fields(self):
+        fields = super().get_fields()
+
+        for field_name in ModelInfoSerializer.Meta.expandable_fields:
+            serializer_name = "".join([part.capitalize() for part in field_name.split("_")])
+            serializer = getattr(open_api, serializer_name)
+            if serializer is None:
+                raise RuntimeError(f"Unable to find a serializer named '{serializer_name}' in open_api.py.")
+            fields[field_name] = serializer(many=True, required=False)
+
+        return fields
