@@ -31,6 +31,12 @@ class VUEDAPageNumberPagination(PageNumberPagination):
         )
 
     def get_paginated_response_schema(self, schema):
+        total_records = 321
+        total_pages = divmod(total_records, settings.MAX_PAGE_SIZE)
+        if total_pages[1]:
+            total_pages = total_pages[0] + 1
+        else:
+            total_pages = total_pages[0]
         return {
             "type": "object",
             "required": ["results", "perPage", "totalPages", "totalRecords"],
@@ -38,15 +44,15 @@ class VUEDAPageNumberPagination(PageNumberPagination):
                 "results": schema,
                 "perPage": {
                     "type": "integer",
-                    "example": 123,
+                    "example": settings.MAX_PAGE_SIZE,
                 },
                 "totalPages": {
                     "type": "integer",
-                    "example": 3,
+                    "example": total_pages,
                 },
                 "totalRecords": {
                     "type": "integer",
-                    "example": 321,
+                    "example": total_records,
                 },
             },
         }
