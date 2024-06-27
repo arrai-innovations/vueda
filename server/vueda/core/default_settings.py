@@ -238,10 +238,12 @@ def get_defaults(env: Env):
                     "description": "This model is used to provide workflow for models in the project that need it.  It provides a way to get information about the workflow, states, transitions, and the state an object is in.  It also provides a way to execute a transition on an object.",
                 },
             ],
+            "COMPONENT_SPLIT_PATCH": False,
             "SHOW_REQUEST_BODY": True,
             "SHOW_RESPONSE_BODY": True,
             "DEFAULT_MODEL_DEPTH": None,
             "SERVE_INCLUDE_SCHEMA": False,
+            "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
             "PREPROCESSING_HOOKS": [
                 "vueda.core.spectacular_hooks.preprocessing_hooks",
                 "vueda.core.spectacular_hooks.register_cart_with_model_info",
