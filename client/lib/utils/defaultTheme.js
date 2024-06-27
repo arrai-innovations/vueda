@@ -14,6 +14,10 @@ const defaultComponents = {
             "detailActionClass",
         ],
     },
+    "@vueda/views/ViewCreate.vue": {
+        defaultVariant: "default",
+        spots: ["outer", "header", "title", "loading"],
+    },
     "@vueda/components/ObjectsGrid.vue": {
         defaultVariant: "default",
         spots: [
@@ -32,6 +36,10 @@ const defaultComponents = {
         ],
     },
     "@vueda/components/FormLabel.vue": {
+        defaultVariant: "default",
+        spots: ["label"],
+    },
+    "@vueda/components/FormModel.vue": {
         defaultVariant: "default",
         spots: ["label"],
     },

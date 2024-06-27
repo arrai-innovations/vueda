@@ -4,9 +4,11 @@ import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovation
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
+import { getCRUDName } from "@vueda/router/getCrud.js";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useIsActive from "@vueda/use/useIsActive.js";
 import useModelConfig from "@vueda/use/useModelConfig.js";
+import Button from "primevue/button";
 import { computed, reactive, toRef } from "vue";
 
 defineOptions({
@@ -73,10 +75,10 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const calculatedListFields = computed(() => {
     // if they don't pass listFields, use the modelConfig fields.
     //  modelConfig fields already falls back to models fields supplied by the server
-    return props.listFields || modelConfig.config.fields.map((f) => f.name) || [];
+    return props.listFields || modelConfig.info.model_fields.map((f) => f.name) || [];
 });
 const calculatedListFieldsObjs = computed(() => {
-    return modelConfig.config.fields?.filter((f) => calculatedListFields.value?.includes(f.name)) || [];
+    return modelConfig.info.model_fields?.filter((f) => calculatedListFields.value?.includes(f.name)) || [];
 });
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model));
 const instanceListProps = reactive({
@@ -135,8 +137,9 @@ const dismissError = () => {
                 :key="actionName"
                 :class="combinedClasses.listActionClass"
             >
-                <!-- todo: action buttons -->
-                {{ actionName }}
+                <router-link v-slot="{ navigate }" custom :to="{ name: getCRUDName({ app, model, view: actionName }) }">
+                    <Button class="w-full" :label="actionName" @click="navigate" />
+                </router-link>
             </div>
         </div>
         <!-- todo: bulk object level actions -->

@@ -1,10 +1,12 @@
 <script setup>
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import FormModel from "@vueda/components/FormModel.vue";
-import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
+// eslint-disable-next-line no-unused-vars
+import PageTitle from "@vueda/components/PageTitle.vue";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useLeaveUnload from "@vueda/use/useLeaveUnload.js";
 import useModelConfig from "@vueda/use/useModelConfig.js";
+import Button from "primevue/button";
 import { computed, reactive, toRef } from "vue";
 
 defineOptions({
@@ -62,7 +64,9 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const calculatedCreateFields = computed(() => {
     // if they don't pass createFields, use the modelConfig fields.
     //  modelConfig fields already falls back to models fields supplied by the server
-    return props.createFields || modelConfig.config.fields.map((f) => f.name);
+    return (
+        props.createFields || modelConfig.config.createFields || modelConfig.info.model_fields?.map((f) => f.name) || []
+    );
 });
 
 const instanceObjectProps = reactive({
@@ -91,23 +95,36 @@ const handleSubmit = (formContext) => {
         myState.submitting = false;
     });
 };
+
+const pageTitle = computed(() => {
+    return `Create ${modelConfig.info?.verbose_name}` || "Create Item";
+});
+
 const handleDirty = (dirty) => {
     myState.dirty = dirty;
 };
 useLeaveUnload(myState);
 const combinedClasses = useCombinedClasses("@vueda/views/ViewCreate.vue", props);
+const uniqueId = (performance.now() + "").replace(".", "");
 </script>
 
 <template>
     <div :class="combinedClasses.outerClass">
-        <div :class="combinedClasses.headerClass">
-            <h1 :class="combinedClasses.titleClass">
-                {{ `Create ${modelConfig.info?.verbose_name}` || "Create Item" }}
-                <loading-spinner-inline v-if="modelConfig.loading" :class="combinedClasses.loadingClass" />
-            </h1>
-        </div>
+        <page-title :title="pageTitle">
+            <template #button>
+                <Button
+                    class="w-full"
+                    :form="`form-${uniqueId}`"
+                    label="Submit"
+                    :loading="modelConfig.loading"
+                    type="submit"
+                />
+            </template>
+        </page-title>
+
         <div :class="combinedClasses.bodyClass">
             <form-model
+                :id="`form-${uniqueId}`"
                 :app="app"
                 :fields="calculatedCreateFields"
                 :initial-data="initialData"

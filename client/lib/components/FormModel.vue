@@ -13,6 +13,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    id: {
+        type: String,
+        required: true,
+    },
     model: {
         type: String,
         required: true,
@@ -56,15 +60,16 @@ const combinedClasses = useCombinedClasses("@vueda/components/FormModel.vue", pr
 <template>
     <form-wrapper
         v-if="Object.keys(formModel.modelInfo || {})?.length"
-        :form="myState.form"
+        :id="id"
         :form-errors="myState.formErrors"
+        :myform="myState.form"
         @dirty="handleDirty"
         @submit="handleSubmit"
     >
         <template #default>
             <slot name="beforeFields" />
             <div
-                v-for="fieldObj in formModel.fields.map((x) => formModel.fieldObjects[x])"
+                v-for="fieldObj in fields.map((x) => formModel.fieldObjects[x])"
                 :key="fieldObj.name"
                 :class="combinedClasses.fieldsClass"
             >
