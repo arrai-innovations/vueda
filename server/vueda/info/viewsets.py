@@ -1,14 +1,109 @@
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import generics
 from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 
+from vueda.core.open_api import conditional_extend_schema_func
+from vueda.core.open_api import conditional_extend_schema_view_decorator
+from vueda.core.open_api import conditional_open_api_example
+from vueda.core.open_api import conditional_open_api_parameter
+from vueda.core.open_api import conditional_open_api_response
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import FlexFieldsMixin
 from vueda.info.registration import get_registered_content_types
 from vueda.info.serializers import ModelInfoSerializer
+from vueda.info.serializers import OpenAPIModelInfoSerializer
 
 
+@conditional_extend_schema_view_decorator(
+    list=conditional_extend_schema_func(
+        operation_id="getModels",
+        description="Get a list of the models you can get model information for.",
+        summary="List models",
+    ),
+    retrieve=conditional_extend_schema_func(
+        operation_id="getModelInfo",
+        description="Gets information about a model, which can be used to render an add/edit form or readonly view.",
+        parameters=[
+            conditional_open_api_parameter(
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"],
+                description="Specifies the expandable fields you want to receive data for.  Any or all can be used in a single request.",
+                type={
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "string",
+                        "example": "model_fields",
+                    },
+                },
+                examples=[
+                    conditional_open_api_example(
+                        name="GetModelInfoActionsExample",
+                        summary="Return 'model_actions' in the results.",
+                        value={
+                            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                                "model_actions",
+                            ]
+                        },
+                    ),
+                    conditional_open_api_example(
+                        name="GetModelInfoExpandsExample",
+                        summary="Return 'model_expands' in the results.",
+                        value={
+                            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                                "model_expands",
+                            ]
+                        },
+                    ),
+                    conditional_open_api_example(
+                        name="GetModelInfoFieldsExample",
+                        summary="Return 'model_fields' in the results.",
+                        value={
+                            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                                "model_fields",
+                            ]
+                        },
+                    ),
+                    conditional_open_api_example(
+                        name="GetModelInfoFilteringExample",
+                        summary="Return 'model_filtering' in the results.",
+                        value={
+                            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                                "model_filtering",
+                            ]
+                        },
+                    ),
+                    conditional_open_api_example(
+                        name="GetModelInfoOrderingExample",
+                        summary="Return 'model_ordering' in the results.",
+                        value={
+                            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                                "model_ordering",
+                            ]
+                        },
+                    ),
+                    conditional_open_api_example(
+                        name="GetModelInfoPermissionsExample",
+                        summary="Return 'model_permissions' in the results.",
+                        value={
+                            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                                "model_permissions",
+                            ]
+                        },
+                    ),
+                ],
+            ),
+        ],
+        request=OpenAPIModelInfoSerializer,
+        responses={
+            "200": conditional_open_api_response(
+                response=OpenAPIModelInfoSerializer,
+            )
+        },
+        summary="Get model info",
+    ),
+)
 class ModelInfoViewSet(FlexFieldsMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
     """
     This viewset is for providing metadata about models, including fields, actions, and permissions
