@@ -30,6 +30,27 @@ class VUEDAPageNumberPagination(PageNumberPagination):
             )
         )
 
+    def get_paginated_response_schema(self, schema):
+        return {
+            "type": "object",
+            "required": ["results", "perPage", "totalPages", "totalRecords"],
+            "properties": {
+                "results": schema,
+                "perPage": {
+                    "type": "integer",
+                    "example": 123,
+                },
+                "totalPages": {
+                    "type": "integer",
+                    "example": 3,
+                },
+                "totalRecords": {
+                    "type": "integer",
+                    "example": 321,
+                },
+            },
+        }
+
     def get_page_size(self, request):
         page_size = self.page_size
         page_size_query_param = self.page_size_query_param
