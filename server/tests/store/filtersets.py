@@ -30,6 +30,18 @@ class ProductOptionFilterSet(VuedaFilterSet):
         fields = ["name", "sku", "price", "disabled"]
 
 
+class CartFilterSet(VuedaFilterSet):
+    last_modified = rest_framework.DateTimeFromToRangeFilter(
+        field_name="last_modified", label="Last modified", lookup_expr=[]
+    )
+
+    class Meta:
+        model = my_models.Cart
+        fields = [
+            "last_modified",
+        ]
+
+
 class OrderItemFilterSet(VuedaFilterSet):
     quantity = rest_framework.NumericRangeFilter(field_name="quantity", label="Quantity", lookup_expr=[])
 

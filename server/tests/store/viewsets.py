@@ -57,6 +57,7 @@ class CartViewSet(VuedaViewSet):
     queryset = my_models.Cart.objects.all()
     serializer_class = my_serializers.CartSerializer
     permission_classes = [ObjectPermissions & (IsCartOrOrderCreator | IsAdminUser)]
+    filterset_class = my_filtersets.CartFilterSet
     permitted_expands = ["cart_items", "customer"]
     ordering_fields = ["customer__user__email", "last_modified"]
 
