@@ -169,7 +169,6 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         for extra_action in viewset.get_extra_actions():
             signature = inspect.signature(extra_action)
             parameters = signature.parameters if extra_action.detail else ()
-
             extra_action_data = {
                 "name": extra_action.url_name,
                 "description": f"{extra_action.url_name} {app_label}.{model_name}",
@@ -282,7 +281,7 @@ class OpenAPIModelInfoSerializer(ModelInfoSerializer):
     def get_fields(self):
         fields = super().get_fields()
 
-        for field_name in ModelInfoSerializer.Meta.expandable_fields:
+        for field_name in sorted(ModelInfoSerializer.Meta.expandable_fields):
             serializer_name = "".join([part.capitalize() for part in field_name.split("_")])
             serializer = getattr(open_api, serializer_name)
             if serializer is None:
