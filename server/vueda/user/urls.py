@@ -3,6 +3,7 @@ from dj_rest_auth.views import LogoutView
 from django.conf import settings
 from django.urls import path
 
+from vueda.user import views
 from vueda.user.views import WhoIsView
 
 
@@ -19,4 +20,5 @@ if settings.DEBUG:
     urlpatterns += [
         path("local-login/", django_views.LoginView.as_view(), name="local-login"),
         path("local-logout/", django_views.LogoutView.as_view(), name="local-logout"),
+        path("permissions/overview/", views.PermissionOverviewView.as_view(), name="permission-overview"),
     ]

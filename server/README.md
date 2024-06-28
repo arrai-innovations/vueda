@@ -15,6 +15,7 @@
     - [Adding a workflow](#adding-a-workflow)
     - [Deleting a Workflow](#deleting-a-workflow)
   - [Workflow Management Command](#workflow-management-command)
+  - [Permission Management](#permission-management)
 - [Development](#development)
   - [Environment](#environment)
   - [Dependency Management](#dependency-management)
@@ -178,6 +179,14 @@ Some additional options were added to the management command, mainly for testing
 `skip_migration_when_setting_up_db` is 'true'. When testing, we use this to basically fake and roll back a migration, then remove the environment variable and run the migrations manually. This is probably only needed for tests.
 
 <!-- #todo: document -->
+
+### Permission Management
+
+A view exists, where you can see permissions and groups.
+
+`/routes/tests/permissions/overview/`
+
+Similar to workflow, you will need to log in.
 
 ## Development
 

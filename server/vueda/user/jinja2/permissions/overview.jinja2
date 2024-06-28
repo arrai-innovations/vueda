@@ -1,0 +1,93 @@
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Source+Sans+Pro&display=swap"
+          rel="stylesheet">
+    <link href="/static/permissions/overview.css"
+          rel="stylesheet">
+    <title>Permissions & Groups</title>
+</head>
+<body>
+<div>
+    <div class="categories">
+        {% for category, apps in categories.items() %}
+            <div class="category">
+                <div class="sticky sticky-1">
+                    <div class="flex">
+                        <h1>{{ category }} Permissions</h1>
+                        <div class="control">
+                            <button id="toggle-historical-models">Toggle historical</button>
+                        </div>
+                        <div class="control">
+                            {{ logout }}
+                        </div>
+                        <div class="control">
+                            <button id="back-to-top">Back to top</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="apps">
+                    {% for app, models in apps.items() %}
+                        <div class="app">
+                            <div class="sticky sticky-2">
+                                <h2><code>{{ app }}</code></h2>
+                            </div>
+                            <div class="models">
+                                {% for model in models %}
+                                    <div class="model{{ ' historic' if model.is_historical else '' }}">
+                                        <div class="sticky sticky-3">
+                                            <h3><code>{{ model.model_name }}</code></h3>
+                                        </div>
+                                        <div class="permissions">
+                                            {% for permission in model.permissions %}
+                                                <div class="permission">
+                                                    <h4><code>{{ permission.codename }}</code></h4>
+                                                    {% if permission.groups %}
+                                                        <div class="groups">
+                                                            {% for group_name in permission.groups %}
+                                                                {% if group_name %}
+                                                                    <div class="group">{{ group_name }}</div>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+<script>
+    // collapse historic models
+    let historicModels = document.querySelectorAll('.model.historic');
+    for (let i = 0; i < historicModels.length; i++) {
+        historicModels[i].style.display = 'none';
+    }
+
+    // power the controls
+    function toggleHistoricModels() {
+        let historicModels = document.querySelectorAll('.model.historic');
+        for (let i = 0; i < historicModels.length; i++) {
+            historicModels[i].style.display = historicModels[i].style.display === 'none' ? 'block' : 'none';
+        }
+    }
+
+    document.getElementById('toggle-historical-models').addEventListener('click', toggleHistoricModels);
+
+    function backToTop() {
+        window.scrollTo(0, 0);
+    }
+
+    document.getElementById('back-to-top').addEventListener('click', backToTop);
+</script>
+</body>
+</html>

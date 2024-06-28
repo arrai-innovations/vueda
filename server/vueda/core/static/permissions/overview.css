@@ -1,0 +1,127 @@
+body {
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 1.1rem;
+    background-color: #101010;
+    color: #b0b0b0;
+    margin: 1rem;
+}
+
+code {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+h1, h2, h3, h4, h5, h6, .group {
+    font-weight: normal;
+    margin: 0;
+    padding: 0.5rem 1rem;
+}
+
+.sticky > div {
+    display: flex;
+    gap: 0.5rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    background-color: #101010;
+}
+
+.controls {
+    padding-right: 0.5rem;
+    pointer-events: none;
+}
+
+.control {
+    flex-basis: min-content;
+    white-space: nowrap;
+    display: flex;
+}
+
+form {
+    display: inline;
+    margin: 0;
+}
+
+button {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    padding: 0.5rem;
+    background-color: #0077F6;
+    color: #FFFFFF;
+    border: none;
+    cursor: pointer;
+    pointer-events: all;
+}
+
+h1 {
+    flex-grow: 1;
+    padding: 0 1rem;
+}
+
+h2 {
+    background-color: #202020;
+    color: #c0c0c0;
+}
+
+h3 {
+    background-color: #303030;
+    color: #d0d0d0;
+}
+
+body {
+    overflow-y: scroll;
+}
+
+.apps {
+    background-color: #202020;
+    color: #c0c0c0;
+}
+
+.models {
+    background-color: #303030;
+    color: #d0d0d0;
+}
+
+.permissions {
+    background-color: #404040;
+    color: #e0e0e0;
+    /* there are generally 5 permissions per model */
+    display: flex;
+    flex-wrap: wrap;
+    justify-items: center;
+    text-align: center;
+}
+
+.permission {
+    flex: 20%;
+}
+
+.permission:nth-child(odd) {
+    background-color: #484848;
+}
+
+.groups {
+    background-color: #303050;
+    color: #f0f0f0;
+}
+
+.permission:nth-child(odd) .groups {
+    background-color: #383858;}
+
+
+.sticky {
+    position: sticky;
+}
+
+.sticky-1 {
+    top: 0;
+    z-index: 3;
+}
+
+.sticky-2 {
+    top: 3rem;
+    z-index: 2;
+}
+
+.sticky-3 {
+    top: 6.2rem;
+    z-index: 1;
+}

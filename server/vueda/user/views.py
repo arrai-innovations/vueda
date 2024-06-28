@@ -4,8 +4,20 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth import password_validation
 from django.contrib.auth.forms import _unicode_ci_compare
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.postgres.aggregates import ArrayAgg
+from django.db.models import Case
+from django.db.models import F
+from django.db.models import OuterRef
+from django.db.models import Value
+from django.db.models import When
+from django.db.models.functions import StrIndex
+from django.db.models.functions import Substr
 from django.views.decorators.debug import sensitive_variables
+from django.views.generic import TemplateView
 from django.views.generic.detail import SingleObjectMixin
 from hashids import Hashids
 from rest_framework.generics import GenericAPIView
@@ -17,6 +29,7 @@ from rest_framework.views import APIView
 
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
+from vueda.user.mixins import LogoutMixin
 from vueda.user.serializers import ForgotPasswordSerializer
 from vueda.user.serializers import ResetPasswordSerializer
 from vueda.user.serializers import WhoIsSerializer
@@ -158,3 +171,122 @@ class ResendWelcomeEmailView(SingleObjectMixin, APIView):
             return Response({"result": "error", "message": str(e)}, content_type="application/json", status=500)
 
         return Response({"result": "success", "message": "Welcome email resent."}, content_type="application/json")
+
+
+class PermissionOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView):
+    """
+    Provide an overview of permissions and groups for each type of object in the site.
+    """
+
+    template_name = "permissions/overview.jinja2"
+    permission_required = ("user.read_permission",)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        local_apps = []
+        for app_label in settings.LOCAL_APPS:
+            if ".apps." in app_label:
+                app_label = app_label.split(".apps.")[0]
+                local_apps.append(app_label.split(".")[-1])
+            else:
+                local_apps.append(app_label)
+
+        permissions = Permission.objects.annotate(
+            underscore_index=StrIndex(F("codename"), Value("_")),
+            codename_type=Substr(F("codename"), 1, length=F("underscore_index") - 1),
+            is_historical=Case(
+                When(
+                    content_type__model__startswith="historical",
+                    then=True,
+                ),
+                default=False,
+            ),
+            is_local_app=Case(
+                When(
+                    content_type__app_label__in=local_apps,
+                    then=True,
+                ),
+                default=False,
+            ),
+            model_and_historical_group_id=Case(
+                When(
+                    is_historical=True,
+                    then=(
+                        ContentType.objects.filter(
+                            app_label=OuterRef("content_type__app_label"),
+                            model=Substr(OuterRef("content_type__model"), 11),
+                        ).values_list("id", flat=True)
+                    ),
+                ),
+                default=F("content_type_id"),
+            ),
+            crud_order_by=Case(
+                When(
+                    codename_type__in=("create", "add"),
+                    then=0,
+                ),
+                When(
+                    codename_type__in=("read", "view"),
+                    then=1,
+                ),
+                When(
+                    codename_type__in=("update", "change"),
+                    then=2,
+                ),
+                When(
+                    codename_type="delete",
+                    then=3,
+                ),
+                When(
+                    codename_type="list",
+                    then=4,
+                ),
+                default=5,
+            ),
+            groups=ArrayAgg("group__name"),
+        ).order_by("model_and_historical_group_id", "is_historical", "crud_order_by")
+
+        context.update(
+            {
+                "categories": {
+                    "My App": {},
+                    "Other App": {},
+                },
+            }
+        )
+        permission_lists = {}  # So we can add to the same list.
+
+        for pk, codename, app_label, model_name, groups, is_local_app, is_historical in permissions.values_list(
+            "pk",
+            "codename",
+            "content_type__app_label",
+            "content_type__model",
+            "groups",
+            "is_local_app",
+            "is_historical",
+        ):
+            destination = context["categories"]["My App" if is_local_app else "Other App"]
+            if app_label not in destination:
+                destination[app_label] = []
+            key = (app_label, model_name)
+            if key not in permission_lists:
+                permissions = []
+                permission_lists[(app_label, model_name)] = permissions
+                destination[app_label].append(
+                    {
+                        "model_name": model_name,
+                        "is_historical": is_historical,
+                        "permissions": permissions,
+                    }
+                )
+
+            permission_lists[(app_label, model_name)].append(
+                {
+                    "pk": pk,
+                    "codename": codename,
+                    "groups": sorted(group for group in groups if group is not None),
+                }
+            )
+
+        return context
