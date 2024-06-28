@@ -77,7 +77,10 @@ const combinedClasses = useCombinedClasses("@vueda/components/FormModel.vue", pr
                     <template v-if="!$slots[`field-${fieldObj.name}`]" #default>
                         <form-label>
                             <template #default>
-                                <component :is="formModel.widgetComponents[fieldObj.name]" />
+                                <component
+                                    :is="formModel.widgetComponents[fieldObj.name]"
+                                    v-bind="formModel.widgetProps[fieldObj.name]"
+                                />
                             </template>
                         </form-label>
                         <form-help-text />

@@ -87,6 +87,7 @@ const instanceObject = useObject({
 const myState = reactive({
     submitting: false,
     dirty: false,
+    loading: false,
 });
 
 const handleSubmit = (formContext) => {

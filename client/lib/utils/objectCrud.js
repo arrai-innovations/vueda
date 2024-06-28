@@ -1,4 +1,4 @@
-import { getObjectCrud } from "@arrai-innovations/reactive-helpers";
+import { setObjectCrud } from "@arrai-innovations/reactive-helpers/config/objectCrud.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FormValidationError, UnhandledResponseError } from "@vueda/utils/errors.js";
@@ -132,7 +132,7 @@ export async function defaultObjectDelete({ crudArgs, id, deleteArgs }) {
 }
 
 export default function setupDefaultObjectCrud() {
-    getObjectCrud({
+    setObjectCrud({
         retrieve: defaultObjectRetrieve,
         create: defaultObjectCreate,
         update: defaultObjectUpdate,

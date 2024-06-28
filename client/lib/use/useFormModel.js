@@ -65,6 +65,7 @@ const defaultWidgets = {
 };
 
 // todo: we should have a way to register custom widget props for custom fields
+// modelconfig should have a view that client can pass in custom props
 const defaultWidgetProps = {
     FieldBoolean: {},
     FieldDate: {
@@ -83,6 +84,22 @@ const defaultWidgetProps = {
     },
 };
 
+const getWidgetProps = (fieldObj) => {
+    const fieldComponent = djangoTypeToFieldComponent(fieldObj.type);
+    const defaultProps = defaultWidgetProps[fieldComponent.__name];
+    if (fieldObj.type === "ChoiceField") {
+        const choices = fieldObj.choices;
+        return {
+            ...defaultProps,
+            options: Object.keys(choices).map((key) => ({
+                label: choices[key],
+                value: key,
+            })),
+        };
+    }
+    return defaultProps;
+};
+
 const djangoTypeToFieldComponent = (type) => {
     // todo: we should have a way to register custom field components
     return builtInTypes[type] || FieldString;
@@ -91,12 +108,12 @@ const getDefaultWidget = (field) => {
     if (field.choices) {
         return WidgetSelect;
     }
-    if (field.type === "TextField") {
+    if (field.type === "TextField" || field.many) {
         return WidgetTextarea;
     }
     const fieldComponent = djangoTypeToFieldComponent(field.type);
     // todo: it would be nice to have a way to just specify a widget, in addition to having to pass as a slot
-    return defaultWidgets[fieldComponent] || WidgetInput;
+    return defaultWidgets[fieldComponent.__name] || WidgetInput;
 };
 
 /**
@@ -144,10 +161,11 @@ export default function useFormModel(props) {
                         // todo: we should have a way to have custom field props on top server model info
                         fieldObjects[fieldObj.name] = fieldObj;
                         fieldComponents[fieldObj.name] = djangoTypeToFieldComponent(fieldObj.type);
-                        widgetComponents[fieldObj.name] = getDefaultWidget(fieldObj);
+                        const widgetComponent = getDefaultWidget(fieldObj);
+                        widgetComponents[fieldObj.name] = widgetComponent;
                         // todo: we should have a way to register custom widget props
                         //  or provide them to the form model as props
-                        widgetProps[fieldObj.name] = defaultWidgetProps[fieldObj.type];
+                        widgetProps[fieldObj.name] = getWidgetProps(fieldObj);
                     }
                     assignReactiveObject(state.fieldObjects, fieldObjects);
                     assignReactiveObject(state.fieldComponents, fieldComponents);

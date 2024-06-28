@@ -1,6 +1,7 @@
 <script setup>
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useWidget, { widgetEmits, widgetProps } from "@vueda/use/useWidget.js";
+import Textarea from "primevue/textarea";
 
 defineOptions({
     inheritAttrs: false,
@@ -26,11 +27,14 @@ const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetTextarea.vue", 
 </script>
 <template>
     <div :class="combinedClasses.outerClass">
-        <textarea
+        <Textarea
             v-model="widget.combinedValue"
-            :class="combinedClasses.textareaClass"
-            :name="widget.combinedName"
             v-bind="$attrs"
+            auto-resize
+            :class="combinedClasses.textareaClass"
+            cols="30"
+            :name="widget.combinedName"
+            rows="5"
             @input="widget.makeDirty"
         />
     </div>

@@ -72,14 +72,16 @@ const props = defineProps({
 
 const isActive = useIsActive();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+//TODO: a list of string as fields won't work for objectsGrid
 const calculatedListFields = computed(() => {
     // if they don't pass listFields, use the modelConfig fields.
     //  modelConfig fields already falls back to models fields supplied by the server
-    return props.listFields || modelConfig.info.model_fields.map((f) => f.name) || [];
+    return modelConfig.info.model_fields || [];
+    // return  props.listFields ||modelConfig.info.model_fields?.map((f) => f.name) || modelConfig.config.listFields || [];
 });
-const calculatedListFieldsObjs = computed(() => {
-    return modelConfig.info.model_fields?.filter((f) => calculatedListFields.value?.includes(f.name)) || [];
-});
+// const calculatedListFieldsObjs = computed(() => {
+//     return modelConfig.info.model_fields?.filter((f) => calculatedListFields.value?.includes(f.name)) || [];
+// });
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model));
 const instanceListProps = reactive({
     crudArgs: {
@@ -159,7 +161,7 @@ const dismissError = () => {
             v-bind="$attrs"
             :calculated-objects="instanceList.state.calculatedObjects"
             :data-qa="`view-list-${app}-${model}-objects-grid`"
-            :fields="calculatedListFieldsObjs"
+            :fields="calculatedListFields"
             :loading="loading"
             :objects-in-order="instanceList.state.objectsInOrder"
             :related-objects="instanceList.state.relatedObjects"

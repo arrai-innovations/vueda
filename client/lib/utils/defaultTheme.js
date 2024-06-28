@@ -47,6 +47,18 @@ const defaultComponents = {
         defaultVariant: "default",
         spots: ["outer", "prefix", "input", "suffix"],
     },
+    "@vueda/widgets/WidgetCheckbox.vue": {
+        defaultVariant: "default",
+        spots: ["outer", "prefix", "input", "suffix"],
+    },
+    "@vueda/widgets/WidgetSelect.vue": {
+        defaultVariant: "default",
+        spots: ["outer", "prefix", "input", "suffix"],
+    },
+    "@vueda/widgets/WidgetTextarea.vue": {
+        defaultVariant: "default",
+        spots: ["outer", "prefix", "input", "suffix"],
+    },
     "@vueda/components/FormHelpText.vue": {
         defaultVariant: "default",
         spots: ["help"],
