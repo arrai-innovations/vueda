@@ -15,6 +15,12 @@ class User(AbstractVUEDAUser):
     class Meta(BaseModelMeta):
         default_related_name = "users"
 
+    class Meta(BaseModelMeta):
+        permissions = [
+            ("list_permission", "Can list permissions"),
+            ("read_permission", "Can read permissions"),
+        ]
+
 
 class Employee(SimpleHistoryModelMixin, models.Model):
     user = models.ForeignKey("User", on_delete=models.CASCADE)
