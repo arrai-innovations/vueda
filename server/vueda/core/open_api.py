@@ -3,6 +3,7 @@ from copy import deepcopy
 from rest_framework import serializers
 
 from vueda.info.registration import get_registered_content_types
+from vueda.info.serializers import METHOD_MAPPING
 
 
 # These decorators and functions exist, so drf-spectacular can remain a
@@ -231,6 +232,9 @@ class ModelBase:
     def get_serializer_function(self):
         return None
 
+    def alter_fields(self, fields):
+        return fields
+
     def get_fields(self):
         model_info_serializer = self.parent.parent
         instance = self._get_instance(model_info_serializer)
@@ -239,32 +243,109 @@ class ModelBase:
         model_func = getattr(model_info_serializer, func)
         data = model_func(instance)
         model_info_serializer.instance = None
-        return self._generate_fields(data[0])
+        fields = self._generate_fields(data[0])
+        self.alter_fields(fields)
+        return fields
 
 
 class ModelActions(ModelBase, serializers.Serializer):
     def _get_serializer_function_name(self):
         return "get_model_actions"
 
+    def alter_fields(self, fields):
+        # This field is defined in the function, so there is no dynamic way to know it is optional.
+        fields["parameters"] = serializers.ListField(
+            child=serializers.CharField(required=False),
+            required=False,
+            help_text="Additional parameters needed to call the action.",
+        )
+
+        # This field is not optional, but we want to add help text.
+        help_text_list = ""
+        for key, value in METHOD_MAPPING.items():
+            help_text_list += f"<li>{value} -&gt; {key}</li>"
+
+        fields["method_names"] = serializers.ListField(
+            child=serializers.CharField(required=True),
+            required=True,
+            help_text=f"""Available methods are:
+        <ul>
+            {help_text_list}
+        </ul>""",
+        )
+        return fields
+
 
 class ModelExpands(ModelBase, serializers.Serializer):
     def _get_serializer_function_name(self):
         return "get_model_expands"
+
+    # This field is defined in the function, so there is no dynamic way to know it is optional.
+    def alter_fields(self, fields):
+        fields["fields"] = serializers.ListField(
+            child=serializers.CharField(required=False), required=False, help_text="An array of field names."
+        )
+        return fields
 
 
 class ModelFields(ModelBase, serializers.Serializer):
     def _get_serializer_function_name(self):
         return "get_model_fields"
 
+    # These fields are defined in the function, so there is no dynamic way to know they are optional.
+    def alter_fields(self, fields):
+        fields["choices"] = serializers.ListField(child=serializers.CharField(required=False), required=False)
+        fields["decimal_places"] = serializers.IntegerField(required=False)
+        fields["help_text"] = serializers.CharField(required=False)
+        fields["max_digits"] = serializers.IntegerField(required=False)
+        fields["max_length"] = serializers.IntegerField(required=False)
+        fields["min_length"] = serializers.IntegerField(required=False)
+        fields["max_value"] = serializers.IntegerField(required=False)
+        fields["min_value"] = serializers.IntegerField(required=False)
+        return fields
+
 
 class ModelFiltering(ModelBase, serializers.Serializer):
     def _get_serializer_function_name(self):
         return "get_model_filtering"
 
+    # These fields are defined in the function, so there is no dynamic way to know they are optional.
+    def alter_fields(self, fields):
+        fields["filters"].fields.update(
+            {
+                "label": serializers.CharField(required=False),
+                "lookup_exprs": serializers.ListField(
+                    child=serializers.CharField(read_only=False, required=False),
+                    read_only=False,
+                    required=False,
+                    help_text='<a href="https://docs.djangoproject.com/en/5.0/ref/models/querysets/#field-lookups" target="_blank">The list of field-lookups in django docs.</a>',
+                ),
+                "required": serializers.BooleanField(required=False),
+            }
+        )
+        return fields
+
 
 class ModelOrdering(ModelBase, serializers.Serializer):
     def _get_serializer_function_name(self):
         return "get_model_ordering"
+
+    # This field is not actually optional, but we want to add some help text.
+    def alter_fields(self, fields):
+        fields["type"] = serializers.CharField(
+            required=True,
+            help_text="""Available types are:
+        <ul>
+            <li>alpha</li>
+            <li>boolean</li>
+            <li>date</li>
+            <li>datetime</li>
+            <li>numeric</li>
+            <li>time</li>
+        </ul>""",
+        )
+
+        return fields
 
 
 class ModelPermissions(ModelBase, serializers.Serializer):
