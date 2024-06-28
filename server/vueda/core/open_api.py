@@ -183,6 +183,15 @@ def conditional_open_api_types():
     return OpenApiTypes
 
 
+def conditional_inline_serializer(*args, **kwargs):
+    try:
+        from drf_spectacular.utils import inline_serializer
+    except ImportError:
+        return
+
+    return inline_serializer(*args, **kwargs)
+
+
 class ModelBase:
     def _get_instance(self, serializer):
         content_types = get_registered_content_types()
