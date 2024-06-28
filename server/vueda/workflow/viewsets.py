@@ -88,7 +88,8 @@ class WorkflowViewSet(RetrieveModelMixin, ListModelMixin, viewsets.GenericViewSe
             state, current_history_id = self.object.apply_transition(transition_code, user=request.user)
             response_data = {
                 "new_state": {
-                    "state": {"code": state.code, "name": state.name},
+                    "code": state.code,
+                    "name": state.name,
                 },
                 "new_transitions": list(
                     self.object.available_transitions(request.user).order_by("name").values("code", "name")
