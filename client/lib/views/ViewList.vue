@@ -2,6 +2,7 @@
 import { getCapitalizedTitle } from "../utils/crudSupport.js";
 import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
+import LinkModelView from "@vueda/components/LinkModelView.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import { getCRUDName } from "@vueda/router/getCrud.js";
@@ -76,12 +77,17 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const calculatedListFields = computed(() => {
     // if they don't pass listFields, use the modelConfig fields.
     //  modelConfig fields already falls back to models fields supplied by the server
-    return modelConfig.info.model_fields || [];
-    // return  props.listFields ||modelConfig.info.model_fields?.map((f) => f.name) || modelConfig.config.listFields || [];
+    // return modelConfig.info.model_fields || [];
+    if (props.listFields.length) {
+        return props.listFields;
+    } else if (modelConfig.config.listFields?.length) {
+        return modelConfig.config.listFields;
+    }
+    return [];
 });
-// const calculatedListFieldsObjs = computed(() => {
-//     return modelConfig.info.model_fields?.filter((f) => calculatedListFields.value?.includes(f.name)) || [];
-// });
+const calculatedListFieldsObjs = computed(() => {
+    return modelConfig.info.model_fields?.filter((f) => calculatedListFields.value?.includes(f.name)) || [];
+});
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model));
 const instanceListProps = reactive({
     crudArgs: {
@@ -161,7 +167,7 @@ const dismissError = () => {
             v-bind="$attrs"
             :calculated-objects="instanceList.state.calculatedObjects"
             :data-qa="`view-list-${app}-${model}-objects-grid`"
-            :fields="calculatedListFields"
+            :fields="calculatedListFieldsObjs"
             :loading="loading"
             :objects-in-order="instanceList.state.objectsInOrder"
             :related-objects="instanceList.state.relatedObjects"
@@ -170,6 +176,11 @@ const dismissError = () => {
             :variant="objectGridVariant"
             @update:sorted="sorting.updateSorted"
         >
+            <template #link-field="{ pk, value }">
+                <link-model-view :app="app" :model="model" :pk="pk" view="update">
+                    {{ value }}
+                </link-model-view>
+            </template>
         </objects-grid>
     </div>
 </template>

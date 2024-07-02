@@ -7,6 +7,10 @@ import get from "lodash-es/get.js";
 import { computed, ref } from "vue";
 
 const props = defineProps({
+    titleFieldName: {
+        type: String,
+        default: "",
+    },
     objectsInOrder: {
         type: [Array, undefined],
         default: () => [],
@@ -242,7 +246,10 @@ const directionlessSorted = computed(() => props.sorted.map((field) => field.rep
                             </slot>
                         </div>
                         <div :class="combinedClasses.cardCellClass" :data-card="field.name">
+                            <slot v-if="colIndex === 0" name="link-field" :pk="obj?.id" :value="get(obj, field.name)">
+                            </slot>
                             <slot
+                                v-else
                                 :calculated="get(get(calculatedObjects, obj.id), field.name)"
                                 :calculated-obj="get(calculatedObjects, obj.id)"
                                 :col-index="colIndex"

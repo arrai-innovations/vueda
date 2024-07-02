@@ -7,7 +7,7 @@ import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useLeaveUnload from "@vueda/use/useLeaveUnload.js";
 import useModelConfig from "@vueda/use/useModelConfig.js";
 import Button from "primevue/button";
-import { computed, reactive, toRef } from "vue";
+import { computed, reactive, ref, toRef } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -92,7 +92,7 @@ const myState = reactive({
 
 const handleSubmit = (formContext) => {
     myState.submitting = true;
-    instanceObject.create(formContext.values).finally(() => {
+    instanceObject.create({ object: formContext.values }).finally(() => {
         myState.submitting = false;
     });
 };
@@ -104,28 +104,26 @@ const pageTitle = computed(() => {
 const handleDirty = (dirty) => {
     myState.dirty = dirty;
 };
+const formModelRef = ref(null);
+
 useLeaveUnload(myState);
 const combinedClasses = useCombinedClasses("@vueda/views/ViewCreate.vue", props);
-const uniqueId = (performance.now() + "").replace(".", "");
+const doSubmit = () => {
+    formModelRef.value?.form.doSubmit();
+};
 </script>
 
 <template>
     <div :class="combinedClasses.outerClass">
         <page-title :title="pageTitle">
             <template #button>
-                <Button
-                    class="w-full"
-                    :form="`form-${uniqueId}`"
-                    label="Submit"
-                    :loading="modelConfig.loading"
-                    type="submit"
-                />
+                <Button class="w-full" label="Submit" :loading="modelConfig.loading" type="submit" @click="doSubmit" />
             </template>
         </page-title>
 
         <div :class="combinedClasses.bodyClass">
             <form-model
-                :id="`form-${uniqueId}`"
+                ref="formModelRef"
                 :app="app"
                 :fields="calculatedCreateFields"
                 :initial-data="initialData"

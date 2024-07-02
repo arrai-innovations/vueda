@@ -80,6 +80,12 @@ export function makeCRUDRoutes({
 
         if (isDetailView(view)) {
             route.path += `:pk/`;
+            route.props = (route) => ({
+                app,
+                model,
+                view,
+                pk: route.params.pk,
+            });
         }
 
         routes.push(route);

@@ -18,6 +18,18 @@ const defaultComponents = {
         defaultVariant: "default",
         spots: ["outer", "header", "title", "loading"],
     },
+    "@vueda/views/ViewUpdate.vue": {
+        defaultVariant: "default",
+        spots: ["outer", "header", "title", "loading"],
+    },
+    "@vueda/views/ViewRead.vue": {
+        defaultVariant: "default",
+        spots: ["outer", "header", "title", "loading"],
+    },
+    "@vueda/views/ViewDelete.vue": {
+        defaultVariant: "default",
+        spots: ["outer", "header", "title", "loading"],
+    },
     "@vueda/components/ObjectsGrid.vue": {
         defaultVariant: "default",
         spots: [

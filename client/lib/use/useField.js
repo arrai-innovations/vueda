@@ -54,6 +54,9 @@ export default function useField(props, functions) {
     const value = computed(() => {
         return formContext ? get(formContext.values, props.name) : undefined;
     });
+    const initialValue = computed(() => {
+        return formContext ? get(formContext.initialValues, props.name) : undefined;
+    });
     const messages = computed(() => {
         return formContext ? get(formContext.messages, props.name) : {};
     });
@@ -131,6 +134,7 @@ export default function useField(props, functions) {
         label,
         help,
         value,
+        initialValue,
         messages,
         errors,
         dirty,

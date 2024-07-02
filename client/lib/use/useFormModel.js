@@ -126,7 +126,7 @@ export default function useFormModel(props) {
     const modelInfoStore = storeModelInfo();
     const state = reactive({
         modelInfo: {},
-        fields: [],
+        fields: [], //TODO: should be poped weith modelConfig
         fieldObjects: {},
         fieldComponents: {},
         widgetComponents: {},
@@ -154,6 +154,7 @@ export default function useFormModel(props) {
                     const fieldComponents = {};
                     const widgetComponents = {};
                     const widgetProps = {};
+                    const formFields = [];
                     for (const fieldObj of modelInfo.fields) {
                         if (!fields.includes(fieldObj.name)) {
                             continue;
@@ -166,13 +167,16 @@ export default function useFormModel(props) {
                         // todo: we should have a way to register custom widget props
                         //  or provide them to the form model as props
                         widgetProps[fieldObj.name] = getWidgetProps(fieldObj);
+                        formFields.push(fieldObj.name);
                     }
+                    assignReactiveObject(state.fields, formFields);
                     assignReactiveObject(state.fieldObjects, fieldObjects);
                     assignReactiveObject(state.fieldComponents, fieldComponents);
                     assignReactiveObject(state.widgetComponents, widgetComponents);
                     assignReactiveObjectDeep(state.widgetProps, widgetProps);
                 }
             } else {
+                assignReactiveObject(state.fields, []);
                 assignReactiveObject(state.fieldObjects, {});
                 assignReactiveObject(state.modelInfo, {});
                 assignReactiveObject(state.fieldComponents, {});

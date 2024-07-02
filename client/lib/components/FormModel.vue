@@ -6,14 +6,10 @@ import FormWrapper from "@vueda/components/FormWrapper.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useFormModel from "@vueda/use/useFormModel.js";
-import { reactive } from "vue";
+import { computed, reactive, ref } from "vue";
 
 const props = defineProps({
     app: {
-        type: String,
-        required: true,
-    },
-    id: {
         type: String,
         required: true,
     },
@@ -24,10 +20,6 @@ const props = defineProps({
     fields: {
         type: Array,
         default: () => [],
-    },
-    initialData: {
-        type: Object,
-        default: () => ({}),
     },
     variant: {
         type: String,
@@ -52,6 +44,11 @@ const handleSubmit = (form) => {
 const handleDirty = (dirty) => {
     emit("dirty", dirty);
 };
+const formWrapperRef = ref(null);
+const formContext = computed(() => {
+    return formWrapperRef.value?.form;
+});
+defineExpose({ form: formContext });
 // todo: look into customizability re: overriding field / widget components with arbitrary slot content
 // todo: it would be nice to have a way to layout the fields into fieldsets / grids
 const combinedClasses = useCombinedClasses("@vueda/components/FormModel.vue", props);
@@ -60,7 +57,7 @@ const combinedClasses = useCombinedClasses("@vueda/components/FormModel.vue", pr
 <template>
     <form-wrapper
         v-if="Object.keys(formModel.modelInfo || {})?.length"
-        :id="id"
+        ref="formWrapperRef"
         :form-errors="myState.formErrors"
         :myform="myState.form"
         @dirty="handleDirty"
@@ -69,12 +66,12 @@ const combinedClasses = useCombinedClasses("@vueda/components/FormModel.vue", pr
         <template #default>
             <slot name="beforeFields" />
             <div
-                v-for="fieldObj in fields.map((x) => formModel.fieldObjects[x])"
-                :key="fieldObj.name"
+                v-for="fieldObj in formModel.fields.map((x) => formModel.fieldObjects[x])"
+                :key="fieldObj?.name"
                 :class="combinedClasses.fieldsClass"
             >
-                <component :is="formModel.fieldComponents[fieldObj.name]" v-bind="fieldObj">
-                    <template v-if="!$slots[`field-${fieldObj.name}`]" #default>
+                <component :is="formModel.fieldComponents[fieldObj?.name]" v-if="fieldObj" v-bind="fieldObj">
+                    <template v-if="!$slots[`field-${fieldObj?.name}`]" #default>
                         <form-label>
                             <template #default>
                                 <component

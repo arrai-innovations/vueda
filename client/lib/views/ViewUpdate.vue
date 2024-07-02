@@ -69,7 +69,9 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const calculatedUpdateFields = computed(() => {
     // if they don't pass updateFields, use the modelConfig fields.
     //  modelConfig fields already falls back to models fields supplied by the server
-    return props.updateFields || modelConfig.config.fields.map((f) => f.name);
+    return (
+        props.updateFields || modelConfig.config.updateFields || modelConfig.info.model_fields?.map((f) => f.name) || []
+    );
 });
 
 const modelConfigStore = storeModelConfig();
@@ -85,6 +87,9 @@ const instanceObjectProps = reactive({
     },
     intendToRetrieve: validAndActive,
 });
+
+//TODO: how to make update popup the initial values, and we should prob use instanceObject?
+
 const instanceObject = useObject({
     props: instanceObjectProps,
 });
@@ -119,7 +124,7 @@ const combinedClasses = useCombinedClasses("@vueda/views/ViewUpdate.vue", props)
             <form-model
                 :app="app"
                 :fields="calculatedUpdateFields"
-                :initial-data="initialData"
+                :initial-values="instanceObject.state.object"
                 :model="model"
                 :variant="formModelVariant"
                 v-bind="$attrs"

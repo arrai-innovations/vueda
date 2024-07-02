@@ -3,10 +3,6 @@ import useForm from "@vueda/use/useForm.js";
 import { toRef, watch } from "vue";
 
 const props = defineProps({
-    id: {
-        type: String,
-        required: true,
-    },
     initialValues: {
         type: Object,
         default: () => ({}),
@@ -29,7 +25,7 @@ defineExpose({ form });
 </script>
 
 <template>
-    <form :id="id" data-qa="FormWrapper" novalidate @submit.prevent="handleSubmit">
+    <form data-qa="FormWrapper" novalidate @submit.prevent="handleSubmit">
         <slot v-bind="form"></slot>
     </form>
 </template>
