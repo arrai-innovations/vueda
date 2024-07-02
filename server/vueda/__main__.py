@@ -22,30 +22,6 @@ def version_for_main(subparsers):
     return version, parser
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        prog="vueda",
-        description="Vueda CLI Interface",
-    )
-
-    subparsers = parser.add_subparsers(
-        title="subcommands",
-        dest="subcommand",
-        required=True,
-        help="The sub-command to run.",
-    )
-    commands = {}
-    for name, setup_subparser in (
-        ("update", update_for_main),
-        ("version", version_for_main),
-    ):
-        commands[name], _parser = setup_subparser(subparsers)
-
-    args = parser.parse_args()
-
-    commands[args.subcommand](args)
-
-
 def setup_django_settings_module():
     """
     use environ to check .env.local then .env for DEBUG. If not set, default to False.
@@ -67,7 +43,36 @@ def setup_django_settings_module():
 
     debug = env.bool("DEBUG", default=False)
 
-    return "config.settings.local" if debug else "config.settings.production"
+    if not os.environ.get("DJANGO_SETTINGS_MODULE"):
+        os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.local" if debug else "config.settings.production"
+
+    # this isn't going to work with cwd on the path
+    sys.path.append(os.getcwd())
+
+
+def main():
+    setup_django_settings_module()
+    parser = argparse.ArgumentParser(
+        prog="vueda",
+        description="Vueda CLI Interface",
+    )
+
+    subparsers = parser.add_subparsers(
+        title="subcommands",
+        dest="subcommand",
+        required=True,
+        help="The sub-command to run.",
+    )
+    commands = {}
+    for name, setup_subparser in (
+        ("update", update_for_main),
+        ("version", version_for_main),
+    ):
+        commands[name], _parser = setup_subparser(subparsers)
+
+    args = parser.parse_args()
+
+    commands[args.subcommand](args)
 
 
 if __name__ == "__main__":
