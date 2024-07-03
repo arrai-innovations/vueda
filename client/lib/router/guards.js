@@ -1,6 +1,6 @@
-import storeToast from "@vueda/stores/storeToast.js";
 import storeUser from "@vueda/stores/storeUser.js";
 import isEmpty from "lodash-es/isEmpty";
+import { useToast } from "primevue/usetoast";
 
 /**
  * Wait for the user to be initialized. This is useful if your making your own
@@ -74,7 +74,6 @@ export async function requireAuth(redirectTo, to) {
  *   ```
  * @param {Object} redirectTo Where to redirect the user if they are authenticated.
  * @param {Object} to Where the user is trying to go. (Not used)
- *
  * @returns {Object} The route object, if a redirect is needed.
  */
 export async function requireUnauth(redirectTo /*, to*/) {
@@ -146,8 +145,8 @@ export async function requireInitialized() {
  *    export default router;
  *    ```
  *
- * @param {Object} toastArgs - The arguments for the denial toast message.
- *  toastArgs.message will have the denied url appended. See storeToast for more details.
+ * @param {import('primevue/toast').ToastMessageOptions} toastArgs - The arguments for the denial toast message, using
+ *  the PrimeVue Toast API. `toastArgs.detail` will have the denied url appended.
  * @param {Array<string>} groups - The groups the user must have ONE of.
  * @param {Object|string} redirectTo - Where to redirect the user if they are not a group member.
  * @param {Object} to - Where the user is trying to go.
@@ -155,7 +154,7 @@ export async function requireInitialized() {
  */
 export async function requireGroups(toastArgs, groups, redirectTo, to) {
     const userStore = await waitForInitialising();
-    const toastStore = storeToast();
+    const toast = useToast();
     if (isEmpty(groups)) {
         return true;
     }
@@ -165,9 +164,9 @@ export async function requireGroups(toastArgs, groups, redirectTo, to) {
     if (groups.some((group) => userStore.loggedInUser?.groups?.includes(group))) {
         return true;
     }
-    toastStore.addToast({
+    toast.add({
         ...toastArgs,
-        message: `${toastArgs.message} ${to.fullPath}`,
+        detail: `${toastArgs.detail} ${to.fullPath}`,
     });
     return redirectTo;
 }

@@ -1,10 +1,10 @@
 <script setup>
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
-import storeToast from "@vueda/stores/storeToast.js";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useModelConfig from "@vueda/use/useModelConfig";
 import isEmpty from "lodash-es/isEmpty";
+import { useToast } from "primevue/usetoast";
 import { reactive, ref, toRef } from "vue";
 import { useRouter } from "vue-router";
 
@@ -47,15 +47,15 @@ const instanceObject = useObject(instanceObjectProps);
 
 const confirmDelete = ref(false);
 
-const toastStore = storeToast();
+const toast = useToast();
 
 const handleDelete = async () => {
     await instanceObject.delete();
-    toastStore.addToast({
-        title: "Delete Success",
-        message: `Deleted ${modelConfig.info.verbose_name} with ID ${props.pk}`,
-        variant: "success",
-        autoDismiss: 5000,
+    toast.add({
+        severity: "success",
+        summary: "Delete Success",
+        detail: `Deleted ${modelConfig.info.verbose_name} with ID ${props.pk}`,
+        life: 5000,
     });
     router.back();
 };
