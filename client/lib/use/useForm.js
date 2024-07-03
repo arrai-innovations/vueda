@@ -22,13 +22,18 @@ export default function useForm(props) {
         assignReactiveObject(dirty, {});
         anyDirty.value = false;
     };
-    const updateValue = (name, value) => {
+    const clearServerError = (name) => {
         if (name) {
-            set(values, name, value);
-            // if there was a server error, clear it
             if (get(errors, `${name}.server`)) {
                 del(errors, `${name}.server`);
             }
+        } else {
+            throw new Error("No name provided to clearServerError");
+        }
+    };
+    const updateValue = (name, value) => {
+        if (name) {
+            set(values, name, value);
         } else {
             throw new Error("No name provided to updateValue");
         }
@@ -37,10 +42,6 @@ export default function useForm(props) {
         if (name) {
             if (get(values, name) !== undefined) {
                 del(values, name);
-            }
-            // if there was a server error, clear it
-            if (get(errors, `${name}.server`)) {
-                del(errors, `${name}.server`);
             }
         } else {
             throw new Error("No name provided to deleteValue");
@@ -51,6 +52,7 @@ export default function useForm(props) {
     };
     const blur = (name) => {
         focused.value = name;
+        clearServerError(name);
     };
     const updateError = (name, code, message) => {
         if (name && code && message) {

@@ -67,7 +67,8 @@ watch(
             assignReactiveObject(feedbackItems, (propsType === "error" ? errors : messages) || {});
         }
     },
-    { immediate: true },
+    // without deep, deleted message keys end null, not undefined, making the object not empty if the last key was deleted
+    { immediate: true, deep: true },
 );
 
 const combinedClasses = useCombinedClasses("@vueda/components/FormFeedback.vue", props);
