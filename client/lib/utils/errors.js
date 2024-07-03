@@ -33,6 +33,11 @@ export class FormValidationError extends Error {
     }
 }
 
+/**
+ * combineErrors - combine errors into a single array
+ * @param {Error|Error[]} errors - an error or an array of errors
+ * @returns {Error[]} - a single array of errors
+ */
 export function combineErrors(errors) {
     // errors could be an Error or an array of Errors, or an array of arrays of Errors
     // return a single array of Errors

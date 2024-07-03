@@ -1,26 +1,31 @@
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
+import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
+import { isObject } from "lodash-es";
 import { defineStore } from "pinia";
 
 class UserError extends Error {
-    constructor(messagePrefix, response) {
-        const message = `${messagePrefix}: ${response.status} ${response.statusText}`;
+    constructor(messagePrefix, response, responseData) {
+        const message = [];
+        message.push(messagePrefix);
+        if (response?.status || response?.statusText) {
+            message.push(": ");
+            if (response?.status) {
+                message.push(response.status);
+            }
+            if (response?.statusText) {
+                if (response?.status) {
+                    message.push(" ");
+                }
+                message.push(response.statusText);
+            }
+        }
         super(message);
         this.name = "UserError";
         this.response = response;
-    }
-}
-
-function checkForTypeError(error) {
-    if (error instanceof TypeError) {
-        // this is probably a network error
-        error.response = {
-            text: async () => {
-                return "This is probably a network error.";
-            },
-        };
+        this.responseData = responseData;
     }
 }
 
@@ -58,6 +63,7 @@ export default defineStore({
     }),
     actions: {
         async fetchCurrentUser() {
+            let response;
             if (this.initialized) {
                 this.initialized = false;
             }
@@ -65,20 +71,24 @@ export default defineStore({
             this.error = null;
             this.errored = false;
             try {
-                const response = await fetch(`${httpOrHttpsHostname}${getUrl("userCurrentUser")}`, {
-                    method: "GET",
-                    credentials: "include",
-                });
-                if (!response.ok) {
+                try {
+                    response = await fetch(`${httpOrHttpsHostname}${getUrl("userCurrentUser")}`, {
+                        method: "GET",
+                        credentials: "include",
+                    });
+                } catch (error) {
+                    throw new UserError("Error requesting current user", error, {});
+                }
+                const responseData = await getJsonOrText(response);
+                if (!response.ok || !isObject(responseData)) {
                     // noinspection ExceptionCaughtLocallyJS
-                    throw new UserError("Failed to get current user", response);
+                    throw new UserError("Unexpected current user response", response, responseData);
                 }
                 // non-logged in users still 200, just empty user.
-                const user = await response.json();
+                const user = responseData;
                 this.loggedIn = !!user.id;
                 this.loggedInUser = user;
             } catch (error) {
-                checkForTypeError(error);
                 this.error = error;
                 this.errored = true;
                 throw error;
@@ -95,31 +105,37 @@ export default defineStore({
             this.error = null;
             this.errored = false;
             try {
-                response = await fetch(`${httpOrHttpsHostname}${getUrl("userLogin")}`, {
-                    method: "POST",
-                    headers: {
-                        "X-CSRFToken": getCSRFValue(),
-                        "Content-Type": "application/json",
-                    },
-                    credentials: "include",
-                    body: JSON.stringify(payload),
-                });
+                try {
+                    response = await fetch(`${httpOrHttpsHostname}${getUrl("userLogin")}`, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": getCSRFValue(),
+                            "Content-Type": "application/json",
+                        },
+                        credentials: "include",
+                        body: JSON.stringify(payload),
+                    });
+                } catch (error) {
+                    throw new UserError("Error sending authentication request", error, {});
+                }
+                const responseData = await getJsonOrText(response);
                 if (response.status === 204) {
+                    // no content
                     return this.fetchCurrentUser();
                 }
                 if (response.status === 400) {
-                    const data = await response.json();
-                    return Promise.reject(new FormValidationError(data));
+                    // bad request
+                    // return instead of throw, avoiding the local catch and not getting added to the error state
+                    return Promise.reject(new FormValidationError(responseData));
                 }
+                throw new UserError("Unexpected authentication response", response, responseData);
             } catch (error) {
-                checkForTypeError(error);
                 this.error = error;
                 this.errored = true;
                 throw error;
             } finally {
                 this.loading = false;
             }
-            throw new UserError("Failed to login", response);
         },
         async logout() {
             if (!this.loggedIn) {
@@ -135,26 +151,30 @@ export default defineStore({
             this.error = null;
             this.errored = false;
             try {
-                response = await fetch(`${httpOrHttpsHostname}${getUrl("userLogout")}`, {
-                    method: "POST",
-                    headers: {
-                        "X-CSRFToken": getCSRFValue(),
-                        "Content-Type": "application/json",
-                    },
-                    credentials: "include",
-                });
+                try {
+                    response = await fetch(`${httpOrHttpsHostname}${getUrl("userLogout")}`, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": getCSRFValue(),
+                            "Content-Type": "application/json",
+                        },
+                        credentials: "include",
+                    });
+                } catch (error) {
+                    throw new UserError("Error sending logout request", error, {});
+                }
+                const responseData = await getJsonOrText(response);
                 if (response.status === 200) {
                     return this.fetchCurrentUser();
                 }
+                throw new UserError("Unexpected logout response", response, responseData);
             } catch (error) {
-                checkForTypeError(error);
                 this.error = error;
                 this.errored = true;
                 throw error;
             } finally {
                 this.loading = false;
             }
-            throw new UserError("Failed to logout", response);
         },
         async init() {
             if (!this.initialized) {

@@ -67,7 +67,7 @@ const viewToUse = computed(() => {
     //     return props.view.find((view) => permissionsPerView.value[view]);
     // }
     // return Object.keys(props.view).find((view) => permissionsPerView.value[view]);
-    throw new Error("view shoudl be string");
+    throw new Error("view should be string");
 });
 // const result = computed(() => permissionsPerView.value[viewToUse.value]);
 const isDetailViewComputed = computed(() => isDetailView(viewToUse.value));
