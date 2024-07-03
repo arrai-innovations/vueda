@@ -143,10 +143,10 @@ export async function requireInitialized() {
  * @param {import('vue').App} instance - The Vue app instance.
  * @param {import('primevue/toast').ToastMessageOptions} toastArgs - The arguments for the denial toast message, using
  *  the PrimeVue Toast API. `toastArgs.detail` will have the denied url appended.
- * @param {Array<string>} groups - The groups the user must have ONE of.
- * @param {Object|string} redirectTo - Where to redirect the user if they are not a group member.
- * @param {Object} to - Where the user is trying to go.
- * @returns {Promise<boolean>}
+ * @param {string[]} groups - The groups the user must have ONE of.
+ * @param {object|string} redirectTo - Where to redirect the user if they are not a group member.
+ * @param {object} to - Where the user is trying to go.
+ * @returns {Promise<boolean|object>} The route object, if a redirect is needed, or `true` if the user has the groups.
  */
 export async function requireGroups(instance, toastArgs, groups, redirectTo, to) {
     const userStore = await waitForInitialising();

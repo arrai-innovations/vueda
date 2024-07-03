@@ -41,7 +41,9 @@ const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetCheckbox.vue", 
             :name="widget.combinedName"
             type="checkbox"
             v-bind="$attrs"
+            @blur="widget.blur"
             @change="widget.makeDirty"
+            @focus="widget.focus"
         />
         <form-label :class="combinedClasses.labelClass" :for="widget.combinedName" :label="props.label">
             <template #default="{ label: widgetLabel, for: forName }">

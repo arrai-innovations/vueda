@@ -12,6 +12,7 @@ export default function useForm(props) {
     const dirty = reactive({});
     const anyDirty = ref(false);
     const doSubmit = ref(undefined);
+    const focused = ref(undefined);
     const initialValues = toRef(() => props.initialValues);
 
     const reset = () => {
@@ -44,6 +45,12 @@ export default function useForm(props) {
         } else {
             throw new Error("No name provided to deleteValue");
         }
+    };
+    const focus = (name) => {
+        focused.value = name;
+    };
+    const blur = (name) => {
+        focused.value = name;
     };
     const updateError = (name, code, message) => {
         if (name && code && message) {
@@ -136,6 +143,7 @@ export default function useForm(props) {
         anyDirty,
         doSubmit,
         initialValues,
+        focused,
         reset,
         updateValue,
         deleteValue,
@@ -148,6 +156,8 @@ export default function useForm(props) {
         resetAllDirty,
         updateDoSubmit,
         handleServerFormValidationError,
+        focus,
+        blur,
     });
     provide(FormContextSymbol, formContext);
     return formContext;

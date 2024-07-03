@@ -35,6 +35,8 @@ const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetTextarea.vue", 
             cols="30"
             :name="widget.combinedName"
             rows="5"
+            @blur="widget.blur"
+            @focus="widget.focus"
             @input="widget.makeDirty"
         />
     </div>

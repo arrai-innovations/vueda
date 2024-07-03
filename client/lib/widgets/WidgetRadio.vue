@@ -50,7 +50,9 @@ const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetRadio.vue", pro
                     :name="widget.combinedName"
                     type="radio"
                     :value="option.value"
+                    @blur="widget.blur"
                     @change="widget.makeDirty"
+                    @focus="widget.focus"
                 />
                 <slot
                     :class="combinedClasses.labelClass"

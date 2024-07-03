@@ -56,5 +56,15 @@ export default function useWidget(props, emit) {
         }),
         makeDirty,
         clearDirty,
+        focus: () => {
+            if (fieldContext) {
+                fieldContext.focus();
+            }
+        },
+        blur: () => {
+            if (fieldContext) {
+                fieldContext.blur();
+            }
+        },
     });
 }

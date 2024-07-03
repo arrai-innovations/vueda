@@ -47,7 +47,9 @@ const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetSelect.vue", pr
             :class="combinedClasses.selectClass"
             :name="widget.combinedName"
             v-bind="$attrs"
+            @blur="widget.blur"
             @change="widget.makeDirty"
+            @focus="widget.focus"
         >
             <option v-for="option in props.options" :key="option.value" :value="option.value">
                 {{ option.label }}

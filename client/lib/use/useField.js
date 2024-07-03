@@ -178,6 +178,16 @@ export default function useField(props, functions) {
                 formContext.clearDirty(name.value);
             }
         },
+        focus: () => {
+            if (formContext) {
+                formContext.focus(name.value);
+            }
+        },
+        blur: () => {
+            if (formContext) {
+                formContext.blur(name.value);
+            }
+        },
     });
     provide(FieldContextSymbol, returnObj);
     return returnObj;

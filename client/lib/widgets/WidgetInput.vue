@@ -48,7 +48,9 @@ const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetInput.vue", pro
             :name="widget.combinedName"
             :type="type"
             v-bind="$attrs"
+            @blur="widget.blur"
             @change="widget.makeDirty"
+            @focus="widget.focus"
         />
         <span v-if="$slots.suffix" :class="combinedClasses.suffixClass">
             <slot name="suffix" />

@@ -80,6 +80,12 @@ const editor = useEditor({
             widget.makeDirty();
         }
     },
+    onFocus: () => {
+        widget.focus();
+    },
+    onBlur: () => {
+        widget.blur();
+    },
 });
 const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetHtml.vue", props);
 </script>

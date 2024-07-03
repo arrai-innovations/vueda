@@ -1,6 +1,6 @@
 <script setup>
 import { FormValidationError } from "@vueda/utils/errors.js";
-import formatError from "@vueda/utils/formatError.js";
+import { formatError } from "@vueda/utils/formatError.js";
 import isArray from "lodash-es/isArray.js";
 import isEmpty from "lodash-es/isEmpty";
 import Message from "primevue/message";
