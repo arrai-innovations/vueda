@@ -152,11 +152,6 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to)
     const userStore = await waitForInitialising();
     /** @type {import('primevue/toast').ToastServiceMethods} */
     const toast = instance.config.globalProperties.$toast;
-    toast.add({
-        severity: "info",
-        summary: "Test that toasts work from guards",
-        detail: "This is a test of the toast system from a guard.",
-    });
     if (isEmpty(groups)) {
         return true;
     }
