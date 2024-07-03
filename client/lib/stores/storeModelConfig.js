@@ -67,7 +67,6 @@ export default defineStore({
             }
             const modelInfoStore = storeModelInfo();
             const modelInfo = await modelInfoStore.fetchModelInfo(app, model);
-            console.log("modelInfo", modelInfo);
             return (this.builtConfigs[getKey(app, model)] = {
                 ...getDefaultFromModelInfo(modelInfo),
                 ...this.configs[getKey(app, model)],
