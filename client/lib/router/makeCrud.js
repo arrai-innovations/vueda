@@ -6,17 +6,18 @@ import partial from "lodash-es/partial";
 /**
  * Generate CRUD routes for a given app and model.
  *
- * @param {Object} params - The parameters.
- * @param {Object} params.components - A map of components to use for the views, to avoid dynamic imports.
+ * @param {object} params - The parameters.
+ * @param {object} params.components - A map of components to use for the views, to avoid dynamic imports.
  * @param {string} params.app - The app name.
  * @param {string} params.model - The model name.
- * @param {Array<string>} [params.views=['list', 'create', 'update', 'read']] - The views to generate routes for.
- * @param {Object} [params.titles={}] - Custom titles for the views.
+ * @param {string[]} [params.views=['list', 'create', 'update', 'read']] - The views to generate routes for.
+ * @param {object} [params.titles={}] - Custom titles for the views.
  * @param {string} [params.pathPrefix=''] - The prefix to add to the path.
  * @param {string} [params.authRedirect=null] - The route to redirect to if the user is not authenticated.
- * @param {Array<string>} [params.groups=null] - The groups required to access the views.
- * @param {Object} [params.groupsRedirect=null] - The route to redirect to if the user is not in the required groups.
- * @returns {Array<Object>} The generated routes.
+ * @param {string[]} [params.groups=null] - The groups required to access the views.
+ * @param {object} [params.groupsRedirect=null] - The route to redirect to if the user is not in the required groups.
+ * @param {import('vue').App} vueApp - The Vue app instance.
+ * @returns {object[]} The generated routes.
  */
 export function makeCRUDRoutes({
     components,
@@ -28,6 +29,7 @@ export function makeCRUDRoutes({
     views = ["list", "create", "update", "read"],
     titles = {},
     pathPrefix = "",
+    vueApp,
 }) {
     const routes = [];
     const appRoutePart = getClientRoutePart(app);
@@ -43,6 +45,7 @@ export function makeCRUDRoutes({
             beforeEnter.push(
                 partial(
                     requireGroups,
+                    vueApp,
                     {
                         title: "Permission Denied",
                         message: "You do not have permission to access",

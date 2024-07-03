@@ -1,11 +1,9 @@
 import storeUser from "@vueda/stores/storeUser.js";
 import isEmpty from "lodash-es/isEmpty";
-import { useToast } from "primevue/usetoast";
 
 /**
  * Wait for the user to be initialized. This is useful if your making your own
  *  custom guards that need to know if the user is logged in or not.
- *
  * @returns {Promise} The user object.
  */
 export async function waitForInitialising() {
@@ -40,7 +38,6 @@ export async function waitForInitialising() {
  *   ```
  * @param {Object} redirectTo Where to redirect the user if they are not authenticated.
  * @param {Object} to Where the user is trying to go.
- *
  * @returns {Object} The route object.
  */
 export async function requireAuth(redirectTo, to) {
@@ -106,7 +103,6 @@ export async function requireUnauth(redirectTo /*, to*/) {
  *   });
  *   export default router;
  *   ```
- *
  * @returns {Promise<void>}
  */
 export async function requireInitialized() {
@@ -144,7 +140,7 @@ export async function requireInitialized() {
  *    });
  *    export default router;
  *    ```
- *
+ * @param {import('vue').App} instance - The Vue app instance.
  * @param {import('primevue/toast').ToastMessageOptions} toastArgs - The arguments for the denial toast message, using
  *  the PrimeVue Toast API. `toastArgs.detail` will have the denied url appended.
  * @param {Array<string>} groups - The groups the user must have ONE of.
@@ -152,9 +148,15 @@ export async function requireInitialized() {
  * @param {Object} to - Where the user is trying to go.
  * @returns {Promise<boolean>}
  */
-export async function requireGroups(toastArgs, groups, redirectTo, to) {
+export async function requireGroups(instance, toastArgs, groups, redirectTo, to) {
     const userStore = await waitForInitialising();
-    const toast = useToast();
+    /** @type {import('primevue/toast').ToastServiceMethods} */
+    const toast = instance.config.globalProperties.$toast;
+    toast.add({
+        severity: "info",
+        summary: "Test that toasts work from guards",
+        detail: "This is a test of the toast system from a guard.",
+    });
     if (isEmpty(groups)) {
         return true;
     }
