@@ -217,12 +217,13 @@ export default function useFormModel(props) {
                     }
                     // todo: we should have a way to have custom field props on top server model info
                     fieldObjects[fieldObj.name] = fieldObj;
-                    fieldComponents[fieldObj.name] = djangoTypeToFieldComponent(fieldObj.type);
+                    const fieldComponent = djangoTypeToFieldComponent(fieldObj.type);
+                    fieldComponents[fieldObj.name] = fieldComponent;
                     fieldProps[fieldObj.name] = getFieldProps(fieldObj);
                     widgetComponents[fieldObj.name] = getDefaultWidget(fieldObj);
                     // todo: we should have a way to register custom widget props
                     //  or provide them to the form model as props
-                    widgetProps[fieldObj.name] = getWidgetProps(fieldObj.type, fieldObj);
+                    widgetProps[fieldObj.name] = getWidgetProps(fieldComponent.__name, fieldObj);
                 }
                 assignStateObjectsIfChanged({
                     fieldObjects,

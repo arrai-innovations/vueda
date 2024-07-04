@@ -6,6 +6,7 @@ import PageTitle from "@vueda/components/PageTitle.vue";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useLeaveUnload from "@vueda/use/useLeaveUnload.js";
 import useModelConfig from "@vueda/use/useModelConfig.js";
+import { FormValidationError } from "@vueda/utils/errors.js";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 import { computed, reactive, ref, toRef } from "vue";
@@ -90,19 +91,34 @@ const myState = reactive({
     dirty: false,
     loading: false,
 });
-
 const toast = useToast();
-const handleSubmit = (formContext) => {
+const handleSubmit = async (formContext) => {
     myState.submitting = true;
-    instanceObject.create({ object: formContext.values }).finally(() => {
+    try {
+        await instanceObject.create({ object: formContext.values });
+        if (instanceObject.state.errored) {
+            if (instanceObject.state.error instanceof FormValidationError) {
+                const error = instanceObject.state.error;
+                formModelRef.value?.form.handleServerFormValidationError(error);
+            } else {
+                toast.add({
+                    severity: "error",
+                    summary: "Create Failed",
+                    detail: `An error occurred while creating ${modelConfig.info.verbose_name}`,
+                    life: 5000,
+                });
+            }
+        } else {
+            toast.add({
+                severity: "success",
+                summary: "Created Success",
+                detail: `You have successfully created ${modelConfig.info.verbose_name}`,
+                life: 5000,
+            });
+        }
+    } finally {
         myState.submitting = false;
-    });
-    toast.add({
-        severity: "success",
-        summary: "Create Success",
-        detail: `Created ${modelConfig.info.verbose_name}`,
-        life: 5000,
-    });
+    }
 };
 
 const pageTitle = computed(() => {

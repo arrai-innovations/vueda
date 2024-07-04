@@ -7,7 +7,9 @@ import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useIsActive from "@vueda/use/useIsActive.js";
 import useLeaveUnload from "@vueda/use/useLeaveUnload.js";
 import useModelConfig from "@vueda/use/useModelConfig.js";
+import { FormValidationError } from "@vueda/utils/errors.js";
 import Button from "primevue/button";
+import { useToast } from "primevue/usetoast";
 import { computed, reactive, ref, toRef } from "vue";
 
 defineOptions({
@@ -64,6 +66,7 @@ const props = defineProps({
     },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
+const formModelRef = ref(null);
 
 const isActive = useIsActive();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
@@ -97,16 +100,38 @@ const myState = reactive({
     dirty: false,
 });
 
-const handleSubmit = (formContext) => {
+const toast = useToast();
+const handleSubmit = async (formContext) => {
     myState.submitting = true;
-    instanceObject.update({ object: formContext.values }).finally(() => {
+    try {
+        await instanceObject.update({ object: formContext.values });
+        if (instanceObject.state.errored) {
+            if (instanceObject.state.error instanceof FormValidationError) {
+                const error = instanceObject.state.error;
+                formModelRef.value?.form.handleServerFormValidationError(error);
+            } else {
+                toast.add({
+                    severity: "error",
+                    summary: "Update Failed",
+                    detail: `An error occurred while updating ${modelConfig.info.verbose_name}`,
+                    life: 5000,
+                });
+            }
+        } else {
+            toast.add({
+                severity: "success",
+                summary: "Update Success",
+                detail: `${modelConfig.info.verbose_name} saved`,
+                life: 5000,
+            });
+        }
+    } finally {
         myState.submitting = false;
-    });
+    }
 };
 const handleDirty = (dirty) => {
     myState.dirty = dirty;
 };
-const formModelRef = ref(null);
 useLeaveUnload(myState);
 const combinedClasses = useCombinedClasses("@vueda/views/ViewUpdate.vue", props);
 const doSubmit = () => {
@@ -118,7 +143,7 @@ const doSubmit = () => {
     <div :class="combinedClasses.outerClass">
         <div :class="combinedClasses.headerClass">
             <h1 :class="combinedClasses.titleClass">
-                {{ `Update ${modelConfigStore.info?.verbose_name}` || "Create Item" }}
+                {{ `Update ${modelConfigStore.info?.verbose_name}` || "Update Item" }}
                 <loading-spinner-inline v-if="modelConfigStore.loading" :class="combinedClasses.loadingClass" />
                 <Button class="w-full" label="Save" :loading="modelConfig.loading" type="submit" @click="doSubmit" />
             </h1>
