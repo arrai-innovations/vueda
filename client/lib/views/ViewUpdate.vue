@@ -7,7 +7,8 @@ import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useIsActive from "@vueda/use/useIsActive.js";
 import useLeaveUnload from "@vueda/use/useLeaveUnload.js";
 import useModelConfig from "@vueda/use/useModelConfig.js";
-import { computed, reactive, toRef } from "vue";
+import Button from "primevue/button";
+import { computed, reactive, ref, toRef } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -87,9 +88,6 @@ const instanceObjectProps = reactive({
     },
     intendToRetrieve: validAndActive,
 });
-
-//TODO: how to make update popup the initial values, and we should prob use instanceObject?
-
 const instanceObject = useObject({
     props: instanceObjectProps,
 });
@@ -101,15 +99,19 @@ const myState = reactive({
 
 const handleSubmit = (formContext) => {
     myState.submitting = true;
-    instanceObject.update(formContext.values).finally(() => {
+    instanceObject.update({ object: formContext.values }).finally(() => {
         myState.submitting = false;
     });
 };
 const handleDirty = (dirty) => {
     myState.dirty = dirty;
 };
+const formModelRef = ref(null);
 useLeaveUnload(myState);
 const combinedClasses = useCombinedClasses("@vueda/views/ViewUpdate.vue", props);
+const doSubmit = () => {
+    formModelRef.value?.form.doSubmit();
+};
 </script>
 
 <template>
@@ -118,10 +120,12 @@ const combinedClasses = useCombinedClasses("@vueda/views/ViewUpdate.vue", props)
             <h1 :class="combinedClasses.titleClass">
                 {{ `Update ${modelConfigStore.info?.verbose_name}` || "Create Item" }}
                 <loading-spinner-inline v-if="modelConfigStore.loading" :class="combinedClasses.loadingClass" />
+                <Button class="w-full" label="Save" :loading="modelConfig.loading" type="submit" @click="doSubmit" />
             </h1>
         </div>
         <div :class="combinedClasses.bodyClass">
             <form-model
+                ref="formModelRef"
                 :app="app"
                 :fields="calculatedUpdateFields"
                 :initial-values="instanceObject.state.object"

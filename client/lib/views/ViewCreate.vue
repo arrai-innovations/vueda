@@ -7,6 +7,7 @@ import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useLeaveUnload from "@vueda/use/useLeaveUnload.js";
 import useModelConfig from "@vueda/use/useModelConfig.js";
 import Button from "primevue/button";
+import { useToast } from "primevue/usetoast";
 import { computed, reactive, ref, toRef } from "vue";
 
 defineOptions({
@@ -90,10 +91,17 @@ const myState = reactive({
     loading: false,
 });
 
+const toast = useToast();
 const handleSubmit = (formContext) => {
     myState.submitting = true;
     instanceObject.create({ object: formContext.values }).finally(() => {
         myState.submitting = false;
+    });
+    toast.add({
+        severity: "success",
+        summary: "Create Success",
+        detail: `Created ${modelConfig.info.verbose_name}`,
+        life: 5000,
     });
 };
 

@@ -278,7 +278,9 @@ const directionlessSorted = computed(() => props.sorted.map((field) => field.rep
                         :row-index="rowIndex"
                         :value="get(obj, field.name)"
                     >
-                        {{ get(obj, field.name) }}
+                        <slot v-if="colIndex === 0" name="link-field" :pk="obj?.id" :value="get(obj, field.name)">
+                        </slot>
+                        <p v-else>{{ get(obj, field.name) }}</p>
                     </slot>
                 </div>
             </div>

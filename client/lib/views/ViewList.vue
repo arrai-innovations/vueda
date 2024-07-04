@@ -177,7 +177,7 @@ const dismissError = () => {
             @update:sorted="sorting.updateSorted"
         >
             <template #link-field="{ pk, value }">
-                <link-model-view :app="app" :model="model" :pk="pk" view="update">
+                <link-model-view :app="app" :model="model" :pk="pk" view="read">
                     {{ value }}
                 </link-model-view>
             </template>

@@ -23,7 +23,7 @@ const props = defineProps({
     },
     readFields: {
         type: Array,
-        default: undefined,
+        default: () => [],
     },
     variant: {
         type: String,
@@ -36,7 +36,12 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const calculatedReadFields = computed(() => {
     // if they don't pass readFields, use the modelConfig fields.
     //  modelConfig fields already falls back to models fields supplied by the server
-    return props.readFields || modelConfig.config.fields.map((f) => f.name);
+    if (props.readFields.length) {
+        return props.readFields;
+    } else if (modelConfig.config.readFields?.length) {
+        return modelConfig.config.readFields;
+    }
+    return [];
 });
 const instanceObjectProps = reactive({
     crudArgs: {
@@ -68,9 +73,11 @@ const combinedClasses = useCombinedClasses("@vueda/views/ViewRead.vue", props);
             </h1>
         </div>
         <div :class="combinedClasses.bodyClass">
-            <template v-for="field in readFields">
+            <template v-for="field in calculatedReadFields" :key="field">
                 <!-- todo: read-only field widgets? vs form field widgets -->
-                {{ get(instanceObject.state.object, field.name) }}
+                {{ field }}:
+                {{ get(instanceObject.state.object, field) }}
+                <br />
             </template>
         </div>
     </div>
