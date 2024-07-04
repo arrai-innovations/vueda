@@ -1,19 +1,55 @@
 version: 2.1
 orbs:
-    flake8: arrai/flake8@20.0.2
+    flake8: arrai/flake8@20.0.3
     github: arrai/github@3.0.0
-    pytest: arrai/pytest@8.1.4
-    safety: arrai/safety@3.0.3
+    pypi: arrai/pypi@3.1.0
+    pytest: arrai/pytest@8.1.5
+    safety: arrai/safety@3.0.4
     utils: arrai/utils@1.16.3
 executors:
     python311:
         docker:
             - image: cimg/python:3.11
-            - image: cimg/postgres:15.5
+            - image: cimg/postgres:15.6
             - image: cimg/redis:6.2
     python311-base:
         docker:
             - image: cimg/python:3.11
+jobs:
+    build:
+        executor: python311-base
+        resource_class: small
+        steps:
+            - checkout
+            - run:
+                  name: Verify Git Tag Matches Python Version
+                  command: |
+                      GIT_TAG=$(git describe --tags --exact-match 2>/dev/null)
+
+                      if [ $? -ne 0 ]; then
+                        echo "No exact match Git tag found."
+                        exit 1
+                      fi
+
+                      PYTHON_VERSION=$(python -c "import vueda; print(vueda.__version__)")
+
+                      if [ "$GIT_TAG" == "v$PYTHON_VERSION" ]; then
+                        echo "Git tag matches the Python version: $GIT_TAG"
+                        exit 0
+                      else
+                        echo "Git tag ($GIT_TAG) does not match the Python version ($PYTHON_VERSION)."
+                        exit 1
+                      fi
+            - run:
+                  name: Build Package
+                  command: |
+                      pip install --user --upgrade build
+                      python -m build --wheel
+            - save_cache:
+                  paths:
+                      - ~/project/dist
+                  key: build-{{ arch }}-{{ .Environment.CIRCLE_WORKFLOW_ID }}
+
 workflows:
     test:
         jobs:
@@ -31,6 +67,37 @@ workflows:
                           only: /.*/
                       tags:
                           only: /.*/
+            # todo: docs?
+            - build:
+                  name: build
+                  requires:
+                      - pytest
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore: /.*/
+            - github/create_release:
+                  name: release_on_github
+                  context: arrai-global
+                  requires:
+                      - build
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore: /.*/
+            - pypi/upload_release:
+                  name: publish
+                  context: arrai-private-package-publishing
+                  cache_key: build-{{ arch }}-{{ .Environment.CIRCLE_WORKFLOW_ID }}
+                  requires:
+                      - build
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore: /.*/
     lint:
         jobs:
             - flake8/flake8_pipenv_fixed_ip:
