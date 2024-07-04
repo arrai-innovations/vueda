@@ -112,10 +112,13 @@ def ask(
     question: str,
     choices: typing.List[str],
     default: str,
+    non_interactive: bool = False,
 ):
     """
     Ask the user a question, with a list of choices and a default.
     """
+    if non_interactive:
+        return default
     char_input = all((len(x) == 1 for x in choices))
     get_answer = orange_char if char_input else orange_input
     answer = ""
@@ -194,7 +197,7 @@ def echo_and_eval(
         raise ExitWithCode(code=sp.returncode)
 
 
-def backup(stdout: typing.TextIO, stderr: typing.TextIO):
+def backup(stdout: typing.TextIO, stderr: typing.TextIO, non_interactive: bool = False):
     """
     Clean up backups older than a week. Create a new database backup.
     """
@@ -210,7 +213,7 @@ def backup(stdout: typing.TextIO, stderr: typing.TextIO):
         raise ExitWithCode(code=rev_sp.returncode)
     rev = rev_sp.stdout.decode().strip()
     print(wrap_text(f"Your current git revision is: {blue_color(rev)}"), file=stdout)
-    clean = ask(stdout, stderr, "Do you want to clean the database backup folder?", ["y", "n"], "y")
+    clean = ask(stdout, stderr, "Do you want to clean the database backup folder?", ["y", "n"], "y", non_interactive)
     if clean == "y":
         # skip if the backup dir doesn't exist
         if os.path.exists(backup_dir):
@@ -223,7 +226,7 @@ def backup(stdout: typing.TextIO, stderr: typing.TextIO):
             )
         else:
             print(wrap_text(f"{orange_color('Skipping')}: {backup_dir_blue} doesn't exist"), file=stdout)
-    doit = ask(stdout, stderr, "Do you want to backup the database?", ["y", "n"], "y")
+    doit = ask(stdout, stderr, "Do you want to backup the database?", ["y", "n"], "y", non_interactive)
     if doit == "y":
         # if the backup directory doesn't exist, create it
         if not os.path.exists(backup_dir):
@@ -242,6 +245,7 @@ def backup(stdout: typing.TextIO, stderr: typing.TextIO):
 def pull(
     stdout: typing.TextIO,
     stderr: typing.TextIO,
+    non_interactive: bool = False,
 ):
     """
     Pull the latest code from git. if on main, we ask the user if they want to
@@ -255,7 +259,7 @@ def pull(
     # HEAD is the branch name if you are in a detached HEAD, like checking out a tag.
     if branch in ("main", "HEAD"):
         echo_and_eval(stdout, stderr, ["git", "fetch"])
-        desired_tag = ask_tag(stdout, stderr)
+        desired_tag = "HEAD" if non_interactive else ask_tag(stdout, stderr)
         # checkout desired_tag
         echo_and_eval(stdout, stderr, ["git", "checkout", desired_tag])
     else:
@@ -265,6 +269,7 @@ def pull(
 def install(
     stdout: typing.TextIO,
     stderr: typing.TextIO,
+    non_interactive: bool = False,
 ):
     """
     Install the latest requirements, assuming modern projects use pipenv.
@@ -284,7 +289,9 @@ def install(
             file=stdout,
         )
     echo_and_eval(stdout, stderr, install_cmd)
-    clean_pipenv = ask("Do you want to clean extraneous packages (pipenv clean)?", ["y", "n"], "y")
+    clean_pipenv = ask(
+        stdout, stderr, "Do you want to clean extraneous packages (pipenv clean)?", ["y", "n"], "y", non_interactive
+    )
     if clean_pipenv == "y":
         echo_and_eval(stdout, stderr, ["pipenv", "clean"])
 
@@ -292,14 +299,16 @@ def install(
 def static(
     stdout: typing.TextIO,
     stderr: typing.TextIO,
+    non_interactive: bool = False,
 ):
     """
     Run Django management command 'collectstatic', if on a live site.
     """
+    cmd = ["pipenv", "run", "python", "manage.py", "collectstatic", "--traceback"]
+    if non_interactive:
+        cmd.append("--noinput")
     if not settings.DEBUG:
-        echo_and_eval(
-            stdout, stderr, ["pipenv", "run", "python", "manage.py", "collectstatic", "--noinput", "--traceback"]
-        )
+        echo_and_eval(stdout, stderr, cmd)
     else:
         print(
             wrap_text(f"{orange_color('Skipping')}: {blue_color('`collectstatic`')} is only run on live sites"),
@@ -310,15 +319,21 @@ def static(
 def migrate(
     stdout: typing.TextIO,
     stderr: typing.TextIO,
+    non_interactive: bool = False,
 ):
     """
     Run Django management command 'migrate' and 'remove_stale_contenttypes'.
     """
-    echo_and_eval(stdout, stderr, ["pipenv", "run", "python", "manage.py", "migrate", "--traceback"])
-    echo_and_eval(stdout, stderr, ["pipenv", "run", "python", "manage.py", "remove_stale_contenttypes", "--traceback"])
+    migrate_cmd = ["pipenv", "run", "python", "manage.py", "migrate", "--traceback"]
+    stale_cmd = ["pipenv", "run", "python", "manage.py", "remove_stale_contenttypes", "--traceback"]
+    if non_interactive:
+        migrate_cmd.append("--noinput")
+        stale_cmd.append("--noinput")
+    echo_and_eval(stdout, stderr, migrate_cmd)
+    echo_and_eval(stdout, stderr, stale_cmd)
 
 
-def post(stdout: typing.TextIO, stderr: typing.TextIO):
+def post(stdout: typing.TextIO, stderr: typing.TextIO, non_interactive: bool = False):
     """
     Run post-update commands. This is historical at the moment.
     """
@@ -353,6 +368,7 @@ def run(
         text_wrapper.width = terminal_width
     stdout = sys.stdout
     stderr = sys.stderr
+    non_interactive = parsed_args.non_interactive
     all_steps_keys = list(all_steps.keys())
     all_step_values = list(all_steps.values())
     steps = all_step_values[all_steps_keys.index(parsed_args.first_step) :]
@@ -361,7 +377,7 @@ def run(
 
     for step in steps:
         try:
-            step(stdout=stdout, stderr=stderr)
+            step(stdout=stdout, stderr=stderr, non_interactive=non_interactive)
         except ExitWithCode as ewc:
             if exit_on_error:
                 sys.exit(ewc.code)
@@ -396,6 +412,11 @@ def update_for_main(subparsers=None, exit_on_error=True):
         "-o",
         action="store_true",
         help="Only run the first step. Default: %(default)s",
+    )
+    parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Run in non-interactive mode using default values.",
     )
     # caller runs the parser and passes the args to run
     return run, parser
