@@ -44,4 +44,8 @@ watch(
     { immediate: true },
 );
 </script>
-<template><slot /></template>
+<template>
+    <div data-qa="field-date-time">
+        <slot />
+    </div>
+</template>

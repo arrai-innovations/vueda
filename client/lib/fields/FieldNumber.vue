@@ -81,5 +81,7 @@ watch(
 );
 </script>
 <template>
-    <slot />
+    <div data-qa="field-number">
+        <slot />
+    </div>
 </template>

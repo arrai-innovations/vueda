@@ -47,5 +47,7 @@ watch([hours, minutes, seconds], () => {
 </script>
 
 <template>
-    <slot />
+    <div data-qa="field-duration">
+        <slot />
+    </div>
 </template>

@@ -45,5 +45,7 @@ watch(
 );
 </script>
 <template>
-    <slot />
+    <div data-qa="field-date">
+        <slot />
+    </div>
 </template>

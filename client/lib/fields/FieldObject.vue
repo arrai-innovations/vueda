@@ -7,5 +7,7 @@ const props = defineProps({
 useField(props);
 </script>
 <template>
-    <slot />
+    <div data-qa="field-object">
+        <slot />
+    </div>
 </template>

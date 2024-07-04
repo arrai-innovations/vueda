@@ -19,5 +19,7 @@ watch(
 );
 </script>
 <template>
-    <slot />
+    <div data-qa="field-boolean">
+        <slot />
+    </div>
 </template>
