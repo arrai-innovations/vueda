@@ -58,7 +58,7 @@
     "vitest": "^0.34.6"
   },
   "peerDependencies": {
-    "@arrai-innovations/reactive-helpers": "^13.0.0",
+    "@arrai-innovations/reactive-helpers": "^13.0.1",
     "@arrai-innovations/sharp-solid-svg-icons": "^6.4.0",
     "@arrai-innovations/vue-fontawesome": "^3.0.4-alpha.0",
     "@floating-ui/vue": "^1.0.2",
