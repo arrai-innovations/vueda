@@ -1,4 +1,4 @@
-import { assignReactiveObject, assignReactiveObjectDeep } from "@arrai-innovations/reactive-helpers";
+import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import FieldBoolean from "@vueda/fields/FieldBoolean.vue";
 import FieldDate from "@vueda/fields/FieldDate.vue";
 import FieldNumber from "@vueda/fields/FieldNumber.vue";
@@ -10,8 +10,10 @@ import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
 import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
+import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
-import { computed, reactive, readonly, toRef, watch } from "vue";
+import omit from "lodash-es/omit.js";
+import { computed, reactive, readonly, ref, shallowReactive, shallowRef, toRef, watch } from "vue";
 
 // todo: we should have a way to register custom field components
 const builtInTypes = {
@@ -64,6 +66,8 @@ const defaultWidgets = {
     FieldTime: WidgetInput,
 };
 
+const defaultFieldProps = {};
+
 // todo: we should have a way to register custom widget props for custom fields
 // modelconfig should have a view that client can pass in custom props
 const defaultWidgetProps = {
@@ -84,9 +88,17 @@ const defaultWidgetProps = {
     },
 };
 
-const getWidgetProps = (fieldObj) => {
-    const fieldComponent = djangoTypeToFieldComponent(fieldObj.type);
-    const defaultProps = defaultWidgetProps[fieldComponent.__name];
+const getFieldProps = (fieldObj) => {
+    const defaultProps = defaultFieldProps[fieldObj.type] || {};
+    return {
+        // useFormModel resolves type, the fields don't care about the server type.
+        ...omit(fieldObj, ["type"]),
+        ...defaultProps,
+    };
+};
+
+const getWidgetProps = (fieldType, fieldObj) => {
+    const defaultProps = defaultWidgetProps[fieldType] || {};
     if (fieldObj.type === "ChoiceField") {
         const choices = fieldObj.choices;
         return {
@@ -117,21 +129,48 @@ const getDefaultWidget = (field) => {
 };
 
 /**
- * @param {Object} props
- * @property {string} props.app - The app name
- * @property {string} props.model - The model name
- * @property {Array.<string>} props.fields - The names of the fields to display
+ * @typedef {object} UseFormModelRawState
+ * @property {{[fieldName:string]:import('@vueda/models/FieldModel').FieldModel}} fieldObjects -
+ * @property {{[fieldName:string]:import('vue').Component}} fieldComponents -
+ * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps -
+ * @property {{[fieldName:string]: import('vue').Component}} widgetComponents - The widget components
+ * @property {{[fieldName:string]: {[key:string]: any}}} widgetProps -
+ */
+
+/**
+ * @typedef {import('vue').shallowReactive<UseFormModelRawState>} UseFormModelState
+ */
+
+/**
+ * @typedef {object} UseFormModelRawProps
+ * @property {string} app - The app name
+ * @property {string} model - The model name
+ * @property {string[]} fields - The fields to display
+ */
+
+const UseFormModelStateKeys = ["fieldObjects", "fieldComponents", "fieldProps", "widgetComponents", "widgetProps"];
+/**
+ * useFormModel - using model info and model config, provide reactive field & widget components and props.
+ *
+ * @param {import('vue').Reactive<UseFormModelRawProps>} props - The reactive arguments
+ * @returns {import('vue').Readonly<import('vue').Reactive<{
  */
 export default function useFormModel(props) {
     const modelInfoStore = storeModelInfo();
-    const state = reactive({
+    const internalState = reactive({
         modelInfo: {},
-        fields: [], //TODO: should be poped weith modelConfig
-        fieldObjects: {},
-        fieldComponents: {},
-        widgetComponents: {},
-        widgetProps: {},
     });
+    const state = shallowReactive(
+        /** @type {UseFormModelRawState} */ {
+            fields: ref([]),
+            fieldObjects: reactive({}),
+            // components themselves should not be deep reactive, avoiding vue warnings
+            fieldComponents: shallowRef({}),
+            fieldProps: reactive({}),
+            widgetComponents: shallowRef({}),
+            widgetProps: reactive({}),
+        },
+    );
 
     watch(
         [toRef(props, "app"), toRef(props, "model")],
@@ -143,45 +182,65 @@ export default function useFormModel(props) {
         { immediate: true },
     );
     const appModelKey = computed(() => `${memoizedSnakeCase(props.app)}.${memoizedSnakeCase(props.model)}`);
+
+    watch(
+        () => modelInfoStore.modelInfos[appModelKey.value],
+        (modelInfo) => {
+            if (!isEqual(internalState.modelInfo, modelInfo)) {
+                assignReactiveObject(internalState.modelInfo, modelInfo || {});
+            }
+        },
+        { immediate: true },
+    );
+
+    const assignStateObjectsIfChanged = (args) => {
+        for (const key of UseFormModelStateKeys) {
+            if (!isEqual(state[key], args[key])) {
+                assignReactiveObject(state[key], args[key]);
+            }
+        }
+    };
+
     // todo: what about figuring out fields through foreign keys?
     watch(
-        [() => modelInfoStore.modelInfos[appModelKey.value], toRef(props, "fields")],
+        [toRef(internalState, "modelInfo"), toRef(props, "fields")],
         ([modelInfo, fields]) => {
-            if (modelInfo && fields) {
-                if (!isEqual(state.modelInfo, modelInfo) || !isEqual(state.fields, fields)) {
-                    assignReactiveObject(state.modelInfo, modelInfoStore.modelInfos[appModelKey.value]);
-                    const fieldObjects = {};
-                    const fieldComponents = {};
-                    const widgetComponents = {};
-                    const widgetProps = {};
-                    const formFields = [];
-                    for (const fieldObj of modelInfo.fields) {
-                        if (!fields.includes(fieldObj.name)) {
-                            continue;
-                        }
-                        // todo: we should have a way to have custom field props on top server model info
-                        fieldObjects[fieldObj.name] = fieldObj;
-                        fieldComponents[fieldObj.name] = djangoTypeToFieldComponent(fieldObj.type);
-                        const widgetComponent = getDefaultWidget(fieldObj);
-                        widgetComponents[fieldObj.name] = widgetComponent;
-                        // todo: we should have a way to register custom widget props
-                        //  or provide them to the form model as props
-                        widgetProps[fieldObj.name] = getWidgetProps(fieldObj);
-                        formFields.push(fieldObj.name);
+            if (modelInfo?.fields?.length && fields?.length) {
+                const fieldObjects = {};
+                const fieldComponents = {};
+                const fieldProps = {};
+                const widgetComponents = {};
+                const widgetProps = {};
+                for (const fieldObj of modelInfo.fields) {
+                    if (!fields.includes(fieldObj.name)) {
+                        continue;
                     }
-                    assignReactiveObject(state.fields, formFields);
-                    assignReactiveObject(state.fieldObjects, fieldObjects);
-                    assignReactiveObject(state.fieldComponents, fieldComponents);
-                    assignReactiveObject(state.widgetComponents, widgetComponents);
-                    assignReactiveObjectDeep(state.widgetProps, widgetProps);
+                    // todo: we should have a way to have custom field props on top server model info
+                    fieldObjects[fieldObj.name] = fieldObj;
+                    fieldComponents[fieldObj.name] = djangoTypeToFieldComponent(fieldObj.type);
+                    fieldProps[fieldObj.name] = getFieldProps(fieldObj);
+                    widgetComponents[fieldObj.name] = getDefaultWidget(fieldObj);
+                    // todo: we should have a way to register custom widget props
+                    //  or provide them to the form model as props
+                    widgetProps[fieldObj.name] = getWidgetProps(fieldObj.type, fieldObj);
                 }
+                assignStateObjectsIfChanged({
+                    fieldObjects,
+                    fieldComponents,
+                    fieldProps,
+                    widgetComponents,
+                    widgetProps,
+                });
+                assignReactiveObject(state.fields, fields.map((field) => fieldObjects[field]?.name).filter(identity));
             } else {
+                assignStateObjectsIfChanged({
+                    fieldObjects: {},
+                    fieldComponents: {},
+                    fieldProps: {},
+                    widgetComponents: {},
+                    widgetProps: {},
+                });
                 assignReactiveObject(state.fields, []);
-                assignReactiveObject(state.fieldObjects, {});
-                assignReactiveObject(state.modelInfo, {});
-                assignReactiveObject(state.fieldComponents, {});
-                assignReactiveObject(state.widgetComponents, {});
-                assignReactiveObject(state.widgetProps, {});
             }
         },
         { immediate: true, deep: true },

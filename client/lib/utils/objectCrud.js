@@ -1,4 +1,4 @@
-import { setObjectCrud } from "@arrai-innovations/reactive-helpers/config/objectCrud.js";
+import { setObjectCrud } from "@arrai-innovations/reactive-helpers";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FormValidationError, UnhandledResponseError } from "@vueda/utils/errors.js";

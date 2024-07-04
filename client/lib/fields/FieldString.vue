@@ -96,5 +96,7 @@ watch(
 );
 </script>
 <template>
-    <slot />
+    <div data-qa="field-string">
+        <slot />
+    </div>
 </template>

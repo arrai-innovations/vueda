@@ -6,7 +6,7 @@ import FormWrapper from "@vueda/components/FormWrapper.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useFormModel from "@vueda/use/useFormModel.js";
-import { computed, reactive, ref } from "vue";
+import { computed, ref } from "vue";
 
 const props = defineProps({
     app: {
@@ -33,10 +33,6 @@ const props = defineProps({
 const emit = defineEmits(["submit", "dirty"]);
 
 const formModel = useFormModel(props);
-const myState = reactive({
-    form: null,
-    formErrors: null,
-});
 
 const handleSubmit = (form) => {
     emit("submit", form);
@@ -55,44 +51,39 @@ const combinedClasses = useCombinedClasses("@vueda/components/FormModel.vue", pr
 </script>
 
 <template>
-    <form-wrapper
-        v-if="Object.keys(formModel.modelInfo || {})?.length"
-        ref="formWrapperRef"
-        :form-errors="myState.formErrors"
-        :myform="myState.form"
-        @dirty="handleDirty"
-        @submit="handleSubmit"
-    >
+    <form-wrapper ref="formWrapperRef" @dirty="handleDirty" @submit="handleSubmit">
         <template #default>
-            <slot name="beforeFields" />
-            <div
-                v-for="fieldObj in formModel.fields.map((x) => formModel.fieldObjects[x])"
-                :key="fieldObj?.name"
-                :class="combinedClasses.fieldsClass"
-            >
-                <component :is="formModel.fieldComponents[fieldObj?.name]" v-if="fieldObj" v-bind="fieldObj">
-                    <template v-if="!$slots[`field-${fieldObj?.name}`]" #default>
-                        <form-label>
-                            <template #default>
-                                <component
-                                    :is="formModel.widgetComponents[fieldObj.name]"
-                                    v-bind="formModel.widgetProps[fieldObj.name]"
-                                />
-                            </template>
-                        </form-label>
-                        <form-help-text />
-                        <form-feedback type="error" />
-                        <form-feedback type="message" />
-                    </template>
-                </component>
-            </div>
-            <slot name="afterFields" />
+            <template v-if="formModel.fields?.length">
+                <slot name="beforeFields" />
+                <div
+                    v-for="fieldObj in formModel.fields.map((x) => formModel.fieldObjects[x])"
+                    :key="fieldObj?.name"
+                    :class="combinedClasses.fieldsClass"
+                >
+                    <component :is="formModel.fieldComponents[fieldObj?.name]" v-if="fieldObj" v-bind="fieldObj">
+                        <template v-if="!$slots[`field-${fieldObj?.name}`]" #default>
+                            <form-label>
+                                <template #default>
+                                    <component
+                                        :is="formModel.widgetComponents[fieldObj.name]"
+                                        v-bind="formModel.widgetProps[fieldObj.name]"
+                                    />
+                                </template>
+                            </form-label>
+                            <form-help-text />
+                            <form-feedback type="error" />
+                            <form-feedback type="message" />
+                        </template>
+                    </component>
+                </div>
+                <slot name="afterFields" />
+            </template>
+            <template v-else>
+                <loading-spinner-block />
+                Loading model information.
+            </template>
         </template>
     </form-wrapper>
-    <template v-else>
-        <loading-spinner-block />
-        Loading model information.
-    </template>
 </template>
 
 <style scoped></style>
