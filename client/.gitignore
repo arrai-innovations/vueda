@@ -20,3 +20,6 @@ dist
 
 # unit coverage
 coverage
+
+# npm pack'd file
+arrai-innovations-vueda-*.tgz
