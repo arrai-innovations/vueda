@@ -59,6 +59,27 @@ const modelInfoUrl = (app, model) =>
     `${httpOrHttpsHostname}${getUrl("infoModelInfo")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
 
 /**
+ * A function to convert snake_case properties deeply on an object to be camelCase.
+ *
+ * @param {Object} obj - The object to convert.
+ * @returns {Object} The object with all snake_case properties converted to camelCase.
+ */
+const camelCaseObject = (obj) => {
+    if (typeof obj !== "object" || obj === null) {
+        return obj;
+    }
+    if (Array.isArray(obj)) {
+        return obj.map(camelCaseObject);
+    }
+    return Object.fromEntries(
+        Object.entries(obj).map(([k, v]) => {
+            const newKey = k.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+            return [newKey, camelCaseObject(v)];
+        }),
+    );
+};
+
+/**
  * storeModelInfo - store for model info
  * Usage:
  * ```js
@@ -188,10 +209,11 @@ export default defineStore({
                         // that is just noise client side, so we'll clean it up here
                         this.modelInfos[key] = Object.fromEntries(
                             Object.entries(data).map(([k, v]) => {
+                                const cV = camelCaseObject(v);
                                 if (k.startsWith("model_")) {
-                                    return [k.slice(6), v];
+                                    return [k.slice(6), cV];
                                 }
-                                return [k, v];
+                                return [k, cV];
                             }),
                         );
                         return data;
