@@ -55,6 +55,10 @@ const defaultComponents = {
         defaultVariant: "default",
         spots: ["label"],
     },
+    "@vueda/components/PaginationComponent.vue": {
+        defaultVariant: "default",
+        spots: ["outer"],
+    },
     "@vueda/widgets/WidgetInput.vue": {
         defaultVariant: "default",
         spots: ["outer", "prefix", "input", "suffix"],

@@ -5,12 +5,13 @@ import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
+import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import { getCRUDName } from "@vueda/router/getCrud.js";
 import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import useIsActive from "@vueda/use/useIsActive.js";
 import useModelConfig from "@vueda/use/useModelConfig.js";
 import Button from "primevue/button";
-import { computed, reactive, toRef } from "vue";
+import { computed, reactive, toRef, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -19,6 +20,10 @@ const props = defineProps({
     app: {
         type: String,
         required: true,
+    },
+    pageKey: {
+        type: String,
+        default: "p",
     },
     model: {
         type: String,
@@ -73,6 +78,17 @@ const props = defineProps({
 
 const isActive = useIsActive();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+const sorting = reactive({
+    state: {
+        sortable: toRef(modelConfig.config, "listSortable"),
+        sorted: [],
+    },
+    updateSorted: (sorted) => {
+        // todo: objects-grid handles the display and calling this to indicate desired sorts.
+        //  we need to handle getting the server to sort the objects, by updating the listArgs
+        assignReactiveObject(sorting.state.sorted, sorted);
+    },
+});
 //TODO: a list of string as fields won't work for objectsGrid
 const calculatedListFields = computed(() => {
     // if they don't pass listFields, use the modelConfig fields.
@@ -89,6 +105,14 @@ const calculatedListFieldsObjs = computed(() => {
     return modelConfig.info.model_fields?.filter((f) => calculatedListFields.value?.includes(f.name)) || [];
 });
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model));
+const listState = reactive({
+    currentPage: 1,
+    search: "",
+    listArgs: {
+        o: toRef(sorting.state, "sorted"),
+    },
+    filterArgs: {},
+});
 const instanceListProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
@@ -97,24 +121,34 @@ const instanceListProps = reactive({
     retrieveArgs: {
         f: calculatedListFields,
     },
-    listArgs: {},
+    listArgs: toRef(listState, "listArgs"),
     intendToList: validAndActive,
     // intendToSubscribe: validAndActive,
 });
 const instanceList = useList({
     props: instanceListProps,
+    paged: true,
 });
-const sorting = reactive({
-    state: {
-        sortable: toRef(modelConfig.config, "listSortable"),
-        sorted: [],
-    },
-    updateSorted: (sorted) => {
-        // todo: objects-grid handles the display and calling this to indicate desired sorts.
-        //  we need to handle getting the server to sort the objects, by updating the listArgs
-        assignReactiveObject(sorting.state.sorted, sorted);
-    },
+
+watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, newSearch]) => {
+    if (newPage <= 1 || newPage > instanceList.state.totalPages) {
+        if (newPage !== 1) {
+            // if there are no valid pages, just set 1 the once.
+            newPage = listState.currentPage = 1;
+        }
+    }
+    if (newPage === 1) {
+        delete listState.listArgs[props.pageKey];
+    } else {
+        listState.listArgs[props.pageKey] = newPage;
+    }
+    if (!newSearch) {
+        delete listState.listArgs[props.searchKey];
+    } else {
+        listState.listArgs[props.searchKey] = newSearch;
+    }
 });
+
 const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
 const combinedClasses = useCombinedClasses("@vueda/views/ViewList.vue", props);
 const verboseNamePlural = computed(() => getCapitalizedTitle(modelConfig.info?.verbose_name_plural || "items"));
@@ -182,5 +216,10 @@ const dismissError = () => {
                 </link-model-view>
             </template>
         </objects-grid>
+        <pagination-component
+            v-model:currentPage="listState.currentPage"
+            :rows="instanceList.state.perPage"
+            :total-records="instanceList.state.totalRecords"
+        ></pagination-component>
     </div>
 </template>
