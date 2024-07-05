@@ -75,6 +75,9 @@ class Migration(migrations.Migration):
             ],
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
+                "default_related_name": "users",
+                "ordering": ("-date_joined",),
+                "permissions": [("list_permission", "Can list permissions")],
             },
             managers=[
                 ("objects", django.contrib.auth.models.UserManager()),

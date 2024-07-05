@@ -123,7 +123,7 @@ class WorkflowDeleteView(PermissionRequiredMixin, View):
 class WorkflowAddView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):
     template_name = "workflow/add.jinja2"
 
-    permission_required = ("workflow.add_workflow",)
+    permission_required = ("workflow.create_workflow",)
 
     def get(self, request, *args, **kwargs):
         # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
@@ -158,7 +158,7 @@ class WorkflowAddView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, T
 class WorkflowEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):
     template_name = "workflow/edit.jinja2"
 
-    permission_required = ("workflow.change_workflow",)
+    permission_required = ("workflow.update_workflow",)
 
     def get(self, request, *args, **kwargs):
         # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
@@ -280,7 +280,7 @@ class WorkflowEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, 
 class WorkflowStateEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):
     template_name = "workflow/edit.jinja2"
 
-    permission_required = ("workflow.change_state",)
+    permission_required = ("workflow.update_state",)
 
     def get(self, request, *args, **kwargs):
         # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
@@ -349,7 +349,7 @@ class WorkflowStateEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMi
 class WorkflowTransitionEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):
     template_name = "workflow/edit.jinja2"
 
-    permission_required = ("workflow.change_transition",)
+    permission_required = ("workflow.update_transition",)
 
     def get(self, request, *args, **kwargs):
         # Local import, so django doesn't blow up when the django_content_type table doesn't exist.

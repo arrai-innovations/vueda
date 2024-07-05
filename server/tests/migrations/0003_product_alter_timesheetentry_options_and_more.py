@@ -33,13 +33,6 @@ class Migration(migrations.Migration):
                 "default_related_name": "timesheet_entries",
             },
         ),
-        migrations.AlterModelOptions(
-            name="user",
-            options={
-                "default_permissions": ("create", "read", "update", "delete", "list"),
-                "default_related_name": "users",
-            },
-        ),
         migrations.CreateModel(
             name="HistoricalProduct",
             fields=[

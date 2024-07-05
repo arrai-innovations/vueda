@@ -37,6 +37,7 @@ class Migration(migrations.Migration):
             options={
                 "db_table": "vueda_workflow_objectstateproxy",
                 "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "object_states_proxy",
             },
         ),
@@ -48,6 +49,7 @@ class Migration(migrations.Migration):
                 ("name", models.CharField(max_length=255)),
             ],
             options={
+                "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "states",
             },
         ),
@@ -61,6 +63,7 @@ class Migration(migrations.Migration):
                 ("state", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="vueda_workflow.state")),
             ],
             options={
+                "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "state_permissions",
             },
         ),
@@ -73,6 +76,7 @@ class Migration(migrations.Migration):
                 ("target", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="vueda_workflow.state")),
             ],
             options={
+                "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "transitions",
             },
         ),
@@ -87,6 +91,7 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
+                "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "transition_permissions",
             },
         ),
@@ -101,6 +106,7 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
+                "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "transition_sources",
             },
         ),
@@ -120,6 +126,7 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
+                "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "workflows",
             },
         ),
@@ -145,6 +152,7 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
+                "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "object_states",
             },
         ),
@@ -163,6 +171,7 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
+                "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "initial_states",
             },
         ),
@@ -238,6 +247,7 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
+                "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "workflow_permissions",
             },
         ),

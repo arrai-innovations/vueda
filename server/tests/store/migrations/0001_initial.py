@@ -184,6 +184,7 @@ class Migration(migrations.Migration):
                 ("is_added_reason", models.BooleanField(db_index=True)),
             ],
             options={
+                "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "inventory_record_reason",
                 "unique_together": {("code", "is_added_reason")},
             },
@@ -381,6 +382,9 @@ class Migration(migrations.Migration):
                     models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="store.productoption"),
                 ),
             ],
+            options={
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
         ),
         migrations.CreateModel(
             name="HistoricalProductOption",
