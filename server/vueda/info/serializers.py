@@ -269,13 +269,6 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         return filtering_data
 
 
-class ModelInfoExpandsSerializer(serializers.Serializer):
-    e = serializers.MultipleChoiceField(
-        choices=tuple(ModelInfoSerializer.Meta.expandable_fields.keys()),
-        allow_blank=True,
-    )
-
-
 # This adds the expands as default, so we can get back the data and
 class OpenAPIModelInfoSerializer(ModelInfoSerializer):
     def get_fields(self):
