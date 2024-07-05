@@ -1,22 +1,32 @@
-import useToast from "@vueda/use/useToast.js";
 import { VITE_PACKAGE_VERSION } from "@vueda/utils/constants.js";
 import { VersionSymbol } from "@vueda/utils/symbols.js";
 import semvarGT from "semver/functions/gt.js";
-import { computed, inject, provide, readonly, ref, watch } from "vue";
+import { computed, inject, provide, readonly, ref } from "vue";
 
-// import dispatcher from "@vueda/utils/dispatcher.js";
+/**
+ * @typedef {Readonly<{
+ *     serverVersion: import('vue').Ref<string>,
+ *     clientVersion: import('vue').Ref<string>,
+ *     myVersion: string,
+ *     newClientAvailable: import('vue').ComputedRef<boolean>,
+ *     toastId: import('vue').Ref<string | null>,
+ * }>} VersionInstance
+ */
 
+/**
+ * A composition function for tracking the server and client versions.
+ *
+ * @returns {VersionInstance} The version instance.
+ */
 export default function useVersion() {
     let version = inject(VersionSymbol, null);
 
     if (version === null) {
-        const toastId = ref(null);
         const serverVersion = ref("");
         const clientVersion = ref("");
         const newClientAvailable = computed(
             () => clientVersion.value && VITE_PACKAGE_VERSION && semvarGT(clientVersion.value, VITE_PACKAGE_VERSION),
         );
-        const toast = useToast();
         // todo: we have yet to decide how to implement dispatcher
         // const onVersion = (event) => {
         //     const data = event.detail;
@@ -31,25 +41,11 @@ export default function useVersion() {
         // onBeforeUnmount(() => {
         //     dispatcher.removeEventListener("version", onVersion);
         // });
-        watch(newClientAvailable, (newClientAvailable) => {
-            if (newClientAvailable && !toastId.value) {
-                toastId.value = toast.addToast({
-                    message: "A new version of the client is available. Please refresh the page to update.",
-                    variant: "info",
-                    dismissible: false,
-                });
-            }
-            if (!newClientAvailable && toastId) {
-                toast.removeToast(toastId);
-                toastId.value = null;
-            }
-        });
         version = readonly({
             serverVersion,
             clientVersion,
             myVersion: VITE_PACKAGE_VERSION,
             newClientAvailable,
-            toastId,
         });
         provide(VersionSymbol, version);
     }

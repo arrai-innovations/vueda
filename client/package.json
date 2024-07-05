@@ -86,6 +86,7 @@
     "p-limit": "^5.0.0",
     "platform-detect": "^3.0.1",
     "pluralize": "^8.0.0",
+    "semver": "^7.6.2",
     "string-similarity-js": "^2.1.4"
   }
 }
