@@ -1,7 +1,7 @@
 import { setObjectCrud } from "@arrai-innovations/reactive-helpers";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FormValidationError, UnhandledResponseError } from "@vueda/utils/errors.js";
+import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
 
@@ -23,7 +23,7 @@ export async function defaultObjectRetrieve({ crudArgs, id, retrieveArgs }) {
         if (response.status === 200) {
             return responseData;
         }
-        throw new UnhandledResponseError("Failed to retrieve object", response, responseData);
+        throw new FetchError("Failed to retrieve object", response, responseData);
     });
     returnPromise.cancel = () => controller.abort();
     return returnPromise;
@@ -50,7 +50,7 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
         if (response.status === 400) {
             throw new FormValidationError(responseData, response);
         }
-        throw new UnhandledResponseError("Failed to create object", response, responseData);
+        throw new FetchError("Failed to create object", response, responseData);
     });
     returnPromise.cancel = () => controller.abort();
     return returnPromise;
@@ -77,7 +77,7 @@ export async function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
         if (response.status === 400) {
             throw new FormValidationError(responseData, response);
         }
-        throw new UnhandledResponseError("Failed to update object", response, responseData);
+        throw new FetchError("Failed to update object", response, responseData);
     });
     returnPromise.cancel = () => controller.abort();
     return returnPromise;
@@ -104,7 +104,7 @@ export async function defaultObjectPatch({ crudArgs, id, partialObject, retrieve
         if (response.status === 400) {
             throw new FormValidationError(responseData, response);
         }
-        throw new UnhandledResponseError("Failed to patch object", response, responseData);
+        throw new FetchError("Failed to patch object", response, responseData);
     });
     returnPromise.cancel = () => controller.abort();
     return returnPromise;
@@ -125,7 +125,7 @@ export async function defaultObjectDelete({ crudArgs, id, deleteArgs }) {
         if (response.status === 204) {
             return;
         }
-        throw new UnhandledResponseError("Failed to delete object", response, await getJsonOrText(response));
+        throw new FetchError("Failed to delete object", response, await getJsonOrText(response));
     });
     returnPromise.cancel = () => abortController.abort();
     return returnPromise;

@@ -1,6 +1,7 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
+import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
 import { getUrl } from "@vueda/utils/urls.js";
@@ -10,22 +11,19 @@ import { defineStore } from "pinia";
 import { unref } from "vue";
 
 /**
- * WorkflowError - error class for workflow errors
- * @param messagePrefix - prefix for error messages
- * @param response - fetch response
- * @param responseData - response data
- * @constructor
- * @extends {Error}
- * @property {Response} response - fetch response
- * @property {Object} responseData - response data
+ * An error for use from the model info store.
+ * @extends {FetchError}
  */
-class WorkflowError extends Error {
+class WorkflowError extends FetchError {
+    /**
+     * Creates an instance of WorkflowError.
+     * @param {string} messagePrefix - The prefix for the error message.
+     * @param {Response} [response] - The response object associated with the error.
+     * @param {object|string} [responseData] - The data returned in the response.
+     */
     constructor(messagePrefix, response, responseData) {
-        const message = `${messagePrefix}: ${response.status} ${response.statusText}`;
-        super(message);
+        super(messagePrefix, response, responseData);
         this.name = "WorkflowError";
-        this.response = response;
-        this.responseData = responseData;
     }
 }
 

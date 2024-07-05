@@ -1,6 +1,6 @@
 import { setListCrud } from "@arrai-innovations/reactive-helpers";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname";
-import { UnhandledResponseError } from "@vueda/utils/errors";
+import { FetchError } from "@vueda/utils/errors";
 import { getJsonOrText } from "@vueda/utils/fetchSupport";
 import { getUrl } from "@vueda/utils/urls.js";
 import isArray from "lodash-es/isArray.js";
@@ -40,7 +40,7 @@ export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCal
         if (response.status === 200) {
             return pageCallback(responseData[crudArgs.resultsKey], { ...omit(responseData, crudArgs.resultsKey) });
         }
-        throw new UnhandledResponseError("Failed to single page list", response, responseData);
+        throw new FetchError("Failed to single page list", response, responseData);
     });
     returnPromise.cancel = () => controller.abort();
     return returnPromise;
@@ -61,7 +61,7 @@ export async function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs = {},
         if (response.status === 200) {
             pageCallback(responseData[crudArgs.resultsKey], { ...omit(responseData, crudArgs.resultsKey) });
         } else {
-            throw new UnhandledResponseError("Failed to all page list", response, responseData);
+            throw new FetchError("Failed to all page list", response, responseData);
         }
         if (responseData.totalPages === 1) {
             return;
@@ -93,7 +93,7 @@ export async function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs = {},
             if (response.status === 200) {
                 pageCallback(responseData[crudArgs.resultsKey], { ...omit(responseData, crudArgs.resultsKey) });
             } else {
-                throw new UnhandledResponseError("Failed to all page list", response, responseData);
+                throw new FetchError("Failed to all page list", response, responseData);
             }
         }
     };

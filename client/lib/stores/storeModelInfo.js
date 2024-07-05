@@ -1,26 +1,25 @@
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
+import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
 
 /**
- * An error for model info.
- *
- * @param {string} messagePrefix - prefix for error messages
- * @param {Response} response - fetch response
- * @param {object} responseData - response data
- * @property {Response} response - fetch response
- * @property {object} responseData - response data
+ * An error for use from the model info store.
+ * @extends {FetchError}
  */
-class ModelInfoError extends Error {
+class ModelInfoError extends FetchError {
+    /**
+     * Creates an instance of ModelInfoError.
+     * @param {string} messagePrefix - The prefix for the error message.
+     * @param {Response} [response] - The response object associated with the error.
+     * @param {object|string} [responseData] - The data returned in the response.
+     */
     constructor(messagePrefix, response, responseData) {
-        const message = `${messagePrefix}: ${response.status} ${response.statusText}`;
-        super(message);
+        super(messagePrefix, response, responseData);
         this.name = "ModelInfoError";
-        this.response = response;
-        this.responseData = responseData;
     }
 }
 

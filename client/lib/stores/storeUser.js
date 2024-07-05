@@ -1,40 +1,25 @@
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FormValidationError } from "@vueda/utils/errors.js";
+import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { isObject } from "lodash-es";
 import { defineStore } from "pinia";
 
 /**
- * An error for from the user store.
- *
- * @param {string} messagePrefix - prefix for error messages
- * @param {Response} response - fetch response
- * @param {object} responseData - response data
- * @property {Response} response - fetch response
- * @property {object} responseData - response data
+ * An error for use from the user store.
+ * @extends {FetchError}
  */
-class UserError extends Error {
+class UserError extends FetchError {
+    /**
+     * Creates an instance of UserError.
+     * @param {string} messagePrefix - The prefix for the error message.
+     * @param {Response} [response] - The response object associated with the error.
+     * @param {object|string} [responseData] - The data returned in the response.
+     */
     constructor(messagePrefix, response, responseData) {
-        const message = [];
-        message.push(messagePrefix);
-        if (response?.status || response?.statusText) {
-            message.push(": ");
-            if (response?.status) {
-                message.push(response.status);
-            }
-            if (response?.statusText) {
-                if (response?.status) {
-                    message.push(" ");
-                }
-                message.push(response.statusText);
-            }
-        }
-        super(message);
+        super(messagePrefix, response, responseData);
         this.name = "UserError";
-        this.response = response;
-        this.responseData = responseData;
     }
 }
 
