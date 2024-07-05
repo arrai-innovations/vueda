@@ -1,10 +1,14 @@
 from django.db.models import ForeignObjectRel
 from django.db.models.fields.related import RelatedField
 from rest_framework import serializers as drf_serializers
+from simple_history.models import HistoricalChanges
 
 
 def filter_fields_for_flexlike_on_historical_records(serializer, our_field_name, model):
-    history_model = getattr(model, model._meta.simple_history_manager_attribute).model
+    if issubclass(model, HistoricalChanges):
+        history_model = model
+    else:
+        history_model = getattr(model, model._meta.simple_history_manager_attribute).model
     fields = history_model._meta.get_fields()
     value_fields = [field for field in fields if not isinstance(field, (RelatedField, ForeignObjectRel))]
     fk_fields = [field for field in fields if isinstance(field, (RelatedField, ForeignObjectRel))]
