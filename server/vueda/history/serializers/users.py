@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from vueda.history.serializers import SimpleHistorySerializerMixin
+from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
 from vueda.user.serializers import User
 from vueda.user.serializers import UserSerializer as CoreUserSerializer
 from vueda.user.serializers import WhoIsSerializer as CoreWhoIsSerializer
