@@ -272,8 +272,6 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
 
         # simulate an update as if it was done through the view with flex fields
         serializer = TimesheetSerializer(instance=t, data=put_data, context=context)
-        # flex fields would be applied in the view when `to_representation` or `get_fields` is called
-        serializer.apply_flex_fields(serializer.fields, serializer._flex_options_rep_only)
 
         try:
             serializer.is_valid(raise_exception=True)
@@ -306,8 +304,6 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
 
         # simulate an update as if it was done through the view with flex fields
         serializer = TimesheetSerializer(instance=t, data=put_data, context=context)
-        # flex fields would be applied in the view when `to_representation` or `get_fields` is called
-        serializer.apply_flex_fields(serializer.fields, serializer._flex_options_rep_only)
 
         try:
             serializer.is_valid(raise_exception=True)
@@ -340,8 +336,6 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
 
         # simulate an update as if it was done through the view with flex fields
         serializer = TimesheetSerializer(instance=t, data=put_data, context=context)
-        # flex fields would be applied in the view when `to_representation` or `get_fields` is called
-        serializer.apply_flex_fields(serializer.fields, serializer._flex_options_rep_only)
 
         try:
             serializer.is_valid(raise_exception=True)
@@ -374,8 +368,6 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
 
         # simulate an update as if it was done through the view with flex fields
         serializer = TimesheetSerializer(instance=t, data=put_data, context=context)
-        # flex fields would be applied in the view when `to_representation` or `get_fields` is called
-        serializer.apply_flex_fields(serializer.fields, serializer._flex_options_rep_only)
 
         try:
             serializer.is_valid(raise_exception=True)
@@ -389,7 +381,6 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
         # fix the employee to the correct type and check that label10 is complained about
         put_data["employee"] = employee.pk
         serializer = TimesheetSerializer(instance=t, data=put_data, context=context)
-        serializer.apply_flex_fields(serializer.fields, serializer._flex_options_rep_only)
 
         try:
             serializer.is_valid(raise_exception=True)
