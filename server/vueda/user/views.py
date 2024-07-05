@@ -192,6 +192,10 @@ class PermissionOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView)
             else:
                 local_apps.append(app_label)
 
+        # We use this to get the table name without historical in it, so
+        # we can group the historical and non-historical models together.
+        index_after_historical = 11
+
         permissions = Permission.objects.annotate(
             underscore_index=StrIndex(F("codename"), Value("_")),
             codename_type=Substr(F("codename"), 1, length=F("underscore_index") - 1),
@@ -209,17 +213,17 @@ class PermissionOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView)
                 ),
                 default=False,
             ),
-            model_and_historical_group_id=Case(
+            model_and_historical_model_group=Case(
                 When(
                     is_historical=True,
                     then=(
                         ContentType.objects.filter(
                             app_label=OuterRef("content_type__app_label"),
-                            model=Substr(OuterRef("content_type__model"), 11),
-                        ).values_list("id", flat=True)
+                            model=Substr(OuterRef("content_type__model"), index_after_historical),
+                        ).values_list("model", flat=True)
                     ),
                 ),
-                default=F("content_type_id"),
+                default=F("content_type__model"),
             ),
             crud_order_by=Case(
                 When(
@@ -245,7 +249,7 @@ class PermissionOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView)
                 default=5,
             ),
             groups=ArrayAgg("group__name"),
-        ).order_by("model_and_historical_group_id", "is_historical", "crud_order_by")
+        ).order_by("content_type__app_label", "model_and_historical_model_group", "is_historical", "crud_order_by")
 
         context.update(
             {
@@ -257,9 +261,10 @@ class PermissionOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView)
         )
         permission_lists = {}  # So we can add to the same list.
 
-        for pk, codename, app_label, model_name, groups, is_local_app, is_historical in permissions.values_list(
+        for pk, codename, name, app_label, model_name, groups, is_local_app, is_historical in permissions.values_list(
             "pk",
             "codename",
+            "name",
             "content_type__app_label",
             "content_type__model",
             "groups",
@@ -285,6 +290,7 @@ class PermissionOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView)
                 {
                     "pk": pk,
                     "codename": codename,
+                    "name": name,
                     "groups": sorted(group for group in groups if group is not None),
                 }
             )
