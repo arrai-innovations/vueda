@@ -12,7 +12,6 @@ from vueda.core.open_api import conditional_open_api_response
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import FlexFieldsMixin
 from vueda.info.registration import get_registered_content_types
-from vueda.info.serializers import ModelInfoExpandsSerializer
 from vueda.info.serializers import ModelInfoSerializer
 from vueda.info.serializers import OpenAPIModelInfoSerializer
 
@@ -134,14 +133,3 @@ class ModelInfoViewSet(FlexFieldsMixin, mixins.ListModelMixin, mixins.RetrieveMo
         )
         self.check_object_permissions(self.request, obj)
         return obj
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-
-        query = ModelInfoExpandsSerializer(data=self.request.query_params)
-        if query.is_valid(raise_exception=True):
-            self.query_data = query.validated_data
-            context[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]] = query.validated_data.get(
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]
-            )
-        return context
