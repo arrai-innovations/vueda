@@ -88,6 +88,12 @@ const defaultWidgetProps = {
     },
 };
 
+/**
+ * Get the field props for a given field object.
+ *
+ * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} fieldObj - The field object.
+ * @returns {{[key:string]: any}} The field props.
+ */
 const getFieldProps = (fieldObj) => {
     const defaultProps = defaultFieldProps[fieldObj.type] || {};
     return {
@@ -97,6 +103,13 @@ const getFieldProps = (fieldObj) => {
     };
 };
 
+/**
+ * Get the widget props for a given field type and field object.
+ *
+ * @param {string} fieldType - The field type.
+ * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} fieldObj - The field object.
+ * @returns {{[key:string]: any}} The widget props.
+ */
 const getWidgetProps = (fieldType, fieldObj) => {
     const defaultProps = defaultWidgetProps[fieldType] || {};
     if (fieldObj.type === "ChoiceField") {
@@ -112,10 +125,22 @@ const getWidgetProps = (fieldType, fieldObj) => {
     return defaultProps;
 };
 
+/**
+ * Get the field component for a given Django field type.
+ *
+ * @param {string} type - The Django field type.
+ * @returns {import('vue').Component} The field component.
+ */
 const djangoTypeToFieldComponent = (type) => {
     // todo: we should have a way to register custom field components
     return builtInTypes[type] || FieldString;
 };
+/**
+ * Get the default widget for a given field object.
+ *
+ * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - The field object.
+ * @returns {import('vue').Component} The widget component.
+ */
 const getDefaultWidget = (field) => {
     if (field.choices) {
         return WidgetSelect;
@@ -150,10 +175,10 @@ const getDefaultWidget = (field) => {
 
 const UseFormModelStateKeys = ["fieldObjects", "fieldComponents", "fieldProps", "widgetComponents", "widgetProps"];
 /**
- * useFormModel - using model info and model config, provide reactive field & widget components and props.
+ * Using server model info and client model config, this hook provides the necessary reactive state for a form model.
  *
- * @param {import('vue').Reactive<UseFormModelRawProps>} props - The reactive arguments
- * @returns {import('vue').Readonly<import('vue').Reactive<{
+ * @param {import('vue').Reactive<UseFormModelRawProps>} props - The reactive arguments.
+ * @returns {UseFormModelState} The reactive state.
  */
 export default function useFormModel(props) {
     const modelInfoStore = storeModelInfo();

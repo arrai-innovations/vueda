@@ -6,14 +6,13 @@ import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
 
 /**
- * ModelInfoError - error class for model info errors
- * @param messagePrefix - prefix for error messages
- * @param response - fetch response
- * @param responseData - response data
- * @constructor
- * @extends {Error}
+ * An error for model info.
+ *
+ * @param {string} messagePrefix - prefix for error messages
+ * @param {Response} response - fetch response
+ * @param {object} responseData - response data
  * @property {Response} response - fetch response
- * @property {Object} responseData - response data
+ * @property {object} responseData - response data
  */
 class ModelInfoError extends Error {
     constructor(messagePrefix, response, responseData) {
@@ -26,11 +25,12 @@ class ModelInfoError extends Error {
 }
 
 /**
- * fetchHelper - fetch helper function to handle common fetch tasks
- * @param url - the url to fetch
- * @param options - fetch options
- * @param messagePrefix - prefix for error messages
- * @returns {Promise<*>}
+ * Fetch an url with options and handle.
+ *
+ * @param {string} url - The url to fetch.
+ * @param {object} [options] - The fetch
+ * @param {string} [messagePrefix] - The prefix for error messages.
+ * @returns {Promise<object>} The response data.
  */
 const fetchHelper = async (url, options = {}, messagePrefix) => {
     const defaultHeaders = {
@@ -61,8 +61,8 @@ const modelInfoUrl = (app, model) =>
 /**
  * A function to convert snake_case properties deeply on an object to be camelCase.
  *
- * @param {Object} obj - The object to convert.
- * @returns {Object} The object with all snake_case properties converted to camelCase.
+ * @param {object} obj - The object to convert.
+ * @returns {object} The object with all snake_case properties converted to camelCase.
  */
 const camelCaseObject = (obj) => {
     if (typeof obj !== "object" || obj === null) {
@@ -80,86 +80,105 @@ const camelCaseObject = (obj) => {
 };
 
 /**
- * storeModelInfo - store for model info
- * Usage:
- * ```js
- *   import { ref, unref, computed } from "vue";
- *   import storeModelInfo from "vueda-client";
- *   const modelInfoStore = storeModelInfo();
+ * An information item on a field.
  *
- *   // retrieve model info
- *   const fetchPromise = modelInfoStore.fetchModelInfo("app", "model");
+ * @typedef {object} FieldInfo
+ * @property {string} name - The name of the field.
+ * @property {string} label - The label of the field.
+ * @property {string} type - The type of the field.
+ * @property {boolean} many - A boolean indicating whether the field is a `ListField`.
+ * @property {boolean} readOnly - A boolean indicating whether the field is read-only.
+ * @property {boolean} required - A boolean indicating whether the field is required.
+ * @property {string} helpText - The help text for the field.
+ * @property {number} maxValue - The maximum value for the field.
+ * @property {number} minValue - The minimum value for the field.
+ * @property {number} maxLength - The maximum length for the field.
+ * @property {number} minLength - The minimum length for the field.
+ * @property {number} maxDigits - The maximum number of digits for the field.
+ * @property {number} decimalPlaces - The number of decimal places for the field.
+ * @property {{label: string, value: string}[]} choices - The choices for the field.
+ */
+
+/**
+ * An action information item.
  *
- *   const myApp = ref("myApp");
- *   const myModel = ref("myModel");
+ * @typedef {object} ActionInfo
+ * @property {string} name - The name of the action.
+ * @property {string} description - The description of the action.
+ * @property {boolean} detail - A boolean indicating whether the action is a detail view.
+ * @property {string[]} methodNames - An array of HTTP methods (e.g., GET, POST) for the action.
+ * @property {{name: string, type: string}[]} parameters - An optional array of parameters required for the action.
+ */
+
+/**
+ * An expand information item.
  *
- *   // reactive model info
- *   const modelInfo = computed(() => modelInfoStore.modelInfos[`${unref(myApp)}.${unref(myModel)}`]);
+ * @typedef {object} ExpandInfo
+ * @property {string} name - The name of the expand field.
+ * @property {string[]} fields - An optional array of fields that can be expanded.
+ */
+
+/**
+ * An ordering information item.
  *
- *   modelInfo.app_label // The app label of the model.
- *   modelInfo.model // The python model class name (lowercase).
- *   modelInfo.verbose_name // The verbose name of the model.
- *   modelInfo.verbose_name_plural // The verbose name plural of the model.
+ * @typedef {object} OrderInfo
+ * @property {string} name - The name of the ordering field.
+ * @property {string} type - The type of the ordering field (e.g., "alpha", "numeric").
+ */
+
+/**
+ * A filter information item.
  *
- *   // model info properties
- *   const fields = computed(() => unref(modelInfo)?.fields);
+ * @typedef {object} FilterInfoItem
+ * @property {string} label - The label of the filter.
+ * @property {boolean} required - A boolean indicating whether the filter is required.
+ * @property {(
+ *     "exact"|"iexact"|"contains"|"icontains"|"gt"|"gte"|"lt"|"lte"|"in"|"startswith"|
+ *     "istartswith"|"endswith"|"iendswith"|"range"|"isnull"|"search"|"regex"|"iregex"
+ * )[]} lookupExprs - An array of django lookup expressions for the filter.
+ */
+
+/**
+ * A filter information.
  *
- *   const field = computed(() => unref(fields)?.[0]);
- *   // a field has the following properties always:
- *   field.name // The name of the field.
- *   field.label // The label of the field.
- *   field.type // The type of the field.
- *   field.many // A boolean indicating whether the field is a `ListField`.
- *   field.readOnly // A boolean indicating whether the field is read-only.
- *   field.required // A boolean indicating whether the field is required.
- *   // a field may optionally have the following properties:
- *   field.helpText // The help text for the field.
- *   field.maxValue // The maximum value for the field.
- *   field.minValue // The minimum value for the field.
- *   field.maxLength // The maximum length for the field.
- *   field.minLength // The minimum length for the field.
- *   field.maxDigits // The maximum number of digits for the field.
- *   field.decimalPlaces // The number of decimal places for the field.
- *   field.choices // The choices for the field.
+ * @typedef {object} FilterInfo
+ * @property {string} name - The name of the filtering field.
+ * @property {string} type - The type of the filtering field (e.g., "alpha", "numeric").
+ * @property {FilterInfoItem[]} filters - An array of available filters for the field.
+ */
+
+/**
+ * A permission information item.
  *
- *   const actions = computed(() => unref(modelInfo)?.actions);
- *   const action = computed(() => unref(actions)?.[0]);
- *   // an action has the following properties:
- *   action.name // The name of the action.
- *   action.description // The description of the action.
- *   action.detail // A boolean indicating whether the action is a detail view.
- *   action.methodNames // An array of HTTP methods (e.g., GET, POST) for the action.
- *   action.parameters // An optional array of parameters required for the action.
+ * @typedef {object} PermissionInfo
+ * @property {string} codename - The codename of the permission.
+ * @property {string} name - The name of the permission.
+ */
+
+/**
+ * The information provided on a django model, including fields, actions, expands, ordering, filtering, and permissions.
  *
- *   const expands = computed(() => unref(modelInfo)?.expands);
- *   const expand = computed(() => unref(expands)?.[0]);
- *   // an expand has the following properties:
- *   expand.name // The name of the expand field.
- *   expand.fields // An optional array of fields that can be expanded.
+ * @typedef {object} ModelInfo
+ * @property {string} app_label - The app label of the model.
+ * @property {string} model - The python model class name (lower case).
+ * @property {string} verbose_name - The verbose name of the model.
+ * @property {string} verbose_name_plural - The verbose name plural of the model.
+ * @property {FieldInfo[]} fields - The fields of the model.
+ * @property {ActionInfo[]} actions - The actions of the model.
+ * @property {ExpandInfo[]} expands - The expands of the model.
+ * @property {OrderInfo[]} ordering - The ordering of the model.
+ * @property {FilterInfo[]} filtering - The filtering of the model.
+ * @property {PermissionInfo[]} permissions - The permissions of the model.
+ */
+
+/**
+ * A store for model information.
  *
- *   const ordering = computed(() => unref(modelInfo)?.ordering);
- *   const order = computed(() => unref(ordering)?.[0]);
- *   // an order information for a field has the following properties:
- *   order.name // The name of the ordering field.
- *   order.type // The type of the ordering field (e.g., "alpha", "numeric").
- *
- *   const filtering = computed(() => unref(modelInfo)?.filtering);
- *   const filter = computed(() => unref(filtering)?.[0]);
- *   // a filter information for a field has the following properties:
- *   filter.name // The name of the filtering field.
- *   filter.type // The type of the filtering field (e.g., "alpha", "numeric").
- *   filter.filters // An array of available filters for the field.
- *   // an available filter has the following properties:
- *   filter.filters.label // The label of the filter.
- *   filter.filters.required // A boolean indicating whether the filter is required.
- *   filter.filters.lookupExprs // An array of lookup expressions for the filter.
- *
- *   const permissions = computed(() => unref(modelInfo)?.permissions);
- *   const permission = computed(() => unref(permissions)?.[0]);
- *   // a permission has the following properties:
- *   permission.codename // The codename of the permission.
- *   permission.name // The name of the permission.
- * ```
+ * @returns {import('pinia').Store<{
+ *     modelInfos: {[key: string]: ModelInfo},
+ *     existingPromises: {[key: string]: Promise<ModelInfo>},
+ *     fetchModelInfo: (app: string, model: string) => Promise<ModelInfo>
+ * }>}
  */
 export default defineStore({
     id: "modelInfo",

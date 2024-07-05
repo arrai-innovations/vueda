@@ -6,18 +6,30 @@ import useLoadingError from "@vueda/use/useLoadingError.js";
 import { reactive, watch } from "vue";
 
 /**
- * @typedef {Object} Ref - A Vue ref object.
- * @property {Function} value - The value of the ref.
- * @private
+ * The raw state for a model config.
+ *
+ * @typedef {object} ModelConfigRawState
+ * @property {boolean} loading - True if the model config is loading.
+ * @property {Error} error - The error that occurred while loading the model config.
+ * @property {boolean} errored - True if an error occurred while loading the model config.
+ * @property {Function} clearError - Clear the error.
+ * @property {import('@vueda/stores/storeModelInfo.js').ModelInfo} info - The model info.
+ * @property {import('@vueda/stores/storeModelConfig.js').ModelConfig} config - The model config.
+ */
+
+/**
+ * The state for a model config.
+ *
+ * @typedef {import('vue').shallowReactive<ModelConfigRawState>} ModelConfigState
  */
 
 /**
  * Provides a reactive configuration for a given app and model.
  * Uses configuration from storeModelConfig if available, otherwise falls back to model info from storeModelInfo.
  *
- * @param {Ref<string>} app - The app name
- * @param {Ref<string>} model - The model name
- * @returns {Object} An object containing reactive fields and actions for create, update, read, and list views.
+ * @param {import('vue').Ref<string>} app - The app name
+ * @param {import('vue').Ref<string>} model - The model name
+ * @returns {ModelConfigState} An object containing reactive fields and actions for create, update, read, and list views.
  */
 export default function useModelConfig(app, model) {
     const loadingError = useLoadingError();

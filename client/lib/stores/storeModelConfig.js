@@ -2,10 +2,55 @@ import storeModelInfo from "@vueda/stores/storeModelInfo.js";
 import { getPermissionCase } from "@vueda/utils/crudSupport.js";
 import { defineStore } from "pinia";
 
+/**
+ * Get a key for a model.
+ *
+ * @param {string} app - The app name.
+ * @param {string} model - The model name.
+ * @returns {string} The key.
+ */
 const getKey = (app, model) => {
     return `${getPermissionCase(app)}.${getPermissionCase(model)}`;
 };
 
+/**
+ * A list of field names or sub-containers to display.
+ *
+ * @typedef {(string|FieldLayout)[]} FieldsOrLayout
+ */
+
+/**
+ * A layout for displaying fields.
+ *
+ * @typedef {object} FieldLayout
+ * @property {string} containerClasses - CSS classes to apply to the container.
+ * @property {FieldsOrLayout} fields - The field names or sub-containers to display.
+ */
+
+/**
+ * A configuration object for making use of a model client-side.
+ *
+ * @typedef {object} ModelConfig
+ * @property {string[]} listFields - field names to display in list view
+ * @property {FieldsOrLayout} createFields - field names to display in a create form model
+ * @property {FieldsOrLayout} updateFields - field names to display in an update form model
+ * @property {string[]} readFields - field names to display in read view
+ * @property {string[]} listFilterable - filters to display in list view
+ * @property {string[]} listSortable - field names that can be sorted in list view
+ * @property {string[]} listSorted - the default sort order for list view
+ * @property {string[]} listActions - actions to display in list view
+ * @property {string[]} detailActions - actions to display in detail view
+ * @property {string[]} createActions - actions to display in create view
+ * @property {string[]} updateActions - actions to display in update view
+ * @property {string[]} readActions - actions to display in read view
+ */
+
+/**
+ * Get a default configuration object for a model based on model info.
+ *
+ * @param {import('@vueda/stores/storeModelInfo.js').ModelInfo} modelInfo - The model info to base the configuration on.
+ * @returns {ModelConfig} The default configuration object.
+ */
 const getDefaultFromModelInfo = (modelInfo) => {
     const modelFields = modelInfo.fields.map((f) => f.name);
     const orderableFields = modelInfo.ordering.map((o) => o.name);
@@ -19,7 +64,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
         readFields: modelFields,
         listFilterable: listFilterable,
         listSortable: orderableFields,
-        listSorted: [], // todo: the server has a default sort order, we should get that
+        listSorted: [], // todo: the server has default field(s) being sorted on, we should get that
         listActions: listActions,
         detailActions: detailActions,
         createActions: detailActions,
@@ -29,26 +74,16 @@ const getDefaultFromModelInfo = (modelInfo) => {
 };
 
 /**
- * storeConfig - store for model configuration
+ * A store for model configuration.
  *
- * Provide configuration objects for certain models in certain apps to override
- *  how vueda uses the model. Includes:
- *    - listFields - fields to display in list view
- *    - createFields - fields to display in create view
- *    - updateFields - fields to display in update view
- *    - readFields - fields to display in read view
- *    - listFilters - filters to display in list view
- *    - listSortable - fields that can be sorted in list view
- *    - listSorted - the default sort order for list view
- *    - listActions - actions to display in list view
- *    - detailActions - actions to display in detail view
- *    - createActions - actions to display in create view
- *    - updateActions - actions to display in update view
- *    - readActions - actions to display in read view
+ * @returns {import('pinia').Store<{
+ *     configs: {[key: string]: ModelConfig},
+ *     builtConfigs: {[key: string]: ModelConfig},
+ *     setConfig: (app: string, model: string, config: ModelConfig) => void,
+ *     getConfig: (app: string, model: string) => Promise<ModelConfig>,
+ *     updateConfig: (app: string, model: string, config: Partial<ModelConfig>) => void
+ * }>}
  *
- * Provided names are checked against server data as it is loaded, and
- *  we will log warnings for invalid field or action names. Since this works on
- *  other sources loading modelInfo, we can't complain about invalid app or model names.
  */
 export default defineStore({
     id: "configStore",
