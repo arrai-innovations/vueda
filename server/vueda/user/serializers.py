@@ -42,9 +42,9 @@ class WhoIsSerializer(VuedaSerializer):
 
     groups = serializers.SlugRelatedField(many=True, queryset=Group.objects.all(), slug_field="name")
 
-    class Meta:
+    class Meta(VuedaSerializer.Meta):
         model = User
-        fields = ["id", "email", "name", "groups", "is_superuser"]
+        fields = ["id", "email", "name", "groups", "is_superuser"] + VuedaSerializer.Meta.fields
 
     def get_fields(self):
         fields = super().get_fields()
@@ -63,7 +63,7 @@ class WhoIsSerializer(VuedaSerializer):
 class UserSerializer(VuedaSerializer):
     password_confirm = serializers.CharField(write_only=True, required=False)
 
-    class Meta:
+    class Meta(VuedaSerializer.Meta):
         model = User
         fields = [
             "id",
@@ -75,7 +75,7 @@ class UserSerializer(VuedaSerializer):
             "groups",
             "last_login",
             "password_confirm",
-        ]
+        ] + VuedaSerializer.Meta.fields
         read_only_fields = ["date_joined"]
         extra_kwargs = {"password": {"write_only": True, "required": False}}
 

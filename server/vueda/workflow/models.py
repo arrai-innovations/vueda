@@ -14,6 +14,7 @@ from django.db import models
 from django.db.models import QuerySet
 from simple_history.models import HistoricalRecords
 
+from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
 from vueda.core.utils import get_system_user
 from vueda.history.models import SimpleHistoryModelMixin
@@ -34,7 +35,7 @@ class Workflow(SimpleHistoryModelMixin, Lookup):
     historical_app_label = models.CharField(max_length=255, blank=True)
     historical_model = models.CharField(max_length=255, blank=True)
 
-    class Meta:
+    class Meta(BaseModelMeta):
         default_related_name = "workflows"
         constraints = [models.UniqueConstraint(fields=["code"], name="unique_workflow_code")]
 
@@ -59,7 +60,7 @@ class WorkflowPermission(SimpleHistoryModelMixin):
     historical_permission_content_type_app_label = models.CharField(max_length=100, blank=True)
     historical_permission_content_type_model_name = models.CharField(max_length=100, blank=True)
 
-    class Meta:
+    class Meta(BaseModelMeta):
         default_related_name = "workflow_permissions"
         constraints = [
             models.UniqueConstraint(
@@ -111,7 +112,7 @@ class State(SimpleHistoryModelMixin):
     code = models.CharField(max_length=255, db_index=True)
     name = models.CharField(max_length=255)
 
-    class Meta:
+    class Meta(BaseModelMeta):
         default_related_name = "states"
         constraints = [models.UniqueConstraint(fields=["workflow", "code"], name="unique_state_code")]
 
@@ -142,7 +143,7 @@ class StatePermission(SimpleHistoryModelMixin):
     historical_group_name = models.CharField(max_length=150, blank=True)
     grant_or_deny = models.BooleanField()  # True = grant, False = deny
 
-    class Meta:
+    class Meta(BaseModelMeta):
         default_related_name = "state_permissions"
         constraints = [models.UniqueConstraint(fields=["state", "permission", "group"], name="unique_state_permission")]
 
@@ -193,7 +194,7 @@ class InitialState(SimpleHistoryModelMixin):
         on_delete=models.CASCADE,
     )
 
-    class Meta:
+    class Meta(BaseModelMeta):
         default_related_name = "initial_states"
         constraints = [models.UniqueConstraint(fields=["workflow", "state"], name="unique_workflow_initial_state")]
 
@@ -236,7 +237,7 @@ class Transition(SimpleHistoryModelMixin):
         on_delete=models.PROTECT,
     )
 
-    class Meta:
+    class Meta(BaseModelMeta):
         default_related_name = "transitions"
         constraints = [
             models.UniqueConstraint(fields=["workflow", "code"], name="unique_transition_code"),
@@ -274,7 +275,7 @@ class TransitionPermission(SimpleHistoryModelMixin):
     historical_permission_content_type_app_label = models.CharField(max_length=100, blank=True)
     historical_permission_content_type_model_name = models.CharField(max_length=100, blank=True)
 
-    class Meta:
+    class Meta(BaseModelMeta):
         default_related_name = "transition_permissions"
         constraints = [
             models.UniqueConstraint(
@@ -327,7 +328,7 @@ class TransitionSource(SimpleHistoryModelMixin):
         on_delete=models.PROTECT,
     )
 
-    class Meta:
+    class Meta(BaseModelMeta):
         default_related_name = "transition_sources"
         constraints = [
             models.UniqueConstraint(
@@ -384,7 +385,7 @@ class ObjectStateProxy(models.Model):
     )
     object = GenericForeignKey("content_type", "object_id")
 
-    class Meta:
+    class Meta(BaseModelMeta):
         managed = False
         db_table = "vueda_workflow_objectstateproxy"
         default_related_name = "object_states_proxy"
@@ -413,7 +414,7 @@ class ObjectState(SimpleHistoryModelMixin):
         object_id_field="object_id",
     )
 
-    class Meta:
+    class Meta(BaseModelMeta):
         default_related_name = "object_states"
         constraints = [
             models.UniqueConstraint(

@@ -9,20 +9,19 @@ from vueda.core.serializers import VuedaHistorySerializer
 
 
 class EmployeeSerializer(VuedaHistorySerializer):
-
     class Meta(VuedaHistorySerializer.Meta):
         model = Employee
         fields = ["id", "user", "employee_number"] + VuedaHistorySerializer.Meta.fields
 
 
 class TimesheetEntrySerializer(VuedaHistorySerializer):
-    class Meta:
+    class Meta(VuedaHistorySerializer.Meta):
         model = TimesheetEntry
         fields = ["id", "timesheet", "date", "hours"] + VuedaHistorySerializer.Meta.fields
 
 
 class TimesheetSerializer(VuedaHistorySerializer):
-    class Meta:
+    class Meta(VuedaHistorySerializer.Meta):
         model = Timesheet
         fields = ["id", "period_start", "period_end", "employee"] + VuedaHistorySerializer.Meta.fields
 
@@ -34,6 +33,7 @@ class TimesheetSerializer(VuedaHistorySerializer):
             ),
             "foo": (serializers.SerializerMethodField, {"read_only": True}),
         }
+        expandable_fields.update(VuedaHistorySerializer.Meta.expandable_fields)
 
     def get_foo(self, instance):
         return "bar"
