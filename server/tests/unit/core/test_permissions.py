@@ -97,7 +97,7 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
         )
         detail_url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
         # add f= querystring to details an only ask for certain fields
-        detail_url += f"?{settings.REST_FLEX_FIELDS['FIELDS_PARAM']}=id,employee,period_start,period_end,dumb"
+        detail_url += f"?{settings.REST_FLEX_FIELDS['FIELDS_PARAM']}=id,employee,period_start,period_end"
         list_url = reverse("tests.timesheet-list")
         match http_method:
             case "GET":
