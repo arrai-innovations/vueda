@@ -1,26 +1,61 @@
 import { defineStore } from "pinia";
 
 /**
- * @typedef {string} CSSString A string representing a CSS class or a space-separated list of CSS classes.
- * @typedef {CSSString|CSSString[]} CSSClasses An array of CSS string(s) or a single CSS string.
  * @typedef {string} ComponentName The unique name of a component.
+ */
+
+/**
  * @typedef {string} VariantName The unique-per-component name of a variant.
+ */
+
+/**
  * @typedef {string} SpotName The unique-per-component name of a spot.
- * @typedef {object} ComponentConfig - The configuration for a component.
- * @property {string} defaultVariant The default variant to use for this component.
- * @property {Array<SpotName>} spots The spots available for this component.
- * @typedef {Object.<SpotName, CSSClasses>} VariantConfig - The configuration for a variant.
- * @typedef {Object.<VariantName, VariantConfig>} ComponentVariants - The configuration for all variants of a component.
- * @typedef {Object.<ComponentName, ComponentConfig>} ComponentsConfig - The configuration for all components.
- * @typedef {Object.<ComponentName, ComponentVariants>} ComponentsVariants - The configuration for all components and their variants.
+ */
+
+/**
+ * @typedef {{
+ *     defaultVariant: VariantName,
+ *     spots: SpotName[],
+ * }} ComponentConfig The configuration for a component.
+ */
+
+/**
+ * @typedef {{
+ *     [spotClassName: string]: import('@arrai-innovations/reactive-helpers').CSSClasses
+ * }} VariantConfig The configuration for a variant.
+ */
+
+/**
+ * The theme store.
+ *
+ * @typedef {import('pinia').Store<{
+ *     state: {
+ *         components: {
+ *             [key: ComponentName]: ComponentConfig
+ *         },
+ *         variants: {
+ *             [key: ComponentName]: {
+ *                 [key: VariantName]: VariantConfig
+ *             }
+ *         },
+ *     },
+ *     actions: {
+ *         registerComponent: (componentName: ComponentName, componentConfig: ComponentConfig) => void,
+ *         registerVariant: (componentName: ComponentName, variantName: VariantName, variantConfig: VariantConfig) => void,
+ *         clearComponent: (componentName: ComponentName) => void,
+ *         clearVariant: (componentName: ComponentName, variantName: VariantName) => void,
+ *         clearAll: () => void,
+ *     }
+ * }>} ThemeStore
  */
 
 /**
  * Validates the component configuration.
- * @param store
- * @param {ComponentName} componentName
- * @param {ComponentConfig} componentConfig
- * @throws {Error} If the component configuration is invalid.
+ *
+ * @param {ThemeStore} store - The store to validate against.
+ * @param {ComponentName} componentName - The name of the component.
+ * @param {ComponentConfig} componentConfig - The configuration for the component.
+ * @private
  */
 const validateComponentConfig = (store, componentName, componentConfig) => {
     // component must define a default variant
@@ -35,10 +70,10 @@ const validateComponentConfig = (store, componentName, componentConfig) => {
 
 /**
  * Validates the variant configuration.
- * @param store
+ * @param {ThemeStore} store
  * @param {ComponentName} componentName
  * @param {VariantConfig} variantConfig
- * @throws {Error} If the variant configuration is invalid.
+ * @private
  */
 const validateVariantConfig = (store, componentName, variantConfig) => {
     const componentConfig = store.components[componentName];
@@ -57,6 +92,7 @@ const validateVariantConfig = (store, componentName, variantConfig) => {
  * @param {ComponentName} componentName
  * @param {ComponentConfig} componentConfig
  * @throws {Error} If the component configuration is invalid.
+ * @this {ThemeStore}
  * @returns {void}
  */
 function registerComponent(componentName, componentConfig) {
@@ -70,6 +106,7 @@ function registerComponent(componentName, componentConfig) {
  * @param {VariantName} variantName
  * @param {VariantConfig} variantConfig
  * @throws {Error} If the variant configuration is invalid.
+ * @this {ThemeStore}
  * @returns {void}
  */
 function registerVariant(componentName, variantName, variantConfig) {
@@ -84,6 +121,7 @@ function registerVariant(componentName, variantName, variantConfig) {
  * Clears a component with the given name.
  * @param {ComponentName} componentName
  * @returns {void}
+ * @this {ThemeStore}
  */
 function clearComponent(componentName) {
     delete this.components[componentName];
@@ -95,6 +133,7 @@ function clearComponent(componentName) {
  * @param {ComponentName} componentName
  * @param {VariantName} variantName
  * @returns {void}
+ * @this {ThemeStore}
  */
 function clearVariant(componentName, variantName) {
     delete this.variants?.[componentName]?.[variantName];
@@ -103,6 +142,7 @@ function clearVariant(componentName, variantName) {
 /**
  * Clears all components and variants.
  * @returns {void}
+ * @this {ThemeStore}
  */
 function clearAll() {
     // remove keys from components and variants, instead of assigning empty objects
@@ -116,25 +156,13 @@ function clearAll() {
 
 /**
  * The store for managing the theme.
- * @name storeTheme
- * @property {ComponentsConfig} components - The configuration for all components.
- * @property {ComponentsVariants} variants - The configuration for all components and their variants.
- * @property {function} registerComponent - Registers a new component with the given name.
- * @property {function} registerVariant - Registers a new variant for a component with the given name.
- * @property {function} clearComponent - Clears a component with the given name.
- * @property {function} clearVariant - Clears a variant for a component with the given name.
- * @property {function} clearAll - Clears all components and variants.
+ *
+ * @returns {ThemeStore} The theme store.
  */
 export default defineStore({
     id: "themeStore",
     state: () => ({
-        /**
-         * @type {ComponentsConfig}
-         */
         components: {},
-        /**
-         * @type {ComponentsVariants}
-         */
         variants: {},
     }),
     actions: {

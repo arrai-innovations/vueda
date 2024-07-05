@@ -30,6 +30,7 @@ class ModelInfoError extends FetchError {
  * @param {object} [options] - The fetch
  * @param {string} [messagePrefix] - The prefix for error messages.
  * @returns {Promise<object>} The response data.
+ * @private
  */
 const fetchHelper = async (url, options = {}, messagePrefix) => {
     const defaultHeaders = {
@@ -62,6 +63,7 @@ const modelInfoUrl = (app, model) =>
  *
  * @param {object} obj - The object to convert.
  * @returns {object} The object with all snake_case properties converted to camelCase.
+ * @private
  */
 const camelCaseObject = (obj) => {
     if (typeof obj !== "object" || obj === null) {

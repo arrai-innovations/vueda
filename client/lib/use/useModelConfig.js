@@ -1,8 +1,7 @@
-import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
+import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
 import storeModelConfig from "@vueda/stores/storeModelConfig.js";
 import storeModelInfo from "@vueda/stores/storeModelInfo";
 import useIsActive from "@vueda/use/useIsActive";
-import useLoadingError from "@vueda/use/useLoadingError.js";
 import { reactive, watch } from "vue";
 
 /**

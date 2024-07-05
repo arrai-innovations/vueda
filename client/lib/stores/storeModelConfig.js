@@ -8,6 +8,7 @@ import { defineStore } from "pinia";
  * @param {string} app - The app name.
  * @param {string} model - The model name.
  * @returns {string} The key.
+ * @private
  */
 const getKey = (app, model) => {
     return `${getPermissionCase(app)}.${getPermissionCase(model)}`;

@@ -28,9 +28,11 @@ class WorkflowError extends FetchError {
 }
 
 /**
- * updateState - update the target array with the source object, or add the source object to the target array
- * @param target - array of objects
- * @param source - object to update or add
+ * Update the target array with the source object, or add the source object to the target array.
+ *
+ * @param {object[]} target - The array to update or add to.
+ * @param {object} source - The object to update or add.
+ * @private
  */
 const updateState = (target, source) => {
     const index = target.findIndex(
@@ -44,15 +46,14 @@ const updateState = (target, source) => {
 };
 
 /**
- * fetchHelper - fetch helper function to handle common fetch tasks
- * - adds CSRF token and Content-Type of application/json to headers if not a GET request
- * - always includes credentials: "include", use credentials: undefined to not include
- * - throws a WorkflowError if the response is not ok
- * @param url - the url to fetch
- * @param options - fetch options
- * @param messagePrefix - prefix for error messages
- * @param emptyResponseValue - value to return if the response is 403
- * @returns {Promise<*>}
+ * A Fetch helper function to handle common fetch tasks, including setting headers and handling errors.
+ *
+ * @param {string} url - The url to fetch.
+ * @param {object} [options] - The fetch options.
+ * @param {string} [messagePrefix] - The prefix for error messages.
+ * @param {object|string} [emptyResponseValue] - The value to return if the response is 403.
+ * @returns {Promise<object|string>} The response data.
+ * @private
  */
 const fetchHelper = async (url, options = {}, messagePrefix, emptyResponseValue) => {
     const nonGetDefaultHeaders = {
@@ -96,7 +97,25 @@ const executeTransitionUrl = (result) =>
     `${httpOrHttpsHostname}${getUrl("workflowExecuteTransition")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
 
 /**
- * storeWorkflow - pinia store for current workflow states, available transitions, and workflow histories for objects
+ * @typedef {import('pinia').Store<{
+ *     state:{
+ *         objectStates: {app: string, model: string, id: string, state: object}[],
+ *         objectTransitions: {app: string, model: string, id: string, transitions: object[]}[],
+ *         objectHistories: {app: string, model: string, id: string, history: object[]}[],
+ *         modelStates: {[key: string]: object[]},
+ *     },
+ *     actions: {
+ *         fetchModelStates: (app: string, model: string) => Promise<object[]>,
+ *         fetchObjectState: (app: string, model: string, objectId: string) => Promise<{app: string, model: string, id: string, state: object}>,
+ *         fetchObjectTransitions: (app: string, model: string, objectId: string) => Promise<{app: string, model: string, id: string, transitions: object[]}>,
+ *         fetchObjectHistory: (app: string, model: string, objectId: string) => Promise<{app: string, model: string, id: string, history: object[]}>,
+ *         executeTransition: (app: string, model: string, objectId: string, transition_code: string, router: Router, stateToRoute: object) => Promise<{app: string, model: string, id: string}>,
+ *     }
+ * }>} WorkflowStore
+ */
+
+/**
+ * A pinia store for current workflow states, available transitions, and workflow histories for objects
  *  or possible states for models
  * Usage:
  * ```js
@@ -124,6 +143,8 @@ const executeTransitionUrl = (result) =>
  *     await workflowStore.fetchObjectTransitions(app, model, objectId);
  *     await workflowStore.fetchObjectHistory(app, model, objectId);
  *     await workflowStore.executeTransition(app, model, objectId, transition_code);
+ * ```
+ * @returns {WorkflowStore} The store for workflow.
  */
 export default defineStore({
     id: "workflow",

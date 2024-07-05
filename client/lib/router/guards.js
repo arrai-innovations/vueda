@@ -5,7 +5,7 @@ import isEmpty from "lodash-es/isEmpty";
  * Wait for the user to be initialized. This is useful if your making your own
  *  custom guards that need to know if the user is logged in or not.
  *
- * @returns {Promise<object>} The user object.
+ * @returns {Promise<UserStore>} The user object.
  */
 export async function waitForInitialising() {
     const userStore = storeUser();
@@ -37,9 +37,9 @@ export async function waitForInitialising() {
  * });
  * export default router;
  * ```
- * @param {object} redirectTo - Where to redirect the user if they are not authenticated.
- * @param {object} to - Where the user is trying to go.
- * @returns {object} The route object.
+ * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect the user if they are not authenticated.
+ * @param {import('vue-router').RouteLocationNormalizedLoaded} to - Where the user is trying to go.
+ * @returns {Promise<import('vue-router').RouteLocationRaw|void>} The route object, if a redirect is needed.
  */
 export async function requireAuth(redirectTo, to) {
     const userStore = await waitForInitialising();
@@ -70,11 +70,10 @@ export async function requireAuth(redirectTo, to) {
  * });
  * export default router;
  * ```
- * @param {object} redirectTo - Where to redirect the user if they are authenticated.
- * @param {object} to - Where the user is trying to go. (Not used)
- * @returns {object} The route object, if a redirect is needed.
+ * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect the user if they are authenticated.
+ * @returns {Promise<import('vue-router').RouteLocationRaw|void>} The route object, if a redirect is needed.
  */
-export async function requireUnauth(redirectTo /*, to*/) {
+export async function requireUnauth(redirectTo) {
     const userStore = await waitForInitialising();
     if (userStore.loggedIn) {
         return redirectTo;
@@ -145,9 +144,10 @@ export async function requireInitialized() {
  * @param {import('primevue/toast').ToastMessageOptions} toastArgs - The arguments for the denial toast message, using
  *  the PrimeVue Toast API. `toastArgs.detail` will have the denied url appended.
  * @param {string[]} groups - The groups the user must have ONE of.
- * @param {object|string} redirectTo - Where to redirect the user if they are not a group member.
- * @param {object} to - Where the user is trying to go.
- * @returns {Promise<boolean|object>} The route object, if a redirect is needed, or `true` if the user has the groups.
+ * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect the user if they are not a group member.
+ * @param {import('vue-router').RouteLocationRaw} to - Where the user is trying to go.
+ * @returns {Promise<boolean|import('vue-router').RouteLocationRaw>} The route object, if a redirect is needed, or
+ *  `true` if the user has the groups.
  */
 export async function requireGroups(instance, toastArgs, groups, redirectTo, to) {
     const userStore = await waitForInitialising();

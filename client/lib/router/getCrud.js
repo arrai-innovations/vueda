@@ -32,7 +32,11 @@ export function getCRUDName({ app, model, view }) {
  * @param {string} [params.pk] - The primary key.
  * @param {string} params.view - The view name.
  * @param {boolean} [params.throwOnUndefinedPk=false] - Whether to throw an error if pk is undefined.
- * @returns {object} The route configuration.
+ * @returns {import('vue-router').RouteLocationRaw & {
+ *     params: {
+ *         pk?: string,
+ *     },
+ * }} The route configuration.
  * @throws {Error} If parentPk or pk is required but not provided.
  */
 export function getCRUDForTo({ app, model, pk, view, throwOnUndefinedPk = false }) {

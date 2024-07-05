@@ -7,6 +7,16 @@ const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
 /**
  * The store for the current dark mode state, and persisting it.
  *
+ * @typedef {import('pinia').Store<{
+ *     isDark: boolean,
+ *     init: () => void,
+ *     toggle: () => void
+ * }>} DarkModeStore
+ */
+
+/**
+ * The store for the current dark mode state, and persisting it.
+ *
  * Usage:
  * ```js
  *   import { storeDarkMode } from "vueda-client";
@@ -18,11 +28,7 @@ const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
  *   darkMode.toggle(); // toggle dark mode
  * ```
  *
- * @returns {import('pinia').Store<{
- *    isDark: boolean,
- *    init: () => void,
- *    toggle: () => void
- *  }>} The store for dark mode.
+ * @returns {DarkModeStore} The store for dark mode.
  */
 export default defineStore({
     id: "darkMode",

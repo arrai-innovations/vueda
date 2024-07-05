@@ -24,6 +24,26 @@ class UserError extends FetchError {
 }
 
 /**
+ * @typedef {import('pinia').Store<{
+ *   state: {
+ *       loggedIn: boolean,
+ *       loggedInUser: object,
+ *       initialized: boolean,
+ *       loading: boolean,
+ *       error: Error|null,
+ *       errored: boolean,
+ *       initializingPromise: Promise<void>,
+ *   },
+ *   actions: {
+ *       fetchCurrentUser: () => Promise<void>,
+ *       login: (payload: object) => Promise<void>,
+ *       logout: () => Promise<void>,
+ *       init: () => Promise<void>,
+ *   },
+ * }>} UserStore
+ */
+
+/**
  * The user store, handling user login, logout, and current user fetching.
  *
  * @example
@@ -44,19 +64,7 @@ class UserError extends FetchError {
  *   user.logout(); // logout
  *   user.fetchCurrentUser(); // fetch the current user
  * ```
- * @returns {import('pinia').Store<{
- *   loggedIn: boolean,
- *   loggedInUser: object,
- *   initialized: boolean,
- *   loading: boolean,
- *   error: Error|null,
- *   errored: boolean,
- *   initializingPromise: Promise<void>,
- *   fetchCurrentUser: () => Promise<void>,
- *   login: (payload: object) => Promise<void>,
- *   logout: () => Promise<void>,
- *   init: () => Promise<void>,
- * }>} The store for user.
+ * @returns {UserStore} The store for user.
  */
 export default defineStore({
     id: "user",

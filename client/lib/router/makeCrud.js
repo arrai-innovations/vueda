@@ -17,7 +17,7 @@ import partial from "lodash-es/partial";
  * @param {string[]} [params.groups=null] - The groups required to access the views.
  * @param {object} [params.groupsRedirect=null] - The route to redirect to if the user is not in the required groups.
  * @param {import('vue').App} vueApp - The Vue app instance.
- * @returns {object[]} The generated routes.
+ * @returns {import('vue-router').RouteRecordRaw[]} The generated routes.
  */
 export function makeCRUDRoutes({
     components,
