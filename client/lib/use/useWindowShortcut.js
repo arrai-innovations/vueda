@@ -2,6 +2,35 @@ import isArray from "lodash-es/isArray.js";
 import os from "platform-detect/os.mjs";
 import { effectScope, onActivated, onDeactivated, onMounted, toRef, unref, watchEffect } from "vue";
 
+/**
+ * A window shortcut trigger.
+ *
+ * @typedef {object} WindowShortcutTrigger
+ * @property {string|string[]} keys - The key(s) to press.
+ * @property {string|string[]} modifiers - Modifiers to use on all platforms.
+ * @property {function} fn - The function to call when the shortcut is triggered.
+ * @property {string[]} [macOsModifiers] - Modifiers to use on macOS.
+ * @property {string[]} [windowsModifiers] - Modifiers to use on Windows.
+ */
+
+/**
+ * A raw object for window shortcut props.
+ *
+ * @typedef {object} WindowShortcutRawProps
+ * @property {WindowShortcutTrigger[]} triggers - The triggers.
+ */
+
+/**
+ * A reactive object for window shortcut props.
+ *
+ * @typedef {import('vue').Reactive<WindowShortcutRawProps>} WindowShortcutProps
+ */
+
+/**
+ * A Vue composition function for handling window shortcuts.
+ *
+ * @param {WindowShortcutProps} props - The props.
+ */
 export default function useWindowShortcut(props) {
     const triggers = toRef(() => props.triggers);
     const processedTriggers = [];
@@ -55,7 +84,6 @@ export default function useWindowShortcut(props) {
     onActivated(function () {
         document.addEventListener("keydown", onKeyDown);
     });
-
     onDeactivated(function () {
         document.removeEventListener("keydown", onKeyDown);
     });

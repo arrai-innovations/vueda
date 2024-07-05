@@ -34,7 +34,8 @@ export class FormValidationError extends Error {
 }
 
 /**
- * combineErrors - combine errors into a single array
+ * Combine errors into a single array of errors.
+ *
  * @param {Error|Error[]} errors - an error or an array of errors
  * @returns {Error[]} - a single array of errors
  */
@@ -50,6 +51,15 @@ export function combineErrors(errors) {
     return [errors];
 }
 
+/**
+ * A class for unhandled response errors.
+ *
+ * @param {string} messagePrefix - prefix for error messages
+ * @param {Response} response - fetch response
+ * @param {object} responseData - response data
+ * @property {Response} response - fetch response
+ * @property {object} responseData - response data
+ */
 export class UnhandledResponseError extends Error {
     constructor(messagePrefix, response, responseData) {
         const message = `${messagePrefix}: ${response.status} ${response.statusText}`;

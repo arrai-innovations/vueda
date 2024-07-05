@@ -5,7 +5,8 @@ const darkModeLocalStorageKey = "darkMode";
 const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 /**
- * storeDarkMode - pinia store for dark mode
+ * The store for the current dark mode state, and persisting it.
+ *
  * Usage:
  * ```js
  *   import { storeDarkMode } from "vueda-client";
@@ -16,6 +17,12 @@ const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
  *   darkMode.init(); // get dark mode from local storage or prefers
  *   darkMode.toggle(); // toggle dark mode
  * ```
+ *
+ * @returns {import('pinia').Store<{
+ *    isDark: boolean,
+ *    init: () => void,
+ *    toggle: () => void
+ *  }>} The store for dark mode.
  */
 export default defineStore({
     id: "darkMode",

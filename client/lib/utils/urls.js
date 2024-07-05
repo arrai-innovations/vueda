@@ -17,7 +17,8 @@ const defaultUrls = {
 const customUrls = {};
 
 /**
- * setCustomUrl - set a custom URL-part for a key
+ * Sets a custom URL for a key.
+ *
  * @param {string} key - the key code uses to look up the URL
  * @param {string} url - the routing part of the url, between the hostname and the desired viewset/view
  * @returns {void}
@@ -27,7 +28,8 @@ export const setCustomUrl = (key, url) => {
 };
 
 /**
- * getUrl - get the URL for a key
+ * Gets the URL for a key.
+ *
  * @param {string} key - the key code uses to look up the URL
  * @returns {string} - the URL for the key
  */
@@ -36,7 +38,8 @@ export const getUrl = (key) => {
 };
 
 /**
- * resetCustomUrls - clear all custom URLs
+ * Resets all custom URLs.
+ *
  * @returns {void}
  */
 export const resetCustomUrls = () => {

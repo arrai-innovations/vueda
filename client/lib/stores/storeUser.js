@@ -6,6 +6,15 @@ import { getUrl } from "@vueda/utils/urls.js";
 import { isObject } from "lodash-es";
 import { defineStore } from "pinia";
 
+/**
+ * An error for from the user store.
+ *
+ * @param {string} messagePrefix - prefix for error messages
+ * @param {Response} response - fetch response
+ * @param {object} responseData - response data
+ * @property {Response} response - fetch response
+ * @property {object} responseData - response data
+ */
 class UserError extends Error {
     constructor(messagePrefix, response, responseData) {
         const message = [];
@@ -30,8 +39,9 @@ class UserError extends Error {
 }
 
 /**
- * storeUser - pinia store for user state
- * Usage:
+ * The user store, handling user login, logout, and current user fetching.
+ *
+ * @example
  * ```js
  *   import { storeUser } from "vueda-client";
  *   const user = storeUser();
@@ -49,6 +59,19 @@ class UserError extends Error {
  *   user.logout(); // logout
  *   user.fetchCurrentUser(); // fetch the current user
  * ```
+ * @returns {import('pinia').Store<{
+ *   loggedIn: boolean,
+ *   loggedInUser: object,
+ *   initialized: boolean,
+ *   loading: boolean,
+ *   error: Error|null,
+ *   errored: boolean,
+ *   initializingPromise: Promise<void>,
+ *   fetchCurrentUser: () => Promise<void>,
+ *   login: (payload: object) => Promise<void>,
+ *   logout: () => Promise<void>,
+ *   init: () => Promise<void>,
+ * }>} The store for user.
  */
 export default defineStore({
     id: "user",

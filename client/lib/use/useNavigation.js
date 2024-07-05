@@ -3,10 +3,10 @@ import storeModelInfo from "@vueda/stores/storeModelInfo";
 import { computed, reactive, watch } from "vue";
 
 /**
- * useNavigation - composition function to provide navigation data.
+ * Composition function to provide navigation data for a given configuration.
  *
- * @param {Object} userConfig - User configuration for navigation.
- * @returns {Object} - An object containing reactive navigation data.
+ * @param {object} userConfig - User configuration for navigation.
+ * @returns {object} - An object containing reactive navigation data.
  */
 export default function useNavigation(userConfig) {
     const modelConfigStore = storeModelConfig();

@@ -12,6 +12,13 @@ import { useRouter } from "vue-router";
 //     return paths;
 // };
 
+/**
+ * Builds a route object from a path and the current path.
+ *
+ * @param {string} path - The path to build a route object from.
+ * @param {string} currentPath - The current path.
+ * @returns {object} A route object.
+ */
 const buildRouteObject = (path, currentPath) => {
     const params = {};
     const pathParts = path.split("/");
@@ -28,6 +35,13 @@ const buildRouteObject = (path, currentPath) => {
     };
 };
 
+/**
+ * Gets the best match for a path from an array of paths.
+ *
+ * @param {string} path - The path to match.
+ * @param {string[]} allPaths - The paths to match against.
+ * @returns {string} The best match for the path.
+ */
 const getBestMatch = (path, allPaths) => {
     const scores = allPaths.map((x) => stringSimilarity(path, x));
     const bestMatch = scores.reduce(
@@ -43,10 +57,22 @@ const getBestMatch = (path, allPaths) => {
     return allPaths[bestMatch.index];
 };
 
+/**
+ * Normalizes a path for matching.
+ *
+ * @param {string} path - The path to normalize.
+ * @returns {string} The normalized path.
+ */
 const normalizePathForMatching = (path) => {
     return path.replace(/\/[0-9]+/g, "/:pk");
 };
 
+/**
+ * Gets all route paths from a routes object.
+ *
+ * @param {object[]} routes - The routes object.
+ * @returns {string[]} An array of route paths.
+ */
 const getAllRoutePaths = (routes) => {
     return routes.reduce((acc, route) => {
         if (route.path) {
@@ -59,6 +85,15 @@ const getAllRoutePaths = (routes) => {
     }, []);
 };
 
+/**
+ * Gets a suggested route based on the current route.
+ *
+ * @param {object} router - The router object.
+ * @returns {{
+ *     name: string,
+ *     params: object,
+ * }} A suggested route object.
+ */
 const getSuggestedRoute = (router) => {
     const currentPath = router.currentRoute.value.path;
     const normalizedPath = normalizePathForMatching(currentPath);
@@ -67,6 +102,11 @@ const getSuggestedRoute = (router) => {
     return buildRouteObject(bestMatch, currentPath);
 };
 
+/**
+ * A hook to suggest a route based on the current route.
+ *
+ * @returns {Readonly<import('vue').Ref<object|null>>} A suggested route object.
+ */
 export default function useSuggestRoute() {
     const suggestedRoute = ref(null);
     const router = useRouter();

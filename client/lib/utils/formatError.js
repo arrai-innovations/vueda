@@ -2,8 +2,9 @@ import { combineErrors } from "@vueda/utils/errors.js";
 import inspect from "browser-util-inspect";
 
 /**
- * formatError - format an error object for display. In development, we include the stack trace and if available, the
+ * Format an error object for display. In development, we include the stack trace and if available, the
  *  server stack trace.
+ *
  * @param {Error|Error[]} error - the error object to format
  * @returns {string} - the formatted error message
  */

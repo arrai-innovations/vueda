@@ -4,7 +4,8 @@ import isEmpty from "lodash-es/isEmpty";
 /**
  * Wait for the user to be initialized. This is useful if your making your own
  *  custom guards that need to know if the user is logged in or not.
- * @returns {Promise} The user object.
+ *
+ * @returns {Promise<object>} The user object.
  */
 export async function waitForInitialising() {
     const userStore = storeUser();
@@ -17,28 +18,28 @@ export async function waitForInitialising() {
 /**
  * Require the user to be authenticated.
  *
- * Usage:
- *   ```js
- *   import { requireAuth } from "@vueda/router/guards";
- *   const routes = [
- *     ...,
- *      { // a route that requires authentication
- *        path: '/auth-required/',
- *        name: 'auth-required',
- *        component: () => import('@/views/ViewAuthRequired.vue'),
- *        beforeEnter: partial(requireAuth, { name: "log-in" }),
- *      },
- *     ...
- *   ];
- *   const router = createRouter({
- *     history: createWebHistory(import.meta.env.BASE_URL),
- *     routes,
- *   });
- *   export default router;
- *   ```
- * @param {Object} redirectTo Where to redirect the user if they are not authenticated.
- * @param {Object} to Where the user is trying to go.
- * @returns {Object} The route object.
+ * @example
+ * ```js
+ * import { requireAuth } from "@vueda/router/guards";
+ * const routes = [
+ *   ...,
+ *    { // a route that requires authentication
+ *      path: '/auth-required/',
+ *      name: 'auth-required',
+ *      component: () => import('@/views/ViewAuthRequired.vue'),
+ *      beforeEnter: partial(requireAuth, { name: "log-in" }),
+ *    },
+ *   ...
+ * ];
+ * const router = createRouter({
+ *   history: createWebHistory(import.meta.env.BASE_URL),
+ *   routes,
+ * });
+ * export default router;
+ * ```
+ * @param {object} redirectTo - Where to redirect the user if they are not authenticated.
+ * @param {object} to - Where the user is trying to go.
+ * @returns {object} The route object.
  */
 export async function requireAuth(redirectTo, to) {
     const userStore = await waitForInitialising();
@@ -50,28 +51,28 @@ export async function requireAuth(redirectTo, to) {
 /**
  * Require the user to be unauthenticated, like for a login page.
  *
- * Usage:
- *   ```js
- *   import { requireUnauth } from "@vueda/router/guards";
- *   const routes = [
- *     ...,
- *     { // a route that requires the user to be unauthenticated
- *       path: '/unauth-required/',
- *       name: 'unauth-required',
- *       component: () => import('@/views/ViewUnauthRequired.vue'),
- *       beforeEnter: partial(requireUnauth, { name: "welcome" }),
- *     },
- *     ...
- *   ];
- *   const router = createRouter({
- *     history: createWebHistory(import.meta.env.BASE_URL),
- *     routes,
- *   });
- *   export default router;
- *   ```
- * @param {Object} redirectTo Where to redirect the user if they are authenticated.
- * @param {Object} to Where the user is trying to go. (Not used)
- * @returns {Object} The route object, if a redirect is needed.
+ * @example
+ * ```js
+ * import { requireUnauth } from "@vueda/router/guards";
+ * const routes = [
+ *   ...,
+ *   { // a route that requires the user to be unauthenticated
+ *     path: '/unauth-required/',
+ *     name: 'unauth-required',
+ *     component: () => import('@/views/ViewUnauthRequired.vue'),
+ *     beforeEnter: partial(requireUnauth, { name: "welcome" }),
+ *   },
+ *   ...
+ * ];
+ * const router = createRouter({
+ *   history: createWebHistory(import.meta.env.BASE_URL),
+ *   routes,
+ * });
+ * export default router;
+ * ```
+ * @param {object} redirectTo - Where to redirect the user if they are authenticated.
+ * @param {object} to - Where the user is trying to go. (Not used)
+ * @returns {object} The route object, if a redirect is needed.
  */
 export async function requireUnauth(redirectTo /*, to*/) {
     const userStore = await waitForInitialising();
