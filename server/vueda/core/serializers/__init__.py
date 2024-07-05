@@ -96,7 +96,9 @@ class VuedaSerializer(
     flex_serializers.FlexFieldsSerializerMixin,
     serializers.ModelSerializer,
 ):
-    pass
+    class Meta:
+        expandable_fields = {}
+        fields = []
 
 
 class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):
