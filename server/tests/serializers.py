@@ -23,11 +23,15 @@ class TimesheetEntrySerializer(VuedaHistorySerializer):
 class TimesheetSerializer(VuedaHistorySerializer):
     class Meta(VuedaHistorySerializer.Meta):
         model = Timesheet
-        fields = ["id", "period_start", "period_end", "employee"] + VuedaHistorySerializer.Meta.fields
+        fields = ["id", "period_start", "period_end", "employee", "supervisor"] + VuedaHistorySerializer.Meta.fields
 
         expandable_fields = {
             "timesheet_entry": (TimesheetEntrySerializer, {"many": True}),
             "employee": (
+                EmployeeSerializer,
+                {},
+            ),
+            "supervisor": (
                 EmployeeSerializer,
                 {},
             ),

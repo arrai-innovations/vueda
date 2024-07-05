@@ -11,6 +11,7 @@ class TimesheetViewSet(VuedaHistoryViewSet):
     queryset = Timesheet.objects.all()
     serializer_class = TimesheetSerializer
     permission_classes = [ObjectPermissions]
+    permit_list_expands = ["employee", "supervisor"]
 
 
 class ProductViewSet(VuedaHistoryViewSet):
