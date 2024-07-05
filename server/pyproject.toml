@@ -44,7 +44,19 @@ repository = "https://github.com/arrai-innovations/vueda-server/"
 vueda = "vueda.__main__:main"
 
 [tool.setuptools]
-include-package-data = false
+include-package-data = true
+
+[tool.setuptools.package-data]
+core = "vueda/core"
+core.static = "static"
+user = "vueda/user"
+user.jinja2 = "jinja2"
+user.templates = "templates"
+workflow = "vueda/workflow"
+workflow.jinja2 = "jinja2"
+workflow.sql = "sql"
+workflow.static = "static"
+workflow.templates = "templates"
 
 [tool.setuptools.packages.find]
 include = ["vueda*"]
