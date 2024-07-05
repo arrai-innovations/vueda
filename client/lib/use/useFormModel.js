@@ -8,6 +8,7 @@ import storeModelInfo from "@vueda/stores/storeModelInfo.js";
 import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
 import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
+import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
 import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
 import identity from "lodash-es/identity.js";
@@ -142,6 +143,9 @@ const djangoTypeToFieldComponent = (type) => {
  * @returns {import('vue').Component} The widget component.
  */
 const getDefaultWidget = (field) => {
+    if (field.readOnly) {
+        return WidgetReadOnly;
+    }
     if (field.choices) {
         return WidgetSelect;
     }

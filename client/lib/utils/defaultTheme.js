@@ -59,6 +59,10 @@ const defaultComponents = {
         defaultVariant: "default",
         spots: ["outer", "prefix", "input", "suffix"],
     },
+    "@vueda/widgets/WidgetReadonly.vue": {
+        defaultVariant: "default",
+        spots: ["outer", "prefix", "input", "suffix"],
+    },
     "@vueda/widgets/WidgetCheckbox.vue": {
         defaultVariant: "default",
         spots: ["outer", "prefix", "input", "suffix"],
