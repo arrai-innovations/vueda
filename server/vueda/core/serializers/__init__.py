@@ -21,24 +21,19 @@ class NoExtraFieldsSerializerMixin:
             # because the parent serializer will validate the extra fields.
             extra_keys_fields = set(self.initial_data.keys()) - set(self.fields.keys())
             for extra_key in extra_keys_fields:
+                msg = f"Invalid field.  Valid fields are {', '.join(self.get_fields())}."
                 if extra_key in errors:
-                    errors[extra_key].append("Unexpected field.")
+                    errors[extra_key].append(msg)
                 else:
-                    errors[extra_key] = ["Unexpected field."]
+                    errors[extra_key] = [msg]
 
             extra_keys_expand = set(self._flex_options_rep_only["expand"]) - set(self.expanded_fields)
             for extra_key in extra_keys_expand:
+                msg = f"Invalid expands.  Valid expands are {', '.join(self._expandable_fields)}."
                 if extra_key in errors:
-                    errors[extra_key].append("Unexpected field.")
+                    errors[extra_key].append(msg)
                 else:
-                    errors[extra_key] = ["Unexpected field."]
-            if not self.parent:
-                extra_keys_expand = set(self._flex_options_rep_only["expand"]) - set(self.expanded_fields)
-                for extra_key in extra_keys_expand:
-                    if extra_key in errors:
-                        errors[extra_key].append("Unexpected field.")
-                    else:
-                        errors[extra_key] = ["Unexpected field."]
+                    errors[extra_key] = [msg]
         if errors:
             raise ValidationError(errors)
         return attrs

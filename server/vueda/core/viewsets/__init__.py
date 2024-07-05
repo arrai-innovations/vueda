@@ -5,6 +5,7 @@ from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
 from rest_framework import viewsets
 from rest_framework import viewsets as drf_viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
 
 from vueda.core.models import ActivatableBaseModel
@@ -114,6 +115,73 @@ class NoExtraFieldsForViewSetMixin:
             settings.REST_FRAMEWORK["ORDERING_PARAM"],
         )
 
+    @staticmethod
+    def validate_flex_expand_param(request, serializer):
+        if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
+            valid_fields = set(serializer.fields.keys())
+            # If the serializer Meta does not have permit_retrieve_expand or permit_list_expand defined, which gets
+            # added to the serializer context as permitted_expands, then _flex_options_rep_only["expand"] becomes
+            # the list of expand that was passed from the client, regardless of each expand param existing or not.
+            # So, we can't trust that _flex_options_rep_only["expand"] in that situation, and instead need to look
+            # at the expandable_fields set up in the Meta.
+            if "permitted_expands" in serializer.context:
+                if hasattr(serializer, "_flex_options_rep_only"):
+                    valid_fields.update(serializer._flex_options_rep_only["expand"])
+            elif hasattr(serializer.Meta, "expandable_fields"):
+                valid_fields.update(serializer.Meta.expandable_fields)
+            submitted_fields = frozenset(serializer._get_query_param_value(settings.REST_FLEX_FIELDS["EXPAND_PARAM"]))
+            extra_keys = submitted_fields - valid_fields
+            if extra_keys:
+                errors = {}
+                for extra_key in extra_keys:
+                    errors[extra_key] = [
+                        {
+                            "message": ErrorDetail(
+                                string=f"Invalid expands.  Valid expands are {', '.join(serializer._expandable_fields)}.",
+                                code="invalid",
+                            ),
+                            "code": "invalid",
+                        }
+                    ]
+
+                return Response(errors, status=400)
+
+    @staticmethod
+    def validate_flex_field_param(request, serializer):
+        if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params:
+            valid_fields = set(serializer.fields.keys())
+            if hasattr(serializer, "_flex_options_rep_only"):
+                valid_fields.update(serializer._flex_options_rep_only["fields"])
+            submitted_fields = frozenset(serializer._get_query_param_value(settings.REST_FLEX_FIELDS["FIELDS_PARAM"]))
+            extra_keys = submitted_fields - valid_fields
+            if extra_keys:
+                errors = {}
+                for extra_key in extra_keys:
+                    errors[extra_key] = [
+                        {
+                            "message": ErrorDetail(
+                                string=f"Invalid field.  Valid fields are {', '.join(serializer.get_fields())}.",
+                                code="invalid",
+                            ),
+                            "code": "invalid",
+                        }
+                    ]
+
+                return Response(errors, status=400)
+
+    def retrieve(self, request, *args, **kwargs):
+        serializer = self.get_serializer()
+
+        results = self.validate_flex_field_param(request, serializer)
+        if results is not None:
+            return results
+
+        results = self.validate_flex_expand_param(request, serializer)
+        if results is not None:
+            return results
+
+        return super().retrieve(request, *args, **kwargs)
+
     def list(self, request, *args, **kwargs):
         """
         if you provide fields to filter by that are not filtered by the filter class, you get a 500 error
@@ -130,34 +198,14 @@ class NoExtraFieldsForViewSetMixin:
                         status=500,
                     )
         serializer = self.get_serializer()
-        if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params:
-            # make sure all fields are valid
-            valid_fields = set(serializer.fields.keys())
-            if hasattr(serializer, "_flex_options_rep_only"):
-                valid_fields.update(serializer._flex_options_rep_only["fields"])
-            submitted_fields = set(request.query_params.getlist(settings.REST_FLEX_FIELDS["FIELDS_PARAM"]))
-            extra_keys = submitted_fields - valid_fields
-            if extra_keys:
-                return Response(
-                    {
-                        "detail": f"Invalid {settings.REST_FLEX_FIELDS['FIELDS_PARAM']} parameter: {', '.join(extra_keys)}. Valid fields are: {', '.join(submitted_fields)}"
-                    },
-                    status=500,
-                )
-        if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
-            # make sure all fields are valid
-            valid_fields = set(serializer.fields.keys())
-            if hasattr(serializer, "_flex_options_rep_only"):
-                valid_fields.update(serializer._flex_options_rep_only["expand"])
-            submitted_fields = set(request.query_params.getlist(settings.REST_FLEX_FIELDS["EXPAND_PARAM"]))
-            extra_keys = submitted_fields - valid_fields
-            if extra_keys:
-                return Response(
-                    {
-                        "detail": f"Invalid {settings.REST_FLEX_FIELDS['EXPAND_PARAM']} parameter: {', '.join(extra_keys)}. Valid fields are: {', '.join(submitted_fields)}"
-                    },
-                    status=500,
-                )
+
+        results = self.validate_flex_field_param(request, serializer)
+        if results is not None:
+            return results
+
+        results = self.validate_flex_expand_param(request, serializer)
+        if results is not None:
+            return results
 
         return super().list(request, *args, **kwargs)
 
