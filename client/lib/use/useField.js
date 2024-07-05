@@ -4,6 +4,17 @@ import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
 import { computed, inject, provide, reactive, watch } from "vue";
 
+/**
+ * The reactive props we expect fields to receive and pass to useField when creating a field context.
+ *
+ * @typedef {object} FieldProps
+ * @property {string} name - The name of the field.
+ * @property {boolean} [required=false] - Whether the field is required.
+ * @property {string} [requiredMessage="This field is required."] - The message to display if the field is required and empty.
+ * @property {string} [label] - The label for the field.
+ * @property {string} [help] - The help text for the field.
+ * @property {(value: any) => boolean} - The custom validation function for the field.
+ */
 export const fieldProps = {
     name: {
         type: String,
@@ -31,10 +42,67 @@ export const fieldProps = {
     },
 };
 
+/**
+ * The default required validation function.
+ *
+ * @param {any} value - The value to validate.
+ * @returns {boolean} Whether the value is not null, undefined, an empty string, false, or 0.
+ */
 export function defaultValidateRequired(value) {
     return value !== null && value !== undefined && value !== "" && value !== false && value !== 0;
 }
 
+/**
+ * The raw field context object.
+ *
+ * @typedef {object} FieldContextRaw
+ * @property {import('vue').ComputedRef<string>} name - The name of the field.
+ * @property {import('vue').ComputedRef<string>} label - The label for the field.
+ * @property {import('vue').ComputedRef<string>} help - The help text for the field.
+ * @property {import('vue').ComputedRef<any>} value - The current value of the field.
+ * @property {import('vue').ComputedRef<any>} initialValue - The initial value of the field.
+ * @property {import('vue').ComputedRef<{[code: string]: string}>} messages - The messages for the field.
+ * @property {import('vue').ComputedRef<{[code: string]: string}>} errors - The errors for the field.
+ * @property {import('vue').ComputedRef<boolean>} dirty - Whether the field has been interacted with.
+ * @property {(value: any) => void} updateValue - Update the field's value.
+ * @property {() => void} deleteValue - Delete the field's value.
+ * @property {(code: string, message: string) => void} updateError - Update the field's error.
+ * @property {(code: string) => void} deleteError - Delete the field's error.
+ * @property {(code: string, message: string) => void} updateMessage - Update the field's message.
+ * @property {(code: string) => void} deleteMessage - Delete the field's message.
+ * @property {() => void} setDirty - Set the field as dirty.
+ * @property {() => void} clearDirty - Clear the field's dirty state.
+ * @property {() => void} focus - Focus on the field.
+ * @property {() => void} blur - Blur the field.
+ */
+
+/**
+ * The field context object, providing methods to
+ *
+ * @typedef {import('vue').UnwrapNestedRefs<FieldContextRaw>} FieldContext
+ */
+
+/**
+ * The non-reactive `functions` that can be passed to useField.
+ *
+ * @typedef {object} FieldContextFunctions
+ * @property {(value: any) => boolean} [required] - A custom required validation function
+ */
+
+/**
+ * The reactive arguments for the useField function.
+ *
+ * @typedef {import('vue').UnwrapRef<FieldContextRawProps>} FieldContextProps
+ */
+
+/**
+ * Generate and provide a field context for a field, using the provided props and functions, including methods to update
+ *  the field's value, errors, messages, dirty state, and to focus or blur it.
+ *
+ * @param {import('vue').UnwrapNestedRefs<FieldProps>} props - The field context's reactive props.
+ * @param {FieldContextFunctions} [functions] - The field context's non-reactive functions.
+ * @returns {FieldContext} The field context object.
+ */
 export default function useField(props, functions) {
     const formContext = inject(FormContextSymbol, null);
 
