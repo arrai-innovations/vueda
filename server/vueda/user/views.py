@@ -179,7 +179,7 @@ class PermissionOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView)
     """
 
     template_name = "permissions/overview.jinja2"
-    permission_required = ("user.read_permission",)
+    permission_required = ("user.list_permission",)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

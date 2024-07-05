@@ -74,6 +74,9 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, PermissionsMixin
         abstract = True
         ordering = ("-date_joined",)
         default_related_name = "users"
+        permissions = [
+            ("list_permission", "Can list permissions"),
+        ]
 
     def has_perm(self, perm, obj: Optional[models.Model] = None):
         # django.contrib.auth.backends.ModelBackend always returns false if object is passed, so do not pass obj and

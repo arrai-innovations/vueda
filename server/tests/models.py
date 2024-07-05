@@ -12,14 +12,8 @@ from vueda.user.models import AbstractVUEDAUser
 
 
 class User(AbstractVUEDAUser):
-    class Meta(BaseModelMeta):
+    class Meta(AbstractVUEDAUser.Meta):
         default_related_name = "users"
-
-    class Meta(BaseModelMeta):
-        permissions = [
-            ("list_permission", "Can list permissions"),
-            ("read_permission", "Can read permissions"),
-        ]
 
 
 class Employee(SimpleHistoryModelMixin, models.Model):
