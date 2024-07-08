@@ -1,8 +1,7 @@
 <script setup>
-import { getCRUDForTo, isDetailView } from "@vueda/router/getCrud.js";
+import { getCRUDForTo, isDetailView } from "../router/getCrud.js";
+// import {getLowerTitle} from "../utils/crudSupport.js";
 import { computed } from "vue";
-
-// import { getLowerTitle } from "@vueda/utils/crudSupport";
 
 defineOptions({ inheritAttrs: false });
 

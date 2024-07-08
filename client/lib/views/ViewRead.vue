@@ -1,9 +1,9 @@
 <script setup>
+import LoadingSpinnerInline from "../components/LoadingSpinnerInline.vue";
+import { useCombinedClasses } from "../use/useCombinedClasses.js";
+import { useIsActive } from "../use/useIsActive.js";
+import { useModelConfig } from "../use/useModelConfig.js";
 import { useObject } from "@arrai-innovations/reactive-helpers";
-import LoadingSpinner from "@vueda/components/LoadingSpinnerBlock.vue";
-import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
-import useIsActive from "@vueda/use/useIsActive.js";
-import useModelConfig from "@vueda/use/useModelConfig.js";
 import get from "lodash-es/get.js";
 import isEmpty from "lodash-es/isEmpty";
 import { computed, reactive, toRef } from "vue";
@@ -58,7 +58,7 @@ const instanceObject = useObject({
     props: instanceObjectProps,
 });
 
-const combinedClasses = useCombinedClasses("@vueda/views/ViewRead.vue", props);
+const combinedClasses = useCombinedClasses("ViewRead", props);
 </script>
 
 <template>
@@ -66,7 +66,7 @@ const combinedClasses = useCombinedClasses("@vueda/views/ViewRead.vue", props);
         <div :class="combinedClasses.headerClass">
             <h1 :class="combinedClasses.titleClass">
                 {{ `Read ${modelConfig.info?.verbose_name}` || "Read Item" }}
-                <loading-spinner
+                <loading-spinner-inline
                     v-if="modelConfig.loading || isEmpty(modelConfig.config) || isEmpty(modelConfig.info)"
                     :class="combinedClasses.loadingClass"
                 />

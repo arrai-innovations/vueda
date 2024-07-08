@@ -1,7 +1,7 @@
-import storeTheme from "@vueda/stores/storeTheme.js";
+import { storeTheme } from "../stores/storeTheme.js";
 
 const defaultComponents = {
-    "@vueda/views/ViewList.vue": {
+    ViewList: {
         defaultVariant: "default",
         spots: [
             "outer",
@@ -14,23 +14,23 @@ const defaultComponents = {
             "detailActionClass",
         ],
     },
-    "@vueda/views/ViewCreate.vue": {
+    ViewCreate: {
         defaultVariant: "default",
         spots: ["outer", "header", "title", "loading"],
     },
-    "@vueda/views/ViewUpdate.vue": {
+    ViewUpdate: {
         defaultVariant: "default",
         spots: ["outer", "header", "title", "loading"],
     },
-    "@vueda/views/ViewRead.vue": {
+    ViewRead: {
         defaultVariant: "default",
         spots: ["outer", "header", "title", "loading"],
     },
-    "@vueda/views/ViewDelete.vue": {
+    ViewDelete: {
         defaultVariant: "default",
         spots: ["outer", "header", "title", "loading"],
     },
-    "@vueda/components/ObjectsGrid.vue": {
+    ObjectsGrid: {
         defaultVariant: "default",
         spots: [
             "oddTwoColumnCard",
@@ -47,50 +47,50 @@ const defaultComponents = {
             "cardCell",
         ],
     },
-    "@vueda/components/FormLabel.vue": {
+    FormLabel: {
         defaultVariant: "default",
         spots: ["label"],
     },
-    "@vueda/components/FormModel.vue": {
+    FormModel: {
         defaultVariant: "default",
         spots: ["label"],
     },
-    "@vueda/components/PaginationComponent.vue": {
+    PaginationComponent: {
         defaultVariant: "default",
         spots: ["outer"],
     },
-    "@vueda/widgets/WidgetInput.vue": {
+    WidgetInput: {
         defaultVariant: "default",
         spots: ["outer", "prefix", "input", "suffix"],
     },
-    "@vueda/widgets/WidgetReadonly.vue": {
+    WidgetReadonly: {
         defaultVariant: "default",
         spots: ["outer", "prefix", "input", "suffix"],
     },
-    "@vueda/widgets/WidgetCheckbox.vue": {
+    WidgetCheckbox: {
         defaultVariant: "default",
         spots: ["outer", "prefix", "input", "suffix"],
     },
-    "@vueda/widgets/WidgetSelect.vue": {
+    WidgetSelect: {
         defaultVariant: "default",
         spots: ["outer", "prefix", "input", "suffix"],
     },
-    "@vueda/widgets/WidgetTextarea.vue": {
+    WidgetTextarea: {
         defaultVariant: "default",
         spots: ["outer", "prefix", "input", "suffix"],
     },
-    "@vueda/components/FormHelpText.vue": {
+    FormHelpText: {
         defaultVariant: "default",
         spots: ["help"],
     },
-    "@vueda/components/FormFeedback.vue": {
+    FormFeedback: {
         defaultVariant: "default",
         spots: ["errors", "error", "messages", "message"],
     },
 };
 
 const defaultVariants = {
-    "@vueda/views/ViewList.vue": {
+    ViewList: {
         default: {
             outer: "outer",
             header: "header",
@@ -102,7 +102,7 @@ const defaultVariants = {
             detailActionClass: "detailActionClass",
         },
     },
-    "@vueda/components/ObjectsGrid.vue": {
+    ObjectsGrid: {
         default: {
             oddTwoColumnCard: "oddTwoColumnCard",
             evenTwoColumnCard: "evenTwoColumnCard",
@@ -120,7 +120,7 @@ const defaultVariants = {
     },
 };
 
-export default function () {
+export function defaultTheme() {
     const themeStore = storeTheme();
 
     for (const componentName of Object.keys(defaultComponents)) {

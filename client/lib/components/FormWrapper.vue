@@ -1,5 +1,5 @@
 <script setup>
-import useForm from "@vueda/use/useForm.js";
+import { useForm } from "../use/useForm.js";
 import { toRef, watch } from "vue";
 
 const props = defineProps({

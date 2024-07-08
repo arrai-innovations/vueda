@@ -17,7 +17,7 @@ describe("lib/use/useForm.js", () => {
         const vue = await vi.importActual("vue");
         reactive = vue.reactive;
         nextTick = vue.nextTick;
-        useForm = await vi.importActual("@vueda/use/useForm.js").then((m) => m.default);
+        useForm = await vi.importActual("../../../../lib/index.js").then((m) => m.useForm);
     });
     afterEach(() => {
         vi.clearAllMocks();

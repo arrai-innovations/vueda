@@ -1,13 +1,13 @@
 <script setup>
-import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
-import useWidget, { widgetEmits, widgetProps } from "@vueda/use/useWidget.js";
+import { useCombinedClasses } from "../use/useCombinedClasses.js";
+import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "../use/useWidget.js";
 import InputText from "primevue/inputtext";
 
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
-    ...widgetProps,
+    ...WIDGET_PROPS,
     type: {
         type: String,
         default: "text",
@@ -33,9 +33,9 @@ const props = defineProps({
         default: () => [],
     },
 });
-const emit = defineEmits([...widgetEmits]);
+const emit = defineEmits([...WIDGET_EMITS]);
 const widget = useWidget(props, emit);
-const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetInput.vue", props);
+const combinedClasses = useCombinedClasses("WidgetInput", props);
 </script>
 <template>
     <div :class="combinedClasses.outerClass">

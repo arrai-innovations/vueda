@@ -39,7 +39,6 @@ export default () => {
                 https,
             },
             alias: {
-                "@vueda": fileURLToPath(new URL("./lib", import.meta.url)),
                 "@tests": fileURLToPath(new URL("./tests", import.meta.url)),
             },
         },

@@ -1,4 +1,4 @@
-import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
+import { FieldContextSymbol, FormContextSymbol } from "../utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -7,7 +7,7 @@ import { computed, inject, provide, reactive, watch } from "vue";
 /**
  * The reactive props we expect fields to receive and pass to useField when creating a field context.
  *
- * @typedef {object} FieldProps
+ * @typedef {object} FIELD_PROPS
  * @property {string} name - The name of the field.
  * @property {boolean} [required=false] - Whether the field is required.
  * @property {string} [requiredMessage="This field is required."] - The message to display if the field is required and empty.
@@ -15,7 +15,7 @@ import { computed, inject, provide, reactive, watch } from "vue";
  * @property {string} [help] - The help text for the field.
  * @property {(value: any) => boolean} - The custom validation function for the field.
  */
-export const fieldProps = {
+export const FIELD_PROPS = {
     name: {
         type: String,
         required: true,
@@ -99,11 +99,11 @@ export function defaultValidateRequired(value) {
  * Generate and provide a field context for a field, using the provided props and functions, including methods to update
  *  the field's value, errors, messages, dirty state, and to focus or blur it.
  *
- * @param {import('vue').UnwrapNestedRefs<FieldProps>} props - The field context's reactive props.
+ * @param {import('vue').UnwrapNestedRefs<FIELD_PROPS>} props - The field context's reactive props.
  * @param {FieldContextFunctions} [functions] - The field context's non-reactive functions.
  * @returns {FieldContext} The field context object.
  */
-export default function useField(props, functions) {
+export function useField(props, functions) {
     const formContext = inject(FormContextSymbol, null);
 
     const requiredFn = functions?.required || defaultValidateRequired;

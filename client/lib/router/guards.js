@@ -1,4 +1,4 @@
-import storeUser from "@vueda/stores/storeUser.js";
+import { storeUser } from "../stores/storeUser.js";
 import isEmpty from "lodash-es/isEmpty";
 
 /**
@@ -20,7 +20,7 @@ export async function waitForInitialising() {
  *
  * @example
  * ```js
- * import { requireAuth } from "@vueda/router/guards";
+ * import { requireAuth } from "@arrai-innovations/vueda";
  * const routes = [
  *   ...,
  *    { // a route that requires authentication
@@ -53,7 +53,7 @@ export async function requireAuth(redirectTo, to) {
  *
  * @example
  * ```js
- * import { requireUnauth } from "@vueda/router/guards";
+ * import { requireUnauth } from "@arrai-innovations/vueda";
  * const routes = [
  *   ...,
  *   { // a route that requires the user to be unauthenticated
@@ -86,7 +86,7 @@ export async function requireUnauth(redirectTo) {
  *
  * Usage:
  *   ```js
- *   import { requireInitialized } from "@vueda/router/guards";
+ *   import { requireInitialized } from "@arrai-innovations/vueda";
  *   const routes = [
  *     ...,
  *     { // a route that requires the user to be initialized
@@ -115,7 +115,7 @@ export async function requireInitialized() {
  * Usage:
  *   ```js
  *   import partial from "lodash-es/partial.js";
- *   import { requirePerms } from "@vueda/router/guards";
+ *   import { requirePerms } from "@arrai-innovations/vueda";
  *   const myRequirePerms = partial(
  *       {
  *           title: "Permission Denied",

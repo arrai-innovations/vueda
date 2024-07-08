@@ -31,7 +31,7 @@ import { effectScope, onActivated, onDeactivated, onMounted, toRef, unref, watch
  *
  * @param {WindowShortcutProps} props - The props.
  */
-export default function useWindowShortcut(props) {
+export function useWindowShortcut(props) {
     const triggers = toRef(() => props.triggers);
     const processedTriggers = [];
 

@@ -1,8 +1,8 @@
+import { httpOrHttpsHostname } from "./connectionHostname.js";
+import { FetchError } from "./errors.js";
+import { getJsonOrText } from "./fetchSupport.js";
+import { getUrl } from "./urls.js";
 import { setListCrud } from "@arrai-innovations/reactive-helpers";
-import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname";
-import { FetchError } from "@vueda/utils/errors";
-import { getJsonOrText } from "@vueda/utils/fetchSupport";
-import { getUrl } from "@vueda/utils/urls.js";
 import isArray from "lodash-es/isArray.js";
 import omit from "lodash-es/omit.js";
 import pLimit from "p-limit";
@@ -102,7 +102,7 @@ export async function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs = {},
     return returnPromise;
 }
 
-export default function setupDefaultListCrud() {
+export function setupDefaultListCrud() {
     setListCrud({
         list: singlePagePaginatedListCrudAdaptor,
         args: {

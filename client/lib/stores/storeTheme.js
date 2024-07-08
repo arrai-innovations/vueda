@@ -159,7 +159,7 @@ function clearAll() {
  *
  * @returns {ThemeStore} The theme store.
  */
-export default defineStore({
+export const storeTheme = defineStore({
     id: "themeStore",
     state: () => ({
         components: {},

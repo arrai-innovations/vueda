@@ -1,15 +1,14 @@
-// useWidget.js
-import { FieldContextSymbol } from "@vueda/utils/symbols.js";
+import { FieldContextSymbol } from "../utils/symbols.js";
 import { computed, inject, reactive, readonly, ref } from "vue";
 
 /**
  * The reactive props we expect widgets to receive and pass to useWidget when creating a widget context.
  *
- * @typedef {object} WidgetProps
+ * @typedef {object} WIDGET_PROPS
  * @property {string} [name] - The name of the widget.
  * @property {any} [modelValue] - The model value of the widget.
  */
-export const widgetProps = {
+export const WIDGET_PROPS = {
     name: {
         type: String,
         default: undefined,
@@ -20,7 +19,7 @@ export const widgetProps = {
     },
 };
 
-export const widgetEmits = ["update:modelValue"];
+export const WIDGET_EMITS = ["update:modelValue"];
 
 /**
  * The raw widget context object.
@@ -47,11 +46,11 @@ export const widgetEmits = ["update:modelValue"];
  * Generate and provide a widget context for a widget, using the provided props and emit function, including methods to
  *  update the widget's value, mark it as dirty, and focus or blur it.
  *
- * @param {import('vue').UnwrapRef<WidgetProps>} props - The widget context's reactive props.
+ * @param {import('vue').UnwrapRef<WIDGET_PROPS>} props - The widget context's reactive props.
  * @param {import('vue').SetupContext['emit']} emit - The widget context's component emit function.
  * @return {WidgetContext} The widget context object.
  */
-export default function useWidget(props, emit) {
+export function useWidget(props, emit) {
     const fieldContext = inject(FieldContextSymbol, null);
     const combinedValue = computed({
         get: () => {

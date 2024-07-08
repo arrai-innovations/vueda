@@ -1,8 +1,8 @@
 <script setup>
+import { useCombinedClasses } from "../use/useCombinedClasses.js";
+import { NON_FIELD_ERRORS_KEY } from "../utils/constants.js";
+import { FieldContextSymbol, FormContextSymbol } from "../utils/symbols.js";
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
-import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
-import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
-import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import get from "lodash-es/get.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -71,7 +71,7 @@ watch(
     { immediate: true, deep: true },
 );
 
-const combinedClasses = useCombinedClasses("@vueda/components/FormFeedback.vue", props);
+const combinedClasses = useCombinedClasses("FormFeedback", props);
 </script>
 <template>
     <div v-if="!isEmpty(feedbackItems)" :class="combinedClasses[`{type}sClass`]">

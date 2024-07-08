@@ -1,4 +1,4 @@
-import useIsActive from "@vueda/use/useIsActive.js";
+import { useIsActive } from "../use/useIsActive.js";
 import { onMounted, onUnmounted } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 
@@ -9,7 +9,7 @@ import { onBeforeRouteLeave } from "vue-router";
  * @property {boolean} state.submitting - Whether the form is submitting.
  * @returns {void}
  */
-export default function useLeaveUnload(state) {
+export function useLeaveUnload(state) {
     const isActive = useIsActive();
 
     const beforeRouteLeaveListener = () => {

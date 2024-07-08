@@ -1,5 +1,5 @@
-import { VITE_PACKAGE_VERSION } from "@vueda/utils/constants.js";
-import { VersionSymbol } from "@vueda/utils/symbols.js";
+import { VITE_PACKAGE_VERSION } from "../utils/constants.js";
+import { VersionSymbol } from "../utils/symbols.js";
 import semvarGT from "semver/functions/gt.js";
 import { computed, inject, provide, readonly, ref } from "vue";
 
@@ -18,7 +18,7 @@ import { computed, inject, provide, readonly, ref } from "vue";
  *
  * @returns {VersionInstance} The version instance.
  */
-export default function useVersion() {
+export function useVersion() {
     let version = inject(VersionSymbol, null);
 
     if (version === null) {

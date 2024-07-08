@@ -1,9 +1,9 @@
 <script setup>
-import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
-import useWidget, { widgetEmits, widgetProps } from "@vueda/use/useWidget.js";
+import { useCombinedClasses } from "../use/useCombinedClasses.js";
+import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "../use/useWidget.js";
 
 const props = defineProps({
-    ...widgetProps,
+    ...WIDGET_PROPS,
     options: {
         type: Array,
         required: true,
@@ -33,9 +33,9 @@ const props = defineProps({
         default: () => [],
     },
 });
-const emit = defineEmits([...widgetEmits]);
+const emit = defineEmits([...WIDGET_EMITS]);
 const widget = useWidget(props, emit);
-const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetRadio.vue", props);
+const combinedClasses = useCombinedClasses("WidgetRadio", props);
 </script>
 
 <template>

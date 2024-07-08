@@ -1,5 +1,5 @@
-import storeModelInfo from "@vueda/stores/storeModelInfo.js";
-import { getPermissionCase } from "@vueda/utils/crudSupport.js";
+import { getPermissionCase } from "../utils/crudSupport.js";
+import { storeModelInfo } from "./storeModelInfo.js";
 import { defineStore } from "pinia";
 
 /**
@@ -49,7 +49,7 @@ const getKey = (app, model) => {
 /**
  * Get a default configuration object for a model based on model info.
  *
- * @param {import('@vueda/stores/storeModelInfo.js').ModelInfo} modelInfo - The model info to base the configuration on.
+ * @param {import('../').ModelInfo} modelInfo - The model info to base the configuration on.
  * @returns {ModelConfig} The default configuration object.
  */
 const getDefaultFromModelInfo = (modelInfo) => {
@@ -86,7 +86,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
  * }>}
  *
  */
-export default defineStore({
+export const storeModelConfig = defineStore({
     id: "configStore",
     state: () => ({
         configs: {},

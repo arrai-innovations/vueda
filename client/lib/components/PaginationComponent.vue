@@ -1,5 +1,5 @@
 <script setup>
-import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
+import { useCombinedClasses } from "../use/useCombinedClasses.js";
 import Paginator from "primevue/paginator";
 import { ref } from "vue";
 
@@ -23,7 +23,7 @@ const offset = ref(0);
 const onPaginate = async (page) => {
     emit("update:currentPage", page.first / page.rows + 1);
 };
-const combinedClasses = useCombinedClasses("@vueda/components/PaginationComponent.vue", props);
+const combinedClasses = useCombinedClasses("PaginationComponent", props);
 </script>
 
 <template>

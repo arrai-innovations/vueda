@@ -1,16 +1,16 @@
+import FieldBoolean from "../fields/FieldBoolean.vue";
+import FieldDate from "../fields/FieldDate.vue";
+import FieldNumber from "../fields/FieldNumber.vue";
+import FieldObject from "../fields/FieldObject.vue";
+import FieldString from "../fields/FieldString.vue";
+import { storeModelInfo } from "../stores/storeModelInfo.js";
+import { memoizedSnakeCase } from "../utils/memoized.js";
+import WidgetCheckbox from "../widgets/WidgetCheckbox.vue";
+import WidgetInput from "../widgets/WidgetInput.vue";
+import WidgetReadOnly from "../widgets/WidgetReadOnly.vue";
+import WidgetSelect from "../widgets/WidgetSelect.vue";
+import WidgetTextarea from "../widgets/WidgetTextarea.vue";
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
-import FieldBoolean from "@vueda/fields/FieldBoolean.vue";
-import FieldDate from "@vueda/fields/FieldDate.vue";
-import FieldNumber from "@vueda/fields/FieldNumber.vue";
-import FieldObject from "@vueda/fields/FieldObject.vue";
-import FieldString from "@vueda/fields/FieldString.vue";
-import storeModelInfo from "@vueda/stores/storeModelInfo.js";
-import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
-import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
-import WidgetInput from "@vueda/widgets/WidgetInput.vue";
-import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
-import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
-import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
 import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
@@ -92,7 +92,7 @@ const defaultWidgetProps = {
 /**
  * Get the field props for a given field object.
  *
- * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} fieldObj - The field object.
+ * @param {import('../').FieldInfo} fieldObj - The field object.
  * @returns {{[key:string]: any}} The field props.
  */
 const getFieldProps = (fieldObj) => {
@@ -108,7 +108,7 @@ const getFieldProps = (fieldObj) => {
  * Get the widget props for a given field type and field object.
  *
  * @param {string} fieldType - The field type.
- * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} fieldObj - The field object.
+ * @param {import('../').FieldInfo} fieldObj - The field object.
  * @returns {{[key:string]: any}} The widget props.
  */
 const getWidgetProps = (fieldType, fieldObj) => {
@@ -139,7 +139,7 @@ const djangoTypeToFieldComponent = (type) => {
 /**
  * Get the default widget for a given field object.
  *
- * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - The field object.
+ * @param {import('../').FieldInfo} field - The field object.
  * @returns {import('vue').Component} The widget component.
  */
 const getDefaultWidget = (field) => {
@@ -159,7 +159,7 @@ const getDefaultWidget = (field) => {
 
 /**
  * @typedef {object} UseFormModelRawState
- * @property {{[fieldName:string]:import('@vueda/models/FieldModel').FieldModel}} fieldObjects -
+ * @property {{[fieldName:string]:import('../').FieldModel}} fieldObjects -
  * @property {{[fieldName:string]:import('vue').Component}} fieldComponents -
  * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps -
  * @property {{[fieldName:string]: import('vue').Component}} widgetComponents - The widget components
@@ -184,7 +184,7 @@ const UseFormModelStateKeys = ["fieldObjects", "fieldComponents", "fieldProps", 
  * @param {import('vue').Reactive<UseFormModelRawProps>} props - The reactive arguments.
  * @returns {UseFormModelState} The reactive state.
  */
-export default function useFormModel(props) {
+export function useFormModel(props) {
     const modelInfoStore = storeModelInfo();
     const internalState = reactive({
         modelInfo: {},

@@ -1,7 +1,7 @@
 <script setup>
+import { useCombinedClasses } from "../use/useCombinedClasses.js";
 import { faDownLong, faUpDown, faUpLong } from "@arrai-innovations/sharp-solid-svg-icons";
 import { FontAwesomeIcon } from "@arrai-innovations/vue-fontawesome";
-import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 import get from "lodash-es/get.js";
 import { computed, ref } from "vue";
@@ -113,7 +113,7 @@ const props = defineProps({
 });
 const emit = defineEmits(["update:sorted"]);
 
-const combinedClasses = useCombinedClasses("@vueda/components/ObjectsGrid.vue", props);
+const combinedClasses = useCombinedClasses("ObjectsGrid", props);
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isTable = breakpoints.greaterOrEqual(props.tableBreakpoint);

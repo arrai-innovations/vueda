@@ -1,4 +1,4 @@
-import { combineErrors } from "@vueda/utils/errors.js";
+import { combineErrors } from "./errors.js";
 import inspect from "browser-util-inspect";
 
 /**

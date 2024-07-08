@@ -1,8 +1,8 @@
 <script setup>
+import LoadingSpinnerBlock from "../components/LoadingSpinnerBlock.vue";
+import { useCombinedClasses } from "../use/useCombinedClasses.js";
+import { useModelConfig } from "../use/useModelConfig.js";
 import { useObject } from "@arrai-innovations/reactive-helpers";
-import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
-import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
-import useModelConfig from "@vueda/use/useModelConfig";
 import isEmpty from "lodash-es/isEmpty";
 import { useToast } from "primevue/usetoast";
 import { reactive, ref, toRef } from "vue";
@@ -60,7 +60,7 @@ const handleDelete = async () => {
     router.back();
 };
 
-const combinedClasses = useCombinedClasses("@vueda/views/ViewDelete.vue", props);
+const combinedClasses = useCombinedClasses("ViewDelete", props);
 </script>
 
 <template>

@@ -1,13 +1,13 @@
 <script setup>
-import FormLabel from "@vueda/components/FormLabel.vue";
-import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
-import useWidget, { widgetEmits, widgetProps } from "@vueda/use/useWidget.js";
+import FormLabel from "../components/FormLabel.vue";
+import { useCombinedClasses } from "../use/useCombinedClasses.js";
+import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "../use/useWidget.js";
 
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
-    ...widgetProps,
+    ...WIDGET_PROPS,
     label: {
         type: String,
         default: "",
@@ -29,9 +29,9 @@ const props = defineProps({
         default: () => [],
     },
 });
-const emit = defineEmits([...widgetEmits]);
+const emit = defineEmits([...WIDGET_EMITS]);
 const widget = useWidget(props, emit);
-const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetCheckbox.vue", props);
+const combinedClasses = useCombinedClasses("WidgetCheckbox", props);
 </script>
 <template>
     <div :class="combinedClasses.outerClass">

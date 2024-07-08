@@ -1,6 +1,6 @@
-import { isDetailView } from "./getCrud";
-import { requireAuth, requireGroups } from "@vueda/router/guards";
-import { getCapitalizedTitle, getClientRoutePart, getLowerTitle, getPluralizedTitle } from "@vueda/utils/crudSupport";
+import { getCapitalizedTitle, getClientRoutePart, getLowerTitle, getPluralizedTitle } from "../utils/crudSupport.js";
+import { isDetailView } from "./getCrud.js";
+import { requireAuth, requireGroups } from "./guards.js";
 import partial from "lodash-es/partial";
 
 /**

@@ -1,5 +1,5 @@
+import { storeTheme } from "../stores/storeTheme.js";
 import { useCombineClasses } from "@arrai-innovations/reactive-helpers";
-import storeTheme from "@vueda/stores/storeTheme.js";
 import { computed, reactive, toRef } from "vue";
 
 /**
@@ -30,7 +30,7 @@ import { computed, reactive, toRef } from "vue";
  *  individual spot class props.
  * @returns {CombinedClassesInstance} The combined classes for each spot.
  */
-export default function useCombinedClasses(componentName, props) {
+export function useCombinedClasses(componentName, props) {
     const themeStore = storeTheme();
     const combinedClasses = reactive({});
     const componentConfig = computed(() => themeStore.components[componentName]);

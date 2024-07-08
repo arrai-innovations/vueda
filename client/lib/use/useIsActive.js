@@ -6,7 +6,7 @@ import { onActivated, onDeactivated, onMounted, readonly, ref } from "vue";
  * @return {import('vue').Readonly<import('vue').Ref<boolean>>} A ref pointing to a boolean indicating whether the
  *  component is active.
  */
-export default function useIsActive() {
+export function useIsActive() {
     const isActive = ref(false);
     onMounted(() => {
         isActive.value = true;

@@ -1,4 +1,4 @@
-import { getClientRoutePart } from "@vueda/utils/crudSupport.js";
+import { getClientRoutePart } from "../utils/crudSupport.js";
 
 const NON_DETAIL_VIEWS = ["list", "create"];
 

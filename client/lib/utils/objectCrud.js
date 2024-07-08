@@ -1,9 +1,9 @@
+import { httpOrHttpsHostname } from "./connectionHostname.js";
+import { getCSRFValue } from "./csrf.js";
+import { FetchError, FormValidationError } from "./errors.js";
+import { getJsonOrText } from "./fetchSupport.js";
+import { getUrl } from "./urls.js";
 import { setObjectCrud } from "@arrai-innovations/reactive-helpers";
-import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
-import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
-import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
-import { getUrl } from "@vueda/utils/urls.js";
 
 const getDetailUrl = (app, model, pk, queryString) =>
     `${httpOrHttpsHostname}${getUrl("modelDetail").replace(":app", app).replace(":model", model).replace(":pk", pk)}${queryString}`;
@@ -131,7 +131,7 @@ export async function defaultObjectDelete({ crudArgs, id, deleteArgs }) {
     return returnPromise;
 }
 
-export default function setupDefaultObjectCrud() {
+export function setupDefaultObjectCrud() {
     setObjectCrud({
         retrieve: defaultObjectRetrieve,
         create: defaultObjectCreate,

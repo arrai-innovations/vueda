@@ -10,18 +10,6 @@
 
   - [About](#about)
   - [Install](#install)
-  - [Usage](#usage)
-    - [JSDocs](#jsdocs)
-    - [Forms](#forms)
-    - [CRUD Operation Views](#crud-operation-views)
-    - [Dynamic Routing](#dynamic-routing)
-    - [Authentication](#authentication)
-    - [Navigation](#navigation)
-    - [Permissions](#permissions)
-    - [Theming](#theming)
-    - [Customization](#customization)
-  - [Development](#development)
-    - [Environment](#environment)
     - [Running Locally](#running-locally)
 - [todo: test these instructions when the examples exist](#todo-test-these-instructions-when-the-examples-exist)
     - [Testing](#testing)
@@ -52,31 +40,13 @@ services of [vueda-server].
 
 ## Install
 
-1. ```console
-   $ npm install @arrai-innovations/vueda
-   ```
-
-2. Add an alias in your project's `vite.config.js`
-
-    ```js
-    import { URL, fileURLToPath } from "url";
-    ...
-    export default defineConfig({
-        ...
-        resolve: {
-            ...
-            alias: {
-                ...
-                "@vueda": fileURLToPath(
-                    new URL("./node_modules/@arrai-innovations/vueda-client/lib/", import.meta.url)
-                ),
-            },
-        }
+1.  ```console
+    $ npm install @arrai-innovations/vueda
     ```
 
-    This concession allows us to skip a build step and use the library directly from the source code.
+````
 
-3. (optional) Strip test attributes from production builds, by installing the `rollup-plugin-strip` plugin and adding it to your `vite.config.js`:
+2.  (optional) Strip test attributes from production builds, by installing the `rollup-plugin-strip` plugin and adding it to your `vite.config.js`:
 
     ```console
     $ npm install --save-dev rollup-plugin-strip
@@ -138,7 +108,7 @@ Clone the repository and install the dependencies:
 $ git clone git://github.com/arrai-innovations/vueda-client.git
 $ cd vueda-client
 [vueda-client]$ npm install --include=dev
-```
+````
 
 Installing without dev dependencies will not work as husky is a dev dependency and is called in prepare.
 

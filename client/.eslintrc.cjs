@@ -7,7 +7,7 @@ module.exports = {
         node: true,
         "vue/setup-compiler-macros": true,
     },
-    plugins: ["no-autofix", /*"jsdoc", */ "vue", "vitest", "prettier-vue"],
+    plugins: ["no-autofix", /*"jsdoc", */ "vue", "vitest", "prettier-vue", "import"],
     extends: [
         "eslint:recommended",
         "plugin:vue/vue3-recommended",
@@ -16,6 +16,14 @@ module.exports = {
         "plugin:prettier-vue/recommended",
     ],
     rules: {
+        "import/extensions": [
+            "error",
+            "ignorePackages",
+            {
+                js: "always",
+                vue: "always",
+            },
+        ], // es modules are moving to always include extensions
         curly: "error",
         "no-console": "off", // console.error is useful.
         "no-debugger": process.env.NODE_ENV === "production" ? "error" : "off",

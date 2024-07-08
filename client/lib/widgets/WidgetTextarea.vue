@@ -1,13 +1,13 @@
 <script setup>
-import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
-import useWidget, { widgetEmits, widgetProps } from "@vueda/use/useWidget.js";
+import { useCombinedClasses } from "../use/useCombinedClasses.js";
+import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "../use/useWidget.js";
 import Textarea from "primevue/textarea";
 
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
-    ...widgetProps,
+    ...WIDGET_PROPS,
     variant: {
         type: String,
         default: "default",
@@ -21,9 +21,9 @@ const props = defineProps({
         default: () => [],
     },
 });
-const emit = defineEmits([...widgetEmits]);
+const emit = defineEmits([...WIDGET_EMITS]);
 const widget = useWidget(props, emit);
-const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetTextarea.vue", props);
+const combinedClasses = useCombinedClasses("WidgetTextarea", props);
 </script>
 <template>
     <div :class="combinedClasses.outerClass">

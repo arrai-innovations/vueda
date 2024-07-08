@@ -1,6 +1,6 @@
 <script setup>
-import NavigationItem from "@vueda/components/NavigationItem.vue";
-import useNavigation from "@vueda/use/useNavigation.js";
+import NavigationItem from "../components/NavigationItem.vue";
+import { useNavigation } from "../use/useNavigation.js";
 import { reactive } from "vue";
 
 const userConfig = reactive({

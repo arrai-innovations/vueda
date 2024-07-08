@@ -1,6 +1,6 @@
+import { storeModelConfig } from "../stores/storeModelConfig.js";
+import { storeModelInfo } from "../stores/storeModelInfo.js";
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
-import storeModelConfig from "@vueda/stores/storeModelConfig";
-import storeModelInfo from "@vueda/stores/storeModelInfo";
 import { computed, reactive, watch } from "vue";
 
 /**
@@ -50,7 +50,7 @@ import { computed, reactive, watch } from "vue";
  * @param {import('vue').UnwrapNestedRefs<UserConfig>} userConfig - The user configuration.
  * @returns {NavigationInstance} - An object containing reactive navigation data.
  */
-export default function useNavigation(userConfig) {
+export function useNavigation(userConfig) {
     const modelConfigStore = storeModelConfig();
     const modelInfoStore = storeModelInfo();
 

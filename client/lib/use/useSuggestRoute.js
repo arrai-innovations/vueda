@@ -107,7 +107,7 @@ const getSuggestedRoute = (router) => {
  *
  * @returns {Readonly<import('vue').Ref<object|null>>} A suggested route object.
  */
-export default function useSuggestRoute() {
+export function useSuggestRoute() {
     const suggestedRoute = ref(null);
     const router = useRouter();
     // const models = useModels();

@@ -1,12 +1,12 @@
 <script setup>
-import { useObject } from "@arrai-innovations/reactive-helpers";
-import FormModel from "@vueda/components/FormModel.vue";
+import FormModel from "../components/FormModel.vue";
 // eslint-disable-next-line no-unused-vars
-import PageTitle from "@vueda/components/PageTitle.vue";
-import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
-import useLeaveUnload from "@vueda/use/useLeaveUnload.js";
-import useModelConfig from "@vueda/use/useModelConfig.js";
-import { FormValidationError } from "@vueda/utils/errors.js";
+import PageTitle from "../components/PageTitle.vue";
+import { useCombinedClasses } from "../use/useCombinedClasses.js";
+import { useLeaveUnload } from "../use/useLeaveUnload.js";
+import { useModelConfig } from "../use/useModelConfig.js";
+import { FormValidationError } from "../utils/errors.js";
+import { useObject } from "@arrai-innovations/reactive-helpers";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 import { computed, reactive, ref, toRef } from "vue";
@@ -131,7 +131,7 @@ const handleDirty = (dirty) => {
 const formModelRef = ref(null);
 
 useLeaveUnload(myState);
-const combinedClasses = useCombinedClasses("@vueda/views/ViewCreate.vue", props);
+const combinedClasses = useCombinedClasses("ViewCreate", props);
 const doSubmit = () => {
     formModelRef.value?.form.doSubmit();
 };

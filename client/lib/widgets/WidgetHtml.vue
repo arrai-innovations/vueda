@@ -1,13 +1,13 @@
 <script setup>
+import { useCombinedClasses } from "../use/useCombinedClasses.js";
+import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "../use/useWidget.js";
 import TextAlign from "@tiptap/extension-text-align";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/vue-3";
-import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
-import useWidget, { widgetEmits, widgetProps } from "@vueda/use/useWidget.js";
 import { unref } from "vue";
 
 const props = defineProps({
-    ...widgetProps,
+    ...WIDGET_PROPS,
     disabled: {
         type: Boolean,
         default: false,
@@ -58,7 +58,7 @@ const props = defineProps({
         default: () => [],
     },
 });
-const emit = defineEmits([...widgetEmits]);
+const emit = defineEmits([...WIDGET_EMITS]);
 const widget = useWidget(props, emit);
 const editor = useEditor({
     content: widget.combinedValue,
@@ -87,7 +87,7 @@ const editor = useEditor({
         widget.blur();
     },
 });
-const combinedClasses = useCombinedClasses("@vueda/widgets/WidgetHtml.vue", props);
+const combinedClasses = useCombinedClasses("WidgetHtml", props);
 </script>
 <template>
     <div :class="combinedClasses.outerClass">

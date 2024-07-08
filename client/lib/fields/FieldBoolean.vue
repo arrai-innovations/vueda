@@ -1,9 +1,9 @@
 <script setup>
-import useField, { fieldProps } from "@vueda/use/useField.js";
+import { FIELD_PROPS, useField } from "../use/useField.js";
 import { toRef, watch } from "vue";
 
 const props = defineProps({
-    ...fieldProps,
+    ...FIELD_PROPS,
 });
 const fieldContext = useField(props);
 
