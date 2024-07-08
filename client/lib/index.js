@@ -6,8 +6,6 @@ import FormFeedback from "./components/FormFeedback.vue";
 import FormHelpText from "./components/FormHelpText.vue";
 import FormLabel from "./components/FormLabel.vue";
 import FormModel from "./components/FormModel.vue";
-import FormModelField from "./components/FormModelField.vue";
-import FormModelFieldOrLayout from "./components/FormModelFieldOrLayout.vue";
 import FormWrapper from "./components/FormWrapper.vue";
 import LinkModelView from "./components/LinkModelView.vue";
 import LoadingSpinnerBlock from "./components/LoadingSpinnerBlock.vue";
@@ -50,8 +48,6 @@ export {
     FormHelpText,
     FormLabel,
     FormModel,
-    FormModelField,
-    FormModelFieldOrLayout,
     FormWrapper,
     LinkModelView,
     LoadingSpinnerBlock,

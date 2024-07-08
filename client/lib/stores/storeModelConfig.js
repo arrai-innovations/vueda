@@ -15,26 +15,12 @@ const getKey = (app, model) => {
 };
 
 /**
- * A list of field names or sub-containers to display.
- *
- * @typedef {(string|FieldLayout)[]} FieldsOrLayout
- */
-
-/**
- * A layout for displaying fields.
- *
- * @typedef {object} FieldLayout
- * @property {string} containerClasses - CSS classes to apply to the container.
- * @property {FieldsOrLayout} fields - The field names or sub-containers to display.
- */
-
-/**
  * A configuration object for making use of a model client-side.
  *
  * @typedef {object} ModelConfig
  * @property {string[]} listFields - field names to display in list view
- * @property {FieldsOrLayout} createFields - field names to display in a create form model
- * @property {FieldsOrLayout} updateFields - field names to display in an update form model
+ * @property {string[]} createFields - field names to display in a create form model
+ * @property {string[]} updateFields - field names to display in an update form model
  * @property {string[]} readFields - field names to display in read view
  * @property {string[]} listFilterable - filters to display in list view
  * @property {string[]} listSortable - field names that can be sorted in list view
