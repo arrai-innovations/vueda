@@ -35,7 +35,6 @@ const combinedClasses = useCombinedClasses("PaginationComponent", props);
             :total-records="totalRecords"
             @page="onPaginate"
         />
-        {{ currentPage }}
     </div>
 </template>
 

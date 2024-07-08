@@ -10,6 +10,7 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { getCRUDName, getCapitalizedTitle } from "@vueda/utils/crudSupport.js";
 import Button from "primevue/button";
+import InputText from "primevue/inputtext";
 import { computed, reactive, toRef, watch } from "vue";
 
 defineOptions({
@@ -20,13 +21,17 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    model: {
+        type: String,
+        required: true,
+    },
     pageKey: {
         type: String,
         default: "p",
     },
-    model: {
+    searchKey: {
         type: String,
-        required: true,
+        default: "s",
     },
     listFields: {
         type: Array,
@@ -128,7 +133,11 @@ const instanceList = useList({
     props: instanceListProps,
     paged: true,
 });
-
+watch(toRef(listState, "search"), (newSearch, oldSearch) => {
+    if (newSearch !== oldSearch) {
+        listState.currentPage = 1;
+    }
+});
 watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, newSearch]) => {
     if (newPage <= 1 || newPage > instanceList.state.totalPages) {
         if (newPage !== 1) {
@@ -157,10 +166,15 @@ const dismissError = () => {
     modelConfig.clearError();
     instanceList.clearError();
 };
+const filterList = async (e) => {
+    console.log(e.target.value);
+    // assignReactiveObject(listState.filterArgs, formData);
+};
 </script>
 
 <template>
     <div class="flex flex-col gap-1 w-full max-w-full">
+        {{ modelConfig.info }}
         <div class="prose dark:prose-invert">
             <h1 :class="combinedClasses.titleClass">
                 {{ verboseNamePlural }}
@@ -185,6 +199,9 @@ const dismissError = () => {
         </div>
         <!-- todo: bulk object level actions -->
         <div :class="combinedClasses.detailActionsClass">
+            <InputText v-model="listState.search" name="search" placeholder="Search" type="search" />
+            <input label="is_completed" name="is_completed" type="checkbox" @input="filterList" />
+            <!-- todo: filters return here? @submit=filterList -->
             <div
                 v-for="actionName in modelConfig.config.detailActions"
                 :key="actionName"
@@ -210,7 +227,7 @@ const dismissError = () => {
             @update:sorted="sorting.updateSorted"
         >
             <template #link-field="{ pk, value }">
-                <link-model-view :app="app" :model="model" :pk="pk" view="read">
+                <link-model-view :app="app" :model="model" :pk="pk" view="update">
                     {{ value }}
                 </link-model-view>
             </template>
