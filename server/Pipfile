@@ -44,14 +44,7 @@ pytest-order = ">=1.2.0"
 pytest-sugar = ">=0.9.7"
 pytest-xdist = ">=3.5.0"
 # test requirements
-#channels = ">=4.0.0,<5"
-#channels-redis = ">=4.1.0,<5"
-django = ">=5.0.7,<6"
-#gunicorn = ">=21.2.0,<22"
 psycopg = {extras = ["c"], version = ">=3.1.15,<4"}
-#redis = ">=5.0.1,<6"
-#uvicorn = { extras = ["standard"], version = ">=0.24.0.post1,<0.25" }
-#wheel = ">=0.42.0,<1"
 # Workflow / Permissions Views
 gunicorn = ">=21.2.0"
 jinja2 = ">=3.1.2"
