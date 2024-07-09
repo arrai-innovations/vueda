@@ -9,6 +9,7 @@ from rest_framework import mixins
 from rest_framework.exceptions import ValidationError
 from rest_framework.utils.model_meta import get_field_info
 from rest_framework.viewsets import GenericViewSet
+from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from vueda.core.open_api import conditional_extend_schema_func
 from vueda.core.open_api import conditional_extend_schema_view_decorator
@@ -112,7 +113,7 @@ from vueda.info.serializers import OpenAPIModelInfoSerializer
         summary="Get model info",
     ),
 )
-class ModelInfoViewSet(FlexFieldsMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
+class ModelInfoViewSet(FlexFieldsMixin, ReadOnlyModelViewSet):
     """
     This viewset is for providing metadata about models, including fields, actions, and permissions
     to front-end clients. This is a read-only viewset.
