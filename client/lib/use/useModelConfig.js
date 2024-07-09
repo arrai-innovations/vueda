@@ -1,7 +1,7 @@
-import { storeModelConfig } from "../stores/storeModelConfig.js";
-import { storeModelInfo } from "../stores/storeModelInfo.js";
-import { useIsActive } from "../use/useIsActive.js";
 import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
+import { storeModelInfo } from "@vueda/stores/storeModelInfo";
+import { useIsActive } from "@vueda/use/useIsActive";
 import { reactive, watch } from "vue";
 
 /**
@@ -12,8 +12,8 @@ import { reactive, watch } from "vue";
  * @property {Error} error - The error that occurred while loading the model config.
  * @property {boolean} errored - True if an error occurred while loading the model config.
  * @property {Function} clearError - Clear the error.
- * @property {import('../').ModelInfo} info - The model info.
- * @property {import('../').ModelConfig} config - The model config.
+ * @property {import('@vueda/stores/storeModelInfo.js').ModelInfo} info - The model info.
+ * @property {import('@vueda/stores/storeModelConfig.js').ModelConfig} config - The model config.
  */
 
 /**

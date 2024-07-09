@@ -1,6 +1,6 @@
 <script setup>
-import { useCombinedClasses } from "../use/useCombinedClasses.js";
-import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "../use/useWidget.js";
+import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 
 defineOptions({
     inheritAttrs: false,

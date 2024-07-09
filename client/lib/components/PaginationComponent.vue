@@ -1,5 +1,5 @@
 <script setup>
-import { useCombinedClasses } from "../use/useCombinedClasses.js";
+import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import Paginator from "primevue/paginator";
 import { ref } from "vue";
 

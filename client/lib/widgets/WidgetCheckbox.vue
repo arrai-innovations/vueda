@@ -1,7 +1,7 @@
 <script setup>
-import FormLabel from "../components/FormLabel.vue";
-import { useCombinedClasses } from "../use/useCombinedClasses.js";
-import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "../use/useWidget.js";
+import FormLabel from "@vueda/components/FormLabel.vue";
+import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 
 defineOptions({
     inheritAttrs: false,

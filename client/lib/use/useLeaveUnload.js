@@ -1,4 +1,4 @@
-import { useIsActive } from "../use/useIsActive.js";
+import { useIsActive } from "@vueda/use/useIsActive.js";
 import { onMounted, onUnmounted } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 

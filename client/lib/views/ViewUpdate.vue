@@ -1,13 +1,13 @@
 <script setup>
-import FormModel from "../components/FormModel.vue";
-import LoadingSpinnerInline from "../components/LoadingSpinnerInline.vue";
-import { storeModelConfig } from "../stores/storeModelConfig.js";
-import { useCombinedClasses } from "../use/useCombinedClasses.js";
-import { useIsActive } from "../use/useIsActive.js";
-import { useLeaveUnload } from "../use/useLeaveUnload.js";
-import { useModelConfig } from "../use/useModelConfig.js";
-import { FormValidationError } from "../utils/errors.js";
 import { useObject } from "@arrai-innovations/reactive-helpers";
+import FormModel from "@vueda/components/FormModel.vue";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
+import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
+import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import { useIsActive } from "@vueda/use/useIsActive.js";
+import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { FormValidationError } from "@vueda/utils/errors.js";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 import { computed, reactive, ref, toRef } from "vue";

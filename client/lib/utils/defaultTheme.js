@@ -1,4 +1,4 @@
-import { storeTheme } from "../stores/storeTheme.js";
+import { storeTheme } from "@vueda/stores/storeTheme.js";
 
 const defaultComponents = {
     ViewList: {

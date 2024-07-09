@@ -1,6 +1,6 @@
 <script setup>
-import { useCombinedClasses } from "../use/useCombinedClasses.js";
-import { FieldContextSymbol } from "../utils/symbols.js";
+import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import FloatLabel from "primevue/floatlabel";
 import { computed, inject } from "vue";
 

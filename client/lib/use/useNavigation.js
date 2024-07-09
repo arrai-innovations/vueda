@@ -1,6 +1,6 @@
-import { storeModelConfig } from "../stores/storeModelConfig.js";
-import { storeModelInfo } from "../stores/storeModelInfo.js";
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { storeModelConfig } from "@vueda/stores/storeModelConfig";
+import { storeModelInfo } from "@vueda/stores/storeModelInfo";
 import { computed, reactive, watch } from "vue";
 
 /**

@@ -1,15 +1,15 @@
 <script setup>
-import ErrorDisplay from "../components/ErrorDisplay.vue";
-import LinkModelView from "../components/LinkModelView.vue";
-import LoadingSpinnerInline from "../components/LoadingSpinnerInline.vue";
-import ObjectsGrid from "../components/ObjectsGrid.vue";
-import PaginationComponent from "../components/PaginationComponent.vue";
-import { getCRUDName } from "../router/getCrud.js";
-import { useCombinedClasses } from "../use/useCombinedClasses.js";
-import { useIsActive } from "../use/useIsActive.js";
-import { useModelConfig } from "../use/useModelConfig.js";
-import { getCapitalizedTitle } from "../utils/crudSupport.js";
 import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
+import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
+import LinkModelView from "@vueda/components/LinkModelView.vue";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
+import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
+import PaginationComponent from "@vueda/components/PaginationComponent.vue";
+import { getCRUDName } from "@vueda/router/getCrud.js";
+import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import { useIsActive } from "@vueda/use/useIsActive.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { getCapitalizedTitle } from "@vueda/utils/crudSupport.js";
 import Button from "primevue/button";
 import { computed, reactive, toRef, watch } from "vue";
 

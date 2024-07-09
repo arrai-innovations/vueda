@@ -1,5 +1,5 @@
 <script setup>
-import { storeModelInfo } from "../stores/storeModelInfo.js";
+import { storeModelInfo } from "@vueda/stores/storeModelInfo";
 import { stringSimilarity } from "string-similarity-js";
 import { onMounted, ref, toRef, watch } from "vue";
 import { useRoute } from "vue-router";

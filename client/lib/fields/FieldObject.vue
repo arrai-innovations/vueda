@@ -1,5 +1,5 @@
 <script setup>
-import { FIELD_PROPS, useField } from "../use/useField.js";
+import { FIELD_PROPS, useField } from "@vueda/use/useField.js";
 
 const props = defineProps({
     ...FIELD_PROPS,

@@ -1,5 +1,5 @@
-import { storeTheme } from "../stores/storeTheme.js";
 import { useCombineClasses } from "@arrai-innovations/reactive-helpers";
+import { storeTheme } from "@vueda/stores/storeTheme.js";
 import { computed, reactive, toRef } from "vue";
 
 /**

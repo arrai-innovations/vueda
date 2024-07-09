@@ -1,9 +1,9 @@
 <script setup>
-import { useCombinedClasses } from "../use/useCombinedClasses.js";
-import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "../use/useWidget.js";
 import TextAlign from "@tiptap/extension-text-align";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/vue-3";
+import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { unref } from "vue";
 
 const props = defineProps({

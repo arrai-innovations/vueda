@@ -1,11 +1,11 @@
 <script setup>
-import FormFeedback from "../components/FormFeedback.vue";
-import FormHelpText from "../components/FormHelpText.vue";
-import FormLabel from "../components/FormLabel.vue";
-import FormWrapper from "../components/FormWrapper.vue";
-import LoadingSpinnerBlock from "../components/LoadingSpinnerBlock.vue";
-import { useCombinedClasses } from "../use/useCombinedClasses.js";
-import { useFormModel } from "../use/useFormModel.js";
+import FormFeedback from "@vueda/components/FormFeedback.vue";
+import FormHelpText from "@vueda/components/FormHelpText.vue";
+import FormLabel from "@vueda/components/FormLabel.vue";
+import FormWrapper from "@vueda/components/FormWrapper.vue";
+import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
+import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import { useFormModel } from "@vueda/use/useFormModel.js";
 import { computed, ref } from "vue";
 
 const props = defineProps({

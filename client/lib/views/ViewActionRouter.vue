@@ -1,7 +1,7 @@
 <script setup>
-import { useModelConfig } from "../use/useModelConfig.js";
-import ViewActionNotFound from "../views/ViewActionNotFound.vue";
-import ViewLoading from "../views/ViewLoading.vue";
+import { useModelConfig } from "@vueda/use/useModelConfig";
+import ViewActionNotFound from "@vueda/views/ViewActionNotFound.vue";
+import ViewLoading from "@vueda/views/ViewLoading.vue";
 import { computed, toRef } from "vue";
 
 const props = defineProps({

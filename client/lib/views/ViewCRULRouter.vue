@@ -1,5 +1,5 @@
 <script setup>
-import { useModelConfig } from "../use/useModelConfig.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { computed, toRef } from "vue";
 
 const props = defineProps({
