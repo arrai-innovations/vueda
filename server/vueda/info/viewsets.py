@@ -161,7 +161,7 @@ class ChoicesQueryset(collections.abc.Sequence):
         return len(self.choices)
 
 
-class ModelInfoChoicesViewSet(FlexFieldsMixin, GenericViewSet):
+class ModelInfoChoicesViewSet(FlexFieldsMixin, mixins.ListModelMixin, GenericViewSet):
     """
     This viewset is for providing metadata about field and filtering choices to front-end clients. This is a read-only viewset.
 
@@ -270,6 +270,3 @@ class ModelInfoChoicesViewSet(FlexFieldsMixin, GenericViewSet):
             )
 
         return ChoicesQueryset(choices, self.choices_permission_model)
-
-    def list(self, request, *args, **kwargs):
-        return mixins.ListModelMixin.list(self, request, *args, **kwargs)
