@@ -114,6 +114,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         for field_name, field in serializer().get_fields().items():
             many = isinstance(field, serializers.ListField)
             field_data = {
+                "choices": hasattr(field, "choices") and bool(field.choices),
                 "name": field_name,
                 "label": field.label,
                 "type": field.child.__class__.__name__ if many else field.__class__.__name__,
@@ -135,8 +136,6 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 field_data["max_digits"] = field.max_digits
             if hasattr(field, "decimal_places") and field.decimal_places:
                 field_data["decimal_places"] = field.decimal_places
-            if hasattr(field, "choices") and field.choices:
-                field_data["choices"] = field.choices
             fields.append(field_data)
         return fields
 
@@ -260,9 +259,10 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
                 filtering_data.append(
                     {
+                        "choices": hasattr(field, "choices") and bool(field.choices),
+                        "filters": available_filters,
                         "name": field_name,
                         "type": field_type,
-                        "filters": available_filters,
                     }
                 )
 
@@ -282,3 +282,19 @@ class OpenAPIModelInfoSerializer(ModelInfoSerializer):
             fields[field_name] = serializer(many=True, required=False)
 
         return fields
+
+
+class ModelInfoChoicesSerializer(FlexFieldsSerializerMixin, serializers.Serializer):
+    """
+    A serializer for providing metadata about field choices.
+
+    This is a read-only serializer.
+
+    Effectively, this is a custom model serializer for content types.
+    """
+
+    label = serializers.CharField()
+    value = serializers.CharField()
+
+    class Meta:
+        fields = ["label", "value"]  # value is the pk

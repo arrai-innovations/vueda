@@ -62,6 +62,7 @@ class ProductSerializer(VuedaHistorySerializer):
             "distributor",
             "name",
             "disabled",
+            "tangible",
         ] + VuedaHistorySerializer.Meta.fields
         expandable_fields = {
             "distributor": (
@@ -138,6 +139,7 @@ class ProductOptionSerializer(VuedaHistorySerializer):
                         "distributor",
                         "name",
                         "disabled",
+                        "tangible",
                     ],
                 },
             ),

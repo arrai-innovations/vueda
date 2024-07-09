@@ -1,3 +1,4 @@
+from rest_framework.routers import Route
 from rest_framework.routers import SimpleRouter
 
 
@@ -24,4 +25,26 @@ class ContentTypeRouter(SimpleRouter):
         instead of looking at the standard config attributes, always lookup by <app_label>/<model>
         """
         lookup_value = f"{lookup_prefix}(?P<app_label>[a-zA-Z0-9_]+)/(?P<model>[a-zA-Z0-9_]+)"
+        return lookup_value
+
+
+class ContentTypeChoicesRouter(SimpleRouter):
+    # Need a custom route for list, so we can require app_label, model, field, and label_field in the url.
+    routes = [
+        Route(
+            url=r"^{prefix}/(?P<app_label>[a-zA-Z0-9_]+)/(?P<model>[a-zA-Z0-9_]+)/(?P<field>[a-zA-Z0-9_]+){trailing_slash}$",
+            mapping={
+                "get": "list",
+            },
+            name="{basename}-list",
+            detail=False,
+            initkwargs={"suffix": "List"},
+        ),
+    ]
+
+    def get_lookup_regex(self, viewset, lookup_prefix=""):
+        """
+        instead of looking at the standard config attributes, always lookup by <app_label>/<model>/<field>
+        """
+        lookup_value = f"{lookup_prefix}(?P<app_label>[a-zA-Z0-9_]+)/(?P<model>[a-zA-Z0-9_]+)/(?P<field>[a-zA-Z0-9_]+)"
         return lookup_value

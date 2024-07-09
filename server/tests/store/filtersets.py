@@ -6,10 +6,11 @@ from vueda.core.filters import VuedaFilterSet
 
 class ProductFilterSet(VuedaFilterSet):
     name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr=["exact", "contains"])
+    tangible = rest_framework.ModelChoiceFilter(field_name="tangible", label="Tangible")
 
     class Meta:
         model = my_models.Product
-        fields = ["name", "disabled"]
+        fields = ["name", "disabled", "tangible"]
 
 
 class DistributorFilterSet(VuedaFilterSet):

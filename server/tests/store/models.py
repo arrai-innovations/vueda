@@ -31,6 +31,7 @@ class Product(SimpleHistoryModelMixin, models.Model):
     distributor = models.ForeignKey(Distributor, on_delete=models.PROTECT)
     name = models.CharField(max_length=255)
     disabled = models.BooleanField(db_default=False)
+    tangible = models.CharField(max_length=255, choices=(("digital", "Digital"), ("physical", "Physical")))
 
     class Meta(BaseModelMeta):
         unique_together = [

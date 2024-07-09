@@ -73,6 +73,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "name",
@@ -82,6 +83,7 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": True,
                     "max_length": 255,
+                    "choices": False,
                 },
                 {
                     "name": "current_history_id",
@@ -90,6 +92,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
             ],
             "expected_filtering": [
@@ -105,6 +108,7 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
                 },
             ],
             "expected_ordering": [
@@ -140,6 +144,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "code",
@@ -149,6 +154,7 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": True,
                     "max_length": 255,
+                    "choices": False,
                 },
                 {
                     "name": "name",
@@ -158,6 +164,7 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": True,
                     "max_length": 255,
+                    "choices": False,
                 },
             ],
             "expected_filtering": [],
@@ -213,6 +220,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "user",
@@ -221,11 +229,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {
-                        "test_admin@example.com",
-                        "test_customer_1@example.com",
-                        "test_customer_2@example.com",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "current_history_id",
@@ -234,6 +238,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
             ],
             "expected_filtering": [],
@@ -289,6 +294,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "customer",
@@ -297,10 +303,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {
-                        "test_customer_1@example.com",
-                        "test_customer_2@example.com",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "last_modified",
@@ -309,6 +312,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "cart_items",
@@ -317,6 +321,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
+                    "choices": False,
                 },
             ],
             "expected_filtering": [
@@ -324,6 +329,7 @@ DETAIL_PARAMETRIZE = [
                     "name": "last_modified",
                     "type": "datetime",
                     "filters": [{"label": "Last modified", "lookup_exprs": ["range"]}],
+                    "choices": False,
                 }
             ],
             "expected_ordering": [
@@ -386,6 +392,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "order_number",
@@ -395,6 +402,7 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": True,
                     "max_digits": 7,
+                    "choices": False,
                 },
                 {
                     "name": "when",
@@ -403,6 +411,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "customer",
@@ -411,10 +420,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {
-                        "test_customer_1@example.com",
-                        "test_customer_2@example.com",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "order_state",
@@ -423,12 +429,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {
-                        "New",
-                        "Packed",
-                        "Returned",
-                        "Shipped",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "current_history_id",
@@ -437,6 +438,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
             ],
             "expected_filtering": [],
@@ -477,6 +479,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "name",
@@ -486,6 +489,7 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": True,
                     "max_length": 255,
+                    "choices": False,
                 },
                 {
                     "name": "code",
@@ -495,6 +499,7 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": True,
                     "max_length": 255,
+                    "choices": False,
                 },
                 {
                     "name": "is_added_reason",
@@ -503,6 +508,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
+                    "choices": False,
                 },
             ],
             "expected_filtering": [],
@@ -557,6 +563,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "distributor",
@@ -565,11 +572,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {
-                        "T-Shirt Corp.",
-                        "Tasty Treats Assoc.",
-                        "Vibrant Looks Inc.",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "name",
@@ -579,6 +582,7 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": True,
                     "max_length": 255,
+                    "choices": False,
                 },
                 {
                     "name": "disabled",
@@ -587,6 +591,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
+                    "choices": False,
                 },
                 {
                     "name": "current_history_id",
@@ -595,6 +600,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
             ],
             "expected_filtering": [
@@ -610,6 +616,7 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
                 },
                 {
                     "name": "disabled",
@@ -621,6 +628,20 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
+                },
+                {
+                    "name": "tangible",
+                    "type": "alpha",
+                    "filters": [
+                        {
+                            "label": "Tangible",
+                            "lookup_exprs": [
+                                "exact",
+                            ],
+                        }
+                    ],
+                    "choices": True,
                 },
             ],
             "expected_ordering": [
@@ -686,6 +707,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "product",
@@ -694,14 +716,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {
-                        "Men's White T-Shirt",
-                        "Paint",
-                        "Shaped Cookies For Drapes",
-                        "Spray Paint",
-                        "Square Cookies For Squares",
-                        "Women's White T-Shirt",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "option_type",
@@ -710,11 +725,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": False,
-                    "choices": {
-                        "Size",
-                        "Colour",
-                        "Flavour",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "name",
@@ -724,6 +735,7 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": True,
                     "max_length": 255,
+                    "choices": False,
                 },
                 {
                     "name": "sku",
@@ -733,6 +745,7 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": True,
                     "max_length": 255,
+                    "choices": False,
                 },
                 {
                     "name": "gtin",
@@ -742,6 +755,7 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": True,
                     "max_length": 255,
+                    "choices": False,
                 },
                 {
                     "name": "price",
@@ -752,6 +766,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "max_digits": 12,
                     "decimal_places": 2,
+                    "choices": False,
                 },
                 {
                     "name": "disabled",
@@ -760,6 +775,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
+                    "choices": False,
                 },
                 {
                     "name": "current_history_id",
@@ -768,6 +784,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
             ],
             "expected_filtering": [
@@ -783,6 +800,7 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
                 },
                 {
                     "name": "sku",
@@ -796,6 +814,7 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
                 },
                 {
                     "name": "price",
@@ -808,6 +827,7 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
                 },
                 {
                     "name": "disabled",
@@ -819,6 +839,7 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
                 },
             ],
             "expected_ordering": [
@@ -882,6 +903,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "customer_order",
@@ -890,13 +912,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {
-                        "1001",
-                        "1002",
-                        "1003",
-                        "1004",
-                        "1005",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "product_option",
@@ -905,18 +921,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {
-                        "Explosive Dynamite",
-                        "Gentle Cinnamon",
-                        "Large",
-                        "Medium",
-                        "Pearl Whisper",
-                        "Red",
-                        "Royal Crimson",
-                        "Small",
-                        "Sweet Sugar",
-                        "White",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "quantity",
@@ -927,6 +932,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "max_value": 2147483647,
                     "min_value": -2147483648,
+                    "choices": False,
                 },
             ],
             "expected_filtering": [
@@ -941,6 +947,7 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
                 },
             ],
             "expected_ordering": [
@@ -1027,6 +1034,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "product_option",
@@ -1035,18 +1043,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {
-                        "Explosive Dynamite",
-                        "Gentle Cinnamon",
-                        "Large",
-                        "Medium",
-                        "Pearl Whisper",
-                        "Red",
-                        "Royal Crimson",
-                        "Small",
-                        "Sweet Sugar",
-                        "White",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "when",
@@ -1055,6 +1052,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "quantity",
@@ -1065,6 +1063,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "max_value": 2147483647,
                     "min_value": -2147483648,
+                    "choices": False,
                 },
                 {
                     "name": "reason",
@@ -1073,12 +1072,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {
-                        "Damaged Inventory",
-                        "Order Fulfillment",
-                        "Received Inventory",
-                        "Returned Inventory",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "archived",
@@ -1087,6 +1081,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
+                    "choices": False,
                 },
                 {
                     "name": "is_added",
@@ -1095,6 +1090,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
+                    "choices": False,
                 },
                 {
                     "name": "cost",
@@ -1104,6 +1100,7 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": False,
                     "max_digits": 12,
+                    "choices": False,
                 },
                 {
                     "name": "added_inventory_record",
@@ -1112,49 +1109,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": False,
-                    "choices": [
-                        "Damaged Inventory 2x Medium",
-                        "Order Fulfillment 1x Small",
-                        "Order Fulfillment 2x Large",
-                        "Order Fulfillment 2x Medium",
-                        "Order Fulfillment 2x Sweet Sugar",
-                        "Order Fulfillment 2x Sweet Sugar",
-                        "Order Fulfillment 2x White",
-                        "Order Fulfillment 3x Pearl Whisper",
-                        "Order Fulfillment 3x Red",
-                        "Order Fulfillment 3x Royal Crimson",
-                        "Order Fulfillment 3x White",
-                        "Order Fulfillment 4x Explosive Dynamite",
-                        "Order Fulfillment 4x Large",
-                        "Order Fulfillment 4x Pearl Whisper",
-                        "Order Fulfillment 4x Red",
-                        "Order Fulfillment 4x Sweet Sugar",
-                        "Order Fulfillment 5x Small",
-                        "Order Fulfillment 6x Explosive Dynamite",
-                        "Order Fulfillment 6x Gentle Cinnamon",
-                        "Order Fulfillment 6x Gentle Cinnamon",
-                        "Order Fulfillment 6x Medium",
-                        "Order Fulfillment 6x Medium",
-                        "Order Fulfillment 6x Royal Crimson",
-                        "Order Fulfillment 8x Explosive Dynamite",
-                        "Received Inventory 12x Explosive Dynamite",
-                        "Received Inventory 12x Explosive Dynamite",
-                        "Received Inventory 12x Medium",
-                        "Received Inventory 12x Medium",
-                        "Received Inventory 12x Royal Crimson",
-                        "Received Inventory 12x White",
-                        "Received Inventory 15x Red",
-                        "Received Inventory 6x Gentle Cinnamon",
-                        "Received Inventory 6x Gentle Cinnamon",
-                        "Received Inventory 6x Large",
-                        "Received Inventory 6x Small",
-                        "Received Inventory 6x Small",
-                        "Received Inventory 6x Sweet Sugar",
-                        "Received Inventory 6x Sweet Sugar",
-                        "Received Inventory 8x Pearl Whisper",
-                        "Returned Inventory 2x Medium",
-                        "Returned Inventory 3x Royal Crimson",
-                    ],
+                    "choices": True,
                 },
                 {
                     "name": "order_item",
@@ -1163,30 +1118,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": False,
-                    "choices": {
-                        "1001 - 3x Red",
-                        "1001 - 5x Small",
-                        "1001 - 6x Gentle Cinnamon",
-                        "1001 - 6x Medium",
-                        "1002 - 3x Pearl Whisper",
-                        "1002 - 4x Large",
-                        "1002 - 4x Royal Crimson",
-                        "1002 - 4x Sweet Sugar",
-                        "1002 - 6x Medium",
-                        "1002 - 8x Explosive Dynamite",
-                        "1003 - 2x Medium",
-                        "1003 - 2x White",
-                        "1003 - 4x Explosive Dynamite",
-                        "1003 - 4x Red",
-                        "1004 - 2x Large",
-                        "1004 - 3x Royal Crimson",
-                        "1004 - 4x Pearl Whisper",
-                        "1004 - 4x Sweet Sugar",
-                        "1004 - 6x Explosive Dynamite",
-                        "1004 - 6x Small",
-                        "1005 - 3x White",
-                        "1005 - 6x Gentle Cinnamon",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "price",
@@ -1197,6 +1129,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "max_digits": 12,
                     "decimal_places": 2,
+                    "choices": False,
                 },
                 {
                     "name": "margin",
@@ -1207,6 +1140,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "max_digits": 12,
                     "decimal_places": 2,
+                    "choices": False,
                 },
             ],
             "expected_filtering": [
@@ -1221,6 +1155,7 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
                 },
                 {
                     "name": "reason",
@@ -1232,6 +1167,7 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
                 },
                 {
                     "name": "is_added",
@@ -1250,6 +1186,7 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                         },
                     ],
+                    "choices": False,
                 },
                 {
                     "name": "quantity",
@@ -1262,6 +1199,7 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
                 },
                 {
                     "name": "cost",
@@ -1274,6 +1212,7 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
                 },
                 {
                     "name": "price",
@@ -1286,6 +1225,7 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
                 },
                 {
                     "name": "margin",
@@ -1298,6 +1238,7 @@ DETAIL_PARAMETRIZE = [
                             ],
                         },
                     ],
+                    "choices": False,
                 },
             ],
             "expected_ordering": [
@@ -1356,6 +1297,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     "required": False,
+                    "choices": False,
                 },
                 {
                     "name": "cart",
@@ -1364,9 +1306,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {
-                        "test_customer_1@example.com",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "product_option",
@@ -1375,18 +1315,7 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "choices": {
-                        "Explosive Dynamite",
-                        "Gentle Cinnamon",
-                        "Large",
-                        "Medium",
-                        "Pearl Whisper",
-                        "Red",
-                        "Royal Crimson",
-                        "Small",
-                        "Sweet Sugar",
-                        "White",
-                    },
+                    "choices": True,
                 },
                 {
                     "name": "quantity",
@@ -1397,6 +1326,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "max_value": 2147483647,
                     "min_value": -2147483648,
+                    "choices": False,
                 },
             ],
             "expected_filtering": [],
@@ -1416,6 +1346,280 @@ DETAIL_PARAMETRIZE = [
 ]
 
 
+DETAIL_CHOICES_PARAMETRIZE = [
+    (
+        "store",
+        "customer",
+        "user",
+        {
+            "choices": (
+                "test_admin@example.com",
+                "test_customer_1@example.com",
+                "test_customer_2@example.com",
+            ),
+        },
+    ),
+    (
+        "store",
+        "cart",
+        "customer",
+        {
+            "choices": (
+                "test_customer_1@example.com",
+                "test_customer_2@example.com",
+            ),
+        },
+    ),
+    (
+        "store",
+        "customerorder",
+        "customer",
+        {
+            "choices": (
+                "test_customer_1@example.com",
+                "test_customer_2@example.com",
+            ),
+        },
+    ),
+    (
+        "store",
+        "customerorder",
+        "order_state",
+        {
+            "choices": (
+                "New",
+                "Packed",
+                "Returned",
+                "Shipped",
+            ),
+        },
+    ),
+    (
+        "store",
+        "product",
+        "distributor",
+        {
+            "choices": (
+                "T-Shirt Corp.",
+                "Tasty Treats Assoc.",
+                "Vibrant Looks Inc.",
+            ),
+        },
+    ),
+    (
+        "store",
+        "product",
+        "tangible",
+        {
+            "choices": (
+                "Digital",
+                "Physical",
+            ),
+        },
+    ),
+    (
+        "store",
+        "productoption",
+        "product",
+        {
+            "choices": (
+                "Men's White T-Shirt",
+                "Paint",
+                "Shaped Cookies For Drapes",
+                "Spray Paint",
+                "Square Cookies For Squares",
+                "Women's White T-Shirt",
+            ),
+        },
+    ),
+    (
+        "store",
+        "productoption",
+        "option_type",
+        {
+            "choices": (
+                "Size",
+                "Colour",
+                "Flavour",
+            ),
+        },
+    ),
+    (
+        "store",
+        "orderitem",
+        "customer_order",
+        {
+            "choices": (
+                "1001",
+                "1002",
+                "1003",
+                "1004",
+                "1005",
+            ),
+        },
+    ),
+    (
+        "store",
+        "orderitem",
+        "product_option",
+        {
+            "choices": (
+                "Explosive Dynamite",
+                "Gentle Cinnamon",
+                "Large",
+                "Medium",
+                "Pearl Whisper",
+                "Red",
+                "Royal Crimson",
+                "Small",
+                "Sweet Sugar",
+                "White",
+            ),
+        },
+    ),
+    (
+        "store",
+        "inventoryrecord",
+        "product_option",
+        {
+            "choices": (
+                "Explosive Dynamite",
+                "Gentle Cinnamon",
+                "Large",
+                "Medium",
+                "Pearl Whisper",
+                "Red",
+                "Royal Crimson",
+                "Small",
+                "Sweet Sugar",
+                "White",
+            ),
+        },
+    ),
+    (
+        "store",
+        "inventoryrecord",
+        "reason",
+        {
+            "choices": (
+                "Damaged Inventory",
+                "Order Fulfillment",
+                "Received Inventory",
+                "Returned Inventory",
+            ),
+        },
+    ),
+    (
+        "store",
+        "inventoryrecord",
+        "added_inventory_record",
+        {
+            "choices": (
+                "Damaged Inventory 2x Medium",
+                "Order Fulfillment 1x Small",
+                "Order Fulfillment 2x Large",
+                "Order Fulfillment 2x Medium",
+                "Order Fulfillment 2x Sweet Sugar",
+                "Order Fulfillment 2x Sweet Sugar",
+                "Order Fulfillment 2x White",
+                "Order Fulfillment 3x Pearl Whisper",
+                "Order Fulfillment 3x Red",
+                "Order Fulfillment 3x Royal Crimson",
+                "Order Fulfillment 3x White",
+                "Order Fulfillment 4x Explosive Dynamite",
+                "Order Fulfillment 4x Large",
+                "Order Fulfillment 4x Pearl Whisper",
+                "Order Fulfillment 4x Red",
+                "Order Fulfillment 4x Sweet Sugar",
+                "Order Fulfillment 5x Small",
+                "Order Fulfillment 6x Explosive Dynamite",
+                "Order Fulfillment 6x Gentle Cinnamon",
+                "Order Fulfillment 6x Gentle Cinnamon",
+                "Order Fulfillment 6x Medium",
+                "Order Fulfillment 6x Medium",
+                "Order Fulfillment 6x Royal Crimson",
+                "Order Fulfillment 8x Explosive Dynamite",
+                "Received Inventory 12x Explosive Dynamite",
+                "Received Inventory 12x Explosive Dynamite",
+                "Received Inventory 12x Medium",
+                "Received Inventory 12x Medium",
+                "Received Inventory 12x Royal Crimson",
+                "Received Inventory 12x White",
+                "Received Inventory 15x Red",
+                "Received Inventory 6x Gentle Cinnamon",
+                "Received Inventory 6x Gentle Cinnamon",
+                "Received Inventory 6x Large",
+                "Received Inventory 6x Small",
+                "Received Inventory 6x Small",
+                "Received Inventory 6x Sweet Sugar",
+                "Received Inventory 6x Sweet Sugar",
+                "Received Inventory 8x Pearl Whisper",
+                "Returned Inventory 2x Medium",
+                "Returned Inventory 3x Royal Crimson",
+            ),
+        },
+    ),
+    (
+        "store",
+        "inventoryrecord",
+        "order_item",
+        {
+            "choices": (
+                "1001 - 3x Red",
+                "1001 - 5x Small",
+                "1001 - 6x Gentle Cinnamon",
+                "1001 - 6x Medium",
+                "1002 - 3x Pearl Whisper",
+                "1002 - 4x Large",
+                "1002 - 4x Royal Crimson",
+                "1002 - 4x Sweet Sugar",
+                "1002 - 6x Medium",
+                "1002 - 8x Explosive Dynamite",
+                "1003 - 2x Medium",
+                "1003 - 2x White",
+                "1003 - 4x Explosive Dynamite",
+                "1003 - 4x Red",
+                "1004 - 2x Large",
+                "1004 - 3x Royal Crimson",
+                "1004 - 4x Pearl Whisper",
+                "1004 - 4x Sweet Sugar",
+                "1004 - 6x Explosive Dynamite",
+                "1004 - 6x Small",
+                "1005 - 3x White",
+                "1005 - 6x Gentle Cinnamon",
+            ),
+        },
+    ),
+    (
+        "store",
+        "cartitem",
+        "cart",
+        {
+            "choices": ("test_customer_1@example.com",),
+        },
+    ),
+    (
+        "store",
+        "cartitem",
+        "product_option",
+        {
+            "choices": (
+                "Explosive Dynamite",
+                "Gentle Cinnamon",
+                "Large",
+                "Medium",
+                "Pearl Whisper",
+                "Red",
+                "Royal Crimson",
+                "Small",
+                "Sweet Sugar",
+                "White",
+            ),
+        },
+    ),
+]
+
+
 class TestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create = {
         "Admin": [
@@ -1427,11 +1631,21 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "Cart", "read"),
             ("store", "Cart", "update"),
             ("store", "CartItem", "read"),
+            ("store", "Customer", "list"),
             ("store", "CustomerOrder", "create"),
             ("store", "CustomerOrder", "delete"),
             ("store", "CustomerOrder", "list"),
             ("store", "CustomerOrder", "read"),
             ("store", "CustomerOrder", "update"),
+            ("store", "Distributor", "list"),
+            ("store", "InventoryRecord", "list"),
+            ("store", "InventoryRecordReason", "list"),
+            ("store", "OptionType", "list"),
+            ("store", "OrderItem", "list"),
+            ("store", "OrderState", "list"),
+            ("store", "Product", "list"),
+            ("store", "ProductOption", "list"),
+            ("tests", "User", "list"),
         ],
         "Customer": [
             ("contenttypes", "ContentType", "list"),
@@ -1446,6 +1660,13 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "CartItem", "delete"),
             ("store", "CustomerOrder", "create"),
             ("store", "CustomerOrder", "read"),
+            ("store", "Distributor", "list"),
+            ("store", "OptionType", "list"),
+            ("store", "OrderItem", "list"),
+            ("store", "OrderState", "list"),
+            ("store", "Product", "list"),
+            ("store", "ProductOption", "list"),
+            ("tests", "User", "list"),
         ],
     }
 
@@ -2464,18 +2685,7 @@ class TestModelInfoSerializer:
                 if model_field["name"] == expected_model_field["name"]:
                     assert set(model_field.keys()) == set(expected_model_field.keys()), str(model_field)
                     for key in model_field.keys():
-                        if key == "choices":
-                            if type(expected_model_field[key]) is list:
-                                # Special case where inventory records are not distinct enough,
-                                # so we added when, but don't want to compare dates, so strip them here.
-                                assert (
-                                    sorted([value.split(" - ")[1] for value in model_field[key].values()])
-                                    == expected_model_field[key]
-                                ), str(model_field)
-                            else:
-                                assert set(model_field[key].values()) == expected_model_field[key], str(model_field)
-                        else:
-                            assert model_field[key] == expected_model_field[key], str(model_field)
+                        assert model_field[key] == expected_model_field[key], str(model_field)
 
     @staticmethod
     def check_model_filtering_data(response_data, expected_data):
@@ -2527,7 +2737,6 @@ class TestModelInfoSerializer:
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",
         DETAIL_PARAMETRIZE,  # pytest likes to dump the whole def, so we move the parameterize details elsewhere
-        ids=idfn,
     )
     def test_info_detail(
         self,
@@ -2570,3 +2779,167 @@ class TestModelInfoSerializer:
         self.check_model_filtering_data(response, kwargs["expected_filtering"])
         self.check_model_ordering_data(response, kwargs["expected_ordering"])
         self.check_model_permissions_data(response, kwargs["expected_permissions"])
+
+
+@pytest.mark.django_db
+class TestModelInfoChoicesSerializer:
+    @pytest.fixture
+    def test_data(self):
+        return TestData()
+
+    @staticmethod
+    def register_viewsets():
+        info.registration.get_empty_registry()
+        info.register(CustomerSerializer, CustomerViewSet)
+        info.register(DistributorSerializer, DistributorViewSet)
+        info.register(ProductSerializer, ProductViewSet)
+        info.register(OptionTypeSerializer, OptionTypeViewSet)
+        info.register(ProductOptionSerializer, ProductOptionViewSet)
+        info.register(CartSerializer, CartViewSet)
+        info.register(CartItemSerializer, CartItemViewSet)
+        info.register(CustomerOrderSerializer, CustomerOrderViewSet)
+        info.register(OrderItemSerializer, OrderItemViewSet)
+        info.register(InventoryRecordReasonSerializer, InventoryRecordReasonViewSet)
+        info.register(InventoryRecordSerializer, InventoryRecordViewSet)
+
+    @pytest.mark.parametrize(
+        "app_label, model_name, field_name, kwargs",
+        DETAIL_CHOICES_PARAMETRIZE,  # pytest likes to dump the whole def, so we move the parameterize details elsewhere
+        ids=idfn,
+    )
+    def test_info_choices_list_customer(
+        self,
+        test_data,
+        api_client,
+        app_label,
+        model_name,
+        field_name,
+        kwargs,
+    ):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse(
+                "info.model_info_choices-list",
+                args=(
+                    app_label,
+                    model_name,
+                    field_name,
+                ),
+            ),
+            format="json",
+        )
+
+        # The customer is not able to list customer orders or inventory records.
+        match (app_label, model_name, field_name):
+            case (
+                ("store", "cart", "customer")
+                | ("store", "cartitem", "cart")
+                | ("store", "customerorder", "customer")
+                | ("store", "inventoryrecord", "added_inventory_record")
+                | ("store", "inventoryrecord", "reason")
+                | ("store", "orderitem", "customer_order")
+            ):
+                assert response.status_code == 403, pformat(response.data)
+
+            case _:
+                assert response.status_code == 200, f"{(app_label, model_name, field_name)}\n\n{pformat(response.data)}"
+
+                choices = kwargs["choices"]
+
+                assert response.data["totalRecords"] == len(choices)
+                assert frozenset(result["label"] for result in response.data["results"]) == frozenset(choices)
+
+    @pytest.mark.parametrize(
+        "app_label, model_name, field_name, kwargs",
+        DETAIL_CHOICES_PARAMETRIZE,  # pytest likes to dump the whole def, so we move the parameterize details elsewhere
+        ids=idfn,
+    )
+    def test_info_choices_list_admin(
+        self,
+        test_data,
+        api_client,
+        app_label,
+        model_name,
+        field_name,
+        kwargs,
+    ):
+        user = test_data.users["test_admin@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse(
+                "info.model_info_choices-list",
+                args=(
+                    app_label,
+                    model_name,
+                    field_name,
+                ),
+            ),
+            format="json",
+        )
+
+        assert response.status_code == 200, f"{(app_label, model_name, field_name)}\n\n{pformat(response.data)}"
+
+        choices = kwargs["choices"]
+        assert response.data["totalRecords"] == len(choices)
+
+        match (app_label, model_name, field_name):
+            case ("store", "inventoryrecord", "added_inventory_record"):
+                # Remove the date from the label.  The date has 2
+                # dashes and the 3rd is the separator after the date.
+                assert frozenset(
+                    "-".join(result["label"].split("-")[3:]).strip() for result in response.data["results"]
+                ) == frozenset(choices)
+
+            case _:
+                assert frozenset(result["label"] for result in response.data["results"]) == frozenset(choices)
+
+    def test_info_choices_list_invalid_field_on_model_with_choice_fields(self, test_data, api_client):
+        user = test_data.users["test_admin@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse(
+                "info.model_info_choices-list",
+                args=(
+                    "store",
+                    "product",
+                    "name",
+                ),
+            ),
+            format="json",
+        )
+
+        assert response.status_code == 400, pformat(response.data)
+        assert response.data["non_field_errors"] == [
+            "Invalid field. Valid fields with choices are distributor, tangible."
+        ]
+
+    def test_info_choices_list_invalid_field_on_model_with_no_choice_fields(self, test_data, api_client):
+        user = test_data.users["test_admin@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse(
+                "info.model_info_choices-list",
+                args=(
+                    "store",
+                    "distributor",
+                    "name",
+                ),
+            ),
+            format="json",
+        )
+
+        assert response.status_code == 400, pformat(response.data)
+        assert response.data["non_field_errors"] == ["Invalid field. No choice fields found on store.Distributor."]
