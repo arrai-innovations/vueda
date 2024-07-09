@@ -602,6 +602,15 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
+                {
+                    "name": "tangible",
+                    "label": None,
+                    "type": "ChoiceField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": True,
+                },
             ],
             "expected_filtering": [
                 {
@@ -687,6 +696,7 @@ DETAIL_PARAMETRIZE = [
                         "distributor",
                         "name",
                         "disabled",
+                        "tangible",
                     ],
                 },
                 {
