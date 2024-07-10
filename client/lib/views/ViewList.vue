@@ -1,17 +1,15 @@
 <script setup>
 import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
-import ErrorDisplay from "../components/ErrorDisplay.vue";
-import FilterFormModel from "../components/FilterFormModel.vue";
-import LinkModelView from "../components/LinkModelView.vue";
-import LoadingSpinnerInline from "../components/LoadingSpinnerInline.vue";
-import ObjectsGrid from "../components/ObjectsGrid.vue";
-import PaginationComponent from "../components/PaginationComponent.vue";
-import { getCRUDName } from "../router/getCrud.js";
-import { useCombinedClasses } from "../use/useCombinedClasses.js";
-import { useIsActive } from "../use/useIsActive.js";
-import { useModelConfig } from "../use/useModelConfig.js";
-import { getCapitalizedTitle } from "../utils/crudSupport.js";
-import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
+import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
+import FilterFormModel from "@vueda/components/FilterFormModel.vue";
+import LinkModelView from "@vueda/components/LinkModelView.vue";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
+import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
+import PaginationComponent from "@vueda/components/PaginationComponent.vue";
+import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import { useIsActive } from "@vueda/use/useIsActive.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { getCRUDName, getCapitalizedTitle } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
