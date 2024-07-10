@@ -187,8 +187,16 @@ class NoExtraFieldsForViewSetMixin:
         if you provide fields to filter by that are not filtered by the filter class, you get a 500 error
         """
         if hasattr(self, "filterset_class"):
+            fields = set()
             # get_fields() only gets fields from the meta, not declared fields on the filterset.
-            fields = set(self.filterset_class.get_filters().keys())
+            for filter_name, filter_obj in self.filterset_class.get_filters().items():
+                widget = filter_obj.field.widget
+                # If the filter has suffixes, then we need to use those with the filter name.
+                if hasattr(widget, "suffixes"):
+                    for suffix in widget.suffixes:
+                        fields.add(f"{filter_name}_{suffix}")
+                else:
+                    fields.add(filter_name)
             # pagination and expanding are allowed
             fields.update(self.get_extra_allowed_fields())
             for key in request.query_params.keys():
