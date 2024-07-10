@@ -1,16 +1,14 @@
 <script setup>
-import { useObject } from "@arrai-innovations/reactive-helpers";
+import { assignReactiveObject, useObject } from "@arrai-innovations/reactive-helpers";
 import FormModel from "@vueda/components/FormModel.vue";
-import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
-import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
+import PageTitle from "@vueda/components/PageTitle.vue";
 import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
-import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { FormValidationError } from "@vueda/utils/errors.js";
+import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import Button from "primevue/button";
-import { useToast } from "primevue/usetoast";
-import { computed, reactive, ref, toRef } from "vue";
+import { computed, reactive, toRef, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -27,14 +25,6 @@ const props = defineProps({
     pk: {
         type: String,
         required: true,
-    },
-    updateFields: {
-        type: Array,
-        default: undefined,
-    },
-    initialData: {
-        type: Object,
-        default: () => ({}),
     },
     variant: {
         type: String,
@@ -66,20 +56,13 @@ const props = defineProps({
     },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
-const formModelRef = ref(null);
 
 const isActive = useIsActive();
-const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
-const calculatedUpdateFields = computed(() => {
-    // if they don't pass updateFields, use the modelConfig fields.
-    //  modelConfig fields already falls back to models fields supplied by the server
-    return (
-        props.updateFields || modelConfig.config.updateFields || modelConfig.info.model_fields?.map((f) => f.name) || []
-    );
-});
-
-const modelConfigStore = storeModelConfig();
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model && props.pk));
+
+const calculatedUpdateFields = computed(() => modelConfig.config.updateFields || []);
+
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const instanceObjectProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
@@ -94,73 +77,63 @@ const instanceObjectProps = reactive({
 const instanceObject = useObject({
     props: instanceObjectProps,
 });
-
-const myState = reactive({
-    submitting: false,
-    dirty: false,
+const formContextProps = reactive({
+    initialValues: {},
+});
+const formContext = useForm(formContextProps);
+const objectFormProps = reactive({
+    app: toRef(props, "app"),
+    model: toRef(props, "model"),
+    verboseName: computed(() => modelConfig.info?.verbose_name),
+});
+const objectForm = useObjectForm({
+    props: objectFormProps,
+    formContext,
+    instanceObject,
 });
 
-const toast = useToast();
-const handleSubmit = async (formContext) => {
-    myState.submitting = true;
-    try {
-        await instanceObject.update({ object: formContext.values });
-        if (instanceObject.state.errored) {
-            if (instanceObject.state.error instanceof FormValidationError) {
-                const error = instanceObject.state.error;
-                formModelRef.value?.form.handleServerFormValidationError(error);
-            } else {
-                toast.add({
-                    severity: "error",
-                    summary: "Update Failed",
-                    detail: `An error occurred while updating ${modelConfig.info.verbose_name}`,
-                    life: 5000,
-                });
-            }
-        } else {
-            toast.add({
-                severity: "success",
-                summary: "Update Success",
-                detail: `${modelConfig.info.verbose_name} saved`,
-                life: 5000,
-            });
+watch(
+    [validAndActive, toRef(instanceObject.state, "loading")],
+    ([vAA, loading]) => {
+        // populate the form when the page loads and when we have the object back.
+        // undefined on loading means not run yet.
+        if (vAA && loading === false) {
+            assignReactiveObject(formContextProps.initialValues, instanceObject.state.object);
         }
-    } finally {
-        myState.submitting = false;
-    }
-};
-const handleDirty = (dirty) => {
-    myState.dirty = dirty;
-};
-useLeaveUnload(myState);
+    },
+    {
+        immediate: true,
+    },
+);
+
+const titleStr = computed(() => {
+    return `Update ${modelConfig.info?.verbose_name}` || "Update Item";
+});
 const combinedClasses = useCombinedClasses("ViewUpdate", props);
-const doSubmit = () => {
-    formModelRef.value?.form.doSubmit();
-};
 </script>
 
 <template>
     <div :class="combinedClasses.outerClass">
-        <div :class="combinedClasses.headerClass">
-            <h1 :class="combinedClasses.titleClass">
-                {{ `Update ${modelConfigStore.info?.verbose_name}` || "Update Item" }}
-                <loading-spinner-inline v-if="modelConfigStore.loading" :class="combinedClasses.loadingClass" />
-                <Button class="w-full" label="Save" :loading="modelConfig.loading" type="submit" @click="doSubmit" />
-            </h1>
-        </div>
+        <page-title :title="titleStr">
+            <template #button>
+                <Button
+                    class="w-full"
+                    label="Submit"
+                    :loading="objectForm.running"
+                    @click.prevent="objectForm.submit"
+                />
+            </template>
+        </page-title>
         <div :class="combinedClasses.bodyClass">
-            <form-model
-                ref="formModelRef"
-                :app="app"
-                :fields="calculatedUpdateFields"
-                :initial-values="instanceObject.state.object"
-                :model="model"
-                :variant="formModelVariant"
-                v-bind="$attrs"
-                @dirty="handleDirty"
-                @submit="handleSubmit"
-            >
-            </form-model>
+            <form @submit.prevent="objectForm.submit">
+                <form-model
+                    :app="app"
+                    :fields="calculatedUpdateFields"
+                    :model="model"
+                    :variant="formModelVariant"
+                    v-bind="$attrs"
+                />
+            </form>
         </div>
     </div>
 </template>

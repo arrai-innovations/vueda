@@ -1,4 +1,4 @@
-import { getClientRoutePart } from "../utils/crudSupport.js";
+import { getCRUDName } from "../utils/crudSupport.js";
 
 const NON_DETAIL_VIEWS = ["list", "create"];
 
@@ -9,19 +9,6 @@ const NON_DETAIL_VIEWS = ["list", "create"];
  * @returns {boolean} True if the view is a detail view, false otherwise.
  */
 export const isDetailView = (view) => !NON_DETAIL_VIEWS.includes(view);
-
-/**
- * Get the CRUD name for a given model and view.
- *
- * @param {object} params - The parameters.
- * @param {string} params.app - The app name.
- * @param {string} params.model - The model name.
- * @param {string} params.view - The view name.
- * @returns {string} The CRUD name.
- */
-export function getCRUDName({ app, model, view }) {
-    return `${getClientRoutePart(app)}.${getClientRoutePart(model)}-${view}`;
-}
 
 /**
  * Get the route configuration for a CRUD operation.

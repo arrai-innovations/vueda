@@ -61,15 +61,19 @@ export function makeCRUDRoutes({
 
     views.forEach((view) => {
         const capitalizedView = view.charAt(0).toUpperCase() + view.slice(1);
+        const props = {
+            app,
+            model,
+            view,
+        };
+        if (components.createForm && view === "create") {
+            props.createForm = components.createForm;
+        }
         const route = {
             name: `${appRoutePart}.${modelRoutePart}-${view}`,
             path: `/${appRoutePart}/${modelRoutePart}/${view}/`,
             component: components[view],
-            props: {
-                app,
-                model,
-                view,
-            },
+            props,
             meta: {
                 title: titles[view] || (view === "list" ? pluralizedTitle : `${capitalizedView} ${lowerTitle}`),
                 detail: isDetailView(view),

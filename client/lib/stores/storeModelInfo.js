@@ -1,4 +1,5 @@
 import { httpOrHttpsHostname } from "../utils/connectionHostname.js";
+import { getAppModelDotName } from "../utils/crudSupport.js";
 import { getCSRFValue } from "../utils/csrf.js";
 import { FetchError } from "../utils/errors.js";
 import { getJsonOrText } from "../utils/fetchSupport.js";
@@ -189,7 +190,7 @@ export const storeModelInfo = defineStore({
     }),
     actions: {
         async fetchModelInfo(app, model) {
-            const key = `${memoizedSnakeCase(app)}.${memoizedSnakeCase(model)}`;
+            const key = getAppModelDotName(app, model);
             const existing = this.modelInfos[key];
             if (existing) {
                 return existing;
@@ -236,7 +237,6 @@ export const storeModelInfo = defineStore({
                                 return [k, cV];
                             }),
                         );
-                        return data;
                     })
                     .finally(() => {
                         delete this.existingPromises[key];

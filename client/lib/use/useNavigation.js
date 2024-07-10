@@ -66,8 +66,10 @@ export function useNavigation(userConfig) {
 
     const fetchModelData = async (app, model) => {
         try {
-            const modelInfo = await modelInfoStore.fetchModelInfo(app, model);
-            const modelConfig = await modelConfigStore.getConfig(app, model);
+            await modelInfoStore.fetchModelInfo(app, model);
+            await modelConfigStore.getConfig(app, model);
+            const modelInfo = modelInfoStore.modelInfos[`${app}.${model}`];
+            const modelConfig = modelConfigStore.builtConfigs[`${app}.${model}`];
             return { modelInfo, modelConfig };
         } catch (e) {
             console.error(`Error fetching model data for ${app}.${model}:`, e);

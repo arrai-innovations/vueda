@@ -114,7 +114,7 @@ export function useField(props, functions) {
         return props.name;
     });
     const label = computed(() => {
-        return props.label || props.name;
+        return props.label?.length ? props.label : props.name;
     });
     const help = computed(() => {
         return props.help || "";

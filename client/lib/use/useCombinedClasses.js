@@ -41,7 +41,6 @@ export function useCombinedClasses(componentName, props) {
     if (!componentConfig.value) {
         throw new Error(`Component ${componentName} is not registered`);
     }
-
     for (const spot of componentConfig.value.spots) {
         const spotClassName = `${spot}Class`;
         combinedClasses[spotClassName] = useCombineClasses(

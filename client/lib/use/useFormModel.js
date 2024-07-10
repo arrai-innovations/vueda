@@ -1,3 +1,4 @@
+import { getAppModelDotName } from "../utils/crudSupport.js";
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import FieldBoolean from "@vueda/fields/FieldBoolean.vue";
 import FieldDate from "@vueda/fields/FieldDate.vue";
@@ -5,7 +6,6 @@ import FieldNumber from "@vueda/fields/FieldNumber.vue";
 import FieldObject from "@vueda/fields/FieldObject.vue";
 import FieldString from "@vueda/fields/FieldString.vue";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
-import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
 import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
@@ -210,7 +210,7 @@ export function useFormModel(props) {
         },
         { immediate: true },
     );
-    const appModelKey = computed(() => `${memoizedSnakeCase(props.app)}.${memoizedSnakeCase(props.model)}`);
+    const appModelKey = computed(() => getAppModelDotName(props.app, props.model));
 
     watch(
         () => modelInfoStore.modelInfos[appModelKey.value],

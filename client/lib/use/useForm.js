@@ -12,12 +12,11 @@ import { provide, reactive, readonly, ref, watch } from "vue";
  * @property {import('vue').UnwrapRef<{[fieldName: string]: any}>} values - The form's values.
  * @property {import('vue').UnwrapRef<{[fieldName: string]: {[errorCode: string]: string}}>} errors - The form's error
  *  messages, per field. Form-level errors are stored using `NON_FIELD_ERRORS_KEY`.
+ * @property {import('vue').Ref<boolean>} anyError - Whether any field has an error.
  * @property {import('vue').UnwrapRef<{[fieldName: string]: {[messageCode: string]: string}}>} messages - The form's
  *  message messages, per field. Form-level messages are stored using `NON_FIELD_ERRORS_KEY`.
  * @property {import('vue').UnwrapRef<{[fieldName: string]: boolean}>} dirty - The form's dirty state per field.
  * @property {import('vue').Ref<boolean>} anyDirty - Whether any field is dirty.
- * @property {import('vue').Ref<(formContext: FormContext) => void>} doSubmit - The function to call when the form is
- *  submitted.
  * @property {import('vue').Ref<string|undefined>} focused - The field currently in focus.
  * @property {import('vue').UnwrapRef<{[fieldName: string]: any}>} initialValues - The form's initial values.
  * @property {() => void} reset - Reset the form to its initial values.
@@ -30,8 +29,6 @@ import { provide, reactive, readonly, ref, watch } from "vue";
  * @property {(name: string) => void} setDirty - Set a field as dirty.
  * @property {(name: string) => void} clearDirty - Clear a field's dirty state.
  * @property {() => void} resetAllDirty - Reset all fields' dirty state.
- * @property {(fn: (formContext: FormContext) => void) => void} updateDoSubmit - Update the function to call when the
- *  form is submitted.
  * @property {(error: FormValidationError) => void} handleServerFormValidationError - Handle a server form validation
  *  error.
  * @property {(name: string) => void} focus - Focus on a field.
@@ -42,7 +39,7 @@ import { provide, reactive, readonly, ref, watch } from "vue";
  * The form context object, providing methods to update the form's values, errors, messages, dirty state, and to reset
  *  the form.
  *
- * @typedef {Readonly<FormContextRaw>} FormContext
+ * @typedef {Readonly<import('vue').UnwrapRef<FormContextRaw>>} FormContext
  */
 
 /**
@@ -63,16 +60,69 @@ import { provide, reactive, readonly, ref, watch } from "vue";
  * Generate and provide a form context for a form, using the provided initial values, including methods to update the
  *  form's values, errors, messages, dirty state, and to reset the form.
  *
+ * @example
+ * ```vue
+ * <script setup>
+ * import Button from "primevue/button";
+ * const myState = reactive({
+ *     submitting: false,
+ *     // when initialValues is changed, the form's values are reset to match
+ *     initialValues: {},
+ * });
+ * const formContext = useForm(myState);
+ * const handleSubmit = () => {
+ *     if (!formContext.anyDirty || formContext.anyError) {
+ *         return;
+ *     }
+ *     try {
+ *         myState.submitting = true;
+ *         submitToServer(formContext.values);
+ *     } catch (e) {
+ *         if (e isinstance FormValidationError) {
+ *             formContext.handleServerFormValidationError(e);
+ *             return;
+ *         }
+ *         throw e;
+ *     } finally {
+ *         myState.submitting = false;
+ *     }
+ * };
+ * </script>
+ * <template>
+ * <form @submit.prevent="handleSubmit">
+ *     <form-feedback type="error" />
+ *     <form-feedback type="message" />
+ *     <field-string name="field1" label="Field 1" :trim="true">
+ *         <form-label>
+ *             <widget-input />
+ *         </form-label>
+ *         <form-help-text />
+ *         <form-feedback type="error" />
+ *         <form-feedback type="message" />
+ *     </field-string>
+ *     <field-number name="field2" label="Field 2" :max-value="100" :min-value="1">
+ *         <form-label>
+ *             <widget-input step="1" />
+ *         </form-label>
+ *         <form-help-text />
+ *         <form-feedback type="error" />
+ *         <form-feedback type="message" />
+ *     </field-number>
+ *     <Button type="submit" severity="info" />
+ * </form>
+ * </template>
+ * ```
+ *
  * @param {FormContextProps} props - The form context's initial values.
  * @returns {FormContext}
  */
 export function useForm(props) {
     const values = reactive({});
     const errors = reactive({});
+    const anyError = ref(false);
     const messages = reactive({});
     const dirty = reactive({});
     const anyDirty = ref(false);
-    const doSubmit = ref(undefined);
     const focused = ref(undefined);
     const initialValues = reactive(props.initialValues);
 
@@ -118,6 +168,7 @@ export function useForm(props) {
     const updateError = (name, code, message) => {
         if (name && code && message) {
             set(errors, `${name}.${code}`, message);
+            anyError.value = true;
         } else {
             throw new Error("No name or code or message provided to updateError");
         }
@@ -128,6 +179,7 @@ export function useForm(props) {
             if (get(errors, key)) {
                 del(errors, key);
             }
+            anyError.value = Object.keys(errors).length > 0;
         } else {
             throw new Error("No name provided to deleteError");
         }
@@ -172,9 +224,6 @@ export function useForm(props) {
         assignReactiveObject(dirty, {});
         anyDirty.value = false;
     };
-    const updateDoSubmit = (fn) => {
-        doSubmit.value = fn;
-    };
     /**
      * handleServerFormValidationError - take django form validation messages from a
      *  FormValidationError and put them in the form context as errors
@@ -203,10 +252,10 @@ export function useForm(props) {
     const formContext = readonly({
         values,
         errors,
+        anyError,
         messages,
         dirty,
         anyDirty,
-        doSubmit,
         initialValues,
         focused,
         reset,
@@ -219,7 +268,6 @@ export function useForm(props) {
         setDirty,
         clearDirty,
         resetAllDirty,
-        updateDoSubmit,
         handleServerFormValidationError,
         focus,
         blur,

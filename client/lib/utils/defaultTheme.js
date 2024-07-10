@@ -53,7 +53,7 @@ const defaultComponents = {
     },
     FormModel: {
         defaultVariant: "default",
-        spots: ["label"],
+        spots: ["outer", "beforeFields", "afterFields", "fields", "field"],
     },
     PaginationComponent: {
         defaultVariant: "default",
@@ -116,6 +116,15 @@ const defaultVariants = {
             tableCell: "tableCell",
             cardHeader: "cardHeader",
             cardCell: "cardCell",
+        },
+    },
+    FormModel: {
+        default: {
+            outer: "bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4",
+            beforeFields: "mb-4",
+            afterFields: "mt-4",
+            fields: "space-y-4",
+            field: "mb-3",
         },
     },
 };

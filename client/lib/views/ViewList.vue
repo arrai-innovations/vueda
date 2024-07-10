@@ -5,11 +5,10 @@ import LinkModelView from "@vueda/components/LinkModelView.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
-import { getCRUDName } from "@vueda/router/getCrud.js";
 import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { getCapitalizedTitle } from "@vueda/utils/crudSupport.js";
+import { getCRUDName, getCapitalizedTitle } from "@vueda/utils/crudSupport.js";
 import Button from "primevue/button";
 import { computed, reactive, toRef, watch } from "vue";
 
@@ -93,7 +92,7 @@ const sorting = reactive({
 const calculatedListFields = computed(() => {
     // if they don't pass listFields, use the modelConfig fields.
     //  modelConfig fields already falls back to models fields supplied by the server
-    // return modelConfig.info.model_fields || [];
+    // return modelConfig.info.fields || [];
     if (props.listFields.length) {
         return props.listFields;
     } else if (modelConfig.config.listFields?.length) {
@@ -102,7 +101,7 @@ const calculatedListFields = computed(() => {
     return [];
 });
 const calculatedListFieldsObjs = computed(() => {
-    return modelConfig.info.model_fields?.filter((f) => calculatedListFields.value?.includes(f.name)) || [];
+    return modelConfig.info.fields?.filter((f) => calculatedListFields.value?.includes(f.name)) || [];
 });
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model));
 const listState = reactive({

@@ -1,18 +1,6 @@
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
-import { getPermissionCase } from "@vueda/utils/crudSupport.js";
+import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import { defineStore } from "pinia";
-
-/**
- * Get a key for a model.
- *
- * @param {string} app - The app name.
- * @param {string} model - The model name.
- * @returns {string} The key.
- * @private
- */
-const getKey = (app, model) => {
-    return `${getPermissionCase(app)}.${getPermissionCase(model)}`;
-};
 
 /**
  * A configuration object for making use of a model client-side.
@@ -80,23 +68,24 @@ export const storeModelConfig = defineStore({
     }),
     actions: {
         setConfig(app, model, config) {
-            this.configs[getKey(app, model)] = config;
-            delete this.builtConfigs[getKey(app, model)];
+            this.configs[getAppModelDotName(app, model)] = config;
+            delete this.builtConfigs[getAppModelDotName(app, model)];
         },
         async getConfig(app, model) {
-            if (this.builtConfigs[getKey(app, model)]) {
-                return this.builtConfigs[getKey(app, model)];
+            if (this.builtConfigs[getAppModelDotName(app, model)]) {
+                return this.builtConfigs[getAppModelDotName(app, model)];
             }
             const modelInfoStore = storeModelInfo();
-            const modelInfo = await modelInfoStore.fetchModelInfo(app, model);
-            return (this.builtConfigs[getKey(app, model)] = {
+            await modelInfoStore.fetchModelInfo(app, model);
+            const modelInfo = modelInfoStore.modelInfos[getAppModelDotName(app, model)];
+            return (this.builtConfigs[getAppModelDotName(app, model)] = {
                 ...getDefaultFromModelInfo(modelInfo),
-                ...this.configs[getKey(app, model)],
+                ...this.configs[getAppModelDotName(app, model)],
             });
         },
         updateConfig(app, model, config) {
             // partially update config
-            const key = getKey(app, model);
+            const key = getAppModelDotName(app, model);
             if (!this.configs[key]) {
                 this.configs[key] = {};
             }

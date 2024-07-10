@@ -1,6 +1,7 @@
 <script setup>
 import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import Dropdown from "primevue/dropdown";
 
 defineOptions({
     inheritAttrs: false,
@@ -33,7 +34,7 @@ const props = defineProps({
     },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
-const widget = useWidget(props, emit);
+const widgetContext = useWidget(props, emit);
 const combinedClasses = useCombinedClasses("WidgetSelect", props);
 </script>
 
@@ -42,19 +43,18 @@ const combinedClasses = useCombinedClasses("WidgetSelect", props);
         <span v-if="$slots.prefix" :class="combinedClasses.prefixClass">
             <slot name="prefix" />
         </span>
-        <select
-            v-model="widget.combinedValue"
+        <Dropdown
+            v-model="widgetContext.combinedValue"
             :class="combinedClasses.selectClass"
-            :name="widget.combinedName"
+            :name="widgetContext.combinedName"
             v-bind="$attrs"
-            @blur="widget.blur"
-            @change="widget.makeDirty"
-            @focus="widget.focus"
-        >
-            <option v-for="option in props.options" :key="option.value" :value="option.value">
-                {{ option.label }}
-            </option>
-        </select>
+            option-label="label"
+            option-value="value"
+            :options="props.options"
+            @blur="widgetContext.blur"
+            @change="widgetContext.makeDirty"
+            @focus="widgetContext.focus"
+        />
         <span v-if="$slots.suffix" :class="combinedClasses.suffixClass">
             <slot name="suffix" />
         </span>

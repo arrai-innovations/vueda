@@ -1,7 +1,9 @@
 <script setup>
-import FormLabel from "@vueda/components/FormLabel.vue";
 import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
+import InputSwitch from "primevue/inputswitch";
+import { computed, inject } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -30,25 +32,26 @@ const props = defineProps({
     },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
-const widget = useWidget(props, emit);
+const fieldContext = inject(FieldContextSymbol, null);
+const widgetContext = useWidget(props, emit);
 const combinedClasses = useCombinedClasses("WidgetCheckbox", props);
+const computedFor = computed(() => props.name || widgetContext.name);
+const computedLabel = computed(() => (props.label?.length ? props.label : fieldContext.label));
 </script>
 <template>
     <div :class="combinedClasses.outerClass">
-        <input
-            v-model="widget.combinedValue"
+        <InputSwitch
+            v-model="widgetContext.combinedValue"
             :class="combinedClasses.inputClass"
-            :name="widget.combinedName"
+            :name="widgetContext.combinedName"
             type="checkbox"
             v-bind="$attrs"
-            @blur="widget.blur"
-            @change="widget.makeDirty"
-            @focus="widget.focus"
+            @blur="widgetContext.blur"
+            @change="widgetContext.makeDirty"
+            @focus="widgetContext.focus"
         />
-        <form-label :class="combinedClasses.labelClass" :for="widget.combinedName" :label="props.label">
-            <template #default="{ label: widgetLabel, for: forName }">
-                <slot :for="forName" :label="widgetLabel" name="default"></slot>
-            </template>
-        </form-label>
+        <label :class="combinedClasses.labelClass" :for="computedFor">
+            <slot :for="computedFor" :label="computedLabel" name="label">{{ computedLabel }}</slot>
+        </label>
     </div>
 </template>

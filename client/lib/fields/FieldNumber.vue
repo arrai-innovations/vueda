@@ -72,7 +72,10 @@ watch(
 watch(
     toRef(fieldContext, "fieldValue"),
     (newValue) => {
-        const coercedValue = +newValue;
+        let coercedValue = +newValue;
+        if (isNaN(coercedValue)) {
+            coercedValue = undefined;
+        }
         if (coercedValue !== fieldContext.value) {
             fieldContext.updateValue(coercedValue);
         }

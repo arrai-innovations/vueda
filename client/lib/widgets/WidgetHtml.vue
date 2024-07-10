@@ -59,9 +59,9 @@ const props = defineProps({
     },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
-const widget = useWidget(props, emit);
+const widgetContext = useWidget(props, emit);
 const editor = useEditor({
-    content: widget.combinedValue,
+    content: widgetContext.combinedValue,
     extensions: props.extensions,
     injectCSS: false,
     editable: !props.disabled,
@@ -74,17 +74,18 @@ const editor = useEditor({
     onUpdate: () => {
         const unrefEditor = unref(editor);
         const html = unrefEditor.getHTML();
-        if (widget.combinedValue !== html) {
-            // let useWidget emit the change
-            widget.combinedValue = html;
-            widget.makeDirty();
+        if (widgetContext.combinedValue !== html) {
+            // let useWidget emit the change. the computed ref has a set...
+            // noinspection JSConstantReassignment
+            widgetContext.combinedValue = html;
+            widgetContext.makeDirty();
         }
     },
     onFocus: () => {
-        widget.focus();
+        widgetContext.focus();
     },
     onBlur: () => {
-        widget.blur();
+        widgetContext.blur();
     },
 });
 const combinedClasses = useCombinedClasses("WidgetHtml", props);

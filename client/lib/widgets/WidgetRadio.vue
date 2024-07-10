@@ -34,7 +34,7 @@ const props = defineProps({
     },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
-const widget = useWidget(props, emit);
+const widgetContext = useWidget(props, emit);
 const combinedClasses = useCombinedClasses("WidgetRadio", props);
 </script>
 
@@ -43,26 +43,26 @@ const combinedClasses = useCombinedClasses("WidgetRadio", props);
         <ul :class="combinedClasses.optionsClass">
             <li v-for="option in props.options" :key="option.value" :class="combinedClasses.optionClass">
                 <input
-                    :id="`${widget.combinedName}-${option.value}-${widget.widgetId}`"
-                    v-model="widget.combinedValue"
-                    :checked="widget.combinedValue === option.value"
+                    :id="`${widgetContext.combinedName}-${option.value}-${widgetContext.widgetId}`"
+                    v-model="widgetContext.combinedValue"
+                    :checked="widgetContext.combinedValue === option.value"
                     :class="combinedClasses.inputClass"
-                    :name="widget.combinedName"
+                    :name="widgetContext.combinedName"
                     type="radio"
                     :value="option.value"
-                    @blur="widget.blur"
-                    @change="widget.makeDirty"
-                    @focus="widget.focus"
+                    @blur="widgetContext.blur"
+                    @change="widgetContext.makeDirty"
+                    @focus="widgetContext.focus"
                 />
                 <slot
                     :class="combinedClasses.labelClass"
-                    :for="`${widget.combinedName}-${option.value}-${widget.widgetId}`"
+                    :for="`${widgetContext.combinedName}-${option.value}-${widgetContext.widgetId}`"
                     :label="option.label"
                     :name="$slots[`label-${option.value}`] ? `label-${option.value}` : 'default'"
                 >
                     <label
                         :class="combinedClasses.labelClass"
-                        :for="`${widget.combinedName}-${option.value}-${widget.widgetId}`"
+                        :for="`${widgetContext.combinedName}-${option.value}-${widgetContext.widgetId}`"
                         >{{ option.label }}</label
                     >
                 </slot>

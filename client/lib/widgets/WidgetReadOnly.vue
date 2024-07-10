@@ -23,19 +23,19 @@ const props = defineProps({
 });
 
 const emit = defineEmits([...WIDGET_EMITS]);
-const widget = useWidget(props, emit);
+const widgetContext = useWidget(props, emit);
 const combinedClasses = useCombinedClasses("WidgetReadonly", props);
 </script>
 
 <template>
     <div :class="combinedClasses.outerClass">
         <div :class="combinedClasses.wrapperClass">
-            <span v-if="widget.combinedName || $slots.label" :class="combinedClasses.labelClass">
-                <slot name="label">{{ widget.combinedName }}</slot>
+            <span v-if="widgetContext.combinedName || $slots.label" :class="combinedClasses.labelClass">
+                <slot name="label">{{ widgetContext.combinedName }}</slot>
             </span>
             <span :class="combinedClasses.innerClass">
                 <span :class="combinedClasses.inputClass" v-bind="$attrs"
-                    ><slot>{{ widget.combinedValue }}</slot></span
+                    ><slot>{{ widgetContext.combinedValue }}</slot></span
                 >
             </span>
         </div>

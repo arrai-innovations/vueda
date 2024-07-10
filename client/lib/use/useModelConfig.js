@@ -2,6 +2,7 @@ import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reacti
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo";
 import { useIsActive } from "@vueda/use/useIsActive";
+import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import { reactive, watch } from "vue";
 
 /**
@@ -59,9 +60,9 @@ export function useModelConfig(app, model) {
                 loadingError.clearError();
                 loadingError.setLoading();
                 try {
-                    const modelInfo = await modelInfoStore.fetchModelInfo(app, model);
+                    await modelInfoStore.fetchModelInfo(app, model);
                     const modelConfig = await modelConfigStore.getConfig(app, model);
-                    assignReactiveObject(returnObject.info, modelInfo);
+                    assignReactiveObject(returnObject.info, modelInfoStore.modelInfos[getAppModelDotName(app, model)]);
                     assignReactiveObject(returnObject.config, modelConfig);
                 } catch (e) {
                     loadingError.setError(e);
