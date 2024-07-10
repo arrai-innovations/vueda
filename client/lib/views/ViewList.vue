@@ -1,17 +1,22 @@
 <script setup>
 import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
-import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
-import LinkModelView from "@vueda/components/LinkModelView.vue";
-import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
-import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
-import PaginationComponent from "@vueda/components/PaginationComponent.vue";
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
-import { useIsActive } from "@vueda/use/useIsActive.js";
-import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { getCRUDName, getCapitalizedTitle } from "@vueda/utils/crudSupport.js";
+import ErrorDisplay from "../components/ErrorDisplay.vue";
+import FilterFormModel from "../components/FilterFormModel.vue";
+import LinkModelView from "../components/LinkModelView.vue";
+import LoadingSpinnerInline from "../components/LoadingSpinnerInline.vue";
+import ObjectsGrid from "../components/ObjectsGrid.vue";
+import PaginationComponent from "../components/PaginationComponent.vue";
+import { getCRUDName } from "../router/getCrud.js";
+import { useCombinedClasses } from "../use/useCombinedClasses.js";
+import { useIsActive } from "../use/useIsActive.js";
+import { useModelConfig } from "../use/useModelConfig.js";
+import { getCapitalizedTitle } from "../utils/crudSupport.js";
+import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
+import cloneDeep from "lodash-es/cloneDeep.js";
+import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
-import { computed, reactive, toRef, watch } from "vue";
+import { computed, reactive, ref, toRef, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -77,9 +82,14 @@ const props = defineProps({
         type: String,
         default: "default",
     },
+    listArgs: {
+        type: Object,
+        default: () => ({}),
+    },
     // as long as there are no collisions, $attrs can be used to pass through any other props to objects-grid
 });
-
+const listSearch = ref(null);
+const filterFormModelRef = ref(null);
 const isActive = useIsActive();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const sorting = reactive({
@@ -156,6 +166,27 @@ watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, 
         listState.listArgs[props.searchKey] = newSearch;
     }
 });
+watch(
+    toRef(props, "listArgs"),
+    () => {
+        assignReactiveObject(listState.listArgs, props.listArgs, [...Object.keys(listState.filterArgs), "o"]);
+    },
+    { deep: true, immediate: true },
+);
+watch(
+    () => cloneDeep(listState.filterArgs),
+    (newFilter, oldFilter) => {
+        if (!isEqual(newFilter, oldFilter)) {
+            listState.currentPage = 1;
+        }
+        assignReactiveObject(listState.listArgs, listState.filterArgs, [
+            ...Object.keys(props.listArgs),
+            "o",
+            props.searchKey,
+        ]);
+    },
+    { deep: true },
+);
 
 const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
 const combinedClasses = useCombinedClasses("ViewList", props);
@@ -166,15 +197,25 @@ const dismissError = () => {
     modelConfig.clearError();
     instanceList.clearError();
 };
-const filterList = async (e) => {
-    console.log(e.target.value);
-    // assignReactiveObject(listState.filterArgs, formData);
+const doFilterSubmit = () => {
+    filterFormModelRef.value?.form.doSubmit();
+};
+
+const filterList = (formData) => {
+    listState.search = listSearch.value;
+    if (formData.values) {
+        assignReactiveObject(listState.filterArgs, formData.values);
+    }
+};
+const clickClearFilter = () => {
+    listState.filterArgs = {};
+    listSearch.value = "";
+    listState.search = "";
 };
 </script>
 
 <template>
     <div class="flex flex-col gap-1 w-full max-w-full">
-        {{ modelConfig.info }}
         <div class="prose dark:prose-invert">
             <h1 :class="combinedClasses.titleClass">
                 {{ verboseNamePlural }}
@@ -199,8 +240,18 @@ const filterList = async (e) => {
         </div>
         <!-- todo: bulk object level actions -->
         <div :class="combinedClasses.detailActionsClass">
-            <InputText v-model="listState.search" name="search" placeholder="Search" type="search" />
-            <input label="is_completed" name="is_completed" type="checkbox" @input="filterList" />
+            <InputText v-model="listSearch" name="search" placeholder="Search" type="search" @search="filterList" />
+            <filter-form-model
+                ref="filterFormModelRef"
+                :app="app"
+                :filter-fields="listFields"
+                :model="model"
+                v-bind="$attrs"
+                @submit="filterList"
+            />
+            <Button class="w-1/5" label="Search" type="submit" @click="doFilterSubmit" />
+            <Button class="w-1/5" label="Clear Filters" type="submit" @click="clickClearFilter" />
+
             <!-- todo: filters return here? @submit=filterList -->
             <div
                 v-for="actionName in modelConfig.config.detailActions"

@@ -1,11 +1,11 @@
 <script setup>
-import FormFeedback from "@vueda/components/FormFeedback.vue";
-import FormHelpText from "@vueda/components/FormHelpText.vue";
-import FormLabel from "@vueda/components/FormLabel.vue";
-import FormWrapper from "@vueda/components/FormWrapper.vue";
-import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
-import useCombinedClasses from "@vueda/use/useCombinedClasses.js";
-import useFormModel from "@vueda/use/useFormModel.js";
+import FormFeedback from "../components/FormFeedback.vue";
+import FormHelpText from "../components/FormHelpText.vue";
+import FormLabel from "../components/FormLabel.vue";
+import FormWrapper from "../components/FormWrapper.vue";
+import LoadingSpinnerBlock from "../components/LoadingSpinnerBlock.vue";
+import { useCombinedClasses } from "../use/useCombinedClasses.js";
+import useFilterFormModel from "../use/useFilterFormModel.js";
 import { computed, ref } from "vue";
 
 const props = defineProps({
@@ -17,7 +17,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    fields: {
+    filterFields: {
         type: Array,
         default: () => [],
     },
@@ -32,13 +32,10 @@ const props = defineProps({
 });
 const emit = defineEmits(["submit", "dirty"]);
 
-const formModel = useFormModel(props);
+const filterFormModel = useFilterFormModel(props);
 
 const handleSubmit = (form) => {
     emit("submit", form);
-};
-const handleDirty = (dirty) => {
-    emit("dirty", dirty);
 };
 const formWrapperRef = ref(null);
 const formContext = computed(() => {
@@ -47,26 +44,30 @@ const formContext = computed(() => {
 defineExpose({ form: formContext });
 // todo: look into customizability re: overriding field / widget components with arbitrary slot content
 // todo: it would be nice to have a way to layout the fields into fieldsets / grids
-const combinedClasses = useCombinedClasses("@vueda/components/FormModel.vue", props);
+const combinedClasses = useCombinedClasses("FilterFormModel", props);
 </script>
 
 <template>
-    <form-wrapper ref="formWrapperRef" @dirty="handleDirty" @submit="handleSubmit">
+    <form-wrapper ref="formWrapperRef" @submit="handleSubmit">
         <template #default>
-            <template v-if="formModel.fields?.length">
+            <template v-if="filterFormModel.filterFields?.length">
                 <slot name="beforeFields" />
                 <div
-                    v-for="fieldObj in formModel.fields.map((x) => formModel.fieldObjects[x])"
-                    :key="fieldObj?.name"
+                    v-for="filterField in filterFormModel.filterFields"
+                    :key="filterField.name"
                     :class="combinedClasses.fieldsClass"
                 >
-                    <component :is="formModel.fieldComponents[fieldObj?.name]" v-if="fieldObj" v-bind="fieldObj">
-                        <template v-if="!$slots[`field-${fieldObj?.name}`]" #default>
+                    <component
+                        :is="filterFormModel.fieldComponents[filterField?.name]"
+                        v-if="filterField"
+                        v-bind="filterField"
+                    >
+                        <template v-if="!$slots[`field-${filterField?.name}`]" #default>
                             <form-label>
                                 <template #default>
                                     <component
-                                        :is="formModel.widgetComponents[fieldObj.name]"
-                                        v-bind="formModel.widgetProps[fieldObj.name]"
+                                        :is="filterFormModel.widgetComponents[filterField.name]"
+                                        v-bind="filterFormModel.widgetProps[filterField.name]"
                                     />
                                 </template>
                             </form-label>

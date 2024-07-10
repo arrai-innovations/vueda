@@ -55,11 +55,19 @@ const defaultComponents = {
         defaultVariant: "default",
         spots: ["outer", "beforeFields", "afterFields", "fields", "field"],
     },
+    FilterFormModel: {
+        defaultVariant: "default",
+        spots: ["label"],
+    },
     PaginationComponent: {
         defaultVariant: "default",
         spots: ["outer"],
     },
     WidgetInput: {
+        defaultVariant: "default",
+        spots: ["outer", "prefix", "input", "suffix"],
+    },
+    WidgetDatePicker: {
         defaultVariant: "default",
         spots: ["outer", "prefix", "input", "suffix"],
     },

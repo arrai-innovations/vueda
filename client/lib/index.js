@@ -16,6 +16,7 @@ import PageTitle from "./components/PageTitle.vue";
 import PaginationComponent from "./components/PaginationComponent.vue";
 import FieldBoolean from "./fields/FieldBoolean.vue";
 import FieldDate from "./fields/FieldDate.vue";
+import FieldDateRange from "./fields/FieldDateRange.vue";
 import FieldDateTime from "./fields/FieldDateTime.vue";
 import FieldDuration from "./fields/FieldDuration.vue";
 import FieldNumber from "./fields/FieldNumber.vue";
@@ -33,6 +34,7 @@ import ViewNotFound from "./views/ViewNotFound.vue";
 import ViewRead from "./views/ViewRead.vue";
 import ViewUpdate from "./views/ViewUpdate.vue";
 import WidgetCheckbox from "./widgets/WidgetCheckbox.vue";
+import WidgetDatePicker from "./widgets/WidgetDatePicker.vue";
 import WidgetHtml from "./widgets/WidgetHtml.vue";
 import WidgetInput from "./widgets/WidgetInput.vue";
 import WidgetRadio from "./widgets/WidgetRadio.vue";
@@ -57,7 +59,17 @@ export {
     PaginationComponent,
 };
 
-export { FieldBoolean, FieldDate, FieldDateTime, FieldDuration, FieldNumber, FieldObject, FieldString, FieldTime };
+export {
+    FieldBoolean,
+    FieldDate,
+    FieldDateTime,
+    FieldDuration,
+    FieldNumber,
+    FieldObject,
+    FieldString,
+    FieldTime,
+    FieldDateRange,
+};
 
 export * from "./router/getCrud.js";
 export * from "./router/guards.js";
@@ -110,6 +122,15 @@ export {
     ViewUpdate,
 };
 
-export { WidgetCheckbox, WidgetHtml, WidgetInput, WidgetRadio, WidgetReadOnly, WidgetSelect, WidgetTextarea };
+export {
+    WidgetCheckbox,
+    WidgetHtml,
+    WidgetInput,
+    WidgetRadio,
+    WidgetReadOnly,
+    WidgetSelect,
+    WidgetTextarea,
+    WidgetDatePicker,
+};
 
 export * from "./site.theme.js";

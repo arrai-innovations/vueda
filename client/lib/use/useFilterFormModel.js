@@ -1,17 +1,15 @@
-/* eslint-disable */
+import FieldBoolean from "../fields/FieldBoolean.vue";
+import FieldNumber from "../fields/FieldNumber.vue";
+import FieldString from "../fields/FieldString.vue";
+import { FieldDateRange } from "../index.js";
+import { storeModelInfo } from "../stores/storeModelInfo.js";
+import { memoizedSnakeCase } from "../utils/memoized.js";
+import WidgetDatePicker from "../widgets/WidgetDatePicker.vue";
+import WidgetInput from "../widgets/WidgetInput.vue";
+import WidgetReadOnly from "../widgets/WidgetReadOnly.vue";
+import WidgetSelect from "../widgets/WidgetSelect.vue";
+import WidgetTextarea from "../widgets/WidgetTextarea.vue";
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
-import FieldBoolean from "@vueda/fields/FieldBoolean.vue";
-import FieldDate from "@vueda/fields/FieldDate.vue";
-import FieldNumber from "@vueda/fields/FieldNumber.vue";
-import FieldObject from "@vueda/fields/FieldObject.vue";
-import FieldString from "@vueda/fields/FieldString.vue";
-import storeModelInfo from "@vueda/stores/storeModelInfo.js";
-import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
-import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
-import WidgetInput from "@vueda/widgets/WidgetInput.vue";
-import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
-import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
-import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
 import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
@@ -21,16 +19,16 @@ const filterTypes = {
     alpha: FieldString,
     numeric: FieldNumber,
     boolean: FieldBoolean,
-    date: FieldDate,
-    datetime: FieldDate,
+    date: FieldDateRange,
+    datetime: FieldDateRange,
 };
 
 const defaultWidgets = {
-    FieldBoolean: WidgetCheckbox,
-    FieldDate: WidgetInput,
-    FieldDateTime: WidgetInput,
+    FieldBoolean: WidgetSelect,
+    FieldDateRange: WidgetDatePicker,
+    FieldDateTime: WidgetDatePicker,
     FieldNumber: WidgetInput,
-    FieldString: WidgetInput,
+    FieldString: WidgetSelect,
     FieldTime: WidgetInput,
 };
 
@@ -39,15 +37,34 @@ const defaultFieldProps = {};
 // todo: we should have a way to register custom widget props for custom fields
 // modelconfig should have a view that client can pass in custom props
 const defaultWidgetProps = {
-    FieldBoolean: {},
-    FieldDate: {
-        type: "date",
+    FieldBoolean: {
+        options: [
+            {
+                label: "True",
+                value: true,
+            },
+            {
+                label: "False",
+                value: false,
+            },
+        ],
     },
-    FieldNumber: {
-        type: "number",
+    FieldDateRange: {
+        selectionMode: "range",
+    },
+    FieldDateTime: {
+        selectionMode: "range",
+        showTime: "true",
     },
     FieldObject: {},
-    FieldString: {},
+    FieldString: {
+        options: [
+            {
+                label: "office",
+                value: "office",
+            },
+        ],
+    },
     FieldTime: {
         type: "time",
     },
@@ -98,7 +115,7 @@ const getWidgetProps = (fieldType, fieldObj) => {
  */
 const djangoTypeToFieldComponent = (type) => {
     // todo: we should have a way to register custom field components
-    return builtInTypes[type] || FieldString;
+    return filterTypes[type] || FieldString;
 };
 /**
  * Get the default widget for a given field object.
@@ -123,7 +140,6 @@ const getDefaultWidget = (field) => {
 
 /**
  * @typedef {object} UseFormModelRawState
- * @property {{[fieldName:string]:import('@vueda/models/FieldModel').FieldModel}} fieldObjects -
  * @property {{[fieldName:string]:import('vue').Component}} fieldComponents -
  * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps -
  * @property {{[fieldName:string]: import('vue').Component}} widgetComponents - The widget components
@@ -141,7 +157,7 @@ const getDefaultWidget = (field) => {
  * @property {string[]} fields - The fields to display
  */
 
-const UseFormModelStateKeys = ["fieldObjects", "fieldComponents", "fieldProps", "widgetComponents", "widgetProps"];
+const UseFormModelStateKeys = ["fieldComponents", "fieldProps", "widgetComponents", "widgetProps"];
 /**
  * Using server model info and client model config, this hook provides the necessary reactive state for a form model.
  *
@@ -156,7 +172,6 @@ export default function useFilterFormModel(props) {
     const state = shallowReactive(
         /** @type {UseFormModelRawState} */ {
             filterFields: ref([]),
-            fieldObjects: reactive({}),
             // components themselves should not be deep reactive, avoiding vue warnings
             fieldComponents: shallowRef({}),
             fieldProps: reactive({}),
@@ -199,15 +214,15 @@ export default function useFilterFormModel(props) {
         [toRef(internalState, "modelInfo"), toRef(props, "listFields")],
         ([modelInfo, listFields]) => {
             if (modelInfo?.filtering?.length) {
-                const fields = {};
                 const fieldComponents = {};
                 const fieldProps = {};
                 const widgetComponents = {};
                 const widgetProps = {};
+                console.log(listFields);
                 for (const filter of modelInfo.filtering) {
-                    if (!listFields.includes(filter.name)) {
-                        continue;
-                    }
+                    // if (!listFields.includes(filter.name)) {
+                    //     continue;
+                    // }
                     const fieldComponent = djangoTypeToFieldComponent(filter.type);
                     fieldComponents[filter.name] = fieldComponent;
                     fieldProps[filter.name] = getFieldProps(filter);
@@ -217,19 +232,14 @@ export default function useFilterFormModel(props) {
                     widgetProps[filter.name] = getWidgetProps(fieldComponent.__name, filter);
                 }
                 assignStateObjectsIfChanged({
-                    fieldObjects,
                     fieldComponents,
                     fieldProps,
                     widgetComponents,
                     widgetProps,
                 });
-                assignReactiveObject(
-                    state.filterFields,
-                    modelInfo.filtering.map((field) => field.name).filter(identity),
-                );
+                assignReactiveObject(state.filterFields, modelInfo.filtering.filter(identity));
             } else {
                 assignStateObjectsIfChanged({
-                    fieldObjects: {},
                     fieldComponents: {},
                     fieldProps: {},
                     widgetComponents: {},
