@@ -27,6 +27,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.mixins import LogoutMixin
@@ -38,6 +39,9 @@ from vueda.user.serializers import WhoIsSerializer
 User = get_user_model()
 
 
+@conditional_extend_schema_decorator(
+    summary="Get logged in user info",
+)
 class WhoIsView(RetrieveAPIView):
     serializer_class = WhoIsSerializer
     permission_classes = []
@@ -54,6 +58,9 @@ class WhoIsView(RetrieveAPIView):
         return self.request.user
 
 
+@conditional_extend_schema_decorator(
+    summary="Forgot password",
+)
 class ForgotPasswordView(GenericAPIView):
     serializer_class = ForgotPasswordSerializer
     permission_classes = (AllowAny,)
@@ -114,6 +121,9 @@ class ForgotPasswordView(GenericAPIView):
         return Response({"result": "success", "message": "Forgot Password Email Sent"}, content_type="application/json")
 
 
+@conditional_extend_schema_decorator(
+    summary="Reset password",
+)
 class ResetPasswordView(GenericAPIView):
     serializer_class = ResetPasswordSerializer
     permission_classes = (AllowAny,)
@@ -153,6 +163,9 @@ class ResetPasswordView(GenericAPIView):
         return Response({"result": "success", "message": "Password Updated."}, content_type="application/json")
 
 
+@conditional_extend_schema_decorator(
+    summary="Resend welcome email",
+)
 class ResendWelcomeEmailView(SingleObjectMixin, APIView):
     permission_classes = (IsAuthenticated, ObjectPermissions)
     model = User
