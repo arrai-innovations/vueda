@@ -7,6 +7,8 @@ from django.utils.functional import cached_property
 from rest_framework import generics
 from rest_framework import mixins
 from rest_framework.exceptions import ValidationError
+from rest_framework.filters import OrderingFilter
+from rest_framework.filters import SearchFilter
 from rest_framework.utils.model_meta import get_field_info
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.viewsets import ReadOnlyModelViewSet
@@ -184,6 +186,11 @@ class ModelInfoChoicesViewSet(FlexFieldsMixin, mixins.ListModelMixin, GenericVie
         self.choices_permission_model = self.choices_permission_app_label = self.choices_permission_model_name = None
 
         super().__init__(*args, **kwargs)
+
+        # Remove search and ordering filter backends, since these won't work on choices at the moment.
+        self.filter_backends = [
+            backend for backend in self.filter_backends if not issubclass(backend, (SearchFilter, OrderingFilter))
+        ]
 
     @cached_property
     def canonical(self):
