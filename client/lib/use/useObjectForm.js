@@ -1,5 +1,5 @@
-import { useLeaveUnload } from "./useLeaveUnload.js";
 import { loadingCombine, useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
 import { getCRUDName } from "@vueda/utils/crudSupport.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import { useToast } from "primevue/usetoast";

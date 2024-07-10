@@ -6,8 +6,13 @@ import zipObject from "lodash-es/zipObject.js";
 /**
  * Combine errors into a single array of errors.
  *
- * @param {Error|Error[]} errors - an error or an array of errors
- * @returns {Error[]} - a single array of errors
+ * @param {(
+ *   (Error|import('@vueda/utils/errors.js').FetchError)|
+ *   (Error|import('@vueda/utils/errors.js').FetchError)[]
+ * )} errors - an error or an array of errors
+ * @returns {(
+ *   (Error|import('@vueda/utils/errors.js').FetchError)[]
+ * )} - a single array of errors
  */
 export function combineErrors(errors) {
     // errors could be an Error or an array of Errors, or an array of arrays of Errors

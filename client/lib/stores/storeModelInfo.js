@@ -219,6 +219,8 @@ export const storeModelInfo = defineStore({
                     ],
                 };
                 this.existingPromises[key] = fetchHelper(
+                    // @ts-ignore - URLSearchParams is fine with object with a values of an array of strings.
+                    //  it includes the key multiple times, as we intend.
                     modelInfoUrl(app, model) + `?${new URLSearchParams(retrieveArgs).toString()}`,
                     {
                         method: "GET",

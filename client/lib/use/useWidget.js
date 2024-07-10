@@ -87,7 +87,10 @@ export function useWidget(props, emit) {
         widgetId: readonly(widgetId),
         combinedValue,
         combinedName: computed(() => {
-            return props.name || fieldContext.name;
+            return props.name?.length ? props.name : fieldContext.name;
+        }),
+        combinedLabel: computed(() => {
+            return props.label?.length ? props.label : fieldContext.label;
         }),
         makeDirty,
         clearDirty,

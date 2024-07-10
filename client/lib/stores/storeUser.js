@@ -24,23 +24,25 @@ class UserError extends FetchError {
 }
 
 /**
- * @typedef {import('pinia').Store<{
- *   state: {
+ * @typedef {import('pinia').Store<
+ *   'user',
+ *   {
  *       loggedIn: boolean,
  *       loggedInUser: object,
- *       initialized: boolean,
+ *       initialized: boolean|undefined,
  *       loading: boolean,
  *       error: Error|null,
  *       errored: boolean,
- *       initializingPromise: Promise<void>,
+ *       initializingPromise: Promise<void>|null,
  *   },
- *   actions: {
+ *   {},
+ *   {
  *       fetchCurrentUser: () => Promise<void>,
  *       login: (payload: object) => Promise<void>,
  *       logout: () => Promise<void>,
  *       init: () => Promise<void>,
  *   },
- * }>} UserStore
+ * >} UserStore
  */
 
 /**
@@ -66,16 +68,17 @@ class UserError extends FetchError {
  * ```
  * @returns {UserStore} The store for user.
  */
-export const storeUser = defineStore({
-    id: "user",
+export const storeUser = defineStore("user", {
     state: () => ({
         loggedIn: false,
         loggedInUser: {},
+        /** @type {boolean|undefined} */
         initialized: undefined,
         loading: false,
         error: null,
         errored: false,
-        initializingPromise: undefined,
+        /** @type {Promise<void>|null} */
+        initializingPromise: null,
     }),
     actions: {
         async fetchCurrentUser() {
@@ -142,7 +145,7 @@ export const storeUser = defineStore({
                 if (response.status === 400) {
                     // bad request
                     // return instead of throw, avoiding the local catch and not getting added to the error state
-                    return Promise.reject(new FormValidationError(responseData));
+                    return Promise.reject(new FormValidationError(responseData, response));
                 }
                 throw new UserError("Unexpected authentication response", response, responseData);
             } catch (error) {
@@ -194,7 +197,7 @@ export const storeUser = defineStore({
         },
         async init() {
             if (!this.initialized) {
-                this.initialzingPromise = await this.fetchCurrentUser();
+                this.initializingPromise = this.fetchCurrentUser();
             }
             if (this.initializingPromise) {
                 await this.initializingPromise;

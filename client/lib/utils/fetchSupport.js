@@ -2,7 +2,7 @@
  * Fetches a URL and returns the response.
  *
  * @param {Response} response - The object to convert.
- * @returns {object|string} Either the JSON data or the text data.
+ * @returns {Promise<{[key: string]: any}|string>} Either the JSON data or the text data.
  */
 export async function getJsonOrText(response) {
     let data;

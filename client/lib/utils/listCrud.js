@@ -1,8 +1,9 @@
-import { httpOrHttpsHostname } from "./connectionHostname.js";
-import { FetchError } from "./errors.js";
-import { getJsonOrText } from "./fetchSupport.js";
-import { getUrl } from "./urls.js";
 import { setListCrud } from "@arrai-innovations/reactive-helpers";
+import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
+import { FetchError } from "@vueda/utils/errors.js";
+import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { getUrl } from "@vueda/utils/urls.js";
+import { isObject } from "lodash-es";
 import isArray from "lodash-es/isArray.js";
 import omit from "lodash-es/omit.js";
 import pLimit from "p-limit";
@@ -27,18 +28,39 @@ export const makeSearchParamsString = (searchParams) => {
     return `?${usp.toString()}`;
 };
 
+/**
+ * Adapt a single page paginated list to a CRUD list, using useList from reactive-helpers.
+ *
+ * @param {object} args - The arguments object.
+ * @param {object} args.crudArgs - The arguments for the CRUD operation.
+ * @param {object} args.listArgs - The arguments for the list operation.
+ * @param {(newObjects: import('@arrai-innovations/reactive-helpers').ListObject[], pageData: {
+ *     totalRecords: number,
+ *     totalPages: number,
+ *     perPage: number,
+ * }) => void} args.pageCallback - The callback function to call with the page data.
+ * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise} A cancellable promise.
+ */
 export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallback }) {
     const query = makeSearchParamsString(listArgs);
     const controller = new AbortController();
     const url = getListUrl(crudArgs.app, crudArgs.model, query);
+    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "GET",
         credentials: "include",
         signal: controller.signal,
     }).then(async (response) => {
         const responseData = await getJsonOrText(response);
+        if (!isObject(responseData)) {
+            throw new FetchError("Failed to single page list", response, responseData);
+        }
         if (response.status === 200) {
-            return pageCallback(responseData[crudArgs.resultsKey], { ...omit(responseData, crudArgs.resultsKey) });
+            return pageCallback(responseData[crudArgs.resultsKey], {
+                totalRecords: responseData.totalRecords,
+                totalPages: responseData.totalPages,
+                perPage: responseData.perPage,
+            });
         }
         throw new FetchError("Failed to single page list", response, responseData);
     });
@@ -46,11 +68,10 @@ export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCal
     return returnPromise;
 }
 
-export async function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs = {}, pageCallback }) {
-    const ourListArgs = { p: listArgs.page || 1, ...omit(listArgs, "p") };
-    const query = makeSearchParamsString(ourListArgs);
+export async function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallback }) {
+    const ourListArgs = { p: listArgs?.page || 1, ...omit(listArgs || {}, "p") };
     const controller = new AbortController();
-    const url = getListUrl(crudArgs.app, crudArgs.model, query);
+    const url = getListUrl(crudArgs.app, crudArgs.model, makeSearchParamsString(ourListArgs));
     const response = await fetch(url, {
         method: "GET",
         credentials: "include",
@@ -58,8 +79,15 @@ export async function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs = {},
     });
     const handleResponse = async (response) => {
         const responseData = await getJsonOrText(response);
+        if (!isObject(responseData)) {
+            throw new FetchError("Failed to all page list", response, responseData);
+        }
         if (response.status === 200) {
-            pageCallback(responseData[crudArgs.resultsKey], { ...omit(responseData, crudArgs.resultsKey) });
+            pageCallback(responseData[crudArgs.resultsKey], {
+                totalRecords: responseData.totalRecords,
+                totalPages: responseData.totalPages,
+                perPage: responseData.perPage,
+            });
         } else {
             throw new FetchError("Failed to all page list", response, responseData);
         }
@@ -75,7 +103,7 @@ export async function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs = {},
         const responses = [];
         for (let i = 2; i <= responseData.totalPages; i++) {
             ourListArgs.p = i;
-            const url = getUrl();
+            const url = getListUrl(crudArgs.app, crudArgs.model, makeSearchParamsString(ourListArgs));
             responses.push(
                 limit(() =>
                     fetch(url, {
@@ -90,13 +118,21 @@ export async function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs = {},
         for (let i = 0; i < responses.length; i++) {
             const response = await responses[i];
             const responseData = await getJsonOrText(response);
+            if (!isObject(responseData)) {
+                throw new FetchError("Failed to all page list", response, responseData);
+            }
             if (response.status === 200) {
-                pageCallback(responseData[crudArgs.resultsKey], { ...omit(responseData, crudArgs.resultsKey) });
+                pageCallback(responseData[crudArgs.resultsKey], {
+                    totalRecords: responseData.totalRecords,
+                    totalPages: responseData.totalPages,
+                    perPage: responseData.perPage,
+                });
             } else {
                 throw new FetchError("Failed to all page list", response, responseData);
             }
         }
     };
+    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = handleResponse(response);
     returnPromise.cancel = () => controller.abort();
     return returnPromise;

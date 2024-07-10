@@ -1,9 +1,9 @@
-import { httpOrHttpsHostname } from "./connectionHostname.js";
-import { getCSRFValue } from "./csrf.js";
-import { FetchError, FormValidationError } from "./errors.js";
-import { getJsonOrText } from "./fetchSupport.js";
-import { getUrl } from "./urls.js";
 import { setObjectCrud } from "@arrai-innovations/reactive-helpers";
+import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
+import { getCSRFValue } from "@vueda/utils/csrf.js";
+import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
+import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { getUrl } from "@vueda/utils/urls.js";
 
 const getDetailUrl = (app, model, pk, queryString) =>
     `${httpOrHttpsHostname}${getUrl("modelDetail").replace(":app", app).replace(":model", model).replace(":pk", pk)}${queryString}`;
@@ -14,6 +14,7 @@ export async function defaultObjectRetrieve({ crudArgs, id, retrieveArgs }) {
     const query = retrieveArgs ? `?${new URLSearchParams(retrieveArgs).toString()}` : "";
     const controller = new AbortController();
     const url = getDetailUrl(crudArgs.app, crudArgs.model, id, query);
+    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "GET",
         credentials: "include",
@@ -33,6 +34,7 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
     const query = retrieveArgs ? `?${new URLSearchParams(retrieveArgs).toString()}` : "";
     const controller = new AbortController();
     const url = getCreateUrl(crudArgs.app, crudArgs.model, query);
+    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "POST",
         headers: {
@@ -60,6 +62,7 @@ export async function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
     const query = retrieveArgs ? `?${new URLSearchParams(retrieveArgs).toString()}` : "";
     const controller = new AbortController();
     const url = getDetailUrl(crudArgs.app, crudArgs.model, object.id, query);
+    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "PUT",
         headers: {
@@ -87,6 +90,7 @@ export async function defaultObjectPatch({ crudArgs, id, partialObject, retrieve
     const query = retrieveArgs ? `?${new URLSearchParams(retrieveArgs).toString()}` : "";
     const controller = new AbortController();
     const url = getDetailUrl(crudArgs.app, crudArgs.model, id, query);
+    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "PATCH",
         headers: {
@@ -113,6 +117,7 @@ export async function defaultObjectPatch({ crudArgs, id, partialObject, retrieve
 export async function defaultObjectDelete({ crudArgs, id, deleteArgs }) {
     const abortController = new AbortController();
     const url = getDetailUrl(crudArgs.app, crudArgs.model, id);
+    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "DELETE",
         headers: {

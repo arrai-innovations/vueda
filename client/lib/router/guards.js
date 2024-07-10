@@ -1,11 +1,12 @@
 import { storeUser } from "@vueda/stores/storeUser.js";
-import isEmpty from "lodash-es/isEmpty";
+import isEmpty from "lodash-es/isEmpty.js";
+import { useRouter } from "vue-router";
 
 /**
  * Wait for the user to be initialized. This is useful if your making your own
  *  custom guards that need to know if the user is logged in or not.
  *
- * @returns {Promise<UserStore>} The user object.
+ * @returns {Promise<import('@vueda/stores/storeUser.js').UserStore>} The user object.
  */
 export async function waitForInitialising() {
     const userStore = storeUser();
@@ -13,6 +14,17 @@ export async function waitForInitialising() {
         await userStore.fetchCurrentUser();
     }
     return userStore;
+}
+
+/**
+ * Resolve a redirect object, either by returning the object or by resolving the
+ * object with the router.
+ * @param {(import('vue-router').RouteLocationRaw|string)} redirectTo - The redirect object or path.
+ * @returns {import('vue-router').RouteLocationNormalizedLoaded} The resolved redirect object.
+ */
+function resolveRedirect(redirectTo) {
+    const router = useRouter();
+    return router.resolve(redirectTo);
 }
 
 /**
@@ -38,13 +50,14 @@ export async function waitForInitialising() {
  * export default router;
  * ```
  * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect the user if they are not authenticated.
- * @param {import('vue-router').RouteLocationNormalizedLoaded} to - Where the user is trying to go.
- * @returns {Promise<import('vue-router').RouteLocationRaw|void>} The route object, if a redirect is needed.
+ * @param {import('vue-router').RouteLocationNormalized} to - Where the user is trying to go.
+ * @returns {Promise<import('vue-router').RouteLocationNormalizedLoaded|void>} The route object, if a redirect is needed.
  */
 export async function requireAuth(redirectTo, to) {
+    const resolvedRedirectTo = resolveRedirect(redirectTo);
     const userStore = await waitForInitialising();
     if (!userStore.loggedIn) {
-        return { ...redirectTo, query: { ...redirectTo.query, redirect: to.fullPath } };
+        return { ...resolvedRedirectTo, query: { ...resolvedRedirectTo.query, redirect: to.fullPath } };
     }
 }
 
@@ -70,8 +83,8 @@ export async function requireAuth(redirectTo, to) {
  * });
  * export default router;
  * ```
- * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect the user if they are authenticated.
- * @returns {Promise<import('vue-router').RouteLocationRaw|void>} The route object, if a redirect is needed.
+ * @param {import('vue-router').RouteLocationNormalizedLoaded} redirectTo - Where to redirect the user if they are authenticated.
+ * @returns {Promise<import('vue-router').RouteLocationNormalizedLoaded|void>} The route object, if a redirect is needed.
  */
 export async function requireUnauth(redirectTo) {
     const userStore = await waitForInitialising();
@@ -144,14 +157,14 @@ export async function requireInitialized() {
  * @param {import('primevue/toast').ToastMessageOptions} toastArgs - The arguments for the denial toast message, using
  *  the PrimeVue Toast API. `toastArgs.detail` will have the denied url appended.
  * @param {string[]} groups - The groups the user must have ONE of.
- * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect the user if they are not a group member.
- * @param {import('vue-router').RouteLocationRaw} to - Where the user is trying to go.
- * @returns {Promise<boolean|import('vue-router').RouteLocationRaw>} The route object, if a redirect is needed, or
+ * @param {import('vue-router').RouteLocationNormalizedLoaded} redirectTo - Where to redirect the user if they are not a group member.
+ * @param {import('vue-router').RouteLocationNormalizedLoaded} to - Where the user is trying to go.
+ * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} The route object, if a redirect is needed, or
  *  `true` if the user has the groups.
  */
 export async function requireGroups(instance, toastArgs, groups, redirectTo, to) {
     const userStore = await waitForInitialising();
-    /** @type {import('primevue/toast').ToastServiceMethods} */
+    /** @type {import('primevue/toastservice').ToastServiceMethods} */
     const toast = instance.config.globalProperties.$toast;
     if (isEmpty(groups)) {
         return true;

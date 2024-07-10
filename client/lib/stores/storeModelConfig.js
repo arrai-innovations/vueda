@@ -29,8 +29,8 @@ import { defineStore } from "pinia";
 const getDefaultFromModelInfo = (modelInfo) => {
     const modelFields = modelInfo.fields.map((f) => f.name);
     const orderableFields = modelInfo.ordering.map((o) => o.name);
-    const listActions = modelInfo.actions.filter((a) => a.type === "list").map((a) => a.name);
-    const detailActions = modelInfo.actions.filter((a) => a.type === "detail").map((a) => a.name);
+    const listActions = modelInfo.actions.filter((a) => !a.detail).map((a) => a.name);
+    const detailActions = modelInfo.actions.filter((a) => a.detail).map((a) => a.name);
     const listFilterable = modelInfo.filtering.map((f) => f.name);
     return {
         listFields: modelFields,

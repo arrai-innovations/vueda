@@ -6,6 +6,7 @@ module.exports = {
     env: {
         node: true,
         "vue/setup-compiler-macros": true,
+        browser: true,
     },
     plugins: ["no-autofix", /*"jsdoc", */ "vue", "vitest", "prettier-vue", "import"],
     extends: [

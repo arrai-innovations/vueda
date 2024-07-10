@@ -13,7 +13,7 @@ import { computed, inject, provide, reactive, watch } from "vue";
  * @property {string} [requiredMessage="This field is required."] - The message to display if the field is required and empty.
  * @property {string} [label] - The label for the field.
  * @property {string} [help] - The help text for the field.
- * @property {(value: any) => boolean} - The custom validation function for the field.
+ * @property {(value: any) => boolean} [validate] - A custom validation function for the field.
  */
 export const FIELD_PROPS = {
     name: {
@@ -90,16 +90,23 @@ export function defaultValidateRequired(value) {
  */
 
 /**
- * The reactive arguments for the useField function.
+ * The reactive arguments for the useField function. (Matches FIELD_PROPS).
  *
- * @typedef {import('vue').UnwrapRef<FieldContextRawProps>} FieldContextProps
+ * @typedef {import('vue').UnwrapNestedRefs<{
+ *     name: string,
+ *     required: boolean,
+ *     requiredMessage: string,
+ *     label: string,
+ *     help: string,
+ *     validate: (value: any) => boolean,
+ * }>} FieldContextProps
  */
 
 /**
  * Generate and provide a field context for a field, using the provided props and functions, including methods to update
  *  the field's value, errors, messages, dirty state, and to focus or blur it.
  *
- * @param {import('vue').UnwrapNestedRefs<FIELD_PROPS>} props - The field context's reactive props.
+ * @param {FieldContextProps} props - The field context's reactive props.
  * @param {FieldContextFunctions} [functions] - The field context's non-reactive functions.
  * @returns {FieldContext} The field context object.
  */

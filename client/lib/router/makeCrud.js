@@ -1,12 +1,12 @@
-import { isDetailView } from "./getCrud.js";
-import { requireAuth, requireGroups } from "./guards.js";
+import { isDetailView } from "@vueda/router/getCrud.js";
+import { requireAuth, requireGroups } from "@vueda/router/guards.js";
 import {
     getCapitalizedTitle,
     getClientRoutePart,
     getLowerTitle,
     getPluralizedTitle,
 } from "@vueda/utils/crudSupport.js";
-import partial from "lodash-es/partial";
+import partial from "lodash-es/partial.js";
 
 /**
  * Generate CRUD routes for a given app and model.
@@ -21,8 +21,8 @@ import partial from "lodash-es/partial";
  * @param {string} [params.authRedirect=null] - The route to redirect to if the user is not authenticated.
  * @param {string[]} [params.groups=null] - The groups required to access the views.
  * @param {object} [params.groupsRedirect=null] - The route to redirect to if the user is not in the required groups.
- * @param {import('vue').App} vueApp - The Vue app instance.
- * @returns {import('vue-router').RouteRecordRaw[]} The generated routes.
+ * @param {import('vue').App} params.vueApp - The Vue app instance.
+ * @returns {import('vue-router').RouteLocationNormalized[]} The generated routes.
  */
 export function makeCRUDRoutes({
     components,
@@ -52,10 +52,9 @@ export function makeCRUDRoutes({
                     requireGroups,
                     vueApp,
                     {
-                        title: "Permission Denied",
-                        message: "You do not have permission to access",
-                        variant: "error",
-                        autoDismiss: false,
+                        summary: "Permission Denied",
+                        detail: "You do not have permission to access",
+                        severity: "error",
                     },
                     groups,
                     groupsRedirect, // you'll be authed but not a member when you get here
@@ -66,18 +65,18 @@ export function makeCRUDRoutes({
 
     views.forEach((view) => {
         const capitalizedView = view.charAt(0).toUpperCase() + view.slice(1);
+        /** @type {{[key: string]: any}} */
         const props = {
             app,
             model,
             view,
+            pk: undefined,
         };
-        if (components.createForm && view === "create") {
-            props.createForm = components.createForm;
-        }
         const route = {
             name: `${appRoutePart}.${modelRoutePart}-${view}`,
             path: `/${appRoutePart}/${modelRoutePart}/${view}/`,
             component: components[view],
+            /** @type {{[key: string]: any}} */
             props,
             meta: {
                 title: titles[view] || (view === "list" ? pluralizedTitle : `${capitalizedView} ${lowerTitle}`),

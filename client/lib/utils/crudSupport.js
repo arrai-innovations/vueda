@@ -1,8 +1,8 @@
-import camelCase from "lodash-es/camelCase";
-import lowerCase from "lodash-es/lowerCase";
+import camelCase from "lodash-es/camelCase.js";
+import lowerCase from "lodash-es/lowerCase.js";
 import memoize from "lodash-es/memoize.js";
-import snakeCase from "lodash-es/snakeCase";
-import startCase from "lodash-es/startCase";
+import snakeCase from "lodash-es/snakeCase.js";
+import startCase from "lodash-es/startCase.js";
 import pluralize from "pluralize";
 
 /**

@@ -28,8 +28,9 @@ import { defineStore } from "pinia";
 /**
  * The theme store.
  *
- * @typedef {import('pinia').Store<{
- *     state: {
+ * @typedef {import('pinia').Store<
+ *     'themeStore',
+ *     {
  *         components: {
  *             [key: ComponentName]: ComponentConfig
  *         },
@@ -39,14 +40,15 @@ import { defineStore } from "pinia";
  *             }
  *         },
  *     },
- *     actions: {
+ *     {},
+ *     {
  *         registerComponent: (componentName: ComponentName, componentConfig: ComponentConfig) => void,
  *         registerVariant: (componentName: ComponentName, variantName: VariantName, variantConfig: VariantConfig) => void,
  *         clearComponent: (componentName: ComponentName) => void,
  *         clearVariant: (componentName: ComponentName, variantName: VariantName) => void,
  *         clearAll: () => void,
  *     }
- * }>} ThemeStore
+ * >} ThemeStore
  */
 
 /**

@@ -97,21 +97,23 @@ const executeTransitionUrl = (result) =>
     `${httpOrHttpsHostname}${getUrl("workflowExecuteTransition")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
 
 /**
- * @typedef {import('pinia').Store<{
- *     state:{
+ * @typedef {import('pinia').Store<
+ *     'workflow',
+ *     {
  *         objectStates: {app: string, model: string, id: string, state: object}[],
  *         objectTransitions: {app: string, model: string, id: string, transitions: object[]}[],
  *         objectHistories: {app: string, model: string, id: string, history: object[]}[],
  *         modelStates: {[key: string]: object[]},
  *     },
- *     actions: {
+ *     {},
+ *     {
  *         fetchModelStates: (app: string, model: string) => Promise<object[]>,
  *         fetchObjectState: (app: string, model: string, objectId: string) => Promise<{app: string, model: string, id: string, state: object}>,
  *         fetchObjectTransitions: (app: string, model: string, objectId: string) => Promise<{app: string, model: string, id: string, transitions: object[]}>,
  *         fetchObjectHistory: (app: string, model: string, objectId: string) => Promise<{app: string, model: string, id: string, history: object[]}>,
- *         executeTransition: (app: string, model: string, objectId: string, transition_code: string, router: Router, stateToRoute: object) => Promise<{app: string, model: string, id: string}>,
+ *         executeTransition: (app: string, model: string, objectId: string, transition_code: string, router: import('vue-router').Router, stateToRoute: object) => Promise<{app: string, model: string, id: string}>,
  *     }
- * }>} WorkflowStore
+ * >} WorkflowStore
  */
 
 /**

@@ -1,5 +1,5 @@
 <script setup>
-import { FIELD_PROPS, useField } from "../use/useField.js";
+import { FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import isArray from "lodash-es/isArray.js";
 import { watch } from "vue";
 

@@ -7,11 +7,17 @@ const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
 /**
  * The store for the current dark mode state, and persisting it.
  *
- * @typedef {import('pinia').Store<{
- *     isDark: boolean,
+ * @typedef {import('pinia').Store<
+ *   'darkMode',
+ *   {
+ *       isDark: boolean,
+ *   },
+ *   {},
+ *   {
  *     init: () => void,
  *     toggle: () => void
- * }>} DarkModeStore
+ *   }
+ * >} DarkModeStore
  */
 
 /**
