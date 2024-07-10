@@ -228,12 +228,12 @@ def get_defaults(env: Env):
             "VERSION": "1.0.0",
             "TAGS": [
                 {
-                    "name": "info",
+                    "name": "vueda.info",
                     "x-displayName": "Info",
                     "description": "This model is used to fetch information about models in the project.  It can return information about fields, permissions, actions, expands, filtering, and ordering.",
                 },
                 {
-                    "name": "workflow",
+                    "name": "vueda.workflow",
                     "x-displayName": "Workflow",
                     "description": "This model is used to provide workflow for models in the project that need it.  It provides a way to get information about the workflow, states, transitions, and the state an object is in.  It also provides a way to execute a transition on an object.",
                 },

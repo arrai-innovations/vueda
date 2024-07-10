@@ -132,7 +132,7 @@ extended in your application, ensuring both control and adaptability.
 
 #### Adding a workflow
 
-1. Go to the workflow overview page at `/routes/workflow/overview/`.
+1. Go to the workflow overview page at `/routes/vueda.workflow/overview/`.
 2. Create a superuser if you need one and then log in.
 3. Click the `Add Workflow` button.
 4. Fill out the form and save. You will be redirected to the edit form.
@@ -146,7 +146,7 @@ If you have a model that used the workflow, you will need to remove the associat
 
 NOTE: Instruction 7 needs to have specific things deleted at the same time to prevent blow ups.
 
-1. Go to the workflow overview page at `/routes/workflow/overview/`.
+1. Go to the workflow overview page at `/routes/vueda.workflow/overview/`.
 2. Create a superuser if you need one and then log in.
 3. Edit each of the states that have state permissions, check delete on each and save.
 4. Edit each of the transitions that have transition permissions and transition sources, check delete on each and save.
@@ -184,7 +184,7 @@ Some additional options were added to the management command, mainly for testing
 
 A view exists, where you can see permissions and groups.
 
-`/routes/tests/permissions/overview/`
+`/routes/vueda.user/permissions/overview/`
 
 Similar to workflow, you will need to log in.
 
