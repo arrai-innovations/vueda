@@ -237,6 +237,11 @@ def get_defaults(env: Env):
                     "x-displayName": "Workflow",
                     "description": "This model is used to provide workflow for models in the project that need it.  It provides a way to get information about the workflow, states, transitions, and the state an object is in.  It also provides a way to execute a transition on an object.",
                 },
+                {
+                    "name": "vueda.user",
+                    "x-displayName": "User",
+                    "description": "This model is used to provide a way to login, logout, and retrieve the logged in users details.",
+                },
             ],
             "COMPONENT_SPLIT_PATCH": False,
             "SHOW_REQUEST_BODY": True,
