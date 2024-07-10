@@ -1,5 +1,5 @@
 <script setup>
-import LoadingSpinnerBlock from "../components/LoadingSpinnerBlock.vue";
+import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 </script>
 
 <template>

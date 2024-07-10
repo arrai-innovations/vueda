@@ -1,4 +1,4 @@
-import { FieldContextSymbol, FormContextSymbol } from "../utils/symbols.js";
+import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";

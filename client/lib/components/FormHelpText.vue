@@ -1,5 +1,5 @@
 <script setup>
-import { FieldContextSymbol } from "../utils/symbols.js";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";
 
 const props = defineProps({

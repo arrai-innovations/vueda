@@ -1,7 +1,7 @@
 <script setup>
-import LoadingSpinnerInline from "../components/LoadingSpinnerInline.vue";
-import { areaClasses, formSectionTitleClasses } from "../site.theme.js";
 import { useCombineClasses } from "@arrai-innovations/reactive-helpers";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
+import { areaClasses, formSectionTitleClasses } from "@vueda/site.theme.js";
 import { toRef } from "vue";
 
 defineProps({

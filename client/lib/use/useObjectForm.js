@@ -1,7 +1,7 @@
-import { getCRUDName } from "../utils/crudSupport.js";
-import { FormValidationError } from "../utils/errors.js";
 import { useLeaveUnload } from "./useLeaveUnload.js";
 import { loadingCombine, useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { getCRUDName } from "@vueda/utils/crudSupport.js";
+import { FormValidationError } from "@vueda/utils/errors.js";
 import { useToast } from "primevue/usetoast";
 import { computed, reactive, toRef } from "vue";
 import { useRouter } from "vue-router";

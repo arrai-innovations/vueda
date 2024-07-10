@@ -1,4 +1,4 @@
-import { getCRUDName } from "../utils/crudSupport.js";
+import { getCRUDName } from "@vueda/utils/crudSupport.js";
 
 const NON_DETAIL_VIEWS = ["list", "create"];
 

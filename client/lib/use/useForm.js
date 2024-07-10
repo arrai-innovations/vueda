@@ -1,5 +1,5 @@
-import { FormContextSymbol } from "../utils/symbols.js";
 import { assignReactiveObject, del } from "@arrai-innovations/reactive-helpers";
+import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import set from "lodash-es/set.js";

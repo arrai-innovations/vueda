@@ -1,10 +1,10 @@
-import { httpOrHttpsHostname } from "../utils/connectionHostname.js";
-import { getAppModelDotName } from "../utils/crudSupport.js";
-import { getCSRFValue } from "../utils/csrf.js";
-import { FetchError } from "../utils/errors.js";
-import { getJsonOrText } from "../utils/fetchSupport.js";
-import { memoizedSnakeCase } from "../utils/memoized.js";
-import { getUrl } from "../utils/urls.js";
+import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
+import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
+import { getCSRFValue } from "@vueda/utils/csrf.js";
+import { FetchError } from "@vueda/utils/errors.js";
+import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
+import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
 
 /**

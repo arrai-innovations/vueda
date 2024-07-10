@@ -1,8 +1,8 @@
-import { httpOrHttpsHostname } from "../utils/connectionHostname.js";
-import { getCSRFValue } from "../utils/csrf.js";
-import { FetchError, FormValidationError } from "../utils/errors.js";
-import { getJsonOrText } from "../utils/fetchSupport.js";
-import { getUrl } from "../utils/urls.js";
+import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
+import { getCSRFValue } from "@vueda/utils/csrf.js";
+import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
+import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { getUrl } from "@vueda/utils/urls.js";
 import { isObject } from "lodash-es";
 import { defineStore } from "pinia";
 

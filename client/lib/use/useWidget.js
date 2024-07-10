@@ -1,4 +1,4 @@
-import { FieldContextSymbol } from "../utils/symbols.js";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, reactive, readonly, ref } from "vue";
 
 /**
