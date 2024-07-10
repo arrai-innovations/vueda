@@ -1,8 +1,8 @@
+import FieldDateRange from "../fields/FieldDateRange.vue";
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import FieldBoolean from "@vueda/fields/FieldBoolean.vue";
 import FieldNumber from "@vueda/fields/FieldNumber.vue";
 import FieldString from "@vueda/fields/FieldString.vue";
-import { FieldDateRange } from "@vueda/index.js";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
 import WidgetDatePicker from "@vueda/widgets/WidgetDatePicker.vue";
