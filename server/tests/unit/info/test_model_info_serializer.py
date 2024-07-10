@@ -611,6 +611,24 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": True,
                 },
+                {
+                    "name": "order_between",
+                    "label": None,
+                    "type": "IntegerRangeField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "choices": False,
+                },
+                {
+                    "name": "last_ten_order_betweens",
+                    "label": None,
+                    "type": "IntegerRangeField",
+                    "many": True,
+                    "read_only": False,
+                    "required": False,
+                    "choices": False,
+                },
             ],
             "expected_filtering": [
                 {
@@ -1846,7 +1864,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                 "distributor": "T-Shirt Corp.",
                 "products": (
                     {
-                        "product": {"name": "Men's White T-Shirt"},
+                        "product": {"name": "Men's White T-Shirt", "order_between": [12, 24]},
                         "options": (
                             {
                                 "option": {
@@ -2005,7 +2023,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                         ),
                     },
                     {
-                        "product": {"name": "Women's White T-Shirt"},
+                        "product": {"name": "Women's White T-Shirt", "order_between": [12, 24]},
                         "options": (
                             {
                                 "option": {
@@ -2078,7 +2096,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                 "distributor": "Tasty Treats Assoc.",
                 "products": (
                     {
-                        "product": {"name": "Square Cookies For Squares"},
+                        "product": {"name": "Square Cookies For Squares", "order_between": [6, 12]},
                         "options": (
                             {
                                 "option": {
@@ -2222,7 +2240,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                         ),
                     },
                     {
-                        "product": {"name": "Shaped Cookies For Drapes"},
+                        "product": {"name": "Shaped Cookies For Drapes", "order_between": [6, 12]},
                         "options": (
                             {
                                 "option": {
@@ -2311,7 +2329,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                 "distributor": "Vibrant Looks Inc.",
                 "products": (
                     {
-                        "product": {"name": "Spray Paint"},
+                        "product": {"name": "Spray Paint", "order_between": [1, 6]},
                         "options": (
                             {
                                 "option": {
@@ -2424,7 +2442,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                         ),
                     },
                     {
-                        "product": {"name": "Paint"},
+                        "product": {"name": "Paint", "order_between": [1, 8]},
                         "options": (
                             {
                                 "option": {

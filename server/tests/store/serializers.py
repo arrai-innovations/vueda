@@ -63,6 +63,8 @@ class ProductSerializer(VuedaHistorySerializer):
             "name",
             "disabled",
             "tangible",
+            "order_between",
+            "last_ten_order_betweens",
         ] + VuedaHistorySerializer.Meta.fields
         expandable_fields = {
             "distributor": (

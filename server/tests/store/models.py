@@ -1,6 +1,7 @@
 # Models to use with info.
 
 from django.contrib.auth import get_user_model
+from django.contrib.postgres import fields as postgres_fields
 from django.db import models
 from django.db.models import Max
 
@@ -32,6 +33,8 @@ class Product(SimpleHistoryModelMixin, models.Model):
     name = models.CharField(max_length=255)
     disabled = models.BooleanField(db_default=False)
     tangible = models.CharField(max_length=255, choices=(("digital", "Digital"), ("physical", "Physical")))
+    order_between = postgres_fields.IntegerRangeField()
+    last_ten_order_betweens = postgres_fields.ArrayField(postgres_fields.IntegerRangeField(), null=True)
 
     class Meta(BaseModelMeta):
         unique_together = [

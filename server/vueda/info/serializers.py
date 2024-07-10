@@ -113,11 +113,23 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         fields = []
         for field_name, field in serializer().get_fields().items():
             many = isinstance(field, serializers.ListField)
+
+            if many:
+                if hasattr(field.child, "model_field"):
+                    field_type = field.child.model_field.__class__.__name__
+                else:
+                    field_type = field.child.__class__.__name__
+            else:
+                if hasattr(field, "model_field"):
+                    field_type = field.model_field.__class__.__name__
+                else:
+                    field_type = field.__class__.__name__
+
             field_data = {
                 "choices": hasattr(field, "choices") and bool(field.choices),
                 "name": field_name,
                 "label": field.label,
-                "type": field.child.__class__.__name__ if many else field.__class__.__name__,
+                "type": field_type,
                 "many": many,
                 "read_only": field.read_only,
                 "required": field.required,
