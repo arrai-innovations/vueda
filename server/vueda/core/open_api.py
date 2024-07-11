@@ -263,7 +263,13 @@ class ModelActions(ModelBase, serializers.Serializer):
         # This field is not optional, but we want to add help text.
         help_text_list = ""
         for key, value in METHOD_MAPPING.items():
-            help_text_list += f"<li>{value} -&gt; {key}</li>"
+            match key:
+                case "list":
+                    help_text_list += f"<li>{value} -&gt; {key} - with detail = true</li>"
+                case "retrieve":
+                    help_text_list += f"<li>{value} -&gt; {key} - with detail = false</li>"
+                case _:
+                    help_text_list += f"<li>{value} -&gt; {key}</li>"
 
         fields["method_names"] = serializers.ListField(
             child=serializers.CharField(required=True),
