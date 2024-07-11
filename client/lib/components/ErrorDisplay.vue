@@ -2,7 +2,7 @@
 import { FormValidationError } from "@vueda/utils/errors.js";
 import { formatError } from "@vueda/utils/formatError.js";
 import isArray from "lodash-es/isArray.js";
-import isEmpty from "lodash-es/isEmpty";
+import isEmpty from "lodash-es/isEmpty.js";
 import Message from "primevue/message";
 import { computed, useAttrs, watch } from "vue";
 

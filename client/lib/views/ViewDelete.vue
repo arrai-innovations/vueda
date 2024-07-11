@@ -3,7 +3,7 @@ import { useObject } from "@arrai-innovations/reactive-helpers";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
-import isEmpty from "lodash-es/isEmpty";
+import isEmpty from "lodash-es/isEmpty.js";
 import { useToast } from "primevue/usetoast";
 import { reactive, ref, toRef } from "vue";
 import { useRouter } from "vue-router";

@@ -5,7 +5,7 @@ import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import get from "lodash-es/get.js";
-import isEmpty from "lodash-es/isEmpty";
+import isEmpty from "lodash-es/isEmpty.js";
 import { computed, reactive, toRef } from "vue";
 
 const props = defineProps({

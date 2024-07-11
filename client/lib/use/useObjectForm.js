@@ -2,6 +2,8 @@ import { loadingCombine, useLoadingError } from "@arrai-innovations/reactive-hel
 import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
 import { getCRUDName } from "@vueda/utils/crudSupport.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
+import isEmpty from "lodash-es/isEmpty.js";
+import omit from "lodash-es/omit.js";
 import { useToast } from "primevue/usetoast";
 import { computed, nextTick, reactive } from "vue";
 import { useRouter } from "vue-router";
@@ -102,7 +104,9 @@ export const defaultOnSubmitNotAnyModified = async ({ toast }) => {
  * @returns {Promise<boolean>} True if the submission should be stopped.
  */
 export const defaultOnSubmitAnyError = async ({ formContext, toast }) => {
-    const nonServerErrors = Object.keys(formContext.state.errors).filter((name) => !name.endsWith(".server"));
+    const nonServerErrors = Object.entries(formContext.state.errors)
+        .map(([key, value]) => [key, omit(value, "server")])
+        .filter(([, value]) => !isEmpty(value));
     // if there are server errors, they should disappear on blur of that field.
     // if there are server messages on one field related to multiple, you might resolve the issue by
     //  changing a difference field.
