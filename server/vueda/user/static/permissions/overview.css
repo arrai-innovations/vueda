@@ -3,14 +3,14 @@ body {
     font-size: 1.1rem;
     background-color: #101010;
     color: #b0b0b0;
-    margin: 1rem;
+    margin: 0 1rem;
 }
 
 code {
     font-family: 'JetBrains Mono', monospace;
 }
 
-h1, h2, h3, h4, h5, h6, .group {
+h1, h2, h3 {
     font-weight: normal;
     margin: 0;
     padding: 0.5rem 1rem;
@@ -49,6 +49,46 @@ button {
     border: none;
     cursor: pointer;
     pointer-events: all;
+}
+
+.button-action {
+    padding: 0.1rem 0.5rem;
+}
+
+.button-add {
+    background-color: #E14A01;
+}
+
+.button-save {
+    background-color: #080;
+}
+
+.button-delete {
+    background-color: #800;
+}
+
+.dirty .button-save {
+    background-color: #880;
+    color: #000;
+}
+
+.saved .button-save {
+    background-color: #080;
+}
+
+.erred .button-save {
+    background-color: #800;
+}
+
+.group-error {
+    display: none;
+    font-size: 0.9rem;
+}
+
+.erred .group-error {
+    display: block;
+    width: 100%;
+    background: #800;
 }
 
 h1 {
@@ -91,21 +131,68 @@ body {
 }
 
 .permission {
-    flex: 20%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
 }
+
+.permission-info {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+    padding: 0.5rem 1rem;
+    gap: 1rem;
+    min-width: 350px;
+}
+
+.groups {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-items: center;
+    text-align: center;
+}
+
+.group {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    min-width: 382px;
+    align-items: stretch;
+}
+
+
+.somewhere {
+    padding: 0.5rem 1rem;
+    gap: 1rem;
+}
+
+.permission-name {
+    flex: 1;
+    padding: 0;
+    margin: 0;
+}
+
+.group-name {
+    padding: 0.5rem 1rem;
+    flex: 1;
+    width: 10px;
+    text-align: center;
+    font-size: 1rem;
+    background-color: #303050;
+    border-color: #FEFEFE;
+    color: #f0f0f0;
+}
+
 
 .permission:nth-child(odd) {
     background-color: #484848;
 }
 
-.groups {
-    background-color: #303050;
-    color: #f0f0f0;
-}
-
 .permission:nth-child(odd) .groups {
-    background-color: #383858;}
-
+    background-color: #383858;
+}
 
 .sticky {
     position: sticky;

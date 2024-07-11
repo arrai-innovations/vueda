@@ -1,3 +1,5 @@
+import json
+import operator
 import os
 
 from django.conf import settings
@@ -6,16 +8,23 @@ from django.contrib.auth import password_validation
 from django.contrib.auth.forms import _unicode_ci_compare
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Case
+from django.db.models import CharField
 from django.db.models import F
 from django.db.models import OuterRef
 from django.db.models import Value
 from django.db.models import When
+from django.db.models.functions import Cast
 from django.db.models.functions import StrIndex
 from django.db.models.functions import Substr
+from django.http import JsonResponse
+from django.utils.decorators import method_decorator
+from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.debug import sensitive_variables
 from django.views.generic import TemplateView
 from django.views.generic.detail import SingleObjectMixin
@@ -27,10 +36,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from vueda.core.db import Array
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.mixins import LogoutMixin
+from vueda.user.models import GroupChange
 from vueda.user.serializers import ForgotPasswordSerializer
 from vueda.user.serializers import ResetPasswordSerializer
 from vueda.user.serializers import WhoIsSerializer
@@ -261,7 +272,12 @@ class PermissionOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView)
                 ),
                 default=5,
             ),
-            groups=ArrayAgg("group__name"),
+            groups=ArrayAgg(
+                Array(
+                    Cast("group__pk", output_field=CharField()),
+                    "group__name",
+                ),
+            ),
         ).order_by("content_type__app_label", "model_and_historical_model_group", "is_historical", "crud_order_by")
 
         context.update(
@@ -299,13 +315,206 @@ class PermissionOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView)
                     }
                 )
 
+            # Groups can end up returning [[None, None]], so we need to clean them up.
+            parsed_groups = []
+            for group_id, group_name in groups:
+                if group_name is not None:
+                    parsed_groups.append([group_id, group_name])
+
+            if parsed_groups:
+                parsed_groups = sorted(parsed_groups, key=operator.itemgetter(1))
+
             permission_lists[(app_label, model_name)].append(
                 {
                     "pk": pk,
                     "codename": codename,
                     "name": name,
-                    "groups": sorted(group for group in groups if group is not None),
+                    "groups": parsed_groups,
                 }
             )
 
         return context
+
+
+class PermissionDeleteView(PermissionRequiredMixin, View):
+    http_method_names = [
+        "delete",
+    ]
+    permission_required = ("permission.delete_permission",)
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def delete(self, request, permission_id, group_id, *args, **kwargs):
+        permission = Permission.objects.filter(pk=permission_id).first()
+        if permission is None:
+            return JsonResponse(
+                {
+                    "state": "erred",
+                    "errors": ["Unable to find the permission for the group you want to delete."],
+                }
+            )
+
+        group = Group.objects.filter(pk=group_id).first()
+        if group is None:
+            return JsonResponse(
+                {
+                    "state": "erred",
+                    "errors": ["Unable to find the group to delete."],
+                }
+            )
+
+        group_name = group.name
+        permission.group_set.remove(group)
+
+        obj_is_used = False
+        for field in group._meta.get_fields():
+            get_accessor_name_func = getattr(field, "get_accessor_name", None)
+            if get_accessor_name_func is not None:
+                related_field = getattr(group, get_accessor_name_func(), None)
+                if related_field is not None and related_field.exists():
+                    obj_is_used = True
+
+        GroupChange.objects.create(
+            group_name=group_name,
+            change_type=GroupChange.UNASSOCIATED if obj_is_used else GroupChange.DELETED,
+            historical_permission_codename=permission.codename,
+            historical_permission_content_type_app_label=permission.content_type.app_label,
+            historical_permission_content_type_model_name=permission.content_type.model,
+        )
+
+        if not obj_is_used:
+            group.delete()
+
+        return JsonResponse(
+            {
+                "state": "succeeded",
+                "group_deleted": not obj_is_used,
+            }
+        )
+
+
+class PermissionSaveView(PermissionRequiredMixin, View):
+    permission_required = ("permission.create_group", "permission.update_group")
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            return self._post(request, *args, **kwargs)
+        except Exception as e:
+            return JsonResponse(
+                {
+                    "state": "erred",
+                    "errors": [str(e)],
+                }
+            )
+
+    def _post(self, request, *args, **kwargs):
+        data = request.body
+        data = data.decode("utf-8")
+        data = json.loads(data)
+
+        permission_id = data["permissionId"]
+        group_id = data["groupId"]
+        group_name = data["groupName"]
+
+        errors = []
+        try:
+            permission_id = int(permission_id)
+        except ValueError:
+            errors.append("permission_id must be the string of a number.")
+
+        if group_id is not None:
+            try:
+                group_id = int(group_id)
+            except ValueError:
+                errors.append("group_id must be the string of a number.")
+
+        if not len(group_name.strip()):
+            errors.append("group_name must not be empty.")
+
+        if errors:
+            return JsonResponse(
+                {
+                    "state": "erred",
+                    "errors": errors,
+                }
+            )
+
+        permission = Permission.objects.filter(pk=permission_id).first()
+        if permission is None:
+            return JsonResponse(
+                {
+                    "state": "erred",
+                    "errors": ["Unable to find the permission for the group you want to change."],
+                }
+            )
+
+        if group_id is None:  # New Group
+            # Check to see if there is already an association between the group and permission.
+            # If there is, then you are trying to add it twice.  The group change records will
+            # have a record that doesn't make sense in that case.
+            group, created = Group.objects.get_or_create(name=group_name)
+            if group.permissions.filter(pk=permission.pk).exists():
+                return JsonResponse(
+                    {
+                        "state": "erred",
+                        "errors": [
+                            f"You already have an association between &quot;{group_name}&quot; and this permission."
+                        ],
+                    }
+                )
+
+            permission.group_set.add(group)
+            GroupChange.objects.create(
+                group_name=group_name,
+                change_type=GroupChange.ADDED if created else GroupChange.ASSOCIATED,
+                historical_permission_codename=permission.codename,
+                historical_permission_content_type_app_label=permission.content_type.app_label,
+                historical_permission_content_type_model_name=permission.content_type.model,
+            )
+
+        else:
+            group = Group.objects.filter(pk=group_id).first()
+            if group is None:
+                return JsonResponse(
+                    {
+                        "state": "erred",
+                        "errors": ["Unable to find the group to change."],
+                    }
+                )
+            group_name_old = group.name
+            group.name = group_name
+            if group_name != group_name_old:
+                if Permission.objects.filter(group__name=group_name, pk=permission.pk).exists():
+                    return JsonResponse(
+                        {
+                            "state": "erred",
+                            "errors": [
+                                f"You already have an association between &quot;{group_name}&quot; and this permission."
+                            ],
+                        }
+                    )
+
+                group.save()
+                permission.group_set.add(group)
+
+                GroupChange.objects.create(
+                    group_name=group_name,
+                    group_name_old=group_name_old,
+                    change_type=GroupChange.CHANGED,
+                    historical_permission_codename=permission.codename,
+                    historical_permission_content_type_app_label=permission.content_type.app_label,
+                    historical_permission_content_type_model_name=permission.content_type.model,
+                )
+
+        return JsonResponse(
+            {
+                "state": "succeeded",
+                "group_id": str(group.pk),
+            }
+        )

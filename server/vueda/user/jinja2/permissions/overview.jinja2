@@ -28,7 +28,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="apps">
+                <div class="apps" id="apps">
                     {% for app, models in apps.items() %}
                         <div class="app">
                             <div class="sticky sticky-2">
@@ -42,13 +42,21 @@
                                         </div>
                                         <div class="permissions">
                                             {% for permission in model.permissions %}
-                                                <div class="permission">
-                                                    <h4><code>{{ permission.codename }}</code></h4>
+                                                <div class="permission" data-permission_id="{{ permission.pk }}">
+                                                    <div class="permission-info">
+                                                        <h4 class="permission-name"><code>{{ permission.codename }}</code><br>{{ permission.name }}</h4>
+                                                        <button class="button-action button-add" data-action="add">Add</button>
+                                                    </div>
                                                     {% if permission.groups %}
-                                                        <div class="groups">
-                                                            {% for group_name in permission.groups %}
+                                                        <div class="groups" data-permission_id="{{ permission.pk }}">
+                                                            {% for group_pk, group_name in permission.groups %}
                                                                 {% if group_name %}
-                                                                    <div class="group">{{ group_name }}</div>
+                                                                    <div class="group" data-group_id="{{ group_pk }}">
+                                                                        <div class="group-error"></div>
+                                                                        <input class="group-name" type="text" value="{{ group_name }}" placeholder="Group Name">
+                                                                        <button class="button-action button-save" data-action="save">Save</button>
+                                                                        <button class="button-action button-delete" data-action="delete">X</button>
+                                                                    </div>
                                                                 {% endif %}
                                                             {% endfor %}
                                                         </div>
@@ -67,6 +75,152 @@
     </div>
 </div>
 <script>
+    async function save(group, permissionId, groupId, groupName) {
+        const request = new Request('/routes/vueda.user/permissions/save/', {
+          method: 'post',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(
+              {
+                  'groupId': groupId,
+                  'groupName': groupName,
+                  'permissionId': permissionId,
+              }
+          ),
+        });
+
+        try {
+            const response = await fetch(request);
+            const result = await response.json();
+            if (result.state === 'succeeded') {
+                const groupId = result.group_id;
+                group.dataset.group_id = groupId;
+                group.classList.remove('erred');
+                group.classList.remove('dirty');
+                group.classList.add('saved');
+            } else {
+                group.classList.add('erred');
+                const err = group.querySelector('.group-error');
+                err.innerHTML = result.errors || 'An error occurred';
+            }
+        } catch (error) {
+            group.classList.add('erred');
+            const err = group.querySelector('.group-error');
+            err.innerHTML = error || 'An error occurred';
+        }
+    }
+
+    async function remove(group, permissionId, groupId) {
+        const request = new Request(`/routes/vueda.user/permissions/delete/${permissionId}/${groupId}/`, {
+          method: 'delete',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        try {
+            const response = await fetch(request);
+            const result = await response.json();
+            if (result.state === 'succeeded') {
+                group.remove();
+            } else {
+                group.classList.add('erred');
+                const err = group.querySelector('.group-error');
+                err.innerHTML = result.errors || 'An error occurred';
+            }
+        } catch (error) {
+            group.classList.add('erred');
+            const err = group.querySelector('.group-error');
+            err.innerHTML = error || 'An error occurred';
+        }
+    }
+
+    // Add or Update a group on a permission.
+    function appsClick(e) {
+        let group, groups, permission, input, saveButton, deleteButton, groupId, permissionId;
+        let target = e.target;
+        switch (target.dataset.action) {
+            case 'add':
+                permission = e.target.closest('.permission');
+                groups = permission.querySelector('.groups');
+                if (!groups) {
+                    groups = document.createElement('div');
+                    groups.className = 'groups';
+                    groups.dataset.permission_id = permission.dataset.permission_id;
+                    permission.append(groups);
+                }
+                group = document.createElement('div');
+                group.className = 'group';
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'group-error';
+                group.append(errorDiv);
+                input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'group-name';
+                input.placeholder = 'Group Name';
+                group.append(input);
+                saveButton = document.createElement('button');
+                saveButton.classList.add('button-action', 'button-save');
+                saveButton.dataset.action = 'save';
+                saveButton.innerHTML = 'Save';
+                group.append(saveButton);
+                deleteButton = document.createElement('button');
+                deleteButton.classList.add('button-action', 'button-delete');
+                deleteButton.dataset.action = 'delete';
+                deleteButton.innerHTML = 'X';
+                group.append(deleteButton);
+                groups.append(group);
+                input.focus();
+                break;
+            case 'save':
+                input = e.target.previousElementSibling;
+                target.classList.remove('dirty');
+                target.classList.remove('saved');
+                group = e.target.closest('.group');
+                groups = group.closest('.groups');
+                groupId = group.dataset.group_id;
+                permissionId = groups.dataset.permission_id;
+                const groupName = input.value;
+                save(group, permissionId || null, groupId || null, groupName);
+                break;
+            case 'delete':
+                group = e.target.closest('.group');
+                groups = group.closest('.groups');
+                groupId = group.dataset.group_id;
+                if (!groupId) { // Not saved.
+                    group.remove();
+                    return;
+                }
+                permissionId = groups.dataset.permission_id;
+                remove(group, permissionId, groupId);
+                break;
+        }
+    }
+    document.getElementById('apps').addEventListener('click', appsClick);
+
+    function appsInput(e) {
+        let target = e.target;
+        switch (target.nodeName.toLowerCase()) {
+            case 'input':
+                const group = e.target.closest('.group');
+                let button = group.querySelector('.button-save');
+                button.classList.add('dirty');
+                button.classList.remove('saved');
+        }
+    }
+    document.getElementById('apps').addEventListener('input', appsInput);
+
+    function appsKeyup(e) {
+        let target = e.target;
+        if (target.nodeName.toLowerCase() === 'input' && e.keyCode === 13) {
+            const group = e.target.closest('.group');
+            let button = group.querySelector('.button-save');
+            button.click();
+        }
+    }
+    document.getElementById('apps').addEventListener('keyup', appsKeyup);
+
     // collapse historic models
     let historicModels = document.querySelectorAll('.model.historic');
     for (let i = 0; i < historicModels.length; i++) {

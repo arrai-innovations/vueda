@@ -21,4 +21,10 @@ if settings.DEBUG:
         path("local-login/", django_views.LoginView.as_view(), name="local-login"),
         path("local-logout/", django_views.LogoutView.as_view(), name="local-logout"),
         path("permissions/overview/", views.PermissionOverviewView.as_view(), name="permission-overview"),
+        path("permissions/save/", views.PermissionSaveView.as_view(), name="permission-save"),
+        path(
+            "permissions/delete/<int:permission_id>/<int:group_id>/",
+            views.PermissionDeleteView.as_view(),
+            name="permission-delete",
+        ),
     ]
