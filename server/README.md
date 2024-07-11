@@ -15,7 +15,7 @@
     - [Adding a workflow](#adding-a-workflow)
     - [Deleting a Workflow](#deleting-a-workflow)
   - [Workflow Management Command](#workflow-management-command)
-  - [Permission Management](#permission-management)
+  - [Group Management](#group-management)
 - [Development](#development)
   - [Environment](#environment)
   - [Dependency Management](#dependency-management)
@@ -180,13 +180,17 @@ Some additional options were added to the management command, mainly for testing
 
 <!-- #todo: document -->
 
-### Permission Management
+### Group Management
 
 A view exists, where you can see permissions and groups.
 
 `/routes/vueda.user/permissions/overview/`
 
 Similar to workflow, you will need to log in.
+
+On this screen you can add/edit/delete groups per permission.
+
+Once the management command that will create group migrations is written, then you will be able to create the migration similar to `makeworkflowmigrations`.
 
 ## Development
 
