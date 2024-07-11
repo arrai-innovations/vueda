@@ -8,10 +8,6 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    wrapperClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
     innerClass: {
         type: [String, Array, Object],
         default: () => [],
@@ -29,15 +25,15 @@ const combinedClasses = useCombinedClasses("WidgetReadonly", props);
 
 <template>
     <div :class="combinedClasses.outerClass">
-        <div :class="combinedClasses.wrapperClass">
-            <span v-if="widgetContext.state.combinedLabel || $slots.label" :class="combinedClasses.labelClass">
-                <slot name="label">{{ widgetContext.state.combinedLabel }}</slot>
-            </span>
-            <span :class="combinedClasses.innerClass">
-                <span :class="combinedClasses.inputClass" v-bind="$attrs"
-                    ><slot>{{ widgetContext.state.combinedValue }}</slot></span
-                >
-            </span>
+        <div :class="combinedClasses.innerClass">
+            <div :class="combinedClasses.labelClass">
+                <slot :label="widgetContext.state.combinedLabel" name="label">{{
+                    widgetContext.state.combinedLabel
+                }}</slot>
+            </div>
+            <div :class="combinedClasses.inputClass" v-bind="$attrs">
+                <slot>{{ widgetContext.state.combinedValue }}</slot>
+            </div>
         </div>
     </div>
 </template>

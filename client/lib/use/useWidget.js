@@ -1,5 +1,5 @@
-import { FieldContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, inject, reactive, readonly, ref } from "vue";
+import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
+import { computed, inject, provide, reactive, readonly, ref } from "vue";
 
 /**
  * The reactive props we expect widgets to receive and pass to useWidget when creating a widget context.
@@ -67,7 +67,7 @@ export const WIDGET_EMITS = ["update:modelValue"];
 export function useWidget(props, emit) {
     /** @type {import('@vueda/use/useField.js').FieldContext|null} */
     const fieldContext = inject(FieldContextSymbol, null);
-    return {
+    const widgetContext = {
         state: reactive({
             widgetId: readonly(
                 ref(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)),
@@ -121,4 +121,6 @@ export function useWidget(props, emit) {
             }
         },
     };
+    provide(WidgetContextSymbol, widgetContext);
+    return widgetContext;
 }

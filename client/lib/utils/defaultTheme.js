@@ -1,34 +1,23 @@
 import { storeTheme } from "@vueda/stores/storeTheme.js";
 
+const label = "text-surface-900/60 dark:text-white/60";
+
 const defaultComponents = {
-    ViewList: {
+    FilterFormModel: {
         defaultVariant: "default",
-        spots: [
-            "outer",
-            "header",
-            "title",
-            "loading",
-            "listActions",
-            "listAction",
-            "detailActionsClass",
-            "detailActionClass",
-        ],
+        spots: ["label"],
     },
-    ViewCreate: {
+    FormFeedback: {
         defaultVariant: "default",
-        spots: ["outer", "header", "title", "loading"],
+        spots: ["errors", "error", "messages", "message"],
     },
-    ViewUpdate: {
+    FormHelpText: {
         defaultVariant: "default",
-        spots: ["outer", "header", "title", "loading"],
+        spots: ["help"],
     },
-    ViewRead: {
+    FormModel: {
         defaultVariant: "default",
-        spots: ["outer", "header", "title", "loading"],
-    },
-    ViewDelete: {
-        defaultVariant: "default",
-        spots: ["outer", "header", "title", "loading"],
+        spots: ["outer", "beforeFields", "afterFields", "fields", "field"],
     },
     ObjectsGrid: {
         defaultVariant: "default",
@@ -47,67 +36,81 @@ const defaultComponents = {
             "cardCell",
         ],
     },
-    FormLabel: {
-        defaultVariant: "default",
-        spots: ["label"],
-    },
-    FormModel: {
-        defaultVariant: "default",
-        spots: ["outer", "beforeFields", "afterFields", "fields", "field"],
-    },
-    FilterFormModel: {
-        defaultVariant: "default",
-        spots: ["label"],
-    },
     PaginationComponent: {
         defaultVariant: "default",
         spots: ["outer"],
     },
-    WidgetInput: {
+    ViewCreate: {
         defaultVariant: "default",
-        spots: ["outer", "prefix", "input", "suffix"],
+        spots: ["outer", "header", "title", "loading"],
     },
-    WidgetDatePicker: {
+    ViewDelete: {
         defaultVariant: "default",
-        spots: ["outer", "prefix", "input", "suffix"],
+        spots: ["outer", "header", "title", "loading"],
     },
-    WidgetReadonly: {
+    ViewList: {
         defaultVariant: "default",
-        spots: ["outer", "prefix", "input", "suffix"],
+        spots: [
+            "outer",
+            "header",
+            "title",
+            "loading",
+            "listActions",
+            "listAction",
+            "detailActionsClass",
+            "detailActionClass",
+        ],
+    },
+    ViewRead: {
+        defaultVariant: "default",
+        spots: ["outer", "header", "title", "loading"],
+    },
+    ViewUpdate: {
+        defaultVariant: "default",
+        spots: ["outer", "header", "title", "loading"],
     },
     WidgetCheckbox: {
         defaultVariant: "default",
-        spots: ["outer", "prefix", "input", "suffix"],
+        spots: ["outer", "label", "inner"],
+    },
+    WidgetDatePicker: {
+        defaultVariant: "default",
+        spots: ["outer", "label", "inner"],
+    },
+    WidgetHtml: {
+        defaultVariant: "default",
+        spots: ["outer", "label", "inner"],
+    },
+    WidgetInput: {
+        defaultVariant: "default",
+        spots: ["outer", "label", "inner"],
+    },
+    WidgetRadio: {
+        defaultVariant: "default",
+        spots: ["outer", "label", "inner", "options", "option", "optionLabel"],
+    },
+    WidgetReadonly: {
+        defaultVariant: "default",
+        spots: ["outer", "inner", "label", "input"],
     },
     WidgetSelect: {
         defaultVariant: "default",
-        spots: ["outer", "prefix", "input", "suffix"],
+        spots: ["outer", "label", "inner"],
     },
     WidgetTextarea: {
         defaultVariant: "default",
-        spots: ["outer", "prefix", "input", "suffix"],
-    },
-    FormHelpText: {
-        defaultVariant: "default",
-        spots: ["help"],
-    },
-    FormFeedback: {
-        defaultVariant: "default",
-        spots: ["errors", "error", "messages", "message"],
+        spots: ["outer", "label", "inner"],
     },
 };
 
 const defaultVariants = {
-    ViewList: {
+    FormModel: {
         default: {
-            outer: "outer",
-            header: "header",
-            title: "title",
-            loading: "loading",
-            listActions: "listActions",
-            listAction: "listAction",
-            detailActionsClass: "detailActionsClass",
-            detailActionClass: "detailActionClass",
+            outer: "px-8 pt-6 pb-8 mb-4",
+            beforeFields: "mb-4",
+            afterFields: "mt-4",
+            fields: "space-y-4",
+            field: "mb-2",
         },
     },
     ObjectsGrid: {
@@ -126,13 +129,76 @@ const defaultVariants = {
             cardCell: "cardCell",
         },
     },
-    FormModel: {
+    ViewList: {
         default: {
-            outer: "bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4",
-            beforeFields: "mb-4",
-            afterFields: "mt-4",
-            fields: "space-y-4",
-            field: "mb-3",
+            outer: "outer",
+            header: "header",
+            title: "title",
+            loading: "loading",
+            listActions: "listActions",
+            listAction: "listAction",
+            detailActionsClass: "detailActionsClass",
+            detailActionClass: "detailActionClass",
+        },
+    },
+    WidgetCheckbox: {
+        default: {
+            outer: "",
+            label: "ml-2 leading-7 " + label,
+            inner: "flex",
+        },
+    },
+    WidgetDatePicker: {
+        default: {
+            outer: "",
+            label: label,
+            inner: "",
+        },
+    },
+    WidgetHtml: {
+        default: {
+            outer: "",
+            label: label,
+            inner: "",
+        },
+    },
+    WidgetInput: {
+        default: {
+            outer: "",
+            label: label,
+            inner: "",
+        },
+    },
+    WidgetRadio: {
+        default: {
+            outer: "",
+            label: label,
+            inner: "flex",
+            options: "flex",
+            option: "flex",
+            optionLabel: "ml-2",
+        },
+    },
+    WidgetReadonly: {
+        default: {
+            outer: "",
+            inner: "flex",
+            label: label,
+            input: "bg-gray-200",
+        },
+    },
+    WidgetSelect: {
+        default: {
+            outer: "",
+            label: label,
+            inner: "",
+        },
+    },
+    WidgetTextarea: {
+        default: {
+            outer: "",
+            label: label,
+            inner: "",
         },
     },
 };

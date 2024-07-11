@@ -36,7 +36,9 @@ export function useCombinedClasses(componentName, props) {
     const componentConfig = computed(() => themeStore.components[componentName]);
     const variantConfig = computed(() => themeStore.variants[componentName]?.[props.variant]);
     const defaultVariant = computed(() => componentConfig.value?.defaultVariant);
-    const defaultVariantConfig = computed(() => themeStore.variants[componentName]?.[defaultVariant.value]);
+    const defaultVariantConfig = computed(() =>
+        props.variant !== defaultVariant.value ? themeStore.variants[componentName]?.[defaultVariant.value] : {},
+    );
 
     if (!componentConfig.value) {
         throw new Error(`Component ${componentName} is not registered`);

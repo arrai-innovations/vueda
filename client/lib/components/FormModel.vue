@@ -66,7 +66,6 @@
  */
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
-import FormLabel from "@vueda/components/FormLabel.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
@@ -129,12 +128,10 @@ const combinedClasses = useCombinedClasses("FormModel", props);
                 <component :is="formModel.fieldComponents[fieldObj?.name]" v-if="fieldObj" v-bind="fieldObj">
                     <template v-if="!$slots[`field-${fieldObj?.name}`]" #default>
                         <div :class="combinedClasses.fieldClass">
-                            <form-label>
-                                <component
-                                    :is="formModel.widgetComponents[fieldObj.name]"
-                                    v-bind="formModel.widgetProps[fieldObj.name]"
-                                />
-                            </form-label>
+                            <component
+                                :is="formModel.widgetComponents[fieldObj.name]"
+                                v-bind="formModel.widgetProps[fieldObj.name]"
+                            />
                             <form-help-text />
                             <form-feedback type="error" />
                             <form-feedback type="message" />

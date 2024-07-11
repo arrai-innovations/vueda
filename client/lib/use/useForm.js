@@ -11,25 +11,23 @@ import { provide, reactive, readonly, toRef, watch } from "vue";
  */
 
 /**
- * @typedef {{[fieldName: string]: FieldValues}} FieldValues
+ * @typedef {{[fieldName: string]: FieldValues|any}} FieldValues
  */
 
 /**
- *
- *
  * @typedef {object} FormContextRawState
- * @property {import('vue').Reactive<FieldValues>} values - The form's values, referenced by lodash key path.
- * @property {import('vue').Reactive<{[path: string]: {[errorCode: string]: string}}>} errors - The form's error
+ * @property {FieldValues} values - The form's values, referenced by lodash key path.
+ * @property {{[path: string]: {[errorCode: string]: string}}} errors - The form's error
  *  messages, per field, by path. Form-level errors are stored using `NON_FIELD_ERRORS_KEY`.
- * @property {import('vue').Ref<boolean>} anyError - Whether any field has an error.
- * @property {import('vue').Reactive<{[path: string]: {[messageCode: string]: string}}>} messages - The form's
+ * @property {boolean} anyError - Whether any field has an error.
+ * @property {{[path: string]: {[messageCode: string]: string}}} messages - The form's
  *  message messages, per field, by flat path. Form-level messages are stored using `NON_FIELD_ERRORS_KEY`.
- * @property {import('vue').Reactive<{[path: string]: boolean}>} modified - Whether each field has been modified, by path.
- * @property {import('vue').Ref<boolean>} anyModified - Whether any field has been modified from its initial value.
- * @property {import('vue').Reactive<{[path: string]: boolean}>} touched - Whether each field has been blurred, by path.
- * @property {import('vue').Ref<boolean>} anyTouched - Whether any field has been blurred.
- * @property {import('vue').Ref<string|undefined>} focused - The field currently in focus.
- * @property {import('vue').Reactive<{[fieldName: string]: any}>} initialValues - The form's initial values.
+ * @property {{[path: string]: boolean}} modified - Whether each field has been modified, by path.
+ * @property {boolean} anyModified - Whether any field has been modified.
+ * @property {{[path: string]: boolean}} touched - Whether each field has been blurred, by path.
+ * @property {boolean} anyTouched - Whether any field has been blurred.
+ * @property {string|undefined} focused - The field currently in focus.
+ * @property {{[fieldName: string]: any}} initialValues - The form's initial values.
  */
 
 /**

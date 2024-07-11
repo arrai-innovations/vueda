@@ -35,19 +35,20 @@ const combinedClasses = useCombinedClasses("WidgetCheckbox", props);
 </script>
 <template>
     <div :class="combinedClasses.outerClass">
-        <InputSwitch
-            v-model="widgetContext.state.combinedValue"
-            :class="combinedClasses.inputClass"
-            :name="widgetContext.state.combinedName"
-            type="checkbox"
-            v-bind="$attrs"
-            @blur="widgetContext.blur"
-            @focus="widgetContext.focus"
-        />
-        <label :class="combinedClasses.labelClass" :for="widgetContext.state.combinedName">
-            <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label">{{
-                widgetContext.state.combinedLabel
-            }}</slot>
-        </label>
+        <div :class="combinedClasses.innerClass">
+            <InputSwitch
+                v-model="widgetContext.state.combinedValue"
+                :name="widgetContext.state.combinedName"
+                type="checkbox"
+                v-bind="$attrs"
+                @blur="widgetContext.blur"
+                @focus="widgetContext.focus"
+            />
+            <label :class="combinedClasses.labelClass" :for="widgetContext.state.combinedName">
+                <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label">{{
+                    widgetContext.state.combinedLabel
+                }}</slot>
+            </label>
+        </div>
     </div>
 </template>

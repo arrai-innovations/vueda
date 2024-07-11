@@ -1,7 +1,9 @@
 <script setup>
 import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
-import Textarea from "primevue/textarea";
+import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
+// don't shadow html element names
+import PrimevueTextarea from "primevue/textarea";
 
 defineOptions({
     inheritAttrs: false,
@@ -16,9 +18,17 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    textareaClass: {
+    innerClass: {
         type: [String, Array, Object],
         default: () => [],
+    },
+    labelClass: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
+    useFloatingLabel: {
+        type: Boolean,
+        default: false,
     },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
@@ -26,15 +36,23 @@ const widgetContext = useWidget(props, emit);
 const combinedClasses = useCombinedClasses("WidgetTextarea", props);
 </script>
 <template>
-    <Textarea
-        v-bind="$attrs"
-        v-model="widgetContext.state.combinedValue"
-        auto-resize
-        :class="combinedClasses.textareaClass"
-        cols="30"
-        :name="widgetContext.state.combinedName"
-        rows="5"
-        @blur="widgetContext.blur"
-        @focus="widgetContext.focus"
-    />
+    <div :class="combinedClasses.outerClass">
+        <widget-label :label-class="combinedClasses.labelClass" :use-floating-label="props.useFloatingLabel">
+            <template v-if="$slots.label" #label="slotProps">
+                <slot name="label" v-bind="slotProps" />
+            </template>
+            <div :class="combinedClasses.innerClass">
+                <primevue-textarea
+                    v-bind="$attrs"
+                    v-model="widgetContext.state.combinedValue"
+                    auto-resize
+                    cols="30"
+                    :name="widgetContext.state.combinedName"
+                    rows="5"
+                    @blur="widgetContext.blur"
+                    @focus="widgetContext.focus"
+                />
+            </div>
+        </widget-label>
+    </div>
 </template>

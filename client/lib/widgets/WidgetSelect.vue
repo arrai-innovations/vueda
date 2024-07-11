@@ -1,6 +1,7 @@
 <script setup>
 import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Dropdown from "primevue/dropdown";
 
 defineOptions({
@@ -20,17 +21,17 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    selectClass: {
+    labelClass: {
         type: [String, Array, Object],
         default: () => [],
     },
-    prefixClass: {
+    innerClass: {
         type: [String, Array, Object],
         default: () => [],
     },
-    suffixClass: {
-        type: [String, Array, Object],
-        default: () => [],
+    useFloatingLabel: {
+        type: Boolean,
+        default: false,
     },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
@@ -40,22 +41,22 @@ const combinedClasses = useCombinedClasses("WidgetSelect", props);
 
 <template>
     <div :class="combinedClasses.outerClass">
-        <span v-if="$slots.prefix" :class="combinedClasses.prefixClass">
-            <slot name="prefix" />
-        </span>
-        <Dropdown
-            v-model="widgetContext.state.combinedValue"
-            :class="combinedClasses.selectClass"
-            :name="widgetContext.state.combinedName"
-            v-bind="$attrs"
-            option-label="label"
-            option-value="value"
-            :options="props.options"
-            @blur="widgetContext.blur"
-            @focus="widgetContext.focus"
-        />
-        <span v-if="$slots.suffix" :class="combinedClasses.suffixClass">
-            <slot name="suffix" />
-        </span>
+        <widget-label :label-class="combinedClasses.labelClass" :use-floating-label="props.useFloatingLabel">
+            <template v-if="$slots.label" #label="slotProps">
+                <slot name="label" v-bind="slotProps" />
+            </template>
+            <div :class="combinedClasses.innerClass">
+                <dropdown
+                    v-model="widgetContext.state.combinedValue"
+                    :name="widgetContext.state.combinedName"
+                    v-bind="$attrs"
+                    option-label="label"
+                    option-value="value"
+                    :options="props.options"
+                    @blur="widgetContext.blur"
+                    @focus="widgetContext.focus"
+                />
+            </div>
+        </widget-label>
     </div>
 </template>
