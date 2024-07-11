@@ -26,10 +26,13 @@ describe("lib/use/useForm.js", () => {
         const initialValues = { test: "value" };
         const formContext = useForm(reactive({ initialValues }));
 
-        expect(formContext.values).toEqual({ test: "value" });
-        expect(formContext.errors).toEqual({});
-        expect(formContext.messages).toEqual({});
-        expect(formContext.dirty).toEqual({});
+        expect(formContext.state.values).toEqual({ test: "value" });
+        expect(formContext.state.errors).toEqual({});
+        expect(formContext.state.messages).toEqual({});
+        expect(formContext.state.touched).toEqual({});
+        expect(formContext.state.anyTouched).toEqual(false);
+        expect(formContext.state.modified).toEqual({});
+        expect(formContext.state.anyModified).toEqual(false);
     });
     it("should provide the form context", async () => {
         const TestComponent = {
@@ -48,6 +51,6 @@ describe("lib/use/useForm.js", () => {
         const formContext = useForm({ initialValues });
         initialValues.test = "newValue";
         await nextTick();
-        expect(formContext.values.test).toBe("newValue");
+        expect(formContext.state.values.test).toBe("newValue");
     });
 });

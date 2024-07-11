@@ -16,8 +16,9 @@ const props = defineProps({
         default: () => [],
     },
 });
+/** @type {import("@vueda/use/useField.js").FieldContext|null} */
 const fieldContext = inject(FieldContextSymbol, null);
-const computedHelp = computed(() => props.help || fieldContext?.help);
+const computedHelp = computed(() => (props.help?.length ? props.help : fieldContext?.state?.help));
 </script>
 <template>
     <div v-if="computedHelp || $slots.default">

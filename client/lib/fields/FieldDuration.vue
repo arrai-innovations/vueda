@@ -29,8 +29,7 @@ const formatDuration = () => {
 };
 
 watch(
-    // fieldContext is reactive, not a ref. "value" could be misleading.
-    () => toRef(fieldContext, "value"),
+    toRef(fieldContext.state, "value"),
     (newValue) => {
         parseDuration(newValue);
     },
@@ -40,8 +39,8 @@ watch(
 watch([hours, minutes, seconds], () => {
     const coercedValue = formatDuration();
     // only you can prevent infinite reactivity loops
-    if (fieldContext.value !== coercedValue) {
-        fieldContext.updateValue(coercedValue);
+    if (fieldContext.state.value !== coercedValue) {
+        fieldContext.state.value = coercedValue;
     }
 });
 </script>

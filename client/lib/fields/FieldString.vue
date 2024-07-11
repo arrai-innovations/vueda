@@ -1,5 +1,6 @@
 <script setup>
 import { FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import isString from "lodash-es/isString.js";
 import { computed, toRef, watch } from "vue";
 
 const props = defineProps({
@@ -26,31 +27,32 @@ const props = defineProps({
     },
 });
 const fieldContext = useField(props);
+const fieldValueRef = toRef(fieldContext.state, "value");
 watch(
-    [toRef(props, "trim"), toRef(fieldContext, "value")],
+    [toRef(props, "trim"), fieldValueRef],
     ([trim, value]) => {
         if (trim && value !== undefined && value !== null) {
-            const trimmed = value.trim();
+            const trimmed = value?.trim();
             if (trimmed !== value) {
-                fieldContext.value = value.trim();
+                fieldContext.state.value = trimmed;
             }
         }
     },
     { immediate: true },
 );
 watch(
-    [toRef(props, "maxLength"), toRef(fieldContext, "value")],
+    [toRef(props, "maxLength"), fieldValueRef],
     ([maxLength, value]) => {
-        if (maxLength && value.length > maxLength) {
+        if (maxLength && value?.length > maxLength) {
             fieldContext.updateError("maxLength", `Must be ${maxLength} characters or less.`);
         }
     },
     { immediate: true },
 );
 watch(
-    [toRef(props, "minLength"), toRef(fieldContext, "value")],
+    [toRef(props, "minLength"), fieldValueRef],
     ([minLength, value]) => {
-        if (minLength && value.length < minLength) {
+        if (minLength && value?.length < minLength) {
             fieldContext.updateError("minLength", `Must be ${minLength} characters or more.`);
         }
     },
@@ -63,18 +65,26 @@ const patternRegex = computed(() => {
     return undefined;
 });
 watch(
-    [toRef(fieldContext, "dirty"), patternRegex, toRef(fieldContext, "value"), toRef(props, "patternForMessage")],
-    ([dirty, patternRegex, value, patternForMessage], [oldDirty, oldPatternRegex, oldValue, oldPatternForMessage]) => {
+    [
+        toRef(fieldContext.state, "touched"),
+        patternRegex,
+        toRef(fieldContext.state, "value"),
+        toRef(props, "patternForMessage"),
+    ],
+    (
+        [touched, currentPatternRegex, value, patternForMessage],
+        [touchedOld, currentPatternRegexOld, valueOld, patternForMessageOld],
+    ) => {
         if (
-            (dirty !== oldDirty ||
-                patternRegex !== oldPatternRegex ||
-                value !== oldValue ||
-                patternForMessage !== oldPatternForMessage) &&
-            dirty &&
-            patternRegex &&
-            !patternRegex.test(value)
+            touched === touchedOld &&
+            currentPatternRegex === currentPatternRegexOld &&
+            value === valueOld &&
+            patternForMessage === patternForMessageOld
         ) {
-            fieldContext.updateError("pattern", `Must match "${patternForMessage || patternRegex}".`);
+            return;
+        }
+        if (touched && currentPatternRegex && isString(value) && !currentPatternRegex.test(value)) {
+            fieldContext.updateError("pattern", `Must match "${patternForMessage || currentPatternRegex}".`);
         } else {
             fieldContext.deleteError("pattern");
         }
@@ -82,14 +92,14 @@ watch(
     { immediate: true },
 );
 watch(
-    toRef(fieldContext, "fieldValue"),
+    toRef(fieldContext.state, "value"),
     (newValue) => {
         if (newValue === undefined || newValue === null) {
             return;
         }
         const coercedValue = newValue.toString();
-        if (coercedValue !== fieldContext.value) {
-            fieldContext.updateValue(coercedValue);
+        if (coercedValue !== newValue) {
+            fieldContext.state.value = newValue;
         }
     },
     { immediate: true },

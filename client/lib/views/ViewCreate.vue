@@ -1,5 +1,6 @@
 <script setup>
 import { useObject } from "@arrai-innovations/reactive-helpers";
+import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
@@ -103,6 +104,16 @@ const combinedClasses = useCombinedClasses("ViewCreate", props);
             </template>
         </page-title>
         <div :class="combinedClasses.bodyClass">
+            <error-display
+                :error="modelConfig.error"
+                :errored="modelConfig.errored"
+                while-text="getting model information"
+            />
+            <error-display
+                :error="objectForm.error"
+                :errored="objectForm.errored"
+                while-text="submitting create form"
+            />
             <form @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"

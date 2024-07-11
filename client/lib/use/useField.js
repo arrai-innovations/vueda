@@ -2,7 +2,7 @@ import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
-import { computed, inject, provide, reactive, watch } from "vue";
+import { computed, inject, provide, reactive, readonly, toRef, watch } from "vue";
 
 /**
  * The reactive props we expect fields to receive and pass to useField when creating a field context.
@@ -53,33 +53,40 @@ export function defaultValidateRequired(value) {
 }
 
 /**
- * The raw field context object.
- *
- * @typedef {object} FieldContextRaw
+ * @typedef {object} FieldContextRawState
  * @property {import('vue').ComputedRef<string>} name - The name of the field.
  * @property {import('vue').ComputedRef<string>} label - The label for the field.
  * @property {import('vue').ComputedRef<string>} help - The help text for the field.
- * @property {import('vue').ComputedRef<any>} value - The current value of the field.
+ * @property {import('vue').WritableComputedRef<any>} value - The current value of the field.
  * @property {import('vue').ComputedRef<any>} initialValue - The initial value of the field.
  * @property {import('vue').ComputedRef<{[code: string]: string}>} messages - The messages for the field.
  * @property {import('vue').ComputedRef<{[code: string]: string}>} errors - The errors for the field.
- * @property {import('vue').ComputedRef<boolean>} dirty - Whether the field has been interacted with.
+ * @property {import('vue').ComputedRef<boolean>} modified - Whether the field has been modified.
+ * @property {import('vue').ComputedRef<boolean>} touched - Whether the field has been touched.
+ */
+
+/**
+ * @typedef {import('vue').UnwrapNestedRefs<FieldContextRawState>} FieldContextState
+ */
+
+/**
+ * The field context object, providing reactive properties and methods to update the field's value, errors, messages,
+ *  touched state, modified state, and to focus or blur it.
+ *
+ * @typedef {object} FieldContext
+ * @property {FieldContextState} state - The reactive state of the field.
  * @property {(value: any) => void} updateValue - Update the field's value.
  * @property {() => void} deleteValue - Delete the field's value.
  * @property {(code: string, message: string) => void} updateError - Update the field's error.
  * @property {(code: string) => void} deleteError - Delete the field's error.
  * @property {(code: string, message: string) => void} updateMessage - Update the field's message.
  * @property {(code: string) => void} deleteMessage - Delete the field's message.
- * @property {() => void} setDirty - Set the field as dirty.
- * @property {() => void} clearDirty - Clear the field's dirty state.
+ * @property {() => void} calculateModified - Calculate the modified state of the field. The form context object
+ *  calculates modified fields automatically when values change via form methods.
+ * @property {() => void} setTouched - Mark the field as touched. The form context object marks blurred
+ *  fields as touched automatically.
  * @property {() => void} focus - Focus on the field.
  * @property {() => void} blur - Blur the field.
- */
-
-/**
- * The field context object, providing methods to
- *
- * @typedef {import('vue').UnwrapNestedRefs<FieldContextRaw>} FieldContext
  */
 
 /**
@@ -102,48 +109,43 @@ export function defaultValidateRequired(value) {
  * }>} FieldContextProps
  */
 
+const returnVoid = () => {};
+
 /**
  * Generate and provide a field context for a field, using the provided props and functions, including methods to update
- *  the field's value, errors, messages, dirty state, and to focus or blur it.
+ *  the field's value, errors, messages, touched state, modified state, and to focus or blur it.
  *
  * @param {FieldContextProps} props - The field context's reactive props.
  * @param {FieldContextFunctions} [functions] - The field context's non-reactive functions.
  * @returns {FieldContext} The field context object.
  */
 export function useField(props, functions) {
+    /** @type {import('@vueda/use/useForm.js').FormContext|null} */
     const formContext = inject(FormContextSymbol, null);
 
     const requiredFn = functions?.required || defaultValidateRequired;
     const requiredMessage = computed(() => {
         return props.requiredMessage || "This field is required.";
     });
-    const name = computed(() => {
-        return props.name;
-    });
-    const label = computed(() => {
-        return props.label?.length ? props.label : props.name;
-    });
-    const help = computed(() => {
-        return props.help || "";
-    });
-    const value = computed(() => {
-        return formContext ? get(formContext.values, props.name) : undefined;
-    });
-    const initialValue = computed(() => {
-        return formContext ? get(formContext.initialValues, props.name) : undefined;
-    });
-    const messages = computed(() => {
-        return formContext ? get(formContext.messages, props.name) : {};
-    });
-    const errors = computed(() => {
-        return formContext ? get(formContext.errors, props.name) : {};
-    });
-    const dirty = computed(() => {
-        return formContext ? get(formContext.dirty, props.name) : false;
+    const state = reactive({
+        name: readonly(toRef(props, "name")),
+        label: computed(() => (props.label?.length ? props.label : props.name)),
+        help: computed(() => props.help || ""),
+        value: formContext
+            ? computed({
+                  get: () => get(formContext.state.values, props.name),
+                  set: (newValue) => formContext.updateValue(props.name, newValue),
+              })
+            : undefined,
+        initialValue: formContext ? computed(() => get(formContext.state.initialValues, props.name)) : undefined,
+        messages: formContext ? computed(() => get(formContext.state.messages, props.name)) : {},
+        errors: formContext ? computed(() => get(formContext.state.errors, props.name)) : {},
+        touched: formContext ? computed(() => formContext.state.touched[props.name]) : false,
+        modified: formContext ? computed(() => formContext.state.modified[props.name]) : false,
     });
     const checkRequired = () => {
-        if (props.required && dirty.value && formContext) {
-            if (!requiredFn(value.value)) {
+        if (props.required && state.touched && formContext) {
+            if (!requiredFn(state.value)) {
                 formContext.updateError(props.name, "required", requiredMessage.value);
             } else {
                 formContext.deleteError(props.name, "required");
@@ -152,8 +154,8 @@ export function useField(props, functions) {
     };
 
     const checkCustomValidation = () => {
-        if (props.validate && dirty.value && formContext) {
-            const result = props.validate(value.value);
+        if (props.validate && state.touched && formContext) {
+            const result = props.validate(state.value);
             if (result === true) {
                 formContext.deleteError(props.name, "validate");
             } else {
@@ -163,9 +165,12 @@ export function useField(props, functions) {
     };
 
     watch(
-        () => cloneDeep(value.value),
+        () => cloneDeep(state.value),
         (newValue, oldValue) => {
             if (!isEqual(newValue, oldValue)) {
+                if (formContext) {
+                    formContext.calculateModified(props.name);
+                }
                 checkRequired();
                 checkCustomValidation();
             }
@@ -174,96 +179,53 @@ export function useField(props, functions) {
     );
 
     watch(
-        () => ({
-            required: props.required,
-            requiredMessage: props.requiredMessage,
-            validate: props.validate,
-            dirty: dirty.value,
-            formContext: formContext,
-        }),
-        (newProps, oldProps) => {
-            const requiredChanged = newProps.required !== oldProps?.required;
-            const requiredMessageChanged = newProps.requiredMessage !== oldProps?.requiredMessage;
-            const validateChanged = newProps.validate !== oldProps?.validate;
-            const dirtyChanged = newProps.dirty !== oldProps?.dirty;
-            const formContextChanged = newProps.formContext !== oldProps?.formContext;
-            if (requiredChanged || requiredMessageChanged || dirtyChanged || formContextChanged) {
+        [
+            toRef(props, "required"),
+            toRef(props, "requiredMessage"),
+            toRef(props, "validate"),
+            toRef(state, "touched"),
+            toRef(state, "modified"),
+        ],
+        (
+            [newRequired, newRequiredMessage, newValidate, newTouched, newModified],
+            [oldRequired, oldRequiredMessage, oldValidate, oldTouched, oldModified],
+        ) => {
+            const requiredChanged = newRequired !== oldRequired;
+            const requiredMessageChanged = newRequiredMessage !== oldRequiredMessage;
+            const validateChanged = newValidate !== oldValidate;
+            const touchedChanged = newTouched !== oldTouched;
+            const modifiedChanged = newModified !== oldModified;
+            const doValidation = touchedChanged || modifiedChanged;
+            if (requiredChanged || requiredMessageChanged || doValidation) {
                 checkRequired();
             }
-            if (validateChanged || dirtyChanged || formContextChanged) {
+            if (validateChanged || doValidation) {
                 checkCustomValidation();
             }
         },
         { immediate: true },
     );
-    // watch(
-    //     toRef(props, "name"),
-    //     (newValue, oldValue) => {
-    //         if (newValue !== oldValue) {
-    //             // todo: decide if we want to support this and what we would need to do
-    //         }
-    //     },
-    // );
-    const returnObj = reactive({
-        name,
-        label,
-        help,
-        value,
-        initialValue,
-        messages,
-        errors,
-        dirty,
-        updateValue: (value) => {
-            if (formContext) {
-                formContext.updateValue(name.value, value);
-            }
-        },
-        deleteValue: () => {
-            if (formContext) {
-                formContext.deleteValue(name.value);
-            }
-        },
-        updateError: (code, message) => {
-            if (formContext) {
-                formContext.updateError(name.value, code, message);
-            }
-        },
-        deleteError: (code) => {
-            if (formContext) {
-                formContext.deleteError(name.value, code);
-            }
-        },
-        updateMessage: (code, message) => {
-            if (formContext) {
-                formContext.updateMessage(name.value, code, message);
-            }
-        },
-        deleteMessage: (code) => {
-            if (formContext) {
-                formContext.deleteMessage(name.value, code);
-            }
-        },
-        setDirty: () => {
-            if (formContext) {
-                formContext.setDirty(name.value);
-            }
-        },
-        clearDirty: () => {
-            if (formContext) {
-                formContext.clearDirty(name.value);
-            }
-        },
-        focus: () => {
-            if (formContext) {
-                formContext.focus(name.value);
-            }
-        },
-        blur: () => {
-            if (formContext) {
-                formContext.blur(name.value);
-            }
-        },
-    });
+
+    const ifFormContext = (fn) => {
+        if (formContext) {
+            return fn;
+        }
+        return returnVoid;
+    };
+    const returnObj = {
+        state,
+        updateValue: ifFormContext((value) => formContext.updateValue(state.name, value)),
+        deleteValue: ifFormContext(() => formContext.deleteValue(state.name)),
+        updateError: ifFormContext((code, message) => formContext.updateError(state.name, code, message)),
+        deleteError: ifFormContext((code) => formContext.deleteError(state.name, code)),
+        updateMessage: ifFormContext((code, message) => formContext.updateMessage(state.name, code, message)),
+        deleteMessage: ifFormContext((code) => formContext.deleteMessage(state.name, code)),
+        calculateModified: ifFormContext(() => formContext.calculateModified(state.name)),
+        setTouched: ifFormContext(() => formContext.setTouched(state.name)),
+        clearTouched: ifFormContext(() => formContext.clearTouched(state.name)),
+        focus: ifFormContext(() => formContext.focus(state.name)),
+        blur: ifFormContext(() => formContext.blur(state.name)),
+    };
     provide(FieldContextSymbol, returnObj);
     return returnObj;
 }

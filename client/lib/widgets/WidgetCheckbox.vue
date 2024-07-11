@@ -1,9 +1,7 @@
 <script setup>
 import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
-import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import InputSwitch from "primevue/inputswitch";
-import { computed, inject } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -32,26 +30,24 @@ const props = defineProps({
     },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
-const fieldContext = inject(FieldContextSymbol, null);
 const widgetContext = useWidget(props, emit);
 const combinedClasses = useCombinedClasses("WidgetCheckbox", props);
-const computedFor = computed(() => props.name || widgetContext.name);
-const computedLabel = computed(() => (props.label?.length ? props.label : fieldContext.label));
 </script>
 <template>
     <div :class="combinedClasses.outerClass">
         <InputSwitch
-            v-model="widgetContext.combinedValue"
+            v-model="widgetContext.state.combinedValue"
             :class="combinedClasses.inputClass"
-            :name="widgetContext.combinedName"
+            :name="widgetContext.state.combinedName"
             type="checkbox"
             v-bind="$attrs"
             @blur="widgetContext.blur"
-            @change="widgetContext.makeDirty"
             @focus="widgetContext.focus"
         />
-        <label :class="combinedClasses.labelClass" :for="computedFor">
-            <slot :for="computedFor" :label="computedLabel" name="label">{{ computedLabel }}</slot>
+        <label :class="combinedClasses.labelClass" :for="widgetContext.state.combinedName">
+            <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label">{{
+                widgetContext.state.combinedLabel
+            }}</slot>
         </label>
     </div>
 </template>

@@ -52,14 +52,13 @@ const combinedClasses = useCombinedClasses("WidgetInput", props);
         </span>
         <component
             :is="inputComponent"
-            v-model="widgetContext.combinedValue"
+            v-model="widgetContext.state.combinedValue"
             :class="combinedClasses.inputClass"
-            :name="widgetContext.combinedName"
+            :name="widgetContext.state.combinedName"
             :type="type"
             v-bind="$attrs"
             @blur="widgetContext.blur"
             @focus="widgetContext.focus"
-            @input="widgetContext.makeDirty"
         />
         <span v-if="$slots.suffix" :class="combinedClasses.suffixClass">
             <slot name="suffix" />

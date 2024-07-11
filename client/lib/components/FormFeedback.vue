@@ -41,33 +41,40 @@ const props = defineProps({
         default: () => [],
     },
 });
+/** @type {import("@vueda/use/useForm.js").FormContext|null} */
 const formContext = inject(FormContextSymbol, null);
+/** @type {import("@vueda/use/useField.js").FieldContext|null} */
 const fieldContext = inject(FieldContextSymbol, null);
 const feedbackItems = reactive({});
 
 watch(
     // formContext/fieldContext can be null, so we need to watch in a way that'll handle that
     () => [
-        fieldContext,
-        fieldContext?.errors,
-        fieldContext?.messages,
-        formContext,
-        get(formContext?.errors, NON_FIELD_ERRORS_KEY, undefined),
-        get(formContext?.messages, NON_FIELD_ERRORS_KEY, undefined),
+        fieldContext?.state?.errors?.value,
+        fieldContext?.state?.messages?.value,
+        get(formContext?.state?.errors, NON_FIELD_ERRORS_KEY, undefined),
+        get(formContext?.state?.messages, NON_FIELD_ERRORS_KEY, undefined),
         props.type,
         props.messages,
     ],
-    ([fieldContext, errors, messages, formContext, formErrors, formMessages, propsType, propsMessages]) => {
+    ([errors, messages, formErrors, formMessages, propsType, propsMessages]) => {
         if (propsMessages) {
             assignReactiveObject(feedbackItems, propsMessages);
         } else if (!fieldContext && formContext) {
             // if we are in a form but not in a field, we should show the form's errors
-            assignReactiveObject(feedbackItems, (propsType === "error" ? formErrors : formMessages) || {});
-        } else if (fieldContext && !isEqual(propsType === "error" ? errors : messages, feedbackItems)) {
-            assignReactiveObject(feedbackItems, (propsType === "error" ? errors : messages) || {});
+            const formErrorsOrMessages = (propsType === "error" ? formErrors : formMessages) || {};
+            if (!isEqual(formErrorsOrMessages, feedbackItems)) {
+                assignReactiveObject(feedbackItems, formErrorsOrMessages);
+            }
+        } else if (fieldContext) {
+            const fieldErrorsOrMessages = (propsType === "error" ? errors : messages) || {};
+            if (!isEqual(fieldErrorsOrMessages, feedbackItems)) {
+                assignReactiveObject(feedbackItems, fieldErrorsOrMessages);
+            }
         }
     },
-    // without deep, deleted message keys end null, not undefined, making the object not empty if the last key was deleted
+    // without deep, deleted message keys end up null, not undefined, making the object not empty if the last key was
+    //  deleted. this leaves empty feedback boxes on the form.
     { immediate: true, deep: true },
 );
 

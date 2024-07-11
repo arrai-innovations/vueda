@@ -61,7 +61,7 @@ const props = defineProps({
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const editor = useEditor({
-    content: widgetContext.combinedValue,
+    content: widgetContext.state.combinedValue,
     extensions: props.extensions,
     injectCSS: false,
     editable: !props.disabled,
@@ -74,11 +74,10 @@ const editor = useEditor({
     onUpdate: () => {
         const unrefEditor = unref(editor);
         const html = unrefEditor.getHTML();
-        if (widgetContext.combinedValue !== html) {
+        if (widgetContext.state.combinedValue !== html) {
             // let useWidget emit the change. the computed ref has a set...
             // noinspection JSConstantReassignment
-            widgetContext.combinedValue = html;
-            widgetContext.makeDirty();
+            widgetContext.state.combinedValue = html;
         }
     },
     onFocus: () => {

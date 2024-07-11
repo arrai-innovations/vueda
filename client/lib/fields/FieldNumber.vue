@@ -18,8 +18,9 @@ const props = defineProps({
     },
 });
 const fieldContext = useField(props);
+const fieldValueRef = toRef(fieldContext.state, "value");
 watch(
-    [toRef(props, "maxValue"), toRef(fieldContext, "value")],
+    [toRef(props, "maxValue"), fieldValueRef],
     ([maxValue, value]) => {
         if (maxValue && value > maxValue) {
             fieldContext.updateError("maxValue", `Must be ${maxValue} or less.`);
@@ -30,7 +31,7 @@ watch(
     { immediate: true },
 );
 watch(
-    [toRef(props, "minValue"), toRef(fieldContext, "value")],
+    [toRef(props, "minValue"), fieldValueRef],
     ([minValue, value]) => {
         if (minValue && value < minValue) {
             fieldContext.updateError("minValue", `Must be ${minValue} or more.`);
@@ -52,7 +53,7 @@ const stepScaleFactor = computed(() => {
     return 1;
 });
 watch(
-    [toRef(props, "step"), toRef(fieldContext, "value")],
+    [toRef(props, "step"), fieldValueRef],
     ([step, value]) => {
         if (step) {
             const factor = stepScaleFactor.value;
@@ -70,14 +71,14 @@ watch(
     { immediate: true },
 );
 watch(
-    toRef(fieldContext, "fieldValue"),
+    fieldValueRef,
     (newValue) => {
         let coercedValue = +newValue;
         if (isNaN(coercedValue)) {
             coercedValue = undefined;
         }
-        if (coercedValue !== fieldContext.value) {
-            fieldContext.updateValue(coercedValue);
+        if (coercedValue !== newValue) {
+            fieldContext.state.value = coercedValue;
         }
     },
     { immediate: true },

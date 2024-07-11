@@ -15,7 +15,7 @@ const props = defineProps({
 });
 const fieldContext = useField(props);
 const valueAsDate = computed(() => {
-    const value = fieldContext.value;
+    const value = fieldContext.state.value;
     if (value) {
         return new Date(value);
     }

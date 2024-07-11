@@ -27,15 +27,14 @@ const combinedClasses = useCombinedClasses("WidgetTextarea", props);
 </script>
 <template>
     <Textarea
-        v-model="widgetContext.combinedValue"
         v-bind="$attrs"
+        v-model="widgetContext.state.combinedValue"
         auto-resize
         :class="combinedClasses.textareaClass"
         cols="30"
-        :name="widgetContext.combinedName"
+        :name="widgetContext.state.combinedName"
         rows="5"
         @blur="widgetContext.blur"
-        @change="widgetContext.makeDirty"
         @focus="widgetContext.focus"
     />
 </template>

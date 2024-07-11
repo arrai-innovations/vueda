@@ -1,7 +1,7 @@
 <script setup>
 import { FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import isArray from "lodash-es/isArray.js";
-import { watch } from "vue";
+import { toRef, watch } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -16,8 +16,8 @@ const props = defineProps({
 });
 const fieldContext = useField(props);
 // const valueAsDate = computed(() => {
-//     const value = fieldContext.value;
-//     console.log("fieldContext.value: ",fieldContext.value)
+//     const value = fieldContext.state.value;
+//     console.log("fieldContext.state.value: ", value)
 //     if (value) {
 //         return new Date(value);
 //     }
@@ -47,15 +47,14 @@ const fieldContext = useField(props);
 // );
 
 watch(
-    () => fieldContext.value,
+    toRef(fieldContext.state, "value"),
     (value) => {
-        console.log("fieldContext.value changed to:", value);
         // debugger
         if (isArray(value)) {
             for (const item of value) {
                 console.log("item", item);
                 // console.log(item.toString())
-                // fieldContext.updateValue('2024-01-01')
+                // fieldContext.state.value = '2024-01-01'
                 fieldContext.updateValueWithName("due_date_after", "2024-01-01");
                 break;
             }

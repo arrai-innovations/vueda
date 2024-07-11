@@ -30,12 +30,12 @@ const combinedClasses = useCombinedClasses("WidgetReadonly", props);
 <template>
     <div :class="combinedClasses.outerClass">
         <div :class="combinedClasses.wrapperClass">
-            <span v-if="widgetContext.combinedName || $slots.label" :class="combinedClasses.labelClass">
-                <slot name="label">{{ widgetContext.combinedName }}</slot>
+            <span v-if="widgetContext.state.combinedLabel || $slots.label" :class="combinedClasses.labelClass">
+                <slot name="label">{{ widgetContext.state.combinedLabel }}</slot>
             </span>
             <span :class="combinedClasses.innerClass">
                 <span :class="combinedClasses.inputClass" v-bind="$attrs"
-                    ><slot>{{ widgetContext.combinedValue }}</slot></span
+                    ><slot>{{ widgetContext.state.combinedValue }}</slot></span
                 >
             </span>
         </div>

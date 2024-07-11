@@ -43,26 +43,25 @@ const combinedClasses = useCombinedClasses("WidgetRadio", props);
         <ul :class="combinedClasses.optionsClass">
             <li v-for="option in props.options" :key="option.value" :class="combinedClasses.optionClass">
                 <input
-                    :id="`${widgetContext.combinedName}-${option.value}-${widgetContext.widgetId}`"
-                    v-model="widgetContext.combinedValue"
-                    :checked="widgetContext.combinedValue === option.value"
+                    :id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
+                    :checked="widgetContext.state.combinedValue === option.value"
                     :class="combinedClasses.inputClass"
-                    :name="widgetContext.combinedName"
+                    :name="widgetContext.state.combinedName"
                     type="radio"
                     :value="option.value"
                     @blur="widgetContext.blur"
-                    @change="widgetContext.makeDirty"
                     @focus="widgetContext.focus"
+                    @update:checked="widgetContext.state.combinedValue = option.value"
                 />
                 <slot
                     :class="combinedClasses.labelClass"
-                    :for="`${widgetContext.combinedName}-${option.value}-${widgetContext.widgetId}`"
+                    :for="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
                     :label="option.label"
                     :name="$slots[`label-${option.value}`] ? `label-${option.value}` : 'default'"
                 >
                     <label
                         :class="combinedClasses.labelClass"
-                        :for="`${widgetContext.combinedName}-${option.value}-${widgetContext.widgetId}`"
+                        :for="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
                         >{{ option.label }}</label
                     >
                 </slot>

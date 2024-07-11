@@ -3,17 +3,29 @@ import { onMounted, onUnmounted } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 
 /**
- * useLeaveUnload - A hook that listens for route changes and warns the user if they have unsaved changes.
- * @param state
- * @property {boolean} state.dirty - Whether the form is dirty.
- * @property {boolean} state.submitting - Whether the form is submitting.
+ * @typedef {import('vue').Reactive} UseLeaveUnloadReactiveProps
+ * @property {boolean|import('vue').Ref<boolean>} modified - Whether the form has changes to be lost.
+ * @property {boolean|import('vue').Ref<boolean>} submitting - Whether the form is being processed currently.
+ */
+
+/**
+ * @typedef {object} UseLeaveUnloadRefsProps
+ * @property {import('vue').Ref<boolean>} modified - Whether the form has changes to be lost.
+ * @property {import('vue').Ref<boolean>} submitting - Whether the form is being processed currently.
+ */
+
+/**
+ * A hook that listens for route changes and warns the user if they have unsaved changes.
+ *
+ * @param {UseLeaveUnloadReactiveProps|UseLeaveUnloadRefsProps} props - The reactive state to condition the unsaved
+ *  changes popup on.
  * @returns {void}
  */
-export function useLeaveUnload(state) {
+export function useLeaveUnload(props) {
     const isActive = useIsActive();
 
     const beforeRouteLeaveListener = () => {
-        if (isActive.value && state.dirty && !state.submitting) {
+        if (isActive.value && props.modified && !props.submitting) {
             const answer = window.confirm("You have unsaved changes, are you sure to leave?");
             // cancel the navigation and stay on the same page
             if (!answer) {
@@ -22,10 +34,9 @@ export function useLeaveUnload(state) {
         }
     };
     const beforeUnloadListener = (event) => {
-        if (isActive.value && state.dirty && !state.submitting) {
+        if (isActive.value && props.modified && !props.submitting) {
             if (import.meta.env.DEV) {
                 // these tend to stack up in auto reloading dev, which is annoying
-                console.log("unload unsaved changes would have fired");
                 return;
             }
             event.preventDefault();

@@ -22,9 +22,10 @@ const props = defineProps({
         default: () => [],
     },
 });
+/** @type {import("@vueda/use/useField.js").FieldContext|null} */
 const fieldContext = inject(FieldContextSymbol, null);
-const computedFor = computed(() => props.for || fieldContext.name);
-const computedLabel = computed(() => props.label || fieldContext.label);
+const computedFor = computed(() => (props.for?.length ? props.for : fieldContext?.state.name));
+const computedLabel = computed(() => (props.label?.length ? props.label : fieldContext?.state.label));
 const combinedClasses = useCombinedClasses("FormLabel", props);
 </script>
 <template>

@@ -30,23 +30,21 @@ const props = defineProps({
     },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
-const widget = useWidget(props, emit);
+const widgetContext = useWidget(props, emit);
 const combinedClasses = useCombinedClasses("WidgetDatePicker", props);
 </script>
 <template>
     <div :class="combinedClasses.outerClass">
-        {{ widget.combinedValue }}
         <Calendar
-            v-model="widget.combinedValue"
+            v-model="widgetContext.state.combinedValue"
             :class="combinedClasses.inputClass"
-            :name="widget.combinedName"
+            :name="widgetContext.state.combinedName"
             v-bind="$attrs"
-            @blur="widget.blur"
-            @change="widget.makeDirty"
-            @focus="widget.focus"
+            @blur="widgetContext.blur"
+            @focus="widgetContext.focus"
         />
     </div>
 </template>
 
-//TODO: make a field level that handles when returned array it should retrun the disaed way? // IT should know what
-filter it is and return the disred formated query string
+<!-- TODO: make a field level that handles when returned array it should retrun the disaed way?
+      IT should know what filter it is and return the disred formated query string -->

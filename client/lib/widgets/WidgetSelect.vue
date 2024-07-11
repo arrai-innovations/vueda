@@ -44,15 +44,14 @@ const combinedClasses = useCombinedClasses("WidgetSelect", props);
             <slot name="prefix" />
         </span>
         <Dropdown
-            v-model="widgetContext.combinedValue"
+            v-model="widgetContext.state.combinedValue"
             :class="combinedClasses.selectClass"
-            :name="widgetContext.combinedName"
+            :name="widgetContext.state.combinedName"
             v-bind="$attrs"
             option-label="label"
             option-value="value"
             :options="props.options"
             @blur="widgetContext.blur"
-            @change="widgetContext.makeDirty"
             @focus="widgetContext.focus"
         />
         <span v-if="$slots.suffix" :class="combinedClasses.suffixClass">

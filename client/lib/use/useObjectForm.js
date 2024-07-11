@@ -3,7 +3,7 @@ import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
 import { getCRUDName } from "@vueda/utils/crudSupport.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import { useToast } from "primevue/usetoast";
-import { computed, reactive, toRef } from "vue";
+import { computed, nextTick, reactive } from "vue";
 import { useRouter } from "vue-router";
 
 /**
@@ -31,7 +31,7 @@ import { useRouter } from "vue-router";
  * @property {string} app - The app name.
  * @property {string} model - The model name.
  * @property {string} verboseName - The verbose name of the model.
- * @property {boolean} dirty - Whether the form is dirty.
+ * @property {boolean} modified - Whether the form has changes from the initial values.
  */
 
 /**
@@ -40,32 +40,50 @@ import { useRouter } from "vue-router";
 
 /**
  * Type for handling when there are no changes detected upon submission attempt.
- * @typedef {(options: { formContext: FormContext, toast: import("primevue/toastservice").ToastServiceMethods }) => Promise<boolean>} OnSubmitAnyDirty
+ * @typedef {(options: {
+ *     formContext: FormContext,
+ *     toast: import("primevue/toastservice").ToastServiceMethods
+ * }) => Promise<boolean>} OnSubmitNotAnyModified
  */
 
 /**
  * Type for handling submission when form errors are present.
- * @typedef {(options: { formContext: FormContext, toast: import("primevue/toastservice").ToastServiceMethods }) => Promise<boolean>} OnSubmitAnyError
+ * @typedef {(options: {
+ *     formContext: FormContext,
+ *     toast: import("primevue/toastservice").ToastServiceMethods
+ * }) => Promise<boolean>} OnSubmitAnyError
  */
 
 /**
  * Type for handling errors during form submission.
- * @typedef {(options: { error: Error, formContext: FormContext, toast: import("primevue/toastservice").ToastServiceMethods, isUpdate: boolean, state: ObjectFormState }) => Promise<void>} OnSubmissionError
+ * @typedef {(options: {
+ *     error: Error,
+ *     formContext: FormContext,
+ *     toast: import("primevue/toastservice").ToastServiceMethods,
+ *     isUpdate: boolean,
+ *     state: ObjectFormState
+ * }) => Promise<void>} OnSubmissionError
  */
 
 /**
  * Type for handling successful form submission.
- * @typedef {(options: { isUpdate: boolean, state: ObjectFormState, toast: import("primevue/toastservice").ToastServiceMethods, router: import("vue-router").Router, formContext: FormContext }) => Promise<void>} OnSubmissionSuccess
+ * @typedef {(options: {
+ *     isUpdate: boolean,
+ *     state: ObjectFormState,
+ *     toast: import("primevue/toastservice").ToastServiceMethods,
+ *     router: import("vue-router").Router,
+ *     formContext: FormContext
+ * }) => Promise<void>} OnSubmissionSuccess
  */
 
 /**
- * Default implementation for onSubmitAnyDirty hook.
+ * Default implementation for onSubmitNotAnyModified hook.
  *
  * @param {object} options
  * @param {import("primevue/toastservice").ToastServiceMethods} options.toast
  * @returns {Promise<boolean>} True if the submission should be stopped.
  */
-export const defaultOnSubmitAnyDirty = async ({ toast }) => {
+export const defaultOnSubmitNotAnyModified = async ({ toast }) => {
     toast.add({
         severity: "info",
         summary: "No Changes Detected",
@@ -84,7 +102,7 @@ export const defaultOnSubmitAnyDirty = async ({ toast }) => {
  * @returns {Promise<boolean>} True if the submission should be stopped.
  */
 export const defaultOnSubmitAnyError = async ({ formContext, toast }) => {
-    const nonServerErrors = Object.keys(formContext.errors).filter((name) => !name.endsWith(".server"));
+    const nonServerErrors = Object.keys(formContext.state.errors).filter((name) => !name.endsWith(".server"));
     // if there are server errors, they should disappear on blur of that field.
     // if there are server messages on one field related to multiple, you might resolve the issue by
     //  changing a difference field.
@@ -163,7 +181,7 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
  * @typedef {object} ObjectFormInstance
  * @property {ObjectFormState} state - The form state.
  * @property {() => Promise<void>} submit - Submit the form.
- * @property {OnSubmitAnyDirty} onSubmitAnyDirty - The hook to call when the form is submitted with no changes.
+ * @property {OnSubmitNotAnyModified} onSubmitNotAnyModified - The hook to call when the form is submitted with no changes.
  * @property {OnSubmitAnyError} onSubmitAnyError - The hook to call when the form is submitted with errors.
  * @property {OnSubmissionError} onSubmissionError - The hook to call when an error occurs during submission.
  * @property {OnSubmissionSuccess} onSubmissionSuccess - The hook to call when submission is successful
@@ -207,7 +225,7 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
  *   <form @submit.prevent="submit">
  *     <input v-model="formContext.values.name" placeholder="Name" />
  *     <input v-model="formContext.values.age" placeholder="Age" type="number" />
- *     <button type="submit" :disabled="state.running || !formContext.anyDirty">Submit</button>
+ *     <button type="submit" :disabled="state.running || !formContext.anyModified">Submit</button>
  *   </form>
  *   <p v-if="state.loading">Loading...</p>
  *   <p v-if="state.error">{{ state.error.message }}</p>
@@ -237,16 +255,16 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
 export function useObjectForm({ props, formContext, instanceObject }) {
     const loadingError = useLoadingError();
     const state = reactive({
-        loading: toRef(loadingError, "loading"),
-        error: toRef(loadingError, "error"),
-        errored: toRef(loadingError, "errored"),
+        loading: loadingError.loading,
+        error: loadingError.error,
+        errored: loadingError.errored,
         /** @type {boolean|undefined} */
         submitting: undefined,
-        running: computed(() => loadingCombine(state.loading, state.submitting)),
+        running: computed(() => loadingCombine(loadingError.loading.value, state.submitting)),
         app: computed(() => props.app),
         model: computed(() => props.model),
         verboseName: computed(() => props.verboseName),
-        dirty: computed(() => formContext.anyDirty.value),
+        modified: computed(() => formContext.state.anyModified),
     });
     const returnObject = {
         state,
@@ -259,7 +277,7 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             promises.submit = submitPromise;
             return submitPromise;
         },
-        onSubmitAnyDirty: defaultOnSubmitAnyDirty,
+        onSubmitNotAnyModified: defaultOnSubmitNotAnyModified,
         onSubmitAnyError: defaultOnSubmitAnyError,
         onSubmissionError: defaultOnSubmissionError,
         onSubmissionSuccess: defaultOnSubmissionSuccess,
@@ -275,14 +293,18 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         try {
             // start 'submitting' right away, makes it useful for disabling the submit button.
             state.submitting = true;
-            if (!formContext.anyDirty) {
+            // set all fields as touched to show errors
+            formContext.setAllTouched();
+            // wait for validation watchers to run
+            await nextTick();
+            if (!formContext.state.anyModified) {
                 // should we stop if there is nothing changed?
-                const stop = await returnObject.onSubmitAnyDirty({ formContext, toast });
+                const stop = await returnObject.onSubmitNotAnyModified({ formContext, toast });
                 if (stop) {
                     return;
                 }
             }
-            if (formContext.anyError) {
+            if (formContext.state.anyError) {
                 // should we stop for errors?
                 const stop = await returnObject.onSubmitAnyError({ formContext, toast });
                 if (stop) {
@@ -294,7 +316,7 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             await createOrUpdate({
                 object: {
                     id: instanceObject.state.object.id,
-                    ...formContext.values,
+                    ...formContext.state.values,
                 },
             });
             if (instanceObject.state.errored) {

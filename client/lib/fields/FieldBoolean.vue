@@ -8,11 +8,11 @@ const props = defineProps({
 const fieldContext = useField(props);
 
 watch(
-    toRef(fieldContext, "fieldValue"),
+    toRef(fieldContext.state, "value"),
     (newValue) => {
         const coercedValue = !!newValue;
-        if (coercedValue !== fieldContext.value) {
-            fieldContext.updateValue(coercedValue);
+        if (coercedValue !== newValue) {
+            fieldContext.state.value = coercedValue;
         }
     },
     { immediate: true },
