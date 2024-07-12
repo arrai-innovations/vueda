@@ -1,5 +1,6 @@
 <script setup>
 import { FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { toRef, watch } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -17,20 +18,23 @@ const props = defineProps({
     },
 });
 const fieldContext = useField(props);
-console.log(fieldContext);
-// watch(
-//     toRef(fieldContext.state, "value"),
-//     (newValue) => {
-//         if (newValue === undefined || newValue === null) {
-//             return;
-//         }
-//         const coercedValue = newValue.toString();
-//         if (coercedValue !== fieldContext.value) {
-//             fieldContext.updateValue(coercedValue);
-//         }
-//     },
-//     { immediate: true },
-// );
+watch(
+    toRef(fieldContext.state, "value"),
+    (newValue) => {
+        if (newValue === undefined || newValue === null) {
+            return;
+        }
+        newValue = newValue.map((v) => {
+            if (typeof v === "string") {
+                console.log(new Date(v));
+                return new Date(v);
+            }
+            return v;
+        });
+        fieldContext.updateValue(newValue);
+    },
+    { immediate: true },
+);
 </script>
 <template>
     <div data-qa="field-date">
