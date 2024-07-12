@@ -1,5 +1,6 @@
 <script setup>
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 
 const props = defineProps({
@@ -20,18 +21,18 @@ const props = defineProps({
 
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const combinedClasses = useCombinedClasses("WidgetReadonly", props);
+const theme = useComputedClasses(vuedaTailwind.WidgetReadonly, widgetContext.state);
 </script>
 
 <template>
-    <div :class="combinedClasses.outerClass">
-        <div :class="combinedClasses.innerClass">
-            <div :class="combinedClasses.labelClass">
+    <div :class="theme('root')">
+        <div :class="theme('inner')">
+            <div :class="theme('label')">
                 <slot :label="widgetContext.state.combinedLabel" name="label">{{
                     widgetContext.state.combinedLabel
                 }}</slot>
             </div>
-            <div :class="combinedClasses.inputClass" v-bind="$attrs">
+            <div :class="theme('input')" v-bind="$attrs">
                 <slot>{{ widgetContext.state.combinedValue }}</slot>
             </div>
         </div>

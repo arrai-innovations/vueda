@@ -1,5 +1,6 @@
 <script setup>
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 
@@ -48,22 +49,22 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const combinedClasses = useCombinedClasses("WidgetRadio", props);
+const theme = useComputedClasses(vuedaTailwind.WidgetRadio, widgetContext.state);
 </script>
 
 <template>
-    <div :class="combinedClasses.outerClass">
-        <widget-label :label-class="combinedClasses.labelClass" :use-floating-label="props.useFloatingLabel">
+    <div :class="theme('root')">
+        <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
-            <div :class="combinedClasses.innerClass">
-                <ul :class="combinedClasses.optionsClass">
+            <div :class="theme('inner')">
+                <ul :class="theme('options')">
                     <li v-for="option in props.options" :key="option.value" :class="combinedClasses.optionClass">
                         <input
                             :id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
                             :checked="widgetContext.state.combinedValue === option.value"
-                            :class="combinedClasses.inputClass"
+                            :class="theme('option')"
                             :name="widgetContext.state.combinedName"
                             type="radio"
                             :value="option.value"
@@ -72,13 +73,13 @@ const combinedClasses = useCombinedClasses("WidgetRadio", props);
                             @update:checked="widgetContext.state.combinedValue = option.value"
                         />
                         <slot
-                            :class="combinedClasses.optionLabelClass"
+                            :class="theme('optionLabel')"
                             :for="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
                             :label="option.label"
                             :name="$slots[`label-${option.value}`] ? `label-${option.value}` : 'default'"
                         >
                             <label
-                                :class="combinedClasses.optionLabelClass"
+                                :class="theme('optionLabel')"
                                 :for="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
                                 >{{ option.label }}</label
                             >

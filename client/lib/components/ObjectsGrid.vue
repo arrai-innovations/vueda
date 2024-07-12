@@ -1,10 +1,11 @@
 <script setup>
 import { faDownLong, faUpDown, faUpLong } from "@arrai-innovations/sharp-solid-svg-icons";
 import { FontAwesomeIcon } from "@arrai-innovations/vue-fontawesome";
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind";
+import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 import get from "lodash-es/get.js";
-import { computed, ref } from "vue";
+import { computed, reactive } from "vue";
 
 const props = defineProps({
     titleFieldName: {
@@ -113,25 +114,15 @@ const props = defineProps({
 });
 const emit = defineEmits(["update:sorted"]);
 
-const combinedClasses = useCombinedClasses("ObjectsGrid", props);
-
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isTable = breakpoints.greaterOrEqual(props.tableBreakpoint);
 const twoColumns = breakpoints.between("sm", props.tableBreakpoint);
-const printing = ref(false);
-
-const oddEvenClassesLookup = [
-    combinedClasses.oddTwoColumnCardClass,
-    combinedClasses.evenTwoColumnCardClass,
-    combinedClasses.evenTwoColumnCardClass,
-    combinedClasses.oddTwoColumnCardClass,
-];
-
-const oddEvenClasses = (index) => {
+const evenCard = (index) => {
     if (isTable.value || !twoColumns.value) {
-        return combinedClasses.oddCardOrRowClass;
+        return index % 2 === 0;
     }
-    return oddEvenClassesLookup[index % 4];
+    // checkerboard pattern
+    return index % 4 === 1 || index % 4 === 2;
 };
 
 const sortClick = (e, fieldName) => {
@@ -174,20 +165,25 @@ const sortIcon = (fieldName) => {
 };
 
 const directionlessSorted = computed(() => props.sorted.map((field) => field.replace(/^-/, "")));
+const themeProps = reactive({
+    isTable,
+});
+const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kwargs) => {
+    if ("evenCard" in kwargs) {
+        return key + (kwargs.evenCard ? "Even" : "Odd");
+    }
+    return key;
+});
 </script>
 
 <template>
-    <div :class="[combinedClasses.outerClass, { '!table': printing }]" role="table">
-        <div
-            v-if="isTable || printing"
-            :class="[combinedClasses.headerGroupClass, { '!table-header-group': printing }]"
-            role="rowgroup"
-        >
-            <div :class="[combinedClasses.rowClass, { '!table-row': printing }]" role="row">
+    <div :class="theme('root')" role="table">
+        <div :class="theme('headerRowGroup')" role="rowgroup">
+            <div :class="theme('headerRow')" role="row">
                 <div
                     v-for="(field, colIndex) in fields"
                     :key="field.name"
-                    :class="[combinedClasses.headerClass, headerClasses?.[field.name]]"
+                    :class="[theme('headerCell'), headerClasses?.[field.name]]"
                     :data-header="field.name"
                     data-qa="objects-grid-header"
                     role="columnheader"
@@ -196,66 +192,50 @@ const directionlessSorted = computed(() => props.sorted.map((field) => field.rep
                     <slot :col-index="colIndex" :field="field" :name="`header(${field.name})`">{{ field.label }}</slot>
                     <span
                         v-if="sortable.includes(field.name)"
-                        :class="combinedClasses.sortClass"
+                        :class="theme('sort')"
                         :data-qa="`objects-grid-sort-${field.name}`"
                     >
                         <font-awesome-icon fixed-width :icon="sortIcon(field.name)" />
-                        <span v-if="sorted?.length > 1" :class="combinedClasses.sortNumClass">{{
+                        <span v-if="sorted?.length > 1" :class="theme('sortNum')">{{
                             directionlessSorted.indexOf(field.name) + 1
                         }}</span>
                     </span>
                 </div>
             </div>
         </div>
-        <div
-            v-if="!objectsInOrder?.length && !loading && emptyText"
-            :class="combinedClasses.rowGroupClass"
-            role="rowgroup"
-        >
-            <div role="row">
-                <!-- hack to get the colspan to work -->
-                <!--suppress HtmlUnknownTag -->
-                <td
-                    v-if="printing || isTable"
-                    :class="combinedClasses.emptyTextClass"
-                    :colspan="fields.length"
-                    role="cell"
-                >
+        <div v-if="!objectsInOrder?.length && !loading && emptyText" :class="theme('bodyRowGroup')" role="rowgroup">
+            <div :class="theme('bodyRow')" role="row">
+                <div :class="theme('emptyText')" role="cell">
                     {{ emptyText }}
-                </td>
-                <div v-else class="w-full" :class="combinedClasses.emptyTextClass" role="cell">{{ emptyText }}</div>
+                </div>
             </div>
         </div>
-        <div
-            :class="[
-                combinedClasses.rowGroupClass,
-                combinedClasses.rowGroupCardsClass,
-                { '!table-row-group': printing },
-            ]"
-            role="rowgroup"
-        >
+        <div v-else :class="theme('bodyRowGroup')" role="rowgroup">
             <div
                 v-for="(obj, rowIndex) in objectsInOrder || []"
                 :key="obj?.id"
-                :class="[combinedClasses.cardClass, oddEvenClasses(rowIndex), { '!table-row': printing }]"
+                :class="[
+                    theme('bodyRow', {
+                        evenCard: evenCard(rowIndex),
+                    }),
+                ]"
                 data-qa="objects-grid-row"
                 role="row"
             >
-                <div
-                    v-for="(field, colIndex) in fields"
-                    :key="field.name"
-                    :class="[combinedClasses.cellClass, fieldClasses?.[field.name], { '!table-cell': printing }]"
-                    :data-field="field.name"
-                    data-qa="objects-grid-cell"
-                    role="cell"
-                >
-                    <div v-if="!isTable && !printing">
-                        <div :class="combinedClasses.cardHeaderClass" :data-card-header="field.name">
+                <template v-for="(field, colIndex) in fields" :key="field.name">
+                    <!-- this if let's first: and last: work, otherwise the last table cell can never be last child -->
+                    <div
+                        v-if="!isTable"
+                        :class="[theme('cardCell'), fieldClasses?.[field.name]]"
+                        data-qa="objects-grid-card-cell"
+                        role="cell"
+                    >
+                        <div :class="theme('cardHeader')" :data-card-header="field.name">
                             <slot :col-index="colIndex" :field="field" :name="`header(${field.name})`">
                                 {{ field.label }}
                             </slot>
                         </div>
-                        <div :class="combinedClasses.cardCellClass" :data-card="field.name">
+                        <div :class="theme('cardValue')" :data-card="field.name">
                             <slot v-if="colIndex === 0" name="link-field" :pk="obj?.id" :value="get(obj, field.name)">
                             </slot>
                             <slot
@@ -275,24 +255,31 @@ const directionlessSorted = computed(() => props.sorted.map((field) => field.rep
                             </slot>
                         </div>
                     </div>
-                    <slot
+                    <div
                         v-else
-                        :calculated="get(get(calculatedObjects, obj.id), field.name)"
-                        :calculated-obj="get(calculatedObjects, obj.id)"
-                        :col-index="colIndex"
-                        :field="field"
-                        :name="`field(${field.name})`"
-                        :obj="obj"
-                        :related="get(get(relatedObjects, obj.id), field.name)"
-                        :related-obj="get(relatedObjects, obj.id)"
-                        :row-index="rowIndex"
-                        :value="get(obj, field.name)"
+                        :class="[theme('bodyCell'), fieldClasses?.[field.name]]"
+                        :data-field="field.name"
+                        data-qa="objects-grid-body-cell"
+                        role="cell"
                     >
-                        <slot v-if="colIndex === 0" name="link-field" :pk="obj?.id" :value="get(obj, field.name)">
+                        <slot
+                            :calculated="get(get(calculatedObjects, obj.id), field.name)"
+                            :calculated-obj="get(calculatedObjects, obj.id)"
+                            :col-index="colIndex"
+                            :field="field"
+                            :name="`field(${field.name})`"
+                            :obj="obj"
+                            :related="get(get(relatedObjects, obj.id), field.name)"
+                            :related-obj="get(relatedObjects, obj.id)"
+                            :row-index="rowIndex"
+                            :value="get(obj, field.name)"
+                        >
+                            <slot v-if="colIndex === 0" name="link-field" :pk="obj?.id" :value="get(obj, field.name)">
+                            </slot>
+                            <p v-else>{{ get(obj, field.name) }}</p>
                         </slot>
-                        <p v-else>{{ get(obj, field.name) }}</p>
-                    </slot>
-                </div>
+                    </div>
+                </template>
             </div>
         </div>
     </div>

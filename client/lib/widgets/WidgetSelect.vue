@@ -1,5 +1,6 @@
 <script setup>
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Dropdown from "primevue/dropdown";
@@ -36,16 +37,16 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const combinedClasses = useCombinedClasses("WidgetSelect", props);
+const theme = useComputedClasses(vuedaTailwind.WidgetSelect, widgetContext.state);
 </script>
 
 <template>
-    <div :class="combinedClasses.outerClass">
-        <widget-label :label-class="combinedClasses.labelClass" :use-floating-label="props.useFloatingLabel">
+    <div :class="theme('root')">
+        <widget-label :label-class="theme('inner')" :use-floating-label="props.useFloatingLabel">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
-            <div :class="combinedClasses.innerClass">
+            <div :class="theme('label')">
                 <dropdown
                     v-model="widgetContext.state.combinedValue"
                     :name="widgetContext.state.combinedName"

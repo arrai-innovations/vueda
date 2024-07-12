@@ -2,7 +2,8 @@
 import TextAlign from "@tiptap/extension-text-align";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/vue-3";
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import { unref } from "vue";
@@ -88,22 +89,17 @@ const editor = useEditor({
         widgetContext.blur();
     },
 });
-const combinedClasses = useCombinedClasses("WidgetHtml", props);
+const theme = useComputedClasses(vuedaTailwind.WidgetHtml, widgetContext.state);
 </script>
 <template>
-    <div :class="combinedClasses.outerClass">
-        <widget-label :label-class="combinedClasses.labelClass" :use-floating-label="props.useFloatingLabel">
+    <div :class="theme('outer')">
+        <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
-            <div :class="combinedClasses.innerClass">
-                <component
-                    :is="menuComponent"
-                    :class="combinedClasses.menuClass"
-                    :disabled="disabled"
-                    :editor="editor"
-                />
-                <editor-content :class="combinedClasses.editorClass" v-bind="$attrs" :editor="editor" />
+            <div :class="theme('inner')">
+                <component :is="menuComponent" :class="theme('menu')" :disabled="disabled" :editor="editor" />
+                <editor-content :class="theme('editor')" v-bind="$attrs" :editor="editor" />
             </div>
         </widget-label>
     </div>

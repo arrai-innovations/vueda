@@ -1,5 +1,6 @@
 <script setup>
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import InputSwitch from "primevue/inputswitch";
 
@@ -31,11 +32,11 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const combinedClasses = useCombinedClasses("WidgetCheckbox", props);
+const theme = useComputedClasses(vuedaTailwind.WidgetCheckbox, widgetContext.state);
 </script>
 <template>
-    <div :class="combinedClasses.outerClass">
-        <div :class="combinedClasses.innerClass">
+    <div :class="theme('root')">
+        <div :class="theme('inner')">
             <InputSwitch
                 v-model="widgetContext.state.combinedValue"
                 :name="widgetContext.state.combinedName"
@@ -44,7 +45,7 @@ const combinedClasses = useCombinedClasses("WidgetCheckbox", props);
                 @blur="widgetContext.blur"
                 @focus="widgetContext.focus"
             />
-            <label :class="combinedClasses.labelClass" :for="widgetContext.state.combinedName">
+            <label :class="theme('label')" :for="widgetContext.state.combinedName">
                 <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label">{{
                     widgetContext.state.combinedLabel
                 }}</slot>

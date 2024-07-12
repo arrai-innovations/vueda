@@ -1,6 +1,7 @@
 <script setup>
 import EmptyComponent from "@vueda/components/EmptyComponent.vue";
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import InputGroup from "primevue/inputgroup";
@@ -53,15 +54,15 @@ const inputComponent = computed(
         })[props.type] || InputText,
 );
 
-const combinedClasses = useCombinedClasses("WidgetInput", props);
+const theme = useComputedClasses(vuedaTailwind.WidgetInput, widgetContext.state);
 </script>
 <template>
-    <div :class="combinedClasses.outerClass">
-        <widget-label :label-class="combinedClasses.labelClass" :use-floating-label="props.useFloatingLabel">
+    <div :class="theme('root')">
+        <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
-            <div :class="combinedClasses.innerClass">
+            <div :class="theme('inner')">
                 <component :is="$slots.prefix || $slots.suffix ? InputGroup : EmptyComponent">
                     <slot v-if="$slots.prefix" name="prefix" />
                     <component
