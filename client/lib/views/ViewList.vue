@@ -210,7 +210,7 @@ const formContext = useForm(formContextProps);
 
 const filterList = () => {
     listState.search = listSearch.value;
-    assignReactiveObject(listState.filterArgs, formContext.state.values);
+    listState.filterArgs = cloneDeep(formContext.state.values);
 };
 const clickClearFilter = () => {
     formContext.reset();

@@ -235,7 +235,9 @@ export function useField(props, functions) {
         updateValue: ifFormContext((value) => {
             if (isArray(value) && props.rangeSuffix) {
                 value.forEach((v, index) => {
-                    formContext.updateValue(`${state.name}_${state.suffix[index]}`, v);
+                    if (v !== undefined && v !== null) {
+                        formContext.updateValue(`${state.name}_${state.suffix[index]}`, v);
+                    }
                 });
             } else {
                 formContext.updateValue(state.name, value);
