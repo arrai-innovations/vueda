@@ -125,10 +125,12 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 else:
                     field_type = field.__class__.__name__
 
+            effective_label = field.label or field_name.replace("_", " ").title()
+
             field_data = {
                 "choices": hasattr(field, "choices") and bool(field.choices),
                 "name": field_name,
-                "label": field.label,
+                "label": effective_label,
                 "type": field_type,
                 "many": many,
                 "read_only": field.read_only,

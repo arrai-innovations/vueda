@@ -5,7 +5,7 @@ from vueda.history.fields import filter_fields_for_flexlike_on_historical_record
 
 
 class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass):
-    current_history_id = drf_serializers.IntegerField(read_only=True)
+    current_history_id = drf_serializers.IntegerField(read_only=True, label="Current History ID")
 
     class Meta:
         fields = ["current_history_id"]
