@@ -78,19 +78,19 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    tableHeaderGroupClass: {
+    headerGroupClass: {
         type: [String, Array, Object],
         default: () => [],
     },
-    tableRowClass: {
+    rowClass: {
         type: [String, Array, Object],
         default: () => [],
     },
-    tableHeaderClass: {
+    headerClass: {
         type: [String, Array, Object],
         default: () => [],
     },
-    tableRowGroupClass: {
+    rowGroupClass: {
         type: [String, Array, Object],
         default: () => [],
     },
@@ -98,7 +98,7 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    tableCellClass: {
+    cellClass: {
         type: [String, Array, Object],
         default: () => [],
     },
@@ -180,15 +180,14 @@ const directionlessSorted = computed(() => props.sorted.map((field) => field.rep
     <div :class="[combinedClasses.outerClass, { '!table': printing }]" role="table">
         <div
             v-if="isTable || printing"
-            class="hidden"
-            :class="[combinedClasses.tableHeaderGroupClass, { '!table-header-group': printing }]"
+            :class="[combinedClasses.headerGroupClass, { '!table-header-group': printing }]"
             role="rowgroup"
         >
-            <div :class="[combinedClasses.tableRowClass, { '!table-row': printing }]" role="row">
+            <div :class="[combinedClasses.rowClass, { '!table-row': printing }]" role="row">
                 <div
                     v-for="(field, colIndex) in fields"
                     :key="field.name"
-                    :class="[combinedClasses.tableHeaderClass, headerClasses?.[field.name], 'select-none']"
+                    :class="[combinedClasses.headerClass, headerClasses?.[field.name]]"
                     :data-header="field.name"
                     data-qa="objects-grid-header"
                     role="columnheader"
@@ -197,11 +196,11 @@ const directionlessSorted = computed(() => props.sorted.map((field) => field.rep
                     <slot :col-index="colIndex" :field="field" :name="`header(${field.name})`">{{ field.label }}</slot>
                     <span
                         v-if="sortable.includes(field.name)"
-                        class="bg-neutral-600 text-white dark:bg-neutral-300 dark:text-material-black rounded-sm"
+                        :class="combinedClasses.sortClass"
                         :data-qa="`objects-grid-sort-${field.name}`"
                     >
                         <font-awesome-icon fixed-width :icon="sortIcon(field.name)" />
-                        <span v-if="sorted?.length > 1" class="pr-1">{{
+                        <span v-if="sorted?.length > 1" :class="combinedClasses.sortNumClass">{{
                             directionlessSorted.indexOf(field.name) + 1
                         }}</span>
                     </span>
@@ -210,23 +209,34 @@ const directionlessSorted = computed(() => props.sorted.map((field) => field.rep
         </div>
         <div
             v-if="!objectsInOrder?.length && !loading && emptyText"
-            :class="combinedClasses.tableRowGroupClass"
+            :class="combinedClasses.rowGroupClass"
             role="rowgroup"
         >
             <div role="row">
                 <!-- hack to get the colspan to work -->
                 <!--suppress HtmlUnknownTag -->
-                <td v-if="printing || isTable" class="text-center" :colspan="fields.length" role="cell">
+                <td
+                    v-if="printing || isTable"
+                    :class="combinedClasses.emptyTextClass"
+                    :colspan="fields.length"
+                    role="cell"
+                >
                     {{ emptyText }}
                 </td>
-                <div v-else class="w-full text-center" role="cell">{{ emptyText }}</div>
+                <div v-else class="w-full" :class="combinedClasses.emptyTextClass" role="cell">{{ emptyText }}</div>
             </div>
         </div>
-        <div :class="[combinedClasses.tableRowGroupClass, { '!table-row-group': printing }]" role="rowgroup">
+        <div
+            :class="[
+                combinedClasses.rowGroupClass,
+                combinedClasses.rowGroupCardsClass,
+                { '!table-row-group': printing },
+            ]"
+            role="rowgroup"
+        >
             <div
                 v-for="(obj, rowIndex) in objectsInOrder || []"
                 :key="obj?.id"
-                class="object-card sm:!flex flex-col gap-2 p-2"
                 :class="[combinedClasses.cardClass, oddEvenClasses(rowIndex), { '!table-row': printing }]"
                 data-qa="objects-grid-row"
                 role="row"
@@ -234,7 +244,7 @@ const directionlessSorted = computed(() => props.sorted.map((field) => field.rep
                 <div
                     v-for="(field, colIndex) in fields"
                     :key="field.name"
-                    :class="[combinedClasses.tableCellClass, fieldClasses?.[field.name], { '!table-cell': printing }]"
+                    :class="[combinedClasses.cellClass, fieldClasses?.[field.name], { '!table-cell': printing }]"
                     :data-field="field.name"
                     data-qa="objects-grid-cell"
                     role="cell"
@@ -287,34 +297,3 @@ const directionlessSorted = computed(() => props.sorted.map((field) => field.rep
         </div>
     </div>
 </template>
-
-<!-- this is related to 2xs not being recognized by webstorm -->
-<!--suppress CssUnknownUnit -->
-<style scoped>
-@media screen {
-    .object-cards {
-        display: grid;
-        grid-auto-flow: row;
-        grid-gap: 1rem;
-        grid-template-columns: repeat(1, 1fr);
-        @media screen(sm) {
-            grid-template-columns: repeat(2, 1fr);
-        }
-        @media screen(md) {
-            grid-template-columns: repeat(3, 1fr);
-        }
-        @media screen(lg) {
-            grid-template-columns: repeat(4, 1fr);
-        }
-    }
-
-    @media screen(2xs) {
-        .object-card {
-            display: grid;
-            grid-auto-flow: row;
-            grid-gap: 1rem;
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-}
-</style>
