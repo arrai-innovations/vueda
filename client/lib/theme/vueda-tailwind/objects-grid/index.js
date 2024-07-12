@@ -16,8 +16,9 @@ export default {
     },
     headerCell: {
         class: ({ isTable }) => [
-            "align-middle border-surface-200  dark:border-surface-700 text-material-black dark:text-white" +
-                " font-semibold not-italic pl-1 pr-3 select-none",
+            "align-middle border-surface-200 dark:border-surface-700" +
+                " font-semibold not-italic px-1 lg:px-2 select-none",
+            "bg-surface-900 dark:bg-surface-500 text-white",
             {
                 "!table-cell": isTable,
                 "h-[3.5rem] py-2": isTable,
@@ -57,8 +58,8 @@ export default {
     bodyRow: {
         class: ({ isTable, evenCard }) => [
             {
-                "bg-surface-100": !evenCard,
-                "bg-surface-200": evenCard,
+                "bg-surface-50 dark:bg-surface-900": !evenCard,
+                "bg-surface-100 dark:bg-surface-800": evenCard,
                 "!table-row": isTable,
             },
         ],
@@ -67,7 +68,7 @@ export default {
         class: ({ isTable }) => [
             "align-middle border-surface-200 dark:border-surface-700" +
                 " text-surface-800 dark:text-surface-200 font-normal not-italic" +
-                " first:pl-1 last:pr-1",
+                " px-1 lg:px-2",
             {
                 "!table-cell": isTable,
                 "h-[3.5rem]": isTable,

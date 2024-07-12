@@ -1,6 +1,5 @@
 <script setup>
 import { getCRUDForTo, isDetailView } from "@vueda/router/getCrud.js";
-// import {getLowerTitle} from "@vueda/utils/crudSupport.js";
 import { computed } from "vue";
 
 defineOptions({ inheritAttrs: false });
@@ -36,7 +35,7 @@ const props = defineProps({
     },
     view: {
         type: [String, Array, Object],
-        default: "view",
+        default: "read",
     },
 });
 // TODO: permissions for view
@@ -88,7 +87,7 @@ const isDetailViewComputed = computed(() => isDetailView(viewToUse.value));
                 : undefined
         "
     >
-        <a :href="slotProps.href" style="color: hotpink" v-bind="$attrs" target="_blank" @click="slotProps.navigate">
+        <a :href="slotProps.href" v-bind="$attrs" @click="slotProps.navigate">
             <slot :used-view="viewToUse"></slot>
         </a>
     </router-link>

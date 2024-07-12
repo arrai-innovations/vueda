@@ -175,7 +175,6 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
     return key;
 });
 </script>
-
 <template>
     <div :class="theme('root')" role="table">
         <div :class="theme('headerRowGroup')" role="rowgroup">
