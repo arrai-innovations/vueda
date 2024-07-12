@@ -4,7 +4,7 @@ import FieldDateRange from "@vueda/fields/FieldDateRange.vue";
 import FieldNumber from "@vueda/fields/FieldNumber.vue";
 import FieldString from "@vueda/fields/FieldString.vue";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
-import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
+import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import WidgetDatePicker from "@vueda/widgets/WidgetDatePicker.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
@@ -32,7 +32,11 @@ const defaultWidgets = {
     FieldTime: WidgetInput,
 };
 
-const defaultFieldProps = {};
+const defaultFieldProps = {
+    FieldDateRange: {
+        rangeSuffix: ["after", "before"],
+    },
+};
 
 // todo: we should have a way to register custom widget props for custom fields
 // modelconfig should have a view that client can pass in custom props
@@ -57,34 +61,25 @@ const defaultWidgetProps = {
         showTime: "true",
     },
     FieldObject: {},
-    FieldString: {
-        options: [
-            {
-                label: "office",
-                value: "office",
-            },
-        ],
-    },
+    FieldString: {},
     FieldTime: {
         type: "time",
     },
 };
-
 /**
  * Get the field props for a given field object.
  *
  * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} fieldObj - The field object.
  * @returns {{[key:string]: any}} The field props.
  */
-const getFieldProps = (fieldObj) => {
-    const defaultProps = defaultFieldProps[fieldObj.type] || {};
+const getFieldProps = (fieldType, fieldObj) => {
+    const defaultProps = defaultFieldProps[fieldType] || {};
     return {
         // useFormModel resolves type, the fields don't care about the server type.
         ...omit(fieldObj, ["type"]),
         ...defaultProps,
     };
 };
-
 /**
  * Get the widget props for a given field type and field object.
  *
@@ -92,18 +87,8 @@ const getFieldProps = (fieldObj) => {
  * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} fieldObj - The field object.
  * @returns {{[key:string]: any}} The widget props.
  */
-const getWidgetProps = (fieldType, fieldObj) => {
+const getWidgetProps = (fieldType) => {
     const defaultProps = defaultWidgetProps[fieldType] || {};
-    if (fieldObj.type === "ChoiceField") {
-        const choices = fieldObj.choices;
-        return {
-            ...defaultProps,
-            options: Object.keys(choices).map((key) => ({
-                label: choices[key],
-                value: key,
-            })),
-        };
-    }
     return defaultProps;
 };
 
@@ -168,6 +153,7 @@ export default function useFilterFormModel(props) {
     const modelInfoStore = storeModelInfo();
     const internalState = reactive({
         modelInfo: {},
+        modelInfoChoices: {},
     });
     const state = shallowReactive(
         /** @type {UseFormModelRawState} */ {
@@ -189,7 +175,7 @@ export default function useFilterFormModel(props) {
         },
         { immediate: true },
     );
-    const appModelKey = computed(() => `${memoizedSnakeCase(props.app)}.${memoizedSnakeCase(props.model)}`);
+    const appModelKey = computed(() => getAppModelDotName(props.app, props.model));
 
     watch(
         () => modelInfoStore.modelInfos[appModelKey.value],
@@ -199,6 +185,23 @@ export default function useFilterFormModel(props) {
             }
         },
         { immediate: true },
+    );
+
+    watch(
+        () => modelInfoStore.fieldChoices[appModelKey.value],
+        (fieldChoices) => {
+            if (fieldChoices) {
+                for (const field in fieldChoices) {
+                    const choices = fieldChoices[field]?.results || [];
+                    // Extend widgetProps with choices
+                    state.widgetProps[field] = {
+                        ...state.widgetProps[field],
+                        options: choices,
+                    };
+                }
+            }
+        },
+        { immediate: true, deep: true },
     );
 
     const assignStateObjectsIfChanged = (args) => {
@@ -214,22 +217,23 @@ export default function useFilterFormModel(props) {
         [toRef(internalState, "modelInfo"), toRef(props, "listFields")],
         ([modelInfo, listFields]) => {
             if (modelInfo?.filtering?.length) {
+                console.log(listFields);
                 const fieldComponents = {};
                 const fieldProps = {};
                 const widgetComponents = {};
                 const widgetProps = {};
                 console.log(listFields);
                 for (const filter of modelInfo.filtering) {
-                    // if (!listFields.includes(filter.name)) {
-                    //     continue;
-                    // }
                     const fieldComponent = djangoTypeToFieldComponent(filter.type);
                     fieldComponents[filter.name] = fieldComponent;
-                    fieldProps[filter.name] = getFieldProps(filter);
+                    fieldProps[filter.name] = getFieldProps(fieldComponent.__name, filter);
                     widgetComponents[filter.name] = getDefaultWidget(filter);
                     // todo: we should have a way to register custom widget props
                     //  or provide them to the form model as props
-                    widgetProps[filter.name] = getWidgetProps(fieldComponent.__name, filter);
+                    widgetProps[filter.name] = getWidgetProps(fieldComponent.__name);
+                    if (filter.choices) {
+                        modelInfoStore.fetchFieldChoices(props.app, props.model, filter.name);
+                    }
                 }
                 assignStateObjectsIfChanged({
                     fieldComponents,

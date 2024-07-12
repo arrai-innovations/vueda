@@ -1,6 +1,7 @@
 const defaultUrls = {
     historyObjectHistory: "/routes/history/object-history/:app/:model/:pk/",
     infoModelInfo: "/routes/vueda.info/model_info/",
+    infoModelInfoChoices: "/routes/vueda.info/model_info_choices/",
     modelDetail: "/routes/:app/:model/:pk/",
     modelList: "/routes/:app/:model/",
     userCurrentUser: "/routes/vueda.user/who-is/",

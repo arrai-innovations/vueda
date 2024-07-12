@@ -59,6 +59,9 @@ const fetchHelper = async (url, options = {}, messagePrefix) => {
 const modelInfoUrl = (app, model) =>
     `${httpOrHttpsHostname}${getUrl("infoModelInfo")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
 
+const modelInfoChoicesUrl = (app, model, field) =>
+    `${httpOrHttpsHostname}${getUrl("infoModelInfoChoices")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/${memoizedSnakeCase(field)}`;
+
 /**
  * A function to convert snake_case properties deeply on an object to be camelCase.
  *
@@ -187,6 +190,8 @@ export const storeModelInfo = defineStore({
     state: () => ({
         modelInfos: {},
         existingPromises: {},
+        fieldChoices: {},
+        fieldChoicePromises: {},
     }),
     actions: {
         async fetchModelInfo(app, model) {
@@ -246,6 +251,35 @@ export const storeModelInfo = defineStore({
             }
 
             return this.existingPromises[key];
+        },
+        async fetchFieldChoices(app, model, field) {
+            const key = getAppModelDotName(app, model);
+
+            if (!this.fieldChoicePromises[key]) {
+                this.fieldChoicePromises[key] = {};
+            }
+
+            if (!this.fieldChoicePromises[key][field]) {
+                if (!this.fieldChoices[key]) {
+                    this.fieldChoices[key] = {};
+                }
+
+                this.fieldChoicePromises[key][field] = fetchHelper(
+                    modelInfoChoicesUrl(app, model, field),
+                    {
+                        method: "GET",
+                    },
+                    "Failed to fetch field choices",
+                )
+                    .then((data) => {
+                        this.fieldChoices[key][field] = data;
+                    })
+                    .finally(() => {
+                        delete this.fieldChoicePromises[key][field];
+                    });
+            }
+
+            return this.fieldChoicePromises[key][field];
         },
     },
 });

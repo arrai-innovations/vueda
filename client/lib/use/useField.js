@@ -1,4 +1,5 @@
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
+import { isArray } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -131,10 +132,27 @@ export function useField(props, functions) {
         name: readonly(toRef(props, "name")),
         label: computed(() => (props.label?.length ? props.label : props.name)),
         help: computed(() => props.help || ""),
+        suffix: computed(() => props.rangeSuffix || ""),
         value: formContext
             ? computed({
-                  get: () => get(formContext.state.values, props.name),
-                  set: (newValue) => formContext.updateValue(props.name, newValue),
+                  get: () => {
+                      if (props.rangeSuffix) {
+                          const values = props.rangeSuffix
+                              .map((s) => get(formContext.state.values, `${props.name}_${s}`))
+                              .filter(Boolean); // Filters out undefined or falsy values
+                          return values.length > 0 ? values : undefined;
+                      }
+                      return get(formContext.state.values, props.name);
+                  },
+                  set: (newValue) => {
+                      if (isArray(newValue) && props.rangeSuffix) {
+                          newValue.forEach((v, index) => {
+                              formContext.updateValue(`${state.name}_${state.suffix[index]}`, v);
+                          });
+                      } else {
+                          formContext.updateValue(state.name, newValue);
+                      }
+                  },
               })
             : undefined,
         initialValue: formContext ? computed(() => get(formContext.state.initialValues, props.name)) : undefined,
@@ -214,7 +232,15 @@ export function useField(props, functions) {
     };
     const returnObj = {
         state,
-        updateValue: ifFormContext((value) => formContext.updateValue(state.name, value)),
+        updateValue: ifFormContext((value) => {
+            if (isArray(value) && props.rangeSuffix) {
+                value.forEach((v, index) => {
+                    formContext.updateValue(`${state.name}_${state.suffix[index]}`, v);
+                });
+            } else {
+                formContext.updateValue(state.name, value);
+            }
+        }),
         deleteValue: ifFormContext(() => formContext.deleteValue(state.name)),
         updateError: ifFormContext((code, message) => formContext.updateError(state.name, code, message)),
         deleteError: ifFormContext((code) => formContext.deleteError(state.name, code)),

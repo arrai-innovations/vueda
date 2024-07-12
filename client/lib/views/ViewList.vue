@@ -7,6 +7,7 @@ import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { getCRUDName, getCapitalizedTitle } from "@vueda/utils/crudSupport.js";
@@ -14,7 +15,7 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
-import { computed, reactive, ref, toRef, watch } from "vue";
+import { computed, reactive, ref, toRaw, toRef, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -177,6 +178,13 @@ watch(
         if (!isEqual(newFilter, oldFilter)) {
             listState.currentPage = 1;
         }
+        Object.entries(listState.filterArgs).forEach(([key, value]) => {
+            if (value instanceof Date) {
+                const rawFilterArgs = toRaw(listState.filterArgs);
+                const updatedFilterArgs = { ...rawFilterArgs, [key]: value.toISOString().split("T")[0] };
+                listState.filterArgs = updatedFilterArgs;
+            }
+        });
         assignReactiveObject(listState.listArgs, listState.filterArgs, [
             ...Object.keys(props.listArgs),
             "o",
@@ -195,17 +203,17 @@ const dismissError = () => {
     modelConfig.clearError();
     instanceList.clearError();
 };
-const doFilterSubmit = () => {
-    filterFormModelRef.value?.form.doSubmit();
-};
+const formContextProps = reactive({
+    initialValues: {},
+});
+const formContext = useForm(formContextProps);
 
-const filterList = (formData) => {
+const filterList = () => {
     listState.search = listSearch.value;
-    if (formData.values) {
-        assignReactiveObject(listState.filterArgs, formData.values);
-    }
+    assignReactiveObject(listState.filterArgs, formContext.state.values);
 };
 const clickClearFilter = () => {
+    formContext.reset();
     listState.filterArgs = {};
     listSearch.value = "";
     listState.search = "";
@@ -239,15 +247,10 @@ const clickClearFilter = () => {
         <!-- todo: bulk object level actions -->
         <div :class="combinedClasses.detailActionsClass">
             <InputText v-model="listSearch" name="search" placeholder="Search" type="search" @search="filterList" />
-            <filter-form-model
-                ref="filterFormModelRef"
-                :app="app"
-                :filter-fields="listFields"
-                :model="model"
-                v-bind="$attrs"
-                @submit="filterList"
-            />
-            <Button class="w-1/5" label="Search" type="submit" @click="doFilterSubmit" />
+            <form :ref="filterFormModelRef" @submit.prevent="filterList">
+                <filter-form-model :app="app" :filter-fields="listFields" :model="model" v-bind="$attrs" />
+            </form>
+            <Button class="w-1/5" label="Search" type="submit" @click="filterList" />
             <Button class="w-1/5" label="Clear Filters" type="submit" @click="clickClearFilter" />
 
             <!-- todo: filters return here? @submit=filterList -->

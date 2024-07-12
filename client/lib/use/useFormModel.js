@@ -1,3 +1,5 @@
+import FieldDateRange from "../fields/FieldDateRange.vue";
+import WidgetDatePicker from "../widgets/WidgetDatePicker.vue";
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import FieldBoolean from "@vueda/fields/FieldBoolean.vue";
 import FieldDate from "@vueda/fields/FieldDate.vue";
@@ -18,6 +20,7 @@ import { computed, reactive, readonly, ref, shallowReactive, shallowRef, toRef, 
 
 // todo: we should have a way to register custom field components
 const builtInTypes = {
+    DateRangeField: FieldDateRange,
     TextField: FieldString,
     CharField: FieldString,
     BooleanField: FieldBoolean,
@@ -65,6 +68,7 @@ const defaultWidgets = {
     FieldObject: WidgetTextarea,
     FieldString: WidgetInput,
     FieldTime: WidgetInput,
+    FieldDateRange: WidgetDatePicker,
 };
 
 const defaultFieldProps = {};
@@ -86,6 +90,9 @@ const defaultWidgetProps = {
     FieldString: {},
     FieldTime: {
         type: "time",
+    },
+    FieldDateRange: {
+        selectionMode: "range",
     },
 };
 
@@ -111,18 +118,8 @@ const getFieldProps = (fieldObj) => {
  * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} fieldObj - The field object.
  * @returns {{[key:string]: any}} The widget props.
  */
-const getWidgetProps = (fieldType, fieldObj) => {
+const getWidgetProps = (fieldType) => {
     const defaultProps = defaultWidgetProps[fieldType] || {};
-    if (fieldObj.type === "ChoiceField") {
-        const choices = fieldObj.choices;
-        return {
-            ...defaultProps,
-            options: Object.keys(choices).map((key) => ({
-                label: choices[key],
-                value: key,
-            })),
-        };
-    }
     return defaultProps;
 };
 
@@ -188,6 +185,7 @@ export function useFormModel(props) {
     const modelInfoStore = storeModelInfo();
     const internalState = reactive({
         modelInfo: {},
+        modelInfoChoices: {},
     });
     const state = shallowReactive(
         /** @type {UseFormModelRawState} */ {
@@ -222,6 +220,22 @@ export function useFormModel(props) {
         { immediate: true },
     );
 
+    watch(
+        () => modelInfoStore.fieldChoices[appModelKey.value],
+        (fieldChoices) => {
+            if (fieldChoices) {
+                for (const field in fieldChoices) {
+                    const choices = fieldChoices[field]?.results || [];
+                    state.widgetProps[field] = {
+                        ...state.widgetProps[field],
+                        options: choices,
+                    };
+                }
+            }
+        },
+        { immediate: true, deep: true },
+    );
+
     const assignStateObjectsIfChanged = (args) => {
         for (const key of UseFormModelStateKeys) {
             if (!isEqual(state[key], args[key])) {
@@ -252,7 +266,10 @@ export function useFormModel(props) {
                     widgetComponents[fieldObj.name] = getDefaultWidget(fieldObj);
                     // todo: we should have a way to register custom widget props
                     //  or provide them to the form model as props
-                    widgetProps[fieldObj.name] = getWidgetProps(fieldComponent.__name, fieldObj);
+                    widgetProps[fieldObj.name] = getWidgetProps(fieldComponent.__name);
+                    if (fieldObj.choices) {
+                        modelInfoStore.fetchFieldChoices(props.app, props.model, fieldObj.name);
+                    }
                 }
                 assignStateObjectsIfChanged({
                     fieldObjects,

@@ -1,7 +1,5 @@
 <script setup>
 import { FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import isArray from "lodash-es/isArray.js";
-import { toRef, watch } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -13,56 +11,26 @@ const props = defineProps({
         type: [Date, String],
         default: undefined,
     },
+    rangeSuffix: {
+        type: Array,
+        default: undefined,
+    },
 });
 const fieldContext = useField(props);
-// const valueAsDate = computed(() => {
-//     const value = fieldContext.state.value;
-//     console.log("fieldContext.state.value: ", value)
-//     if (value) {
-//         return new Date(value);
-//     }
-//     return null;
-// });
+console.log(fieldContext);
 // watch(
-//     [toRef(props, "maxValue"), valueAsDate],
-//     ([maxValue, value]) => {
-//         if (maxValue && value > maxValue) {
-//             fieldContext.updateError("maxValue", `Must be ${maxValue} or less.`);
-//         } else {
-//             fieldContext.deleteError("maxValue");
+//     toRef(fieldContext.state, "value"),
+//     (newValue) => {
+//         if (newValue === undefined || newValue === null) {
+//             return;
+//         }
+//         const coercedValue = newValue.toString();
+//         if (coercedValue !== fieldContext.value) {
+//             fieldContext.updateValue(coercedValue);
 //         }
 //     },
 //     { immediate: true },
 // );
-// watch(
-//     [toRef(props, "minValue"), valueAsDate],
-//     ([minValue, value]) => {
-//         if (minValue && value < minValue) {
-//             fieldContext.updateError("minValue", `Must be ${minValue} or more.`);
-//         } else {
-//             fieldContext.deleteError("minValue");
-//         }
-//     },
-//     { immediate: true },
-// );
-
-watch(
-    toRef(fieldContext.state, "value"),
-    (value) => {
-        // debugger
-        if (isArray(value)) {
-            for (const item of value) {
-                console.log("item", item);
-                // console.log(item.toString())
-                // fieldContext.state.value = '2024-01-01'
-                fieldContext.updateValueWithName("due_date_after", "2024-01-01");
-                break;
-            }
-        }
-        // Perform actions based on the current value
-    },
-    { immediate: true },
-);
 </script>
 <template>
     <div data-qa="field-date">
