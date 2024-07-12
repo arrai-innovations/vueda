@@ -77,7 +77,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "name",
-                    "label": None,
+                    "label": "Name",
                     "type": "CharField",
                     "many": False,
                     "read_only": False,
@@ -87,7 +87,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "current_history_id",
-                    "label": None,
+                    "label": "Current History ID",
                     "type": "IntegerField",
                     "many": False,
                     "read_only": True,
@@ -148,7 +148,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "code",
-                    "label": None,
+                    "label": "Code",
                     "type": "CharField",
                     "many": False,
                     "read_only": False,
@@ -158,7 +158,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "name",
-                    "label": None,
+                    "label": "Name",
                     "type": "CharField",
                     "many": False,
                     "read_only": False,
@@ -224,7 +224,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "user",
-                    "label": None,
+                    "label": "User",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -233,7 +233,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "current_history_id",
-                    "label": None,
+                    "label": "Current History ID",
                     "type": "IntegerField",
                     "many": False,
                     "read_only": True,
@@ -298,7 +298,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "customer",
-                    "label": None,
+                    "label": "Customer",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -307,7 +307,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "last_modified",
-                    "label": None,
+                    "label": "Last Modified",
                     "type": "DateTimeField",
                     "many": False,
                     "read_only": True,
@@ -316,7 +316,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "cart_items",
-                    "label": None,
+                    "label": "Cart Items",
                     "type": "ManyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -396,7 +396,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "order_number",
-                    "label": None,
+                    "label": "Order Number",
                     "type": "DecimalField",
                     "many": False,
                     "read_only": False,
@@ -415,7 +415,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "customer",
-                    "label": None,
+                    "label": "Customer",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -424,7 +424,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "order_state",
-                    "label": None,
+                    "label": "Order State",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -433,7 +433,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "current_history_id",
-                    "label": None,
+                    "label": "Current History ID",
                     "type": "IntegerField",
                     "many": False,
                     "read_only": True,
@@ -493,7 +493,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "code",
-                    "label": None,
+                    "label": "Code",
                     "type": "CharField",
                     "many": False,
                     "read_only": False,
@@ -503,7 +503,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "is_added_reason",
-                    "label": None,
+                    "label": "Is Added Reason",
                     "type": "BooleanField",
                     "many": False,
                     "read_only": False,
@@ -567,7 +567,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "distributor",
-                    "label": None,
+                    "label": "Distributor",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -576,7 +576,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "name",
-                    "label": None,
+                    "label": "Name",
                     "type": "CharField",
                     "many": False,
                     "read_only": False,
@@ -586,7 +586,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "disabled",
-                    "label": None,
+                    "label": "Disabled",
                     "type": "BooleanField",
                     "many": False,
                     "read_only": False,
@@ -595,7 +595,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "current_history_id",
-                    "label": None,
+                    "label": "Current History ID",
                     "type": "IntegerField",
                     "many": False,
                     "read_only": True,
@@ -604,7 +604,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "tangible",
-                    "label": None,
+                    "label": "Tangible",
                     "type": "ChoiceField",
                     "many": False,
                     "read_only": False,
@@ -613,7 +613,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "order_between",
-                    "label": None,
+                    "label": "Order Between",
                     "type": "IntegerRangeField",
                     "many": False,
                     "read_only": False,
@@ -622,7 +622,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "last_ten_order_betweens",
-                    "label": None,
+                    "label": "Last Ten Order Betweens",
                     "type": "IntegerRangeField",
                     "many": True,
                     "read_only": False,
@@ -739,7 +739,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "product",
-                    "label": None,
+                    "label": "Product",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -748,7 +748,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "option_type",
-                    "label": None,
+                    "label": "Option Type",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -757,7 +757,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "name",
-                    "label": None,
+                    "label": "Name",
                     "type": "CharField",
                     "many": False,
                     "read_only": False,
@@ -767,7 +767,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "sku",
-                    "label": None,
+                    "label": "SKU",
                     "type": "CharField",
                     "many": False,
                     "read_only": False,
@@ -777,7 +777,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "gtin",
-                    "label": None,
+                    "label": "GTIN",
                     "type": "CharField",
                     "many": False,
                     "read_only": False,
@@ -787,7 +787,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "price",
-                    "label": None,
+                    "label": "Price",
                     "type": "DecimalField",
                     "many": False,
                     "read_only": False,
@@ -798,7 +798,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "disabled",
-                    "label": None,
+                    "label": "Disabled",
                     "type": "BooleanField",
                     "many": False,
                     "read_only": False,
@@ -807,7 +807,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "current_history_id",
-                    "label": None,
+                    "label": "Current History ID",
                     "type": "IntegerField",
                     "many": False,
                     "read_only": True,
@@ -935,7 +935,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "customer_order",
-                    "label": None,
+                    "label": "Customer Order",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -944,7 +944,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "product_option",
-                    "label": None,
+                    "label": "Product Option",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -953,7 +953,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "quantity",
-                    "label": None,
+                    "label": "Quantity",
                     "type": "IntegerField",
                     "many": False,
                     "read_only": False,
@@ -1066,7 +1066,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "product_option",
-                    "label": None,
+                    "label": "Product Option",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -1084,7 +1084,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "quantity",
-                    "label": None,
+                    "label": "Quantity",
                     "type": "IntegerField",
                     "many": False,
                     "read_only": False,
@@ -1095,7 +1095,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "reason",
-                    "label": None,
+                    "label": "Reason",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -1104,7 +1104,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "archived",
-                    "label": None,
+                    "label": "Archived",
                     "type": "BooleanField",
                     "many": False,
                     "read_only": False,
@@ -1113,7 +1113,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "is_added",
-                    "label": None,
+                    "label": "Is Added",
                     "type": "BooleanField",
                     "many": False,
                     "read_only": False,
@@ -1122,7 +1122,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "cost",
-                    "label": None,
+                    "label": "Cost",
                     "type": "DecimalField",
                     "many": False,
                     "read_only": False,
@@ -1132,7 +1132,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "added_inventory_record",
-                    "label": None,
+                    "label": "Added Inventory Record",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -1141,7 +1141,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "order_item",
-                    "label": None,
+                    "label": "Order Item",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -1150,7 +1150,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "price",
-                    "label": None,
+                    "label": "Price",
                     "type": "DecimalField",
                     "many": False,
                     "read_only": False,
@@ -1161,7 +1161,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "margin",
-                    "label": None,
+                    "label": "Margin",
                     "type": "DecimalField",
                     "many": False,
                     "read_only": False,
@@ -1329,7 +1329,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "cart",
-                    "label": None,
+                    "label": "Cart",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -1338,7 +1338,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "product_option",
-                    "label": None,
+                    "label": "Product Option",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -1347,7 +1347,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "quantity",
-                    "label": None,
+                    "label": "Quantity",
                     "type": "IntegerField",
                     "many": False,
                     "read_only": False,

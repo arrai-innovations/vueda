@@ -57,8 +57,8 @@ class ProductOption(SimpleHistoryModelMixin, models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     option_type = models.ForeignKey(OptionType, null=True, on_delete=models.PROTECT)
     name = models.CharField(max_length=255)
-    sku = models.CharField(max_length=255)
-    gtin = models.CharField(max_length=255, unique=True)
+    sku = models.CharField(max_length=255, verbose_name="SKU")
+    gtin = models.CharField(max_length=255, unique=True, verbose_name="GTIN")
     price = models.DecimalField(max_digits=12, decimal_places=2, null=True)
     disabled = models.BooleanField(db_default=False)
 
