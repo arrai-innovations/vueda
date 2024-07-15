@@ -1,9 +1,9 @@
-import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo";
 import { useIsActive } from "@vueda/use/useIsActive";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
-import { reactive, watch } from "vue";
+import { reactive, readonly, watch } from "vue";
 
 /**
  * The raw state for a model config.
@@ -62,11 +62,10 @@ export function useModelConfig(app, model) {
                 try {
                     await modelInfoStore.fetchModelInfo(app, model);
                     const modelConfig = await modelConfigStore.getConfig(app, model);
-                    assignReactiveObject(
-                        returnObject.info,
-                        modelInfoStore.modelInfos[getAppModelDotName({ app, model })],
-                    );
-                    assignReactiveObject(returnObject.config, modelConfig);
+                    // there was some mutation happening if we use assignReactiveObject. It seems unlikely we would want
+                    //  dynamic model info or config, or the ability to react to those changes, so we'll just assign it.
+                    returnObject.info = modelInfoStore.modelInfos[getAppModelDotName({ app, model })];
+                    returnObject.config = modelConfig;
                 } catch (e) {
                     loadingError.setError(e);
                 } finally {
@@ -77,5 +76,5 @@ export function useModelConfig(app, model) {
         { immediate: true },
     );
 
-    return returnObject;
+    return readonly(returnObject);
 }

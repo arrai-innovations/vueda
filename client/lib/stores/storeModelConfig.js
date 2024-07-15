@@ -80,7 +80,7 @@ export const storeModelConfig = defineStore({
             const modelInfo = modelInfoStore.modelInfos[getAppModelDotName({ app, model })];
             return (this.builtConfigs[getAppModelDotName({ app, model })] = {
                 ...getDefaultFromModelInfo(modelInfo),
-                ...this.configs[getAppModelDotName(app, model)],
+                ...this.configs[getAppModelDotName({ app, model })],
             });
         },
         updateConfig(app, model, config) {
