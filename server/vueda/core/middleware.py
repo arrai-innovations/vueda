@@ -4,7 +4,6 @@ from channels.auth import AuthMiddleware
 from channels.middleware import BaseMiddleware
 from channels.sessions import CookieMiddleware
 from channels.sessions import SessionMiddleware
-from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 
 
 def update_sentry_user(user):
@@ -40,24 +39,24 @@ def AsgiMiddlewareStack(inner):  # noqa: N802
     """
     from django.conf import settings
 
-    return SentryAsgiMiddleware(
-        CorsASGIApp(
-            CookieMiddleware(
-                SessionMiddleware(
-                    AuthMiddleware(
-                        SentryUserMiddleware(
-                            # ...
-                            inner
-                        )
+    # modern sentry integrations patch the asgi handler, so we should not need to do it here
+
+    return CorsASGIApp(
+        CookieMiddleware(
+            SessionMiddleware(
+                AuthMiddleware(
+                    SentryUserMiddleware(
+                        # ...
+                        inner
                     )
                 )
-            ),
-            # use django-cors-header's settings for asgi-cors-middleware
-            origins=settings.CORS_ALLOWED_ORIGINS,
-            allow_headers=settings.CORS_ALLOW_HEADERS,
-            expose_headers=settings.CORS_EXPOSE_HEADERS,
-            allow_methods=settings.CORS_ALLOW_METHODS,
-            allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
-            max_age=settings.CORS_PREFLIGHT_MAX_AGE,
-        )
+            )
+        ),
+        # use django-cors-header's settings for asgi-cors-middleware
+        origins=settings.CORS_ALLOWED_ORIGINS,
+        allow_headers=settings.CORS_ALLOW_HEADERS,
+        expose_headers=settings.CORS_EXPOSE_HEADERS,
+        allow_methods=settings.CORS_ALLOW_METHODS,
+        allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+        max_age=settings.CORS_PREFLIGHT_MAX_AGE,
     )
