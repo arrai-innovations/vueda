@@ -1,6 +1,7 @@
 from traceback import format_exception
 from traceback import format_exception_only
 
+import sentry_sdk
 from django.conf import settings
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
@@ -19,6 +20,11 @@ def debug_stack_exception_handler(exc, context):
             {},
             status=500,
         )
+
+    if not settings.DEBUG and not getattr(settings, "IN_TESTS", False):
+        # Capture the exception with Sentry
+        sentry_sdk.capture_exception(exc)
+
     if isinstance(response.data, list):
         response.data = {settings.REST_FRAMEWORK["NON_FIELD_ERRORS_KEY"] or "non_field_errors": response.data}
     if settings.DEBUG or getattr(settings, "IN_TESTS", False):
