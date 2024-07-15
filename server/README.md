@@ -212,6 +212,9 @@ While `pipenv` is used as a development environment, it is a poor tool for packa
 -   `PipFile`'s `[dev-packages]` for development packages.
 -   `test-requirements.txt` is used to manage dependencies used in unit tests.
 
+Developer changes to `requirements.txt` require re-locking the `Pipfile.lock` with `pipenv lock`. `pipenv install` does
+not see the changes otherwise.
+
 ### Hooks
 
 Setup pre-commit hooks:
