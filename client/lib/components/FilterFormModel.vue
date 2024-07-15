@@ -1,8 +1,6 @@
 <script setup>
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
-// FormLabel is now deleted
-// import FormLabel from "@vueda/components/FormLabel.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import useFilterFormModel from "@vueda/use/useFilterFormModel.js";
@@ -54,14 +52,10 @@ const combinedClasses = useCombinedClasses("FilterFormModel", props);
                     v-bind="filterFormModel.fieldProps[filterField.name]"
                 >
                     <template v-if="!$slots[`field-${filterField?.name}`]" #default>
-                        <form-label>
-                            <template #default>
-                                <component
-                                    :is="filterFormModel.widgetComponents[filterField.name]"
-                                    v-bind="filterFormModel.widgetProps[filterField.name]"
-                                />
-                            </template>
-                        </form-label>
+                        <component
+                            :is="filterFormModel.widgetComponents[filterField.name]"
+                            v-bind="filterFormModel.widgetProps[filterField.name]"
+                        />
                         <form-help-text />
                         <form-feedback type="error" />
                         <form-feedback type="message" />

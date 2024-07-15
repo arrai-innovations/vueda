@@ -26,7 +26,6 @@ watch(
         }
         newValue = newValue.map((v) => {
             if (typeof v === "string") {
-                console.log(new Date(v));
                 return new Date(v);
             }
             return v;

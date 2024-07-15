@@ -12,7 +12,7 @@ import pluralize from "pluralize";
  * @param {string} model - The model name.
  * @returns {string} The server route part.
  */
-export const getServerRoutePart = memoize((app, model) => {
+export const getServerRoutePart = memoize(({ app, model }) => {
     return `${snakeCase(app)}/${snakeCase(model)}`;
 });
 
@@ -98,7 +98,7 @@ export const getPermissionCase = memoize((model) => {
  * @param {string} action - The action name.
  * @returns {string} The permission name.
  */
-export const getPermissionName = memoize((app, model, action) => {
+export const getPermissionName = memoize(({ app, model, action }) => {
     return `${getPermissionCase(app)}.${getPermissionCase(action)}_${getPermissionCase(model)}`;
 });
 
@@ -109,7 +109,7 @@ export const getPermissionName = memoize((app, model, action) => {
  * @param {string} model - The model name.
  * @returns {string} The app model dot name.
  */
-export const getAppModelDotName = memoize((app, model) => {
+export const getAppModelDotName = memoize(({ app, model }) => {
     return `${getPermissionCase(app)}.${getPermissionCase(model)}`;
 });
 

@@ -1,7 +1,7 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import FieldBoolean from "@vueda/fields/FieldBoolean.vue";
-import FieldDateRange from "@vueda/fields/FieldDateRange.vue";
 import FieldNumber from "@vueda/fields/FieldNumber.vue";
+import FieldRange from "@vueda/fields/FieldRange.vue";
 import FieldString from "@vueda/fields/FieldString.vue";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
@@ -19,13 +19,13 @@ const filterTypes = {
     alpha: FieldString,
     numeric: FieldNumber,
     boolean: FieldBoolean,
-    date: FieldDateRange,
-    datetime: FieldDateRange,
+    date: FieldRange,
+    datetime: FieldRange,
 };
 
 const defaultWidgets = {
     FieldBoolean: WidgetSelect,
-    FieldDateRange: WidgetDatePicker,
+    FieldRange: WidgetDatePicker,
     FieldDateTime: WidgetDatePicker,
     FieldNumber: WidgetInput,
     FieldString: WidgetSelect,
@@ -33,7 +33,7 @@ const defaultWidgets = {
 };
 
 const defaultFieldProps = {
-    FieldDateRange: {
+    FieldRange: {
         rangeSuffix: ["after", "before"],
     },
 };
@@ -53,7 +53,7 @@ const defaultWidgetProps = {
             },
         ],
     },
-    FieldDateRange: {
+    FieldRange: {
         selectionMode: "range",
     },
     FieldDateTime: {
@@ -175,7 +175,7 @@ export default function useFilterFormModel(props) {
         },
         { immediate: true },
     );
-    const appModelKey = computed(() => getAppModelDotName(props.app, props.model));
+    const appModelKey = computed(() => getAppModelDotName({ app: props.app, model: props.model }));
 
     watch(
         () => modelInfoStore.modelInfos[appModelKey.value],
@@ -216,13 +216,12 @@ export default function useFilterFormModel(props) {
     watch(
         [toRef(internalState, "modelInfo"), toRef(props, "listFields")],
         ([modelInfo, listFields]) => {
+            console.log("listFields: ", listFields);
             if (modelInfo?.filtering?.length) {
-                console.log(listFields);
                 const fieldComponents = {};
                 const fieldProps = {};
                 const widgetComponents = {};
                 const widgetProps = {};
-                console.log(listFields);
                 for (const filter of modelInfo.filtering) {
                     const fieldComponent = djangoTypeToFieldComponent(filter.type);
                     fieldComponents[filter.name] = fieldComponent;

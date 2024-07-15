@@ -68,24 +68,24 @@ export const storeModelConfig = defineStore({
     }),
     actions: {
         setConfig(app, model, config) {
-            this.configs[getAppModelDotName(app, model)] = config;
-            delete this.builtConfigs[getAppModelDotName(app, model)];
+            this.configs[getAppModelDotName({ app, model })] = config;
+            delete this.builtConfigs[getAppModelDotName({ app, model })];
         },
         async getConfig(app, model) {
-            if (this.builtConfigs[getAppModelDotName(app, model)]) {
-                return this.builtConfigs[getAppModelDotName(app, model)];
+            if (this.builtConfigs[getAppModelDotName({ app, model })]) {
+                return this.builtConfigs[getAppModelDotName({ app, model })];
             }
             const modelInfoStore = storeModelInfo();
             await modelInfoStore.fetchModelInfo(app, model);
-            const modelInfo = modelInfoStore.modelInfos[getAppModelDotName(app, model)];
-            return (this.builtConfigs[getAppModelDotName(app, model)] = {
+            const modelInfo = modelInfoStore.modelInfos[getAppModelDotName({ app, model })];
+            return (this.builtConfigs[getAppModelDotName({ app, model })] = {
                 ...getDefaultFromModelInfo(modelInfo),
                 ...this.configs[getAppModelDotName(app, model)],
             });
         },
         updateConfig(app, model, config) {
             // partially update config
-            const key = getAppModelDotName(app, model);
+            const key = getAppModelDotName({ app, model });
             if (!this.configs[key]) {
                 this.configs[key] = {};
             }

@@ -62,7 +62,10 @@ export function useModelConfig(app, model) {
                 try {
                     await modelInfoStore.fetchModelInfo(app, model);
                     const modelConfig = await modelConfigStore.getConfig(app, model);
-                    assignReactiveObject(returnObject.info, modelInfoStore.modelInfos[getAppModelDotName(app, model)]);
+                    assignReactiveObject(
+                        returnObject.info,
+                        modelInfoStore.modelInfos[getAppModelDotName({ app, model })],
+                    );
                     assignReactiveObject(returnObject.config, modelConfig);
                 } catch (e) {
                     loadingError.setError(e);

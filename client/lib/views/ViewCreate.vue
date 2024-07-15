@@ -52,10 +52,9 @@ const props = defineProps({
     },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
-
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const calculatedCreateFields = computed(() => modelConfig.config.createFields || []);
 
-const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const instanceObjectProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),

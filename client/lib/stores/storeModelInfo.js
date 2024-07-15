@@ -195,7 +195,7 @@ export const storeModelInfo = defineStore({
     }),
     actions: {
         async fetchModelInfo(app, model) {
-            const key = getAppModelDotName(app, model);
+            const key = getAppModelDotName({ app, model });
             const existing = this.modelInfos[key];
             if (existing) {
                 return existing;
@@ -253,7 +253,7 @@ export const storeModelInfo = defineStore({
             return this.existingPromises[key];
         },
         async fetchFieldChoices(app, model, field) {
-            const key = getAppModelDotName(app, model);
+            const key = getAppModelDotName({ app, model });
 
             if (!this.fieldChoicePromises[key]) {
                 this.fieldChoicePromises[key] = {};

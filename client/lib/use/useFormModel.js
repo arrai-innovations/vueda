@@ -1,17 +1,18 @@
-import FieldDateRange from "../fields/FieldDateRange.vue";
-import WidgetDatePicker from "../widgets/WidgetDatePicker.vue";
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import FieldBoolean from "@vueda/fields/FieldBoolean.vue";
 import FieldDate from "@vueda/fields/FieldDate.vue";
 import FieldNumber from "@vueda/fields/FieldNumber.vue";
 import FieldObject from "@vueda/fields/FieldObject.vue";
+import FieldRange from "@vueda/fields/FieldRange.vue";
 import FieldString from "@vueda/fields/FieldString.vue";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
+import WidgetDatePicker from "@vueda/widgets/WidgetDatePicker.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
+import WidgetSlider from "@vueda/widgets/WidgetSlider.vue";
 import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
 import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -20,7 +21,8 @@ import { computed, reactive, readonly, ref, shallowReactive, shallowRef, toRef, 
 
 // todo: we should have a way to register custom field components
 const builtInTypes = {
-    DateRangeField: FieldDateRange,
+    IntegerRangeField: FieldRange,
+    DateRangeField: FieldRange,
     TextField: FieldString,
     CharField: FieldString,
     BooleanField: FieldBoolean,
@@ -68,7 +70,7 @@ const defaultWidgets = {
     FieldObject: WidgetTextarea,
     FieldString: WidgetInput,
     FieldTime: WidgetInput,
-    FieldDateRange: WidgetDatePicker,
+    FieldRange: WidgetDatePicker,
 };
 
 const defaultFieldProps = {};
@@ -91,7 +93,7 @@ const defaultWidgetProps = {
     FieldTime: {
         type: "time",
     },
-    FieldDateRange: {
+    FieldRange: {
         selectionMode: "range",
     },
 };
@@ -148,6 +150,9 @@ const getDefaultWidget = (field) => {
     }
     if (field.type === "TextField" || field.many) {
         return WidgetTextarea;
+    }
+    if (field.type === "IntegerRangeField") {
+        return WidgetSlider;
     }
     const fieldComponent = djangoTypeToFieldComponent(field.type);
     // todo: it would be nice to have a way to just specify a widget, in addition to having to pass as a slot
@@ -208,7 +213,7 @@ export function useFormModel(props) {
         },
         { immediate: true },
     );
-    const appModelKey = computed(() => getAppModelDotName(props.app, props.model));
+    const appModelKey = computed(() => getAppModelDotName({ app: props.app, model: props.model }));
 
     watch(
         () => modelInfoStore.modelInfos[appModelKey.value],

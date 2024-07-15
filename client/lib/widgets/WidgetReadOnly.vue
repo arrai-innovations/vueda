@@ -21,7 +21,7 @@ const props = defineProps({
 
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useComputedClasses(vuedaTailwind.WidgetReadonly, widgetContext.state);
+const theme = useComputedClasses(vuedaTailwind.WidgetReadOnly, widgetContext.state);
 </script>
 
 <template>
