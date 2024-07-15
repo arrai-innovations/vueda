@@ -1,3 +1,4 @@
+import logging
 import sys
 from copy import deepcopy
 
@@ -6,10 +7,13 @@ from django.core.exceptions import ImproperlyConfigured
 
 _registry = {}
 
+logger = logging.getLogger(__name__)
+
 
 def register(canonical_serializer, canonical_viewset=None):
     """
-    Register a model so that it can be used with ModelInfoViewSet.
+    Register a model so that it can be used with ModelInfoViewSet. You should do this in the ready method of an
+     AppConfig, not as a side effect of importing viewsets or serializers.
 
     :param canonical_serializer: The serializer to use as a reference for the model.
     :param canonical_viewset: The viewset to use as a reference for the model.
@@ -51,6 +55,14 @@ def register(canonical_serializer, canonical_viewset=None):
         "viewset": canonical_viewset,
         "serializer": canonical_serializer,
     }
+
+    logger.info(
+        "Registered %s.%s with %s and %s.",
+        content_type.app_label,
+        content_type.model,
+        canonical_viewset,
+        canonical_serializer,
+    )
 
 
 def get_registration(content_type):
