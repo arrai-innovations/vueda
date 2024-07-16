@@ -9,7 +9,7 @@ from vueda.update import update_for_main
 
 
 def version(args):
-    from . import __version__
+    from vueda import __version__
 
     print(__version__)
 

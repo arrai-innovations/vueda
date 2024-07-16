@@ -27,7 +27,7 @@ repos:
             files: ^.circleci/config.yml$
 
     - repo: https://github.com/psf/black
-      rev: 24.3.0 # sync with pipenv Pipfile
+      rev: 24.4.2 # sync with pipenv Pipfile
       hooks:
           - id: black
 
@@ -56,6 +56,8 @@ repos:
                     "flake8-logging-format==0.9.0",
                     "flake8-pep3101==2.1.0",
                     "flake8-print==5.0.0",
+                    "flake8-pyproject==1.2.3",
+                    "flake8-tidy-imports==4.10.0",
                     "pep8-naming==0.13.3",
                     "pylint-django==2.5.5",
                 ]

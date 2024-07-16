@@ -12,7 +12,7 @@ def get_defaults(env: Env):
 
     ```python
     from environ import Env
-    from .default_settings import get_defaults
+    from vueda.core.default_settings import get_defaults
     env = Env
     env.read_env(str(ROOT_DIR / ".env.local"))
     env.read_env(str(ROOT_DIR / ".env"))

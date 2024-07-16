@@ -9,8 +9,6 @@ vueda = {path = ".", editable = true}
 
 [dev-packages]
 # flake8 related, sync with .pre-commit-config.yaml
-black = "==24.3.0"
-django_extensions = "==3.2.3"
 dlint = "==0.14.1"
 flake8 = "==6.1.0"
 flake8-assertive = "==2.1.0"
@@ -24,6 +22,8 @@ flake8-fixme = "==1.1.1"
 flake8-logging-format = "==0.9.0"
 flake8-pep3101 = "==2.1.0"
 flake8-print = "==5.0.0"
+flake8-pyproject = "==1.2.3"
+flake8-tidy-imports = "==4.10.0"
 pep8-naming = "==0.13.3"
 pylint-django = "==2.5.5"
 # build related
@@ -31,6 +31,8 @@ wheel = ">=0.42.0,<1"
 # sync with .pre-commit-config.yaml
 isort = "==5.13.2"
 # other
+black = "==24.4.2"
+django_extensions = "==3.2.3"
 coverage = ">=7.3.3"
 ipdb = ">=0.13.13"
 md-toc = ">=8.2.2"
