@@ -1,4 +1,26 @@
 export default {
+    WidgetAutoComplete: {
+        root: {
+            class: [],
+        },
+        inner: {
+            class: ["flex"],
+        },
+        label: {
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
+        },
+    },
+    WidgetMultiSelect: {
+        root: {
+            class: [],
+        },
+        inner: {
+            class: ["flex"],
+        },
+        label: {
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
+        },
+    },
     WidgetCheckbox: {
         root: {
             class: [],

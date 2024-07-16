@@ -26,11 +26,11 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    min: {
+    minValue: {
         type: Number,
         default: 0,
     },
-    max: {
+    maxValue: {
         type: Number,
         default: 100,
     },
@@ -54,8 +54,8 @@ const theme = useComputedClasses(vuedaTailwind.WidgetDatePicker, widgetContext.s
                             v-model="widgetContext.state.combinedValue"
                             v-bind="$attrs"
                             class="w-56"
-                            :max="max"
-                            :min="min"
+                            :max="props.maxValue"
+                            :min="props.minValue"
                             :name="widgetContext.state.combinedName"
                             range
                         />

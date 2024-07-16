@@ -11,9 +11,9 @@ import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import WidgetDatePicker from "@vueda/widgets/WidgetDatePicker.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
-import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
 import WidgetSlider from "@vueda/widgets/WidgetSlider.vue";
 import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
+import WidgetAutoComplete from "@vueda/widgets/widgetAutoComplete.vue";
 import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
@@ -146,7 +146,8 @@ const getDefaultWidget = (field) => {
         return WidgetReadOnly;
     }
     if (field.choices) {
-        return WidgetSelect;
+        return WidgetAutoComplete;
+        // return WidgetMultiSelect;
     }
     if (field.type === "TextField" || field.many) {
         return WidgetTextarea;
