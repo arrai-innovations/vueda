@@ -3,7 +3,6 @@ import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
-import InputText from "primevue/inputtext";
 import Slider from "primevue/slider";
 
 defineOptions({
@@ -27,6 +26,14 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    min: {
+        type: Number,
+        default: 0,
+    },
+    max: {
+        type: Number,
+        default: 100,
+    },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
@@ -41,11 +48,14 @@ const theme = useComputedClasses(vuedaTailwind.WidgetDatePicker, widgetContext.s
             <div :class="theme('inner')">
                 <div class="card flex justify-center">
                     <div class="w-56">
-                        <InputText v-model.number="widgetContext.state.combinedValue" />
+                        <span v-if="widgetContext.state.combinedValue">{{ widgetContext.state.combinedValue }}</span>
+                        <span v-else>[{{ min }},{{ max }}]</span>
                         <Slider
                             v-model="widgetContext.state.combinedValue"
                             v-bind="$attrs"
                             class="w-56"
+                            :max="max"
+                            :min="min"
                             :name="widgetContext.state.combinedName"
                             range
                         />

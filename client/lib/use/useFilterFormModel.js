@@ -1,6 +1,5 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import FieldBoolean from "@vueda/fields/FieldBoolean.vue";
-import FieldNumber from "@vueda/fields/FieldNumber.vue";
 import FieldRange from "@vueda/fields/FieldRange.vue";
 import FieldString from "@vueda/fields/FieldString.vue";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
@@ -9,7 +8,7 @@ import WidgetDatePicker from "@vueda/widgets/WidgetDatePicker.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
-import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
+import WidgetSlider from "@vueda/widgets/WidgetSlider.vue";
 import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
@@ -17,7 +16,7 @@ import { computed, reactive, readonly, ref, shallowReactive, shallowRef, toRef, 
 
 const filterTypes = {
     alpha: FieldString,
-    numeric: FieldNumber,
+    numeric: FieldRange,
     boolean: FieldBoolean,
     date: FieldRange,
     datetime: FieldRange,
@@ -73,6 +72,17 @@ const defaultWidgetProps = {
  * @returns {{[key:string]: any}} The field props.
  */
 const getFieldProps = (fieldType, fieldObj) => {
+    // TODO: should grab the min and max from the server
+    if (fieldObj.type === "numeric") {
+        const numericProps = {
+            rangeSuffix: ["min", "max"],
+        };
+        return {
+            // useFormModel resolves type, the fields don't care about the server type.
+            ...omit(fieldObj, ["type"]),
+            ...numericProps,
+        };
+    }
     const defaultProps = defaultFieldProps[fieldType] || {};
     return {
         // useFormModel resolves type, the fields don't care about the server type.
@@ -115,8 +125,8 @@ const getDefaultWidget = (field) => {
     if (field.choices) {
         return WidgetSelect;
     }
-    if (field.type === "TextField" || field.many) {
-        return WidgetTextarea;
+    if (field.type === "numeric") {
+        return WidgetSlider;
     }
     const fieldComponent = djangoTypeToFieldComponent(field.type);
     // todo: it would be nice to have a way to just specify a widget, in addition to having to pass as a slot
