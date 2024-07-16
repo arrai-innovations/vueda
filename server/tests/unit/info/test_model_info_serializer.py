@@ -51,6 +51,8 @@ DETAIL_PARAMETRIZE = [
         "store",
         "distributor",
         {
+            "verbose_name": "distributor",
+            "verbose_name_plural": "distributors",
             "expected_actions": {
                 "list",
                 "retrieve",
@@ -127,6 +129,8 @@ DETAIL_PARAMETRIZE = [
         "store",
         "optiontype",
         {
+            "verbose_name": "option type",
+            "verbose_name_plural": "option types",
             "expected_actions": {
                 "list",
                 "retrieve",
@@ -184,6 +188,8 @@ DETAIL_PARAMETRIZE = [
         "store",
         "customer",
         {
+            "verbose_name": "customer",
+            "verbose_name_plural": "customers",
             "expected_actions": {
                 "list",
                 "retrieve",
@@ -258,6 +264,8 @@ DETAIL_PARAMETRIZE = [
         "store",
         "cart",
         {
+            "verbose_name": "cart",
+            "verbose_name_plural": "carts",
             "expected_actions": {
                 "list",
                 "retrieve",
@@ -349,6 +357,8 @@ DETAIL_PARAMETRIZE = [
         "store",
         "customerorder",
         {
+            "verbose_name": "customer order",
+            "verbose_name_plural": "customer orders",
             "expected_actions": {
                 "list",
                 "retrieve",
@@ -462,6 +472,8 @@ DETAIL_PARAMETRIZE = [
         "store",
         "inventoryrecordreason",
         {
+            "verbose_name": "inventory entry reason",
+            "verbose_name_plural": "inventory entry reasons",
             "expected_actions": {
                 "list",
                 "retrieve",
@@ -516,11 +528,11 @@ DETAIL_PARAMETRIZE = [
                 {"name": "name", "type": "alpha"},
             ],
             "expected_permissions": [
-                {"codename": "create_inventoryrecordreason", "name": "Can create inventory record reason"},
-                {"codename": "delete_inventoryrecordreason", "name": "Can delete inventory record reason"},
-                {"codename": "list_inventoryrecordreason", "name": "Can list inventory record reason"},
-                {"codename": "read_inventoryrecordreason", "name": "Can read inventory record reason"},
-                {"codename": "update_inventoryrecordreason", "name": "Can update inventory record reason"},
+                {"codename": "create_inventoryrecordreason", "name": "Can create inventory entry reason"},
+                {"codename": "delete_inventoryrecordreason", "name": "Can delete inventory entry reason"},
+                {"codename": "list_inventoryrecordreason", "name": "Can list inventory entry reason"},
+                {"codename": "read_inventoryrecordreason", "name": "Can read inventory entry reason"},
+                {"codename": "update_inventoryrecordreason", "name": "Can update inventory entry reason"},
             ],
         },
     ),
@@ -528,6 +540,8 @@ DETAIL_PARAMETRIZE = [
         "store",
         "product",
         {
+            "verbose_name": "product",
+            "verbose_name_plural": "products",
             "expected_actions": {
                 "list",
                 "retrieve",
@@ -689,6 +703,8 @@ DETAIL_PARAMETRIZE = [
         "store",
         "productoption",
         {
+            "verbose_name": "product option",
+            "verbose_name_plural": "product options",
             "expected_actions": {
                 "list",
                 "retrieve",
@@ -890,6 +906,8 @@ DETAIL_PARAMETRIZE = [
         "store",
         "orderitem",
         {
+            "verbose_name": "ORDER item",
+            "verbose_name_plural": "ORDER items",
             "expected_actions": {
                 "list",
                 "retrieve",
@@ -984,11 +1002,11 @@ DETAIL_PARAMETRIZE = [
                 {"name": "quantity", "type": "numeric"},
             ],
             "expected_permissions": [
-                {"codename": "create_orderitem", "name": "Can create order item"},
-                {"codename": "delete_orderitem", "name": "Can delete order item"},
-                {"codename": "list_orderitem", "name": "Can list order item"},
-                {"codename": "read_orderitem", "name": "Can read order item"},
-                {"codename": "update_orderitem", "name": "Can update order item"},
+                {"codename": "create_orderitem", "name": "Can create ORDER item"},
+                {"codename": "delete_orderitem", "name": "Can delete ORDER item"},
+                {"codename": "list_orderitem", "name": "Can list ORDER item"},
+                {"codename": "read_orderitem", "name": "Can read ORDER item"},
+                {"codename": "update_orderitem", "name": "Can update ORDER item"},
             ],
         },
     ),
@@ -996,6 +1014,8 @@ DETAIL_PARAMETRIZE = [
         "store",
         "inventoryrecord",
         {
+            "verbose_name": "inventory entry",
+            "verbose_name_plural": "inventory entries",
             "expected_actions": {
                 "list",
                 "retrieve",
@@ -1132,7 +1152,7 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "added_inventory_record",
-                    "label": "Added Inventory Record",
+                    "label": "Added Inventory Entry",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
                     "read_only": False,
@@ -1275,11 +1295,11 @@ DETAIL_PARAMETRIZE = [
                 {"name": "quantity", "type": "numeric"},
             ],
             "expected_permissions": [
-                {"codename": "create_inventoryrecord", "name": "Can create inventory record"},
-                {"codename": "delete_inventoryrecord", "name": "Can delete inventory record"},
-                {"codename": "list_inventoryrecord", "name": "Can list inventory record"},
-                {"codename": "read_inventoryrecord", "name": "Can read inventory record"},
-                {"codename": "update_inventoryrecord", "name": "Can update inventory record"},
+                {"codename": "create_inventoryrecord", "name": "Can create inventory entry"},
+                {"codename": "delete_inventoryrecord", "name": "Can delete inventory entry"},
+                {"codename": "list_inventoryrecord", "name": "Can list inventory entry"},
+                {"codename": "read_inventoryrecord", "name": "Can read inventory entry"},
+                {"codename": "update_inventoryrecord", "name": "Can update inventory entry"},
             ],
         },
     ),
@@ -1287,6 +1307,8 @@ DETAIL_PARAMETRIZE = [
         "store",
         "cartitem",
         {
+            "verbose_name": "cart item",
+            "verbose_name_plural": "cart items",
             "expected_actions": {
                 "list",
                 "retrieve",
@@ -1761,7 +1783,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
         )
         self.order_states = order_states = {item.code: item for item in order_states}
 
-        # Inventory Record Reasons
+        # Inventory Entry Reasons
         inventory_record_reasons = InventoryRecordReason.objects.bulk_create(
             InventoryRecordReason(**data)
             for data in (
@@ -1853,7 +1875,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
             customer_orders[order.order_number] = order
         self.customer_orders = customer_orders
 
-        # Products, Product Options, Inventory Records, Orders, and Order Items.
+        # Products, Product Options, Inventory Entries, Orders, and Order Items.
         products = {}
         product_options = {}
         order_items = {}
@@ -1893,7 +1915,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                                 ),
                                 "inventory_records": (
                                     {
-                                        # This exists as a way to associate between inventory records.
+                                        # This exists as a way to associate between inventory entries.
                                         "identifier": "inventory_record_1",
                                         "when": datetime.datetime(2023, 12, 12, 12, 0, 0),
                                         "quantity": 12,
@@ -1987,7 +2009,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                                 ),
                                 "inventory_records": (
                                     {
-                                        # This exists as a way to associate between inventory records.
+                                        # This exists as a way to associate between inventory entries.
                                         "identifier": "inventory_record_1",
                                         "when": datetime.datetime(2023, 12, 12, 12, 0, 0),
                                         "quantity": 6,
@@ -2120,7 +2142,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                                 ),
                                 "inventory_records": (
                                     {
-                                        # This exists as a way to associate between inventory records.
+                                        # This exists as a way to associate between inventory entries.
                                         "identifier": "inventory_record_1",
                                         "when": datetime.datetime(2023, 12, 12, 12, 0, 0),
                                         "quantity": 6,
@@ -2184,7 +2206,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
                                 ),
                                 "inventory_records": (
                                     {
-                                        # This exists as a way to associate between inventory records.
+                                        # This exists as a way to associate between inventory entries.
                                         "identifier": "inventory_record_1",
                                         "when": datetime.datetime(2023, 12, 12, 12, 0, 0),
                                         "quantity": 6,
@@ -2801,6 +2823,8 @@ class TestModelInfoSerializer:
         )
 
         assert response.status_code == 200, pformat(response.data)
+        assert response.data["verbose_name"] == kwargs["verbose_name"]
+        assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
         self.check_model_actions_data(response, kwargs["expected_actions"], app_label, model_name)
         self.check_model_expands_data(response, kwargs["expected_expands"])
         self.check_model_fields_data(response, kwargs["expected_fields"])
@@ -2861,7 +2885,7 @@ class TestModelInfoChoicesSerializer:
             format="json",
         )
 
-        # The customer is not able to list customer orders or inventory records.
+        # The customer is not able to list customer orders or inventory entries.
         match (app_label, model_name, field_name):
             case (
                 ("store", "cart", "customer")

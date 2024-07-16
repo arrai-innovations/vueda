@@ -126,7 +126,8 @@ class OrderItem(models.Model):
     quantity = models.IntegerField(db_default=0)
 
     class Meta(BaseModelMeta):
-        pass
+        verbose_name = "ORDER item"
+        verbose_name_plural = "ORDER items"
 
     def __str__(self):
         return f"{self.customer_order.order_number} - {self.quantity}x {self.product_option.name}"
@@ -140,6 +141,8 @@ class InventoryRecordReason(models.Model):
     class Meta(BaseModelMeta):
         default_related_name = "inventory_record_reason"
         unique_together = ("code", "is_added_reason")
+        verbose_name = "inventory entry reason"
+        verbose_name_plural = "inventory entry reasons"
 
     def __str__(self):
         return self.name
@@ -168,7 +171,9 @@ class InventoryRecord(models.Model):
 
     # For records that subtract inventory
     # ------------------------------------
-    added_inventory_record = models.ForeignKey("store.InventoryRecord", null=True, on_delete=models.PROTECT)
+    added_inventory_record = models.ForeignKey(
+        "store.InventoryRecord", null=True, on_delete=models.PROTECT, verbose_name="Added Inventory Entry"
+    )
 
     order_item = models.ForeignKey(OrderItem, null=True, db_index=True, on_delete=models.PROTECT)
 
@@ -176,7 +181,8 @@ class InventoryRecord(models.Model):
     margin = models.DecimalField(max_digits=12, decimal_places=2, null=True)
 
     class Meta(BaseModelMeta):
-        pass
+        verbose_name = "inventory entry"
+        verbose_name_plural = "inventory entries"
 
     def __str__(self):
         return f"{self.when} - {self.reason.name} {self.quantity}x {self.product_option.name}"

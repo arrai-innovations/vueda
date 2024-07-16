@@ -156,7 +156,7 @@ class BaseTestGroupMixin:
                     permission_obj, _ = Permission.objects.get_or_create(
                         content_type=content_type,
                         codename=f"{perm_name}_{model_class.__name__.lower()}",
-                        name=f"Can {' '.join(perm_name.split('_'))} {model_class._meta.verbose_name}",
+                        defaults={"name": f"Can {' '.join(perm_name.split('_'))} {model_class._meta.verbose_name}"},
                     )
                     _permissions.append(permission_obj)
                 group.permissions.set(_permissions)

@@ -279,7 +279,6 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                         "type": field_type,
                     }
                 )
-
         return filtering_data
 
 
