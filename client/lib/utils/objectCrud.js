@@ -1,17 +1,40 @@
 import { setObjectCrud } from "@arrai-innovations/reactive-helpers";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
+import { getServerRoutePart } from "@vueda/utils/crudSupport.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
+import isArray from "lodash-es/isArray.js";
+import { deepUnref } from "vue-deepunref";
+
+const makeSearchParamsString = (searchParams) => {
+    const params = deepUnref(searchParams);
+    if (!params) {
+        return "";
+    }
+    const usp = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+        if (isArray(value)) {
+            // Filter out undefined values and join array elements into a comma-separated string
+            const filteredValues = value.filter((v) => v !== undefined).join(",");
+            if (filteredValues) {
+                usp.set(key, filteredValues);
+            }
+        } else if (value !== undefined) {
+            usp.set(key, value);
+        }
+    });
+    return `?${usp.toString()}`;
+};
 
 const getDetailUrl = (app, model, pk, queryString) =>
-    `${httpOrHttpsHostname}${getUrl("modelDetail").replace(":app", app).replace(":model", model).replace(":pk", pk)}${queryString}`;
+    `${httpOrHttpsHostname}${getUrl("modelDetail").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model)).replace(":pk", pk)}${queryString}`;
 const getCreateUrl = (app, model, queryString) =>
-    `${httpOrHttpsHostname}${getUrl("modelList").replace(":app", app).replace(":model", model)}${queryString}`;
+    `${httpOrHttpsHostname}${getUrl("modelList").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model))}${queryString}`;
 
 export async function defaultObjectRetrieve({ crudArgs, id, retrieveArgs }) {
-    const query = retrieveArgs ? `?${new URLSearchParams(retrieveArgs).toString()}` : "";
+    const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
     const url = getDetailUrl(crudArgs.app, crudArgs.model, id, query);
     /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
@@ -31,7 +54,7 @@ export async function defaultObjectRetrieve({ crudArgs, id, retrieveArgs }) {
 }
 
 export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
-    const query = retrieveArgs ? `?${new URLSearchParams(retrieveArgs).toString()}` : "";
+    const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
     const url = getCreateUrl(crudArgs.app, crudArgs.model, query);
     /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
@@ -59,7 +82,7 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
 }
 
 export async function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
-    const query = retrieveArgs ? `?${new URLSearchParams(retrieveArgs).toString()}` : "";
+    const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
     const url = getDetailUrl(crudArgs.app, crudArgs.model, object.id, query);
     /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
@@ -87,7 +110,7 @@ export async function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
 }
 
 export async function defaultObjectPatch({ crudArgs, id, partialObject, retrieveArgs }) {
-    const query = retrieveArgs ? `?${new URLSearchParams(retrieveArgs).toString()}` : "";
+    const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
     const url = getDetailUrl(crudArgs.app, crudArgs.model, id, query);
     /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */

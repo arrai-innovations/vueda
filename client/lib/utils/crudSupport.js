@@ -6,14 +6,14 @@ import startCase from "lodash-es/startCase.js";
 import pluralize from "pluralize";
 
 /**
- * Get the server route part in snake_case for a given app and model.
+ * Get the server route app part in snake_case for a given app.
+ * This is useful for generating server routes in snake_case format, for use in VUEDA urls.
  *
- * @param {string} app - The app name.
- * @param {string} model - The model name.
- * @returns {string} The server route part.
+ * @param {string} appOrModel - The app or model name.
+ * @returns {string} The app or model name in lowercase & snake_case.
  */
-export const getServerRoutePart = memoize(({ app, model }) => {
-    return `${snakeCase(app)}/${snakeCase(model)}`;
+export const getServerRoutePart = memoize((appOrModel) => {
+    return `${snakeCase(appOrModel).toLowerCase()}`;
 });
 
 /**
@@ -30,11 +30,11 @@ export const getPascalCaseName = memoize((model) => {
 /**
  * Get the client route part in snake_case for a given model.
  *
- * @param {string} model - The model name.
- * @returns {string} The client route part.
+ * @param {string} appOrModel - The app or model name.
+ * @returns {string} The app or model name in lowercase & snake_case.
  */
-export const getClientRoutePart = memoize((model) => {
-    return `${snakeCase(model)}`;
+export const getClientRoutePart = memoize((appOrModel) => {
+    return `${snakeCase(appOrModel).toLowerCase()}`;
 });
 
 /**
@@ -45,17 +45,6 @@ export const getClientRoutePart = memoize((model) => {
  */
 export const getLowerTitle = memoize((model) => {
     return `${lowerCase(model)}`;
-});
-
-/**
- * Get the capitalized title for a given model.
- *
- * @param {string} model - The model name.
- * @returns {string} The capitalized title.
- */
-export const getCapitalizedTitle = memoize((model) => {
-    const startCaseTitle = startCase(model);
-    return startCaseTitle.charAt(0).toUpperCase() + startCaseTitle.slice(1);
 });
 
 /**
@@ -125,3 +114,11 @@ export const getAppModelDotName = memoize(({ app, model }) => {
 export const getCRUDName = memoize(({ app, model, view }) => {
     return `${getClientRoutePart(app)}.${getClientRoutePart(model)}-${view}`;
 });
+
+/**
+ * For turning various `dev_strs` or `DevStrs` or `devStrs` into a human-readable titles (`Dev Strs`).
+ *
+ * @param {string} model - The model name.
+ * @returns {string} The human-readable title.
+ */
+export const memoizedStartCase = memoize(startCase);

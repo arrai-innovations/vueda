@@ -1,5 +1,6 @@
 import { setListCrud } from "@arrai-innovations/reactive-helpers";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
+import { getServerRoutePart } from "@vueda/utils/crudSupport.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
@@ -10,9 +11,9 @@ import pLimit from "p-limit";
 import { deepUnref } from "vue-deepunref";
 
 const getListUrl = (app, model, queryString) =>
-    `${httpOrHttpsHostname}${getUrl("modelList").replace(":app", app).replace(":model", model)}${queryString}`;
+    `${httpOrHttpsHostname}${getUrl("modelList").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model))}${queryString}`;
 
-export const makeSearchParamsString = (searchParams) => {
+const makeSearchParamsString = (searchParams) => {
     const params = deepUnref(searchParams);
     if (!params) {
         return "";
@@ -20,7 +21,11 @@ export const makeSearchParamsString = (searchParams) => {
     const usp = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
         if (isArray(value)) {
-            value.filter((v) => v !== undefined).forEach((v) => usp.append(key, v));
+            // Filter out undefined values and join array elements into a comma-separated string
+            const filteredValues = value.filter((v) => v !== undefined).join(",");
+            if (filteredValues) {
+                usp.set(key, filteredValues);
+            }
         } else if (value !== undefined) {
             usp.set(key, value);
         }
