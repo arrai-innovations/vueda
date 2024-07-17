@@ -5,7 +5,7 @@ import { computed, effectScope } from "vue";
  * A hook to get the classes for a given key and kwargs. Uses computeds for caching.
  *
  * @param {{[key: string]: {class: (any | ((kwargs: object) => any))}}} config - The configuration, with keys containing classes.
- * @param {import('vue').UnwrapNestedRefs<object>} props - The reactive props to pass to the class function.
+ * @param {import('vue').UnwrapNestedRefs<object>} [props] - The reactive props to pass to the class function.
  * @param {(key: string, kwargs: object) => string} [keyFn] - A function to modify a key based on kwargs.
  * @returns {(key: string, kwargs?: import('vue').UnwrapNestedRefs<object>) => any} A function that returns the classes for a given key and kwargs.
  */
@@ -32,7 +32,7 @@ export function useComputedClasses(config, props, keyFn) {
             es.run(() => {
                 computeds[myKey] = computed(() =>
                     config[key].class({
-                        ...props,
+                        ...(props || {}),
                         ...kwargs,
                     }),
                 );

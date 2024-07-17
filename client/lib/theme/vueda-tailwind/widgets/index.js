@@ -101,7 +101,7 @@ export default {
             class: ["ml-3", "text-surface-900/60 dark:text-white/60"],
         },
         input: {
-            class: ["ml-3", "bg-surface-200 dark:bg-surface-700"],
+            class: ["ml-3"],
         },
     },
     WidgetSelect: {

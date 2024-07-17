@@ -67,6 +67,8 @@
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 
 const props = defineProps({
@@ -110,18 +112,24 @@ const props = defineProps({
 const formModel = useFormModel(props);
 // todo: look into customizability re: overriding field / widget components with arbitrary slot content
 // todo: it would be nice to have a way to layout the fields into fieldsets / grids
+const theme = useComputedClasses(vuedaTailwind.FormModel);
 </script>
 
 <template>
-    <div data-qa="form-model">
+    <div :class="theme('root')" data-qa="form-model">
         <template v-if="formModel.fields?.length">
-            <div v-if="$slots.beforeFields">
+            <div v-if="$slots.beforeFields" :class="theme('beforeFields')">
                 <slot name="beforeFields" />
             </div>
             <div v-for="fieldObj in formModel.fields.map((x) => formModel.fieldObjects[x])" :key="fieldObj?.name">
-                <component :is="formModel.fieldComponents[fieldObj?.name]" v-if="fieldObj" v-bind="fieldObj">
+                <component
+                    :is="formModel.fieldComponents[fieldObj?.name]"
+                    v-if="fieldObj"
+                    :class="theme('field')"
+                    v-bind="fieldObj"
+                >
                     <template v-if="!$slots[`field-${fieldObj?.name}`]" #default>
-                        <div>
+                        <div :class="theme('fieldInner')">
                             <component
                                 :is="formModel.widgetComponents[fieldObj.name]"
                                 v-bind="formModel.widgetProps[fieldObj.name]"
@@ -136,7 +144,7 @@ const formModel = useFormModel(props);
                     </template>
                 </component>
             </div>
-            <div v-if="$slots.afterFields">
+            <div v-if="$slots.afterFields" :class="theme('afterFields')">
                 <slot name="afterFields" />
             </div>
         </template>
