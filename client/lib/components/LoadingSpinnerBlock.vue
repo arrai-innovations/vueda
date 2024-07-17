@@ -8,12 +8,5 @@ const loadingSpinnerComponent = inject("vuedaLoadingSpinnerBlock", null);
 
 <template>
     <component :is="loadingSpinnerComponent" v-if="loadingSpinnerComponent" />
-    <ProgressSpinner
-        v-else
-        :pt="{
-            root: {
-                class: ['w-full', 'h-full', 'relative', 'mx-1'],
-            },
-        }"
-    />
+    <ProgressSpinner v-else aria-label="Loading..." stroke-width="8" />
 </template>
