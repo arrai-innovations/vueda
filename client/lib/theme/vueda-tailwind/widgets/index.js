@@ -37,7 +37,7 @@ export default {
             class: [],
         },
         inner: {
-            class: [],
+            class: ["flex flex-col"],
         },
         label: {
             class: ["text-surface-900/60 dark:text-white/60"],
@@ -48,7 +48,7 @@ export default {
             class: [],
         },
         inner: {
-            class: [],
+            class: ["flex flex-col"],
         },
         label: {
             class: ["text-surface-900/60 dark:text-white/60"],
@@ -65,7 +65,7 @@ export default {
             class: [],
         },
         inner: {
-            class: [],
+            class: ["flex flex-col"],
         },
         label: {
             class: ["text-surface-900/60 dark:text-white/60"],
@@ -109,7 +109,7 @@ export default {
             class: [],
         },
         inner: {
-            class: [],
+            class: ["flex flex-col"],
         },
         label: {
             class: ["text-surface-900/60 dark:text-white/60"],
@@ -120,7 +120,7 @@ export default {
             class: [],
         },
         inner: {
-            class: [],
+            class: ["flex flex-col"],
         },
         label: {
             class: ["text-surface-900/60 dark:text-white/60"],

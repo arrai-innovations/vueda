@@ -55,11 +55,11 @@ const defaultComponents = {
 const defaultVariants = {
     FormModel: {
         default: {
-            outer: "px-8 pt-6 pb-8 mb-4",
-            beforeFields: "mb-4",
-            afterFields: "mt-4",
-            fields: "space-y-4",
-            field: "mb-2",
+            // outer: "px-8 pt-6 pb-8 mb-4",
+            // beforeFields: "mb-4",
+            // afterFields: "mt-4",
+            // fields: "space-y-4",
+            // field: "mb-2",
         },
     },
     ViewList: {
