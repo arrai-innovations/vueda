@@ -38,7 +38,6 @@ const modelItem = computed(() => {
 });
 
 const valueUpdated = (selected) => {
-    console.log("valueUPDated");
     if (selected && typeof selected === "object" && "value" in selected) {
         widgetContext.state.combinedValue = selected.value;
     } else if (props.multiple && selected && selected.length) {

@@ -40,11 +40,16 @@ const view = computed(() => routeProps.value.view);
                         </template>
                     </h1>
                 </div>
-                <div v-if="view !== 'list' && model && app">
-                    >&nbsp;<link-model-view :app="app" :model="model" view="list">Return to List</link-model-view>
-                </div>
                 <hr class="w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2" />
-                <div class="w-full sm:w-auto self-start">
+                <div class="w-full sm:w-auto self-start flex flex-col sm:flex-row">
+                    <link-model-view
+                        v-if="view !== 'list' && model && app"
+                        :app="app"
+                        class="whitespace-nowrap grow shrink-0"
+                        label="Return to List"
+                        :model="model"
+                        view="list"
+                    />
                     <slot name="button" />
                 </div>
             </div>

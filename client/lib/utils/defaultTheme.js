@@ -21,32 +21,7 @@ const defaultComponents = {
         defaultVariant: "default",
         spots: ["outer"],
     },
-    ViewCreate: {
-        defaultVariant: "default",
-        spots: ["outer", "header", "title", "loading"],
-    },
     ViewDelete: {
-        defaultVariant: "default",
-        spots: ["outer", "header", "title", "loading"],
-    },
-    ViewList: {
-        defaultVariant: "default",
-        spots: [
-            "outer",
-            "header",
-            "title",
-            "loading",
-            "listActions",
-            "listAction",
-            "detailActionsClass",
-            "detailActionClass",
-        ],
-    },
-    ViewRead: {
-        defaultVariant: "default",
-        spots: ["outer", "header", "title", "loading"],
-    },
-    ViewUpdate: {
         defaultVariant: "default",
         spots: ["outer", "header", "title", "loading"],
     },
@@ -60,18 +35,6 @@ const defaultVariants = {
             // afterFields: "mt-4",
             // fields: "space-y-4",
             // field: "mb-2",
-        },
-    },
-    ViewList: {
-        default: {
-            outer: "outer",
-            header: "header",
-            title: "title",
-            loading: "loading",
-            listActions: "listActions",
-            listAction: "listAction",
-            detailActionsClass: "detailActionsClass",
-            detailActionClass: "detailActionClass",
         },
     },
 };

@@ -1,12 +1,13 @@
 <script setup>
 import { useObject } from "@arrai-innovations/reactive-helpers";
-import LoadingSpinner from "@vueda/components/LoadingSpinnerBlock.vue";
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
+import PageTitle from "@vueda/components/PageTitle.vue";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { useObject404 } from "@vueda/use/useObject404.js";
+import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import get from "lodash-es/get.js";
-import isEmpty from "lodash-es/isEmpty.js";
-import { computed, reactive, toRef } from "vue";
+import { computed, reactive, ref, toRef, watch } from "vue";
 
 const props = defineProps({
     app: {
@@ -32,7 +33,13 @@ const props = defineProps({
 });
 
 const isActive = useIsActive();
+
+const validAndActive = computed(() => !!(isActive.value && props.app && props.model && props.pk));
+
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+const titleStr = computed(() => {
+    return `Read ${memoizedStartCase(modelConfig.info?.verbose_name)}` || "Read Item";
+});
 const calculatedReadFields = computed(() => {
     // if they don't pass readFields, use the modelConfig fields.
     //  modelConfig fields already falls back to models fields supplied by the server
@@ -52,27 +59,74 @@ const instanceObjectProps = reactive({
     retrieveArgs: {
         f: calculatedReadFields,
     },
-    intendToRetrieve: computed(() => !!(isActive.value && props.app && props.model && props.pk)),
+    intendToRetrieve: validAndActive,
 });
 const instanceObject = useObject({
     props: instanceObjectProps,
 });
-
-const combinedClasses = useCombinedClasses("ViewRead", props);
+/** @type {import('vue').Ref<Error|null>} */
+const myError = ref(null);
+useObject404(props, instanceObject, modelConfig, myError);
+const checkIfValidAndActive = () => {
+    if (!validAndActive.value) {
+        const newE = new Error("Invalid props for ViewUpdate.");
+        newE.name = ""; // delete will just show the default Error.prototype.name
+        delete newE.stack;
+        if (!props.app) {
+            newE.message += "\nprop 'app' is required";
+        }
+        if (!props.model) {
+            newE.message += "\nprop 'model' is required";
+        }
+        if (!props.pk) {
+            newE.message += "\nprop 'pk' is required";
+        }
+        // if not active, you'll never see this anyway.
+        newE.redirectParams = {
+            name: getCRUDName({
+                app: props.app,
+                model: props.model,
+                view: "list",
+            }),
+        };
+        newE.redirectTitle = `Return to the ${memoizedStartCase(modelConfig.info.verbose_name)} list view.`;
+        delete newE.stack;
+        myError.value = newE;
+    }
+};
+let mountedOrActivatedTimeout = null;
+watch(
+    isActive,
+    (active) => {
+        if (active) {
+            if (mountedOrActivatedTimeout) {
+                clearTimeout(mountedOrActivatedTimeout);
+            }
+            mountedOrActivatedTimeout = setTimeout(checkIfValidAndActive, 2500);
+        }
+    },
+    { immediate: true },
+);
+const combinedError = computed(() => {
+    return myError.value || modelConfig.error || instanceObject.state.error;
+});
+const combinedErrored = computed(() => !!combinedError.value);
+const combinedWhileText = computed(() =>
+    myError.value
+        ? "validating props"
+        : modelConfig.error
+          ? "getting model information"
+          : instanceObject.state.error
+            ? "fetching object data"
+            : "",
+);
 </script>
 
 <template>
-    <div :class="combinedClasses.outerClass">
-        <div :class="combinedClasses.headerClass">
-            <h1 :class="combinedClasses.titleClass">
-                {{ `Read ${modelConfig.info?.verbose_name}` || "Read Item" }}
-                <loading-spinner
-                    v-if="modelConfig.loading || isEmpty(modelConfig.config) || isEmpty(modelConfig.info)"
-                    :class="combinedClasses.loadingClass"
-                />
-            </h1>
-        </div>
-        <div :class="combinedClasses.bodyClass">
+    <div>
+        <page-title :loading="instanceObject.state.loading" :title="titleStr" />
+        <div>
+            <error-display :error="combinedError" :errored="combinedErrored" :while-text="combinedWhileText" />
             <template v-for="field in calculatedReadFields" :key="field">
                 <!-- todo: read-only field widgets? vs form field widgets -->
                 {{ field }}:

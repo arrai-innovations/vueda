@@ -224,9 +224,8 @@ export default function useFilterFormModel(props) {
 
     // todo: what about figuring out fields through foreign keys?
     watch(
-        [toRef(internalState, "modelInfo"), toRef(props, "listFields")],
-        ([modelInfo, listFields]) => {
-            console.log("listFields: ", listFields);
+        toRef(internalState, "modelInfo"),
+        ([modelInfo]) => {
             if (modelInfo?.filtering?.length) {
                 const fieldComponents = {};
                 const fieldProps = {};

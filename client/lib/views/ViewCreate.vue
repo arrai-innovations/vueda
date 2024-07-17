@@ -3,16 +3,13 @@ import { useObject } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
+import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import Button from "primevue/button";
 import { computed, reactive, toRef } from "vue";
 
-defineOptions({
-    inheritAttrs: false,
-});
 const props = defineProps({
     app: {
         type: String,
@@ -53,7 +50,11 @@ const props = defineProps({
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
-const calculatedCreateFields = computed(() => modelConfig.config.createFields || []);
+const titleStr = computed(() => {
+    return `Create ${memoizedStartCase(modelConfig.info?.verbose_name)}` || "Create Item";
+});
+const calculatedCreateFields = computed(() => modelConfig?.config?.createFields);
+const calculatedCreateExpands = computed(() => modelConfig?.config?.createExpands);
 
 const instanceObjectProps = reactive({
     crudArgs: {
@@ -63,6 +64,7 @@ const instanceObjectProps = reactive({
     id: null,
     retrieveArgs: {
         f: calculatedCreateFields,
+        e: calculatedCreateExpands,
     },
     intendToRetrieve: false,
 });
@@ -83,44 +85,41 @@ const objectForm = useObjectForm({
     formContext,
     instanceObject,
 });
-
-const titleStr = computed(() => {
-    return `Create ${modelConfig.info?.verbose_name}` || "Create Item";
+const combinedError = computed(() => {
+    return modelConfig.error || instanceObject.state.error || objectForm.state.error;
 });
-const combinedClasses = useCombinedClasses("ViewCreate", props);
+const combinedErrored = computed(() => !!combinedError.value);
+const combinedWhileText = computed(() =>
+    modelConfig.error
+        ? "getting model information"
+        : instanceObject.state.error
+          ? "fetching object data"
+          : objectForm.state.error
+            ? "submitting form"
+            : "",
+);
 </script>
-
 <template>
-    <div :class="combinedClasses.outerClass">
-        <page-title :title="titleStr">
+    <div>
+        <page-title :loading="modelConfig.loading" :title="titleStr">
             <template #button>
                 <Button
                     class="w-full"
                     label="Submit"
-                    :loading="objectForm.running"
+                    :loading="objectForm.state.loading"
                     @click.prevent="objectForm.submit"
                 />
             </template>
         </page-title>
-        <div :class="combinedClasses.bodyClass">
+        <div>
             <error-display
-                :error="modelConfig.error"
-                :errored="modelConfig.errored"
-                while-text="getting model information"
-            />
-            <error-display
-                :error="objectForm.error"
-                :errored="objectForm.errored"
-                while-text="submitting create form"
+                :error="combinedError"
+                :errored="combinedErrored"
+                :ignore-form-validation-errors="true"
+                :while-text="combinedWhileText"
             />
             <form @submit.prevent="objectForm.submit">
-                <form-model
-                    :app="app"
-                    v-bind="$attrs"
-                    :fields="calculatedCreateFields"
-                    :model="model"
-                    :variant="formModelVariant"
-                />
+                <form-model :app="app" :fields="calculatedCreateFields" :model="model" :variant="formModelVariant" />
             </form>
         </div>
     </div>

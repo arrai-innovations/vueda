@@ -16,7 +16,6 @@ import partial from "lodash-es/partial.js";
  * @param {string} params.app - The app name.
  * @param {string} params.model - The model name.
  * @param {string[]} [params.views=['list', 'create', 'update', 'read']] - The views to generate routes for.
- * @param {object} [params.titles={}] - Custom titles for the views.
  * @param {string} [params.pathPrefix=''] - The prefix to add to the path.
  * @param {string} [params.authRedirect=null] - The route to redirect to if the user is not authenticated.
  * @param {string[]} [params.groups=null] - The groups required to access the views.

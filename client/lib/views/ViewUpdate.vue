@@ -1,18 +1,17 @@
 <script setup>
-import { assignReactiveObject, useObject } from "@arrai-innovations/reactive-helpers";
+import { assignReactiveObject, loadingCombine, useObject } from "@arrai-innovations/reactive-helpers";
+import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { useObject404 } from "@vueda/use/useObject404.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
+import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import Button from "primevue/button";
-import { computed, reactive, toRef, watch } from "vue";
+import { computed, reactive, ref, toRef, watch } from "vue";
 
-defineOptions({
-    inheritAttrs: false,
-});
 const props = defineProps({
     app: {
         type: String,
@@ -58,11 +57,26 @@ const props = defineProps({
 });
 
 const isActive = useIsActive();
-const validAndActive = computed(() => !!(isActive.value && props.app && props.model && props.pk));
 
-const calculatedUpdateFields = computed(() => modelConfig.config.updateFields || []);
+const validAndActive = computed(
+    () =>
+        !!(
+            isActive.value &&
+            props.app &&
+            props.model &&
+            props.pk &&
+            calculatedUpdateFields.value &&
+            calculatedUpdateExpands.value
+        ),
+);
 
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+const titleStr = computed(() => {
+    return `Update ${memoizedStartCase(modelConfig.info?.verbose_name)}` || "Update Item";
+});
+const calculatedUpdateFields = computed(() => modelConfig?.config?.updateFields);
+const calculatedUpdateExpands = computed(() => modelConfig?.config?.updateExpands);
+
 const instanceObjectProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
@@ -71,6 +85,7 @@ const instanceObjectProps = reactive({
     id: toRef(props, "pk"),
     retrieveArgs: {
         f: calculatedUpdateFields,
+        e: calculatedUpdateExpands,
     },
     intendToRetrieve: validAndActive,
 });
@@ -105,26 +120,91 @@ watch(
         immediate: true,
     },
 );
-
-const titleStr = computed(() => {
-    return `Update ${modelConfig.info?.verbose_name}` || "Update Item";
+/** @type {import('vue').Ref<Error|null>} */
+const myError = ref(null);
+useObject404(props, instanceObject, modelConfig, myError);
+const checkIfValidAndActive = () => {
+    if (!validAndActive.value) {
+        const newE = new Error("Invalid props for ViewUpdate.");
+        newE.name = ""; // delete will just show the default Error.prototype.name
+        delete newE.stack;
+        if (!props.app) {
+            newE.message += "\nprop 'app' is required";
+        }
+        if (!props.model) {
+            newE.message += "\nprop 'model' is required";
+        }
+        if (!props.pk) {
+            newE.message += "\nprop 'pk' is required";
+        }
+        if (!calculatedUpdateFields.value) {
+            newE.message += "\nmodel config is not loaded or updateFields is falsy";
+        }
+        if (!calculatedUpdateExpands.value) {
+            newE.message += "\nmodel config is not loaded or updateExpands is falsy";
+        }
+        // if not active, you'll never see this anyway.
+        newE.redirectParams = {
+            name: getCRUDName({
+                app: props.app,
+                model: props.model,
+                view: "list",
+            }),
+        };
+        newE.redirectTitle = `Return to the ${memoizedStartCase(modelConfig.info.verbose_name)} list view.`;
+        delete newE.stack;
+        myError.value = newE;
+    }
+};
+let mountedOrActivatedTimeout = null;
+watch(
+    isActive,
+    (active) => {
+        if (active) {
+            if (mountedOrActivatedTimeout) {
+                clearTimeout(mountedOrActivatedTimeout);
+            }
+            mountedOrActivatedTimeout = setTimeout(checkIfValidAndActive, 2500);
+        }
+    },
+    { immediate: true },
+);
+const combinedError = computed(() => {
+    return myError.value || modelConfig.error || instanceObject.state.error || objectForm.state.error;
 });
-const combinedClasses = useCombinedClasses("ViewUpdate", props);
+const combinedErrored = computed(() => !!combinedError.value);
+const combinedWhileText = computed(() =>
+    myError.value
+        ? "validating props"
+        : modelConfig.error
+          ? "getting model information"
+          : instanceObject.state.error
+            ? "fetching object data"
+            : objectForm.state.error
+              ? "submitting form"
+              : "",
+);
+const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObject.state.loading));
 </script>
-
 <template>
-    <div :class="combinedClasses.outerClass">
-        <page-title :title="titleStr">
+    <div>
+        <page-title :loading="pageLoading" :title="titleStr">
             <template #button>
                 <Button
                     class="w-full"
                     label="Submit"
-                    :loading="objectForm.running"
+                    :loading="objectForm.state.loading"
                     @click.prevent="objectForm.submit"
                 />
             </template>
         </page-title>
-        <div :class="combinedClasses.bodyClass">
+        <div>
+            <error-display
+                :error="combinedError"
+                :errored="combinedErrored"
+                :ignore-form-validation-errors="true"
+                :while-text="combinedWhileText"
+            />
             <form @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"

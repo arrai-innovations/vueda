@@ -3,18 +3,18 @@ import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovation
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FilterFormModel from "@vueda/components/FilterFormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
-import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
+import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { getCRUDName, getCapitalizedTitle } from "@vueda/utils/crudSupport.js";
+import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
+import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
 import { computed, reactive, ref, toRaw, toRef, watch } from "vue";
 
@@ -196,8 +196,7 @@ watch(
 );
 
 const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
-const combinedClasses = useCombinedClasses("ViewList", props);
-const verboseNamePlural = computed(() => getCapitalizedTitle(modelConfig.info?.verbose_name_plural || "items"));
+const titleStr = computed(() => `List ${memoizedStartCase(modelConfig.info?.verbose_name_plural || "items")}`);
 const errored = computed(() => modelConfig.errored || instanceList.state.errored);
 const error = computed(() => modelConfig.error || instanceList.state.error);
 const dismissError = () => {
@@ -221,47 +220,80 @@ const clickClearFilter = () => {
 const selectedObjects = ref([]);
 </script>
 <template>
-    <div class="flex flex-col gap-1 w-full max-w-full">
-        <div class="prose dark:prose-invert">
-            <h1 :class="combinedClasses.titleClass">
-                {{ verboseNamePlural }}
-                <loading-spinner-inline v-if="modelConfig.loading" :class="combinedClasses.loadingClass" />
-            </h1>
-        </div>
+    <div>
+        <page-title :loading="instanceList.state.loading" :title="titleStr">
+            <template #button>
+                <template
+                    v-for="actionName in modelConfig.config.listActions"
+                    :key="
+                        getCRUDName({
+                            app: app,
+                            model: model,
+                            view: actionName,
+                        })
+                    "
+                >
+                    <link-model-view
+                        :app="app"
+                        button
+                        :label="memoizedStartCase(actionName)"
+                        :model="model"
+                        severity="secondary"
+                        :view="actionName"
+                    />
+                </template>
+            </template>
+            <template #subtitle>
+                <div class="flex gap-1 my-1 items-center w-full">
+                    <InputGroup>
+                        <InputText
+                            v-model="listSearch"
+                            class="max-w-[30ch]"
+                            name="search"
+                            placeholder="Search"
+                            type="search"
+                            @search="filterList"
+                        />
+                        <Button label="Search" @click="filterList" />
+                    </InputGroup>
+                </div>
+            </template>
+            <template #under-actions>
+                <div class="flex gap-1 my-1 items-center justify-end w-full">
+                    <form :ref="filterFormModelRef" @submit.prevent="filterList">
+                        <filter-form-model :app="app" :filter-fields="listFields" :model="model" v-bind="$attrs" />
+                    </form>
+                    <Button
+                        class="whitespace-nowrap"
+                        label="Clear Filters"
+                        severity="secondary"
+                        @click="clickClearFilter"
+                    />
+                </div>
+            </template>
+        </page-title>
         <error-display :error="error" :errored="errored" @dismiss-error="dismissError" />
         <!-- todo: filters/search -->
         <!-- todo: pagination -->
         <!-- todo: hide/show columns -->
         <!-- todo: collection level actions -->
-        <div :class="combinedClasses.listActionsClass">
-            <div
-                v-for="actionName in modelConfig.config.listActions"
-                :key="actionName"
-                :class="combinedClasses.listActionClass"
-            >
-                <router-link v-slot="{ navigate }" custom :to="{ name: getCRUDName({ app, model, view: actionName }) }">
-                    <Button class="w-full" :label="actionName" @click="navigate" />
-                </router-link>
-            </div>
-        </div>
         <!-- todo: bulk object level actions -->
-        <div :class="combinedClasses.detailActionsClass">
-            <InputText v-model="listSearch" name="search" placeholder="Search" type="search" @search="filterList" />
-            <form :ref="filterFormModelRef" @submit.prevent="filterList">
-                <filter-form-model :app="app" :filter-fields="listFields" :model="model" v-bind="$attrs" />
-            </form>
-            <Button class="w-1/5" label="Search" type="submit" @click="filterList" />
-            <Button class="w-1/5" label="Clear Filters" type="submit" @click="clickClearFilter" />
-
+        <div>
             <!-- todo: filters return here? @submit=filterList -->
             <div
                 v-for="actionName in modelConfig.config.detailActions"
                 :key="actionName"
-                :class="combinedClasses.detailActionClass"
             >
-                <link-model-view :app="app" :model="model" pk="11" :view="actionName">
-                    <Button class="w-full" icon="pi pi-trash" :label="actionName" @click="navigate" />
-                </link-model-view>
+                <link-model-view
+                    :app="app"
+                    button
+                    :label="memoizedStartCase(actionName)"
+                    :model="model"
+                    severity="secondary"
+                    :view="actionName"
+                    icon="pi pi-trash"
+                    :pk="11"
+                />
             </div>
         </div>
         {{ selectedObjects }}
@@ -284,9 +316,7 @@ const selectedObjects = ref([]);
                 <Checkbox v-model="selectedObjects" :input-id="obj.id" :value="obj.id" />
             </template>
             <template #link-field="{ pk, value }">
-                <link-model-view :app="app" :model="model" :pk="pk" view="update">
-                    {{ value }}
-                </link-model-view>
+                <link-model-view :app="app" :label="value" :model="model" :pk="pk" view="update" />
             </template>
         </objects-grid>
         <pagination-component

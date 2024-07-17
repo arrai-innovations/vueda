@@ -1,6 +1,6 @@
-import { loadingCombine, useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
-import { getCRUDName } from "@vueda/utils/crudSupport.js";
+import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
@@ -25,11 +25,9 @@ import { useRouter } from "vue-router";
 
 /**
  * @typedef {object} ObjectFormRawState
- * @property {boolean} loading - Whether the object is loading.
- * @property {Error} error - The error that occurred.
+ * @property {boolean|undefined} loading - Whether the object form is submitting. Does not include object loading.
+ * @property {Error|null} error - The error that occurred.
  * @property {boolean} errored - Whether an error occurred.
- * @property {boolean|undefined} submitting - Whether the form is submitting.
- * @property {boolean} running - Whether the object is loading or the form is submitting.
  * @property {string} app - The app name.
  * @property {string} model - The model name.
  * @property {string} verboseName - The verbose name of the model.
@@ -37,7 +35,7 @@ import { useRouter } from "vue-router";
  */
 
 /**
- * @typedef {import('vue').UnwrapRef<ObjectFormRawState>} ObjectFormState
+ * @typedef {import('vue').UnwrapNestedRefs<ObjectFormRawState>} ObjectFormState
  */
 
 /**
@@ -64,7 +62,7 @@ import { useRouter } from "vue-router";
  *     toast: import("primevue/toastservice").ToastServiceMethods,
  *     isUpdate: boolean,
  *     state: ObjectFormState
- * }) => Promise<void>} OnSubmissionError
+ * }) => Promise<Boolean>} OnSubmissionError
  */
 
 /**
@@ -132,11 +130,9 @@ export const defaultOnSubmitAnyError = async ({ formContext, toast }) => {
  * @param {Error} options.error - The error that occurred.
  * @param {FormContext} options.formContext - The form context.
  * @param {import("primevue/toastservice").ToastServiceMethods} options.toast - The toast service.
- * @param {boolean} options.isUpdate - Whether the submission was an update or a create.
- * @param {ObjectFormState} options.state - The form state.
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} - True if the error should be marked as handled. Otherwise it may be displayed.
  */
-export const defaultOnSubmissionError = async ({ error, formContext, toast, isUpdate, state }) => {
+export const defaultOnSubmissionError = async ({ error, formContext, toast }) => {
     if (error instanceof FormValidationError) {
         formContext.handleServerFormValidationError(error);
         const plural = Object.keys(error.messages).length > 1;
@@ -146,14 +142,7 @@ export const defaultOnSubmissionError = async ({ error, formContext, toast, isUp
             detail: `Please review the new error${plural ? "s" : ""} displayed.`,
             life: 10000,
         });
-    } else {
-        // todo: do we provide more detail here, or should it just be display in the page?
-        toast.add({
-            severity: "error",
-            summary: `Failed to ${isUpdate ? "Update" : "Create"} ${state.verboseName}`,
-            detail: "Please try again or contact support if the issue persists.",
-            life: 10000,
-        });
+        return true;
     }
 };
 
@@ -170,7 +159,7 @@ export const defaultOnSubmissionError = async ({ error, formContext, toast, isUp
 export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, router }) => {
     toast.add({
         severity: "success",
-        summary: `${state.verboseName} Successfully ${isUpdate ? "Updated" : "Created"}`,
+        summary: `${memoizedStartCase(state.verboseName)} Successfully ${isUpdate ? "Updated" : "Created"}`,
         detail: "Returning to the list view.",
         life: 10000,
     });
@@ -194,7 +183,7 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
 /**
  * This composition function bridges the gap between the generic FormContext (useForm) and data handling ObjectInstance
  *  (useObject, useObjectInstance). It provides a submit function that handles the form submission, and the state of the
- *  form. It also provides a running computed property that is true when the object is loading or the form is submitting.
+ *  form. The objectForm is `loading` when the form is submitting, `instanceObject.state.loading` is not tied in.
  *  The form will warn the user if they have unsaved changes when they try to navigate away from the page.
  *  The form will also display a toast message when the form is successfully submitted or when an error occurs.
  *
@@ -229,23 +218,12 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
  *   <form @submit.prevent="submit">
  *     <input v-model="formContext.values.name" placeholder="Name" />
  *     <input v-model="formContext.values.age" placeholder="Age" type="number" />
- *     <button type="submit" :disabled="state.running || !formContext.anyModified">Submit</button>
+ *     <button type="submit" :disabled="state.loading || !formContext.anyModified">Submit</button>
  *   </form>
  *   <p v-if="state.loading">Loading...</p>
  *   <p v-if="state.error">{{ state.error.message }}</p>
  * </template>
  * ```
- *
- * In this example:
- * - A form with inputs for `name` and `age` is set up, using `v-model` to bind inputs to the form state managed by
- *  `useForm`.
- * - The `submit` function from `useObjectForm` is used to handle the form submission, which involves validating the
- *  form locally, then performing a CRUD operation through `useObjectInstance`.
- * - The `state.running` is a computed property from `useObjectForm` that indicates if the form is currently submitting
- *  or processing, which disables the submit button to prevent multiple submissions.
- * - Feedback such as loading states and error messages is reactively displayed using Vue's conditional rendering.
- * - This setup ensures that the form can handle and display errors from both client-side validation and server
- *  responses, enhancing the user experience by providing real-time feedback.
  *
  * You should refer to vueda's useForm example and reactive-helper's useObject/useObjectInstance examples for more
  *  detail on those individual parts.
@@ -262,9 +240,6 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         loading: loadingError.loading,
         error: loadingError.error,
         errored: loadingError.errored,
-        /** @type {boolean|undefined} */
-        submitting: undefined,
-        running: computed(() => loadingCombine(loadingError.loading.value, state.submitting)),
         app: computed(() => props.app),
         model: computed(() => props.model),
         verboseName: computed(() => props.verboseName),
@@ -296,7 +271,8 @@ export function useObjectForm({ props, formContext, instanceObject }) {
     const doSubmit = async () => {
         try {
             // start 'submitting' right away, makes it useful for disabling the submit button.
-            state.submitting = true;
+            loadingError.clearError();
+            loadingError.setLoading();
             // set all fields as touched to show errors
             formContext.setAllTouched();
             // wait for validation watchers to run
@@ -325,13 +301,17 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             });
             if (instanceObject.state.errored) {
                 const error = instanceObject.state.error;
-                await returnObject.onSubmissionError({
+                const handled = await returnObject.onSubmissionError({
                     error,
                     formContext,
                     toast,
                     isUpdate,
                     state,
                 });
+                if (handled) {
+                    instanceObject.clearError();
+                }
+                // otherwise, whatever is looking at instanceObject.state.error will handle it.
             } else {
                 await returnObject.onSubmissionSuccess({
                     formContext,
@@ -341,8 +321,11 @@ export function useObjectForm({ props, formContext, instanceObject }) {
                     state,
                 });
             }
+        } catch (e) {
+            // errors here are outside the normal course for expected errors
+            loadingError.setError(e);
         } finally {
-            state.submitting = false;
+            loadingError.clearLoading();
             promises.submit = null;
         }
     };

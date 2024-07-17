@@ -1,5 +1,6 @@
 <script setup>
 import { getCRUDForTo, isDetailView } from "@vueda/router/getCrud.js";
+import Button from "primevue/button";
 import { computed } from "vue";
 
 // import { useRouter } from "vue-router";
@@ -20,13 +21,17 @@ const props = defineProps({
         type: [String, Number],
         default: undefined,
     },
-    variant: {
-        type: String,
-        default: "cell",
+    button: {
+        type: Boolean,
+        default: false,
     },
     view: {
         type: [String, Array, Object],
         default: "read",
+    },
+    label: {
+        type: String,
+        required: true,
     },
 });
 // TODO: permissions for view
@@ -64,12 +69,14 @@ const isDetailViewComputed = computed(() => isDetailView(viewToUse.value));
 //  we will need to store the view type in the route props and retrieve it here
 //
 const toRouteArgs = computed(() => {
-    return getCRUDForTo({
-        app: props.app,
-        model: props.model,
-        pk: props.pk,
-        view: viewToUse.value,
-    });
+    return viewToUse.value
+        ? getCRUDForTo({
+              app: props.app,
+              model: props.model,
+              pk: props.pk,
+              view: viewToUse.value,
+          })
+        : undefined;
 });
 // const router = useRouter();
 // const toRoute = computed(() => {
@@ -89,11 +96,15 @@ const toRouteArgs = computed(() => {
         v-if="(isDetailViewComputed && pk) || !isDetailViewComputed"
         v-slot="slotProps"
         custom
-        :to="viewToUse ? toRouteArgs : undefined"
+        :to="toRouteArgs"
     >
-        <a :href="slotProps.href" v-bind="$attrs" @click="slotProps.navigate">
-            <slot :used-view="viewToUse"></slot>
-        </a>
+        <Button
+            v-bind="$attrs"
+            :href="button ? undefined : slotProps.href"
+            :label="label"
+            :link="!button"
+            @click="slotProps.navigate"
+        />
     </router-link>
     <slot v-else></slot>
 </template>
