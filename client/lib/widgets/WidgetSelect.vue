@@ -42,11 +42,11 @@ const theme = useComputedClasses(vuedaTailwind.WidgetSelect, widgetContext.state
 
 <template>
     <div :class="theme('root')">
-        <widget-label :label-class="theme('inner')" :use-floating-label="props.useFloatingLabel">
+        <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
-            <div :class="theme('label')">
+            <div :class="theme('inner')">
                 <dropdown
                     v-model="widgetContext.state.combinedValue"
                     :name="widgetContext.state.combinedName"
