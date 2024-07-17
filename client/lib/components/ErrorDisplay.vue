@@ -32,6 +32,16 @@ const props = defineProps({
         default: true,
         description: "Whether to ignore aborted requests",
     },
+    redirectParams: {
+        type: [Object, String],
+        default: null,
+        description: "The vue-router params to create a link to in the message.",
+    },
+    redirectTitle: {
+        type: String,
+        default: "Click here to go back.",
+        description: "The text to display as the link in the message.",
+    },
 });
 const emit = defineEmits(["dismiss-error"]);
 
@@ -70,13 +80,14 @@ const onDismiss = () => emit("dismiss-error");
 
 <template>
     <template v-if="errored">
-        <slot>
-            <Message class="w-full" :closable="showDismiss" severity="error" @close="onDismiss">
-                <div class="max-w-full overflow-x-auto p-1 flex flex-col gap-2">
-                    <p>There was an error while {{ whileText }}.</p>
-                    <pre><code>{{ formatError(error) }}</code></pre>
-                </div>
-            </Message>
-        </slot>
+        <Message class="w-full" :closable="showDismiss" severity="error" @close="onDismiss">
+            <div class="max-w-full overflow-x-auto p-1 flex flex-col gap-2">
+                <p>There was an error while {{ whileText }}.</p>
+                <pre><code>{{ formatError(error) }}</code></pre>
+                <p v-if="redirectParams">
+                    <router-link :to="redirectParams">{{ redirectTitle }}</router-link>
+                </p>
+            </div>
+        </Message>
     </template>
 </template>
