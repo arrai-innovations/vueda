@@ -1,6 +1,11 @@
 import { isDetailView } from "@vueda/router/getCrud.js";
 import { requireAuth, requireGroups } from "@vueda/router/guards.js";
-import { getClientRoutePart } from "@vueda/utils/crudSupport.js";
+import {
+    getCapitalizedTitle,
+    getClientRoutePart,
+    getLowerTitle,
+    getPluralizedTitle,
+} from "@vueda/utils/crudSupport.js";
 import partial from "lodash-es/partial.js";
 
 /**
@@ -26,7 +31,7 @@ export function makeCRUDRoutes({
     authRedirect = null,
     groups = null,
     groupsRedirect = null,
-    views = ["list", "create", "update", "read"],
+    views = ["list", "create", "update", "read", "delete"],
     pathPrefix = "",
     vueApp,
 }) {

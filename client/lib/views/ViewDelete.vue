@@ -2,12 +2,17 @@
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
+import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
 import isEmpty from "lodash-es/isEmpty.js";
+import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
-import { reactive, ref, toRef } from "vue";
+import { computed, reactive, toRef } from "vue";
 import { useRouter } from "vue-router";
 
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     app: {
         type: String,
@@ -31,7 +36,8 @@ const props = defineProps({
     },
 });
 
-const router = useRouter();
+const isActive = useIsActive();
+const validAndActive = computed(() => !!(isActive.value && props.app && props.model && props.pk));
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 
 const instanceObjectProps = reactive({
@@ -40,24 +46,38 @@ const instanceObjectProps = reactive({
         model: toRef(props, "model"),
     },
     id: toRef(props, "pk"),
-    listArgs: {},
-    intendToRetrieve: false,
+    retrieveArgs: {
+        f: {},
+    },
+    intendToRetrieve: validAndActive,
 });
-const instanceObject = useObject(instanceObjectProps);
-
-const confirmDelete = ref(false);
+const instanceObject = useObject({
+    props: instanceObjectProps,
+});
 
 const toast = useToast();
+const router = useRouter();
 
 const handleDelete = async () => {
     await instanceObject.delete();
-    toast.add({
-        severity: "success",
-        summary: "Delete Success",
-        detail: `Deleted ${modelConfig.info.verbose_name} with ID ${props.pk}`,
-        life: 5000,
-    });
-    router.back();
+    if (instanceObject.state.errored) {
+        console.log("instanceObject.state.error");
+        toast.add({
+            severity: "error",
+            summary: "Delete Error",
+            detail: `Error deleting ${modelConfig.info.verbose_name} with ID ${props.pk}`,
+            life: 5000,
+        });
+        return;
+    } else {
+        toast.add({
+            severity: "success",
+            summary: "Delete Success",
+            detail: `Deleted ${modelConfig.info.verbose_name} with ID ${props.pk}`,
+            life: 5000,
+        });
+        router.back();
+    }
 };
 
 const combinedClasses = useCombinedClasses("ViewDelete", props);
@@ -70,15 +90,8 @@ const combinedClasses = useCombinedClasses("ViewDelete", props);
     <div v-if="!isEmpty(modelConfig.info)" :class="combinedClasses.outerClass">
         <h1>Delete {{ modelConfig.info.verbose_name }}: {{ pk }}</h1>
         <p>Are you sure you want to delete this {{ modelConfig.info.verbose_name }}?</p>
-        <div v-if="!confirmDelete">
-            <button @click="confirmDelete = true">Yes, delete</button>
-            <button @click="router.back()">Cancel</button>
-        </div>
-        <div v-else>
-            <p>This action cannot be undone. Are you absolutely sure?</p>
-            <button @click="handleDelete">Yes, delete permanently</button>
-            <button @click="router.back()">Cancel</button>
-        </div>
+        <Button @click="handleDelete">Yes, delete</Button>
+        <Button @click="router.back()">Cancel</Button>
     </div>
     <div v-else><loading-spinner-block /></div>
 </template>

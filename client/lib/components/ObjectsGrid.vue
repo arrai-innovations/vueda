@@ -221,6 +221,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                 data-qa="objects-grid-row"
                 role="row"
             >
+                <slot name="row-prefix" :obj="obj"></slot>
                 <template v-for="(field, colIndex) in fields" :key="field.name">
                     <!-- this if let's first: and last: work, otherwise the last table cell can never be last child -->
                     <div
@@ -235,8 +236,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             </slot>
                         </div>
                         <div :class="theme('cardValue')" :data-card="field.name">
-                            <slot v-if="colIndex === 0" name="link-field" :pk="obj?.id" :value="get(obj, field.name)">
-                            </slot>
+                            <slot v-if="colIndex === 0" name="link-field" :pk="obj?.id" :value="get(obj, field.name)" />
                             <slot
                                 v-else
                                 :calculated="get(get(calculatedObjects, obj.id), field.name)"

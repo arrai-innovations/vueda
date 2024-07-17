@@ -49,7 +49,7 @@ const theme = useComputedClasses(vuedaTailwind.WidgetDatePicker, widgetContext.s
                 <div class="card flex justify-center">
                     <div class="w-56">
                         <span v-if="widgetContext.state.combinedValue">{{ widgetContext.state.combinedValue }}</span>
-                        <span v-else>[{{ min }},{{ max }}]</span>
+                        <span v-else>[{{ props.minValue }},{{ props.maxValue }}]</span>
                         <Slider
                             v-model="widgetContext.state.combinedValue"
                             v-bind="$attrs"

@@ -14,6 +14,7 @@ import { getCRUDName, getCapitalizedTitle } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
+import Checkbox from "primevue/checkbox";
 import InputText from "primevue/inputtext";
 import { computed, reactive, ref, toRaw, toRef, watch } from "vue";
 
@@ -207,7 +208,6 @@ const formContextProps = reactive({
     initialValues: {},
 });
 const formContext = useForm(formContextProps);
-
 const filterList = () => {
     listState.search = listSearch.value;
     listState.filterArgs = cloneDeep(formContext.state.values);
@@ -218,8 +218,8 @@ const clickClearFilter = () => {
     listSearch.value = "";
     listState.search = "";
 };
+const selectedObjects = ref([]);
 </script>
-
 <template>
     <div class="flex flex-col gap-1 w-full max-w-full">
         <div class="prose dark:prose-invert">
@@ -259,10 +259,12 @@ const clickClearFilter = () => {
                 :key="actionName"
                 :class="combinedClasses.detailActionClass"
             >
-                <!-- todo: action buttons -->
-                {{ actionName }}
+                <link-model-view :app="app" :model="model" pk="11" :view="actionName">
+                    <Button class="w-full" icon="pi pi-trash" :label="actionName" @click="navigate" />
+                </link-model-view>
             </div>
         </div>
+        {{ selectedObjects }}
         <!-- todo: a column that allows selecting objects for bulk detail actions -->
         <objects-grid
             ref="objectsGridRef"
@@ -278,6 +280,9 @@ const clickClearFilter = () => {
             :variant="objectGridVariant"
             @update:sorted="sorting.updateSorted"
         >
+            <template #row-prefix="{ obj }">
+                <Checkbox v-model="selectedObjects" :input-id="obj.id" :value="obj.id" />
+            </template>
             <template #link-field="{ pk, value }">
                 <link-model-view :app="app" :model="model" :pk="pk" view="update">
                     {{ value }}
