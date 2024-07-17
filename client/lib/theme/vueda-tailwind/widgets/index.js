@@ -23,7 +23,7 @@ export default {
     },
     WidgetCheckbox: {
         root: {
-            class: [],
+            class: ["ml-3"],
         },
         inner: {
             class: ["flex"],
@@ -98,10 +98,10 @@ export default {
             class: ["flex"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-3", "text-surface-900/60 dark:text-white/60"],
         },
         input: {
-            class: ["bg-surface-200 dark:bg-surface-800"],
+            class: ["ml-3", "bg-surface-200 dark:bg-surface-700"],
         },
     },
     WidgetSelect: {
