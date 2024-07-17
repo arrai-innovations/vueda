@@ -2,6 +2,9 @@
 import { getCRUDForTo, isDetailView } from "@vueda/router/getCrud.js";
 import { computed } from "vue";
 
+// import { useRouter } from "vue-router";
+// import isFunction from "lodash-es/isFunction.js";
+
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
@@ -16,18 +19,6 @@ const props = defineProps({
     pk: {
         type: [String, Number],
         default: undefined,
-    },
-    parentApp: {
-        type: String,
-        default: "",
-    },
-    parentModel: {
-        type: String,
-        default: "",
-    },
-    parentPk: {
-        type: [String, Number],
-        default: "",
     },
     variant: {
         type: String,
@@ -69,6 +60,28 @@ const viewToUse = computed(() => {
 });
 // const result = computed(() => permissionsPerView.value[viewToUse.value]);
 const isDetailViewComputed = computed(() => isDetailView(viewToUse.value));
+// todo: this won't be the way to determine if we are a detail view once there are arbitrary views names
+//  we will need to store the view type in the route props and retrieve it here
+//
+const toRouteArgs = computed(() => {
+    return getCRUDForTo({
+        app: props.app,
+        model: props.model,
+        pk: props.pk,
+        view: viewToUse.value,
+    });
+});
+// const router = useRouter();
+// const toRoute = computed(() => {
+//     return router.resolve(toRouteArgs.value);
+// });
+// const toRouteProps = computed(() => {
+//     const props = toRoute.value.matched?.[0]?.props?.default;
+//     if (isFunction(props)) {
+//         return props(toRoute.value);
+//     }
+//     return props;
+// })
 </script>
 
 <template>
@@ -76,16 +89,7 @@ const isDetailViewComputed = computed(() => isDetailView(viewToUse.value));
         v-if="(isDetailViewComputed && pk) || !isDetailViewComputed"
         v-slot="slotProps"
         custom
-        :to="
-            viewToUse
-                ? getCRUDForTo({
-                      app,
-                      model,
-                      pk,
-                      view: viewToUse,
-                  })
-                : undefined
-        "
+        :to="viewToUse ? toRouteArgs : undefined"
     >
         <a :href="slotProps.href" v-bind="$attrs" @click="slotProps.navigate">
             <slot :used-view="viewToUse"></slot>
