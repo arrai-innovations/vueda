@@ -61,7 +61,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
  *
  */
 export const storeModelConfig = defineStore({
-    id: "configStore",
+    id: "config",
     state: () => ({
         configs: {},
         builtConfigs: {},

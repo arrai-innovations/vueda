@@ -12,7 +12,7 @@ import { reactive, readonly, watch } from "vue";
  * @property {boolean} loading - True if the model config is loading.
  * @property {Error} error - The error that occurred while loading the model config.
  * @property {boolean} errored - True if an error occurred while loading the model config.
- * @property {Function} clearError - Clear the error.
+ * @property {()=>void} clearError - Clear the error.
  * @property {import('@vueda/stores/storeModelInfo.js').ModelInfo} info - The model info.
  * @property {import('@vueda/stores/storeModelConfig.js').ModelConfig} config - The model config.
  */
@@ -20,7 +20,7 @@ import { reactive, readonly, watch } from "vue";
 /**
  * The state for a model config.
  *
- * @typedef {import('vue').shallowReactive<ModelConfigRawState>} ModelConfigState
+ * @typedef {import('vue').DeepReadonly<import('vue').UnwrapNestedRefs<ModelConfigRawState>>} ModelConfigState
  */
 
 /**
