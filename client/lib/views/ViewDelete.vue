@@ -1,7 +1,6 @@
 <script setup>
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
 import isEmpty from "lodash-es/isEmpty.js";
@@ -79,15 +78,13 @@ const handleDelete = async () => {
         router.back();
     }
 };
-
-const combinedClasses = useCombinedClasses("ViewDelete", props);
 </script>
 
 <template>
     <!-- todo: this is a placeholder. this could be a modal from the origin page. -->
     <!--  however, if we keep it as a separate page, that gives us more room to add more features -->
     <!--  like mass delete, etc. -->
-    <div v-if="!isEmpty(modelConfig.info)" :class="combinedClasses.outerClass">
+    <div v-if="!isEmpty(modelConfig.info)">
         <h1>Delete {{ modelConfig.info.verbose_name }}: {{ pk }}</h1>
         <p>Are you sure you want to delete this {{ modelConfig.info.verbose_name }}?</p>
         <Button @click="handleDelete">Yes, delete</Button>

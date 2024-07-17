@@ -2,7 +2,6 @@
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import useFilterFormModel from "@vueda/use/useFilterFormModel.js";
 
 const props = defineProps({
@@ -32,20 +31,15 @@ const filterFormModel = useFilterFormModel(props);
 
 // todo: look into customizability re: overriding field / widget components with arbitrary slot content
 // todo: it would be nice to have a way to layout the fields into fieldsets / grids
-const combinedClasses = useCombinedClasses("FilterFormModel", props);
 </script>
 
 <template>
-    <div :class="combinedClasses.outerClass" data-qa="form-filter-model">
+    <div data-qa="form-filter-model">
         <template v-if="filterFormModel.filterFields?.length">
-            <div v-if="$slots.beforeFields" :class="combinedClasses.beforeFieldsClass">
+            <div v-if="$slots.beforeFields">
                 <slot name="beforeFields" />
             </div>
-            <div
-                v-for="filterField in filterFormModel.filterFields"
-                :key="filterField.name"
-                :class="combinedClasses.fieldsClass"
-            >
+            <div v-for="filterField in filterFormModel.filterFields" :key="filterField.name">
                 <component
                     :is="filterFormModel.fieldComponents[filterField?.name]"
                     v-if="filterField"
@@ -65,7 +59,7 @@ const combinedClasses = useCombinedClasses("FilterFormModel", props);
                     </template>
                 </component>
             </div>
-            <div v-if="$slots.afterFields" :class="combinedClasses.afterFieldsClass">
+            <div v-if="$slots.afterFields">
                 <slot name="afterFields" />
             </div>
         </template>

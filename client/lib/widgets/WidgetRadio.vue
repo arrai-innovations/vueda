@@ -60,7 +60,7 @@ const theme = useComputedClasses(vuedaTailwind.WidgetRadio, widgetContext.state)
             </template>
             <div :class="theme('inner')">
                 <ul :class="theme('options')">
-                    <li v-for="option in props.options" :key="option.value" :class="combinedClasses.optionClass">
+                    <li v-for="option in props.options" :key="option.value">
                         <input
                             :id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
                             :checked="widgetContext.state.combinedValue === option.value"

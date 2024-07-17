@@ -1,11 +1,10 @@
 <script setup>
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import Paginator from "primevue/paginator";
 import { ref } from "vue";
 
 const emit = defineEmits(["update:currentPage"]);
 
-const props = defineProps({
+defineProps({
     totalRecords: {
         type: Number,
         required: true,
@@ -23,11 +22,10 @@ const offset = ref(0);
 const onPaginate = async (page) => {
     emit("update:currentPage", page.first / page.rows + 1);
 };
-const combinedClasses = useCombinedClasses("PaginationComponent", props);
 </script>
 
 <template>
-    <div class="card" :class="combinedClasses.outerClass">
+    <div class="card">
         <Paginator
             v-model:first="offset"
             :rows="rows"

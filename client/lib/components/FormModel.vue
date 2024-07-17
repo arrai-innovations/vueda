@@ -67,7 +67,6 @@
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 
 const props = defineProps({
@@ -111,23 +110,18 @@ const props = defineProps({
 const formModel = useFormModel(props);
 // todo: look into customizability re: overriding field / widget components with arbitrary slot content
 // todo: it would be nice to have a way to layout the fields into fieldsets / grids
-const combinedClasses = useCombinedClasses("FormModel", props);
 </script>
 
 <template>
-    <div :class="combinedClasses.outerClass" data-qa="form-model">
+    <div data-qa="form-model">
         <template v-if="formModel.fields?.length">
-            <div v-if="$slots.beforeFields" :class="combinedClasses.beforeFieldsClass">
+            <div v-if="$slots.beforeFields">
                 <slot name="beforeFields" />
             </div>
-            <div
-                v-for="fieldObj in formModel.fields.map((x) => formModel.fieldObjects[x])"
-                :key="fieldObj?.name"
-                :class="combinedClasses.fieldsClass"
-            >
+            <div v-for="fieldObj in formModel.fields.map((x) => formModel.fieldObjects[x])" :key="fieldObj?.name">
                 <component :is="formModel.fieldComponents[fieldObj?.name]" v-if="fieldObj" v-bind="fieldObj">
                     <template v-if="!$slots[`field-${fieldObj?.name}`]" #default>
-                        <div :class="combinedClasses.fieldClass">
+                        <div>
                             <component
                                 :is="formModel.widgetComponents[fieldObj.name]"
                                 v-bind="formModel.widgetProps[fieldObj.name]"
@@ -142,7 +136,7 @@ const combinedClasses = useCombinedClasses("FormModel", props);
                     </template>
                 </component>
             </div>
-            <div v-if="$slots.afterFields" :class="combinedClasses.afterFieldsClass">
+            <div v-if="$slots.afterFields">
                 <slot name="afterFields" />
             </div>
         </template>

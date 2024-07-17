@@ -1,6 +1,5 @@
 <script setup>
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
-import { useCombinedClasses } from "@vueda/use/useCombinedClasses.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import get from "lodash-es/get.js";
@@ -77,11 +76,9 @@ watch(
     //  deleted. this leaves empty feedback boxes on the form.
     { immediate: true, deep: true },
 );
-
-const combinedClasses = useCombinedClasses("FormFeedback", props);
 </script>
 <template>
-    <div v-if="!isEmpty(feedbackItems)" :class="combinedClasses[`{type}sClass`]">
+    <div v-if="!isEmpty(feedbackItems)">
         <InlineMessage
             v-for="message in Object.values(feedbackItems)"
             :key="message"
