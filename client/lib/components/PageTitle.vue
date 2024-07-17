@@ -1,12 +1,11 @@
 <script setup>
+import LinkModelView from "@vueda/components/LinkModelView.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
+import { useRouteProps } from "@vueda/use/useRouteProps.js";
+import { computed } from "vue";
 
 defineProps({
     headerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    loadingClass: {
         type: [String, Array, Object],
         default: () => [],
     },
@@ -23,29 +22,40 @@ defineProps({
         default: undefined,
     },
 });
+const routeProps = useRouteProps();
+const app = computed(() => routeProps.value.app);
+const model = computed(() => routeProps.value.model);
+const view = computed(() => routeProps.value.view);
 </script>
 <template>
-    <div class="sticky top-0 z-30 bg-neutral-100 dark:bg-neutral-900 pb-1 md:pb-2 lg:pb-4" :class="headerClass">
-        <div
-            class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline px-4 md:px-7 lg:px-11 gap-2 md:gap-4 lg:gap-7"
-        >
-            <div class="w-full sm:w-auto">
-                <h1 class="text-3xl font-bold leading-relaxed">
-                    <slot name="title">{{ title }}</slot>
-                </h1>
-                <loading-spinner-inline v-if="loading" :class="loadingClass" />
+    <div class="sticky top-0 z-30" :class="headerClass">
+        <div class="bg-surface-0 dark:bg-surface-950">
+            <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7">
+                <div class="w-full sm:w-auto flex items-baseline">
+                    <h1 class="font-bold leading-relaxed text-3xl">
+                        <slot name="title">{{ title }}</slot>
+                        <template v-if="loading">
+                            &nbsp;
+                            <loading-spinner-inline v-if="loading" />
+                        </template>
+                    </h1>
+                </div>
+                <div v-if="view !== 'list' && model && app">
+                    >&nbsp;<link-model-view :app="app" :model="model" view="list">Return to List</link-model-view>
+                </div>
+                <hr class="w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2" />
+                <div class="w-full sm:w-auto self-start">
+                    <slot name="button" />
+                </div>
             </div>
-            <hr class="w-full flex-1 border-neutral-300 dark:border-neutral-600 border-t-2" />
-            <div class="w-full sm:w-auto self-start">
-                <slot name="button" />
+            <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7">
+                <slot name="subtitle" />
+                <slot name="under-actions" />
             </div>
+            <slot name="footer" />
         </div>
         <div
-            class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline px-4 md:px-7 lg:px-11 gap-2 md:gap-4 lg:gap-7"
-        >
-            <div><slot name="subtitle" /></div>
-            <div><slot name="under-actions" /></div>
-        </div>
-        <slot name="footer" />
+            class="w-full h-2 md:h-3 lg:h-4 bg-gradient-to-b from-surface-0 to-transparent dark:from-surface-950 dark:to-transparent"
+        />
     </div>
 </template>
