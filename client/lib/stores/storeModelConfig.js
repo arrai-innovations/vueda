@@ -7,9 +7,13 @@ import { defineStore } from "pinia";
  *
  * @typedef {object} ModelConfig
  * @property {string[]} listFields - field names to display in list view
+ * @property {string[]} listExpands - field names to expand in list view
  * @property {string[]} createFields - field names to display in a create form model
+ * @property {string[]} createExpands - field names to expand in create form model
  * @property {string[]} updateFields - field names to display in an update form model
+ * @property {string[]} updateExpands - field names to expand in update form model
  * @property {string[]} readFields - field names to display in read view
+ * @property {string[]} readExpands - field names to expand in read view
  * @property {string[]} listFilterable - filters to display in list view
  * @property {string[]} listSortable - field names that can be sorted in list view
  * @property {string[]} listSorted - the default sort order for list view
@@ -34,9 +38,13 @@ const getDefaultFromModelInfo = (modelInfo) => {
     const listFilterable = modelInfo.filtering.map((f) => f.name);
     return {
         listFields: modelFields,
+        listExpands: [],
         createFields: modelFields,
+        createExpands: [],
         updateFields: modelFields,
+        updateExpands: [],
         readFields: modelFields,
+        readExpands: [],
         listFilterable: listFilterable,
         listSortable: orderableFields,
         listSorted: [], // todo: the server has default field(s) being sorted on, we should get that
