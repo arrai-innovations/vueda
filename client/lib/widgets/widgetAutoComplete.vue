@@ -2,6 +2,7 @@
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import AutoComplete from "primevue/autocomplete";
 import { computed, ref } from "vue";
 
@@ -62,26 +63,25 @@ const search = (event) => {
 </script>
 <template>
     <div :class="theme('root')">
-        <div :class="theme('inner')">
-            <label :class="theme('label')" :for="widgetContext.state.combinedName">
-                <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label">{{
-                    widgetContext.state.combinedLabel
-                }}</slot>
-            </label>
-            <AutoComplete
-                dropdown
-                v-bind="$attrs"
-                force-selection
-                :model-value="modelItem"
-                :name="widgetContext.state.combinedName"
-                option-label="label"
-                :suggestions="filteredOptions"
-                @blur="widgetContext.blur"
-                @complete="search"
-                @focus="widgetContext.focus"
-                @update:model-value="(selected) => valueUpdated(selected)"
-            >
-            </AutoComplete>
-        </div>
+        <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
+            <template v-if="$slots.label" #label="slotProps">
+                <slot name="label" v-bind="slotProps" />
+            </template>
+            <div :class="theme('inner')">
+                <AutoComplete
+                    dropdown
+                    v-bind="$attrs"
+                    force-selection
+                    :model-value="modelItem"
+                    :name="widgetContext.state.combinedName"
+                    option-label="label"
+                    :suggestions="filteredOptions"
+                    @blur="widgetContext.blur"
+                    @complete="search"
+                    @focus="widgetContext.focus"
+                    @update:model-value="(selected) => valueUpdated(selected)"
+                />
+            </div>
+        </widget-label>
     </div>
 </template>
