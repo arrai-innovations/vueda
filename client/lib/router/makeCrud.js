@@ -1,11 +1,6 @@
 import { isDetailView } from "@vueda/router/getCrud.js";
 import { requireAuth, requireGroups } from "@vueda/router/guards.js";
-import {
-    getCapitalizedTitle,
-    getClientRoutePart,
-    getLowerTitle,
-    getPluralizedTitle,
-} from "@vueda/utils/crudSupport.js";
+import { getClientRoutePart } from "@vueda/utils/crudSupport.js";
 import partial from "lodash-es/partial.js";
 
 /**
@@ -32,16 +27,12 @@ export function makeCRUDRoutes({
     groups = null,
     groupsRedirect = null,
     views = ["list", "create", "update", "read"],
-    titles = {},
     pathPrefix = "",
     vueApp,
 }) {
     const routes = [];
     const appRoutePart = getClientRoutePart(app);
     const modelRoutePart = getClientRoutePart(model);
-    const lowerTitle = getLowerTitle(model);
-    const capitalizedTitle = getCapitalizedTitle(model);
-    const pluralizedTitle = getPluralizedTitle(capitalizedTitle);
 
     const beforeEnter = [];
     if (authRedirect) {
@@ -64,7 +55,6 @@ export function makeCRUDRoutes({
     }
 
     views.forEach((view) => {
-        const capitalizedView = view.charAt(0).toUpperCase() + view.slice(1);
         /** @type {{[key: string]: any}} */
         const props = {
             app,
@@ -79,7 +69,6 @@ export function makeCRUDRoutes({
             /** @type {{[key: string]: any}} */
             props,
             meta: {
-                title: titles[view] || (view === "list" ? pluralizedTitle : `${capitalizedView} ${lowerTitle}`),
                 detail: isDetailView(view),
             },
             beforeEnter,
