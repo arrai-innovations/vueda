@@ -1,6 +1,4 @@
 <script setup>
-import { faDownLong, faUpDown, faUpLong } from "@arrai-innovations/sharp-solid-svg-icons";
-import { FontAwesomeIcon } from "@arrai-innovations/vue-fontawesome";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
@@ -163,16 +161,6 @@ const sortClick = (e, fieldName) => {
     emit("update:sorted", newSorted);
 };
 
-const sortIcon = (fieldName) => {
-    if (props.sorted.includes(fieldName)) {
-        return faDownLong;
-    } else if (props.sorted.includes(`-${fieldName}`)) {
-        return faUpLong;
-    } else if (props.sortable.includes(fieldName)) {
-        return faUpDown;
-    }
-};
-
 const directionlessSorted = computed(() => props.sorted.map((field) => field.replace(/^-/, "")));
 const themeProps = reactive({
     isTable,
@@ -207,7 +195,12 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                         :class="theme('sort')"
                         :data-qa="`objects-grid-sort-${field.name}`"
                     >
-                        <font-awesome-icon fixed-width :icon="sortIcon(field.name)" />
+                        <slot :field="field" name="sort-icon" :sortable="sortable" :sorted="sorted">
+                            <!-- iconless text, screams to implementors to provide an icon -->
+                            <template v-if="sorted.includes(field.name)">⬆️</template>
+                            <template v-else-if="sorted.includes(`-${field.name}`)">⬇️</template>
+                            <template v-else>↕️</template>
+                        </slot>
                         <span v-if="sorted?.length > 1" :class="theme('sortNum')">{{
                             directionlessSorted.indexOf(field.name) + 1
                         }}</span>
@@ -272,9 +265,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             </slot>
                         </div>
                         <div :class="theme('cardValue')" :data-card="field.name">
-                            <slot v-if="colIndex === 0" name="link-field" :pk="obj?.id" :value="get(obj, field.name)" />
                             <slot
-                                v-else
                                 :calculated="get(get(calculatedObjects, obj.id), field.name)"
                                 :calculated-obj="get(calculatedObjects, obj.id)"
                                 :col-index="colIndex"
@@ -309,9 +300,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             :row-index="rowIndex"
                             :value="get(obj, field.name)"
                         >
-                            <slot v-if="colIndex === 0" name="link-field" :pk="obj?.id" :value="get(obj, field.name)">
-                            </slot>
-                            <p v-else>{{ get(obj, field.name) }}</p>
+                            <p>{{ get(obj, field.name) }}</p>
                         </slot>
                     </div>
                 </template>

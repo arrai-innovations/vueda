@@ -92,19 +92,32 @@ const toRouteArgs = computed(() => {
 </script>
 
 <template>
-    <router-link
-        v-if="(isDetailViewComputed && pk) || !isDetailViewComputed"
-        v-slot="slotProps"
-        custom
-        :to="toRouteArgs"
-    >
-        <Button
-            v-bind="$attrs"
-            :href="button ? undefined : slotProps.href"
-            :label="label"
-            :link="!button"
-            @click="slotProps.navigate"
-        />
+    <router-link v-if="(isDetailViewComputed && pk) || !isDetailViewComputed" custom :to="toRouteArgs">
+        <template #default="slotProps">
+            <slot
+                v-if="$slots.button"
+                :href="button ? undefined : slotProps.href"
+                :label="label"
+                :link="!button"
+                name="button"
+                :navigate="slotProps.navigate"
+                v-bind="$attrs"
+            />
+            <Button
+                v-else
+                v-bind="$attrs"
+                :href="button ? undefined : slotProps.href"
+                :label="label"
+                :link="!button"
+                @click="slotProps.navigate"
+            >
+                <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                    <slot :name="slot" v-bind="slotProps || {}" />
+                </template>
+            </Button>
+        </template>
     </router-link>
-    <slot v-else></slot>
+    <slot v-else>
+        <!-- this is supposed to be for permission denied errors -->
+    </slot>
 </template>

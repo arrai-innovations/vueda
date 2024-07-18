@@ -93,7 +93,7 @@ const isActive = useIsActive();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const sorting = reactive({
     state: {
-        sortable: toRef(modelConfig.config, "listSortable"),
+        sortable: computed(() => modelConfig?.config?.listSortable),
         sorted: [],
     },
     updateSorted: (sorted) => {
@@ -232,14 +232,19 @@ const selectedObjects = ref([]);
                         })
                     "
                 >
-                    <link-model-view
-                        :app="app"
-                        button
-                        :label="memoizedStartCase(actionName)"
-                        :model="model"
-                        severity="secondary"
-                        :view="actionName"
-                    />
+                    <slot
+                        name="targetless-action-button"
+                        v-bind="{ model, app, view: actionName, label: memoizedStartCase(actionName) }"
+                    >
+                        <link-model-view
+                            :app="app"
+                            button
+                            :label="memoizedStartCase(actionName)"
+                            :model="model"
+                            severity="secondary"
+                            :view="actionName"
+                        />
+                    </slot>
                 </template>
             </template>
             <template #subtitle>
@@ -253,7 +258,9 @@ const selectedObjects = ref([]);
                             type="search"
                             @search="filterList"
                         />
-                        <Button label="Search" @click="filterList" />
+                        <slot :click="filterList" label="Search" name="button" verb="search">
+                            <Button label="Search" @click="filterList" />
+                        </slot>
                     </InputGroup>
                 </div>
             </template>
@@ -262,12 +269,14 @@ const selectedObjects = ref([]);
                     <form :ref="filterFormModelRef" @submit.prevent="filterList">
                         <filter-form-model :app="app" :filter-fields="listFields" :model="model" v-bind="$attrs" />
                     </form>
-                    <Button
-                        class="whitespace-nowrap"
-                        label="Clear Filters"
-                        severity="secondary"
-                        @click="clickClearFilter"
-                    />
+                    <slot :click="clickClearFilter" label="Clear Filters" name="button" verb="clearFilters">
+                        <Button
+                            class="whitespace-nowrap"
+                            label="Clear Filters"
+                            severity="secondary"
+                            @click="clickClearFilter"
+                        />
+                    </slot>
                 </div>
             </template>
         </page-title>
@@ -280,19 +289,23 @@ const selectedObjects = ref([]);
         <div>
             <!-- todo: filters return here? @submit=filterList -->
             <div v-for="actionName in modelConfig.config.detailActions" :key="actionName">
-                <link-model-view
-                    :app="app"
-                    button
-                    icon="pi pi-trash"
-                    :label="memoizedStartCase(actionName)"
-                    :model="model"
-                    :pk="11"
-                    severity="secondary"
-                    :view="actionName"
-                />
+                <slot
+                    name="bulk-action-button"
+                    v-bind="{
+                        model,
+                        app,
+                        view: actionName,
+                        label: memoizedStartCase(actionName),
+                        click: () => console.log('bulk clicked', selectedObjects),
+                    }"
+                >
+                    <Button
+                        :label="memoizedStartCase(actionName)"
+                        @click="() => console.log('bulk clicked', selectedObjects)"
+                    />
+                </slot>
             </div>
         </div>
-        {{ selectedObjects }}
         <!-- todo: a column that allows selecting objects for bulk detail actions -->
         <objects-grid
             ref="objectsGridRef"
