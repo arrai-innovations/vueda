@@ -5,6 +5,7 @@ import vuedaTailwind from "@vueda/theme/vueda-tailwind";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 import get from "lodash-es/get.js";
+import Checkbox from "primevue/checkbox";
 import { computed, reactive } from "vue";
 
 const props = defineProps({
@@ -111,8 +112,16 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
+    selectable: {
+        type: Boolean,
+        default: false,
+    },
+    selected: {
+        type: Array,
+        default: () => [],
+    },
 });
-const emit = defineEmits(["update:sorted"]);
+const emit = defineEmits(["update:sorted", "update:selected"]);
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isTable = breakpoints.greaterOrEqual(props.tableBreakpoint);
@@ -174,11 +183,15 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
     }
     return key;
 });
+// selected_ is the reserved name for the selected checkbox, the trailing _ is not allowed in django model field names
 </script>
 <template>
     <div :class="theme('root')" role="table">
         <div :class="theme('headerRowGroup')" role="rowgroup">
             <div :class="theme('headerRow')" role="row">
+                <div v-if="selectable" :class="[theme('headerCell'), headerClasses?.selected_]">
+                    <slot name="header(selected_)" />
+                </div>
                 <div
                     v-for="(field, colIndex) in fields"
                     :key="field.name"
@@ -221,7 +234,30 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                 data-qa="objects-grid-row"
                 role="row"
             >
-                <slot name="row-prefix" :obj="obj"></slot>
+                <template v-if="selectable">
+                    <div
+                        :class="[!isTable ? theme('cardCell') : theme('bodyCell'), fieldClasses?.selected_]"
+                        data-field="selected"
+                        data-qa="objects-grid-select-cell"
+                        role="cell"
+                    >
+                        <slot
+                            :emit-selected="(e) => emit('update:selected', e)"
+                            name="field(selected_)"
+                            :obj="obj"
+                            :row-index="rowIndex"
+                            :selected="selected"
+                        >
+                            <Checkbox
+                                :input-id="`selected-row-${obj.id}`"
+                                :model-value="selected"
+                                name="selected"
+                                :value="obj.id"
+                                @update:model-value="emit('update:selected', $event)"
+                            />
+                        </slot>
+                    </div>
+                </template>
                 <template v-for="(field, colIndex) in fields" :key="field.name">
                     <!-- this if let's first: and last: work, otherwise the last table cell can never be last child -->
                     <div

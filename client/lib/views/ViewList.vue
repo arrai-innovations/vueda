@@ -13,7 +13,6 @@ import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
-import Checkbox from "primevue/checkbox";
 import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
 import { computed, reactive, ref, toRaw, toRef, watch } from "vue";
@@ -280,19 +279,16 @@ const selectedObjects = ref([]);
         <!-- todo: bulk object level actions -->
         <div>
             <!-- todo: filters return here? @submit=filterList -->
-            <div
-                v-for="actionName in modelConfig.config.detailActions"
-                :key="actionName"
-            >
+            <div v-for="actionName in modelConfig.config.detailActions" :key="actionName">
                 <link-model-view
                     :app="app"
                     button
+                    icon="pi pi-trash"
                     :label="memoizedStartCase(actionName)"
                     :model="model"
+                    :pk="11"
                     severity="secondary"
                     :view="actionName"
-                    icon="pi pi-trash"
-                    :pk="11"
                 />
             </div>
         </div>
@@ -301,22 +297,21 @@ const selectedObjects = ref([]);
         <objects-grid
             ref="objectsGridRef"
             v-bind="$attrs"
+            v-model:selected="selectedObjects"
             :calculated-objects="instanceList.state.calculatedObjects"
             :data-qa="`view-list-${app}-${model}-objects-grid`"
             :fields="calculatedListFieldsObjs"
             :loading="loading"
             :objects-in-order="instanceList.state.objectsInOrder"
             :related-objects="instanceList.state.relatedObjects"
+            selectable
             :sortable="sorting.state.sortable"
             :sorted="sorting.state.sorted"
             :variant="objectGridVariant"
             @update:sorted="sorting.updateSorted"
         >
-            <template #row-prefix="{ obj }">
-                <Checkbox v-model="selectedObjects" :input-id="obj.id" :value="obj.id" />
-            </template>
-            <template #link-field="{ pk, value }">
-                <link-model-view :app="app" :label="value" :model="model" :pk="pk" view="update" />
+            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                <slot :name="slot" v-bind="slotProps || {}" />
             </template>
         </objects-grid>
         <pagination-component
