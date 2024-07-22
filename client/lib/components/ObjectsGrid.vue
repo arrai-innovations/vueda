@@ -1,7 +1,8 @@
 <script setup>
 import vuedaTailwind from "@vueda/theme/vueda-tailwind";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
-import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
+import { breakpointsTailwind } from "@vueda/utils/breakpoints.js";
+import { useBreakpoints } from "@vueuse/core";
 import get from "lodash-es/get.js";
 import Checkbox from "primevue/checkbox";
 import { computed, reactive } from "vue";

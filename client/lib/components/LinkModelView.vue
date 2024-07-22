@@ -31,7 +31,8 @@ const props = defineProps({
     },
     label: {
         type: String,
-        required: true,
+        // icon only is fine, stop warnings
+        default: undefined,
     },
 });
 // TODO: permissions for view
@@ -93,31 +94,33 @@ const actionDisabled = computed(() => {
 </script>
 
 <template>
-    <router-link v-if="(isDetailViewComputed && pk) || !isDetailViewComputed" custom :to="toRouteArgs">
-        <template #default="slotProps">
-            <slot
-                v-if="$slots.button"
-                :href="button ? undefined : slotProps.href"
-                :label="label"
-                :link="!button"
-                name="button"
-                :navigate="slotProps.navigate"
-                v-bind="$attrs"
-            />
-            <Button
-                v-else
-                v-bind="$attrs"
-                :href="button ? undefined : slotProps.href"
-                :label="label"
-                :link="!button"
-                :disabled="actionDisabled"
-                @click="slotProps.navigate"
-            >
-                <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-                    <slot :name="slot" v-bind="slotProps || {}" />
-                </template>
-            </Button>
-        </template>
-    </router-link>
-    <slot v-else></slot>
+    <div>
+        <router-link v-if="(isDetailViewComputed && pk) || !isDetailViewComputed" custom :to="toRouteArgs">
+            <template #default="slotProps">
+                <slot
+                    v-if="$slots.button"
+                    :href="button ? undefined : slotProps.href"
+                    :label="label"
+                    :link="!button"
+                    name="button"
+                    :navigate="slotProps.navigate"
+                    v-bind="$attrs"
+                />
+                <Button
+                    v-else
+                    v-bind="$attrs"
+                    :disabled="actionDisabled"
+                    :href="button ? undefined : slotProps.href"
+                    :label="label"
+                    :link="!button"
+                    @click="slotProps.navigate"
+                >
+                    <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                        <slot :name="slot" v-bind="slotProps || {}" />
+                    </template>
+                </Button>
+            </template>
+        </router-link>
+        <slot v-else></slot>
+    </div>
 </template>

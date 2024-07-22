@@ -25,19 +25,19 @@ export default () => {
                 ],
             },
         },
+        server: {
+            host: true,
+            port: 8880,
+            strictPort: true,
+            https,
+        },
+        preview: {
+            host: true,
+            port: 8880,
+            strictPort: true,
+            https,
+        },
         resolve: {
-            server: {
-                host: true,
-                port: 8880,
-                strictPort: true,
-                https,
-            },
-            preview: {
-                host: true,
-                port: 8880,
-                strictPort: true,
-                https,
-            },
             alias: {
                 "@vueda": fileURLToPath(new URL("./lib/", import.meta.url)),
                 "@tests": fileURLToPath(new URL("./tests", import.meta.url)),
