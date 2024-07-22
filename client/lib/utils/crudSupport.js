@@ -111,8 +111,9 @@ export const getAppModelDotName = memoize(({ app, model }) => {
  * @param {string} params.view - The view name.
  * @returns {string} The CRUD name.
  */
-export const getCRUDName = memoize(({ app, model, view }) => {
-    return `${getClientRoutePart(app)}.${getClientRoutePart(model)}-${view}`;
+export const getCRUDName = memoize(({ app, model, view, bulk }) => {
+    const name = `${getClientRoutePart(app)}.${getClientRoutePart(model)}-${view}`;
+    return bulk ? `${name}-bulk` : name;
 });
 
 /**

@@ -1,6 +1,7 @@
 import { setListCrud } from "@arrai-innovations/reactive-helpers";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getServerRoutePart } from "@vueda/utils/crudSupport.js";
+import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
@@ -12,6 +13,9 @@ import { deepUnref } from "vue-deepunref";
 
 const getListUrl = (app, model, queryString) =>
     `${httpOrHttpsHostname}${getUrl("modelList").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model))}${queryString}`;
+
+const getActionUrl = (app, model, actionName) =>
+    `${httpOrHttpsHostname}${getUrl("modelBulkAction").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model)).replace(":action_name", actionName)}`;
 
 const makeSearchParamsString = (searchParams) => {
     const params = deepUnref(searchParams);
@@ -143,9 +147,32 @@ export async function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, page
     return returnPromise;
 }
 
+export async function defaultObjectsDelete({ crudArgs, ids }) {
+    const abortController = new AbortController();
+    const url = getActionUrl(crudArgs.app, crudArgs.model, "bulk_delete");
+    const returnedPromise = fetch(url, {
+        method: "DELETE",
+        headers: {
+            "X-CSRFToken": getCSRFValue(),
+            "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ pks: ids }),
+        signal: abortController.signal,
+    }).then(async (response) => {
+        if (response.status === 204) {
+            return;
+        }
+        throw new FetchError("Failed to delete object", response, await getJsonOrText(response));
+    });
+    returnedPromise.cancel = () => abortController.abort();
+    return returnedPromise;
+}
+
 export function setupDefaultListCrud() {
     setListCrud({
         list: singlePagePaginatedListCrudAdaptor,
+        bulkDelete: defaultObjectsDelete,
         args: {
             resultsKey: "results", // all of our current APIs use this key
         },

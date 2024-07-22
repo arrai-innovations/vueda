@@ -15,7 +15,8 @@ import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
 import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
-import { computed, reactive, ref, toRaw, toRef, watch } from "vue";
+import {computed, reactive, ref, toRaw, toRef, unref, watch} from "vue";
+import {getCRUDForTo} from "@vueda/router/getCrud.js";
 
 defineOptions({
     inheritAttrs: false,
@@ -217,6 +218,18 @@ const clickClearFilter = () => {
     listState.search = "";
 };
 const selectedObjects = ref([]);
+import { useRouter } from "vue-router";
+const router = useRouter();
+const detailActionOnClick = (actionName) => {
+    return async () => {
+        await router.push(getCRUDForTo({
+            app: props.app,
+            model: props.model,
+            pk: unref(selectedObjects),
+            view: actionName,
+        }));
+    };
+};
 </script>
 <template>
     <div>
@@ -241,7 +254,6 @@ const selectedObjects = ref([]);
                             button
                             :label="memoizedStartCase(actionName)"
                             :model="model"
-                            severity="secondary"
                             :view="actionName"
                         />
                     </slot>
@@ -288,7 +300,7 @@ const selectedObjects = ref([]);
         <!-- todo: bulk object level actions -->
         <div>
             <!-- todo: filters return here? @submit=filterList -->
-            <div v-for="actionName in modelConfig.config.detailActions" :key="actionName">
+             <div v-for="actionName in modelConfig.config.detailActions" :key="actionName">
                 <slot
                     name="bulk-action-button"
                     v-bind="{
@@ -296,13 +308,17 @@ const selectedObjects = ref([]);
                         app,
                         view: actionName,
                         label: memoizedStartCase(actionName),
-                        click: () => console.log('bulk clicked', selectedObjects),
+                        click: detailActionOnClick(actionName),
                     }"
                 >
-                    <Button
-                        :label="memoizedStartCase(actionName)"
-                        @click="() => console.log('bulk clicked', selectedObjects)"
-                    />
+                    <link-model-view
+                    :app="app"
+                    button
+                    :label="memoizedStartCase(actionName)"
+                    :model="model"
+                    :pk="selectedObjects"
+                    :view="actionName"
+                />
                 </slot>
             </div>
         </div>

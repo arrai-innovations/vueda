@@ -18,7 +18,7 @@ const props = defineProps({
         required: true,
     },
     pk: {
-        type: [String, Number],
+        type: [String, Number, Array],
         default: undefined,
     },
     button: {
@@ -65,9 +65,7 @@ const viewToUse = computed(() => {
 });
 // const result = computed(() => permissionsPerView.value[viewToUse.value]);
 const isDetailViewComputed = computed(() => isDetailView(viewToUse.value));
-// todo: this won't be the way to determine if we are a detail view once there are arbitrary views names
-//  we will need to store the view type in the route props and retrieve it here
-//
+
 const toRouteArgs = computed(() => {
     return viewToUse.value
         ? getCRUDForTo({
@@ -77,6 +75,9 @@ const toRouteArgs = computed(() => {
               view: viewToUse.value,
           })
         : undefined;
+});
+const actionDisabled = computed(() => {
+    return isDetailViewComputed.value && (!props.pk || (Array.isArray(props.pk) && props.pk.length === 0));
 });
 // const router = useRouter();
 // const toRoute = computed(() => {
@@ -109,6 +110,7 @@ const toRouteArgs = computed(() => {
                 :href="button ? undefined : slotProps.href"
                 :label="label"
                 :link="!button"
+                :disabled="actionDisabled"
                 @click="slotProps.navigate"
             >
                 <template v-for="(_, slot) in $slots" #[slot]="slotProps">
@@ -117,7 +119,5 @@ const toRouteArgs = computed(() => {
             </Button>
         </template>
     </router-link>
-    <slot v-else>
-        <!-- this is supposed to be for permission denied errors -->
-    </slot>
+    <slot v-else></slot>
 </template>

@@ -4,15 +4,16 @@ const defaultUrls = {
     infoModelInfoChoices: "/routes/vueda.info/model_info_choices/",
     modelDetail: "/routes/:app/:model/:pk/",
     modelList: "/routes/:app/:model/",
+    modelBulkAction: "/routes/:app/:model/:action_name",
     userCurrentUser: "/routes/vueda.user/who-is/",
     userLogin: "/routes/vueda.user/login/",
     userLogout: "/routes/vueda.user/logout/",
     workflowList: "/routes/workflow/workflow/",
-    workflowRetrieveTransition: "/routes/workflow/workflow/:app/:model/",
-    workflowExecuteTransition: "/routes/workflow/workflow/:app/:model/execute-transition/:pk/",
-    workflowObjectState: "/routes/workflow/workflow/:app/:model/object-state/:pk/",
-    workflowObjectTransitions: "/routes/workflow/workflow/:app/:model/object-transitions/:pk/",
-    workflowStates: "/routes/workflow/workflow/states/",
+    workflowRetrieveTransition: "/routes/vueda.workflow/workflows/:app/:model/",
+    workflowExecuteTransition: "/routes/vueda.workflow/workflows/:app/:model/execute-transition/:pk/",
+    workflowObjectState: "/routes/vueda.workflow/workflows/:app/:model/object-state/:pk/",
+    workflowObjectTransitions: "/routes/vueda.workflow/workflows/:app/:model/object-transitions/:pk/",
+    workflowStates: "/routes/vueda.workflow/workflows/states/",
 };
 
 const customUrls = {};

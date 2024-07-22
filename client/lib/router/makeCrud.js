@@ -1,5 +1,5 @@
-import { isDetailView } from "@vueda/router/getCrud.js";
 import { requireAuth, requireGroups } from "@vueda/router/guards.js";
+import { storeViewInfo } from "@vueda/stores/storeViewInfo.js";
 import { getClientRoutePart } from "@vueda/utils/crudSupport.js";
 import partial from "lodash-es/partial.js";
 
@@ -32,6 +32,7 @@ export function makeCRUDRoutes({
     const routes = [];
     const appRoutePart = getClientRoutePart(app);
     const modelRoutePart = getClientRoutePart(model);
+    const viewStore = storeViewInfo();
 
     const beforeEnter = [];
     if (authRedirect) {
@@ -58,17 +59,17 @@ export function makeCRUDRoutes({
         const props = {
             app,
             model,
-            view,
+            view: view.name,
             pk: undefined,
         };
         const route = {
-            name: `${appRoutePart}.${modelRoutePart}-${view}`,
-            path: `/${appRoutePart}/${modelRoutePart}/${view}/`,
-            component: components[view],
+            name: `${appRoutePart}.${modelRoutePart}-${view.name}`,
+            path: `/${appRoutePart}/${modelRoutePart}/${view.name}/`,
+            component: components[view.name],
             /** @type {{[key: string]: any}} */
             props,
             meta: {
-                detail: isDetailView(view),
+                detail: view.detail,
             },
             beforeEnter,
         };
@@ -76,8 +77,24 @@ export function makeCRUDRoutes({
         if (pathPrefix) {
             route.path = `/${pathPrefix}${route.path}`;
         }
+        // TODO: if view is bulk, then it is the same as targetless action, no pk passed in routes.
+        // if it is bulk, then that view needs to
+        if (view.bulk) {
+            const route_bulk = {
+                ...route,
+            };
+            route_bulk.props = (route) => ({
+                app,
+                model,
+                view,
+                pk: route.query.pk.split(","),
+            });
+            route_bulk.name += "-bulk";
+            viewStore.addBulk(view.name);
+            routes.push(route_bulk);
+        }
 
-        if (isDetailView(view)) {
+        if (view.detail) {
             route.path += `:pk/`;
             route.props = (route) => ({
                 app,
@@ -85,6 +102,7 @@ export function makeCRUDRoutes({
                 view,
                 pk: route.params.pk,
             });
+            viewStore.addDetail(view.name);
         }
 
         routes.push(route);

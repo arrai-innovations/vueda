@@ -13,6 +13,9 @@ const makeSearchParamsString = (searchParams) => {
     if (!params) {
         return "";
     }
+    if (Object.keys(params.f).length === 0) {
+        return "";
+    }
     const usp = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
         if (isArray(value)) {

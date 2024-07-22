@@ -93,9 +93,15 @@ const objectTransitionsUrl = (result) =>
     `${httpOrHttpsHostname}${getUrl("workflowObjectTransitions")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
 const objectHistoriesUrl = (result) =>
     `${httpOrHttpsHostname}${getUrl("workflowObjectHistory")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
-const executeTransitionUrl = (result) =>
-    `${httpOrHttpsHostname}${getUrl("workflowExecuteTransition")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
-
+const executeTransitionUrl = (result) => {
+    const routeTemplate = getUrl("workflowExecuteTransition");
+    // Replace placeholders with actual values from the result object
+    const urlWithVariables = routeTemplate
+        .replace(":app", memoizedSnakeCase(result.app))
+        .replace(":model", memoizedSnakeCase(result.model))
+        .replace(":pk", result.id);
+    return `${httpOrHttpsHostname}${urlWithVariables}`;
+};
 /**
  * @typedef {import('pinia').Store<
  *     'workflow',

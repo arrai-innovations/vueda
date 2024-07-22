@@ -1,8 +1,10 @@
 <script setup>
-import { useObject } from "@arrai-innovations/reactive-helpers";
+import { useList } from "@arrai-innovations/reactive-helpers";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
+import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
+import { isArray } from "lodash-es";
 import isEmpty from "lodash-es/isEmpty.js";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
@@ -22,7 +24,7 @@ const props = defineProps({
         required: true,
     },
     pk: {
-        type: String,
+        type: [String, Array],
         required: true,
     },
     variant: {
@@ -39,32 +41,33 @@ const isActive = useIsActive();
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model && props.pk));
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 
-const instanceObjectProps = reactive({
+const instanceListProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
-    id: toRef(props, "pk"),
     retrieveArgs: {
         f: {},
     },
-    intendToRetrieve: validAndActive,
+    listArgs: {
+        id: isArray(toRef(props, "pk")) ? toRef(props, "pk") : [toRef(props, "pk")],
+    },
+    intendToList: validAndActive,
 });
-const instanceObject = useObject({
-    props: instanceObjectProps,
+const instanceList = useList({
+    props: instanceListProps,
+    paged: false,
 });
-
 const toast = useToast();
 const router = useRouter();
 
 const handleDelete = async () => {
-    await instanceObject.delete();
-    if (instanceObject.state.errored) {
-        console.log("instanceObject.state.error");
+    await instanceList.bulkDelete();
+    if (instanceList.state.errored) {
         toast.add({
             severity: "error",
             summary: "Delete Error",
-            detail: `Error deleting ${modelConfig.info.verbose_name} with ID ${props.pk}`,
+            detail: `Error deleting ${modelConfig.info.verbose_name} with ID: ${props.pk}`,
             life: 5000,
         });
         return;
@@ -75,7 +78,13 @@ const handleDelete = async () => {
             detail: `Deleted ${modelConfig.info.verbose_name} with ID ${props.pk}`,
             life: 5000,
         });
-        router.back();
+        await router.push(
+            getCRUDForTo({
+                app: props.app,
+                model: props.model,
+                view: "list",
+            }),
+        );
     }
 };
 </script>

@@ -2,6 +2,7 @@
 import { assignReactiveObject, loadingCombine, useObject } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
+import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
@@ -198,6 +199,16 @@ const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceO
                 />
             </template>
         </page-title>
+        <div v-for="actionName in modelConfig.config.updateActions" :key="actionName">
+            <link-model-view
+                :app="app"
+                button
+                :label="memoizedStartCase(actionName)"
+                :model="model"
+                :pk="pk"
+                :view="actionName"
+            />
+        </div>
         <div>
             <error-display
                 :error="combinedError"
