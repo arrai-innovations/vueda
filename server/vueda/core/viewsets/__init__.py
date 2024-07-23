@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
+from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import viewsets as drf_viewsets
 from rest_framework.decorators import action
@@ -297,6 +298,23 @@ class DeactivateActionViewSetMixin:
 
 class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
     detail_args = ["pk"]
+
+    @action(detail=False, methods=["delete"], name="Bulk Delete Tasks")
+    def bulk_delete(self, request):
+        pks = request.data.get("pks", [])
+        if not isinstance(pks, list):
+            return Response({"error": "pks must be a list of primary keys."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            pks = [int(pk) for pk in pks]
+        except ValueError:
+            return Response({"error": "All primary keys must be valid integers."}, status=status.HTTP_400_BAD_REQUEST)
+
+        queryset = self.queryset.filter(pk__in=pks)
+
+        count, _ = queryset.delete()
+
+        return Response({"status": f"{count} tasks deleted."}, status=status.HTTP_204_NO_CONTENT)
 
 
 class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):
