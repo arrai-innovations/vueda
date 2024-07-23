@@ -1,8 +1,5 @@
 <script setup>
-import LinkModelView from "@vueda/components/LinkModelView.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
-import { useRouteProps } from "@vueda/use/useRouteProps.js";
-import { computed } from "vue";
 
 defineProps({
     headerClass: {
@@ -22,14 +19,10 @@ defineProps({
         default: undefined,
     },
 });
-const routeProps = useRouteProps();
-const app = computed(() => routeProps.value.app);
-const model = computed(() => routeProps.value.model);
-const view = computed(() => routeProps.value.view);
 </script>
 <template>
     <div class="sticky top-0 z-30" :class="headerClass">
-        <div class="bg-surface-0 dark:bg-surface-950">
+        <div class="bg-surface-0 dark:bg-surface-950 flex flex-col gap-1 py-1">
             <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7">
                 <div class="w-full sm:w-auto flex items-baseline">
                     <h1 class="font-bold leading-relaxed text-3xl">
@@ -42,14 +35,6 @@ const view = computed(() => routeProps.value.view);
                 </div>
                 <hr class="w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2" />
                 <div class="w-full sm:w-auto self-start flex flex-col sm:flex-row">
-                    <link-model-view
-                        v-if="view !== 'list' && model && app"
-                        :app="app"
-                        class="whitespace-nowrap grow shrink-0"
-                        label="Return to List"
-                        :model="model"
-                        view="list"
-                    />
                     <slot name="button" />
                 </div>
             </div>

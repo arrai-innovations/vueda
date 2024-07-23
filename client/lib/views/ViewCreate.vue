@@ -2,6 +2,7 @@
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
+import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -103,12 +104,22 @@ const combinedWhileText = computed(() =>
     <div>
         <page-title :loading="modelConfig.loading" :title="titleStr">
             <template #button>
-                <Button
-                    class="w-full"
-                    label="Submit"
-                    :loading="objectForm.state.loading"
-                    @click.prevent="objectForm.submit"
-                />
+                <div class="flex gap-1 w-full justify-end">
+                    <link-model-view
+                        :app="app"
+                        class="whitespace-nowrap grow shrink-0"
+                        label="Return to List"
+                        :model="model"
+                        view="list"
+                    />
+                </div>
+            </template>
+            <template #under-actions>
+                <div class="flex gap-1 w-full justify-end">
+                    <slot :click-handler="objectForm.submit" :loading="objectForm.state.loading" name="submit-button">
+                        <Button label="Submit" :loading="objectForm.state.loading" @click.prevent="objectForm.submit" />
+                    </slot>
+                </div>
             </template>
         </page-title>
         <div>

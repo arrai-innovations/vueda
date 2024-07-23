@@ -34,7 +34,7 @@ const filterFormModel = useFilterFormModel(props);
 </script>
 
 <template>
-    <div data-qa="form-filter-model">
+    <div class="flex flex-row gap-1 lg:gap-2 justify-between w-full" data-qa="form-filter-model">
         <template v-if="filterFormModel.filterFields?.length">
             <div v-if="$slots.beforeFields">
                 <slot name="beforeFields" />

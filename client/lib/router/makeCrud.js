@@ -107,6 +107,5 @@ export function makeCRUDRoutes({
 
         routes.push(route);
     });
-
     return routes;
 }

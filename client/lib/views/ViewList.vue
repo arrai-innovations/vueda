@@ -6,6 +6,7 @@ import LinkModelView from "@vueda/components/LinkModelView.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
+import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -15,8 +16,8 @@ import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
 import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
-import {computed, reactive, ref, toRaw, toRef, unref, watch} from "vue";
-import {getCRUDForTo} from "@vueda/router/getCrud.js";
+import { computed, reactive, ref, toRaw, toRef, unref, watch } from "vue";
+import { useRouter } from "vue-router";
 
 defineOptions({
     inheritAttrs: false,
@@ -218,16 +219,18 @@ const clickClearFilter = () => {
     listState.search = "";
 };
 const selectedObjects = ref([]);
-import { useRouter } from "vue-router";
+
 const router = useRouter();
 const detailActionOnClick = (actionName) => {
     return async () => {
-        await router.push(getCRUDForTo({
-            app: props.app,
-            model: props.model,
-            pk: unref(selectedObjects),
-            view: actionName,
-        }));
+        await router.push(
+            getCRUDForTo({
+                app: props.app,
+                model: props.model,
+                pk: unref(selectedObjects),
+                view: actionName,
+            }),
+        );
     };
 };
 </script>
@@ -251,7 +254,6 @@ const detailActionOnClick = (actionName) => {
                     >
                         <link-model-view
                             :app="app"
-                            button
                             :label="memoizedStartCase(actionName)"
                             :model="model"
                             :view="actionName"
@@ -260,7 +262,7 @@ const detailActionOnClick = (actionName) => {
                 </template>
             </template>
             <template #subtitle>
-                <div class="flex gap-1 my-1 items-center w-full">
+                <div class="flex gap-1 w-full">
                     <InputGroup>
                         <InputText
                             v-model="listSearch"
@@ -277,52 +279,50 @@ const detailActionOnClick = (actionName) => {
                 </div>
             </template>
             <template #under-actions>
-                <div class="flex gap-1 my-1 items-center justify-end w-full">
-                    <form :ref="filterFormModelRef" @submit.prevent="filterList">
-                        <filter-form-model :app="app" :filter-fields="listFields" :model="model" v-bind="$attrs" />
-                    </form>
-                    <slot :click="clickClearFilter" label="Clear Filters" name="button" verb="clearFilters">
-                        <Button
-                            class="whitespace-nowrap"
-                            label="Clear Filters"
-                            severity="secondary"
-                            @click="clickClearFilter"
-                        />
-                    </slot>
+                <div class="flex gap-1 w-full justify-end">
+                    <template v-for="actionName in modelConfig.config.detailActions" :key="actionName">
+                        <slot
+                            name="bulk-action-button"
+                            v-bind="{
+                                model,
+                                app,
+                                view: actionName,
+                                label: memoizedStartCase(actionName),
+                                click: detailActionOnClick(actionName),
+                                selectedObjects,
+                            }"
+                        >
+                            <link-model-view
+                                :app="app"
+                                button
+                                :label="memoizedStartCase(actionName)"
+                                :model="model"
+                                :pk="selectedObjects"
+                                :view="actionName"
+                            />
+                        </slot>
+                    </template>
                 </div>
             </template>
         </page-title>
+        <div class="flex gap-2 lg:gap-4 my-1 items-center justify-end w-full">
+            <form :ref="filterFormModelRef" class="w-full" @submit.prevent="filterList">
+                <filter-form-model :app="app" :filter-fields="listFields" :model="model" v-bind="$attrs" />
+            </form>
+            <slot :click="clickClearFilter" label="Clear Filters" name="button" verb="clearFilters">
+                <Button
+                    class="whitespace-nowrap"
+                    label="Clear Filters"
+                    severity="secondary"
+                    @click="clickClearFilter"
+                />
+            </slot>
+        </div>
         <error-display :error="error" :errored="errored" @dismiss-error="dismissError" />
         <!-- todo: filters/search -->
-        <!-- todo: pagination -->
         <!-- todo: hide/show columns -->
-        <!-- todo: collection level actions -->
-        <!-- todo: bulk object level actions -->
-        <div>
-            <!-- todo: filters return here? @submit=filterList -->
-             <div v-for="actionName in modelConfig.config.detailActions" :key="actionName">
-                <slot
-                    name="bulk-action-button"
-                    v-bind="{
-                        model,
-                        app,
-                        view: actionName,
-                        label: memoizedStartCase(actionName),
-                        click: detailActionOnClick(actionName),
-                    }"
-                >
-                    <link-model-view
-                    :app="app"
-                    button
-                    :label="memoizedStartCase(actionName)"
-                    :model="model"
-                    :pk="selectedObjects"
-                    :view="actionName"
-                />
-                </slot>
-            </div>
-        </div>
-        <!-- todo: a column that allows selecting objects for bulk detail actions -->
+        <!-- todo: filters return here? @submit=filterList -->
+
         <objects-grid
             ref="objectsGridRef"
             v-bind="$attrs"

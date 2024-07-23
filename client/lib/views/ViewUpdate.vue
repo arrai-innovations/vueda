@@ -186,29 +186,72 @@ const combinedWhileText = computed(() =>
               : "",
 );
 const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObject.state.loading));
+const targetlessActions = computed(() =>
+    (modelConfig.config.updateActions || []).filter((x) => modelConfig.config.listActions.includes(x)),
+);
+const detailActions = computed(() =>
+    (modelConfig.config.updateActions || []).filter((x) => modelConfig.config.detailActions.includes(x)),
+);
 </script>
 <template>
     <div>
         <page-title :loading="pageLoading" :title="titleStr">
             <template #button>
-                <Button
-                    class="w-full"
-                    label="Submit"
-                    :loading="objectForm.state.loading"
-                    @click.prevent="objectForm.submit"
-                />
+                <div class="flex gap-1 w-full justify-end">
+                    <link-model-view
+                        :app="app"
+                        class="whitespace-nowrap grow shrink-0"
+                        label="Return to List"
+                        :model="model"
+                        view="list"
+                    />
+                    <template v-for="actionName in targetlessActions" :key="actionName">
+                        <slot
+                            :app="app"
+                            :label="memoizedStartCase(actionName)"
+                            :model="model"
+                            name="target-less-action-button"
+                            :view="actionName"
+                        >
+                            <link-model-view
+                                :app="app"
+                                class="w-full"
+                                :label="memoizedStartCase(actionName)"
+                                :model="model"
+                                :view="actionName"
+                            />
+                        </slot>
+                    </template>
+                </div>
+            </template>
+            <template #under-actions>
+                <div class="flex gap-1 w-full justify-end">
+                    <template v-for="actionName in detailActions" :key="actionName">
+                        <slot
+                            :app="app"
+                            :label="memoizedStartCase(actionName)"
+                            :model="model"
+                            name="action-button"
+                            :pk="pk"
+                            :view="actionName"
+                        >
+                            <link-model-view
+                                :app="app"
+                                button
+                                :label="memoizedStartCase(actionName)"
+                                :model="model"
+                                :pk="pk"
+                                severity="secondary"
+                                :view="actionName"
+                            />
+                        </slot>
+                    </template>
+                    <slot :click="objectForm.submit" :loading="objectForm.state.loading" name="submit-button">
+                        <Button label="Submit" :loading="objectForm.state.loading" @click.prevent="objectForm.submit" />
+                    </slot>
+                </div>
             </template>
         </page-title>
-        <div v-for="actionName in modelConfig.config.updateActions" :key="actionName">
-            <link-model-view
-                :app="app"
-                button
-                :label="memoizedStartCase(actionName)"
-                :model="model"
-                :pk="pk"
-                :view="actionName"
-            />
-        </div>
         <div>
             <error-display
                 :error="combinedError"
