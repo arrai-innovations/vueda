@@ -1,4 +1,5 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
+import FieldArray from "@vueda/fields/FieldArray.vue";
 import FieldBoolean from "@vueda/fields/FieldBoolean.vue";
 import FieldDate from "@vueda/fields/FieldDate.vue";
 import FieldNumber from "@vueda/fields/FieldNumber.vue";
@@ -42,7 +43,7 @@ const builtInTypes = {
     ManyToManyField: FieldString,
     OneToOneField: FieldString,
     JSONField: FieldObject,
-    ArrayField: FieldObject,
+    ArrayField: FieldArray,
     BinaryField: FieldString,
     FilePathField: FieldString,
     IPAddressField: FieldString,
@@ -67,6 +68,7 @@ const defaultWidgets = {
     FieldDate: WidgetInput,
     FieldDateTime: WidgetInput,
     FieldNumber: WidgetInput,
+    FieldArray: WidgetTextarea,
     FieldObject: WidgetTextarea,
     FieldString: WidgetInput,
     FieldTime: WidgetInput,
@@ -131,9 +133,12 @@ const getWidgetProps = (fieldType) => {
  * @param {string} type - The Django field type.
  * @returns {import('vue').Component} The field component.
  */
-const djangoTypeToFieldComponent = (type) => {
+const djangoTypeToFieldComponent = (field) => {
     // todo: we should have a way to register custom field components
-    return builtInTypes[type] || FieldString;
+    if (field.type === "TextField" || field.many) {
+        return FieldArray;
+    }
+    return builtInTypes[field.type] || FieldString;
 };
 /**
  * Get the default widget for a given field object.
@@ -155,7 +160,7 @@ const getDefaultWidget = (field) => {
     if (field.type === "IntegerRangeField") {
         return WidgetSlider;
     }
-    const fieldComponent = djangoTypeToFieldComponent(field.type);
+    const fieldComponent = djangoTypeToFieldComponent(field);
     // todo: it would be nice to have a way to just specify a widget, in addition to having to pass as a slot
     return defaultWidgets[fieldComponent.__name] || WidgetInput;
 };
@@ -266,7 +271,7 @@ export function useFormModel(props) {
                     }
                     // todo: we should have a way to have custom field props on top server model info
                     fieldObjects[fieldObj.name] = fieldObj;
-                    const fieldComponent = djangoTypeToFieldComponent(fieldObj.type);
+                    const fieldComponent = djangoTypeToFieldComponent(fieldObj);
                     fieldComponents[fieldObj.name] = fieldComponent;
                     fieldProps[fieldObj.name] = getFieldProps(fieldObj);
                     widgetComponents[fieldObj.name] = getDefaultWidget(fieldObj);

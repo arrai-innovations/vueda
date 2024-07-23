@@ -95,6 +95,8 @@ export function defaultValidateRequired(value) {
  *
  * @typedef {object} FieldContextFunctions
  * @property {(value: any) => boolean} [required] - A custom required validation function
+ * @property {(value: any) => any} [preprocessSet] - A custom function to preprocess the value before updating
+ * @property {(value: any) => any} [preprocessGet] - A custom function to preprocess the value before updating
  */
 
 /**
@@ -142,9 +144,13 @@ export function useField(props, functions) {
                               .filter(Boolean); // Filters out undefined or falsy values
                           return values.length > 0 ? values : undefined;
                       }
-                      return get(formContext.state.values, props.name);
+                      const value = get(formContext.state.values, props.name);
+                      return functions?.preprocessGet ? functions.preprocessGet(value) : value;
                   },
                   set: (newValue) => {
+                      if (functions?.preprocessSet) {
+                          newValue = functions.preprocessSet(newValue);
+                      }
                       if (isArray(newValue) && props.rangeSuffix) {
                           newValue.forEach((v, index) => {
                               formContext.updateValue(`${state.name}_${state.suffix[index]}`, v);
@@ -233,6 +239,9 @@ export function useField(props, functions) {
     const returnObj = {
         state,
         updateValue: ifFormContext((value) => {
+            if (functions?.preprocessSet) {
+                value = functions.preprocessSet(value);
+            }
             if (isArray(value) && props.rangeSuffix) {
                 value.forEach((v, index) => {
                     if (v !== undefined && v !== null) {

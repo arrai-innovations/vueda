@@ -1,6 +1,6 @@
 <script setup>
 import { FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import { toRef, watch } from "vue";
+import { isArray } from "lodash-es";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -17,23 +17,18 @@ const props = defineProps({
         default: undefined,
     },
 });
-const fieldContext = useField(props);
-watch(
-    toRef(fieldContext.state, "value"),
-    (newValue) => {
-        if (newValue === undefined || newValue === null) {
-            return;
+const preprocessGet = (value) => {
+    if (value === undefined || value === null || !isArray(value)) {
+        return value;
+    }
+    return value.map((v) => {
+        if (typeof v === "string") {
+            return new Date(v);
         }
-        newValue = newValue.map((v) => {
-            if (typeof v === "string") {
-                return new Date(v);
-            }
-            return v;
-        });
-        fieldContext.updateValue(newValue);
-    },
-    { immediate: true },
-);
+        return v;
+    });
+};
+useField(props, { preprocessGet });
 </script>
 <template>
     <div data-qa="field-date">
