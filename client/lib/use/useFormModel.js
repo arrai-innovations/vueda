@@ -1,78 +1,65 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
-import FieldArray from "@vueda/fields/FieldArray.vue";
-import FieldBoolean from "@vueda/fields/FieldBoolean.vue";
-import FieldDate from "@vueda/fields/FieldDate.vue";
-import FieldNumber from "@vueda/fields/FieldNumber.vue";
-import FieldObject from "@vueda/fields/FieldObject.vue";
-import FieldRange from "@vueda/fields/FieldRange.vue";
-import FieldString from "@vueda/fields/FieldString.vue";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
-import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
-import WidgetDatePicker from "@vueda/widgets/WidgetDatePicker.vue";
-import WidgetInput from "@vueda/widgets/WidgetInput.vue";
-import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
-import WidgetSlider from "@vueda/widgets/WidgetSlider.vue";
-import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
-import WidgetAutoComplete from "@vueda/widgets/widgetAutoComplete.vue";
+import { computedAsync } from "@vueuse/core";
 import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
-import { computed, reactive, readonly, ref, shallowReactive, shallowRef, toRef, watch } from "vue";
+import { computed, effectScope, reactive, readonly, ref, shallowReactive, shallowRef, toRef, watch } from "vue";
 
 // todo: we should have a way to register custom field components
 const builtInTypes = {
-    IntegerRangeField: FieldRange,
-    DateRangeField: FieldRange,
-    TextField: FieldString,
-    CharField: FieldString,
-    BooleanField: FieldBoolean,
-    DateField: FieldDate,
-    DateTimeField: FieldDate,
-    DecimalField: FieldNumber,
-    FloatField: FieldNumber,
-    IntegerField: FieldNumber,
-    PositiveIntegerField: FieldNumber,
-    PositiveSmallIntegerField: FieldNumber,
-    SmallIntegerField: FieldNumber,
-    TimeField: FieldDate,
-    EmailField: FieldString,
-    URLField: FieldString,
-    UUIDField: FieldString,
-    ForeignKey: FieldString,
-    ManyToManyField: FieldString,
-    OneToOneField: FieldString,
-    JSONField: FieldObject,
-    ArrayField: FieldArray,
-    BinaryField: FieldString,
-    FilePathField: FieldString,
-    IPAddressField: FieldString,
-    GenericIPAddressField: FieldString,
-    SlugField: FieldString,
-    FileField: FieldString,
-    ImageField: FieldString,
-    AutoField: FieldString,
-    BigAutoField: FieldString,
-    BigIntegerField: FieldNumber,
-    DurationField: FieldString,
-    GenericRelation: FieldString,
-    GenericForeignKey: FieldString,
-    NullBooleanField: FieldBoolean,
-    PositiveBigIntegerField: FieldNumber,
-    PositiveDecimalField: FieldNumber,
+    IntegerRangeField: ["FieldRange", async () => (await import("@vueda/fields/FieldRange.vue")).default],
+    DateRangeField: ["FieldRange", async () => (await import("@vueda/fields/FieldRange.vue")).default],
+    TextField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    CharField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    BooleanField: ["FieldBoolean", async () => (await import("@vueda/fields/FieldBoolean.vue")).default],
+    DateField: ["FieldDate", async () => (await import("@vueda/fields/FieldDate.vue")).default],
+    DateTimeField: ["FieldDate", async () => (await import("@vueda/fields/FieldDate.vue")).default],
+    DecimalField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
+    FloatField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
+    IntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
+    PositiveIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
+    PositiveSmallIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
+    SmallIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
+    TimeField: ["FieldDate", async () => (await import("@vueda/fields/FieldDate.vue")).default],
+    EmailField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    URLField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    UUIDField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    ForeignKey: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    ManyToManyField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    OneToOneField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    JSONField: ["FieldObject", async () => (await import("@vueda/fields/FieldObject.vue")).default],
+    ArrayField: ["FieldArray", async () => (await import("@vueda/fields/FieldArray.vue")).default],
+    BinaryField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    FilePathField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    IPAddressField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    GenericIPAddressField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    SlugField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    FileField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    ImageField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    AutoField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    BigAutoField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    BigIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
+    DurationField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    GenericRelation: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    GenericForeignKey: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    NullBooleanField: ["FieldBoolean", async () => (await import("@vueda/fields/FieldBoolean.vue")).default],
+    PositiveBigIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
+    PositiveDecimalField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
 };
 
 // todo: we should have a way to register custom widgets
 const defaultWidgets = {
-    FieldBoolean: WidgetCheckbox,
-    FieldDate: WidgetInput,
-    FieldDateTime: WidgetInput,
-    FieldNumber: WidgetInput,
-    FieldArray: WidgetTextarea,
-    FieldObject: WidgetTextarea,
-    FieldString: WidgetInput,
-    FieldTime: WidgetInput,
-    FieldRange: WidgetDatePicker,
+    FieldBoolean: async () => (await import("@vueda/widgets/WidgetCheckbox.vue")).default,
+    FieldDate: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    FieldDateTime: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    FieldNumber: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    FieldArray: async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default,
+    FieldObject: async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default,
+    FieldString: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    FieldTime: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    FieldRange: async () => (await import("@vueda/widgets/WidgetDatePicker.vue")).default,
 };
 
 const defaultFieldProps = {};
@@ -136,9 +123,11 @@ const getWidgetProps = (fieldType) => {
 const djangoTypeToFieldComponent = (field) => {
     // todo: we should have a way to register custom field components
     if (field.type === "TextField" || field.many) {
-        return FieldArray;
+        return async () => (await import("@vueda/fields/FieldArray.vue")).default;
     }
-    return builtInTypes[field.type] || FieldString;
+    return (
+        builtInTypes[field.type] || ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default]
+    );
 };
 /**
  * Get the default widget for a given field object.
@@ -148,21 +137,21 @@ const djangoTypeToFieldComponent = (field) => {
  */
 const getDefaultWidget = (field) => {
     if (field.readOnly) {
-        return WidgetReadOnly;
+        return async () => (await import("@vueda/widgets/WidgetReadOnly.vue")).default;
     }
     if (field.choices) {
-        return WidgetAutoComplete;
+        return async () => (await import("@vueda/widgets/widgetAutoComplete.vue")).default;
         // return WidgetMultiSelect;
     }
     if (field.type === "TextField" || field.many) {
-        return WidgetTextarea;
+        return async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default;
     }
     if (field.type === "IntegerRangeField") {
-        return WidgetSlider;
+        return async () => (await import("@vueda/widgets/WidgetSlider.vue")).default;
     }
     const fieldComponent = djangoTypeToFieldComponent(field);
     // todo: it would be nice to have a way to just specify a widget, in addition to having to pass as a slot
-    return defaultWidgets[fieldComponent.__name] || WidgetInput;
+    return defaultWidgets[fieldComponent[0]] || (async () => (await import("@vueda/widgets/WidgetInput.vue")).default);
 };
 
 /**
@@ -183,6 +172,10 @@ const getDefaultWidget = (field) => {
  * @property {string} app - The app name
  * @property {string} model - The model name
  * @property {string[]} fields - The fields to display
+ * @property {{[fieldName:string]:async ()=>import('vue').Component} fieldComponents -
+ * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps -
+ * @property {{[fieldName:string]: async ()=>import('vue').Component}} widgetComponents - The widget components
+ * @property {{[fieldName:string]: {[key:string]: any}}} widgetProps -
  */
 
 const UseFormModelStateKeys = ["fieldObjects", "fieldComponents", "fieldProps", "widgetComponents", "widgetProps"];
@@ -193,6 +186,8 @@ const UseFormModelStateKeys = ["fieldObjects", "fieldComponents", "fieldProps", 
  * @returns {UseFormModelState} The reactive state.
  */
 export function useFormModel(props) {
+    const es = effectScope();
+
     const modelInfoStore = storeModelInfo();
     const internalState = reactive({
         modelInfo: {},
@@ -269,15 +264,16 @@ export function useFormModel(props) {
                     if (!fields.includes(fieldObj.name)) {
                         continue;
                     }
-                    // todo: we should have a way to have custom field props on top server model info
                     fieldObjects[fieldObj.name] = fieldObj;
-                    const fieldComponent = djangoTypeToFieldComponent(fieldObj);
-                    fieldComponents[fieldObj.name] = fieldComponent;
-                    fieldProps[fieldObj.name] = getFieldProps(fieldObj);
-                    widgetComponents[fieldObj.name] = getDefaultWidget(fieldObj);
+                    // Note: props.fieldComponents = [name, async function to return the component]
+                    const fieldComponent = props.fieldComponents[fieldObj.name] || djangoTypeToFieldComponent(fieldObj);
+                    es.run(() => (fieldComponents[fieldObj.name] = computedAsync(fieldComponent[1], null)));
+                    fieldProps[fieldObj.name] = props.fieldProps[fieldObj.name] || getFieldProps(fieldObj);
+                    const widgetComponent = props.widgetComponents[fieldObj.name] || getDefaultWidget(fieldObj);
+                    es.run(() => (widgetComponents[fieldObj.name] = computedAsync(widgetComponent, null)));
                     // todo: we should have a way to register custom widget props
                     //  or provide them to the form model as props
-                    widgetProps[fieldObj.name] = getWidgetProps(fieldComponent.__name);
+                    widgetProps[fieldObj.name] = props.widgetProps[fieldObj.name] || getWidgetProps(fieldComponent[0]);
                     if (fieldObj.choices) {
                         modelInfoStore.fetchFieldChoices(props.app, props.model, fieldObj.name);
                     }

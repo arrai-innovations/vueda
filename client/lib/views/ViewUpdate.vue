@@ -266,7 +266,11 @@ const detailActions = computed(() =>
                     :model="model"
                     :variant="formModelVariant"
                     v-bind="$attrs"
-                />
+                >
+                    <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                        <slot :name="slot" v-bind="slotProps || {}" />
+                    </template>
+                </form-model>
             </form>
         </div>
     </div>

@@ -88,6 +88,22 @@ const props = defineProps({
         type: String,
         default: "default",
     },
+    fieldComponents: {
+        type: Object,
+        default: () => ({}),
+    },
+    fieldProps: {
+        type: Object,
+        default: () => ({}),
+    },
+    widgetComponents: {
+        type: Object,
+        default: () => ({}),
+    },
+    widgetProps: {
+        type: Object,
+        default: () => ({}),
+    },
     outerClass: {
         type: [String, Array, Object],
         default: () => [],
@@ -122,27 +138,43 @@ const theme = useComputedClasses(vuedaTailwind.FormModel);
                 <slot name="beforeFields" />
             </div>
             <div v-for="fieldObj in formModel.fields.map((x) => formModel.fieldObjects[x])" :key="fieldObj?.name">
-                <component
-                    :is="formModel.fieldComponents[fieldObj?.name]"
-                    v-if="fieldObj"
-                    :class="theme('field')"
-                    v-bind="fieldObj"
+                <slot
+                    :field-component="formModel.fieldComponents[fieldObj?.name].value"
+                    :field-obj="fieldObj"
+                    :field-props="formModel.fieldProps[fieldObj.name]"
+                    :name="`field-${fieldObj.name}`"
+                    :widget-component="formModel.widgetComponents[fieldObj.name].value"
+                    :widget-props="formModel.widgetProps[fieldObj.name]"
                 >
-                    <template v-if="!$slots[`field-${fieldObj?.name}`]" #default>
-                        <div :class="theme('fieldInner')">
-                            <component
-                                :is="formModel.widgetComponents[fieldObj.name]"
-                                v-bind="formModel.widgetProps[fieldObj.name]"
-                            />
-                            <form-help-text />
-                            <form-feedback type="error" />
-                            <form-feedback type="message" />
-                        </div>
-                    </template>
-                    <template v-else #default>
-                        <slot :name="`field-${fieldObj?.name}`" />
-                    </template>
-                </component>
+                    <component
+                        :is="formModel.fieldComponents[fieldObj?.name].value"
+                        v-if="fieldObj || formModel.fieldComponents[fieldObj?.name].value"
+                        :class="theme('field')"
+                        v-bind="fieldObj"
+                    >
+                        <template v-if="!$slots[`field-${fieldObj?.name}`]" #default>
+                            <div :class="theme('fieldInner')">
+                                <slot
+                                    :field-obj="fieldObj"
+                                    :name="`widget-${fieldObj.name}`"
+                                    :widget-component="formModel.widgetComponents[fieldObj.name].value"
+                                >
+                                    <component
+                                        :is="formModel.widgetComponents[fieldObj.name].value"
+                                        v-bind="formModel.widgetProps[fieldObj.name]"
+                                        v-if="formModel.widgetComponents[fieldObj.name].value"
+                                    />
+                                </slot>
+                                <form-help-text />
+                                <form-feedback type="error" />
+                                <form-feedback type="message" />
+                            </div>
+                        </template>
+                        <template v-else #default>
+                            <slot :name="`field-${fieldObj?.name}`" />
+                        </template>
+                    </component>
+                </slot>
             </div>
             <div v-if="$slots.afterFields" :class="theme('afterFields')">
                 <slot name="afterFields" />
