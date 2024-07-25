@@ -106,19 +106,17 @@ const getFieldProps = (fieldObj) => {
  * Get the widget props for a given field type and field object.
  *
  * @param {string} fieldType - The field type.
- * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} fieldObj - The field object.
  * @returns {{[key:string]: any}} The widget props.
  */
 const getWidgetProps = (fieldType) => {
-    const defaultProps = defaultWidgetProps[fieldType] || {};
-    return defaultProps;
+    return defaultWidgetProps[fieldType] || {};
 };
 
 /**
  * Get the field component for a given Django field type.
  *
- * @param {string} type - The Django field type.
- * @returns {import('vue').Component} The field component.
+ * @param {string} field - The Django field type.
+ * @returns {()=>Promise<import('vue').Component>} The field component.
  */
 const djangoTypeToFieldComponent = (field) => {
     // todo: we should have a way to register custom field components
@@ -133,7 +131,7 @@ const djangoTypeToFieldComponent = (field) => {
  * Get the default widget for a given field object.
  *
  * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - The field object.
- * @returns {import('vue').Component} The widget component.
+ * @returns {()=>Promise<import('vue').Component>} The widget component.
  */
 const getDefaultWidget = (field) => {
     if (field.readOnly) {
