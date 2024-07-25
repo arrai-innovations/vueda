@@ -299,7 +299,7 @@ class DeactivateActionViewSetMixin:
 class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
     detail_args = ["pk"]
 
-    @action(detail=False, methods=["delete"], name="Bulk Delete Tasks")
+    @action(detail=False, methods=["delete"], name="Bulk Delete Objects")
     def bulk_delete(self, request):
         pks = request.data.get("pks", [])
         if not isinstance(pks, list):
@@ -314,7 +314,7 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
 
         count, _ = queryset.delete()
 
-        return Response({"status": f"{count} tasks deleted."}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"status": f"{count} objects deleted."}, status=status.HTTP_204_NO_CONTENT)
 
 
 class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):
