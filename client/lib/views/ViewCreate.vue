@@ -99,6 +99,9 @@ const combinedWhileText = computed(() =>
             ? "submitting form"
             : "",
 );
+const targetlessActions = computed(() =>
+    (modelConfig.config.createActions || []).filter((x) => modelConfig.config.listActions.includes(x)),
+);
 </script>
 <template>
     <div>
@@ -112,6 +115,23 @@ const combinedWhileText = computed(() =>
                         :model="model"
                         view="list"
                     />
+                    <template v-for="actionName in targetlessActions" :key="actionName">
+                        <slot
+                            :app="app"
+                            :label="memoizedStartCase(actionName)"
+                            :model="model"
+                            name="target-less-action-button"
+                            :view="actionName"
+                        >
+                            <link-model-view
+                                :app="app"
+                                class="w-full"
+                                :label="memoizedStartCase(actionName)"
+                                :model="model"
+                                :view="actionName"
+                            />
+                        </slot>
+                    </template>
                 </div>
             </template>
             <template #under-actions>
