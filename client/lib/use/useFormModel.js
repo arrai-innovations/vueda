@@ -172,9 +172,9 @@ const getDefaultWidget = (field) => {
  * @property {string} app - The app name
  * @property {string} model - The model name
  * @property {string[]} fields - The fields to display
- * @property {{[fieldName:string]:async ()=>import('vue').Component} fieldComponents -
- * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps -
- * @property {{[fieldName:string]: async ()=>import('vue').Component}} widgetComponents - The widget components
+ * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}} fieldComponents - The field components
+ * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps - The field props
+ * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}} widgetComponents - The widget components
  * @property {{[fieldName:string]: {[key:string]: any}}} widgetProps -
  */
 
