@@ -5,9 +5,9 @@ import { computedAsync } from "@vueuse/core";
 import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
-import { computed, effectScope, reactive, readonly, ref, shallowReactive, shallowRef, toRef, watch } from "vue";
+import { computed, effectScope, reactive, readonly, ref, shallowReactive, shallowRef, toRef, watch,provide } from "vue";
 import { deepUnref } from "vue-deepunref";
-
+import {FormModelSymbol} from "@vueda/utils/symbols.js";
 // todo: we should have a way to register custom field components
 const builtInTypes = {
     IntegerRangeField: ["FieldRange", async () => (await import("@vueda/fields/FieldRange.vue")).default],
@@ -23,7 +23,7 @@ const builtInTypes = {
     PositiveIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
     PositiveSmallIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
     SmallIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
-    TimeField: ["FieldDate", async () => (await import("@vueda/fields/FieldDate.vue")).default],
+    TimeField: ["FieldTime", async () => (await import("@vueda/fields/FieldTime.vue")).default],
     EmailField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
     URLField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
     UUIDField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
@@ -48,6 +48,7 @@ const builtInTypes = {
     NullBooleanField: ["FieldBoolean", async () => (await import("@vueda/fields/FieldBoolean.vue")).default],
     PositiveBigIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
     PositiveDecimalField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
+    ManyRelatedField: ["FieldInline", async () => (await import("@vueda/fields/FieldInline.vue")).default],
 };
 
 // todo: we should have a way to register custom widgets
@@ -150,6 +151,9 @@ const getDefaultWidget = (field) => {
     }
     const fieldComponent = djangoTypeToFieldComponent(field);
     // todo: it would be nice to have a way to just specify a widget, in addition to having to pass as a slot
+    if (fieldComponent[0] === "FieldInline") {
+        return undefined;
+    }
     return defaultWidgets[fieldComponent[0]] || (async () => (await import("@vueda/widgets/WidgetInput.vue")).default);
 };
 
@@ -186,6 +190,7 @@ const UseFormModelStateKeys = ["fieldObjects", "fieldComponents", "fieldProps", 
  */
 export function useFormModel(props) {
     const es = effectScope();
+    const fieldChoices = ref({})
 
     const modelInfoStore = storeModelInfo();
     const internalState = reactive({
@@ -195,6 +200,7 @@ export function useFormModel(props) {
     const state = shallowReactive(
         /** @type {UseFormModelRawState} */ {
             fields: ref([]),
+            expandFields: ref([]),
             fieldObjects: reactive({}),
             // components themselves should not be deep reactive, avoiding vue warnings
             fieldComponents: shallowRef({}),
@@ -225,21 +231,23 @@ export function useFormModel(props) {
         { immediate: true },
     );
 
-    watch(
-        () => modelInfoStore.fieldChoices[appModelKey.value],
-        (fieldChoices) => {
-            if (fieldChoices) {
-                for (const field in fieldChoices) {
-                    const choices = fieldChoices[field]?.results || [];
-                    state.widgetProps[field] = {
-                        ...state.widgetProps[field],
-                        options: choices,
-                    };
-                }
-            }
-        },
-        { immediate: true, deep: true },
-    );
+    // watch(
+    //     () => modelInfoStore.fieldChoices[appModelKey.value],
+    //     (fieldChoices) => {
+    //         if (fieldChoices) {
+    //             for (const field in fieldChoices) {
+    //                 //TODO: fix this choices. should have a way in widgetProps computed to reference a choices variable, then if it changes,
+    //                 // then the computed will recomputed
+    //                 const choices = fieldChoices[field]?.results || [];
+    //                 state.widgetProps[field] = {
+    //                     ...state.widgetProps[field],
+    //                     options: choices,
+    //                 };
+    //             }
+    //         }
+    //     },
+    //     { immediate: true, deep: true },
+    // );
 
     const assignStateObjectsIfChanged = (args) => {
         for (const key of UseFormModelStateKeys) {
@@ -253,12 +261,69 @@ export function useFormModel(props) {
     watch(
         [toRef(internalState, "modelInfo"), toRef(props, "fields")],
         ([modelInfo, fields]) => {
-            if (modelInfo?.fields?.length && fields?.length) {
+            if (modelInfo?.fields?.length) {
+                //TODO: fetch the mdoel expand fields
+                const expands = [
+                    "timesheet_days__id",
+                    "timesheet_days__date",
+                    "timesheet_days__start_time",
+                    "timesheet_days__end_time",
+                    "timesheet_entries__id",
+                    "timesheet_entries__start_time",
+                    "timesheet_entries__end_time",
+                    "timesheet_entries__description",
+                    "timesheet_entries__project",
+                    "timesheet_entries__task_code",
+                ];
+
+                const expandedFields = [
+                    {
+                        choies: false,
+                        label: "date",
+                        many: false,
+                        name: "timesheet_days__date",
+                        readonly: false,
+                        required: false,
+                        type: "DateField",
+                    },
+                    {
+                        choices: false,
+                        label: "start_time",
+                        many: false,
+                        name: "timesheet_days__start_time",
+                        readonly: false,
+                        required: false,
+                        type: "TimeField",
+                    },
+                    {
+                        choices: false,
+                        label: "end_time",
+                        many: false,
+                        name: "timesheet_days__end_time",
+                        readonly: false,
+                        required: false,
+                        type: "TimeField",
+                    },
+                ];
                 const fieldObjects = {};
                 const fieldComponents = {};
                 const fieldProps = {};
                 const widgetComponents = {};
                 const widgetProps = {};
+
+                for (const fieldObj of expandedFields) {
+                    fieldObjects[fieldObj.name] = fieldObj;
+                    // Note: props.fieldComponents = [name, async function to return the component]
+                    const fieldComponent = props.fieldComponents[fieldObj.name] || djangoTypeToFieldComponent(fieldObj);
+
+                    es.run(() => (fieldComponents[fieldObj.name] = computedAsync(fieldComponent[1], null)));
+                    fieldProps[fieldObj.name] = props.fieldProps[fieldObj.name] || getFieldProps(fieldObj);
+                    const widgetComponent = props.widgetComponents[fieldObj.name] || getDefaultWidget(fieldObj);
+                    es.run(() => (widgetComponents[fieldObj.name] = computedAsync(widgetComponent, null)));
+                    // todo: we should have a way to register custom widget props
+                    //  or provide them to the form model as props
+                    widgetProps[fieldObj.name] = props.widgetProps[fieldObj.name] || getWidgetProps(fieldComponent[0]);
+                }
                 for (const fieldObj of modelInfo.fields) {
                     if (!fields.includes(fieldObj.name)) {
                         continue;
@@ -274,7 +339,8 @@ export function useFormModel(props) {
                                 ...getFieldProps(fieldObj),
                             };
                         });
-                        const widgetComponent = props.widgetComponents[fieldObj.name] || getDefaultWidget(fieldObj);
+                        if (fieldComponent[0] !== "FieldInline") {
+                            const widgetComponent = props.widgetComponents[fieldObj.name] || getDefaultWidget(fieldObj);
                         widgetComponents[fieldObj.name] = computedAsync(widgetComponent, null);
                         // todo: we should have a way to register custom widget props
                         //  or provide them to the form model as props
@@ -284,6 +350,9 @@ export function useFormModel(props) {
                                 ...getWidgetProps(fieldComponent[0]),
                             };
                         });
+                        }
+
+
                     });
                     if (fieldObj.choices) {
                         modelInfoStore.fetchFieldChoices(props.app, props.model, fieldObj.name);
@@ -297,6 +366,10 @@ export function useFormModel(props) {
                     widgetProps,
                 });
                 assignReactiveObject(state.fields, fields.map((field) => fieldObjects[field]?.name).filter(identity));
+                assignReactiveObject(
+                    state.expandFields,
+                    expands.map((field) => fieldObjects[field]?.name).filter(identity),
+                );
             } else {
                 assignStateObjectsIfChanged({
                     fieldObjects: {},
@@ -306,10 +379,11 @@ export function useFormModel(props) {
                     widgetProps: {},
                 });
                 assignReactiveObject(state.fields, []);
+                assignReactiveObject(state.expandFields, []);
             }
         },
         { immediate: true, deep: true },
     );
-
+    provide(FormModelSymbol, readonly(state));
     return readonly(state);
 }

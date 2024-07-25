@@ -1,0 +1,101 @@
+<script setup>
+import FormFeedback from "@vueda/components/FormFeedback.vue";
+import FormHelpText from "@vueda/components/FormHelpText.vue";
+import { FormModelSymbol } from "@vueda/utils/symbols.js";
+import Button from "primevue/button";
+import { inject } from "vue";
+
+const props = defineProps({
+    app: {
+        type: String,
+        required: true,
+    },
+    model: {
+        type: String,
+        required: true,
+    },
+    index: {
+        type: Number,
+        required: true,
+    },
+    variant: {
+        type: String,
+        default: "default",
+    },
+    fieldComponents: {
+        type: Object,
+        default: () => ({}),
+    },
+    fieldProps: {
+        type: Object,
+        default: () => ({}),
+    },
+    widgetComponents: {
+        type: Object,
+        default: () => ({}),
+    },
+    widgetProps: {
+        type: Object,
+        default: () => ({}),
+    },
+});
+const formModel = inject(FormModelSymbol, null);
+const row_field_name = (fieldName) => {
+    const parts = fieldName.split("__");
+    if (parts.length > 1) {
+        return `${parts[0]}[${props.index}].${parts.slice(1).join(".")}`;
+    }
+    return fieldName;
+};
+const emit = defineEmits(["delete-row"]);
+const onDelete = () => emit("delete-row", props.index);
+</script>
+<template>
+    <div v-for="fieldObj in formModel.expandFields.map((x) => formModel.fieldObjects[x])" :key="fieldObj?.name">
+        <slot
+            :field-component="formModel.fieldComponents[fieldObj?.name].value"
+            :field-obj="fieldObj"
+            :field-props="formModel.fieldProps[fieldObj.name]"
+            :index="index"
+            :name="`field-${fieldObj.name}`"
+            :widget-component="formModel.widgetComponents[fieldObj.name].value"
+            :widget-props="formModel.widgetProps[fieldObj.name]"
+        >
+            <component
+                :is="formModel.fieldComponents[fieldObj?.name].value"
+                v-if="fieldObj || formModel.fieldComponents[fieldObj?.name].value"
+                v-bind="fieldObj"
+                :name="row_field_name(fieldObj.name)"
+            >
+                <template v-if="!$slots[`field-${fieldObj?.name}`]" #default>
+                    <div>
+                        <slot
+                            :field-obj="fieldObj"
+                            :index="index"
+                            :name="`widget-${fieldObj.name}`"
+                            :widget-component="formModel.widgetComponents[fieldObj.name].value"
+                        >
+                            <component
+                                :is="formModel.widgetComponents[fieldObj.name].value"
+                                v-if="formModel.widgetComponents[fieldObj.name].value"
+                                :name="row_field_name(fieldObj.name)"
+                                v-bind="formModel.widgetProps[fieldObj.name]"
+                            />
+                        </slot>
+                        <form-help-text />
+                        <form-feedback type="error" />
+                        <form-feedback type="message" />
+                    </div>
+                </template>
+                <template v-else #default>
+                    <slot :name="`field-${fieldObj?.name}`" />
+                </template>
+            </component>
+        </slot>
+    </div>
+    <slot name="inline-row-delete" :on-delete="onDelete">
+        <Button label="delete" @click="onDelete" />
+    </slot>
+</template>
+
+<style scoped></style>

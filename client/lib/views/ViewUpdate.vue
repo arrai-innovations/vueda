@@ -4,6 +4,7 @@ import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
+import { isBulkView, isDetailView } from "@vueda/router/getCrud.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useMergeFieldNameProps } from "@vueda/use/useMergeFieldNameProps.js";
@@ -221,11 +222,9 @@ const combinedWhileText = computed(() =>
 );
 const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObject.state.loading));
 const targetlessActions = computed(() =>
-    (modelConfig.config.updateActions || []).filter((x) => modelConfig.config.listActions.includes(x)),
+    (modelConfig.config.updateActions || []).filter((x) => !(isDetailView(x) || isBulkView(x))),
 );
-const detailActions = computed(() =>
-    (modelConfig.config.updateActions || []).filter((x) => modelConfig.config.detailActions.includes(x)),
-);
+const detailActions = computed(() => (modelConfig.config.updateActions || []).filter((x) => isDetailView(x)));
 </script>
 <template>
     <div :class="props.class">
