@@ -13,6 +13,10 @@ import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import Button from "primevue/button";
 import { computed, reactive, ref, toRef, watch } from "vue";
 
+defineOptions({
+    inheritAttrs: false,
+});
+
 const props = defineProps({
     app: {
         type: String,
@@ -53,6 +57,10 @@ const props = defineProps({
     formModelVariant: {
         type: String,
         default: "default",
+    },
+    class: {
+        type: [String, Array, Object],
+        default: () => [],
     },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
@@ -194,7 +202,7 @@ const detailActions = computed(() =>
 );
 </script>
 <template>
-    <div>
+    <div :class="props.class">
         <page-title :loading="pageLoading" :title="titleStr">
             <template #button>
                 <div class="flex gap-1 w-full justify-end">

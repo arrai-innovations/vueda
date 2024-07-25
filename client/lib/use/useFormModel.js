@@ -6,6 +6,7 @@ import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import { computed, effectScope, reactive, readonly, ref, shallowReactive, shallowRef, toRef, watch } from "vue";
+import { deepUnref } from "vue-deepunref";
 
 // todo: we should have a way to register custom field components
 const builtInTypes = {
@@ -263,14 +264,27 @@ export function useFormModel(props) {
                         continue;
                     }
                     fieldObjects[fieldObj.name] = fieldObj;
-                    const fieldComponent = props.fieldComponents[fieldObj.name] || djangoTypeToFieldComponent(fieldObj);
-                    es.run(() => (fieldComponents[fieldObj.name] = computedAsync(fieldComponent[1], null)));
-                    fieldProps[fieldObj.name] = props.fieldProps[fieldObj.name] || getFieldProps(fieldObj);
-                    const widgetComponent = props.widgetComponents[fieldObj.name] || getDefaultWidget(fieldObj);
-                    es.run(() => (widgetComponents[fieldObj.name] = computedAsync(widgetComponent, null)));
-                    // todo: we should have a way to register custom widget props
-                    //  or provide them to the form model as props
-                    widgetProps[fieldObj.name] = props.widgetProps[fieldObj.name] || getWidgetProps(fieldComponent[0]);
+                    es.run(() => {
+                        const fieldComponent =
+                            props.fieldComponents[fieldObj.name] || djangoTypeToFieldComponent(fieldObj);
+                        fieldComponents[fieldObj.name] = computedAsync(fieldComponent[1], null);
+                        fieldProps[fieldObj.name] = computed(() => {
+                            return {
+                                ...(deepUnref(props.fieldProps[fieldObj.name]) || {}),
+                                ...getFieldProps(fieldObj),
+                            };
+                        });
+                        const widgetComponent = props.widgetComponents[fieldObj.name] || getDefaultWidget(fieldObj);
+                        widgetComponents[fieldObj.name] = computedAsync(widgetComponent, null);
+                        // todo: we should have a way to register custom widget props
+                        //  or provide them to the form model as props
+                        widgetProps[fieldObj.name] = computed(() => {
+                            return {
+                                ...(deepUnref(props.widgetProps[fieldObj.name]) || {}),
+                                ...getWidgetProps(fieldComponent[0]),
+                            };
+                        });
+                    });
                     if (fieldObj.choices) {
                         modelInfoStore.fetchFieldChoices(props.app, props.model, fieldObj.name);
                     }

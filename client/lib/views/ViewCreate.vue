@@ -5,11 +5,16 @@ import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { useForm } from "@vueda/use/useForm.js";
+import { useMergeFieldNameProps } from "@vueda/use/useMergeFieldNameProps.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import Button from "primevue/button";
 import { computed, reactive, toRef } from "vue";
+
+defineOptions({
+    inheritAttrs: false,
+});
 
 const props = defineProps({
     app: {
@@ -48,6 +53,18 @@ const props = defineProps({
         type: String,
         default: "default",
     },
+    class: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
+    fieldProps: {
+        type: Object,
+        default: () => ({}),
+    },
+    widgetProps: {
+        type: Object,
+        default: () => ({}),
+    },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
@@ -56,6 +73,14 @@ const titleStr = computed(() => {
 });
 const calculatedCreateFields = computed(() => modelConfig?.config?.createFields);
 const calculatedCreateExpands = computed(() => modelConfig?.config?.createExpands);
+const calculatedCreateFieldProps = useMergeFieldNameProps([
+    toRef(() => props.fieldProps),
+    toRef(() => modelConfig?.config?.createFieldProps),
+]);
+const calculatedCreateWidgetProps = useMergeFieldNameProps([
+    toRef(() => props.widgetProps),
+    toRef(() => modelConfig?.config?.createWidgetProps),
+]);
 
 const instanceObjectProps = reactive({
     crudArgs: {
@@ -104,7 +129,7 @@ const targetlessActions = computed(() =>
 );
 </script>
 <template>
-    <div>
+    <div :class="props.class">
         <page-title :loading="modelConfig.loading" :title="titleStr">
             <template #button>
                 <div class="flex gap-1 w-full justify-end">
@@ -150,7 +175,19 @@ const targetlessActions = computed(() =>
                 :while-text="combinedWhileText"
             />
             <form @submit.prevent="objectForm.submit">
-                <form-model :app="app" :fields="calculatedCreateFields" :model="model" :variant="formModelVariant" />
+                <form-model
+                    :app="app"
+                    :field-props="calculatedCreateFieldProps"
+                    :fields="calculatedCreateFields"
+                    :model="model"
+                    :variant="formModelVariant"
+                    :widget-props="calculatedCreateWidgetProps"
+                    v-bind="$attrs"
+                >
+                    <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                        <slot :name="slot" v-bind="slotProps || {}" />
+                    </template>
+                </form-model>
             </form>
         </div>
     </div>

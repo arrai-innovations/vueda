@@ -22,6 +22,10 @@ import { defineStore } from "pinia";
  * @property {string[]} createActions - actions to display in create view
  * @property {string[]} updateActions - actions to display in update view
  * @property {string[]} readActions - actions to display in read view
+ * @property {{[fieldPath: string]: any}} createFieldProps - extra props to pass the field component in a form model for view create
+ * @property {{[fieldPath: string]: any}} updateFieldProps - extra props to pass the field component in a form model for view update
+ * @property {{[fieldPath: string]: any}} createWidgetProps - extra props to pass the widget component in a form model for view create
+ * @property {{[fieldPath: string]: any}} updateWidgetProps - extra props to pass the widget component in a form model for view update
  */
 
 /**
@@ -53,6 +57,10 @@ const getDefaultFromModelInfo = (modelInfo) => {
         createActions: detailActions,
         updateActions: detailActions,
         readActions: detailActions,
+        createFieldProps: {},
+        updateFieldProps: {},
+        createWidgetProps: {},
+        updateWidgetProps: {},
     };
 };
 

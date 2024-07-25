@@ -70,6 +70,7 @@ import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
+import { computed } from "vue";
 
 const props = defineProps({
     app: {
@@ -129,6 +130,7 @@ const formModel = useFormModel(props);
 // todo: look into customizability re: overriding field / widget components with arbitrary slot content
 // todo: it would be nice to have a way to layout the fields into fieldsets / grids
 const theme = useComputedClasses(vuedaTailwind.FormModel);
+const fieldObjects = computed(() => props.fields.map((x) => formModel.fieldObjects[x]));
 </script>
 
 <template>
@@ -137,43 +139,53 @@ const theme = useComputedClasses(vuedaTailwind.FormModel);
             <div v-if="$slots.beforeFields" :class="theme('beforeFields')">
                 <slot name="beforeFields" />
             </div>
-            <div v-for="fieldObj in formModel.fields.map((x) => formModel.fieldObjects[x])" :key="fieldObj?.name">
+            <div>
                 <slot
-                    :field-component="formModel.fieldComponents[fieldObj?.name].value"
-                    :field-obj="fieldObj"
-                    :field-props="formModel.fieldProps[fieldObj.name]"
-                    :name="`field-${fieldObj.name}`"
-                    :widget-component="formModel.widgetComponents[fieldObj.name].value"
-                    :widget-props="formModel.widgetProps[fieldObj.name]"
+                    :all-widget-props="formModel.widgetProps"
+                    :field-components="formModel.fieldComponents"
+                    :field-objects="fieldObjects"
+                    :field-props="formModel.fieldProps"
+                    name="fields"
+                    :theme="theme"
+                    :widget-components="formModel.widgetComponents"
                 >
-                    <component
-                        :is="formModel.fieldComponents[fieldObj?.name].value"
-                        v-if="fieldObj || formModel.fieldComponents[fieldObj?.name].value"
-                        :class="theme('field')"
-                        v-bind="fieldObj"
-                    >
-                        <template v-if="!$slots[`field-${fieldObj?.name}`]" #default>
-                            <div :class="theme('fieldInner')">
-                                <slot
-                                    :field-obj="fieldObj"
-                                    :name="`widget-${fieldObj.name}`"
-                                    :widget-component="formModel.widgetComponents[fieldObj.name].value"
-                                >
-                                    <component
-                                        :is="formModel.widgetComponents[fieldObj.name].value"
-                                        v-bind="formModel.widgetProps[fieldObj.name]"
-                                        v-if="formModel.widgetComponents[fieldObj.name].value"
-                                    />
-                                </slot>
-                                <form-help-text />
-                                <form-feedback type="error" />
-                                <form-feedback type="message" />
-                            </div>
-                        </template>
-                        <template v-else #default>
-                            <slot :name="`field-${fieldObj?.name}`" />
-                        </template>
-                    </component>
+                    <template v-for="fieldObject in fieldObjects" :key="fieldObject?.name">
+                        <slot
+                            :field-component="formModel.fieldComponents[fieldObject?.name]?.value"
+                            :field-object="fieldObject"
+                            :field-props="formModel.fieldProps[fieldObject?.name]"
+                            :name="`field(${fieldObject?.name})`"
+                            :theme="theme"
+                            :widget-component="formModel.widgetComponents[fieldObject?.name]?.value"
+                            :widget-props="formModel.widgetProps[fieldObject?.name]?.value"
+                        >
+                            <component
+                                :is="formModel.fieldComponents[fieldObject?.name].value"
+                                v-if="formModel.fieldComponents[fieldObject?.name]?.value"
+                                :class="theme('field')"
+                                v-bind="formModel.fieldProps[fieldObject?.name]"
+                            >
+                                <div :class="theme('fieldInner')">
+                                    <slot
+                                        :field-object="fieldObject"
+                                        :name="`widget(${fieldObject?.name})`"
+                                        :theme="theme"
+                                        :widget-component="formModel.widgetComponents[fieldObject?.name]?.value"
+                                        :widget-props="formModel.widgetProps[fieldObject?.name]"
+                                    >
+                                        <component
+                                            :is="formModel.widgetComponents[fieldObject?.name]?.value"
+                                            v-bind="formModel.widgetProps[fieldObject?.name]"
+                                            v-if="formModel.widgetComponents[fieldObject?.name]?.value"
+                                        />
+                                    </slot>
+                                    <form-help-text />
+                                    <form-feedback type="error" />
+                                    <form-feedback type="message" />
+                                </div>
+                            </component>
+                        </slot>
+                    </template>
                 </slot>
             </div>
             <div v-if="$slots.afterFields" :class="theme('afterFields')">

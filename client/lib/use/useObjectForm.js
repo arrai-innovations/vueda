@@ -252,6 +252,12 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             if (promises.submit) {
                 return promises.submit;
             }
+            // debug, don't submit, just toast the current state.
+            toast.add({
+                severity: "info",
+                summary: "Debug",
+                detail: JSON.stringify(formContext.state, null, 2),
+            });
             const submitPromise = doSubmit();
             promises.submit = submitPromise;
             return submitPromise;
