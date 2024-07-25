@@ -921,7 +921,7 @@ def get_history_diff_workflow(historical_queryset, last_migrated_date, last_hist
         historical_queryset = historical_queryset.filter(history_date__gt=old_history_record.history_date)
 
     previous_history_record = old_history_record
-    for history_record in historical_queryset:
+    for history_record in historical_queryset.order_by("history_date"):
         history_type, history_diff = get_history_diff(previous_history_record, history_record)
 
         # If the new and old history record are identical, then there are no changes to migrate.
@@ -978,7 +978,7 @@ def get_history_diff_other_models(historical_queryset, last_migrated_date, last_
             )
 
         previous_history_record = old_history_record
-        for history_record in old_history_records_by_pk:
+        for history_record in old_history_records_by_pk.order_by("history_date"):
             history_type, history_diff = get_history_diff(previous_history_record, history_record)
 
             if history_type is not None and history_diff is not None and history_diff.changed_fields:
