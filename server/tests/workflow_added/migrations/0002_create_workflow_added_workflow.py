@@ -5,7 +5,7 @@ from django.contrib.auth.management import create_permissions
 from django.db import DEFAULT_DB_ALIAS
 from django.db import migrations
 
-from tests import custom_migration_operations
+from vueda.workflow import custom_migration_operations
 
 
 SKIPPABLE_ENV_VARIABLE = "migration_skip_workflow_added"

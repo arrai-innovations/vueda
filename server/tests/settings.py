@@ -5,7 +5,7 @@ from pathlib import Path
 # noinspection PyPackageRequirements
 from environ import environ  # noqa
 
-from tests.custom_migration_operations import clean_migrations
+from tests.utils import clean_migrations
 from vueda.core.default_settings import get_defaults
 
 

@@ -1,6 +1,62 @@
+import os
 from contextlib import contextmanager
 
 from django.http import QueryDict
+
+
+def clean_migrations(which_app=None):
+    workflow_added_migrations_data = {
+        "tests/workflow_added/migrations": ("__init__.py", "0001_initial.py", "0002_create_workflow_added_workflow.py"),
+    }
+    workflow_changed_migrations_data = {
+        "tests/workflow_changed/migrations": (
+            "__init__.py",
+            "0001_initial.py",
+            "0002_create_workflow_changed_permissions.py",
+            "0003_workflow_migrations_2024_05_14.py",
+            "0004_change_workflow.py",
+        ),
+    }
+    workflow_deleted_migrations_data = {
+        "tests/workflow_deleted/migrations": (
+            "__init__.py",
+            "0001_initial.py",
+            "0002_create_workflow_deleted_permissions.py",
+            "0003_workflow_migrations_2024_05_13.py",
+            "0004_delete_workflow.py",
+        ),
+    }
+    workflow_multi_migrations_data = {
+        "tests/workflow_multi/migrations": (
+            "__init__.py",
+            "0001_initial.py",
+            "0002_create_workflow_and_history.py",
+        ),
+    }
+    match which_app:
+        case "workflow_added":
+            existing_migration_data = workflow_added_migrations_data
+
+        case "workflow_changed":
+            existing_migration_data = workflow_changed_migrations_data
+
+        case "workflow_deleted":
+            existing_migration_data = workflow_deleted_migrations_data
+
+        case "workflow_multi":
+            existing_migration_data = workflow_multi_migrations_data
+
+        case _:
+            existing_migration_data = {}
+            existing_migration_data.update(workflow_added_migrations_data)
+            existing_migration_data.update(workflow_changed_migrations_data)
+            existing_migration_data.update(workflow_deleted_migrations_data)
+
+    for path, existing_migrations in existing_migration_data.items():
+        for root, _dirs, files in os.walk(path):
+            for filename in files:
+                if filename not in existing_migrations:
+                    os.remove(os.path.join(root, filename))
 
 
 class FakeRequest:
