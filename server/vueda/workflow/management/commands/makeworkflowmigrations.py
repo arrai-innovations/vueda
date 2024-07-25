@@ -833,7 +833,8 @@ def add_history_to_data(history_data, obj, history_type, history_date, fields=()
 
 def get_id_values_from_item(values, reversing=False):
     # The changed fields have a tuple with 2 values, the other fields do not.
-    # Testing as tuple instead of length, because values could be a dictionary with 2 keys, or a 2 character string.  A single value can't be a tuple.
+    # Testing as tuple instead of length, because values could be a dictionary
+    # with 2 keys, or a 2 character string.  A single value can't be a tuple.
     if type(values) is tuple:
         return values[1 if reversing else 0]
 
@@ -1638,15 +1639,24 @@ class Command(BaseCommand):
             if self.import_instead:
                 copied_imports.extend(
                     [
-                        f"{NEWLINE}from vueda.workflow.management.commands.makeworkflowmigrations import handle_workflow{NEWLINE}",
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_workflow_permission{NEWLINE}",
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_state{NEWLINE}",
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_state_permission{NEWLINE}",
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_initial_state{NEWLINE}",
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_transition{NEWLINE}",
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_transition_permission{NEWLINE}",
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_transition_source{NEWLINE}",
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import make_sure_permissions_exist{NEWLINE}",
+                        f"{NEWLINE}from vueda.workflow.management.commands.makeworkflowmigrations "
+                        f"import handle_workflow{NEWLINE}",
+                        "from vueda.workflow.management.commands.makeworkflowmigrations "
+                        f"import handle_workflow_permission{NEWLINE}",
+                        "from vueda.workflow.management.commands.makeworkflowmigrations "
+                        f"import handle_state{NEWLINE}",
+                        "from vueda.workflow.management.commands.makeworkflowmigrations "
+                        f"import handle_state_permission{NEWLINE}",
+                        "from vueda.workflow.management.commands.makeworkflowmigrations "
+                        f"import handle_initial_state{NEWLINE}",
+                        "from vueda.workflow.management.commands.makeworkflowmigrations "
+                        f"import handle_transition{NEWLINE}",
+                        "from vueda.workflow.management.commands.makeworkflowmigrations "
+                        f"import handle_transition_permission{NEWLINE}",
+                        "from vueda.workflow.management.commands.makeworkflowmigrations "
+                        f"import handle_transition_source{NEWLINE}",
+                        "from vueda.workflow.management.commands.makeworkflowmigrations "
+                        f"import make_sure_permissions_exist{NEWLINE}",
                     ]
                 )
 
@@ -1687,7 +1697,8 @@ class Command(BaseCommand):
             )
             self.stdout.write(
                 self.style.NOTICE(
-                    f"{NEWLINE}NOTE: You will need to fake this migration, because you already have the changes.{NEWLINE}"
+                    f"{NEWLINE}NOTE: You will need to fake this migration, "
+                    f"because you already have the changes.{NEWLINE}"
                 )
             )
 

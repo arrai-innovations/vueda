@@ -121,8 +121,8 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
 
         assert "Creating empty migration for workflow changes." in results
         assert (
-            f"Modified migration '0003_workflow_migrations_{now().date().strftime('%Y_%m_%d')}.py' to migrate workflow for workflow_added."
-            in results
+            f"Modified migration '0003_workflow_migrations_{now().date().strftime('%Y_%m_%d')}.py' "
+            f"to migrate workflow for workflow_added." in results
         )
 
         test_db_name = "vueda_workflow_management_command_migration_testing_added"
@@ -416,8 +416,8 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand):
 
         assert "Creating empty migration for workflow changes." in results
         assert (
-            f"Modified migration '0005_workflow_migrations_{now().date().strftime('%Y_%m_%d')}.py' to migrate workflow for workflow_changed."
-            in results
+            f"Modified migration '0005_workflow_migrations_{now().date().strftime('%Y_%m_%d')}.py' "
+            f"to migrate workflow for workflow_changed." in results
         )
 
         test_db_name = "vueda_workflow_management_command_migration_testing_changed"
@@ -862,8 +862,8 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand):
 
         assert "Creating empty migration for workflow changes." in results
         assert (
-            f"Modified migration '0005_workflow_migrations_{now().date().strftime('%Y_%m_%d')}.py' to migrate workflow for workflow_deleted."
-            in results
+            f"Modified migration '0005_workflow_migrations_{now().date().strftime('%Y_%m_%d')}.py' "
+            f"to migrate workflow for workflow_deleted." in results
         )
 
         test_db_name = "vueda_workflow_management_command_migration_testing_deleted"
