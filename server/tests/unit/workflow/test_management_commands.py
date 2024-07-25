@@ -7,7 +7,7 @@ from django.db.migrations.recorder import MigrationRecorder
 from django.utils.timezone import now
 
 from tests.conftest import BaseTestCallCommand
-from tests.custom_migration_operations import clean_migrations
+from tests.utils import clean_migrations
 from vueda.workflow import models
 
 
