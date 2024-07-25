@@ -116,12 +116,12 @@ const getWidgetProps = (fieldType) => {
  * Get the field component for a given Django field type.
  *
  * @param {string} field - The Django field type.
- * @returns {()=>Promise<import('vue').Component>} The field component.
+ * @returns {[componentName:string, ()=>Promise<import('vue').Component>]} The field component.
  */
 const djangoTypeToFieldComponent = (field) => {
     // todo: we should have a way to register custom field components
     if (field.type === "TextField" || field.many) {
-        return async () => (await import("@vueda/fields/FieldArray.vue")).default;
+        return ["FieldArray", async () => (await import("@vueda/fields/FieldArray.vue")).default];
     }
     return (
         builtInTypes[field.type] || ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default]
@@ -170,7 +170,7 @@ const getDefaultWidget = (field) => {
  * @property {string} app - The app name
  * @property {string} model - The model name
  * @property {string[]} fields - The fields to display
- * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}} fieldComponents - The field components
+ * @property {{[fieldName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}} fieldComponents - The field components
  * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps - The field props
  * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}} widgetComponents - The widget components
  * @property {{[fieldName:string]: {[key:string]: any}}} widgetProps -
@@ -263,7 +263,6 @@ export function useFormModel(props) {
                         continue;
                     }
                     fieldObjects[fieldObj.name] = fieldObj;
-                    // Note: props.fieldComponents = [name, async function to return the component]
                     const fieldComponent = props.fieldComponents[fieldObj.name] || djangoTypeToFieldComponent(fieldObj);
                     es.run(() => (fieldComponents[fieldObj.name] = computedAsync(fieldComponent[1], null)));
                     fieldProps[fieldObj.name] = props.fieldProps[fieldObj.name] || getFieldProps(fieldObj);
