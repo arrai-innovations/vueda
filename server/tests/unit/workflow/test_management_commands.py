@@ -1,6 +1,8 @@
+import datetime
 import json
 import os
 import subprocess
+from importlib import import_module
 
 import pytest
 from django.db.migrations.recorder import MigrationRecorder
@@ -1186,3 +1188,50 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand):
         orig_data_transition_source = list(reversed(orig_data_transition_source))
         orig_data_transition_source.append(orig_data_transition_source.pop(0))
         assert data == orig_data_transition_source
+
+
+class TestManagementCommandWorkflowMulti(BaseTestCallCommand):
+    @classmethod
+    def teardown_class(cls):
+        # Delete test created migrations, for workflow multi.
+        clean_migrations("workflow_multi")
+
+    @pytest.mark.django_db
+    def test_workflow_multi(self):
+        succeeded, results = self.call_command(
+            "makeworkflowmigrations", "workflow_multi", "--env-guarded-operations", "--import-instead"
+        )
+        if not succeeded:
+            pytest.fail("".join(results), pytrace=False)
+
+        results = frozenset([line.strip() for line in results if line.strip()])
+
+        assert "Creating empty migration for workflow changes." in results
+        assert (
+            f"Modified migration '0003_workflow_migrations_{now().date().strftime('%Y_%m_%d')}.py' "
+            f"to migrate workflow for workflow_multi." in results
+        )
+
+        # Import the migration, so we can verify the first record.
+        # When the records are not ordered correctly, weird things happen to the changed data.
+        migration = import_module(
+            f"tests.workflow_multi.migrations.0003_workflow_migrations_{now().date().strftime('%Y_%m_%d')}"
+        )
+
+        assert len(migration.changed_data) == 10, migration.changed_data
+
+        # The workflow added record should be the first record, and it should have a specific history date.
+        first_change = migration.changed_data[0]
+        assert first_change == {
+            "changes": {
+                "code": "complete",
+                "content_type_id": {"app_label": "workflow_multi", "model": "workflowmulti"},
+                "historical_app_label": "workflow_multi",
+                "historical_model": "workflowmulti",
+                "id": {"code": "complete"},
+                "name": "complete",
+            },
+            "history_date": datetime.datetime(2024, 7, 17, 19, 53, 55, 857366, tzinfo=datetime.timezone.utc),
+            "history_type": "added",
+            "model_name": "workflow",
+        }, first_change
