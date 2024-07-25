@@ -72,6 +72,10 @@ import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { computed } from "vue";
 
+defineOptions({
+    inheritAttrs: false,
+});
+
 const props = defineProps({
     app: {
         type: String,
@@ -139,7 +143,7 @@ const fieldObjects = computed(() => props.fields.map((x) => formModel.fieldObjec
             <div v-if="$slots.beforeFields" :class="theme('beforeFields')">
                 <slot name="beforeFields" />
             </div>
-            <div>
+            <div v-bind="$attrs">
                 <slot
                     :all-widget-props="formModel.widgetProps"
                     :field-components="formModel.fieldComponents"

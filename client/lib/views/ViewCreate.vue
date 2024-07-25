@@ -1,5 +1,5 @@
 <script setup>
-import { useObject } from "@arrai-innovations/reactive-helpers";
+import { assignReactiveObject, useObject } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
@@ -9,8 +9,9 @@ import { useMergeFieldNameProps } from "@vueda/use/useMergeFieldNameProps.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
-import { computed, reactive, toRef } from "vue";
+import { computed, reactive, toRef, useAttrs, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -28,26 +29,6 @@ const props = defineProps({
     variant: {
         type: String,
         default: "default",
-    },
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    headerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    titleClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    bodyClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    loadingClass: {
-        type: [String, Array, Object],
-        default: () => [],
     },
     formModelVariant: {
         type: String,
@@ -71,6 +52,22 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const titleStr = computed(() => {
     return `Create ${memoizedStartCase(modelConfig.info?.verbose_name)}` || "Create Item";
 });
+const attrs = useAttrs();
+// combined modelConfig?.config?.createFormProps with any attrs passed in
+const computedCreateFormProps = reactive({});
+watch(
+    [() => modelConfig?.config?.createFormProps, () => attrs],
+    ([createFormProps, attrs]) => {
+        const desiredState = {
+            ...createFormProps,
+            ...attrs,
+        };
+        if (!isEqual(computedCreateFormProps, desiredState)) {
+            assignReactiveObject(computedCreateFormProps, desiredState);
+        }
+    },
+    { immediate: true, deep: true },
+);
 const calculatedCreateFields = computed(() => modelConfig?.config?.createFields);
 const calculatedCreateExpands = computed(() => modelConfig?.config?.createExpands);
 const calculatedCreateFieldProps = useMergeFieldNameProps([
@@ -182,7 +179,7 @@ const targetlessActions = computed(() =>
                     :model="model"
                     :variant="formModelVariant"
                     :widget-props="calculatedCreateWidgetProps"
-                    v-bind="$attrs"
+                    v-bind="computedCreateFormProps"
                 >
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />

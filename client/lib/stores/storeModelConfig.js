@@ -22,10 +22,12 @@ import { defineStore } from "pinia";
  * @property {string[]} createActions - actions to display in create view
  * @property {string[]} updateActions - actions to display in update view
  * @property {string[]} readActions - actions to display in read view
- * @property {{[fieldPath: string]: any}} createFieldProps - extra props to pass the field component in a form model for view create
- * @property {{[fieldPath: string]: any}} updateFieldProps - extra props to pass the field component in a form model for view update
- * @property {{[fieldPath: string]: any}} createWidgetProps - extra props to pass the widget component in a form model for view create
- * @property {{[fieldPath: string]: any}} updateWidgetProps - extra props to pass the widget component in a form model for view update
+ * @property {{[propName: string]: any}} createFormProps - extra props to pass the form model for view create
+ * @property {{[propName: string]: any}} updateFormProps - extra props to pass the form model for view update
+ * @property {{[fieldPath: string]: {[propName: string]: any}}} createFieldProps - extra props to pass a field component in a form model for view create
+ * @property {{[fieldPath: string]: {[propName: string]: any}}} updateFieldProps - extra props to pass a field component in a form model for view update
+ * @property {{[fieldPath: string]: {[propName: string]: any}}} createWidgetProps - extra props to pass a widget component in a form model for view create
+ * @property {{[fieldPath: string]: {[propName: string]: any}}} updateWidgetProps - extra props to pass a widget component in a form model for view update
  */
 
 /**
@@ -57,6 +59,8 @@ const getDefaultFromModelInfo = (modelInfo) => {
         createActions: detailActions,
         updateActions: detailActions,
         readActions: detailActions,
+        createFormProps: {},
+        updateFormProps: {},
         createFieldProps: {},
         updateFieldProps: {},
         createWidgetProps: {},

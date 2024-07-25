@@ -6,12 +6,14 @@ import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
+import { useMergeFieldNameProps } from "@vueda/use/useMergeFieldNameProps.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
-import { computed, reactive, ref, toRef, watch } from "vue";
+import { computed, reactive, ref, toRef, useAttrs, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -83,8 +85,32 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const titleStr = computed(() => {
     return `Update ${memoizedStartCase(modelConfig.info?.verbose_name)}` || "Update Item";
 });
+const attrs = useAttrs();
+// combined modelConfig?.config?.createFormProps with any attrs passed in
+const computedUpdateFormProps = reactive({});
+watch(
+    [() => modelConfig?.config?.updateFormProps, () => attrs],
+    ([createFormProps, attrs]) => {
+        const desiredState = {
+            ...createFormProps,
+            ...attrs,
+        };
+        if (!isEqual(computedUpdateFormProps, desiredState)) {
+            assignReactiveObject(computedUpdateFormProps, desiredState);
+        }
+    },
+    { immediate: true, deep: true },
+);
 const calculatedUpdateFields = computed(() => modelConfig?.config?.updateFields);
 const calculatedUpdateExpands = computed(() => modelConfig?.config?.updateExpands);
+const calculatedUpdateFieldProps = useMergeFieldNameProps([
+    toRef(() => props.fieldProps),
+    toRef(() => modelConfig?.config?.updateFieldProps),
+]);
+const calculatedUpdateWidgetProps = useMergeFieldNameProps([
+    toRef(() => props.widgetProps),
+    toRef(() => modelConfig?.config?.updateWidgetProps),
+]);
 
 const instanceObjectProps = reactive({
     crudArgs: {
@@ -270,10 +296,12 @@ const detailActions = computed(() =>
             <form @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"
+                    :field-props="calculatedUpdateFieldProps"
                     :fields="calculatedUpdateFields"
                     :model="model"
                     :variant="formModelVariant"
-                    v-bind="$attrs"
+                    :widget-props="calculatedUpdateWidgetProps"
+                    v-bind="computedUpdateFormProps"
                 >
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />
