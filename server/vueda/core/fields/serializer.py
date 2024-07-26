@@ -1,3 +1,5 @@
+import datetime
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.encoding import smart_str
 from rest_framework import serializers as drf_serializers
@@ -21,3 +23,25 @@ class ContentTypeField(drf_serializers.RelatedField):
             self.fail("does_not_exist", value=smart_str(data))
         except (TypeError, ValueError):
             self.fail("invalid")
+
+
+class DurationSecondsField(drf_serializers.Field):
+    def to_internal_value(self, data):
+        """
+        Convert incoming value from seconds to a timedelta object.
+        """
+        try:
+            # Ensure the input is an integer or convertible to an integer
+            seconds = int(data)
+        except (ValueError, TypeError):
+            raise drf_serializers.ValidationError("Duration must be an integer number of seconds.")
+        return datetime.timedelta(seconds=seconds)
+
+    def to_representation(self, value):
+        """
+        Convert outgoing timedelta to total seconds.
+        """
+        if isinstance(value, datetime.timedelta):
+            total_seconds = int(value.total_seconds())
+            return total_seconds
+        raise drf_serializers.ValidationError("Expected a timedelta object.")
