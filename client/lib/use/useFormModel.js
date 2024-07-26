@@ -172,6 +172,7 @@ const getDefaultWidget = (field) => {
 /**
  * @typedef {object} UseFormModelRawState
  * @property {{[fieldName:string]:import('@vueda/models/FieldModel').FieldModel}} fieldObjects -
+ * @property {{[fieldName:string]:import('@vueda/models/FieldModel').FieldModel}} expandFieldObjects -
  * @property {{[fieldName:string]:import('vue').Component}} fieldComponents -
  * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps -
  * @property {{[fieldName:string]: import('vue').Component}} widgetComponents - The widget components
@@ -193,7 +194,14 @@ const getDefaultWidget = (field) => {
  * @property {{[fieldName:string]: {[key:string]: any}}} widgetProps -
  */
 
-const UseFormModelStateKeys = ["fieldObjects", "fieldComponents", "fieldProps", "widgetComponents", "widgetProps"];
+const UseFormModelStateKeys = [
+    "fieldObjects",
+    "expandFieldObjects",
+    "fieldComponents",
+    "fieldProps",
+    "widgetComponents",
+    "widgetProps",
+];
 /**
  * Using server model info and client model config, this hook provides the necessary reactive state for a form model.
  *
@@ -212,6 +220,7 @@ export function useFormModel(props) {
             fields: ref([]),
             expandFields: ref([]),
             fieldObjects: reactive({}),
+            expandFieldObjects: reactive({}),
             // components themselves should not be deep reactive, avoiding vue warnings
             fieldComponents: shallowRef({}),
             fieldProps: reactive({}),
@@ -304,25 +313,90 @@ export function useFormModel(props) {
                         required: false,
                         type: "TimeField",
                     },
+                    {
+                        choies: false,
+                        label: "start_time",
+                        many: false,
+                        name: "timesheet_entries__start_time",
+                        readonly: false,
+                        required: false,
+                        type: "TimeField",
+                    },
+                    {
+                        choices: false,
+                        label: "end_time",
+                        many: false,
+                        name: "timesheet_entries__end_time",
+                        readonly: false,
+                        required: false,
+                        type: "TimeField",
+                    },
+                    {
+                        choices: false,
+                        label: "end_time",
+                        many: false,
+                        name: "timesheet_entries__description",
+                        readonly: false,
+                        required: false,
+                        type: "TextField",
+                    },
+                    {
+                        choices: false,
+                        label: "project",
+                        many: false,
+                        name: "timesheet_entries__project",
+                        readonly: false,
+                        required: false,
+                        type: "ForeignKey",
+                    },
+                    {
+                        choices: false,
+                        label: "task_code",
+                        many: false,
+                        name: "timesheet_entries__task_code",
+                        readonly: false,
+                        required: false,
+                        type: "ForeignKey",
+                    },
                 ];
                 const fieldObjects = {};
+                const expandFieldObjects = {};
                 const fieldComponents = {};
                 const fieldProps = {};
                 const widgetComponents = {};
                 const widgetProps = {};
 
                 for (const fieldObj of expandedFields) {
-                    fieldObjects[fieldObj.name] = fieldObj;
+                    expandFieldObjects[fieldObj.name] = fieldObj;
                     // Note: props.fieldComponents = [name, async function to return the component]
-                    const fieldComponent = props.fieldComponents[fieldObj.name] || djangoTypeToFieldComponent(fieldObj);
-
-                    es.run(() => (fieldComponents[fieldObj.name] = computedAsync(fieldComponent[1], null)));
-                    fieldProps[fieldObj.name] = props.fieldProps[fieldObj.name] || getFieldProps(fieldObj);
-                    const widgetComponent = props.widgetComponents[fieldObj.name] || getDefaultWidget(fieldObj);
-                    es.run(() => (widgetComponents[fieldObj.name] = computedAsync(widgetComponent, null)));
-                    // todo: we should have a way to register custom widget props
-                    //  or provide them to the form model as props
-                    widgetProps[fieldObj.name] = props.widgetProps[fieldObj.name] || getWidgetProps(fieldComponent[0]);
+                    es.run(() => {
+                        const fieldComponent =
+                            props.fieldComponents[fieldObj.name] || djangoTypeToFieldComponent(fieldObj);
+                        fieldComponents[fieldObj.name] = computedAsync(fieldComponent[1], null);
+                        fieldProps[fieldObj.name] = computed(() => {
+                            return {
+                                ...(deepUnref(props.fieldProps[fieldObj.name]) || {}),
+                                ...getFieldProps(fieldObj),
+                            };
+                        });
+                        const computeWidgetProps = (fieldObj, fieldComponent) => {
+                            return computed(() => {
+                                const baseProps = {
+                                    ...(deepUnref(props.widgetProps[fieldObj.name]) || {}),
+                                    ...getWidgetProps(fieldComponent[0]),
+                                };
+                                if (fieldObj.choices) {
+                                    baseProps.options = internalState.modelInfoChoices[fieldObj.name]?.results || [];
+                                }
+                                return baseProps;
+                            });
+                        };
+                        if (fieldComponent[0] !== "FieldInline") {
+                            const widgetComponent = props.widgetComponents[fieldObj.name] || getDefaultWidget(fieldObj);
+                            widgetComponents[fieldObj.name] = computedAsync(widgetComponent, null);
+                            widgetProps[fieldObj.name] = computeWidgetProps(fieldObj, fieldComponent);
+                        }
+                    });
                 }
                 for (const fieldObj of modelInfo.fields) {
                     if (!fields.includes(fieldObj.name)) {
@@ -363,6 +437,7 @@ export function useFormModel(props) {
                 }
                 assignStateObjectsIfChanged({
                     fieldObjects,
+                    expandFieldObjects,
                     fieldComponents,
                     fieldProps,
                     widgetComponents,
@@ -371,11 +446,12 @@ export function useFormModel(props) {
                 assignReactiveObject(state.fields, fields.map((field) => fieldObjects[field]?.name).filter(identity));
                 assignReactiveObject(
                     state.expandFields,
-                    expands.map((field) => fieldObjects[field]?.name).filter(identity),
+                    expands.map((field) => expandFieldObjects[field]?.name).filter(identity),
                 );
             } else {
                 assignStateObjectsIfChanged({
                     fieldObjects: {},
+                    expandFieldObjects: {},
                     fieldComponents: {},
                     fieldProps: {},
                     widgetComponents: {},

@@ -33,7 +33,7 @@ const removeRow = (index) => {
         <Divider />
         <slot></slot>
         <div v-for="(_, index) in fieldContext.state.value" :key="index">
-            <InlineRow app="hr" :index="index" model="Timesheet" @delete-row="removeRow">
+            <InlineRow :field-name="fieldContext.state.name" :index="index" @delete-row="removeRow">
                 <template #inline-row-delete="{ onDelete }">
                     <slot :index="index" name="inline-row-delete" :on-delete="onDelete" />
                 </template>

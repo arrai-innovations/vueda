@@ -6,16 +6,12 @@ import Button from "primevue/button";
 import { inject } from "vue";
 
 const props = defineProps({
-    app: {
-        type: String,
-        required: true,
-    },
-    model: {
-        type: String,
-        required: true,
-    },
     index: {
         type: Number,
+        required: true,
+    },
+    fieldName: {
+        type: String,
         required: true,
     },
     variant: {
@@ -51,20 +47,25 @@ const emit = defineEmits(["delete-row"]);
 const onDelete = () => emit("delete-row", props.index);
 </script>
 <template>
-    <div v-for="fieldObj in formModel.expandFields.map((x) => formModel.fieldObjects[x])" :key="fieldObj?.name">
+    <div
+        v-for="fieldObj in formModel.expandFields
+            ?.filter((x) => x.split('__')[0] === fieldName)
+            .map((x) => formModel.expandFieldObjects[x])"
+        :key="fieldObj?.name"
+    >
         <slot
             :field-component="formModel.fieldComponents[fieldObj?.name].value"
             :field-obj="fieldObj"
             :field-props="formModel.fieldProps[fieldObj.name]"
             :index="index"
-            :name="`field-${fieldObj.name}`"
+            :name="`field(${fieldObj.name})`"
             :widget-component="formModel.widgetComponents[fieldObj.name].value"
             :widget-props="formModel.widgetProps[fieldObj.name]"
         >
             <component
                 :is="formModel.fieldComponents[fieldObj?.name].value"
-                v-if="fieldObj || formModel.fieldComponents[fieldObj?.name].value"
-                v-bind="fieldObj"
+                v-if="formModel.fieldComponents[fieldObj?.name]?.value"
+                v-bind="formModel.fieldProps[fieldObj?.name]"
                 :name="row_field_name(fieldObj.name)"
             >
                 <template v-if="!$slots[`field-${fieldObj?.name}`]" #default>
@@ -72,7 +73,7 @@ const onDelete = () => emit("delete-row", props.index);
                         <slot
                             :field-obj="fieldObj"
                             :index="index"
-                            :name="`widget-${fieldObj.name}`"
+                            :name="`widget(${fieldObj.name})`"
                             :widget-component="formModel.widgetComponents[fieldObj.name].value"
                         >
                             <component
