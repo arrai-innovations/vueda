@@ -37,9 +37,12 @@ export const useLinkModelView = (props) => {
         router.hasRoute(toRouteArgs.value?.name) ? router.resolve(toRouteArgs.value) : undefined,
     );
     const href = computed(() => {
-        return toRoute.value.href;
+        return toRoute.value?.href;
     });
     const navigate = async () => {
+        if (!toRoute.value) {
+            return;
+        }
         await router.push(toRoute.value);
     };
     return {
