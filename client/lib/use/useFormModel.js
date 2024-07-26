@@ -1,13 +1,25 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
+import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import { computedAsync } from "@vueuse/core";
 import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
-import { computed, effectScope, reactive, readonly, ref, shallowReactive, shallowRef, toRef, watch,provide } from "vue";
+import {
+    computed,
+    effectScope,
+    provide,
+    reactive,
+    readonly,
+    ref,
+    shallowReactive,
+    shallowRef,
+    toRef,
+    watch,
+} from "vue";
 import { deepUnref } from "vue-deepunref";
-import {FormModelSymbol} from "@vueda/utils/symbols.js";
+
 // todo: we should have a way to register custom field components
 const builtInTypes = {
     IntegerRangeField: ["FieldRange", async () => (await import("@vueda/fields/FieldRange.vue")).default],
@@ -190,8 +202,6 @@ const UseFormModelStateKeys = ["fieldObjects", "fieldComponents", "fieldProps", 
  */
 export function useFormModel(props) {
     const es = effectScope();
-    const fieldChoices = ref({})
-
     const modelInfoStore = storeModelInfo();
     const internalState = reactive({
         modelInfo: {},
@@ -231,23 +241,13 @@ export function useFormModel(props) {
         { immediate: true },
     );
 
-    // watch(
-    //     () => modelInfoStore.fieldChoices[appModelKey.value],
-    //     (fieldChoices) => {
-    //         if (fieldChoices) {
-    //             for (const field in fieldChoices) {
-    //                 //TODO: fix this choices. should have a way in widgetProps computed to reference a choices variable, then if it changes,
-    //                 // then the computed will recomputed
-    //                 const choices = fieldChoices[field]?.results || [];
-    //                 state.widgetProps[field] = {
-    //                     ...state.widgetProps[field],
-    //                     options: choices,
-    //                 };
-    //             }
-    //         }
-    //     },
-    //     { immediate: true, deep: true },
-    // );
+    watch(
+        () => modelInfoStore.fieldChoices[appModelKey.value],
+        (fieldChoices) => {
+            assignReactiveObject(internalState.modelInfoChoices, fieldChoices || {});
+        },
+        { immediate: true, deep: true },
+    );
 
     const assignStateObjectsIfChanged = (args) => {
         for (const key of UseFormModelStateKeys) {
@@ -328,6 +328,9 @@ export function useFormModel(props) {
                     if (!fields.includes(fieldObj.name)) {
                         continue;
                     }
+                    if (fieldObj.choices) {
+                        modelInfoStore.fetchFieldChoices(props.app, props.model, fieldObj.name);
+                    }
                     fieldObjects[fieldObj.name] = fieldObj;
                     es.run(() => {
                         const fieldComponent =
@@ -339,24 +342,24 @@ export function useFormModel(props) {
                                 ...getFieldProps(fieldObj),
                             };
                         });
+                        const computeWidgetProps = (fieldObj, fieldComponent) => {
+                            return computed(() => {
+                                const baseProps = {
+                                    ...(deepUnref(props.widgetProps[fieldObj.name]) || {}),
+                                    ...getWidgetProps(fieldComponent[0]),
+                                };
+                                if (fieldObj.choices) {
+                                    baseProps.options = internalState.modelInfoChoices[fieldObj.name]?.results || [];
+                                }
+                                return baseProps;
+                            });
+                        };
                         if (fieldComponent[0] !== "FieldInline") {
                             const widgetComponent = props.widgetComponents[fieldObj.name] || getDefaultWidget(fieldObj);
-                        widgetComponents[fieldObj.name] = computedAsync(widgetComponent, null);
-                        // todo: we should have a way to register custom widget props
-                        //  or provide them to the form model as props
-                        widgetProps[fieldObj.name] = computed(() => {
-                            return {
-                                ...(deepUnref(props.widgetProps[fieldObj.name]) || {}),
-                                ...getWidgetProps(fieldComponent[0]),
-                            };
-                        });
+                            widgetComponents[fieldObj.name] = computedAsync(widgetComponent, null);
+                            widgetProps[fieldObj.name] = computeWidgetProps(fieldObj, fieldComponent);
                         }
-
-
                     });
-                    if (fieldObj.choices) {
-                        modelInfoStore.fetchFieldChoices(props.app, props.model, fieldObj.name);
-                    }
                 }
                 assignStateObjectsIfChanged({
                     fieldObjects,
