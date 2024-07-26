@@ -288,7 +288,7 @@ export function useFormModel(props) {
 
                 const expandedFields = [
                     {
-                        choies: false,
+                        choices: false,
                         label: "date",
                         many: false,
                         name: "timesheet_days__date",

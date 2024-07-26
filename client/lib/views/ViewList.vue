@@ -254,7 +254,7 @@ const detailActionOnClick = (actionName) => {
         );
     };
 };
-const emit = defineEmits(["selected", "sorted", "objects", "order"]);
+const emit = defineEmits(["selected", "sorted", "objects", "order", "loading"]);
 onMounted(() => {
     emit(
         "objects",
@@ -269,6 +269,7 @@ onMounted(() => {
         toRef(() => sorting.state.sorted),
     );
     emit("selected", readonly(selectedObjects));
+    emit("loading", loading);
 });
 </script>
 <template>
