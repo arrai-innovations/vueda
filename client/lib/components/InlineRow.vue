@@ -50,7 +50,7 @@ const onDelete = () => emit("delete-row", props.index);
     <div
         v-for="fieldObj in formModel.expandFields
             ?.filter((x) => x.split('__')[0] === fieldName)
-            .map((x) => formModel.expandFieldObjects[x])"
+            .map((x) => formModel.expandFieldObjects?.[x])"
         :key="fieldObj?.name"
     >
         <slot
