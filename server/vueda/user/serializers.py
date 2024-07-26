@@ -61,6 +61,10 @@ class WhoIsSerializer(VuedaSerializer):
 
 
 class UserSerializer(VuedaSerializer):
+    """
+    This is a public API, don't just change it without considering the impact.
+    """
+
     password_confirm = serializers.CharField(write_only=True, required=False)
 
     class Meta(VuedaSerializer.Meta):
