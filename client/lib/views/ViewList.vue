@@ -16,7 +16,7 @@ import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
 import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
-import { computed, reactive, ref, toRaw, toRef, unref, watch } from "vue";
+import { computed, onMounted, reactive, readonly, ref, toRaw, toRef, unref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 defineOptions({
@@ -42,6 +42,18 @@ const props = defineProps({
     listFields: {
         type: Array,
         default: () => [],
+    },
+    displayFields: {
+        type: Array,
+        default: () => [],
+    },
+    relatedObjectsRules: {
+        type: Object,
+        default: () => ({}),
+    },
+    calculatedObjectsRules: {
+        type: Object,
+        default: () => ({}),
     },
     variant: {
         type: String,
@@ -116,8 +128,15 @@ const calculatedListFields = computed(() => {
     }
     return [];
 });
-const calculatedListFieldsObjs = computed(() => {
-    return modelConfig.info.fields?.filter((f) => calculatedListFields.value?.includes(f.name)) || [];
+const calculatedDisplayFields = computed(() => {
+    if (props.displayFields.length) {
+        return props.displayFields;
+    } else if (modelConfig.config.listFields?.length) {
+        return modelConfig.config.listFields.map((f) => modelConfig.info.fields.find((fi) => fi.name === f));
+    } else if (modelConfig.info.fields?.length) {
+        return modelConfig.info.fields;
+    }
+    return [];
 });
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model));
 const listState = reactive({
@@ -139,6 +158,8 @@ const instanceListProps = reactive({
     listArgs: toRef(listState, "listArgs"),
     intendToList: validAndActive,
     // intendToSubscribe: validAndActive,
+    relatedObjectsRules: toRef(props, "relatedObjectsRules"),
+    calculatedObjectsRules: toRef(props, "calculatedObjectsRules"),
 });
 const instanceList = useList({
     props: instanceListProps,
@@ -233,6 +254,22 @@ const detailActionOnClick = (actionName) => {
         );
     };
 };
+const emit = defineEmits(["selected", "sorted", "objects", "order"]);
+onMounted(() => {
+    emit(
+        "objects",
+        toRef(() => instanceList.state.objects),
+    );
+    emit(
+        "order",
+        toRef(() => instanceList.state.order),
+    );
+    emit(
+        "sorted",
+        toRef(() => sorting.state.sorted),
+    );
+    emit("selected", readonly(selectedObjects));
+});
 </script>
 <template>
     <div>
@@ -322,14 +359,14 @@ const detailActionOnClick = (actionName) => {
         <!-- todo: filters/search -->
         <!-- todo: hide/show columns -->
         <!-- todo: filters return here? @submit=filterList -->
-
+        <slot name="before-list" />
         <objects-grid
             ref="objectsGridRef"
             v-bind="$attrs"
             v-model:selected="selectedObjects"
             :calculated-objects="instanceList.state.calculatedObjects"
             :data-qa="`view-list-${app}-${model}-objects-grid`"
-            :fields="calculatedListFieldsObjs"
+            :fields="calculatedDisplayFields"
             :loading="loading"
             :objects-in-order="instanceList.state.objectsInOrder"
             :related-objects="instanceList.state.relatedObjects"

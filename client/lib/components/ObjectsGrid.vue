@@ -173,6 +173,16 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
     return key;
 });
 // selected_ is the reserved name for the selected checkbox, the trailing _ is not allowed in django model field names
+const unifiedGet = (obj, relatedObj, calculatedObj, fieldPath) => {
+    // related. and calculated. are prefixes to the field name, which change the object we're getting from
+    if (fieldPath.startsWith("related.")) {
+        return get(relatedObj, fieldPath.replace("related.", ""));
+    }
+    if (fieldPath.startsWith("calculated.")) {
+        return get(calculatedObj, fieldPath.replace("calculated.", ""));
+    }
+    return get(obj, fieldPath);
+};
 </script>
 <template>
     <div :class="theme('root')" role="table">
@@ -181,32 +191,35 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                 <div v-if="selectable" :class="[theme('headerCell'), headerClasses?.selected_]">
                     <slot name="header(selected_)" />
                 </div>
-                <div
-                    v-for="(field, colIndex) in fields"
-                    :key="field.name"
-                    :class="[theme('headerCell'), headerClasses?.[field.name]]"
-                    :data-header="field.name"
-                    data-qa="objects-grid-header"
-                    role="columnheader"
-                    @click="sortClick($event, field.name)"
-                >
-                    <slot :col-index="colIndex" :field="field" :name="`header(${field.name})`">{{ field.label }}</slot>
-                    <span
-                        v-if="sortable.includes(field.name)"
-                        :class="theme('sort')"
-                        :data-qa="`objects-grid-sort-${field.name}`"
+                <template v-for="(field, colIndex) in fields" :key="field?.name">
+                    <div
+                        v-if="field?.name"
+                        :class="[theme('headerCell'), headerClasses?.[field.name]]"
+                        :data-header="field?.name"
+                        data-qa="objects-grid-header"
+                        role="columnheader"
+                        @click="sortClick($event, field.name)"
                     >
-                        <slot :field="field" name="sort-icon" :sortable="sortable" :sorted="sorted">
-                            <!-- iconless text, screams to implementors to provide an icon -->
-                            <template v-if="sorted.includes(field.name)">⬆️</template>
-                            <template v-else-if="sorted.includes(`-${field.name}`)">⬇️</template>
-                            <template v-else>↕️</template>
+                        <slot :col-index="colIndex" :field="field" :name="`header(${field.name})`"
+                            >{{ field.label }}
                         </slot>
-                        <span v-if="sorted?.length > 1" :class="theme('sortNum')">{{
-                            directionlessSorted.indexOf(field.name) + 1
-                        }}</span>
-                    </span>
-                </div>
+                        <span
+                            v-if="sortable.includes(field.name)"
+                            :class="theme('sort')"
+                            :data-qa="`objects-grid-sort-${field.name}`"
+                        >
+                            <slot :field="field" name="sort-icon" :sortable="sortable" :sorted="sorted">
+                                <!-- iconless text, screams to implementors to provide an icon -->
+                                <template v-if="sorted.includes(field.name)">⬆️</template>
+                                <template v-else-if="sorted.includes(`-${field.name}`)">⬇️</template>
+                                <template v-else>↕️</template>
+                            </slot>
+                            <span v-if="sorted?.length > 1" :class="theme('sortNum')">{{
+                                directionlessSorted.indexOf(field.name) + 1
+                            }}</span>
+                        </span>
+                    </div>
+                </template>
             </div>
         </div>
         <div v-if="!objectsInOrder?.length && !loading && emptyText" :class="theme('bodyRowGroup')" role="rowgroup">
@@ -252,58 +265,106 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                         </slot>
                     </div>
                 </template>
-                <template v-for="(field, colIndex) in fields" :key="field.name">
-                    <!-- this if let's first: and last: work, otherwise the last table cell can never be last child -->
-                    <div
-                        v-if="!isTable"
-                        :class="[theme('cardCell'), fieldClasses?.[field.name]]"
-                        data-qa="objects-grid-card-cell"
-                        role="cell"
-                    >
-                        <div :class="theme('cardHeader')" :data-card-header="field.name">
-                            <slot :col-index="colIndex" :field="field" :name="`header(${field.name})`">
-                                {{ field.label }}
-                            </slot>
+                <template v-for="(field, colIndex) in fields" :key="field?.name">
+                    <template v-if="field?.name">
+                        <!-- this if let's first: and last: work, otherwise the last table cell can never be last child -->
+                        <div
+                            v-if="!isTable"
+                            :class="[theme('cardCell'), fieldClasses?.[field.name]]"
+                            data-qa="objects-grid-card-cell"
+                            role="cell"
+                        >
+                            <div :class="theme('cardHeader')" :data-card-header="field.name">
+                                <slot :col-index="colIndex" :field="field" :name="`header(${field.name})`">
+                                    {{ field.label }}
+                                </slot>
+                            </div>
+                            <div :class="theme('cardValue')" :data-card="field.name">
+                                <slot
+                                    :calculated-obj="get(calculatedObjects, obj.id)"
+                                    :col-index="colIndex"
+                                    :field="field"
+                                    :formatted="
+                                        field.formatted &&
+                                        unifiedGet(
+                                            obj,
+                                            get(relatedObjects, obj.id),
+                                            get(calculatedObjects, obj.id),
+                                            field.formatted,
+                                        )
+                                    "
+                                    :name="`field(${field.name})`"
+                                    :obj="obj"
+                                    :related-obj="get(relatedObjects, obj.id)"
+                                    :row-index="rowIndex"
+                                    :value="
+                                        unifiedGet(
+                                            obj,
+                                            get(relatedObjects, obj.id),
+                                            get(calculatedObjects, obj.id),
+                                            field.name,
+                                        )
+                                    "
+                                >
+                                    {{
+                                        (field.formatted ?? field.name) &&
+                                        unifiedGet(
+                                            obj,
+                                            get(relatedObjects, obj.id),
+                                            get(calculatedObjects, obj.id),
+                                            field.formatted ?? field.name,
+                                        )
+                                    }}
+                                </slot>
+                            </div>
                         </div>
-                        <div :class="theme('cardValue')" :data-card="field.name">
+                        <div
+                            v-else
+                            :class="[theme('bodyCell'), fieldClasses?.[field.name]]"
+                            :data-field="field.name"
+                            data-qa="objects-grid-body-cell"
+                            role="cell"
+                        >
                             <slot
-                                :calculated="get(get(calculatedObjects, obj.id), field.name)"
                                 :calculated-obj="get(calculatedObjects, obj.id)"
                                 :col-index="colIndex"
                                 :field="field"
+                                :formatted="
+                                    field.formatted &&
+                                    unifiedGet(
+                                        obj,
+                                        get(relatedObjects, obj.id),
+                                        get(calculatedObjects, obj.id),
+                                        field.formatted,
+                                    )
+                                "
                                 :name="`field(${field.name})`"
                                 :obj="obj"
-                                :related="get(get(relatedObjects, obj.id), field.name)"
                                 :related-obj="get(relatedObjects, obj.id)"
                                 :row-index="rowIndex"
-                                :value="get(obj, field.name)"
+                                :value="
+                                    unifiedGet(
+                                        obj,
+                                        get(relatedObjects, obj.id),
+                                        get(calculatedObjects, obj.id),
+                                        field.name,
+                                    )
+                                "
                             >
-                                {{ get(obj, field.name) }}
+                                <p>
+                                    {{
+                                        (field.formatted ?? field.name) &&
+                                        unifiedGet(
+                                            obj,
+                                            get(relatedObjects, obj.id),
+                                            get(calculatedObjects, obj.id),
+                                            field.formatted ?? field.name,
+                                        )
+                                    }}
+                                </p>
                             </slot>
                         </div>
-                    </div>
-                    <div
-                        v-else
-                        :class="[theme('bodyCell'), fieldClasses?.[field.name]]"
-                        :data-field="field.name"
-                        data-qa="objects-grid-body-cell"
-                        role="cell"
-                    >
-                        <slot
-                            :calculated="get(get(calculatedObjects, obj.id), field.name)"
-                            :calculated-obj="get(calculatedObjects, obj.id)"
-                            :col-index="colIndex"
-                            :field="field"
-                            :name="`field(${field.name})`"
-                            :obj="obj"
-                            :related="get(get(relatedObjects, obj.id), field.name)"
-                            :related-obj="get(relatedObjects, obj.id)"
-                            :row-index="rowIndex"
-                            :value="get(obj, field.name)"
-                        >
-                            <p>{{ get(obj, field.name) }}</p>
-                        </slot>
-                    </div>
+                    </template>
                 </template>
             </div>
         </div>
