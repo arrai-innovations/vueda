@@ -3,6 +3,7 @@ import InlineRow from "@vueda/components/InlineRow.vue";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import cloneDeep from "lodash-es/cloneDeep.js";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
 
@@ -13,10 +14,10 @@ const fieldContext = useField(props);
 const theme = useComputedClasses(vuedaTailwind.FormModel);
 
 const addRow = () => {
-    fieldContext.updateValue([...fieldContext.state.value, {}]);
+    fieldContext.updateValue([...cloneDeep(fieldContext.state.value), {}]);
 };
 const removeRow = (index) => {
-    fieldContext.updateValue(fieldContext.state.value.filter((_, i) => i !== index));
+    fieldContext.updateValue(cloneDeep(fieldContext.state.value).filter((_, i) => i !== index));
 };
 </script>
 

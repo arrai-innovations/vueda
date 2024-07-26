@@ -54,7 +54,7 @@ const builtInTypes = {
     AutoField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
     BigAutoField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
     BigIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
-    DurationField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
+    DurationSecondsField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
     GenericRelation: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
     GenericForeignKey: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
     NullBooleanField: ["FieldBoolean", async () => (await import("@vueda/fields/FieldBoolean.vue")).default],
@@ -271,6 +271,7 @@ export function useFormModel(props) {
         [toRef(internalState, "modelInfo"), toRef(props, "fields")],
         ([modelInfo, fields]) => {
             if (modelInfo?.fields?.length) {
+                console.log("modelInfo?.fields: ", modelInfo?.fields);
                 //TODO: fetch the mdoel expand fields
                 const expands = [
                     "timesheet_days__id",
