@@ -6,7 +6,6 @@ import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import InputGroup from "primevue/inputgroup";
 import InputMask from "primevue/inputmask";
-import InputNumber from "primevue/inputnumber";
 import InputOtp from "primevue/inputotp";
 import InputText from "primevue/inputtext";
 import { computed } from "vue";
@@ -48,7 +47,7 @@ const inputComponent = computed(
     () =>
         ({
             text: InputText,
-            number: InputNumber,
+            number: InputText, // Not using InputNumber because it doesn't update the v-model on @input
             otp: InputOtp,
             mask: InputMask,
         })[props.type] || InputText,

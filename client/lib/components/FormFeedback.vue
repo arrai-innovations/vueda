@@ -49,8 +49,8 @@ const feedbackItems = reactive({});
 watch(
     // formContext/fieldContext can be null, so we need to watch in a way that'll handle that
     () => [
-        fieldContext?.state?.errors?.value,
-        fieldContext?.state?.messages?.value,
+        fieldContext?.state?.errors,
+        fieldContext?.state?.messages,
         get(formContext?.state?.errors, NON_FIELD_ERRORS_KEY, undefined),
         get(formContext?.state?.messages, NON_FIELD_ERRORS_KEY, undefined),
         props.type,

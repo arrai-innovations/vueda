@@ -158,7 +158,7 @@ const targetlessActions = computed(() =>
             </template>
             <template #under-actions>
                 <div class="flex gap-1 w-full justify-end">
-                    <slot :click-handler="objectForm.submit" :loading="objectForm.state.loading" name="submit-button">
+                    <slot :click="objectForm.submit" :loading="objectForm.state.loading" name="submit-button">
                         <Button label="Submit" :loading="objectForm.state.loading" @click.prevent="objectForm.submit" />
                     </slot>
                 </div>
