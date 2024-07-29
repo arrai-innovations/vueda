@@ -34,6 +34,7 @@ const defaultWidgets = {
 const defaultFieldProps = {
     FieldRange: {
         rangeSuffix: ["after", "before"],
+        type: "date",
     },
 };
 
@@ -76,6 +77,7 @@ const getFieldProps = (fieldType, fieldObj) => {
     if (fieldObj.type === "numeric") {
         const numericProps = {
             rangeSuffix: ["min", "max"],
+            type: "number",
         };
         return {
             // useFormModel resolves type, the fields don't care about the server type.

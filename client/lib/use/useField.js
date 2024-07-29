@@ -141,7 +141,7 @@ export function useField(props, functions) {
                       if (props.rangeSuffix) {
                           const values = props.rangeSuffix
                               .map((s) => get(formContext.state.values, `${props.name}_${s}`))
-                              .filter(Boolean); // Filters out undefined or falsy values
+                              .filter((value) => value !== null && value !== undefined);
                           return values.length > 0 ? values : undefined;
                       }
                       const value = get(formContext.state.values, props.name);

@@ -37,6 +37,8 @@ const theme = useComputedClasses(vuedaTailwind.WidgetAutoComplete, widgetContext
             :max-selected-labels="3"
             option-label="label"
             :options="props.options"
+            @blur="widgetContext.blur"
+            @focus="widgetContext.focus"
         />
     </div>
 </template>

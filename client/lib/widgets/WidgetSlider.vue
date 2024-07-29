@@ -58,6 +58,8 @@ const theme = useComputedClasses(vuedaTailwind.WidgetDatePicker, widgetContext.s
                             :min="props.minValue"
                             :name="widgetContext.state.combinedName"
                             range
+                            @change="widgetContext.focus"
+                            @slideend="widgetContext.blur"
                         />
                     </div>
                 </div>

@@ -271,7 +271,6 @@ export function useFormModel(props) {
         [toRef(internalState, "modelInfo"), toRef(props, "fields")],
         ([modelInfo, fields]) => {
             if (modelInfo?.fields?.length) {
-                console.log("modelInfo?.fields: ", modelInfo?.fields);
                 //TODO: fetch the mdoel expand fields
                 const expands = [
                     "timesheet_days__id",

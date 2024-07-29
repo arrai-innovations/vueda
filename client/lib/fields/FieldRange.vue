@@ -4,6 +4,10 @@ import { isArray } from "lodash-es";
 
 const props = defineProps({
     ...FIELD_PROPS,
+    type: {
+        type: String,
+        required: true,
+    },
     maxValue: {
         type: [Date, String],
         default: undefined,
@@ -21,12 +25,15 @@ const preprocessGet = (value) => {
     if (value === undefined || value === null || !isArray(value)) {
         return value;
     }
-    return value.map((v) => {
-        if (typeof v === "string") {
-            return new Date(v);
-        }
-        return v;
-    });
+    if (props.type === "date") {
+        return value.map((v) => {
+            if (typeof v === "string") {
+                return new Date(v);
+            }
+            return v;
+        });
+    }
+    return value;
 };
 useField(props, { preprocessGet });
 </script>
