@@ -144,7 +144,8 @@ def get_defaults(env: Env):
             "PAGE_SIZE": 100,
             "SEARCH_PARAM": "s",
             "DEFAULT_FILTER_BACKENDS": (
-                "rest_framework.filters.SearchFilter",
+                # "rest_framework.filters.SearchFilter",
+                "vueda.core.filters.VuedaSearchFilterBackend",
                 "rest_framework.filters.OrderingFilter",
                 "django_filters.rest_framework.DjangoFilterBackend",
             ),

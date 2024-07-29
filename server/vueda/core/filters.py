@@ -1,6 +1,7 @@
 from django.db.models.constants import LOOKUP_SEP
 from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework
+from rest_framework.filters import SearchFilter
 
 from vueda.core.fields.form import BaseArrayField
 
@@ -66,3 +67,35 @@ class IdInFilterSet(rest_framework.FilterSet):
 
 class VuedaFilterSet(IdInFilterSet, rest_framework.FilterSet):
     pass
+
+
+TRIGRAM_SIMILAR_PREFIX = "$"
+TRIGRAM_WORD_SIMILAR_PREFIX = "~"
+
+
+class VuedaSearchFilterBackend(SearchFilter):
+    """
+    Custom search filter that supports trigram and word similarity. Use the prefix `$`
+    to indicate that the search term in `search_fields` should use trigram
+    similarity comparison, and `~` for word similarity. The similarity threshold can be set on the ViewSet
+    as `similarity_threshold`.
+    """
+
+    lookup_prefixes = {
+        **SearchFilter.lookup_prefixes,
+        TRIGRAM_SIMILAR_PREFIX: "trigram_similar",
+        TRIGRAM_WORD_SIMILAR_PREFIX: "trigram_word_similar",
+    }
+
+    def construct_search(self, field_name, queryset):
+        """
+        Extend the search condition construction for similarity.
+        """
+        if field_name.startswith(TRIGRAM_SIMILAR_PREFIX):
+            field_name = field_name[len(TRIGRAM_SIMILAR_PREFIX) :]
+            return f"{field_name}__{self.lookup_prefixes[TRIGRAM_SIMILAR_PREFIX]}"
+        elif field_name.startswith(TRIGRAM_WORD_SIMILAR_PREFIX):
+            field_name = field_name[len(TRIGRAM_WORD_SIMILAR_PREFIX) :]
+            return f"{field_name}__{self.lookup_prefixes[TRIGRAM_WORD_SIMILAR_PREFIX]}"
+        else:
+            return super().construct_search(field_name, queryset)

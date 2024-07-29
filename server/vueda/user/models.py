@@ -5,6 +5,7 @@ from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import PermissionsMixin
 from django.contrib.auth.models import UserManager
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
@@ -47,6 +48,18 @@ class VUEDAUserWithHistoryManager(VUEDAUserManager):
         return super().get_queryset().annotate(current_history_id=models.Max("history_records__history_id"))
 
 
+class AbstractVUEDAUserMeta(BaseModelMeta):
+    ordering = ("-date_joined",)
+    default_related_name = "users"
+    permissions = [
+        ("list_permission", "Can list permissions"),
+    ]
+    indexes = [
+        GinIndex(fields=["email"], name="gin_email_idx", opclasses=["gin_trgm_ops"]),
+        GinIndex(fields=["name"], name="gin_name_idx", opclasses=["gin_trgm_ops"]),
+    ]
+
+
 class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, PermissionsMixin):
     """
     Default user for VUEDA
@@ -76,13 +89,8 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, PermissionsMixin
 
     objects = VUEDAUserManager()
 
-    class Meta(BaseModelMeta):
+    class Meta(AbstractVUEDAUserMeta):
         abstract = True
-        ordering = ("-date_joined",)
-        default_related_name = "users"
-        permissions = [
-            ("list_permission", "Can list permissions"),
-        ]
 
     def has_perm(self, perm, obj: Optional[models.Model] = None):
         # django.contrib.auth.backends.ModelBackend always returns false if object is passed, so do not pass obj and
@@ -161,7 +169,7 @@ class AbstractVUEDAUserWithHistory(AbstractVUEDAUser):
 
     history = HistoricalRecords(related_name="history_records", inherit=True)
 
-    class Meta(AbstractVUEDAUser.Meta):
+    class Meta(AbstractVUEDAUserMeta):
         abstract = True
 
 
