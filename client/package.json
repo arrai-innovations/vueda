@@ -82,6 +82,7 @@
     "@tiptap/extension-text-align": "^2.1.13",
     "@tiptap/starter-kit": "^2.1.13",
     "@tiptap/vue-3": "^2.1.13",
+    "browser-util-inspect": "^0.2.0",
     "js-cookie": "^3.0.5",
     "luxon": "^3.4.4",
     "p-limit": "^5.0.0",
