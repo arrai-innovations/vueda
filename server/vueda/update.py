@@ -415,6 +415,7 @@ def update_for_main(subparsers=None, exit_on_error=True):
     )
     parser.add_argument(
         "--non-interactive",
+        "-n",
         action="store_true",
         help="Run in non-interactive mode using default values.",
     )
