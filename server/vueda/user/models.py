@@ -7,6 +7,7 @@ from django.contrib.auth.models import PermissionsMixin
 from django.contrib.auth.models import UserManager
 from django.db import models
 from django.utils import timezone
+from simple_history.models import HistoricalRecords
 
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.models import BaseModelMeta
@@ -39,6 +40,11 @@ class VUEDAUserManager(UserManager):
             raise ValueError("Superuser must have is_superuser=True.")
 
         return self._create_user(email, password, **extra_fields)
+
+
+class VUEDAUserWithHistoryManager(VUEDAUserManager):
+    def get_queryset(self):
+        return super().get_queryset().annotate(current_history_id=models.Max("history_records__history_id"))
 
 
 class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, PermissionsMixin):
@@ -148,6 +154,15 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, PermissionsMixin
         #     """,
         # )
         # email.send_email()
+
+
+class AbstractVUEDAUserWithHistory(AbstractVUEDAUser):
+    objects = VUEDAUserWithHistoryManager()
+
+    history = HistoricalRecords(related_name="history_records", inherit=True)
+
+    class Meta(AbstractVUEDAUser.Meta):
+        abstract = True
 
 
 class GroupChange(models.Model):
