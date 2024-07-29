@@ -105,11 +105,9 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, PermissionsMixin
         if "vueda.workflow" in settings.INSTALLED_APPS:
             from vueda.workflow.models import HasWorkflowModelMixin
 
-            if isinstance(obj, HasWorkflowModelMixin):
-                if obj.workflow:
-                    grant_or_deny = obj.check_state_permission(perm, self.groups.all())
-                else:
-                    raise ValueError("Object has no workflow, but is a HasWorkflowModelMixin.")
+            if isinstance(obj, HasWorkflowModelMixin) and obj.workflow:
+                # Don't raise an error if you get to this point without having a workflow set up.
+                grant_or_deny = obj.check_state_permission(perm, self.groups.all())
 
         # `grant_or_deny` is expected to be None if obj is not a `HasWorkflowModelMixin` or if it has no workflow
         #  or if there are no explicit state permissions for the user's groups.
