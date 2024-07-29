@@ -12,9 +12,7 @@ def filter_fields_for_flexlike_on_historical_records(serializer, our_field_name,
     fields = history_model._meta.get_fields()
     value_fields = [field for field in fields if not isinstance(field, (RelatedField, ForeignObjectRel))]
     fk_fields = [field for field in fields if isinstance(field, (RelatedField, ForeignObjectRel))]
-    value_fields = [field.name for field in value_fields] + [field.attname for field in fk_fields]
-    # add in simple history fields
-    value_fields += ["history_id", "history_date", "history_type", "history_user_id"]
+    value_fields = [field.name for field in value_fields] + [field.name for field in fk_fields]
     if hasattr(serializer, "_flex_options_rep_only"):
         requested_fields = [
             x.replace(our_field_name + ".", "")
