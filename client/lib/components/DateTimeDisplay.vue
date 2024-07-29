@@ -18,6 +18,10 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    showTooltip: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 const parsedValue = computed(() => DateTime.fromISO(props.value).setLocale("en-CA"));
@@ -62,6 +66,7 @@ onUnmounted(() => {
         clearInterval(updateRelativeInterval);
     }
 });
+defineExpose({ parsedValue, relative, absolute });
 </script>
 
 <template>
@@ -76,9 +81,9 @@ onUnmounted(() => {
             <span class="whitespace-nowrap">{{ relative }}</span>
         </template>
         <template v-else-if="format === 'absolute'">
-            <span class="whitespace-nowrap" :title="relative">{{ absolute }}</span>
+            <span class="whitespace-nowrap" :title="showTooltip ? relative : undefined">{{ absolute }}</span>
         </template>
-        <span v-else :title="absolute">
+        <span v-else :title="showTooltip ? absolute : undefined">
             <!-- relative -->
             {{ relative }}
         </span>
