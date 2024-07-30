@@ -101,16 +101,12 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         """
         return list(Permission.objects.filter(content_type=instance).values("codename", "name"))
 
-    # re: naming, we don't want to conflict with super's get_fields, we are unrelated to that method
-    def get_model_fields(self, instance):
-        """
-        Get the fields for a model and their own metadata.
-        """
-        # the front-end doesn't care about model fields, but serializer fields.
-        # we need to get a canonical serializer for the model to determine what fields are available
-        serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
+    def get_model_fields_data(self, serializer):
+        pk_field = serializer.Meta.model._meta.pk.name
+        fields = {
+            "pk": pk_field,
+        }
 
-        fields = []
         for field_name, field in serializer().get_fields().items():
             many = isinstance(field, serializers.ListField)
 
@@ -129,7 +125,6 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
             field_data = {
                 "choices": hasattr(field, "choices") and bool(field.choices),
-                "name": field_name,
                 "label": effective_label,
                 "type": field_type,
                 "many": many,
@@ -150,14 +145,27 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 field_data["max_digits"] = field.max_digits
             if hasattr(field, "decimal_places") and field.decimal_places:
                 field_data["decimal_places"] = field.decimal_places
-            fields.append(field_data)
+            fields[field_name] = field_data
         return fields
+
+    # re: naming, we don't want to conflict with super's get_fields, we are unrelated to that method
+    def get_model_fields(self, instance):
+        """
+        Get the fields for a model and their own metadata.
+        """
+        # the front-end doesn't care about model fields, but serializer fields.
+        # we need to get a canonical serializer for the model to determine what fields are available
+        serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
+
+        return self.get_model_fields_data(serializer)
 
     def get_model_actions(self, instance):
         """
         Get the actions for a model and their own metadata.
         """
         # To do this, we'll need to have a canonical viewset for each model
+        from vueda.core.viewsets import VuedaViewSet  # noqa F401
+
         viewset = self.canonical["viewset"]  # type: VuedaViewSet
 
         meta = viewset.queryset.model._meta
@@ -205,10 +213,42 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         expands_data = []
 
         if hasattr(serializer.Meta, "expandable_fields"):
-            for field_name, (_field, expand_options) in serializer.Meta.expandable_fields.items():
-                expand_item = {"name": field_name}
+            for field_name, field_data in serializer.Meta.expandable_fields.items():
+                expand_item = {
+                    "name": field_name,
+                }
+
+                if isinstance(field_data, (list, tuple)):
+                    field_serializer, expand_options = field_data
+
+                # Copied to deal with serializer strings.
+                # https://github.com/rsinger86/drf-flex-fields/blob/9dd6a9140fd6d2ffe1baf9ab1ffc728540dea84d/
+                #   rest_flex_fields/serializers.py#L127-L130
+                if type(field_serializer) == str:  # noqa E721
+                    field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
+
+                model = content_type = None
+                if hasattr(field_serializer, "Meta") and hasattr(field_serializer.Meta, "model"):
+                    model = field_serializer.Meta.model
+
+                if model is not None:
+                    content_type = ContentType.objects.get_for_model(model)
+
+                if content_type is not None:
+                    expand_item["content_type"] = str(content_type.id)
+
                 if "fields" in expand_options:
-                    expand_item["fields"] = expand_options["fields"]
+                    field_data = self.get_model_fields_data(field_serializer)
+
+                    # We need to call tuple, as we are modifying the dictionary.
+                    for field_name in tuple(field_data):
+                        if field_name == "pk":  # Always keep the pk.
+                            continue
+                        if field_name not in expand_options["fields"]:
+                            del field_data[field_name]
+
+                    expand_item["fields"] = field_data
+
                 expands_data.append(expand_item)
 
         return expands_data
