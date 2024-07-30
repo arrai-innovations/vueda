@@ -9,6 +9,9 @@ from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.erring.models import NoExpandableFieldsData
+from tests.erring.serializers import NoExpandableFieldsDataSerializer
+from tests.erring.viewsets import NoExpandableFieldsDataViewSet
 from tests.store.models import Cart
 from tests.store.models import CartItem
 from tests.store.models import Customer
@@ -3007,3 +3010,46 @@ class TestModelInfoChoicesSerializer:
 
         assert response.status_code == 400, pformat(response.data)
         assert response.data["non_field_errors"] == ["Invalid field. No choice fields found on store.Distributor."]
+
+
+@pytest.mark.django_db
+class TestModelInfoErrsSerializer:
+    @pytest.fixture
+    def test_data(self):
+        return TestData()
+
+    @staticmethod
+    def register_viewsets():
+        info.registration.get_empty_registry()
+        info.register(NoExpandableFieldsDataSerializer, NoExpandableFieldsDataViewSet)
+
+    def test_no_expandable_field_data(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        NoExpandableFieldsData.objects.create(name="Test")
+
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    "erring",
+                    "noexpandablefieldsdata",
+                ),
+            ),
+            format="json",
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                    "model_expands",
+                ],
+            },
+        )
+
+        assert response.status_code == 500, response.status_code
+
+        assert b"No expandable_fields_data specified for field." in response.content, response.content
+        assert (
+            b"tests.erring.serializers.NoExpandableFieldsDataSerializer.get_test_function" in response.content
+        ), response.content

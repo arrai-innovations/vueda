@@ -27,6 +27,7 @@ TEST_POSTGRES_DB = env("TEST_POSTGRES_DB")
 
 LOCAL_APPS = [
     "tests.apps.TestsConfig",
+    "tests.erring.apps.ErringConfig",
     "tests.store.apps.StoreConfig",
     "tests.workflow_added.apps.WorkflowAddedConfig",
     "tests.workflow_changed.apps.WorkflowChangedConfig",
