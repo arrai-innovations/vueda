@@ -44,8 +44,8 @@ const props = defineProps({
         default: () => [],
     },
     displayFields: {
-        type: Array,
-        default: () => [],
+        type: Object,
+        default: () => ({}),
     },
     relatedObjectsRules: {
         type: Object,
@@ -129,7 +129,7 @@ const calculatedListFields = computed(() => {
     return [];
 });
 const calculatedDisplayFields = computed(() => {
-    if (props.displayFields) {
+    if (Object.keys(props.displayFields).length) {
         return props.displayFields;
     } else if (modelConfig.config.listFields?.length) {
         return Object.keys(modelConfig.info.fields)

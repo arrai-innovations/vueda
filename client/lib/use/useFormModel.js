@@ -302,7 +302,7 @@ export function useFormModel(props) {
     watch(
         [toRef(internalState, "modelInfo"), toRef(props, "fields")],
         ([modelInfo, fields]) => {
-            if (modelInfo?.fields && fields.length) {
+            if (Object.keys(modelInfo?.fields || {}).length && fields.length) {
                 const fieldObjects = {};
                 const expandFieldObjects = {};
                 const fieldComponents = {};
@@ -311,10 +311,10 @@ export function useFormModel(props) {
                 const widgetProps = {};
                 if (modelInfo?.expands) {
                     for (const expand of modelInfo.expands) {
-                        if (!fields.includes(expand.name) || !expand.fields) {
+                        if (!fields.includes(expand.name) || !expand.f) {
                             continue;
                         }
-                        for (const [fieldKey, fieldObj] of Object.entries(expand.fields)) {
+                        for (const [fieldKey, fieldObj] of Object.entries(expand.f)) {
                             if (fieldKey === "pk") {
                                 continue;
                             }
