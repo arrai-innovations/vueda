@@ -67,13 +67,232 @@ DETAIL_PARAMETRIZE = [
                 "bulk-delete",
             },
             "expected_expands": [
-                {"name": "first_history_entry"},
-                {"name": "history"},
-                {"name": "last_history_entry"},
-            ],
-            "expected_fields": [
                 {
-                    "name": "id",
+                    "name": "first_history_entry",
+                    "content_type": None,
+                    "many": False,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
+                },
+                {
+                    "name": "history",
+                    "content_type": None,
+                    "many": True,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
+                },
+                {
+                    "name": "last_history_entry",
+                    "content_type": None,
+                    "many": False,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
+                },
+            ],
+            "expected_fields": {
+                "pk": "id",
+                "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "many": False,
@@ -81,8 +300,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "name",
+                "name": {
                     "label": "Name",
                     "type": "CharField",
                     "many": False,
@@ -91,8 +309,7 @@ DETAIL_PARAMETRIZE = [
                     "max_length": 255,
                     "choices": False,
                 },
-                {
-                    "name": "current_history_id",
+                "current_history_id": {
                     "label": "Current History ID",
                     "type": "IntegerField",
                     "many": False,
@@ -100,7 +317,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-            ],
+            },
             "expected_filtering": [
                 {
                     "name": "name",
@@ -145,9 +362,9 @@ DETAIL_PARAMETRIZE = [
                 "bulk-delete",
             },
             "expected_expands": [],
-            "expected_fields": [
-                {
-                    "name": "id",
+            "expected_fields": {
+                "pk": "id",
+                "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "many": False,
@@ -155,8 +372,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "code",
+                "code": {
                     "label": "Code",
                     "type": "CharField",
                     "many": False,
@@ -165,8 +381,7 @@ DETAIL_PARAMETRIZE = [
                     "max_length": 255,
                     "choices": False,
                 },
-                {
-                    "name": "name",
+                "name": {
                     "label": "Name",
                     "type": "CharField",
                     "many": False,
@@ -175,7 +390,7 @@ DETAIL_PARAMETRIZE = [
                     "max_length": 255,
                     "choices": False,
                 },
-            ],
+            },
             "expected_filtering": [],
             "expected_ordering": [
                 {"name": "name", "type": "alpha"},
@@ -208,25 +423,308 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "user",
-                    "fields": [
-                        "id",
-                        "email",
-                        "name",
-                    ],
+                    "content_type": None,
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "email": {
+                            "label": "Email address",
+                            "type": "EmailField",
+                            "max_length": 254,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "max_length": 255,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                    },
+                },
+                {
+                    "name": "dict_data",
+                    "many": False,
+                    "read_only": True,
+                    "fields": {
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
+                },
+                {
+                    "name": "single_value",
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": True,
                 },
                 {
                     "name": "first_history_entry",
+                    "content_type": None,
+                    "many": False,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "max_length": 255,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
                 },
                 {
                     "name": "history",
+                    "content_type": None,
+                    "many": True,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "max_length": 255,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
                 },
                 {
                     "name": "last_history_entry",
+                    "content_type": None,
+                    "many": False,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "max_length": 255,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
                 },
             ],
-            "expected_fields": [
-                {
-                    "name": "id",
+            "expected_fields": {
+                "pk": "id",
+                "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "many": False,
@@ -234,8 +732,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "user",
+                "user": {
                     "label": "User",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -243,8 +740,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": True,
                 },
-                {
-                    "name": "current_history_id",
+                "current_history_id": {
                     "label": "Current History ID",
                     "type": "IntegerField",
                     "many": False,
@@ -252,7 +748,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-            ],
+            },
             "expected_filtering": [],
             "expected_ordering": [
                 {"name": "user__email", "type": "alpha"},
@@ -286,24 +782,64 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "customer",
-                    "fields": [
-                        "id",
-                        "user",
-                    ],
+                    "content_type": None,
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                    },
                 },
                 {
                     "name": "cart_items",
-                    "fields": [
-                        "id",
-                        "user",
-                        "product_options",
-                        "quantity",
-                    ],
+                    "content_type": None,
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "product_option": {
+                            "label": "Product Option",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "quantity": {
+                            "label": "Quantity",
+                            "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                    },
                 },
             ],
-            "expected_fields": [
-                {
-                    "name": "id",
+            "expected_fields": {
+                "pk": "id",
+                "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "many": False,
@@ -311,8 +847,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "customer",
+                "customer": {
                     "label": "Customer",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -320,8 +855,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": True,
                 },
-                {
-                    "name": "last_modified",
+                "last_modified": {
                     "label": "Last Modified",
                     "type": "DateTimeField",
                     "many": False,
@@ -329,8 +863,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "cart_items",
+                "cart_items": {
                     "label": "Cart Items",
                     "type": "ManyRelatedField",
                     "many": False,
@@ -338,7 +871,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": False,
                 },
-            ],
+            },
             "expected_filtering": [
                 {
                     "name": "last_modified",
@@ -379,32 +912,409 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "customer",
-                    "fields": [
-                        "id",
-                        "user",
-                    ],
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                    },
+                    "content_type": None,
                 },
                 {
                     "name": "order_state",
-                    "fields": [
-                        "id",
-                        "code",
-                        "name",
-                    ],
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "code": {
+                            "label": "Code",
+                            "type": "CharField",
+                            "max_length": 255,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "max_length": 255,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                    },
+                    "content_type": None,
                 },
                 {
                     "name": "first_history_entry",
+                    "content_type": None,
+                    "many": False,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "max_length": 255,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_number": {
+                            "label": "Order Number",
+                            "type": "DecimalField",
+                            "max_digits": 7,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_state": {
+                            "label": "Order State",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "customer": {
+                            "label": "Customer",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "when": {
+                            "label": "Date / Time",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
                 },
                 {
                     "name": "history",
+                    "content_type": None,
+                    "many": True,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "max_length": 255,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_number": {
+                            "label": "Order Number",
+                            "type": "DecimalField",
+                            "max_digits": 7,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_state": {
+                            "label": "Order State",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "customer": {
+                            "label": "Customer",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "when": {
+                            "label": "Date / Time",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
                 },
                 {
                     "name": "last_history_entry",
+                    "content_type": None,
+                    "many": False,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "max_length": 255,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_number": {
+                            "label": "Order Number",
+                            "type": "DecimalField",
+                            "max_digits": 7,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_state": {
+                            "label": "Order State",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "customer": {
+                            "label": "Customer",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "when": {
+                            "label": "Date / Time",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
                 },
             ],
-            "expected_fields": [
-                {
-                    "name": "id",
+            "expected_fields": {
+                "pk": "id",
+                "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "many": False,
@@ -412,8 +1322,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "order_number",
+                "order_number": {
                     "label": "Order Number",
                     "type": "DecimalField",
                     "many": False,
@@ -422,8 +1331,7 @@ DETAIL_PARAMETRIZE = [
                     "max_digits": 7,
                     "choices": False,
                 },
-                {
-                    "name": "when",
+                "when": {
                     "label": "Date / Time",
                     "type": "DateTimeField",
                     "many": False,
@@ -431,8 +1339,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "customer",
+                "customer": {
                     "label": "Customer",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -440,8 +1347,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": True,
                 },
-                {
-                    "name": "order_state",
+                "order_state": {
                     "label": "Order State",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -449,8 +1355,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": True,
                 },
-                {
-                    "name": "current_history_id",
+                "current_history_id": {
                     "label": "Current History ID",
                     "type": "IntegerField",
                     "many": False,
@@ -458,7 +1363,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-            ],
+            },
             "expected_filtering": [],
             "expected_ordering": [
                 {"name": "order_number", "type": "numeric"},
@@ -492,9 +1397,9 @@ DETAIL_PARAMETRIZE = [
                 "bulk-delete",
             },
             "expected_expands": [],
-            "expected_fields": [
-                {
-                    "name": "id",
+            "expected_fields": {
+                "pk": "id",
+                "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "many": False,
@@ -502,8 +1407,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "name",
+                "name": {
                     "label": "Reason",
                     "type": "CharField",
                     "many": False,
@@ -512,8 +1416,7 @@ DETAIL_PARAMETRIZE = [
                     "max_length": 255,
                     "choices": False,
                 },
-                {
-                    "name": "code",
+                "code": {
                     "label": "Code",
                     "type": "CharField",
                     "many": False,
@@ -522,8 +1425,7 @@ DETAIL_PARAMETRIZE = [
                     "max_length": 255,
                     "choices": False,
                 },
-                {
-                    "name": "is_added_reason",
+                "is_added_reason": {
                     "label": "Is Added Reason",
                     "type": "BooleanField",
                     "many": False,
@@ -531,7 +1433,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": False,
                 },
-            ],
+            },
             "expected_filtering": [],
             "expected_ordering": [
                 {"name": "name", "type": "alpha"},
@@ -564,24 +1466,521 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "distributor",
-                    "fields": [
-                        "id",
-                        "name",
-                    ],
+                    "content_type": None,
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                    },
                 },
                 {
                     "name": "first_history_entry",
+                    "content_type": None,
+                    "many": False,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "customer": {
+                            "label": "Customer",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "description": {
+                            "label": "Description",
+                            "type": "TextField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "disabled": {
+                            "label": "Disabled",
+                            "type": "BooleanField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "distributor": {
+                            "label": "Distributor",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "last_ten_order_betweens": {
+                            "label": "Last Ten Order Betweens",
+                            "type": "IntegerRangeField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "order_between": {
+                            "label": "Order Between",
+                            "type": "IntegerRangeField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_number": {
+                            "label": "Order Number",
+                            "type": "DecimalField",
+                            "max_digits": 7,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_state": {
+                            "label": "Order State",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "tangible": {
+                            "label": "Tangible",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "when": {
+                            "label": "Date / Time",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
                 },
                 {
                     "name": "history",
+                    "content_type": None,
+                    "many": True,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "customer": {
+                            "label": "Customer",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "description": {
+                            "label": "Description",
+                            "type": "TextField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "disabled": {
+                            "label": "Disabled",
+                            "type": "BooleanField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "distributor": {
+                            "label": "Distributor",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "last_ten_order_betweens": {
+                            "label": "Last Ten Order Betweens",
+                            "type": "IntegerRangeField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "order_between": {
+                            "label": "Order Between",
+                            "type": "IntegerRangeField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_number": {
+                            "label": "Order Number",
+                            "type": "DecimalField",
+                            "max_digits": 7,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_state": {
+                            "label": "Order State",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "tangible": {
+                            "label": "Tangible",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "when": {
+                            "label": "Date / Time",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
                 },
                 {
                     "name": "last_history_entry",
+                    "content_type": None,
+                    "many": False,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "customer": {
+                            "label": "Customer",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "description": {
+                            "label": "Description",
+                            "type": "TextField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "disabled": {
+                            "label": "Disabled",
+                            "type": "BooleanField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "distributor": {
+                            "label": "Distributor",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "last_ten_order_betweens": {
+                            "label": "Last Ten Order Betweens",
+                            "type": "IntegerRangeField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "order_between": {
+                            "label": "Order Between",
+                            "type": "IntegerRangeField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_number": {
+                            "label": "Order Number",
+                            "type": "DecimalField",
+                            "max_digits": 7,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_state": {
+                            "label": "Order State",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "tangible": {
+                            "label": "Tangible",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "when": {
+                            "label": "Date / Time",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
                 },
             ],
-            "expected_fields": [
-                {
-                    "name": "id",
+            "expected_fields": {
+                "pk": "id",
+                "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "many": False,
@@ -589,8 +1988,15 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "distributor",
+                "description": {
+                    "label": "Description",
+                    "type": "TextField",
+                    "many": False,
+                    "read_only": False,
+                    "required": False,
+                    "choices": False,
+                },
+                "distributor": {
                     "label": "Distributor",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -598,8 +2004,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": True,
                 },
-                {
-                    "name": "name",
+                "name": {
                     "label": "Name",
                     "type": "CharField",
                     "many": False,
@@ -608,8 +2013,7 @@ DETAIL_PARAMETRIZE = [
                     "max_length": 255,
                     "choices": False,
                 },
-                {
-                    "name": "disabled",
+                "disabled": {
                     "label": "Disabled",
                     "type": "BooleanField",
                     "many": False,
@@ -617,8 +2021,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": False,
                 },
-                {
-                    "name": "current_history_id",
+                "current_history_id": {
                     "label": "Current History ID",
                     "type": "IntegerField",
                     "many": False,
@@ -626,17 +2029,15 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "tangible",
+                "tangible": {
                     "label": "Tangible",
-                    "type": "ChoiceField",
+                    "type": "CharField",
                     "many": False,
                     "read_only": False,
                     "required": True,
                     "choices": True,
                 },
-                {
-                    "name": "order_between",
+                "order_between": {
                     "label": "Order Between",
                     "type": "IntegerRangeField",
                     "many": False,
@@ -644,8 +2045,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": False,
                 },
-                {
-                    "name": "last_ten_order_betweens",
+                "last_ten_order_betweens": {
                     "label": "Last Ten Order Betweens",
                     "type": "IntegerRangeField",
                     "many": True,
@@ -653,7 +2053,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-            ],
+            },
             "expected_filtering": [
                 {
                     "name": "name",
@@ -728,35 +2128,710 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "option_type",
-                    "fields": [
-                        "id",
-                        "code",
-                        "name",
-                    ],
+                    "content_type": None,
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "code": {
+                            "label": "Code",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                    },
                 },
                 {
                     "name": "product",
-                    "fields": [
-                        "id",
-                        "distributor",
-                        "name",
-                        "disabled",
-                        "tangible",
-                    ],
+                    "content_type": None,
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "distributor": {
+                            "label": "Distributor",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "disabled": {
+                            "label": "Disabled",
+                            "type": "BooleanField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "tangible": {
+                            "label": "Tangible",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                    },
                 },
                 {
                     "name": "first_history_entry",
+                    "content_type": None,
+                    "many": False,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "customer": {
+                            "label": "Customer",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "description": {
+                            "label": "Description",
+                            "type": "TextField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "disabled": {
+                            "label": "Disabled",
+                            "type": "BooleanField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "distributor": {
+                            "label": "Distributor",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "gtin": {
+                            "label": "GTIN",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "last_ten_order_betweens": {
+                            "label": "Last Ten Order Betweens",
+                            "type": "IntegerRangeField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "option_type": {
+                            "label": "Option Type",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": True,
+                        },
+                        "order_between": {
+                            "label": "Order Between",
+                            "type": "IntegerRangeField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_number": {
+                            "label": "Order Number",
+                            "type": "DecimalField",
+                            "max_digits": 7,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_state": {
+                            "label": "Order State",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "price": {
+                            "label": "Price",
+                            "type": "DecimalField",
+                            "max_digits": 12,
+                            "decimal_places": 2,
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "product": {
+                            "label": "Product",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "sku": {
+                            "label": "SKU",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "tangible": {
+                            "label": "Tangible",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "when": {
+                            "label": "Date / Time",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
                 },
                 {
                     "name": "history",
+                    "content_type": None,
+                    "many": True,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "customer": {
+                            "label": "Customer",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "description": {
+                            "label": "Description",
+                            "type": "TextField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "disabled": {
+                            "label": "Disabled",
+                            "type": "BooleanField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "distributor": {
+                            "label": "Distributor",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "gtin": {
+                            "label": "GTIN",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "last_ten_order_betweens": {
+                            "label": "Last Ten Order Betweens",
+                            "type": "IntegerRangeField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "option_type": {
+                            "label": "Option Type",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": True,
+                        },
+                        "order_between": {
+                            "label": "Order Between",
+                            "type": "IntegerRangeField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_number": {
+                            "label": "Order Number",
+                            "type": "DecimalField",
+                            "max_digits": 7,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_state": {
+                            "label": "Order State",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "price": {
+                            "label": "Price",
+                            "type": "DecimalField",
+                            "max_digits": 12,
+                            "decimal_places": 2,
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "product": {
+                            "label": "Product",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "sku": {
+                            "label": "SKU",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "tangible": {
+                            "label": "Tangible",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "when": {
+                            "label": "Date / Time",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
                 },
                 {
                     "name": "last_history_entry",
+                    "content_type": None,
+                    "many": False,
+                    "read_only": True,
+                    "fields": {
+                        "pk": "history_id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "customer": {
+                            "label": "Customer",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "description": {
+                            "label": "Description",
+                            "type": "TextField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "disabled": {
+                            "label": "Disabled",
+                            "type": "BooleanField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "distributor": {
+                            "label": "Distributor",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "gtin": {
+                            "label": "GTIN",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "last_ten_order_betweens": {
+                            "label": "Last Ten Order Betweens",
+                            "type": "IntegerRangeField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "option_type": {
+                            "label": "Option Type",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": True,
+                        },
+                        "order_between": {
+                            "label": "Order Between",
+                            "type": "IntegerRangeField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_number": {
+                            "label": "Order Number",
+                            "type": "DecimalField",
+                            "max_digits": 7,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "order_state": {
+                            "label": "Order State",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "price": {
+                            "label": "Price",
+                            "type": "DecimalField",
+                            "max_digits": 12,
+                            "decimal_places": 2,
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "product": {
+                            "label": "Product",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "sku": {
+                            "label": "SKU",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "tangible": {
+                            "label": "Tangible",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "user": {
+                            "label": "User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "when": {
+                            "label": "Date / Time",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
                 },
             ],
-            "expected_fields": [
-                {
-                    "name": "id",
+            "expected_fields": {
+                "pk": "id",
+                "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "many": False,
@@ -764,8 +2839,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "product",
+                "product": {
                     "label": "Product",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -773,8 +2847,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": True,
                 },
-                {
-                    "name": "option_type",
+                "option_type": {
                     "label": "Option Type",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -782,8 +2855,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": True,
                 },
-                {
-                    "name": "name",
+                "name": {
                     "label": "Name",
                     "type": "CharField",
                     "many": False,
@@ -792,8 +2864,7 @@ DETAIL_PARAMETRIZE = [
                     "max_length": 255,
                     "choices": False,
                 },
-                {
-                    "name": "sku",
+                "sku": {
                     "label": "SKU",
                     "type": "CharField",
                     "many": False,
@@ -802,8 +2873,7 @@ DETAIL_PARAMETRIZE = [
                     "max_length": 255,
                     "choices": False,
                 },
-                {
-                    "name": "gtin",
+                "gtin": {
                     "label": "GTIN",
                     "type": "CharField",
                     "many": False,
@@ -812,8 +2882,7 @@ DETAIL_PARAMETRIZE = [
                     "max_length": 255,
                     "choices": False,
                 },
-                {
-                    "name": "price",
+                "price": {
                     "label": "Price",
                     "type": "DecimalField",
                     "many": False,
@@ -823,8 +2892,7 @@ DETAIL_PARAMETRIZE = [
                     "decimal_places": 2,
                     "choices": False,
                 },
-                {
-                    "name": "disabled",
+                "disabled": {
                     "label": "Disabled",
                     "type": "BooleanField",
                     "many": False,
@@ -832,8 +2900,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": False,
                 },
-                {
-                    "name": "current_history_id",
+                "current_history_id": {
                     "label": "Current History ID",
                     "type": "IntegerField",
                     "many": False,
@@ -841,7 +2908,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-            ],
+            },
             "expected_filtering": [
                 {
                     "name": "name",
@@ -931,31 +2998,132 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "customer_order",
-                    "fields": [
-                        "id",
-                        "order_number",
-                        "when",
-                        "customer",
-                        "order_state",
-                    ],
+                    "content_type": None,
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "order_number": {
+                            "label": "Order Number",
+                            "type": "DecimalField",
+                            "max_digits": 7,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "when": {
+                            "label": "Date / Time",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "customer": {
+                            "label": "Customer",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "order_state": {
+                            "label": "Order State",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                    },
                 },
                 {
                     "name": "product_option",
-                    "fields": [
-                        "id",
-                        "product",
-                        "option_type",
-                        "name",
-                        "sku",
-                        "gtin",
-                        "price",
-                        "disabled",
-                    ],
+                    "content_type": None,
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "product": {
+                            "label": "Product",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "option_type": {
+                            "label": "Option Type",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": True,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "sku": {
+                            "label": "SKU",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "gtin": {
+                            "label": "GTIN",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "price": {
+                            "label": "Price",
+                            "type": "DecimalField",
+                            "max_digits": 12,
+                            "decimal_places": 2,
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "disabled": {
+                            "label": "Disabled",
+                            "type": "BooleanField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                    },
                 },
             ],
-            "expected_fields": [
-                {
-                    "name": "id",
+            "expected_fields": {
+                "pk": "id",
+                "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "many": False,
@@ -963,8 +3131,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "customer_order",
+                "customer_order": {
                     "label": "Customer Order",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -972,8 +3139,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": True,
                 },
-                {
-                    "name": "product_option",
+                "product_option": {
                     "label": "Product Option",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -981,8 +3147,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": True,
                 },
-                {
-                    "name": "quantity",
+                "quantity": {
                     "label": "Quantity",
                     "type": "IntegerField",
                     "many": False,
@@ -992,7 +3157,7 @@ DETAIL_PARAMETRIZE = [
                     "min_value": -2147483648,
                     "choices": False,
                 },
-            ],
+            },
             "expected_filtering": [
                 {
                     "name": "quantity",
@@ -1040,56 +3205,260 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "product_option",
-                    "fields": [
-                        "id",
-                        "product",
-                        "option_type",
-                        "name",
-                        "sku",
-                        "gtin",
-                        "price",
-                        "disabled",
-                    ],
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "product": {
+                            "label": "Product",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "option_type": {
+                            "label": "Option Type",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": True,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "sku": {
+                            "label": "SKU",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "gtin": {
+                            "label": "GTIN",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "price": {
+                            "label": "Price",
+                            "type": "DecimalField",
+                            "max_digits": 12,
+                            "decimal_places": 2,
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "disabled": {
+                            "label": "Disabled",
+                            "type": "BooleanField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                    },
+                    "content_type": None,
                 },
                 {
                     "name": "reason",
-                    "fields": [
-                        "id",
-                        "name",
-                        "code",
-                        "is_added_reason",
-                    ],
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "name": {
+                            "label": "Reason",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "code": {
+                            "label": "Code",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "is_added_reason": {
+                            "label": "Is Added Reason",
+                            "type": "BooleanField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                    },
+                    "content_type": None,
                 },
                 {
                     "name": "added_inventory_record",
-                    "fields": [
-                        "id",
-                        "product",
-                        "when",
-                        "quantity",
-                        "reason",
-                        "archived",
-                        "is_added",
-                        "cost",
-                        "added_inventory_record",
-                        "order_item",
-                        "price",
-                        "margin",
-                    ],
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "when": {
+                            "label": "Date / Time",
+                            "type": "DateTimeField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "quantity": {
+                            "label": "Quantity",
+                            "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "reason": {
+                            "label": "Reason",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "archived": {
+                            "label": "Archived",
+                            "type": "BooleanField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "is_added": {
+                            "label": "Is Added",
+                            "type": "BooleanField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                        "cost": {
+                            "label": "Cost",
+                            "type": "DecimalField",
+                            "max_digits": 12,
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "added_inventory_record": {
+                            "label": "Added Inventory Entry",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": True,
+                        },
+                        "order_item": {
+                            "label": "Order Item",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": True,
+                        },
+                        "price": {
+                            "label": "Price",
+                            "type": "DecimalField",
+                            "max_digits": 12,
+                            "decimal_places": 2,
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "margin": {
+                            "label": "Margin",
+                            "type": "DecimalField",
+                            "max_digits": 12,
+                            "decimal_places": 2,
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
+                    "content_type": None,
                 },
                 {
                     "name": "order_item",
-                    "fields": [
-                        "id",
-                        "order",
-                        "product_option",
-                        "quantity",
-                    ],
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "product_option": {
+                            "label": "Product Option",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "quantity": {
+                            "label": "Quantity",
+                            "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                    },
+                    "content_type": None,
                 },
             ],
-            "expected_fields": [
-                {
-                    "name": "id",
+            "expected_fields": {
+                "pk": "id",
+                "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "many": False,
@@ -1097,8 +3466,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "product_option",
+                "product_option": {
                     "label": "Product Option",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -1106,8 +3474,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": True,
                 },
-                {
-                    "name": "when",
+                "when": {
                     "label": "Date / Time",
                     "type": "DateTimeField",
                     "many": False,
@@ -1115,8 +3482,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "quantity",
+                "quantity": {
                     "label": "Quantity",
                     "type": "IntegerField",
                     "many": False,
@@ -1126,8 +3492,7 @@ DETAIL_PARAMETRIZE = [
                     "min_value": -2147483648,
                     "choices": False,
                 },
-                {
-                    "name": "reason",
+                "reason": {
                     "label": "Reason",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -1135,8 +3500,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": True,
                 },
-                {
-                    "name": "archived",
+                "archived": {
                     "label": "Archived",
                     "type": "BooleanField",
                     "many": False,
@@ -1144,8 +3508,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": False,
                 },
-                {
-                    "name": "is_added",
+                "is_added": {
                     "label": "Is Added",
                     "type": "BooleanField",
                     "many": False,
@@ -1153,8 +3516,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": False,
                 },
-                {
-                    "name": "cost",
+                "cost": {
                     "label": "Cost",
                     "type": "DecimalField",
                     "many": False,
@@ -1163,8 +3525,7 @@ DETAIL_PARAMETRIZE = [
                     "max_digits": 12,
                     "choices": False,
                 },
-                {
-                    "name": "added_inventory_record",
+                "added_inventory_record": {
                     "label": "Added Inventory Entry",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -1172,8 +3533,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": True,
                 },
-                {
-                    "name": "order_item",
+                "order_item": {
                     "label": "Order Item",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -1181,8 +3541,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": True,
                 },
-                {
-                    "name": "price",
+                "price": {
                     "label": "Price",
                     "type": "DecimalField",
                     "many": False,
@@ -1192,8 +3551,7 @@ DETAIL_PARAMETRIZE = [
                     "decimal_places": 2,
                     "choices": False,
                 },
-                {
-                    "name": "margin",
+                "margin": {
                     "label": "Margin",
                     "type": "DecimalField",
                     "many": False,
@@ -1203,7 +3561,7 @@ DETAIL_PARAMETRIZE = [
                     "decimal_places": 2,
                     "choices": False,
                 },
-            ],
+            },
             "expected_filtering": [
                 {
                     "name": "when",
@@ -1334,28 +3692,107 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "cart",
-                    "fields": [
-                        "id",
-                        "customer",
-                    ],
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "customer": {
+                            "label": "Customer",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                    },
+                    "content_type": None,
                 },
                 {
                     "name": "product_option",
-                    "fields": [
-                        "id",
-                        "product",
-                        "option_type",
-                        "name",
-                        "sku",
-                        "gtin",
-                        "price",
-                        "disabled",
-                    ],
+                    "fields": {
+                        "pk": "id",
+                        "id": {
+                            "label": "ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "product": {
+                            "label": "Product",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": True,
+                        },
+                        "option_type": {
+                            "label": "Option Type",
+                            "type": "PrimaryKeyRelatedField",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": True,
+                        },
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "sku": {
+                            "label": "SKU",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "gtin": {
+                            "label": "GTIN",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "max_length": 255,
+                            "choices": False,
+                        },
+                        "price": {
+                            "label": "Price",
+                            "type": "DecimalField",
+                            "max_digits": 12,
+                            "decimal_places": 2,
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "disabled": {
+                            "label": "Disabled",
+                            "type": "BooleanField",
+                            "many": False,
+                            "read_only": False,
+                            "required": True,
+                            "choices": False,
+                        },
+                    },
+                    "content_type": None,
                 },
             ],
-            "expected_fields": [
-                {
-                    "name": "id",
+            "expected_fields": {
+                "pk": "id",
+                "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "many": False,
@@ -1363,8 +3800,7 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
-                {
-                    "name": "cart",
+                "cart": {
                     "label": "Cart",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -1372,8 +3808,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": True,
                 },
-                {
-                    "name": "product_option",
+                "product_option": {
                     "label": "Product Option",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
@@ -1381,8 +3816,7 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": True,
                 },
-                {
-                    "name": "quantity",
+                "quantity": {
                     "label": "Quantity",
                     "type": "IntegerField",
                     "many": False,
@@ -1392,7 +3826,7 @@ DETAIL_PARAMETRIZE = [
                     "min_value": -2147483648,
                     "choices": False,
                 },
-            ],
+            },
             "expected_filtering": [],
             "expected_ordering": [
                 {"name": "product_option__name", "type": "alpha"},
@@ -1710,6 +4144,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "Product", "list"),
             ("store", "ProductOption", "list"),
             ("tests", "User", "list"),
+            ("store", "Customer", "read"),
         ],
         "Customer": [
             ("contenttypes", "ContentType", "list"),
@@ -1731,6 +4166,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "Product", "list"),
             ("store", "ProductOption", "list"),
             ("tests", "User", "list"),
+            ("store", "Customer", "read"),
         ],
     }
 
@@ -2722,71 +5158,93 @@ class TestModelInfoSerializer:
         expected_data = [self.get_default_action(name, app_label, model_name) for name in expected_actions]
 
         for model_action in data:
-            assert "name" in model_action, "name field is missing in model_actions object"
             for expected_model_action in expected_data:
                 if model_action["name"] == expected_model_action["name"]:
-                    assert set(model_action.keys()) == set(expected_model_action.keys()), str(model_action)
-                    for key in model_action.keys():
-                        assert model_action[key] == expected_model_action[key], str(model_action)
+                    assert frozenset(model_action) == frozenset(expected_model_action), str(model_action)
+                    for key, value in model_action.items():
+                        assert value == expected_model_action[key], str(model_action)
 
-    @staticmethod
-    def check_model_expands_data(response_data, expected_data):
+    def check_model_expands_data(self, response_data, expected_data):
         data = response_data.data["model_expands"]
-        assert {x["name"] for x in data} == {x["name"] for x in expected_data}
+        assert {x["name"] for x in data} == {x["name"] for x in expected_data}, 'expected_expands -> "name": _____'
         for model_expand in data:
-            assert "name" in model_expand, "name field is missing in model_expands object"
             for expected_model_expand in expected_data:
                 if model_expand["name"] == expected_model_expand["name"]:
-                    assert set(model_expand.keys()) == set(expected_model_expand.keys()), str(model_expand)
-                    for key in model_expand.keys():
-                        assert model_expand[key] == expected_model_expand[key], str(model_expand)
+                    assert frozenset(model_expand) == frozenset(
+                        expected_model_expand
+                    ), f'expected_expands -> "name": "{model_expand["name"]}" -> {{keys}}'
+                    for key, value in model_expand.items():
+                        if key == "content_type":  # We don't want to test the pk of the content type.
+                            value = None
+                        elif key == "fields":
+                            self.check_model_fields(
+                                value,
+                                expected_model_expand["fields"],
+                                f'expected_expands -> "name": "{model_expand["name"]}"',
+                            )
+                            continue
+                        assert (
+                            value == expected_model_expand[key]
+                        ), f'expected_expands -> "name": "{model_expand["name"]}" -> {key}'
+
+    def check_model_fields(self, data, expected_data, extra_key=None):
+        if extra_key is not None:
+            assert frozenset(data) == frozenset(expected_data), f"{extra_key} -> fields -> {{keys}}"
+        else:
+            assert frozenset(data) == frozenset(expected_data), "expected_fields -> {{keys}}"
+        for field_name, field_data in data.items():
+            if field_name == "pk":
+                if extra_key is not None:
+                    assert field_data == expected_data[field_name], f'{extra_key} -> fields -> "pk"'
+                else:
+                    assert field_data == expected_data[field_name], 'expected_fields -> "pk"'
+            else:
+                for expected_field_name, expected_field_data in expected_data.items():
+                    if field_name == expected_field_name:
+                        failure_msg = f"fields -> {field_name}"
+                        if extra_key is not None:
+                            failure_msg = f"{extra_key} -> {failure_msg}"
+                        else:
+                            failure_msg = f"expected_{failure_msg}"
+                        assert frozenset(field_data) == frozenset(expected_field_data), f"{failure_msg} -> {{keys}}"
+                        for key, value in field_data.items():
+                            assert value == expected_field_data[key], f"{failure_msg} -> {key}"
 
     def check_model_fields_data(self, response_data, expected_data):
-        data = response_data.data["model_fields"]
-        assert {x["name"] for x in data} == {x["name"] for x in expected_data}
-        for model_field in data:
-            assert "name" in model_field, "name field is missing in model_fields object"
-            for expected_model_field in expected_data:
-                if model_field["name"] == expected_model_field["name"]:
-                    assert set(model_field.keys()) == set(expected_model_field.keys()), str(model_field)
-                    for key in model_field.keys():
-                        assert model_field[key] == expected_model_field[key], str(model_field)
+        self.check_model_fields(response_data.data["model_fields"], expected_data)
 
     @staticmethod
     def check_model_filtering_data(response_data, expected_data):
         data = response_data.data["model_filtering"]
         assert {x["name"] for x in data} == {x["name"] for x in expected_data}
         for model_filter in data:
-            assert "name" in model_filter, "name field is missing in model_filtering object"
             for expected_model_filter in expected_data:
                 if model_filter["name"] == expected_model_filter["name"]:
-                    assert set(model_filter.keys()) == set(expected_model_filter.keys()), str(model_filter)
-                    for key in model_filter.keys():
-                        assert model_filter[key] == expected_model_filter[key], str(model_filter)
+                    assert frozenset(model_filter) == frozenset(expected_model_filter), str(model_filter)
+                    for key, value in model_filter.items():
+                        assert value == expected_model_filter[key], str(model_filter)
 
     @staticmethod
     def check_model_ordering_data(response_data, expected_data):
         data = response_data.data["model_ordering"]
         assert {x["name"] for x in data} == {x["name"] for x in expected_data}
         for model_order in data:
-            assert "name" in model_order, "name field is missing in model_ordering object"
             for expected_model_order in expected_data:
                 if model_order["name"] == expected_model_order["name"]:
-                    assert set(model_order.keys()) == set(expected_model_order.keys()), str(model_order)
-                    for key in model_order.keys():
-                        assert model_order[key] == expected_model_order[key], str(model_order)
+                    assert frozenset(model_order) == frozenset(expected_model_order), str(model_order)
+                    for key, value in model_order.items():
+                        assert value == expected_model_order[key], str(model_order)
 
     @staticmethod
     def check_model_permissions_data(response_data, expected_data):
         data = response_data.data["model_permissions"]
         assert {x["codename"] for x in data} == {x["codename"] for x in expected_data}
         for model_permission in data:
-            assert "codename" in model_permission, "codename field is missing in model_permissions object"
             for expected_model_permission in expected_data:
                 if model_permission["codename"] == expected_model_permission["codename"]:
-                    assert set(model_permission.keys()) == set(expected_model_permission.keys()), str(model_permission)
-                    for key in model_permission.keys():
-                        assert model_permission[key] == expected_model_permission[key], str(model_permission)
+                    assert frozenset(model_permission) == frozenset(expected_model_permission), str(model_permission)
+                    for key, value in model_permission.items():
+                        assert value == expected_model_permission[key], str(model_permission)
 
     def test_info_list(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
