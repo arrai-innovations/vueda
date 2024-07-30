@@ -58,6 +58,12 @@ FIELD_TYPE_MAPPING = {
 }
 
 
+SERIALIZER_FIELD_TYPES_TO_FETCH_MODEL_TYPE = (
+    "CharField",  # Can become TextField
+    "ChoiceField",  # Can become CharField
+)
+
+
 class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer):
     """
     A serializer for providing metadata about models, including fields, actions, and permissions.
@@ -120,6 +126,16 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                     field_type = field.model_field.__class__.__name__
                 else:
                     field_type = field.__class__.__name__
+
+            if (
+                field_name != pk_field
+                and not hasattr(serializer, field_name)
+                and field_type in SERIALIZER_FIELD_TYPES_TO_FETCH_MODEL_TYPE
+            ):
+                model_field = getattr(serializer.Meta.model, field_name, None)
+
+                if model_field is not None:
+                    field_type = model_field.field.get_internal_type()
 
             effective_label = field.label or field_name.replace("_", " ").title()
 
