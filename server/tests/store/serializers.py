@@ -204,8 +204,7 @@ class CartSerializer(VuedaSerializer):
                 {
                     "fields": [
                         "id",
-                        "user",
-                        "product_options",
+                        "product_option",
                         "quantity",
                     ],
                 },
@@ -393,7 +392,7 @@ class InventoryRecordSerializer(VuedaSerializer):
                 },
             ),
             "added_inventory_record": (
-                "store.serializers.InventoryRecordSerializer",
+                "tests.store.serializers.InventoryRecordSerializer",
                 {
                     "fields": [
                         "id",
