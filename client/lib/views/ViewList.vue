@@ -129,10 +129,15 @@ const calculatedListFields = computed(() => {
     return [];
 });
 const calculatedDisplayFields = computed(() => {
-    if (props.displayFields.length) {
+    if (props.displayFields) {
         return props.displayFields;
     } else if (modelConfig.config.listFields?.length) {
-        return modelConfig.config.listFields.map((f) => modelConfig.info.fields.find((fi) => fi.name === f));
+        return Object.keys(modelConfig.info.fields)
+            .filter((key) => modelConfig.config.listFields.includes(key))
+            .reduce((obj, key) => {
+                obj[key] = modelConfig.info.fields[key];
+                return obj;
+            }, {});
     } else if (modelConfig.info.fields?.length) {
         return modelConfig.info.fields;
     }

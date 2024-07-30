@@ -37,7 +37,7 @@ import { defineStore } from "pinia";
  * @returns {ModelConfig} The default configuration object.
  */
 const getDefaultFromModelInfo = (modelInfo) => {
-    const modelFields = modelInfo.fields.map((f) => f.name);
+    const modelFields = Object.keys(modelInfo.fields);
     const orderableFields = modelInfo.ordering.map((o) => o.name);
     const listActions = modelInfo.actions.filter((a) => !a.detail).map((a) => a.name);
     const detailActions = modelInfo.actions.filter((a) => a.detail).map((a) => a.name);

@@ -238,10 +238,14 @@ export const storeModelInfo = defineStore({
                         this.modelInfos[key] = Object.fromEntries(
                             Object.entries(data).map(([k, v]) => {
                                 const cV = camelCaseObject(v);
-                                if (k.startsWith("model_")) {
-                                    return [k.slice(6), cV];
+                                let key = k;
+                                if (key.startsWith("model_")) {
+                                    key = k.slice(6);
                                 }
-                                return [k, cV];
+                                if (key === "fields") {
+                                    return [key, v];
+                                }
+                                return [key, cV];
                             }),
                         );
                     })

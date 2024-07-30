@@ -32,7 +32,7 @@ const filteredOptions = ref();
 
 const modelItem = computed(() => {
     if (props.options && props.options.length > 0) {
-        const match = props.options.find((option) => option.value === widgetContext.state.combinedValue);
+        const match = props.options.find((option) => option.value == widgetContext.state.combinedValue);
         return match ?? widgetContext.state.combinedValue;
     }
     return undefined;

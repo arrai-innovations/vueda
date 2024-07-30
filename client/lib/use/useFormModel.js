@@ -107,12 +107,13 @@ const defaultWidgetProps = {
  * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} fieldObj - The field object.
  * @returns {{[key:string]: any}} The field props.
  */
-const getFieldProps = (fieldObj) => {
+const getFieldProps = (fieldName, fieldObj) => {
     const defaultProps = defaultFieldProps[fieldObj.type] || {};
     return {
         // useFormModel resolves type, the fields don't care about the server type.
         ...omit(fieldObj, ["type"]),
         ...defaultProps,
+        name: fieldName,
     };
 };
 
@@ -265,173 +266,105 @@ export function useFormModel(props) {
             }
         }
     };
+    const setupWidgetComponent = (fieldName, fieldObj, props) => {
+        const widgetComponent = props.widgetComponents[fieldName] || getDefaultWidget(fieldObj);
+        return computedAsync(widgetComponent, null);
+    };
+
+    const setupWidgetProps = (fieldName, fieldObj, fieldComponent, props, internalState) => {
+        return computed(() => {
+            const baseProps = {
+                ...(deepUnref(props.widgetProps[fieldName]) || {}),
+                ...getWidgetProps(fieldComponent[0]),
+            };
+            if (fieldObj.choices) {
+                baseProps.options = internalState.modelInfoChoices[fieldName]?.results || [];
+            }
+            return baseProps;
+        });
+    };
+
+    const setupFieldComponent = (fieldName, fieldObj, props) => {
+        const fieldComponent = props.fieldComponents[fieldName] || djangoTypeToFieldComponent(fieldObj);
+        return computedAsync(fieldComponent[1], null);
+    };
+
+    const setupFieldProps = (fieldName, fieldObj, props) => {
+        return computed(() => {
+            return {
+                ...(deepUnref(props.fieldProps[fieldName]) || {}),
+                ...getFieldProps(fieldName, fieldObj),
+            };
+        });
+    };
 
     // todo: what about figuring out fields through foreign keys?
     watch(
         [toRef(internalState, "modelInfo"), toRef(props, "fields")],
         ([modelInfo, fields]) => {
-            if (modelInfo?.fields?.length) {
-                //TODO: fetch the mdoel expand fields
-                const expands = [
-                    "timesheet_days__id",
-                    "timesheet_days__date",
-                    "timesheet_days__start_time",
-                    "timesheet_days__end_time",
-                    "timesheet_entries__id",
-                    "timesheet_entries__start_time",
-                    "timesheet_entries__end_time",
-                    "timesheet_entries__description",
-                    "timesheet_entries__project",
-                    "timesheet_entries__task_code",
-                ];
-
-                const expandedFields = [
-                    {
-                        choices: false,
-                        label: "date",
-                        many: false,
-                        name: "timesheet_days__date",
-                        readonly: false,
-                        required: false,
-                        type: "DateField",
-                    },
-                    {
-                        choices: false,
-                        label: "start_time",
-                        many: false,
-                        name: "timesheet_days__start_time",
-                        readonly: false,
-                        required: false,
-                        type: "TimeField",
-                    },
-                    {
-                        choices: false,
-                        label: "end_time",
-                        many: false,
-                        name: "timesheet_days__end_time",
-                        readonly: false,
-                        required: false,
-                        type: "TimeField",
-                    },
-                    {
-                        choies: false,
-                        label: "start_time",
-                        many: false,
-                        name: "timesheet_entries__start_time",
-                        readonly: false,
-                        required: false,
-                        type: "TimeField",
-                    },
-                    {
-                        choices: false,
-                        label: "end_time",
-                        many: false,
-                        name: "timesheet_entries__end_time",
-                        readonly: false,
-                        required: false,
-                        type: "TimeField",
-                    },
-                    {
-                        choices: false,
-                        label: "end_time",
-                        many: false,
-                        name: "timesheet_entries__description",
-                        readonly: false,
-                        required: false,
-                        type: "TextField",
-                    },
-                    {
-                        choices: false,
-                        label: "project",
-                        many: false,
-                        name: "timesheet_entries__project",
-                        readonly: false,
-                        required: false,
-                        type: "ForeignKey",
-                    },
-                    {
-                        choices: false,
-                        label: "task_code",
-                        many: false,
-                        name: "timesheet_entries__task_code",
-                        readonly: false,
-                        required: false,
-                        type: "ForeignKey",
-                    },
-                ];
+            if (modelInfo?.fields && fields.length) {
                 const fieldObjects = {};
                 const expandFieldObjects = {};
                 const fieldComponents = {};
                 const fieldProps = {};
                 const widgetComponents = {};
                 const widgetProps = {};
-
-                for (const fieldObj of expandedFields) {
-                    expandFieldObjects[fieldObj.name] = fieldObj;
-                    // Note: props.fieldComponents = [name, async function to return the component]
-                    es.run(() => {
-                        const fieldComponent =
-                            props.fieldComponents[fieldObj.name] || djangoTypeToFieldComponent(fieldObj);
-                        fieldComponents[fieldObj.name] = computedAsync(fieldComponent[1], null);
-                        fieldProps[fieldObj.name] = computed(() => {
-                            return {
-                                ...(deepUnref(props.fieldProps[fieldObj.name]) || {}),
-                                ...getFieldProps(fieldObj),
-                            };
-                        });
-                        const computeWidgetProps = (fieldObj, fieldComponent) => {
-                            return computed(() => {
-                                const baseProps = {
-                                    ...(deepUnref(props.widgetProps[fieldObj.name]) || {}),
-                                    ...getWidgetProps(fieldComponent[0]),
-                                };
-                                if (fieldObj.choices) {
-                                    baseProps.options = internalState.modelInfoChoices[fieldObj.name]?.results || [];
-                                }
-                                return baseProps;
-                            });
-                        };
-                        if (fieldComponent[0] !== "FieldInline") {
-                            const widgetComponent = props.widgetComponents[fieldObj.name] || getDefaultWidget(fieldObj);
-                            widgetComponents[fieldObj.name] = computedAsync(widgetComponent, null);
-                            widgetProps[fieldObj.name] = computeWidgetProps(fieldObj, fieldComponent);
+                if (modelInfo?.expands) {
+                    for (const expand of modelInfo.expands) {
+                        if (!fields.includes(expand.name) || !expand.fields) {
+                            continue;
                         }
-                    });
+                        for (const [fieldKey, fieldObj] of Object.entries(expand.fields)) {
+                            if (fieldKey === "pk") {
+                                continue;
+                            }
+                            const fieldName = `${expand.name}__${fieldKey}`;
+                            if (fieldObj.choices) {
+                                modelInfoStore.fetchFieldChoices(props.app, props.model, fieldName);
+                            }
+                            expandFieldObjects[fieldName] = { ...fieldObj, name: fieldName };
+                            es.run(() => {
+                                const fieldComponents1 = setupFieldComponent(fieldName, fieldObj, props);
+                                const fieldProps1 = setupFieldProps(fieldName, fieldObj, props);
+                                fieldComponents[fieldName] = fieldComponents1;
+                                fieldProps[fieldName] = fieldProps1;
+                                if (fieldComponents1[0] !== "FieldInline") {
+                                    widgetComponents[fieldName] = setupWidgetComponent(fieldName, fieldObj, props);
+                                    widgetProps[fieldName] = setupWidgetProps(
+                                        fieldName,
+                                        fieldObj,
+                                        fieldComponents1,
+                                        props,
+                                        internalState,
+                                    );
+                                }
+                            });
+                        }
+                    }
                 }
-                for (const fieldObj of modelInfo.fields) {
-                    if (!fields.includes(fieldObj.name)) {
+
+                for (const [fieldName, fieldObj] of Object.entries(modelInfo.fields)) {
+                    if (!fields.includes(fieldName)) {
                         continue;
                     }
                     if (fieldObj.choices) {
-                        modelInfoStore.fetchFieldChoices(props.app, props.model, fieldObj.name);
+                        modelInfoStore.fetchFieldChoices(props.app, props.model, fieldName);
                     }
-                    fieldObjects[fieldObj.name] = fieldObj;
+                    fieldObjects[fieldName] = { ...fieldObj, name: fieldName };
                     es.run(() => {
-                        const fieldComponent =
-                            props.fieldComponents[fieldObj.name] || djangoTypeToFieldComponent(fieldObj);
-                        fieldComponents[fieldObj.name] = computedAsync(fieldComponent[1], null);
-                        fieldProps[fieldObj.name] = computed(() => {
-                            return {
-                                ...(deepUnref(props.fieldProps[fieldObj.name]) || {}),
-                                ...getFieldProps(fieldObj),
-                            };
-                        });
-                        const computeWidgetProps = (fieldObj, fieldComponent) => {
-                            return computed(() => {
-                                const baseProps = {
-                                    ...(deepUnref(props.widgetProps[fieldObj.name]) || {}),
-                                    ...getWidgetProps(fieldComponent[0]),
-                                };
-                                if (fieldObj.choices) {
-                                    baseProps.options = internalState.modelInfoChoices[fieldObj.name]?.results || [];
-                                }
-                                return baseProps;
-                            });
-                        };
-                        if (fieldComponent[0] !== "FieldInline") {
-                            const widgetComponent = props.widgetComponents[fieldObj.name] || getDefaultWidget(fieldObj);
-                            widgetComponents[fieldObj.name] = computedAsync(widgetComponent, null);
-                            widgetProps[fieldObj.name] = computeWidgetProps(fieldObj, fieldComponent);
+                        const fieldComponents1 = setupFieldComponent(fieldName, fieldObj, props);
+                        const fieldProps1 = setupFieldProps(fieldName, fieldObj, props);
+                        fieldComponents[fieldName] = fieldComponents1;
+                        fieldProps[fieldName] = fieldProps1;
+                        if (fieldComponents1[0] !== "FieldInline") {
+                            widgetComponents[fieldName] = setupWidgetComponent(fieldName, fieldObj, props);
+                            widgetProps[fieldName] = setupWidgetProps(
+                                fieldName,
+                                fieldObj,
+                                fieldComponents1,
+                                props,
+                                internalState,
+                            );
                         }
                     });
                 }
@@ -444,10 +377,7 @@ export function useFormModel(props) {
                     widgetProps,
                 });
                 assignReactiveObject(state.fields, fields.map((field) => fieldObjects[field]?.name).filter(identity));
-                assignReactiveObject(
-                    state.expandFields,
-                    expands.map((field) => expandFieldObjects[field]?.name).filter(identity),
-                );
+                assignReactiveObject(state.expandFields, Object.keys(expandFieldObjects));
             } else {
                 assignStateObjectsIfChanged({
                     fieldObjects: {},
