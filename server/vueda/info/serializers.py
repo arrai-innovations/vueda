@@ -5,7 +5,9 @@ import django_filters
 from django.contrib.admin.utils import get_fields_from_path
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.postgres.fields import RangeField
 from django.core import validators
+from django.db import connection
 from django.utils.functional import cached_property
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers  # noqa F401
@@ -108,6 +110,68 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         """
         return list(Permission.objects.filter(content_type=instance).values("codename", "name"))
 
+    def get_model_fields_min_data(self, field, model_field):
+        if hasattr(field, "min_value") and field.min_value is not None:
+            return field.min_value
+        elif model_field and model_field.field:
+            # If the field has validators, are any of them MinValueValidator?
+            if hasattr(model_field.field, "validators") and model_field.field.validators:
+                for validator in model_field.field.validators:
+                    if isinstance(validator, validators.MinValueValidator):
+                        return validator.limit_value
+            # If not, is the field a range field or array of range fields?
+            if isinstance(model_field.field, RangeField):
+                try:
+                    min_value, max_value = connection.ops.integer_field_range(
+                        model_field.field.base_field.get_internal_type()
+                    )
+                except KeyError:
+                    # The field is not an integer range field.
+                    pass
+                else:
+                    return min_value
+            elif getattr(field, "child", None) is not None and isinstance(field.child.model_field, RangeField):
+                try:
+                    min_value, max_value = connection.ops.integer_field_range(
+                        field.child.model_field.base_field.get_internal_type()
+                    )
+                except KeyError:
+                    # The field is not an integer range field.
+                    pass
+                else:
+                    return min_value
+
+    def get_model_fields_max_data(self, field, model_field):
+        if hasattr(field, "max_value") and field.max_value:
+            return field.max_value
+        elif model_field and model_field.field:
+            # If the field has validators, are any of them MaxValueValidator?
+            if hasattr(model_field.field, "validators") and model_field.field.validators:
+                for validator in model_field.field.validators:
+                    if isinstance(validator, validators.MaxValueValidator):
+                        return validator.limit_value
+            # If not, is the field a range field or array of range fields?
+            if isinstance(model_field.field, RangeField):
+                try:
+                    min_value, max_value = connection.ops.integer_field_range(
+                        model_field.field.base_field.get_internal_type()
+                    )
+                except KeyError:
+                    # The field is not an integer range field.
+                    pass
+                else:
+                    return max_value
+            elif getattr(field, "child", None) is not None and isinstance(field.child.model_field, RangeField):
+                try:
+                    min_value, max_value = connection.ops.integer_field_range(
+                        field.child.model_field.base_field.get_internal_type()
+                    )
+                except KeyError:
+                    # The field is not an integer range field.
+                    pass
+                else:
+                    return max_value
+
     def get_model_fields_data(self, serializer):
         pk_field = serializer.Meta.model._meta.pk.name
         fields = {
@@ -150,20 +214,12 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
             }
             if field.help_text is not None:
                 field_data["help_text"] = field.help_text
-            if hasattr(field, "max_value") and field.max_value:
-                field_data["max_value"] = field.max_value
-            elif model_field and model_field.field and hasattr(model_field.field, "validators"):
-                for validator in model_field.field.validators:
-                    if isinstance(validator, validators.MaxValueValidator):
-                        field_data["max_value"] = validator.limit_value
-                        break
-            if hasattr(field, "min_value") and field.min_value:
-                field_data["min_value"] = field.min_value
-            elif model_field and model_field.field and hasattr(model_field.field, "validators"):
-                for validator in model_field.field.validators:
-                    if isinstance(validator, validators.MinValueValidator):
-                        field_data["min_value"] = validator.limit_value
-                        break
+            max_value = self.get_model_fields_max_data(field, model_field)
+            if max_value is not None:
+                field_data["max_value"] = max_value
+            min_value = self.get_model_fields_min_data(field, model_field)
+            if min_value is not None:
+                field_data["min_value"] = min_value
             if hasattr(field, "max_length") and field.max_length:
                 field_data["max_length"] = field.max_length
             if hasattr(field, "min_length") and field.min_length:
@@ -172,6 +228,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 field_data["max_digits"] = field.max_digits
             if hasattr(field, "decimal_places") and field.decimal_places is not None:
                 field_data["decimal_places"] = field.decimal_places
+
             fields[field_name] = field_data
         return fields
 
@@ -263,6 +320,11 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                         {"name": f"{func.__module__}.{func.__qualname__}"},
                     )
 
+                else:
+                    raise NotImplementedError(
+                        f"The expandable field {field_data} has not yet been configured to return data."
+                    )
+
                 # Copied to deal with serializer strings.
                 # https://github.com/rsinger86/drf-flex-fields/blob/9dd6a9140fd6d2ffe1baf9ab1ffc728540dea84d/
                 #   rest_flex_fields/serializers.py#L127-L130
@@ -279,17 +341,16 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 if content_type is not None:
                     expand_item["content_type"] = str(content_type.id)
 
-                if "fields" in expand_options:
-                    field_data = self.get_model_fields_data(field_serializer)
+                field_data = self.get_model_fields_data(field_serializer)
 
+                if "fields" in expand_options:
                     # We need to call tuple, as we are modifying the dictionary.
                     for field_name in tuple(field_data):
                         if field_name == "pk":  # Always keep the pk.
                             continue
                         if field_name not in expand_options["fields"]:
                             del field_data[field_name]
-
-                    expand_item["fields"] = field_data
+                expand_item["fields"] = field_data
 
                 expands_data.append(expand_item)
 
