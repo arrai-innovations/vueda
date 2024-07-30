@@ -244,13 +244,10 @@ class Transition(SimpleHistoryModelMixin):
         ]
 
     def __str__(self):
-        return f"name: {self.name}, code: {self.code}"
-
-    def __str__(self):
         # When debugging where an object has been deleted, get data from the history rather than blow up.
         deleted_state = False
         try:
-            state = self.source
+            state = self.target
         except ObjectDoesNotExist:
             deleted_state = True
             state = State.history.filter(id=self.target_id).latest()
