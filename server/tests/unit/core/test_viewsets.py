@@ -148,8 +148,8 @@ class TestProductViewSet(BaseTestModelViewSet):
             "history_date",
             "history_change_reason",
             "history_type",
-            "history_relation_id",
-            "history_user_id",
+            "history_relation",
+            "history_user",
         ):
             if key == "history_id":
                 expected_retrieve_response["current_history_id"] = first_history_entry[key]
