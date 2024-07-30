@@ -11,7 +11,6 @@ from rest_framework import serializers  # noqa F401
 from rest_framework import viewsets  # noqa F401
 
 from vueda.core import open_api
-from vueda.core.viewsets import VuedaViewSet  # noqa F401
 from vueda.info.registration import get_registration
 
 
@@ -290,6 +289,8 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         Get the ordering fields for a model and their own metadata.
         """
         # Similar to actions, we'll need to have a canonical viewset to determine what fields are available
+        from vueda.core.viewsets import VuedaViewSet  # noqa F401
+
         viewset = self.canonical["viewset"]  # type: viewsets.VuedaViewSet
         model = viewset.queryset.model
         ordering_data = []
@@ -312,6 +313,8 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         Get the filtering fields for a model and their own metadata.
         """
         # Similar to actions, we'll need to have a canonical viewset to determine what fields are available
+        from vueda.core.viewsets import VuedaViewSet  # noqa F401
+
         viewset = self.canonical["viewset"]  # type: viewsets.VuedaViewSet
         model = viewset.queryset.model
         filtering_data = []
