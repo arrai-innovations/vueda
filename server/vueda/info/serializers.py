@@ -2,6 +2,7 @@ import inspect
 from copy import deepcopy
 
 import django_filters
+from django.conf import settings
 from django.contrib.admin.utils import get_fields_from_path
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -343,14 +344,14 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
                 field_data = self.get_model_fields_data(field_serializer)
 
-                if "fields" in expand_options:
+                if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expand_options:
                     # We need to call tuple, as we are modifying the dictionary.
                     for field_name in tuple(field_data):
                         if field_name == "pk":  # Always keep the pk.
                             continue
-                        if field_name not in expand_options["fields"]:
+                        if field_name not in expand_options[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]:
                             del field_data[field_name]
-                expand_item["fields"] = field_data
+                expand_item[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = field_data
 
                 expands_data.append(expand_item)
 

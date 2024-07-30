@@ -1,4 +1,5 @@
 import rest_framework.serializers as drf_serializers
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 
 from vueda.history.fields import HistoricalRecordField
@@ -28,7 +29,7 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
             "history": {
                 "many": True,
                 "read_only": True,
-                "fields": {
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                     "pk": "history_id",
                     "history_id": {
                         "label": "History ID",
@@ -64,7 +65,7 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
             },
             "first_history_entry": {
                 "read_only": True,
-                "fields": {
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                     "pk": "history_id",
                     "history_id": {
                         "label": "History ID",
@@ -100,7 +101,7 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
             },
             "last_history_entry": {
                 "read_only": True,
-                "fields": {
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                     "pk": "history_id",
                     "history_id": {
                         "label": "History ID",
@@ -171,9 +172,9 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
                 if field_name not in ("pk", "current_history_id"):
                     sorted_expandable_data[field_name] = field
 
-            if "fields" in expandable_fields_data[key]:
-                sorted_expandable_data.update(expandable_fields_data[key]["fields"])
-                expandable_fields_data[key]["fields"] = sorted_expandable_data
+            if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expandable_fields_data[key]:
+                sorted_expandable_data.update(expandable_fields_data[key][settings.REST_FLEX_FIELDS["FIELDS_PARAM"]])
+                expandable_fields_data[key][settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = sorted_expandable_data
 
         cls.populate_expandable_fields_defaults(expandable_fields_data)
 

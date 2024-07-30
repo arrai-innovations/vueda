@@ -1,5 +1,6 @@
 import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
+from django.conf import settings
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -103,8 +104,8 @@ class VuedaSerializer(
                 expandable_field_item["read_only"] = False
             if "many" not in expandable_field_item:
                 expandable_field_item["many"] = False
-            if "fields" in expandable_field_item:
-                for field_name, field in expandable_field_item["fields"].items():
+            if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expandable_field_item:
+                for field_name, field in expandable_field_item[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]].items():
                     if field_name == "pk":
                         continue
                     if "many" not in field:
