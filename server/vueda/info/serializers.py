@@ -5,6 +5,7 @@ import django_filters
 from django.contrib.admin.utils import get_fields_from_path
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.core import validators
 from django.utils.functional import cached_property
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers  # noqa F401
@@ -25,8 +26,8 @@ METHOD_MAPPING = {
 
 
 FIELD_TYPE_MAPPING = {
-    "AutoField": "alpha",
-    "BigAutoField": "alpha",
+    "AutoField": "numeric",
+    "BigAutoField": "numeric",
     "BigIntegerField": "numeric",
     "BinaryField": "alpha",
     "BooleanField": "boolean",
@@ -50,7 +51,7 @@ FIELD_TYPE_MAPPING = {
     "PositiveIntegerField": "numeric",
     "PositiveSmallIntegerField": "numeric",
     "SlugField": "alpha",
-    "SmallAutoField": "alpha",
+    "SmallAutoField": "numeric",
     "SmallIntegerField": "numeric",
     "TextField": "alpha",
     "TimeField": "time",
@@ -127,15 +128,15 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 else:
                     field_type = field.__class__.__name__
 
+            model_field = getattr(serializer.Meta.model, field_name, None)
+
             if (
                 field_name != pk_field
                 and not hasattr(serializer, field_name)
                 and field_type in SERIALIZER_FIELD_TYPES_TO_FETCH_MODEL_TYPE
+                and model_field is not None
             ):
-                model_field = getattr(serializer.Meta.model, field_name, None)
-
-                if model_field is not None:
-                    field_type = model_field.field.get_internal_type()
+                field_type = model_field.field.get_internal_type()
 
             effective_label = field.label or field_name.replace("_", " ").title()
 
@@ -151,15 +152,25 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 field_data["help_text"] = field.help_text
             if hasattr(field, "max_value") and field.max_value:
                 field_data["max_value"] = field.max_value
+            elif model_field and model_field.field and hasattr(model_field.field, "validators"):
+                for validator in model_field.field.validators:
+                    if isinstance(validator, validators.MaxValueValidator):
+                        field_data["max_value"] = validator.limit_value
+                        break
             if hasattr(field, "min_value") and field.min_value:
                 field_data["min_value"] = field.min_value
+            elif model_field and model_field.field and hasattr(model_field.field, "validators"):
+                for validator in model_field.field.validators:
+                    if isinstance(validator, validators.MinValueValidator):
+                        field_data["min_value"] = validator.limit_value
+                        break
             if hasattr(field, "max_length") and field.max_length:
                 field_data["max_length"] = field.max_length
             if hasattr(field, "min_length") and field.min_length:
                 field_data["min_length"] = field.min_length
             if hasattr(field, "max_digits") and field.max_digits:
                 field_data["max_digits"] = field.max_digits
-            if hasattr(field, "decimal_places") and field.decimal_places:
+            if hasattr(field, "decimal_places") and field.decimal_places is not None:
                 field_data["decimal_places"] = field.decimal_places
             fields[field_name] = field_data
         return fields
