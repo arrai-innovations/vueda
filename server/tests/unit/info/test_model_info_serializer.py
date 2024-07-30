@@ -72,11 +72,13 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": False,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -146,11 +148,13 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": True,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -220,11 +224,13 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": False,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -295,6 +301,8 @@ DETAIL_PARAMETRIZE = [
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -367,6 +375,8 @@ DETAIL_PARAMETRIZE = [
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -424,11 +434,13 @@ DETAIL_PARAMETRIZE = [
                 {
                     "name": "user",
                     "content_type": None,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -458,7 +470,7 @@ DETAIL_PARAMETRIZE = [
                     "name": "dict_data",
                     "many": False,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "name": {
                             "label": "Name",
                             "type": "CharField",
@@ -480,11 +492,13 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": False,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -562,11 +576,13 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": True,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -644,11 +660,13 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": False,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -727,6 +745,8 @@ DETAIL_PARAMETRIZE = [
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -783,11 +803,13 @@ DETAIL_PARAMETRIZE = [
                 {
                     "name": "customer",
                     "content_type": None,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -806,11 +828,13 @@ DETAIL_PARAMETRIZE = [
                 {
                     "name": "cart_items",
                     "content_type": None,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -842,6 +866,8 @@ DETAIL_PARAMETRIZE = [
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -912,11 +938,13 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "customer",
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -935,11 +963,13 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "order_state",
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -971,11 +1001,13 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": False,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -994,6 +1026,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "Order Number",
                             "type": "DecimalField",
                             "max_digits": 7,
+                            "decimal_places": 0,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -1086,11 +1119,13 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": True,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -1109,6 +1144,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "Order Number",
                             "type": "DecimalField",
                             "max_digits": 7,
+                            "decimal_places": 0,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -1201,11 +1237,13 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": False,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -1224,6 +1262,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "Order Number",
                             "type": "DecimalField",
                             "max_digits": 7,
+                            "decimal_places": 0,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -1317,6 +1356,8 @@ DETAIL_PARAMETRIZE = [
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -1329,6 +1370,7 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": True,
                     "max_digits": 7,
+                    "decimal_places": 0,
                     "choices": False,
                 },
                 "when": {
@@ -1402,6 +1444,8 @@ DETAIL_PARAMETRIZE = [
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -1467,11 +1511,13 @@ DETAIL_PARAMETRIZE = [
                 {
                     "name": "distributor",
                     "content_type": None,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -1486,6 +1532,14 @@ DETAIL_PARAMETRIZE = [
                             "max_length": 255,
                             "choices": False,
                         },
+                        "current_history_id": {
+                            "label": "Current History ID",
+                            "type": "IntegerField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
                     },
                 },
                 {
@@ -1493,13 +1547,23 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": False,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "current_sale_date": {
+                            "label": "Current Sale Date",
+                            "type": "DateRangeField",
+                            "many": False,
+                            "read_only": False,
                             "required": False,
                             "choices": False,
                         },
@@ -1535,9 +1599,19 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": True,
                         },
+                        "future_sale_dates": {
+                            "label": "Future Sale Dates",
+                            "type": "DateRangeField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": True,
                             "read_only": False,
                             "required": False,
@@ -1555,6 +1629,8 @@ DETAIL_PARAMETRIZE = [
                         "order_between": {
                             "label": "Order Between",
                             "type": "IntegerRangeField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -1564,6 +1640,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "Order Number",
                             "type": "DecimalField",
                             "max_digits": 7,
+                            "decimal_places": 0,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -1656,13 +1733,23 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": True,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "current_sale_date": {
+                            "label": "Current Sale Date",
+                            "type": "DateRangeField",
+                            "many": False,
+                            "read_only": False,
                             "required": False,
                             "choices": False,
                         },
@@ -1698,9 +1785,19 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": True,
                         },
+                        "future_sale_dates": {
+                            "label": "Future Sale Dates",
+                            "type": "DateRangeField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": True,
                             "read_only": False,
                             "required": False,
@@ -1718,6 +1815,8 @@ DETAIL_PARAMETRIZE = [
                         "order_between": {
                             "label": "Order Between",
                             "type": "IntegerRangeField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -1727,6 +1826,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "Order Number",
                             "type": "DecimalField",
                             "max_digits": 7,
+                            "decimal_places": 0,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -1819,13 +1919,23 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": False,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "current_sale_date": {
+                            "label": "Current Sale Date",
+                            "type": "DateRangeField",
+                            "many": False,
+                            "read_only": False,
                             "required": False,
                             "choices": False,
                         },
@@ -1861,9 +1971,19 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": True,
                         },
+                        "future_sale_dates": {
+                            "label": "Future Sale Dates",
+                            "type": "DateRangeField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": True,
                             "read_only": False,
                             "required": False,
@@ -1881,6 +2001,8 @@ DETAIL_PARAMETRIZE = [
                         "order_between": {
                             "label": "Order Between",
                             "type": "IntegerRangeField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -1890,6 +2012,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "Order Number",
                             "type": "DecimalField",
                             "max_digits": 7,
+                            "decimal_places": 0,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -1983,8 +2106,26 @@ DETAIL_PARAMETRIZE = [
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
                     "many": False,
                     "read_only": True,
+                    "required": False,
+                    "choices": False,
+                },
+                "current_history_id": {
+                    "label": "Current History ID",
+                    "type": "IntegerField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                },
+                "current_sale_date": {
+                    "label": "Current Sale Date",
+                    "type": "DateRangeField",
+                    "many": False,
+                    "read_only": False,
                     "required": False,
                     "choices": False,
                 },
@@ -2021,11 +2162,11 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": False,
                 },
-                "current_history_id": {
-                    "label": "Current History ID",
-                    "type": "IntegerField",
-                    "many": False,
-                    "read_only": True,
+                "future_sale_dates": {
+                    "label": "Future Sale Dates",
+                    "type": "DateRangeField",
+                    "many": True,
+                    "read_only": False,
                     "required": False,
                     "choices": False,
                 },
@@ -2040,6 +2181,8 @@ DETAIL_PARAMETRIZE = [
                 "order_between": {
                     "label": "Order Between",
                     "type": "IntegerRangeField",
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
                     "many": False,
                     "read_only": False,
                     "required": True,
@@ -2048,6 +2191,8 @@ DETAIL_PARAMETRIZE = [
                 "last_ten_order_betweens": {
                     "label": "Last Ten Order Betweens",
                     "type": "IntegerRangeField",
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
                     "many": True,
                     "read_only": False,
                     "required": False,
@@ -2129,11 +2274,13 @@ DETAIL_PARAMETRIZE = [
                 {
                     "name": "option_type",
                     "content_type": None,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -2162,11 +2309,13 @@ DETAIL_PARAMETRIZE = [
                 {
                     "name": "product",
                     "content_type": None,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -2212,13 +2361,23 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": False,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "current_sale_date": {
+                            "label": "Current Sale Date",
+                            "type": "DateRangeField",
+                            "many": False,
+                            "read_only": False,
                             "required": False,
                             "choices": False,
                         },
@@ -2254,6 +2413,14 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": True,
                         },
+                        "future_sale_dates": {
+                            "label": "Future Sale Dates",
+                            "type": "DateRangeField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
                         "gtin": {
                             "label": "GTIN",
                             "type": "CharField",
@@ -2266,6 +2433,8 @@ DETAIL_PARAMETRIZE = [
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": True,
                             "read_only": False,
                             "required": False,
@@ -2291,6 +2460,8 @@ DETAIL_PARAMETRIZE = [
                         "order_between": {
                             "label": "Order Between",
                             "type": "IntegerRangeField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -2300,6 +2471,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "Order Number",
                             "type": "DecimalField",
                             "max_digits": 7,
+                            "decimal_places": 0,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -2419,13 +2591,23 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": True,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "current_sale_date": {
+                            "label": "Current Sale Date",
+                            "type": "DateRangeField",
+                            "many": False,
+                            "read_only": False,
                             "required": False,
                             "choices": False,
                         },
@@ -2461,6 +2643,14 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": True,
                         },
+                        "future_sale_dates": {
+                            "label": "Future Sale Dates",
+                            "type": "DateRangeField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
                         "gtin": {
                             "label": "GTIN",
                             "type": "CharField",
@@ -2473,6 +2663,8 @@ DETAIL_PARAMETRIZE = [
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": True,
                             "read_only": False,
                             "required": False,
@@ -2498,6 +2690,8 @@ DETAIL_PARAMETRIZE = [
                         "order_between": {
                             "label": "Order Between",
                             "type": "IntegerRangeField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -2507,6 +2701,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "Order Number",
                             "type": "DecimalField",
                             "max_digits": 7,
+                            "decimal_places": 0,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -2626,13 +2821,23 @@ DETAIL_PARAMETRIZE = [
                     "content_type": None,
                     "many": False,
                     "read_only": True,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "current_sale_date": {
+                            "label": "Current Sale Date",
+                            "type": "DateRangeField",
+                            "many": False,
+                            "read_only": False,
                             "required": False,
                             "choices": False,
                         },
@@ -2668,6 +2873,14 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": True,
                         },
+                        "future_sale_dates": {
+                            "label": "Future Sale Dates",
+                            "type": "DateRangeField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
                         "gtin": {
                             "label": "GTIN",
                             "type": "CharField",
@@ -2680,6 +2893,8 @@ DETAIL_PARAMETRIZE = [
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": True,
                             "read_only": False,
                             "required": False,
@@ -2705,6 +2920,8 @@ DETAIL_PARAMETRIZE = [
                         "order_between": {
                             "label": "Order Between",
                             "type": "IntegerRangeField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -2714,6 +2931,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "Order Number",
                             "type": "DecimalField",
                             "max_digits": 7,
+                            "decimal_places": 0,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -2834,6 +3052,8 @@ DETAIL_PARAMETRIZE = [
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -2999,11 +3219,13 @@ DETAIL_PARAMETRIZE = [
                 {
                     "name": "customer_order",
                     "content_type": None,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -3013,6 +3235,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "Order Number",
                             "type": "DecimalField",
                             "max_digits": 7,
+                            "decimal_places": 0,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -3047,11 +3270,13 @@ DETAIL_PARAMETRIZE = [
                 {
                     "name": "product_option",
                     "content_type": None,
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -3126,6 +3351,8 @@ DETAIL_PARAMETRIZE = [
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -3153,8 +3380,8 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": False,
                     "required": True,
-                    "max_value": 2147483647,
-                    "min_value": -2147483648,
+                    "max_value": 1000,
+                    "min_value": 0,
                     "choices": False,
                 },
             },
@@ -3205,11 +3432,13 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "product_option",
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -3281,11 +3510,13 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "reason",
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -3322,11 +3553,13 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "added_inventory_record",
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -3378,6 +3611,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "Cost",
                             "type": "DecimalField",
                             "max_digits": 12,
+                            "decimal_places": 0,
                             "many": False,
                             "read_only": False,
                             "required": False,
@@ -3424,11 +3658,13 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "order_item",
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -3445,8 +3681,8 @@ DETAIL_PARAMETRIZE = [
                         "quantity": {
                             "label": "Quantity",
                             "type": "IntegerField",
-                            "max_value": 2147483647,
-                            "min_value": -2147483648,
+                            "max_value": 1000,
+                            "min_value": 0,
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -3461,6 +3697,8 @@ DETAIL_PARAMETRIZE = [
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -3523,6 +3761,7 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": False,
                     "max_digits": 12,
+                    "decimal_places": 0,
                     "choices": False,
                 },
                 "added_inventory_record": {
@@ -3692,11 +3931,13 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "cart",
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -3715,11 +3956,13 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "product_option",
-                    "fields": {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
+                            "max_value": 2147483647,
+                            "min_value": -2147483648,
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -3795,6 +4038,8 @@ DETAIL_PARAMETRIZE = [
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -5176,10 +5421,10 @@ class TestModelInfoSerializer:
                     for key, value in model_expand.items():
                         if key == "content_type":  # We don't want to test the pk of the content type.
                             value = None
-                        elif key == "fields":
+                        elif key == settings.REST_FLEX_FIELDS["FIELDS_PARAM"]:
                             self.check_model_fields(
                                 value,
-                                expected_model_expand["fields"],
+                                expected_model_expand[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]],
                                 f'expected_expands -> "name": "{model_expand["name"]}"',
                             )
                             continue
@@ -5189,23 +5434,22 @@ class TestModelInfoSerializer:
 
     def check_model_fields(self, data, expected_data, extra_key=None):
         if extra_key is not None:
-            assert frozenset(data) == frozenset(expected_data), f"{extra_key} -> fields -> {{keys}}"
+            assert frozenset(data) == frozenset(expected_data), f"{extra_key} -> FIELDS_PARAM -> {{keys}}"
         else:
             assert frozenset(data) == frozenset(expected_data), "expected_fields -> {{keys}}"
         for field_name, field_data in data.items():
             if field_name == "pk":
                 if extra_key is not None:
-                    assert field_data == expected_data[field_name], f'{extra_key} -> fields -> "pk"'
+                    assert field_data == expected_data[field_name], f'{extra_key} -> FIELDS_PARAM -> "pk"'
                 else:
                     assert field_data == expected_data[field_name], 'expected_fields -> "pk"'
             else:
                 for expected_field_name, expected_field_data in expected_data.items():
                     if field_name == expected_field_name:
-                        failure_msg = f"fields -> {field_name}"
                         if extra_key is not None:
-                            failure_msg = f"{extra_key} -> {failure_msg}"
+                            failure_msg = f"{extra_key} -> FIELDS_PARAM -> {field_name}"
                         else:
-                            failure_msg = f"expected_{failure_msg}"
+                            failure_msg = f"expected_fields -> {field_name}"
                         assert frozenset(field_data) == frozenset(expected_field_data), f"{failure_msg} -> {{keys}}"
                         for key, value in field_data.items():
                             assert value == expected_field_data[key], f"{failure_msg} -> {key}"
