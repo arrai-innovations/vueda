@@ -91,6 +91,7 @@ class ProductSerializer(VuedaHistorySerializer):
             "id",
             "distributor",
             "name",
+            "description",
             "disabled",
             "tangible",
             "order_between",

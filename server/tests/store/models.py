@@ -35,6 +35,7 @@ class Product(SimpleHistoryModelMixin, models.Model):
     tangible = models.CharField(max_length=255, choices=(("digital", "Digital"), ("physical", "Physical")))
     order_between = postgres_fields.IntegerRangeField()
     last_ten_order_betweens = postgres_fields.ArrayField(postgres_fields.IntegerRangeField(), null=True)
+    description = models.TextField(blank=True)
 
     class Meta(BaseModelMeta):
         unique_together = [
