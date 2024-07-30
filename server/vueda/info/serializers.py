@@ -1,4 +1,5 @@
 import inspect
+from copy import deepcopy
 
 import django_filters
 from django.contrib.admin.utils import get_fields_from_path
@@ -228,14 +229,29 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
         expands_data = []
 
+        # Stores data about what to return for fields that do not have a serializer.
+        expandable_fields_data = serializer.get_expandable_fields_data()
+
         if hasattr(serializer.Meta, "expandable_fields"):
             for field_name, field_data in serializer.Meta.expandable_fields.items():
                 expand_item = {
                     "name": field_name,
                 }
 
+                if field_name in expandable_fields_data:
+                    expand_item.update(deepcopy(expandable_fields_data[field_name]))
+                    expands_data.append(expand_item)
+                    continue
+
                 if isinstance(field_data, (list, tuple)):
                     field_serializer, expand_options = field_data
+
+                elif issubclass(field_data, serializers.SerializerMethodField):
+                    func = getattr(serializer, f"get_{field_name}")
+                    raise NameError(
+                        "No expandable_fields_data specified for field.",
+                        {"name": f"{func.__module__}.{func.__qualname__}"},
+                    )
 
                 # Copied to deal with serializer strings.
                 # https://github.com/rsinger86/drf-flex-fields/blob/9dd6a9140fd6d2ffe1baf9ab1ffc728540dea84d/

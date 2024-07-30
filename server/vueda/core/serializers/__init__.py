@@ -93,7 +93,40 @@ class VuedaSerializer(
 ):
     class Meta:
         expandable_fields = {}
+        expandable_fields_data = {}
         fields = []
+
+    @classmethod
+    def populate_expandable_fields_defaults(cls, expandable_fields_data):
+        for expandable_field_item in expandable_fields_data.values():
+            if "read_only" not in expandable_field_item:
+                expandable_field_item["read_only"] = False
+            if "many" not in expandable_field_item:
+                expandable_field_item["many"] = False
+            if "fields" in expandable_field_item:
+                for field_name, field in expandable_field_item["fields"].items():
+                    if field_name == "pk":
+                        continue
+                    if "many" not in field:
+                        field["many"] = False
+                    if "read_only" not in field:
+                        field["read_only"] = False
+                    if "required" not in field:
+                        field["required"] = False
+                    if "choices" not in field:
+                        field["choices"] = False
+
+    @classmethod
+    def get_expandable_fields_data(cls):
+        """
+        Return the expandable fields data off the class.
+        Loop through the data and add defaults of False for certain fields if they don't exist.
+        """
+        expandable_fields_data = cls.Meta.expandable_fields_data
+
+        cls.populate_expandable_fields_defaults(expandable_fields_data)
+
+        return expandable_fields_data
 
 
 class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):

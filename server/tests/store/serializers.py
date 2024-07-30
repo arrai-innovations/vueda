@@ -40,9 +40,39 @@ class CustomerSerializer(VuedaHistorySerializer):
                         "name",
                     ],
                 },
-            )
+            ),
+            "dict_data": serializers.SerializerMethodField,
+            "single_value": serializers.SerializerMethodField,
         }
         expandable_fields.update(VuedaHistorySerializer.Meta.expandable_fields)
+        expandable_fields_data = {
+            "dict_data": {
+                "many": False,
+                "read_only": True,
+                "fields": {
+                    "name": {
+                        "label": "Name",
+                        "type": "CharField",
+                        "many": False,
+                        "read_only": True,
+                        "required": False,
+                        "choices": False,
+                    },
+                },
+            },
+            "single_value": {
+                "many": False,
+                "read_only": True,
+                "type": "CharField",
+            },
+        }
+        expandable_fields_data.update(VuedaHistorySerializer.Meta.expandable_fields_data)
+
+    def get_dict_data(self, instance):
+        return {"name": "Test"}
+
+    def get_single_value(self, instance):
+        return "Test"
 
 
 class DistributorSerializer(VuedaHistorySerializer):
