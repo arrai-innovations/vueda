@@ -2,6 +2,7 @@
 
 from django.contrib.auth import get_user_model
 from django.contrib.postgres import fields as postgres_fields
+from django.core import validators
 from django.db import models
 from django.db.models import Max
 
@@ -36,6 +37,8 @@ class Product(SimpleHistoryModelMixin, models.Model):
     order_between = postgres_fields.IntegerRangeField()
     last_ten_order_betweens = postgres_fields.ArrayField(postgres_fields.IntegerRangeField(), null=True)
     description = models.TextField(blank=True)
+    current_sale_date = postgres_fields.DateRangeField(null=True)
+    future_sale_dates = postgres_fields.ArrayField(postgres_fields.DateRangeField(), null=True)
 
     class Meta(BaseModelMeta):
         unique_together = [
@@ -124,7 +127,9 @@ class CustomerOrder(HasWorkflowModelMixin, SimpleHistoryModelMixin, models.Model
 class OrderItem(models.Model):
     customer_order = models.ForeignKey(CustomerOrder, on_delete=models.PROTECT)
     product_option = models.ForeignKey(ProductOption, on_delete=models.PROTECT)
-    quantity = models.IntegerField(db_default=0)
+    quantity = models.IntegerField(
+        db_default=0, validators=[validators.MinValueValidator(0), validators.MaxValueValidator(1000)]
+    )
 
     class Meta(BaseModelMeta):
         verbose_name = "ORDER item"

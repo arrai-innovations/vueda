@@ -96,16 +96,13 @@ class ProductSerializer(VuedaHistorySerializer):
             "tangible",
             "order_between",
             "last_ten_order_betweens",
+            "current_sale_date",
+            "future_sale_dates",
         ] + VuedaHistorySerializer.Meta.fields
         expandable_fields = {
             "distributor": (
                 DistributorSerializer,
-                {
-                    "fields": [
-                        "id",
-                        "name",
-                    ],
-                },
+                {},
             )
         }
         expandable_fields.update(VuedaHistorySerializer.Meta.expandable_fields)
