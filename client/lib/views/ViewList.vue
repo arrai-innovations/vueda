@@ -132,7 +132,10 @@ const calculatedDisplayFields = computed(() => {
     if (Object.keys(props.displayFields).length) {
         return Object.values(props.displayFields);
     } else if (modelConfig.config.listFields?.length) {
-        return modelConfig.config.listFields.map((f) => modelConfig.info.fields[f]);
+        return modelConfig.config.listFields.map((f) => ({
+            name: f,
+            ...modelConfig.info.fields[f],
+        }));
     } else if (modelConfig.info.fields?.length) {
         return Object.values(modelConfig.info.fields);
     }
