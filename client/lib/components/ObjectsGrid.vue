@@ -192,31 +192,31 @@ const unifiedGet = (obj, relatedObj, calculatedObj, fieldPath) => {
                 <div v-if="selectable" :class="[theme('headerCell'), headerClasses?.selected_]">
                     <slot name="header(selected_)" />
                 </div>
-                <template v-for="([fieldName, field], colIndex) in Object.entries(fields)" :key="fieldName">
+                <template v-for="(field, colIndex) in fields" :key="field?.name">
                     <div
-                        v-if="fieldName"
-                        :class="[theme('headerCell'), headerClasses?.[fieldName]]"
-                        :data-header="fieldName"
+                        v-if="field?.name"
+                        :class="[theme('headerCell'), headerClasses?.[field?.name]]"
+                        :data-header="field?.name"
                         data-qa="objects-grid-header"
                         role="columnheader"
-                        @click="sortClick($event, fieldName)"
+                        @click="sortClick($event, field?.name)"
                     >
-                        <slot :col-index="colIndex" :field="field" :name="`header(${fieldName})`"
+                        <slot :col-index="colIndex" :field="field" :name="`header(${field?.name})`"
                             >{{ field.label }}
                         </slot>
                         <span
-                            v-if="sortable.includes(fieldName)"
+                            v-if="sortable.includes(field?.name)"
                             :class="theme('sort')"
-                            :data-qa="`objects-grid-sort-${fieldName}`"
+                            :data-qa="`objects-grid-sort-${field?.name}`"
                         >
                             <slot :field="field" name="sort-icon" :sortable="sortable" :sorted="sorted">
                                 <!-- iconless text, screams to implementors to provide an icon -->
-                                <template v-if="sorted.includes(fieldName)">⬆️</template>
-                                <template v-else-if="sorted.includes(`-${fieldName}`)">⬇️</template>
+                                <template v-if="sorted.includes(field?.name)">⬆️</template>
+                                <template v-else-if="sorted.includes(`-${field?.name}`)">⬇️</template>
                                 <template v-else>↕️</template>
                             </slot>
                             <span v-if="sorted?.length > 1" :class="theme('sortNum')">{{
-                                directionlessSorted.indexOf(fieldName) + 1
+                                directionlessSorted.indexOf(field?.name) + 1
                             }}</span>
                         </span>
                     </div>
@@ -266,21 +266,21 @@ const unifiedGet = (obj, relatedObj, calculatedObj, fieldPath) => {
                         </slot>
                     </div>
                 </template>
-                <template v-for="([fieldName, field], colIndex) in Object.entries(fields)" :key="fieldName">
-                    <template v-if="fieldName">
+                <template v-for="(field, colIndex) in fields" :key="field?.name">
+                    <template v-if="field?.name">
                         <!-- this if let's first: and last: work, otherwise the last table cell can never be last child -->
                         <div
                             v-if="!isTable"
-                            :class="[theme('cardCell'), fieldClasses?.[fieldName]]"
+                            :class="[theme('cardCell'), fieldClasses?.[field?.name]]"
                             data-qa="objects-grid-card-cell"
                             role="cell"
                         >
-                            <div :class="theme('cardHeader')" :data-card-header="fieldName">
-                                <slot :col-index="colIndex" :field="field" :name="`header(${fieldName})`">
+                            <div :class="theme('cardHeader')" :data-card-header="field?.name">
+                                <slot :col-index="colIndex" :field="field" :name="`header(${field?.name})`">
                                     {{ field.label }}
                                 </slot>
                             </div>
-                            <div :class="theme('cardValue')" :data-card="fieldName">
+                            <div :class="theme('cardValue')" :data-card="field?.name">
                                 <slot
                                     :calculated-obj="get(calculatedObjects, obj.id)"
                                     :col-index="colIndex"
@@ -294,7 +294,7 @@ const unifiedGet = (obj, relatedObj, calculatedObj, fieldPath) => {
                                             field.formatted,
                                         )
                                     "
-                                    :name="`field(${fieldName})`"
+                                    :name="`field(${field?.name})`"
                                     :obj="obj"
                                     :related-obj="get(relatedObjects, obj.id)"
                                     :row-index="rowIndex"
@@ -303,17 +303,17 @@ const unifiedGet = (obj, relatedObj, calculatedObj, fieldPath) => {
                                             obj,
                                             get(relatedObjects, obj.id),
                                             get(calculatedObjects, obj.id),
-                                            fieldName,
+                                            field?.name,
                                         )
                                     "
                                 >
                                     {{
-                                        (field.formatted ?? fieldName) &&
+                                        (field.formatted ?? field?.name) &&
                                         unifiedGet(
                                             obj,
                                             get(relatedObjects, obj.id),
                                             get(calculatedObjects, obj.id),
-                                            field.formatted ?? fieldName,
+                                            field.formatted ?? field?.name,
                                         )
                                     }}
                                 </slot>
@@ -321,8 +321,8 @@ const unifiedGet = (obj, relatedObj, calculatedObj, fieldPath) => {
                         </div>
                         <div
                             v-else
-                            :class="[theme('bodyCell'), fieldClasses?.[fieldName]]"
-                            :data-field="fieldName"
+                            :class="[theme('bodyCell'), fieldClasses?.[field?.name]]"
+                            :data-field="field?.name"
                             data-qa="objects-grid-body-cell"
                             role="cell"
                         >
@@ -339,7 +339,7 @@ const unifiedGet = (obj, relatedObj, calculatedObj, fieldPath) => {
                                         field.formatted,
                                     )
                                 "
-                                :name="`field(${fieldName})`"
+                                :name="`field(${field?.name})`"
                                 :obj="obj"
                                 :related-obj="get(relatedObjects, obj.id)"
                                 :row-index="rowIndex"
@@ -348,18 +348,18 @@ const unifiedGet = (obj, relatedObj, calculatedObj, fieldPath) => {
                                         obj,
                                         get(relatedObjects, obj.id),
                                         get(calculatedObjects, obj.id),
-                                        fieldName,
+                                        field?.name,
                                     )
                                 "
                             >
                                 <p>
                                     {{
-                                        (field.formatted ?? fieldName) &&
+                                        (field.formatted ?? field?.name) &&
                                         unifiedGet(
                                             obj,
                                             get(relatedObjects, obj.id),
                                             get(calculatedObjects, obj.id),
-                                            field.formatted ?? fieldName,
+                                            field.formatted ?? field?.name,
                                         )
                                     }}
                                 </p>

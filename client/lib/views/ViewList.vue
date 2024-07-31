@@ -130,16 +130,11 @@ const calculatedListFields = computed(() => {
 });
 const calculatedDisplayFields = computed(() => {
     if (Object.keys(props.displayFields).length) {
-        return props.displayFields;
+        return Object.values(props.displayFields);
     } else if (modelConfig.config.listFields?.length) {
-        return Object.keys(modelConfig.info.fields)
-            .filter((key) => modelConfig.config.listFields.includes(key))
-            .reduce((obj, key) => {
-                obj[key] = modelConfig.info.fields[key];
-                return obj;
-            }, {});
+        return modelConfig.config.listFields.map((f) => modelConfig.info.fields[f]);
     } else if (modelConfig.info.fields?.length) {
-        return modelConfig.info.fields;
+        return Object.values(modelConfig.info.fields);
     }
     return [];
 });
