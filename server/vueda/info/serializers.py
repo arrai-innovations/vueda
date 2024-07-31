@@ -131,7 +131,11 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                     pass
                 else:
                     return min_value
-            elif getattr(field, "child", None) is not None and isinstance(field.child.model_field, RangeField):
+            elif (
+                getattr(field, "child", None) is not None
+                and hasattr(field.child, "model_field")
+                and isinstance(field.child.model_field, RangeField)
+            ):
                 try:
                     min_value, max_value = connection.ops.integer_field_range(
                         field.child.model_field.base_field.get_internal_type()
@@ -162,7 +166,11 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                     pass
                 else:
                     return max_value
-            elif getattr(field, "child", None) is not None and isinstance(field.child.model_field, RangeField):
+            elif (
+                getattr(field, "child", None) is not None
+                and hasattr(field.child, "model_field")
+                and isinstance(field.child.model_field, RangeField)
+            ):
                 try:
                     min_value, max_value = connection.ops.integer_field_range(
                         field.child.model_field.base_field.get_internal_type()
