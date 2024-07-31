@@ -39,6 +39,7 @@ class CustomerSerializer(VuedaHistorySerializer):
                         "id",
                         "email",
                         "name",
+                        "groups",
                     ],
                 },
             ),
@@ -99,6 +100,8 @@ class ProductSerializer(VuedaHistorySerializer):
             "last_ten_order_betweens",
             "current_sale_date",
             "future_sale_dates",
+            "reviews",
+            "internal_comments",
         ] + VuedaHistorySerializer.Meta.fields
         expandable_fields = {
             "distributor": (

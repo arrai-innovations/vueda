@@ -464,6 +464,15 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": False,
                         },
+                        "groups": {
+                            "label": "Groups",
+                            "type": "ManyRelatedField",
+                            "help_text": None,
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": True,
+                        },
                     },
                 },
                 {
@@ -892,7 +901,7 @@ DETAIL_PARAMETRIZE = [
                 "cart_items": {
                     "label": "Cart Items",
                     "type": "ManyRelatedField",
-                    "many": False,
+                    "many": True,
                     "read_only": False,
                     "required": True,
                     "choices": False,
@@ -1607,6 +1616,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "internal_comments": {
+                            "label": "Internal Comments",
+                            "type": "TextField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
@@ -1653,6 +1670,14 @@ DETAIL_PARAMETRIZE = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                        },
+                        "reviews": {
+                            "label": "Reviews",
+                            "type": "CharField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
                         },
                         "tangible": {
                             "label": "Tangible",
@@ -1793,6 +1818,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "internal_comments": {
+                            "label": "Internal Comments",
+                            "type": "TextField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
@@ -1839,6 +1872,14 @@ DETAIL_PARAMETRIZE = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                        },
+                        "reviews": {
+                            "label": "Reviews",
+                            "type": "CharField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
                         },
                         "tangible": {
                             "label": "Tangible",
@@ -1979,6 +2020,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "internal_comments": {
+                            "label": "Internal Comments",
+                            "type": "TextField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
@@ -2025,6 +2074,14 @@ DETAIL_PARAMETRIZE = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                        },
+                        "reviews": {
+                            "label": "Reviews",
+                            "type": "CharField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
                         },
                         "tangible": {
                             "label": "Tangible",
@@ -2162,9 +2219,25 @@ DETAIL_PARAMETRIZE = [
                     "required": True,
                     "choices": False,
                 },
+                "internal_comments": {
+                    "label": "Internal Comments",
+                    "type": "TextField",
+                    "many": True,
+                    "read_only": False,
+                    "required": False,
+                    "choices": False,
+                },
                 "future_sale_dates": {
                     "label": "Future Sale Dates",
                     "type": "DateRangeField",
+                    "many": True,
+                    "read_only": False,
+                    "required": False,
+                    "choices": False,
+                },
+                "reviews": {
+                    "label": "Reviews",
+                    "type": "CharField",
                     "many": True,
                     "read_only": False,
                     "required": False,
@@ -2430,6 +2503,14 @@ DETAIL_PARAMETRIZE = [
                             "max_length": 255,
                             "choices": False,
                         },
+                        "internal_comments": {
+                            "label": "Internal Comments",
+                            "type": "TextField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
@@ -2502,6 +2583,14 @@ DETAIL_PARAMETRIZE = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                        },
+                        "reviews": {
+                            "label": "Reviews",
+                            "type": "CharField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
                         },
                         "sku": {
                             "label": "SKU",
@@ -2660,6 +2749,14 @@ DETAIL_PARAMETRIZE = [
                             "max_length": 255,
                             "choices": False,
                         },
+                        "internal_comments": {
+                            "label": "Internal Comments",
+                            "type": "TextField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
@@ -2732,6 +2829,14 @@ DETAIL_PARAMETRIZE = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                        },
+                        "reviews": {
+                            "label": "Reviews",
+                            "type": "CharField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
                         },
                         "sku": {
                             "label": "SKU",
@@ -2890,6 +2995,14 @@ DETAIL_PARAMETRIZE = [
                             "max_length": 255,
                             "choices": False,
                         },
+                        "internal_comments": {
+                            "label": "Internal Comments",
+                            "type": "TextField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
@@ -2962,6 +3075,14 @@ DETAIL_PARAMETRIZE = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                        },
+                        "reviews": {
+                            "label": "Reviews",
+                            "type": "CharField",
+                            "many": True,
+                            "read_only": False,
+                            "required": False,
+                            "choices": False,
                         },
                         "sku": {
                             "label": "SKU",
@@ -5452,6 +5573,8 @@ class TestModelInfoSerializer:
                             failure_msg = f"expected_fields -> {field_name}"
                         assert frozenset(field_data) == frozenset(expected_field_data), f"{failure_msg} -> {{keys}}"
                         for key, value in field_data.items():
+                            if key == "help_text":  # Don't worry about adding help text messages into our test data.
+                                value = None
                             assert value == expected_field_data[key], f"{failure_msg} -> {key}"
 
     def check_model_fields_data(self, response_data, expected_data):

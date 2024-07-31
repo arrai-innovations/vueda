@@ -39,6 +39,8 @@ class Product(SimpleHistoryModelMixin, models.Model):
     description = models.TextField(blank=True)
     current_sale_date = postgres_fields.DateRangeField(null=True)
     future_sale_dates = postgres_fields.ArrayField(postgres_fields.DateRangeField(), null=True)
+    reviews = postgres_fields.ArrayField(models.CharField(max_length=2048), blank=True, default=list)
+    internal_comments = postgres_fields.ArrayField(models.TextField(), blank=True, default=list)
 
     class Meta(BaseModelMeta):
         unique_together = [
