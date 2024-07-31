@@ -63,8 +63,9 @@ FIELD_TYPE_MAPPING = {
 
 
 SERIALIZER_FIELD_TYPES_TO_FETCH_MODEL_TYPE = (
+    "ArrayField",  # We need to know what the data is
     "CharField",  # Can become TextField
-    "ChoiceField",  # Can become CharField
+    "ChoiceField",  # We need to know what the data is
 )
 
 
@@ -120,25 +121,17 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 for validator in model_field.field.validators:
                     if isinstance(validator, validators.MinValueValidator):
                         return validator.limit_value
-            # If not, is the field a range field or array of range fields?
-            if isinstance(model_field.field, RangeField):
+
+            # Is the field a range field?
+            range_field = model_field.field
+            if getattr(field, "child", None) is not None and hasattr(field.child, "model_field"):
+                # Or an array of range fields?
+                range_field = field.child.model_field
+
+            if isinstance(range_field, RangeField):
                 try:
                     min_value, max_value = connection.ops.integer_field_range(
-                        model_field.field.base_field.get_internal_type()
-                    )
-                except KeyError:
-                    # The field is not an integer range field.
-                    pass
-                else:
-                    return min_value
-            elif (
-                getattr(field, "child", None) is not None
-                and hasattr(field.child, "model_field")
-                and isinstance(field.child.model_field, RangeField)
-            ):
-                try:
-                    min_value, max_value = connection.ops.integer_field_range(
-                        field.child.model_field.base_field.get_internal_type()
+                        range_field.base_field.get_internal_type()
                     )
                 except KeyError:
                     # The field is not an integer range field.
@@ -149,31 +142,24 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
     def get_model_fields_max_data(self, field, model_field):
         if hasattr(field, "max_value") and field.max_value:
             return field.max_value
+
         elif model_field and model_field.field:
             # If the field has validators, are any of them MaxValueValidator?
             if hasattr(model_field.field, "validators") and model_field.field.validators:
                 for validator in model_field.field.validators:
                     if isinstance(validator, validators.MaxValueValidator):
                         return validator.limit_value
-            # If not, is the field a range field or array of range fields?
-            if isinstance(model_field.field, RangeField):
+
+            # Is the field a range field?
+            range_field = model_field.field
+            if getattr(field, "child", None) is not None and hasattr(field.child, "model_field"):
+                # Or an array of range fields?
+                range_field = field.child.model_field
+
+            if isinstance(range_field, RangeField):
                 try:
                     min_value, max_value = connection.ops.integer_field_range(
-                        model_field.field.base_field.get_internal_type()
-                    )
-                except KeyError:
-                    # The field is not an integer range field.
-                    pass
-                else:
-                    return max_value
-            elif (
-                getattr(field, "child", None) is not None
-                and hasattr(field.child, "model_field")
-                and isinstance(field.child.model_field, RangeField)
-            ):
-                try:
-                    min_value, max_value = connection.ops.integer_field_range(
-                        field.child.model_field.base_field.get_internal_type()
+                        range_field.base_field.get_internal_type()
                     )
                 except KeyError:
                     # The field is not an integer range field.
@@ -188,28 +174,46 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         }
 
         for field_name, field in serializer().get_fields().items():
-            many = isinstance(field, serializers.ListField)
+            many = isinstance(field, (serializers.ListField, serializers.ManyRelatedField))
 
+            child_field = None
             if many:
-                if hasattr(field.child, "model_field"):
-                    field_type = field.child.model_field.__class__.__name__
-                else:
-                    field_type = field.child.__class__.__name__
+                if hasattr(field, "child"):
+                    child_field = field.child
+                elif hasattr(field, "base_field"):
+                    child_field = field.base_field
+                if hasattr(child_field, "model_field"):
+                    child_field = child_field.model_field
             else:
                 if hasattr(field, "model_field"):
-                    field_type = field.model_field.__class__.__name__
+                    child_field = field.model_field
+
+            # Get the field type.
+            field_type = field.__class__.__name__
+            if child_field is not None:
+                if hasattr(child_field, "get_internal_type"):
+                    field_type = child_field.get_internal_type()
                 else:
-                    field_type = field.__class__.__name__
+                    field_type = child_field.__class__.__name__
 
+            # If the field is a CharField on the serializer, it could be a TextField on the model.
+            # If the field is a ChoiceField on the serializer, we need to know what kind of data the model has.
+            # So, for fields like this, we want to get the name from the models field instead of the serializer.
             model_field = getattr(serializer.Meta.model, field_name, None)
-
             if (
                 field_name != pk_field
                 and not hasattr(serializer, field_name)
                 and field_type in SERIALIZER_FIELD_TYPES_TO_FETCH_MODEL_TYPE
-                and model_field is not None
+                and hasattr(model_field, "field")
             ):
-                field_type = model_field.field.get_internal_type()
+                child_field = model_field.field
+                if many:
+                    if hasattr(child_field, "child"):
+                        child_field = child_field.child
+                    elif hasattr(child_field, "base_field"):
+                        child_field = child_field.base_field
+
+                field_type = child_field.get_internal_type()
 
             effective_label = field.label or field_name.replace("_", " ").title()
 
