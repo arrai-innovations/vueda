@@ -218,7 +218,6 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 "label": effective_label,
                 "type": field_type,
                 "many": many,
-                "name": field_name,
                 "read_only": field.read_only,
                 "required": field.required,
             }
