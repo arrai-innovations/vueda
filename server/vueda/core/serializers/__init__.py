@@ -123,6 +123,9 @@ class VuedaSerializer(
         Return the expandable fields data off the class.
         Loop through the data and add defaults of False for certain fields if they don't exist.
         """
+        if not hasattr(cls.Meta, "expandable_fields_data"):
+            return {}
+
         expandable_fields_data = cls.Meta.expandable_fields_data
 
         cls.populate_expandable_fields_defaults(expandable_fields_data)
