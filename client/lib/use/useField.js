@@ -43,6 +43,8 @@ export const FIELD_PROPS = {
     },
 };
 
+export const FIELD_EMITS = ["update:modelValue"];
+
 /**
  * The default required validation function.
  *
@@ -119,10 +121,11 @@ const returnVoid = () => {};
  *  the field's value, errors, messages, touched state, modified state, and to focus or blur it.
  *
  * @param {FieldContextProps} props - The field context's reactive props.
+ * @param {import('vue').EmitFn} emit - The field context's component emit function.
  * @param {FieldContextFunctions} [functions] - The field context's non-reactive functions.
  * @returns {FieldContext} The field context object.
  */
-export function useField(props, functions) {
+export function useField(props, emit, functions) {
     /** @type {import('@vueda/use/useForm.js').FormContext|null} */
     const formContext = inject(FormContextSymbol, null);
 
@@ -151,12 +154,17 @@ export function useField(props, functions) {
                       if (functions?.preprocessSet) {
                           newValue = functions.preprocessSet(newValue);
                       }
-                      if (isArray(newValue) && props.rangeSuffix) {
+                      if (newValue === undefined) {
+                          formContext.deleteValue(state.name);
+                          emit("update:modelValue", undefined);
+                      } else if (isArray(newValue) && props.rangeSuffix) {
                           newValue.forEach((v, index) => {
                               formContext.updateValue(`${state.name}_${state.suffix[index]}`, v);
                           });
+                          emit("update:modelValue", newValue);
                       } else {
                           formContext.updateValue(state.name, newValue);
+                          emit("update:modelValue", newValue);
                       }
                   },
               })
@@ -238,21 +246,6 @@ export function useField(props, functions) {
     };
     const returnObj = {
         state,
-        updateValue: ifFormContext((value) => {
-            if (functions?.preprocessSet) {
-                value = functions.preprocessSet(value);
-            }
-            if (isArray(value) && props.rangeSuffix) {
-                value.forEach((v, index) => {
-                    if (v !== undefined && v !== null) {
-                        formContext.updateValue(`${state.name}_${state.suffix[index]}`, v);
-                    }
-                });
-            } else {
-                formContext.updateValue(state.name, value);
-            }
-        }),
-        deleteValue: ifFormContext(() => formContext.deleteValue(state.name)),
         updateError: ifFormContext((code, message) => formContext.updateError(state.name, code, message)),
         deleteError: ifFormContext((code) => formContext.deleteError(state.name, code)),
         updateMessage: ifFormContext((code, message) => formContext.updateMessage(state.name, code, message)),

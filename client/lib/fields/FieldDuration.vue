@@ -1,11 +1,12 @@
 <script setup>
-import { FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { ref, toRef, watch } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
 });
-const fieldContext = useField(props);
+const emit = defineEmits([...FIELD_EMITS]);
+const fieldContext = useField(props, emit);
 
 const hours = ref(0);
 const minutes = ref(0);

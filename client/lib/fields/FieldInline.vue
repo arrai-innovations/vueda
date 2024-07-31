@@ -2,7 +2,7 @@
 import InlineRow from "@vueda/components/InlineRow.vue";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
-import { FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
@@ -10,14 +10,15 @@ import Divider from "primevue/divider";
 const props = defineProps({
     ...FIELD_PROPS,
 });
-const fieldContext = useField(props);
+const emit = defineEmits([...FIELD_EMITS]);
+const fieldContext = useField(props, emit);
 const theme = useComputedClasses(vuedaTailwind.FormModel);
 
 const addRow = () => {
-    fieldContext.updateValue([...cloneDeep(fieldContext.state.value), {}]);
+    fieldContext.state.value = [...cloneDeep(fieldContext.state.value), {}];
 };
 const removeRow = (index) => {
-    fieldContext.updateValue(cloneDeep(fieldContext.state.value).filter((_, i) => i !== index));
+    fieldContext.state.value = cloneDeep(fieldContext.state.value).filter((_, i) => i !== index);
 };
 </script>
 

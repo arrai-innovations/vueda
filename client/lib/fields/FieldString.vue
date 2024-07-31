@@ -1,5 +1,5 @@
 <script setup>
-import { FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import isString from "lodash-es/isString.js";
 import { computed, toRef, watch } from "vue";
 
@@ -26,7 +26,8 @@ const props = defineProps({
         default: undefined,
     },
 });
-const fieldContext = useField(props);
+const emit = defineEmits([...FIELD_EMITS]);
+const fieldContext = useField(props, emit);
 const fieldValueRef = toRef(fieldContext.state, "value");
 watch(
     [toRef(props, "trim"), fieldValueRef],

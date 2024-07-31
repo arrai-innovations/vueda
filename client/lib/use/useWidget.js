@@ -87,8 +87,7 @@ export function useWidget(props, emit) {
                         emit("update:modelValue", value);
                     }
                     if (fieldContext) {
-                        fieldContext.updateValue(value);
-                        // FormContext handles setting modified
+                        fieldContext.state.value = value;
                     }
                 },
             }),

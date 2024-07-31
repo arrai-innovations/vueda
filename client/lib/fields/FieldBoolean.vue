@@ -1,11 +1,12 @@
 <script setup>
-import { FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { toRef, watch } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
 });
-const fieldContext = useField(props);
+const emit = defineEmits([...FIELD_EMITS]);
+const fieldContext = useField(props, emit);
 
 watch(
     toRef(fieldContext.state, "value"),
