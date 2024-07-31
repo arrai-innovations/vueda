@@ -40,11 +40,13 @@ class WhoIsSerializer(VuedaSerializer):
     This is a serializer for the current user, it is simpler than the other user serializers.
     """
 
-    groups = serializers.SlugRelatedField(many=True, queryset=Group.objects.all(), slug_field="name")
-
     class Meta(VuedaSerializer.Meta):
         model = User
         fields = ["id", "email", "name", "groups", "is_superuser"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "groups": serializers.SlugRelatedField(many=True, queryset=Group.objects.all(), slug_field="name"),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
     def get_fields(self):
         fields = super().get_fields()
@@ -82,6 +84,10 @@ class UserSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
         read_only_fields = ["date_joined"]
         extra_kwargs = {"password": {"write_only": True, "required": False}}
+        expandable_fields = {
+            "groups": serializers.SlugRelatedField(many=True, queryset=Group.objects.all(), slug_field="name"),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
     def validate_password(self, value):
         try:
