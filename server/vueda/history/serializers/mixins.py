@@ -148,7 +148,7 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
         """
         from vueda.info.serializers import ModelInfoSerializer
 
-        if not hasattr(cls.Meta.expandable_fields):
+        if not hasattr(cls.Meta, "expandable_fields"):
             return {}
 
         history_expandable_field_names = tuple(SimpleHistorySerializerMixin.Meta.expandable_fields)
