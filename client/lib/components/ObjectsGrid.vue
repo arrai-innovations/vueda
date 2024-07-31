@@ -5,7 +5,7 @@ import { breakpointsTailwind } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
 import get from "lodash-es/get.js";
 import Checkbox from "primevue/checkbox";
-import { computed, reactive } from "vue";
+import { computed, reactive, toRef } from "vue";
 
 const props = defineProps({
     titleFieldName: {
@@ -123,8 +123,8 @@ const props = defineProps({
 const emit = defineEmits(["update:sorted", "update:selected"]);
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
-const isTable = breakpoints.greaterOrEqual(props.tableBreakpoint);
-const twoColumns = breakpoints.between("sm", props.tableBreakpoint);
+const isTable = breakpoints.greaterOrEqual(toRef(props, "tableBreakpoint"));
+const twoColumns = breakpoints.between("sm", toRef(props, "tableBreakpoint"));
 const evenCard = (index) => {
     if (isTable.value || !twoColumns.value) {
         return index % 2 === 0;
@@ -165,6 +165,7 @@ const sortClick = (e, fieldName) => {
 const directionlessSorted = computed(() => props.sorted.map((field) => field.replace(/^-/, "")));
 const themeProps = reactive({
     isTable,
+    tableBreakpoint: toRef(props, "tableBreakpoint"),
 });
 const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kwargs) => {
     if ("evenCard" in kwargs) {

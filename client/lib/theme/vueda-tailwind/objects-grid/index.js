@@ -16,9 +16,14 @@ export default {
     },
     headerCell: {
         class: ({ isTable }) => [
-            "align-middle border-surface-200 dark:border-surface-700" +
-                " font-semibold not-italic px-1 lg:px-2 select-none",
-            "bg-surface-900 dark:bg-surface-500 text-white",
+            "text-white",
+            "bg-surface-900 dark:bg-surface-500",
+            "align-middle",
+            "px-1 lg:px-2",
+            "font-semibold not-italic",
+            "select-none",
+            "first:rounded-tl",
+            "last:rounded-tr",
             {
                 "!table-cell": isTable,
                 "h-[3.5rem] py-2": isTable,
@@ -56,7 +61,15 @@ export default {
         class: ["text-center"],
     },
     bodyRow: {
-        class: ({ isTable, evenCard }) => [
+        class: ({ isTable, evenCard, tableBreakpoint }) => [
+            // you can't tell how many cards are on a row, so we must treat them all the same.
+            // first and last don't help us here.
+            {
+                "max-md:rounded": tableBreakpoint === "md",
+            },
+            {
+                "max-lg:rounded": tableBreakpoint === "lg",
+            },
             {
                 "bg-surface-50 dark:bg-surface-900": !evenCard,
                 "bg-surface-100 dark:bg-surface-800": evenCard,
@@ -66,9 +79,9 @@ export default {
     },
     bodyCell: {
         class: ({ isTable }) => [
-            "align-middle border-surface-200 dark:border-surface-700" +
-                " text-surface-800 dark:text-surface-200 font-normal not-italic" +
-                " px-1 lg:px-2",
+            "align-middle text-surface-800 dark:text-surface-200 font-normal not-italic",
+            "border-surface-200 dark:border-surface-700",
+            "px-1 lg:px-2",
             {
                 "!table-cell": isTable,
                 "h-[3.5rem]": isTable,

@@ -371,6 +371,7 @@ onMounted(() => {
             v-bind="$attrs"
             v-model:selected="selectedObjects"
             :calculated-objects="instanceList.state.calculatedObjects"
+            class="w-full"
             :data-qa="`view-list-${app}-${model}-objects-grid`"
             :fields="calculatedDisplayFields"
             :loading="loading"
