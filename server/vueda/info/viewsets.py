@@ -225,10 +225,6 @@ class ModelInfoChoicesViewSet(FlexFieldsMixin, mixins.ListModelMixin, GenericVie
         return get_registration(self.choices_serializer_instance.pk)
 
     def dispatch(self, request, app_label, model, field, *args, **kwargs):
-        # Store the app_label, model, and field as early as possible,
-        # because they are used in check_permissions and get_queryset.
-        self.choices_app_label = app_label
-        self.choices_model = model
         self.choices_field = field
         self.choices_serializer_instance = generics.get_object_or_404(
             ContentType, app_label=app_label, model=model.replace("_", "")
