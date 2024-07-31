@@ -74,7 +74,7 @@ export function useWidget(props, emit) {
             ),
             combinedValue: computed({
                 get: () => {
-                    if (props.modelValue) {
+                    if (props.modelValue !== undefined) {
                         return props.modelValue;
                     }
                     if (fieldContext) {
@@ -83,7 +83,7 @@ export function useWidget(props, emit) {
                     return undefined;
                 },
                 set: (value) => {
-                    if (props.modelValue) {
+                    if (props.modelValue !== undefined) {
                         emit("update:modelValue", value);
                     }
                     if (fieldContext) {
