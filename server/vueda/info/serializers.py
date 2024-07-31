@@ -182,10 +182,10 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                     child_field = field.child
                 elif hasattr(field, "base_field"):
                     child_field = field.base_field
-                if hasattr(child_field, "model_field"):
+                if hasattr(child_field, "model_field"):  # If the field is now a ModelField, then get the actual field.
                     child_field = child_field.model_field
             else:
-                if hasattr(field, "model_field"):
+                if hasattr(field, "model_field"):  # If the field is now a ModelField, then get the actual field.
                     child_field = field.model_field
 
             # Get the field type.
@@ -198,6 +198,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
             # If the field is a CharField on the serializer, it could be a TextField on the model.
             # If the field is a ChoiceField on the serializer, we need to know what kind of data the model has.
+            # If the field is an ArrayField on the model, we need to know what the base model is.
             # So, for fields like this, we want to get the name from the models field instead of the serializer.
             model_field = getattr(serializer.Meta.model, field_name, None)
             if (
@@ -344,15 +345,11 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 if type(field_serializer) == str:  # noqa E721
                     field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
 
-                model = content_type = None
                 if hasattr(field_serializer, "Meta") and hasattr(field_serializer.Meta, "model"):
-                    model = field_serializer.Meta.model
-
-                if model is not None:
-                    content_type = ContentType.objects.get_for_model(model)
-
-                if content_type is not None:
-                    expand_item["content_type"] = str(content_type.id)
+                    app_label = field_serializer.Meta.model._meta.app_label
+                    model_name = field_serializer.Meta.model._meta.model_name
+                    expand_item["app_label"] = app_label
+                    expand_item["model"] = model_name
 
                 field_data = self.get_model_fields_data(field_serializer)
 

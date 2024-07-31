@@ -160,9 +160,9 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
 
             model = cls.Meta.model
             history_model = model.history.model
-            content_type = ContentType.objects.get_for_model(history_model)
 
-            expandable_fields_data[key]["content_type"] = content_type.pk
+            expandable_fields_data[key]["app_label"] = history_model._meta.app_label
+            expandable_fields_data[key]["model"] = history_model._meta.model_name
 
             # Add the fields from the serializer.  These fields should be first, after pk.
             sorted_expandable_data = {

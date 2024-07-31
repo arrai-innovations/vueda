@@ -69,7 +69,8 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "first_history_entry",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicaldistributor",
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -145,7 +146,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "history",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicaldistributor",
                     "many": True,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -221,7 +223,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "last_history_entry",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicaldistributor",
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -433,7 +436,8 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "user",
-                    "content_type": None,
+                    "app_label": "tests",
+                    "model": "user",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -498,7 +502,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "first_history_entry",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicalcustomer",
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -582,7 +587,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "history",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicalcustomer",
                     "many": True,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -666,7 +672,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "last_history_entry",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicalcustomer",
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -811,7 +818,8 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "customer",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "customer",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -836,7 +844,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "cart_items",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "cartitem",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -947,6 +956,8 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "customer",
+                    "app_label": "store",
+                    "model": "customer",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -968,10 +979,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": True,
                         },
                     },
-                    "content_type": None,
                 },
                 {
                     "name": "order_state",
+                    "app_label": "store",
+                    "model": "orderstate",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -1003,11 +1015,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": False,
                         },
                     },
-                    "content_type": None,
                 },
                 {
                     "name": "first_history_entry",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicalcustomerorder",
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -1125,7 +1137,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "history",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicalcustomerorder",
                     "many": True,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -1243,7 +1256,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "last_history_entry",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicalcustomerorder",
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -1519,7 +1533,8 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "distributor",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "distributor",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -1553,7 +1568,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "first_history_entry",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicalproduct",
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -1755,7 +1771,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "history",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicalproduct",
                     "many": True,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -1957,7 +1974,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "last_history_entry",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicalproduct",
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -2346,7 +2364,8 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "option_type",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "optiontype",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -2381,7 +2400,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "product",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "product",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -2431,7 +2451,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "first_history_entry",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicalproductoption",
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -2677,7 +2698,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "history",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicalproductoption",
                     "many": True,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -2923,7 +2945,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "last_history_entry",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "historicalproductoption",
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
@@ -3339,7 +3362,8 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "customer_order",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "customerorder",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -3390,7 +3414,8 @@ DETAIL_PARAMETRIZE = [
                 },
                 {
                     "name": "product_option",
-                    "content_type": None,
+                    "app_label": "store",
+                    "model": "productoption",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -3553,6 +3578,8 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "product_option",
+                    "app_label": "store",
+                    "model": "productoption",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -3627,10 +3654,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": False,
                         },
                     },
-                    "content_type": None,
                 },
                 {
                     "name": "reason",
+                    "app_label": "store",
+                    "model": "inventoryrecordreason",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -3670,10 +3698,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": False,
                         },
                     },
-                    "content_type": None,
                 },
                 {
                     "name": "added_inventory_record",
+                    "app_label": "store",
+                    "model": "inventoryrecord",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -3775,10 +3804,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": False,
                         },
                     },
-                    "content_type": None,
                 },
                 {
                     "name": "order_item",
+                    "app_label": "store",
+                    "model": "orderitem",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -3810,7 +3840,6 @@ DETAIL_PARAMETRIZE = [
                             "choices": False,
                         },
                     },
-                    "content_type": None,
                 },
             ],
             "expected_fields": {
@@ -4052,6 +4081,8 @@ DETAIL_PARAMETRIZE = [
             "expected_expands": [
                 {
                     "name": "cart",
+                    "app_label": "store",
+                    "model": "cart",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -4073,10 +4104,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": True,
                         },
                     },
-                    "content_type": None,
                 },
                 {
                     "name": "product_option",
+                    "app_label": "store",
+                    "model": "productoption",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                         "pk": "id",
                         "id": {
@@ -4151,7 +4183,6 @@ DETAIL_PARAMETRIZE = [
                             "choices": False,
                         },
                     },
-                    "content_type": None,
                 },
             ],
             "expected_fields": {
@@ -5540,9 +5571,7 @@ class TestModelInfoSerializer:
                         expected_model_expand
                     ), f'expected_expands -> "name": "{model_expand["name"]}" -> {{keys}}'
                     for key, value in model_expand.items():
-                        if key == "content_type":  # We don't want to test the pk of the content type.
-                            value = None
-                        elif key == settings.REST_FLEX_FIELDS["FIELDS_PARAM"]:
+                        if key == settings.REST_FLEX_FIELDS["FIELDS_PARAM"]:
                             self.check_model_fields(
                                 value,
                                 expected_model_expand[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]],
