@@ -18,10 +18,21 @@ defineProps({
         type: String,
         default: undefined,
     },
+    sticky: {
+        type: Boolean,
+        default: true,
+    },
 });
 </script>
 <template>
-    <div class="sticky top-0 z-30" :class="headerClass">
+    <div
+        :class="[
+            headerClass,
+            {
+                'sticky top-0 z-30': sticky,
+            },
+        ]"
+    >
         <div class="bg-surface-0 dark:bg-surface-950 flex flex-col gap-1 py-1">
             <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7">
                 <div class="w-full sm:w-auto flex items-baseline">
