@@ -1,7 +1,7 @@
 <script setup>
 import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
-import FilterFormModel from "@vueda/components/FilterFormModel.vue";
+import FilterForm from "@vueda/components/FilterForm.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
@@ -102,7 +102,6 @@ const props = defineProps({
     // as long as there are no collisions, $attrs can be used to pass through any other props to objects-grid
 });
 const listSearch = ref(null);
-const filterFormModelRef = ref(null);
 const isActive = useIsActive();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const sorting = reactive({
@@ -236,12 +235,6 @@ const filterList = () => {
     listState.search = listSearch.value;
     listState.filterArgs = cloneDeep(formContext.state.values);
 };
-const clickClearFilter = () => {
-    formContext.reset();
-    listState.filterArgs = {};
-    listSearch.value = "";
-    listState.search = "";
-};
 const selectedObjects = ref([]);
 
 const router = useRouter();
@@ -302,63 +295,54 @@ onMounted(() => {
                     </slot>
                 </template>
             </template>
-            <template #subtitle>
-                <div class="flex gap-1 w-full">
-                    <InputGroup>
-                        <InputText
-                            v-model="listSearch"
-                            class="max-w-[30ch]"
-                            name="search"
-                            placeholder="Search"
-                            type="search"
-                            @search="filterList"
-                        />
-                        <slot :click="filterList" label="Search" name="button" verb="search">
-                            <Button label="Search" @click="filterList" />
-                        </slot>
-                    </InputGroup>
-                </div>
-            </template>
-            <template #under-actions>
-                <div class="flex gap-1 w-full justify-end">
-                    <template v-for="actionName in modelConfig.config.detailActions" :key="actionName">
-                        <slot
-                            name="bulk-action-button"
-                            v-bind="{
-                                model,
-                                app,
-                                view: actionName,
-                                label: memoizedStartCase(actionName),
-                                click: detailActionOnClick(actionName),
-                                selectedObjects,
-                            }"
-                        >
-                            <link-model-view
-                                :app="app"
-                                button
-                                :label="memoizedStartCase(actionName)"
-                                :model="model"
-                                :pk="selectedObjects"
-                                :view="actionName"
-                            />
-                        </slot>
-                    </template>
-                </div>
-            </template>
         </page-title>
-        <div class="flex gap-2 lg:gap-4 my-1 items-center justify-end w-full">
-            <form :ref="filterFormModelRef" class="w-full" @submit.prevent="filterList">
-                <filter-form-model :app="app" :filter-fields="listFields" :model="model" v-bind="$attrs" />
-            </form>
-            <slot :click="clickClearFilter" label="Clear Filters" name="button" verb="clearFilters">
-                <Button
-                    class="whitespace-nowrap"
-                    label="Clear Filters"
-                    severity="secondary"
-                    @click="clickClearFilter"
-                />
-            </slot>
+        <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7">
+            <div class="flex gap-1 w-full">
+                <InputGroup>
+                    <InputText
+                        v-model="listSearch"
+                        class="max-w-[30ch]"
+                        name="search"
+                        placeholder="Search"
+                        type="search"
+                        @search="filterList"
+                    />
+                    <slot :click="filterList" label="Search" name="button" verb="search">
+                        <Button label="Search" @click="filterList" />
+                    </slot>
+                </InputGroup>
+            </div>
+            <div class="flex gap-1 w-full justify-end">
+                <template v-for="actionName in modelConfig.config.detailActions" :key="actionName">
+                    <slot
+                        name="bulk-action-button"
+                        v-bind="{
+                            model,
+                            app,
+                            view: actionName,
+                            label: memoizedStartCase(actionName),
+                            click: detailActionOnClick(actionName),
+                            selectedObjects,
+                        }"
+                    >
+                        <link-model-view
+                            :app="app"
+                            button
+                            :label="memoizedStartCase(actionName)"
+                            :model="model"
+                            :pk="selectedObjects"
+                            :view="actionName"
+                        />
+                    </slot>
+                </template>
+            </div>
         </div>
+        <filter-form
+            v-model="listState.filterArgs"
+            :app="app"
+            :filter-fields="modelConfig.config.listFilterable"
+            :model="model"
+        />
         <error-display :error="error" :errored="errored" @dismiss-error="dismissError" />
         <!-- todo: filters/search -->
         <!-- todo: hide/show columns -->
