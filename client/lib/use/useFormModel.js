@@ -153,7 +153,7 @@ const getDefaultWidget = (field) => {
         return async () => (await import("@vueda/widgets/WidgetReadOnly.vue")).default;
     }
     if (field.choices) {
-        return async () => (await import("@vueda/widgets/widgetAutoComplete.vue")).default;
+        return async () => (await import("@vueda/widgets/WidgetAutoComplete.vue")).default;
         // return WidgetMultiSelect;
     }
     if (field.type === "TextField" || field.many) {
