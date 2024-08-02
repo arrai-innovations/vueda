@@ -55,7 +55,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
 
     def check_permissions(self, request):
         # you need Workflow read permission to get / list / action the workflow, at minimum
-        if not request.user.has_perm("workflow.read_workflow"):
+        if not request.user.has_perm("vueda_workflow.read_workflow"):
             raise PermissionDenied("You do not have permission to perform this action.")
         return super().check_permissions(request)
 
