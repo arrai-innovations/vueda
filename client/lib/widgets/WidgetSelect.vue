@@ -50,10 +50,10 @@ const theme = useComputedClasses(vuedaTailwind.WidgetSelect, widgetContext.state
                 <dropdown
                     v-model="widgetContext.state.combinedValue"
                     :name="widgetContext.state.combinedName"
-                    v-bind="$attrs"
-                    option-label="label"
-                    option-value="value"
+                    :option-label="$attrs.optionlabel || 'label'"
+                    :option-value="$attrs.optionValue || 'value'"
                     :options="props.options"
+                    v-bind="$attrs"
                     @blur="widgetContext.blur"
                     @focus="widgetContext.focus"
                 />
