@@ -132,15 +132,19 @@ const camelCaseObject = (obj) => {
  */
 
 /**
+ * @typedef {(
+ *     "exact"|"iexact"|"contains"|"icontains"|"gt"|"gte"|"lt"|"lte"|"in"|"startswith"|
+ *     "istartswith"|"endswith"|"iendswith"|"range"|"isnull"|"search"|"regex"|"iregex"
+ * )} LookupExpr
+ */
+
+/**
  * A filter information item.
  *
  * @typedef {object} FilterInfoItem
  * @property {string} label - The label of the filter.
  * @property {boolean} required - A boolean indicating whether the filter is required.
- * @property {(
- *     "exact"|"iexact"|"contains"|"icontains"|"gt"|"gte"|"lt"|"lte"|"in"|"startswith"|
- *     "istartswith"|"endswith"|"iendswith"|"range"|"isnull"|"search"|"regex"|"iregex"
- * )[]} lookupExprs - An array of django lookup expressions for the filter.
+ * @property {LookupExpr[]} lookupExprs - An array of django lookup expressions for the filter.
  */
 
 /**
@@ -148,7 +152,9 @@ const camelCaseObject = (obj) => {
  *
  * @typedef {object} FilterInfo
  * @property {string} name - The name of the filtering field.
- * @property {string} type - The type of the filtering field (e.g., "alpha", "numeric").
+ * @property {(
+ *     'alpha'|'boolean'|'date'|'datetime'|'numeric'|'time'
+ * )} type - The type of the filtering field (e.g., "alpha", "numeric").
  * @property {FilterInfoItem[]} filters - An array of available filters for the field.
  */
 
