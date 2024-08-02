@@ -63,7 +63,7 @@ const deleteValue = (state, name) => {
     validateName(name);
     if (get(state.values, name) !== undefined) {
         del(state.values, name);
-        calculateModified(name);
+        calculateModified(state, name);
     }
 };
 
