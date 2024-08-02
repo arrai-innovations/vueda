@@ -5,7 +5,7 @@ import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import get from "lodash-es/get.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
-import InlineMessage from "primevue/inlinemessage";
+import Message from "primevue/message";
 import { inject, reactive, watch } from "vue";
 
 const props = defineProps({
@@ -78,12 +78,9 @@ watch(
 );
 </script>
 <template>
-    <div v-if="!isEmpty(feedbackItems)">
-        <InlineMessage
-            v-for="message in Object.values(feedbackItems)"
-            :key="message"
-            :severity="type === 'message' ? 'info' : 'error'"
-            >{{ message }}</InlineMessage
-        >
-    </div>
+    <template v-if="!isEmpty(feedbackItems)" v-for="message in Object.values(feedbackItems)" :key="message">
+        <slot :name="type" v-bind="{ message, type }">
+            <Message :closable="false" :severity="type === 'message' ? 'info' : 'error'">{{ message }}</Message>
+        </slot>
+    </template>
 </template>
