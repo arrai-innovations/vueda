@@ -21,7 +21,9 @@ const fieldContext = inject(FieldContextSymbol, null);
 const computedHelp = computed(() => (props.help?.length ? props.help : fieldContext?.state?.help));
 </script>
 <template>
-    <div v-if="computedHelp || $slots.default">
-        <slot :help="computedHelp">{{ computedHelp }}</slot>
-    </div>
+    <slot :help="computedHelp">
+        <div v-if="computedHelp?.length">
+            {{ computedHelp }}
+        </div>
+    </slot>
 </template>
