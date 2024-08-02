@@ -47,8 +47,11 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         return get_object_or_404(self.workflow.content_type.model_class(), pk=self.kwargs["object_id"])
 
     def dispatch(self, request, *args, **kwargs):
-        self.workflow = self.get_workflow()
-        self.object = self.get_object()
+        if "object_id" in kwargs:
+            self.workflow = self.get_workflow()
+            self.object = self.get_object()
+        elif "app_label" in kwargs:
+            self.workflow = self.get_workflow()
         return super().dispatch(request, *args, **kwargs)
 
     def check_permissions(self, request):
