@@ -3,6 +3,8 @@ import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
+import RadioButton from "primevue/radiobutton";
+import { computed } from "vue";
 
 const props = defineProps({
     ...WIDGET_PROPS,
@@ -10,37 +12,13 @@ const props = defineProps({
         type: Array,
         required: true,
     },
-    variant: {
+    optionLabel: {
         type: String,
-        default: "default",
+        default: "label",
     },
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    optionsClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    optionClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    innerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    inputClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    labelClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    optionLabelClass: {
-        type: [String, Array, Object],
-        default: () => [],
+    optionValue: {
+        type: String,
+        default: "value",
     },
     useFloatingLabel: {
         type: Boolean,
@@ -50,33 +28,48 @@ const props = defineProps({
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useComputedClasses(vuedaTailwind.WidgetRadio, widgetContext.state);
+const computedOptions = computed(() => {
+    return props.options.map((option) => {
+        return {
+            ...option,
+            label: option[props.optionLabel],
+            value: option[props.optionValue],
+        };
+    });
+});
 </script>
 
 <template>
     <div :class="theme('root')">
-        <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
+        <widget-label :label-class="theme('optionLabel')" :use-floating-label="props.useFloatingLabel">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
                 <ul :class="theme('options')">
-                    <li v-for="option in props.options" :key="option.value">
-                        <input
+                    <li v-for="option in computedOptions" :key="option.value" :class="theme('option')">
+                        <slot
                             :id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
-                            :checked="widgetContext.state.combinedValue === option.value"
-                            :class="theme('option')"
-                            :name="widgetContext.state.combinedName"
-                            type="radio"
-                            :value="option.value"
-                            @blur="widgetContext.blur"
-                            @focus="widgetContext.focus"
-                            @update:checked="widgetContext.state.combinedValue = option.value"
-                        />
+                            :class="theme('optionInput')"
+                            :name="$slots[`radio(${option.value})`] ? `radio(${option.value})` : 'radio'"
+                            :option="option"
+                            :widget-context="widgetContext"
+                        >
+                            <radio-button
+                                v-model="widgetContext.state.combinedValue"
+                                :class="theme('optionInput')"
+                                :input-id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
+                                :name="widgetContext.state.combinedName"
+                                :value="option.value"
+                                @blur="widgetContext.blur"
+                                @focus="widgetContext.focus"
+                            />
+                        </slot>
                         <slot
                             :class="theme('optionLabel')"
                             :for="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
                             :label="option.label"
-                            :name="$slots[`label-${option.value}`] ? `label-${option.value}` : 'default'"
+                            :name="$slots[`label(${option.value})`] ? `label(${option.value})` : 'label'"
                         >
                             <label
                                 :class="theme('optionLabel')"
