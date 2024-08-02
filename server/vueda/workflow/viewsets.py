@@ -45,12 +45,9 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
 
     def get_object(self):
         if "object_id" in self.request_kwargs:
-            self.workflow = self.get_workflow()
-            self.object = obj = get_object_or_404(self.workflow.content_type.model_class(), pk=self.kwargs["object_id"])
-            return obj
+            return get_object_or_404(self.get_workflow().content_type.model_class(), pk=self.kwargs["object_id"])
         elif "app_label" in self.request_kwargs:
-            self.workflow = obj = self.get_workflow()
-            return obj
+            return self.get_workflow()
 
     def dispatch(self, request, *args, **kwargs):
         self.request_kwargs = kwargs
@@ -155,13 +152,14 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         user = request.user
         app_label = kwargs["app_label"]
         model = kwargs["model"]
-        if not isinstance(self.object, HasWorkflowModelMixin):
+        instance = self.get_object()
+        if not isinstance(instance, HasWorkflowModelMixin):
             return Response(
                 data={"detail": "Object does not have a workflow."},
                 exception=Exception("Object does not have a workflow."),
                 status=drf_status.HTTP_404_NOT_FOUND,
             )
-        if not user.has_perm(f"{app_label}.read_{model.replace('_', '')}", obj=self.object):
+        if not user.has_perm(f"{app_label}.read_{model.replace('_', '')}", obj=instance):
             err_msg = "You do not have permission to perform this action."
             return Response(
                 data={"detail": err_msg},
@@ -169,12 +167,12 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 status=drf_status.HTTP_403_FORBIDDEN,
             )
 
-        state = self.object.workflow_state
+        state = instance.workflow_state
         response_data = {
             "state": {"code": state.code, "name": state.name},
         }
-        if hasattr(self.object.object_state, "history"):
-            current_history_id = self.object.object_state.history.latest().id
+        if hasattr(instance.object_state, "history"):
+            current_history_id = instance.object_state.history.latest().id
             response_data["current_history_id"] = current_history_id
         return Response(response_data)
 
@@ -198,7 +196,8 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     )
     @action(detail=True, methods=["get"], url_path=r"object-transitions/(?P<object_id>[^/.]+)")
     def object_transitions(self, request, *args, **kwargs):
-        return Response(list(self.object.available_transitions(request.user).order_by("name").values("code", "name")))
+        instance = self.get_object()
+        return Response(list(instance.available_transitions(request.user).order_by("name").values("code", "name")))
 
     @conditional_extend_schema_decorator(
         operation_id="executeTransition",
@@ -255,17 +254,18 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     )
     @action(detail=True, methods=["patch"], url_path=r"execute-transition/(?P<object_id>[^/.]+)")
     def execute_transition(self, request, *args, **kwargs):
+        instance = self.get_object()
         with transaction.atomic():
             transition_code = request.data.get("transition_code")
             # apply_transition does the permission checks
-            state, current_history_id = self.object.apply_transition(transition_code, user=request.user)
+            state, current_history_id = instance.apply_transition(transition_code, user=request.user)
             response_data = {
                 "new_state": {
                     "code": state.code,
                     "name": state.name,
                 },
                 "new_transitions": list(
-                    self.object.available_transitions(request.user).order_by("name").values("code", "name")
+                    instance.available_transitions(request.user).order_by("name").values("code", "name")
                 ),
             }
             if current_history_id:
