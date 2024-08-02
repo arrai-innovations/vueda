@@ -2,6 +2,7 @@ from rest_framework import serializers as drf_serializers
 
 from vueda.core.viewsets import FlexFieldsMixin
 from vueda.workflow.models import State
+from vueda.workflow.models import Transition
 from vueda.workflow.models import Workflow
 
 
@@ -19,6 +20,12 @@ class StateSerializer(FlexFieldsMixin, drf_serializers.ModelSerializer):
         model = State
 
 
+class TransitionSerializer(FlexFieldsMixin, drf_serializers.ModelSerializer):
+    class Meta:
+        fields = ["code", "name"]
+        model = Transition
+
+
 class WorkflowSerializer(FlexFieldsMixin, drf_serializers.ModelSerializer):
     app_label = drf_serializers.CharField(read_only=True, source="content_type.app_label")
     model = drf_serializers.CharField(read_only=True, source="content_type.model")
@@ -27,5 +34,6 @@ class WorkflowSerializer(FlexFieldsMixin, drf_serializers.ModelSerializer):
         fields = ["code", "name", "app_label", "model"]
         model = Workflow
         expandable_fields = {
-            "states": ("vueda.workflow.serializers.StateSerializer", {"many": True, "read_only": True})
+            "states": ("vueda.workflow.serializers.StateSerializer", {"many": True, "read_only": True}),
+            "transitions": ("vueda.workflow.serializers.TransitionSerializer", {"many": True, "read_only": True}),
         }
