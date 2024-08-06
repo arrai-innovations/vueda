@@ -362,6 +362,7 @@ onMounted(() => {
             selectable
             :sortable="sorting.state.sortable"
             :sorted="sorting.state.sorted"
+            table-breakpoint="lg"
             :variant="objectGridVariant"
             @update:sorted="sorting.updateSorted"
         >

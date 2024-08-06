@@ -1,9 +1,12 @@
 <script setup>
+import EmptyComponent from "@vueda/components/EmptyComponent.vue";
+import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
+import ObjectsGridCardCell from "@vueda/components/ObjectsGridCardCell.vue";
+import ObjectsGridTableHeader from "@vueda/components/ObjectsGridTableHeader.vue";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { breakpointsTailwind } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
-import get from "lodash-es/get.js";
 import Checkbox from "primevue/checkbox";
 import { computed, reactive, toRef } from "vue";
 
@@ -174,16 +177,6 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
     return key;
 });
 // selected_ is the reserved name for the selected checkbox, the trailing _ is not allowed in django model field names
-const unifiedGet = (obj, relatedObj, calculatedObj, fieldPath) => {
-    // related. and calculated. are prefixes to the field name, which change the object we're getting from
-    if (fieldPath.startsWith("related.")) {
-        return get(relatedObj, fieldPath.replace("related.", ""));
-    }
-    if (fieldPath.startsWith("calculated.")) {
-        return get(calculatedObj, fieldPath.replace("calculated.", ""));
-    }
-    return get(obj, fieldPath);
-};
 </script>
 <template>
     <div :class="theme('root')" role="table">
@@ -201,24 +194,18 @@ const unifiedGet = (obj, relatedObj, calculatedObj, fieldPath) => {
                         role="columnheader"
                         @click="sortClick($event, field?.name)"
                     >
-                        <slot :col-index="colIndex" :field="field" :name="`header(${field?.name})`"
-                            >{{ field.label }}
-                        </slot>
-                        <span
-                            v-if="sortable.includes(field?.name)"
-                            :class="theme('sort')"
-                            :data-qa="`objects-grid-sort-${field?.name}`"
+                        <objects-grid-table-header
+                            :ascending="sorted.includes(field.name)"
+                            :col-index="colIndex"
+                            :descending="sorted.includes(`-${field.name}`)"
+                            :field="field"
+                            :multi-sort-index="sorted.length > 1 ? directionlessSorted.indexOf(field.name) : undefined"
+                            :sortable="sortable.includes(field.name)"
                         >
-                            <slot :field="field" name="sort-icon" :sortable="sortable" :sorted="sorted">
-                                <!-- iconless text, screams to implementors to provide an icon -->
-                                <template v-if="sorted.includes(field?.name)">⬆️</template>
-                                <template v-else-if="sorted.includes(`-${field?.name}`)">⬇️</template>
-                                <template v-else>↕️</template>
-                            </slot>
-                            <span v-if="sorted?.length > 1" :class="theme('sortNum')">{{
-                                directionlessSorted.indexOf(field?.name) + 1
-                            }}</span>
-                        </span>
+                            <template v-if="$slots['sort-icon']" #sort-icon="slotProps">
+                                <slot name="sort-icon" v-bind="slotProps" />
+                            </template>
+                        </objects-grid-table-header>
                     </div>
                 </template>
             </div>
@@ -243,128 +230,113 @@ const unifiedGet = (obj, relatedObj, calculatedObj, fieldPath) => {
                 role="row"
             >
                 <template v-if="selectable">
-                    <div
-                        :class="[!isTable ? theme('cardCell') : theme('bodyCell'), fieldClasses?.selected_]"
-                        data-field="selected"
-                        data-qa="objects-grid-select-cell"
-                        role="cell"
+                    <objects-grid-card-cell
+                        v-if="!isTable"
+                        :calculated-object="{}"
+                        :class="fieldClasses?.selected_"
+                        :col-index="-1"
+                        :field="{
+                            name: 'selected_',
+                            label: '',
+                        }"
+                        :obj="{ id: obj.id }"
+                        :related-object="{}"
+                        :row-index="rowIndex"
                     >
-                        <slot
-                            :emit-selected="(e) => emit('update:selected', e)"
-                            name="field(selected_)"
-                            :obj="obj"
-                            :row-index="rowIndex"
-                            :selected="selected"
-                        >
-                            <Checkbox
-                                :input-id="`selected-row-${obj.id}`"
-                                :model-value="selected"
-                                name="selected"
-                                :value="obj.id"
-                                @update:model-value="emit('update:selected', $event)"
-                            />
-                        </slot>
-                    </div>
+                        <template #header>
+                            <slot name="header(selected_)">
+                                <empty-component />
+                            </slot>
+                        </template>
+                        <template #value>
+                            <slot
+                                :emit-selected="(e) => emit('update:selected', e)"
+                                name="field(selected_)"
+                                :obj="obj"
+                                :row-index="rowIndex"
+                                :selected="selected"
+                            >
+                                <Checkbox
+                                    :input-id="`selected-row-${obj.id}`"
+                                    :model-value="selected"
+                                    name="selected"
+                                    :value="obj.id"
+                                    @update:model-value="emit('update:selected', $event)"
+                                />
+                            </slot>
+                        </template>
+                    </objects-grid-card-cell>
+                    <objects-grid-body-cell
+                        v-else
+                        :calculated-object="{}"
+                        :class="fieldClasses?.selected_"
+                        :col-index="-1"
+                        :field="{
+                            name: 'selected_',
+                            label: '',
+                        }"
+                        :obj="{ id: obj.id }"
+                        :related-object="{}"
+                        :row-index="rowIndex"
+                    >
+                        <template #value>
+                            <slot
+                                :emit-selected="(e) => emit('update:selected', e)"
+                                name="field(selected_)"
+                                :obj="obj"
+                                :row-index="rowIndex"
+                                :selected="selected"
+                            >
+                                <Checkbox
+                                    :input-id="`selected-row-${obj.id}`"
+                                    :model-value="selected"
+                                    name="selected"
+                                    :value="obj.id"
+                                    @update:model-value="emit('update:selected', $event)"
+                                />
+                            </slot>
+                        </template>
+                    </objects-grid-body-cell>
                 </template>
                 <template v-for="(field, colIndex) in fields" :key="field?.name">
                     <template v-if="field?.name">
-                        <!-- this if let's first: and last: work, otherwise the last table cell can never be last child -->
-                        <div
+                        <objects-grid-card-cell
                             v-if="!isTable"
-                            :class="[theme('cardCell'), fieldClasses?.[field?.name]]"
-                            data-qa="objects-grid-card-cell"
-                            role="cell"
-                        >
-                            <div :class="theme('cardHeader')" :data-card-header="field?.name">
-                                <slot :col-index="colIndex" :field="field" :name="`header(${field?.name})`">
-                                    {{ field.label }}
-                                </slot>
-                            </div>
-                            <div :class="theme('cardValue')" :data-card="field?.name">
-                                <slot
-                                    :calculated-obj="get(calculatedObjects, obj.id)"
-                                    :col-index="colIndex"
-                                    :field="field"
-                                    :formatted="
-                                        field.formatted &&
-                                        unifiedGet(
-                                            obj,
-                                            get(relatedObjects, obj.id),
-                                            get(calculatedObjects, obj.id),
-                                            field.formatted,
-                                        )
-                                    "
-                                    :name="`field(${field?.name})`"
-                                    :obj="obj"
-                                    :related-obj="get(relatedObjects, obj.id)"
-                                    :row-index="rowIndex"
-                                    :value="
-                                        unifiedGet(
-                                            obj,
-                                            get(relatedObjects, obj.id),
-                                            get(calculatedObjects, obj.id),
-                                            field?.name,
-                                        )
-                                    "
-                                >
-                                    {{
-                                        (field.formatted ?? field?.name) &&
-                                        unifiedGet(
-                                            obj,
-                                            get(relatedObjects, obj.id),
-                                            get(calculatedObjects, obj.id),
-                                            field.formatted ?? field?.name,
-                                        )
-                                    }}
-                                </slot>
-                            </div>
-                        </div>
-                        <div
-                            v-else
-                            :class="[theme('bodyCell'), fieldClasses?.[field?.name]]"
+                            :calculated-object="calculatedObjects[obj.id]"
+                            :class="fieldClasses?.[field?.name]"
+                            :col-index="colIndex"
                             :data-field="field?.name"
-                            data-qa="objects-grid-body-cell"
+                            data-qa="objects-grid-card-cell"
+                            :field="field"
+                            :obj="obj"
+                            :related-object="relatedObjects[obj.id]"
                             role="cell"
+                            :row-index="rowIndex"
                         >
-                            <slot
-                                :calculated-obj="get(calculatedObjects, obj.id)"
-                                :col-index="colIndex"
-                                :field="field"
-                                :formatted="
-                                    field.formatted &&
-                                    unifiedGet(
-                                        obj,
-                                        get(relatedObjects, obj.id),
-                                        get(calculatedObjects, obj.id),
-                                        field.formatted,
-                                    )
-                                "
-                                :name="`field(${field?.name})`"
-                                :obj="obj"
-                                :related-obj="get(relatedObjects, obj.id)"
-                                :row-index="rowIndex"
-                                :value="
-                                    unifiedGet(
-                                        obj,
-                                        get(relatedObjects, obj.id),
-                                        get(calculatedObjects, obj.id),
-                                        field?.name,
-                                    )
-                                "
-                            >
-                                <p>
-                                    {{
-                                        (field.formatted ?? field?.name) &&
-                                        unifiedGet(
-                                            obj,
-                                            get(relatedObjects, obj.id),
-                                            get(calculatedObjects, obj.id),
-                                            field.formatted ?? field?.name,
-                                        )
-                                    }}
-                                </p>
-                            </slot>
-                        </div>
+                            <template #header="slotProps">
+                                <slot :name="`header(${field?.name})`" v-bind="slotProps" />
+                            </template>
+                            <template #value="slotProps">
+                                <slot :name="`field(${field?.name})`" v-bind="slotProps" />
+                            </template>
+                        </objects-grid-card-cell>
+                        <objects-grid-body-cell
+                            v-else
+                            :calculated-object="calculatedObjects[obj.id]"
+                            :class="fieldClasses?.[field?.name]"
+                            :col-index="colIndex"
+                            :data-field="field?.name"
+                            data-qa="objects-grid-table-cell"
+                            :field="field"
+                            :obj="obj"
+                            :related-object="relatedObjects[obj.id]"
+                            role="cell"
+                            :row-index="rowIndex"
+                        >
+                            <template #value="slotProps">
+                                <slot :name="`field(${field?.name})`" v-bind="slotProps" />
+                            </template>
+                        </objects-grid-body-cell>
                     </template>
                 </template>
             </div>
