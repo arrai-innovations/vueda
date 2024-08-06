@@ -324,20 +324,11 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                     expands_data.append(expand_item)
                     continue
 
-                if isinstance(field_data, (list, tuple)):
+                if isinstance(field_data, tuple):  # flex fields only deals with tuples, not lists.
                     field_serializer, expand_options = field_data
-
-                elif inspect.isclass(field_data) and issubclass(field_data, serializers.SerializerMethodField):
-                    func = getattr(serializer, f"get_{field_name}")
-                    raise NameError(
-                        "No expandable_fields_data specified for field.",
-                        {"name": f"{func.__module__}.{func.__qualname__}"},
-                    )
-
                 else:
-                    raise NotImplementedError(
-                        f"The expandable field {field_data} has not yet been configured to return data."
-                    )
+                    field_serializer = field_data
+                    expand_options = {}
 
                 # Copied to deal with serializer strings.
                 # https://github.com/rsinger86/drf-flex-fields/blob/9dd6a9140fd6d2ffe1baf9ab1ffc728540dea84d/
@@ -345,13 +336,26 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 if type(field_serializer) == str:  # noqa E721
                     field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
 
+                if not inspect.isclass(field_serializer):
+                    raise Exception(
+                        "This is not a valid `expandable_fields` definition. It must be a tuple of a Serializer/Field"
+                        " class and options, or simply a Serializer/Field Class.",
+                        {"name": field_name},
+                    )
+
+                if not issubclass(field_serializer, serializers.BaseSerializer):
+                    raise Exception(
+                        "No `expandable_fields_data` specified for field. Model info only knows automatically about"
+                        " fields expandable into serializers.",
+                        {"name": field_name},
+                    )
+
                 if hasattr(field_serializer, "Meta") and hasattr(field_serializer.Meta, "model"):
                     app_label = field_serializer.Meta.model._meta.app_label
                     model_name = field_serializer.Meta.model._meta.model_name
                     expand_item["app_label"] = app_label
                     expand_item["model"] = model_name
-
-                field_data = self.get_model_fields_data(field_serializer)
+                    field_data = self.get_model_fields_data(field_serializer)
 
                 if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expand_options:
                     # We need to call tuple, as we are modifying the dictionary.
