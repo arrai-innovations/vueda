@@ -5894,7 +5894,7 @@ class TestModelInfoErrsSerializer:
 
         assert response.status_code == 500, response.status_code
 
-        assert b"No expandable_fields_data specified for field." in response.content, response.content
         assert (
-            b"tests.erring.serializers.NoExpandableFieldsDataSerializer.get_test_function" in response.content
+            b"No `expandable_fields_data` specified for field. Model info only knows automatically about fields expandable into serializers."
+            in response.content
         ), response.content
