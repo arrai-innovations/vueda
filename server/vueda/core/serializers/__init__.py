@@ -30,7 +30,7 @@ class NoExtraFieldsSerializerMixin:
 
             extra_keys_expand = set(self._flex_options_rep_only["expand"]) - set(self.expanded_fields)
             for extra_key in extra_keys_expand:
-                msg = f"Invalid expands.  Valid expands are {', '.join(self._expandable_fields)}."
+                msg = f"Invalid expands. Valid expands are {', '.join(self._expandable_fields)}."
                 if extra_key in errors:
                     errors[extra_key].append(msg)
                 else:

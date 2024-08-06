@@ -122,8 +122,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert len(response.data["supervisor"]) == 1, f"supervisor data: {response.data['supervisor']}"
         assert "message" in response.data["supervisor"][0], f"supervisor data: {response.data['supervisor'][0]}"
         assert (
-            str(response.data["supervisor"][0]["message"])
-            == "Invalid expands.  Valid expands are history, first_history_entry, last_history_entry."
+            str(response.data["supervisor"][0]["message"]) == "Invalid expands. No expands are permitted."
         ), f"supervisor message: {response.data['supervisor'][0]['message']}"
 
     def test_retrieve_with_valid_expands(self, page_data, authenticated_client, expected_retrieve_response):
@@ -174,7 +173,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         ), f"second_history_entry data: {response.data['second_history_entry'][0]}"
         assert (
             str(response.data["second_history_entry"][0]["message"])
-            == "Invalid expands.  Valid expands are history, first_history_entry, last_history_entry."
+            == "Invalid expands. Permitted expands are history, first_history_entry, last_history_entry."
         ), f"second_history_entry message: {response.data['second_history_entry'][0]['message']}"
         assert "history" not in response.data, f"response.data: {response.data}"
 
@@ -339,8 +338,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"
         assert (
             str(response.data["guardian"][0]["message"])
-            == "Invalid expands.  Valid expands are timesheet_entry, employee, "
-            "supervisor, foo, history, first_history_entry, last_history_entry."
+            == "Invalid expands. Permitted expands are employee, supervisor."
         ), f"guardian message: {response.data['guardian'][0]['message']}"
         assert "employee" not in response.data, f"response.data: {response.data}"
 
@@ -372,7 +370,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"
         assert (
             str(response.data["guardian"][0]["message"])
-            == "Invalid expands.  Valid expands are timesheet_entry, employee, "
+            == "Invalid expands. Permitted expands are timesheet_entry, employee, "
             "supervisor, foo, history, first_history_entry, last_history_entry."
         ), f"guardian message: {response.data['guardian'][0]['message']}"
         assert "employee" not in response.data, f"response.data: {response.data}"

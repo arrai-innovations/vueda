@@ -125,11 +125,14 @@ class NoExtraFieldsForViewSetMixin:
             # the list of expand that was passed from the client, regardless of each expand param existing or not.
             # So, we can't trust that _flex_options_rep_only["expand"] in that situation, and instead need to look
             # at the expandable_fields set up in the Meta.
+            valid_expands = []
             if "permitted_expands" in serializer.context:
                 if hasattr(serializer, "_flex_options_rep_only"):
                     valid_fields.update(serializer._flex_options_rep_only["expand"])
+                    valid_expands = serializer.context["permitted_expands"]
             elif hasattr(serializer.Meta, "expandable_fields"):
                 valid_fields.update(serializer.Meta.expandable_fields)
+                valid_expands = serializer.Meta.expandable_fields
             submitted_fields = frozenset(serializer._get_query_param_value(settings.REST_FLEX_FIELDS["EXPAND_PARAM"]))
             extra_keys = submitted_fields - valid_fields
             if extra_keys:
@@ -138,7 +141,12 @@ class NoExtraFieldsForViewSetMixin:
                     errors[extra_key] = [
                         {
                             "message": ErrorDetail(
-                                string=f"Invalid expands.  Valid expands are {', '.join(serializer._expandable_fields)}.",
+                                string="Invalid expands. "
+                                + (
+                                    f"Permitted expands are {', '.join(valid_expands)}."
+                                    if valid_expands
+                                    else "No expands are permitted."
+                                ),
                                 code="invalid",
                             ),
                             "code": "invalid",
