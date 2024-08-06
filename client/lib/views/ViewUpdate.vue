@@ -102,7 +102,11 @@ watch(
     },
     { immediate: true, deep: true },
 );
-const calculatedUpdateFields = computed(() => modelConfig?.config?.updateFields);
+const calculatedUpdateFields = computed(() => {
+    const fields = new Set(modelConfig?.config?.updateFields);
+    fields.add("id");
+    return Array.from(fields);
+});
 const calculatedUpdateExpands = computed(() => modelConfig?.config?.updateExpands);
 const calculatedUpdateFieldProps = useMergeFieldNameProps([
     toRef(() => props.fieldProps),
