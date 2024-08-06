@@ -327,7 +327,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 if isinstance(field_data, (list, tuple)):
                     field_serializer, expand_options = field_data
 
-                elif issubclass(field_data, serializers.SerializerMethodField):
+                elif inspect.isclass(field_data) and issubclass(field_data, serializers.SerializerMethodField):
                     func = getattr(serializer, f"get_{field_name}")
                     raise NameError(
                         "No expandable_fields_data specified for field.",
