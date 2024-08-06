@@ -49,7 +49,6 @@ const valueComputed = computed(() => {
     <div :class="theme('root')">
         <slot
             :calculated-obj="calculatedObject"
-            :class="theme('value')"
             :col-index="colIndex"
             :field="field"
             :formatted="formattedComputed"
@@ -59,7 +58,7 @@ const valueComputed = computed(() => {
             :row-index="rowIndex"
             :value="valueComputed"
         >
-            <p :class="theme('value')">{{ formattedComputed }}</p>
+            {{ formattedComputed }}
         </slot>
     </div>
 </template>

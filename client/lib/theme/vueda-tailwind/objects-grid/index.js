@@ -133,8 +133,5 @@ export default {
                 "h-[3.5rem]",
             ],
         },
-        value: {
-            class: [],
-        },
     },
 };
