@@ -68,7 +68,14 @@ watch(
     },
     { immediate: true, deep: true },
 );
-const calculatedCreateFields = computed(() => modelConfig?.config?.createFields);
+const calculatedDisplayFields = computed(() => {
+    return modelConfig?.config?.createFields;
+});
+const calculatedCreateFields = computed(() => {
+    const fields = new Set(modelConfig?.config?.createFields);
+    fields.add("id");
+    return Array.from(fields);
+});
 const calculatedCreateExpands = computed(() => modelConfig?.config?.createExpands);
 const calculatedCreateFieldProps = useMergeFieldNameProps([
     toRef(() => props.fieldProps),
@@ -174,8 +181,9 @@ const targetlessActions = computed(() =>
             <form @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"
+                    :field-objects="modelConfig.config?.createFieldDetails || modelConfig.config?.fieldDetails"
                     :field-props="calculatedCreateFieldProps"
-                    :fields="calculatedCreateFields"
+                    :fields="calculatedDisplayFields"
                     :model="model"
                     :variant="formModelVariant"
                     :widget-props="calculatedCreateWidgetProps"

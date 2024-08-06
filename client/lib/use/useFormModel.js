@@ -189,6 +189,8 @@ const getDefaultWidget = (field) => {
  * @property {string} app - The app name
  * @property {string} model - The model name
  * @property {string[]} fields - The fields to display
+ * @property {{[fieldName:string]:import('@vueda/models/FieldModel').FieldModel}} fieldObjects - The field objects to
+ *  use. This supports view specific customization.
  * @property {{[fieldName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}} fieldComponents - The field components
  * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps - The field props
  * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}} widgetComponents - The widget components
@@ -300,17 +302,17 @@ export function useFormModel(props) {
 
     // todo: what about figuring out fields through foreign keys?
     watch(
-        [toRef(internalState, "modelInfo"), toRef(props, "fields")],
-        ([modelInfo, fields]) => {
-            if (Object.keys(modelInfo?.fields || {}).length && fields.length) {
+        [toRef(internalState.modelInfo, "expands"), toRef(props, "fields"), toRef(props, "fieldObjects")],
+        ([expands, fields, passedFieldObjects]) => {
+            if (Object.keys(passedFieldObjects || {}).length && fields.length) {
                 const fieldObjects = {};
                 const expandFieldObjects = {};
                 const fieldComponents = {};
                 const fieldProps = {};
                 const widgetComponents = {};
                 const widgetProps = {};
-                if (modelInfo?.expands) {
-                    for (const expand of modelInfo.expands) {
+                if (expands) {
+                    for (const expand of expands) {
                         if (!fields.includes(expand.name) || !expand.f) {
                             continue;
                         }
@@ -343,7 +345,7 @@ export function useFormModel(props) {
                     }
                 }
 
-                for (const [fieldName, fieldObj] of Object.entries(modelInfo.fields)) {
+                for (const [fieldName, fieldObj] of Object.entries(passedFieldObjects)) {
                     if (!fields.includes(fieldName)) {
                         continue;
                     }

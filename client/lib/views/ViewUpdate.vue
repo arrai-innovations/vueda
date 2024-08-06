@@ -102,6 +102,9 @@ watch(
     },
     { immediate: true, deep: true },
 );
+const calculatedDisplayFields = computed(() => {
+    return modelConfig?.config?.updateFields;
+});
 const calculatedUpdateFields = computed(() => {
     const fields = new Set(modelConfig?.config?.updateFields);
     fields.add("id");
@@ -299,8 +302,9 @@ const detailActions = computed(() => (modelConfig.config.updateActions || []).fi
             <form @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"
+                    :field-objects="modelConfig.config?.updateFieldDetails || modelConfig.config?.fieldDetails"
                     :field-props="calculatedUpdateFieldProps"
-                    :fields="calculatedUpdateFields"
+                    :fields="calculatedDisplayFields"
                     :model="model"
                     :variant="formModelVariant"
                     :widget-props="calculatedUpdateWidgetProps"

@@ -14,6 +14,9 @@ export function useComputedClasses(config, props, keyFn) {
     const es = effectScope();
 
     return (key, kwargs = {}) => {
+        if (!config) {
+            throw new Error("No theme config passed");
+        }
         if (!config[key]) {
             throw new Error(`No theme config found for ${key}`);
         }

@@ -32,7 +32,7 @@ const makeSearchParamsString = (searchParams) => {
 };
 
 const getDetailUrl = (app, model, pk, queryString) =>
-    `${httpOrHttpsHostname}${getUrl("modelDetail").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model)).replace(":pk", pk)}${queryString ? "?" + queryString : ""}`;
+    `${httpOrHttpsHostname}${getUrl("modelDetail").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model)).replace(":pk", pk)}${queryString}`;
 const getCreateUrl = (app, model, queryString) =>
     `${httpOrHttpsHostname}${getUrl("modelList").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model))}${queryString}`;
 

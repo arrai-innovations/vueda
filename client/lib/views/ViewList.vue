@@ -110,16 +110,10 @@ const sorting = reactive({
         sorted: [],
     },
     updateSorted: (sorted) => {
-        // todo: objects-grid handles the display and calling this to indicate desired sorts.
-        //  we need to handle getting the server to sort the objects, by updating the listArgs
         assignReactiveObject(sorting.state.sorted, sorted);
     },
 });
-//TODO: a list of string as fields won't work for objectsGrid
 const calculatedListFields = computed(() => {
-    // if they don't pass listFields, use the modelConfig fields.
-    //  modelConfig fields already falls back to models fields supplied by the server
-    // return modelConfig.info.fields || [];
     if (props.listFields.length) {
         return props.listFields;
     } else if (modelConfig.config.listFields?.length) {
@@ -133,12 +127,10 @@ const calculatedDisplayFields = computed(() => {
     } else if (modelConfig.config.listFields?.length) {
         return modelConfig.config.listFields.map((f) => ({
             name: f,
-            ...modelConfig.info.fields[f],
+            ...(modelConfig.config.listFieldDetails[f] || modelConfig.config.fieldDetails[f]),
         }));
-    } else if (modelConfig.info.fields?.length) {
-        return Object.values(modelConfig.info.fields);
     }
-    return [];
+    return Object.values(modelConfig.info.fields || {});
 });
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model));
 const listState = reactive({

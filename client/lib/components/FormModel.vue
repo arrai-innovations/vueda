@@ -101,6 +101,10 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    fieldObjects: {
+        type: Object,
+        default: () => ({}),
+    },
     widgetComponents: {
         type: Object,
         default: () => ({}),
@@ -134,7 +138,7 @@ const formModel = useFormModel(props);
 // todo: look into customizability re: overriding field / widget components with arbitrary slot content
 // todo: it would be nice to have a way to layout the fields into fieldsets / grids
 const theme = useComputedClasses(vuedaTailwind.FormModel);
-const fieldObjects = computed(() => props.fields.map((x) => formModel.fieldObjects[x]));
+const myFieldObjects = computed(() => props.fields.map((x) => formModel.fieldObjects[x]));
 </script>
 
 <template>
@@ -147,13 +151,13 @@ const fieldObjects = computed(() => props.fields.map((x) => formModel.fieldObjec
                 <slot
                     :all-widget-props="formModel.widgetProps"
                     :field-components="formModel.fieldComponents"
-                    :field-objects="fieldObjects"
+                    :field-objects="myFieldObjects"
                     :field-props="formModel.fieldProps"
                     name="fields"
                     :theme="theme"
                     :widget-components="formModel.widgetComponents"
                 >
-                    <template v-for="fieldObject in fieldObjects" :key="fieldObject?.name">
+                    <template v-for="fieldObject in myFieldObjects" :key="fieldObject?.name">
                         <slot
                             :field-component="formModel.fieldComponents[fieldObject?.name]?.value"
                             :field-object="fieldObject"
