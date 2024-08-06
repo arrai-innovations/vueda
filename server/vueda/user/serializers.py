@@ -40,13 +40,11 @@ class WhoIsSerializer(VuedaSerializer):
     This is a serializer for the current user, it is simpler than the other user serializers.
     """
 
+    groups = serializers.SlugRelatedField(many=True, queryset=Group.objects.all(), slug_field="name")
+
     class Meta(VuedaSerializer.Meta):
         model = User
         fields = ["id", "email", "name", "groups", "is_superuser"] + VuedaSerializer.Meta.fields
-        expandable_fields = {
-            "groups": serializers.SlugRelatedField(many=True, queryset=Group.objects.all(), slug_field="name"),
-        }
-        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
     def get_fields(self):
         fields = super().get_fields()
@@ -78,16 +76,26 @@ class UserSerializer(VuedaSerializer):
             "password",
             "date_joined",
             "is_active",
-            "groups",
             "last_login",
             "password_confirm",
         ] + VuedaSerializer.Meta.fields
         read_only_fields = ["date_joined"]
         extra_kwargs = {"password": {"write_only": True, "required": False}}
         expandable_fields = {
-            "groups": serializers.SlugRelatedField(many=True, queryset=Group.objects.all(), slug_field="name"),
+            "groups": (
+                serializers.SlugRelatedField,
+                {"many": True, "queryset": Group.objects.all(), "slug_field": "name"},
+            ),
         }
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+        expandable_fields_data = {
+            "groups": {
+                "read_only": False,
+                "many": True,
+                "type": "CharField",
+            },
+        }
+        expandable_fields_data.update(VuedaSerializer.Meta.expandable_fields_data)
 
     def validate_password(self, value):
         try:

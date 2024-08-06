@@ -468,15 +468,6 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": False,
                         },
-                        "groups": {
-                            "label": "Groups",
-                            "type": "ManyRelatedField",
-                            "help_text": None,
-                            "many": True,
-                            "read_only": False,
-                            "required": False,
-                            "choices": True,
-                        },
                     },
                 },
                 {
