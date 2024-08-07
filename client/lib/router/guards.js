@@ -213,15 +213,15 @@ export async function requireModelInfo(instance, redirectTo, to) {
 
         throw e;
     }
-    return true;
-
-    // TODO: if (configStore.actions.include(to.params.actionName)) {
-    //     return true
-    // } else {
-    //     toast.add({
-    //         ...toastArgs,
-    //         detail: `${toastArgs.detail} ${to.fullPath}`,
-    //     });
-    //     return redirectTo;
-    // }
+    const actions = [...configStore.targetlessActions, ...configStore.detailActions, ...configStore.bulkActions];
+    console.log("actions", actions);
+    if (actions.length && actions.includes(to.params.action)) {
+        return true;
+    } else {
+        toast.add({
+            summary: "Action Not Found",
+            severity: "error",
+        });
+        return redirectTo;
+    }
 }

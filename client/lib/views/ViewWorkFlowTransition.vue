@@ -39,11 +39,11 @@ const toast = useToast();
 const router = useRouter();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const titleStr = computed(() => {
-    return `Transactions for ${memoizedStartCase(modelConfig.info?.verbose_name)}`;
+    return `Transitions for ${memoizedStartCase(modelConfig.info?.verbose_name)}`;
 });
 const selectedAction = ref(null);
 
-const modelWorkFlowTransactions = computedAsync(
+const modelWorkFlowTransitions = computedAsync(
     async () => {
         try {
             await workflow.fetchWorkflowTransition(props.app, props.model);
@@ -55,7 +55,7 @@ const modelWorkFlowTransactions = computedAsync(
     null, // initial state
 );
 
-const availableTransactions = computed(() => {
+const availableTransitions = computed(() => {
     if (isArray(props.pk)) {
         let commonTransitions = [];
         props.pk.forEach((id, index) => {
@@ -102,10 +102,10 @@ const handleSubmit = async (actionCode) => {
         if (props.pk && !Array.isArray(props.pk)) {
             await workflow.executeTransition(props.app, props.model, props.pk, actionCode, router);
         }
-        toast.add({ severity: "success", summary: "transaction succeed" });
+        toast.add({ severity: "success", summary: "transition succeed" });
         router.back();
     } catch (error) {
-        toast.add({ severity: "error", summary: "transaction failed" });
+        toast.add({ severity: "error", summary: "transition failed" });
     }
 };
 </script>
@@ -126,24 +126,24 @@ const handleSubmit = async (actionCode) => {
             </template>
         </page-title>
         <div>
-            {{ modelWorkFlowTransactions }}
-            <div v-if="availableTransactions.length">
+            available workflow transitions for {{ modelConfig.info?.verbose_name }} are {{ modelWorkFlowTransitions }}
+            <div v-if="availableTransitions.length">
                 <p>the available transitions for the select objects are</p>
                 <form @submit.prevent="handleSubmit">
-                    <div v-for="transaction in availableTransactions" :key="transaction.code">
+                    <div v-for="transition in availableTransitions" :key="transition.code">
                         <RadioButton
                             v-model="selectedAction"
-                            :input-id="transaction.code"
+                            :input-id="transition.code"
                             name="dynamic"
-                            :value="transaction.name"
+                            :value="transition.name"
                         />
-                        <label class="ml-2" :for="transaction.code">{{ transaction.name }}</label>
+                        <label class="ml-2" :for="transition.code">{{ transition.name }}</label>
                     </div>
-                    <Button :disabled="!selectedAction" label="execute transaction" type="submit" />
+                    <Button :disabled="!selectedAction" label="execute transition" type="submit" />
                 </form>
             </div>
             <div v-else>
-                <p>no transactions available</p>
+                <p>no transition available for selected {{ modelConfig.info?.verbose_name }}</p>
             </div>
         </div>
     </div>

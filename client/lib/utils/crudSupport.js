@@ -117,10 +117,14 @@ export const getCRUDName = memoize(({ app, model, view, bulk }) => {
 });
 
 /**
- * The CRUD name for list view
- *
+ * The CRUD name for detail view
  */
 export const DETAIL_VIEW_CRUD_NAME = "actionrouter.detailview";
+
+/**
+ * The CRUD name for list view
+ */
+export const LIST_VIEW_CRUD_NAME = "actionrouter.listview";
 
 /**
  * For turning various `dev_strs` or `DevStrs` or `devStrs` into a human-readable titles (`Dev Strs`).

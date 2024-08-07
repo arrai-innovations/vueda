@@ -6,7 +6,7 @@ const props = defineProps({
     ...FIELD_PROPS,
     type: {
         type: String,
-        required: true,
+        default: "date",
     },
     maxValue: {
         type: [Date, String],

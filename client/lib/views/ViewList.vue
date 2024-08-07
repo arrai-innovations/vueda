@@ -264,7 +264,7 @@ onMounted(() => {
 
 const hasWorkFlow = computedAsync(
     async () => {
-        if (modelConfig.config.listActions?.includes(`transaction`)) {
+        if (modelConfig.config.listActions?.includes(`transition`)) {
             try {
                 await workflow.fetchWorkflowTransition(props.app, props.model);
                 return true;
@@ -330,17 +330,17 @@ const hasWorkFlow = computedAsync(
                             v-bind="{
                                 model,
                                 app,
-                                click: detailActionOnClick(`transaction`),
+                                click: detailActionOnClick(`transition`),
                                 selectedObjects,
                             }"
                         >
                             <link-model-view
                                 :app="app"
                                 button
-                                label="Transaction"
+                                label="Transition"
                                 :model="model"
                                 :pk="selectedObjects"
-                                view="transaction"
+                                view="transition"
                             />
                         </slot>
                     </div>

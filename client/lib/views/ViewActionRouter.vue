@@ -19,7 +19,7 @@ const props = defineProps({
     },
     pk: {
         type: [String, Number, Array],
-        default: undefined,
+        default: "",
     },
     action: {
         type: String,
@@ -31,24 +31,13 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const crudViews = ["list", "create", "update", "read", "delete"];
 
 const actionComponent = computedAsync(async () => {
-    // const workflow = storeWorkflow();
-    // try {
-    //   await workflow.fetchWorkflowTransition(props.app, props.model);
-    //
-    // } catch (WorkflowError) {
-    //     debugger
-    //     console.log("error")
-    // }
-    // // await workflow.fetchModelStates(props.app, props.model);
-    // await workflow.fetchObjectTransitions(props.app, props.model, 45);
-    // const a = workflow.workflowTransitions
-    // console.log("@@@workflow", workflow.workflowTransitions);
     if (modelConfig.loading) {
         return ViewLoading;
     }
-    if (props.action === "transaction") {
+    if (props.action === "transition") {
         return ViewWorkFlowTransition;
     }
+    // TODO: get_model_actions(self, instance) sever side return action name retrieve which correspond to read
     const action = modelConfig?.info.actions?.find((action) => action.name === props.action);
     if (!action) {
         return ViewActionNotFound;
@@ -62,5 +51,5 @@ const actionComponent = computedAsync(async () => {
 </script>
 
 <template>
-    <component :is="actionComponent" :action="action" :app="app" :model="model" :pk="pk" />
+    <component :is="actionComponent" :app="app" :model="model" :pk="pk" />
 </template>
