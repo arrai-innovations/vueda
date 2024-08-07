@@ -1,5 +1,4 @@
 import { storeViewInfo } from "@vueda/stores/storeViewInfo.js";
-import { getCRUDName } from "@vueda/utils/crudSupport.js";
 
 /**
  * Check if a view is a detail view.
@@ -43,14 +42,19 @@ export const isBulkView = (view) => {
 export function getCRUDForTo({ app, model, pk, view, throwOnUndefinedPk = false }) {
     const viewStore = storeViewInfo();
     const returnValue = {
-        name: getCRUDName({ app, model, view, bulk: Array.isArray(pk) }),
-        params: {},
+        name: "actionrouter.listview",
+        params: {
+            app,
+            model,
+            action: view,
+        },
     };
     if (pk) {
         if (Array.isArray(pk)) {
             returnValue.query = { pk: pk.join(",") };
         } else {
             returnValue.params.pk = pk;
+            returnValue.name = "actionrouter.detailview";
         }
     }
 

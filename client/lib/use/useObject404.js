@@ -1,4 +1,4 @@
-import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import { LIST_VIEW_CRUD_NAME, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import { watch } from "vue";
 
 /**
@@ -24,11 +24,7 @@ export function useObject404(yourProps, yourInstanceObject, yourModelConfig, you
                 newE.name = ""; // delete will just show the default Error.prototype.name
                 delete newE.stack;
                 newE.redirectParams = {
-                    name: getCRUDName({
-                        app: yourProps.app,
-                        model: yourProps.model,
-                        view: "list",
-                    }),
+                    name: LIST_VIEW_CRUD_NAME,
                 };
                 newE.redirectTitle = `Return to the ${modelTitle} list view.`;
                 yourErrorRef.value = newE;

@@ -11,7 +11,7 @@ import { useMergeFieldNameProps } from "@vueda/use/useMergeFieldNameProps.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
-import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import { LIST_VIEW_CRUD_NAME, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
 import { computed, reactive, ref, toRef, useAttrs, watch } from "vue";
@@ -188,11 +188,7 @@ const checkIfValidAndActive = () => {
         }
         // if not active, you'll never see this anyway.
         newE.redirectParams = {
-            name: getCRUDName({
-                app: props.app,
-                model: props.model,
-                view: "list",
-            }),
+            name: LIST_VIEW_CRUD_NAME,
         };
         newE.redirectTitle = `Return to the ${memoizedStartCase(modelConfig.info.verbose_name)} list view.`;
         delete newE.stack;

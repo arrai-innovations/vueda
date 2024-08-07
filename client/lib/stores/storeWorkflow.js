@@ -85,12 +85,21 @@ const makeResultObject = (app, model, id) => ({
     model: unref(model),
     id: unref(id),
 });
+const workflowRetrieveTransitionUrl = (app, model) =>
+    `${httpOrHttpsHostname}${getUrl("workflowRetrieveTransition")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/?e=transitions`;
 const modelStatesUrl = (app, model) =>
     `${httpOrHttpsHostname}${getUrl("workflowStates")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
 const objectStatesUrl = (result) =>
     `${httpOrHttpsHostname}${getUrl("workflowObjectState")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
-const objectTransitionsUrl = (result) =>
-    `${httpOrHttpsHostname}${getUrl("workflowObjectTransitions")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
+const objectTransitionsUrl = (result) => {
+    const routeTemplate = getUrl("workflowObjectTransitions");
+    // Replace placeholders with actual values from the result object
+    const urlWithVariables = routeTemplate
+        .replace(":app", memoizedSnakeCase(result.app))
+        .replace(":model", memoizedSnakeCase(result.model))
+        .replace(":pk", result.id);
+    return `${httpOrHttpsHostname}${urlWithVariables}`;
+};
 const objectHistoriesUrl = (result) =>
     `${httpOrHttpsHostname}${getUrl("workflowObjectHistory")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
 const executeTransitionUrl = (result) => {
@@ -157,75 +166,120 @@ const executeTransitionUrl = (result) => {
 export const storeWorkflow = defineStore({
     id: "workflow",
     state: () => ({
+        loading: false,
         objectStates: [],
         objectTransitions: [],
         objectHistories: [],
         modelStates: {},
+        workflowTransitions: {},
     }),
     actions: {
-        async fetchModelStates(app, model) {
-            const key = makeModelKey(app, model);
-            const existing = get(this.modelStates, key);
-            if (existing) {
-                return existing;
+        async fetchWorkflowTransition(app, model) {
+            this.loading = true;
+            try {
+                const key = makeModelKey(app, model);
+                const existing = get(this.workflowTransitions, key);
+                if (existing) {
+                    return existing;
+                }
+                const data = await fetchHelper(
+                    workflowRetrieveTransitionUrl(app, model),
+                    {
+                        method: "GET",
+                    },
+                    "Failed to fetch workflow transitions for model",
+                    "marker",
+                );
+                if (data !== "marker") {
+                    set(this.workflowTransitions, key, data);
+                }
+            } finally {
+                this.loading = false;
             }
-            const data = await fetchHelper(
-                modelStatesUrl(key),
-                {
-                    method: "GET",
-                },
-                "Failed to fetch states for model",
-                "marker",
-            );
-            if (data !== "marker") {
-                set(this.modelStates, key, data);
+        },
+        async fetchModelStates(app, model) {
+            this.loading = true;
+            try {
+                const key = makeModelKey(app, model);
+                const existing = get(this.modelStates, key);
+                if (existing) {
+                    return existing;
+                }
+                const data = await fetchHelper(
+                    modelStatesUrl(key),
+                    {
+                        method: "GET",
+                    },
+                    "Failed to fetch states for model",
+                    "marker",
+                );
+                if (data !== "marker") {
+                    set(this.modelStates, key, data);
+                }
+            } finally {
+                this.loading = false;
             }
         },
         async fetchObjectState(app, model, objectId) {
-            const result = makeResultObject(app, model, objectId);
-            const data = await fetchHelper(
-                objectStatesUrl(result),
-                {
-                    method: "GET",
-                },
-                "Failed to fetch object state",
-            );
-            if (data === "Object does not have a workflow.") {
-                return result;
+            this.loading = true;
+            try {
+                const result = makeResultObject(app, model, objectId);
+                const data = await fetchHelper(
+                    objectStatesUrl(result),
+                    {
+                        method: "GET",
+                    },
+                    "Failed to fetch object state",
+                );
+                if (data === "Object does not have a workflow.") {
+                    return result;
+                }
+                updateState(this.objectStates, { ...result, ...data });
+            } finally {
+                this.loading = false;
             }
-            updateState(this.objectStates, { ...result, ...data });
         },
         async fetchObjectTransitions(app, model, objectId) {
-            const result = makeResultObject(app, model, objectId);
-            const data = await fetchHelper(
-                objectTransitionsUrl(result),
-                {
-                    method: "GET",
-                },
-                "Failed to fetch object transitions",
-                [],
-            );
-            if (data === "Object does not have a workflow.") {
-                return result;
+            this.loading = true;
+            try {
+                const result = makeResultObject(app, model, objectId);
+                const data = await fetchHelper(
+                    objectTransitionsUrl(result),
+                    {
+                        method: "GET",
+                    },
+                    "Failed to fetch object transitions",
+                    [],
+                );
+                if (data === "Object does not have a workflow.") {
+                    return result;
+                }
+                updateState(this.objectTransitions, { ...result, transitions: data });
+            } finally {
+                this.loading = false;
             }
-            updateState(this.objectTransitions, { ...result, transitions: data });
         },
         async fetchObjectHistory(app, model, objectId) {
-            const result = makeResultObject(app, model, objectId);
-            const data = await fetchHelper(
-                objectHistoriesUrl(result),
-                {
-                    method: "GET",
-                },
-                "Failed to fetch object transitions",
-                [],
-            );
-            if (data === "Object does not have a workflow.") {
-                return result;
+            this.loading = true;
+            try {
+                const result = makeResultObject(app, model, objectId);
+                const data = await fetchHelper(
+                    objectHistoriesUrl(result),
+                    {
+                        method: "GET",
+                    },
+                    "Failed to fetch object transitions",
+                    [],
+                );
+                if (data === "Object does not have a workflow.") {
+                    return result;
+                }
+                updateState(this.objectHistories, { ...result, history: data });
+            } finally {
+                this.loading = false;
             }
-            updateState(this.objectHistories, { ...result, history: data });
         },
-        async executeTransition(app, model, objectId, transition_code, router, stateToRoute) {
+        async executeTransition(app, model, objectId, transition_code, router, stateToRoute = undefined) {
             const result = makeResultObject(app, model, objectId);
             const data = await fetchHelper(
                 executeTransitionUrl(result),

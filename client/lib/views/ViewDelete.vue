@@ -1,12 +1,12 @@
 <script setup>
 import { useList } from "@arrai-innovations/reactive-helpers";
+import ActionForm from "@vueda/components/ActionForm.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
 import { isArray } from "lodash-es";
 import isEmpty from "lodash-es/isEmpty.js";
-import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 import { computed, reactive, toRef } from "vue";
 import { useRouter } from "vue-router";
@@ -94,10 +94,7 @@ const handleDelete = async () => {
     <!--  however, if we keep it as a separate page, that gives us more room to add more features -->
     <!--  like mass delete, etc. -->
     <div v-if="!isEmpty(modelConfig.info)">
-        <h1>Delete {{ modelConfig.info.verbose_name }}: {{ pk }}</h1>
-        <p>Are you sure you want to delete this {{ modelConfig.info.verbose_name }}?</p>
-        <Button @click="handleDelete">Yes, delete</Button>
-        <Button @click="router.back()">Cancel</Button>
+        <action-form action="delete" :app="app" :model="model" :pk="pk" :run-action="handleDelete"> </action-form>
     </div>
     <div v-else><loading-spinner-block /></div>
 </template>

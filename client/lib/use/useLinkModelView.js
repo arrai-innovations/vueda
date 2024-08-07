@@ -1,5 +1,6 @@
-import { getCRUDForTo, isDetailView } from "@vueda/router/getCrud.js";
-import { computed } from "vue";
+import { getCRUDForTo } from "@vueda/router/getCrud.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { computed, toRef } from "vue";
 import { useRouter } from "vue-router";
 
 /**
@@ -16,21 +17,27 @@ import { useRouter } from "vue-router";
  * }} The link model view.
  */
 export const useLinkModelView = (props) => {
-    const isDetailViewComputed = computed(() => isDetailView(props.view));
-
-    const pkValid = computed(() => (isDetailViewComputed.value && props.pk) || !isDetailViewComputed.value);
+    const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+    const isDetailorBulkViewComputed = computed(() => {
+        return (
+            modelConfig.config.detailActions?.includes(props.view) ||
+            modelConfig.config.bulkActions?.includes(props.view) ||
+            props.view === "transition"
+        );
+    });
+    const pkValid = computed(() => (isDetailorBulkViewComputed.value && props.pk) || !isDetailorBulkViewComputed.value);
     const toRouteArgs = computed(() => {
         return pkValid.value && props.view
             ? getCRUDForTo({
                   app: props.app,
                   model: props.model,
-                  pk: (isDetailViewComputed.value && props.pk) || undefined,
+                  pk: isDetailorBulkViewComputed.value && props.pk ? props.pk : undefined,
                   view: props.view,
               })
             : undefined;
     });
     const actionDisabled = computed(
-        () => isDetailViewComputed.value && (!props.pk || (Array.isArray(props.pk) && props.pk.length === 0)),
+        () => isDetailorBulkViewComputed.value && (!props.pk || (Array.isArray(props.pk) && props.pk.length === 0)),
     );
     const router = useRouter();
     const toRoute = computed(() =>

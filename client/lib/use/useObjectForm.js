@@ -1,6 +1,6 @@
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
-import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import { LIST_VIEW_CRUD_NAME, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
@@ -165,8 +165,8 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
     });
     // noinspection ES6MissingAwait
     router.push({
-        name: getCRUDName({ app: state.app, model: state.model, view: "list" }),
-        params: { app: state.app, model: state.model },
+        name: LIST_VIEW_CRUD_NAME,
+        params: { app: state.app, model: state.model, action: "list" },
     });
 };
 

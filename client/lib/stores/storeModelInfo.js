@@ -11,7 +11,7 @@ import { defineStore } from "pinia";
  * An error for use from the model info store.
  * @extends {FetchError}
  */
-class ModelInfoError extends FetchError {
+export class ModelInfoError extends FetchError {
     /**
      * Creates an instance of ModelInfoError.
      * @param {string} messagePrefix - The prefix for the error message.

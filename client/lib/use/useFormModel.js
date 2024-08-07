@@ -135,7 +135,7 @@ const getWidgetProps = (fieldType) => {
  */
 const djangoTypeToFieldComponent = (field) => {
     // todo: we should have a way to register custom field components
-    if (field.type === "TextField" || field.many) {
+    if (field.many) {
         return ["FieldArray", async () => (await import("@vueda/fields/FieldArray.vue")).default];
     }
     return (
@@ -286,11 +286,6 @@ export function useFormModel(props) {
         });
     };
 
-    const setupFieldComponent = (fieldName, fieldObj, props) => {
-        const fieldComponent = props.fieldComponents[fieldName] || djangoTypeToFieldComponent(fieldObj);
-        return computedAsync(fieldComponent[1], null);
-    };
-
     const setupFieldProps = (fieldName, fieldObj, props) => {
         return computed(() => {
             return {
@@ -326,16 +321,16 @@ export function useFormModel(props) {
                             }
                             expandFieldObjects[fieldName] = { ...fieldObj, name: fieldName };
                             es.run(() => {
-                                const fieldComponents1 = setupFieldComponent(fieldName, fieldObj, props);
-                                const fieldProps1 = setupFieldProps(fieldName, fieldObj, props);
-                                fieldComponents[fieldName] = fieldComponents1;
-                                fieldProps[fieldName] = fieldProps1;
-                                if (fieldComponents1[0] !== "FieldInline") {
+                                const fieldComponent =
+                                    props.fieldComponents[fieldName] || djangoTypeToFieldComponent(fieldObj);
+                                fieldComponents[fieldName] = computedAsync(fieldComponent[1], null);
+                                fieldProps[fieldName] = setupFieldProps(fieldName, fieldObj, props);
+                                if (fieldComponent[0] !== "FieldInline") {
                                     widgetComponents[fieldName] = setupWidgetComponent(fieldName, fieldObj, props);
                                     widgetProps[fieldName] = setupWidgetProps(
                                         fieldName,
                                         fieldObj,
-                                        fieldComponents1,
+                                        fieldComponent,
                                         props,
                                         internalState,
                                     );
@@ -354,16 +349,15 @@ export function useFormModel(props) {
                     }
                     fieldObjects[fieldName] = { ...fieldObj, name: fieldName };
                     es.run(() => {
-                        const fieldComponents1 = setupFieldComponent(fieldName, fieldObj, props);
-                        const fieldProps1 = setupFieldProps(fieldName, fieldObj, props);
-                        fieldComponents[fieldName] = fieldComponents1;
-                        fieldProps[fieldName] = fieldProps1;
-                        if (fieldComponents1[0] !== "FieldInline") {
+                        const fieldComponent = props.fieldComponents[fieldName] || djangoTypeToFieldComponent(fieldObj);
+                        fieldComponents[fieldName] = computedAsync(fieldComponent[1], null);
+                        fieldProps[fieldName] = setupFieldProps(fieldName, fieldObj, props);
+                        if (fieldComponent[0] !== "FieldInline") {
                             widgetComponents[fieldName] = setupWidgetComponent(fieldName, fieldObj, props);
                             widgetProps[fieldName] = setupWidgetProps(
                                 fieldName,
                                 fieldObj,
-                                fieldComponents1,
+                                fieldComponent,
                                 props,
                                 internalState,
                             );

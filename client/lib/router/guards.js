@@ -1,3 +1,5 @@
+import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
+import { ModelInfoError } from "@vueda/stores/storeModelInfo.js";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import { useRouter } from "vue-router";
@@ -14,6 +16,17 @@ export async function waitForInitialising() {
         await userStore.fetchCurrentUser();
     }
     return userStore;
+}
+
+/**
+ *  Wait for store model config to load
+ * @param app
+ * @param model
+ * @returns {Promise<import('@vueda/stores/storeModelConfig.js').ModelConfig>}
+ */
+export async function waitForStoreInfoLoad(app, model) {
+    const modelConfig = storeModelConfig();
+    return await modelConfig.getConfig(app, model);
 }
 
 /**
@@ -180,4 +193,35 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to)
         detail: `${toastArgs.detail} ${to.fullPath}`,
     });
     return redirectTo;
+}
+
+export async function requireModelInfo(instance, redirectTo, to) {
+    let configStore;
+    const toast = instance.config.globalProperties.$toast;
+    /** @type {import('primevue/toastservice').ToastServiceMethods} */
+    try {
+        configStore = await waitForStoreInfoLoad(to.params.app, to.params.model);
+        console.log(configStore);
+    } catch (e) {
+        if (e instanceof ModelInfoError) {
+            toast.add({
+                summary: "Model Not Found",
+                severity: "error",
+            });
+            return redirectTo;
+        }
+
+        throw e;
+    }
+    return true;
+
+    // TODO: if (configStore.actions.include(to.params.actionName)) {
+    //     return true
+    // } else {
+    //     toast.add({
+    //         ...toastArgs,
+    //         detail: `${toastArgs.detail} ${to.fullPath}`,
+    //     });
+    //     return redirectTo;
+    // }
 }

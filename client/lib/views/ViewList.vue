@@ -7,10 +7,12 @@ import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
+import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import { computedAsync } from "@vueuse/core";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
@@ -228,7 +230,7 @@ const filterList = () => {
     listState.filterArgs = cloneDeep(formContext.state.values);
 };
 const selectedObjects = ref([]);
-
+const workflow = storeWorkflow();
 const router = useRouter();
 const detailActionOnClick = (actionName) => {
     return async () => {
@@ -259,13 +261,30 @@ onMounted(() => {
     emit("selected", readonly(selectedObjects));
     emit("loading", loading);
 });
+
+const hasWorkFlow = computedAsync(
+    async () => {
+        if (modelConfig.config.listActions?.includes(`transaction`)) {
+            try {
+                await workflow.fetchWorkflowTransition(props.app, props.model);
+                return true;
+            } catch (WorkflowError) {
+                return false;
+            }
+        }
+        return false;
+    },
+    false, // initial state
+);
 </script>
 <template>
     <div>
         <page-title :loading="instanceList.state.loading" :title="titleStr">
             <template #button>
                 <template
-                    v-for="actionName in modelConfig.config.listActions"
+                    v-for="actionName in modelConfig.config.listActions?.filter((a) =>
+                        modelConfig.config.targetlessActions.includes(a),
+                    )"
                     :key="
                         getCRUDName({
                             app: app,
@@ -305,7 +324,32 @@ onMounted(() => {
                 </InputGroup>
             </div>
             <div class="flex gap-1 w-full justify-end">
-                <template v-for="actionName in modelConfig.config.detailActions" :key="actionName">
+                <div v-if="hasWorkFlow">
+                        <slot
+                            name="workflow-action-button"
+                            v-bind="{
+                                model,
+                                app,
+                                click: detailActionOnClick(`transaction`),
+                                selectedObjects,
+                            }"
+                        >
+                            <link-model-view
+                                :app="app"
+                                button
+                                label="Transaction"
+                                :model="model"
+                                :pk="selectedObjects"
+                                view="transaction"
+                            />
+                        </slot>
+                    </div>
+                 <template
+                        v-for="actionName in modelConfig.config.listActions?.filter((a) =>
+                            modelConfig.config.bulkActions.includes(a),
+                        )"
+                        :key="actionName"
+                    >
                     <slot
                         name="bulk-action-button"
                         v-bind="{
