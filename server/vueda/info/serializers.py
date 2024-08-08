@@ -1,4 +1,6 @@
+import datetime
 import inspect
+from collections.abc import Iterable
 from copy import deepcopy
 
 import django_filters
@@ -10,6 +12,9 @@ from django.contrib.postgres.fields import RangeField
 from django.core import validators
 from django.db import connection
 from django.utils.functional import cached_property
+from django_filters import DateRangeFilter
+from django_filters import NumericRangeFilter
+from django_filters import RangeFilter
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers  # noqa F401
 from rest_framework import viewsets  # noqa F401
@@ -60,6 +65,9 @@ FIELD_TYPE_MAPPING = {
     "TimeField": "time",
     "UUIDField": "alpha",
 }
+
+
+UNUSABLE_FILTER_TYPES = (django_filters.rest_framework.LookupChoiceFilter,)
 
 
 SERIALIZER_FIELD_TYPES_TO_FETCH_MODEL_TYPE = (
@@ -394,7 +402,157 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
         return ordering_data
 
-    def get_model_filtering(self, instance):
+    @staticmethod
+    def get_model_filtering_label(filter_obj, model):
+        label = filter_obj.label
+        if label is None:
+            label = django_filters.utils.label_for_filter(
+                model, filter_obj.field_name, filter_obj.lookup_expr, filter_obj.exclude
+            )
+
+    @staticmethod
+    def get_model_filtering_choices(filterset, filter_obj, filter_name, field, widget):
+        if hasattr(field, "choices"):
+            choices = field.choices
+            meta = None
+            if choices and hasattr(field.choices, "queryset"):
+                meta = field.choices.queryset.model._meta
+            elif choices and hasattr(filter_obj, "model"):  # AllValuesFilter, AllValuesMultipleFilter
+                meta = filter_obj.model._meta
+            if meta is not None:
+                return True, {
+                    "app_label": meta.app_label,
+                    "model": meta.model_name,
+                    "filter_name": filter_name,
+                    "filterset_name": filterset.__class__.__name__,
+                }
+            return choices, None
+        elif hasattr(widget, "choices"):
+            return widget.choices, None
+        else:
+            return False, None
+
+    @staticmethod
+    def get_model_filtering_decimal_places(field, model_field):
+        if hasattr(field, "decimal_places") and field.decimal_places:
+            return field.decimal_places
+        elif (
+            model_field
+            and model_field.field
+            and hasattr(model_field.field, "decimal_places")
+            and model_field.field.decimal_places
+        ):
+            return model_field.field.decimal_places
+
+    @staticmethod
+    def get_model_filtering_error_messages(filter_obj, field):
+        error_messages = field.error_messages.copy()
+        if not field.required and "required" in error_messages:
+            del error_messages["required"]
+        # Overflow needs the min and max days added to the error message.
+        if "overflow" in error_messages:
+            error_messages["overflow"] = error_messages["overflow"].format(
+                min_days=datetime.timedelta.min.days,
+                max_days=datetime.timedelta.max.days,
+            )
+        if error_messages:
+            return error_messages
+
+    @staticmethod
+    def get_model_filtering_input_type(filter_obj, field, widget):
+        if hasattr(widget, "input_type"):
+            return widget.input_type
+        elif hasattr(field, "fields"):
+            input_types = set()
+            for sub_field in field.fields:
+                input_types.add(sub_field.widget.input_type)
+            if len(input_types) == 1:
+                return tuple(input_types)[0]
+        # Currently no test data returns unknown, so if you get this, how did you get it?
+        return "unknown"
+
+    @staticmethod
+    def get_model_filtering_lookup_exprs(filter_obj):
+        if isinstance(filter_obj, RangeFilter):
+            return ["range", "gte", "lte"]
+        elif isinstance(filter_obj, NumericRangeFilter):
+            return ["startswith", "endswith"]
+        elif isinstance(filter_obj, DateRangeFilter):
+            return list(filter_obj.filters)
+        else:
+            raise RuntimeError(f"Unable to determine the lookup_exprs for filter {filter_obj}")
+
+    @staticmethod
+    def get_model_filtering_max_digits(field, model_field):
+        if hasattr(field, "max_digits") and field.max_digits:
+            return field.max_digits
+        elif (
+            model_field
+            and model_field.field
+            and hasattr(model_field.field, "max_digits")
+            and model_field.field.max_digits
+        ):
+            return model_field.field.max_digits
+
+    @staticmethod
+    def get_model_filtering_max_length(field, model_field):
+        if hasattr(field, "max_length"):
+            if field.max_length is not None:
+                return field.max_length
+            elif model_field and model_field.field and hasattr(model_field.field, "max_length"):
+                return model_field.field.max_length
+
+    def get_model_filtering_max_value(self, field, model_field):
+        if hasattr(field, "max_value"):
+            if field.max_value is not None:
+                return field.max_value
+            else:
+                max_value = self.get_model_fields_max_data(field, model_field)
+                if max_value is not None:
+                    return max_value
+
+    @staticmethod
+    def get_model_filtering_min_length(field, model_field):
+        if hasattr(field, "min_length"):
+            if field.min_length is not None:
+                return field.min_length
+            elif model_field and model_field.field and hasattr(model_field.field, "min_length"):
+                return model_field.field.min_length
+
+    def get_model_filtering_min_value(self, field, model_field):
+        if hasattr(field, "min_value"):
+            if field.min_value is not None:
+                return field.min_value
+            else:
+                min_value = self.get_model_fields_min_data(field, model_field)
+                if min_value is not None:
+                    return min_value
+
+    @staticmethod
+    def get_model_filtering_validators(field):
+        if hasattr(field, "validators"):
+            validators = []
+            for validator in field.validators:
+                validator_data = {}
+                if hasattr(validator, "code"):
+                    if validator.code in ("max_value", "min_value"):
+                        continue  # Min and max value are handled already.
+                    validator_data["code"] = validator.code
+                if hasattr(validator, "message"):
+                    validator_data["message"] = validator.message
+                    if hasattr(validator, "limit_value"):
+                        limit_value = (
+                            validator.limit_value() if callable(validator.limit_value) else validator.limit_value
+                        )
+                        # django/core/validators.py > BaseValidator > __call__
+                        # Not adding show_value or value to the dict, because we don't have a value.
+                        validator_data["message"] %= {"limit_value": limit_value}
+                if validator_data:
+                    validators.append(validator_data)
+            if validators:
+                return validators
+
+    def get_model_filtering(self, instance):  # noqa C901 - complexity of 21
         """
         Get the filtering fields for a model and their own metadata.
         """
@@ -403,43 +561,123 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
         viewset = self.canonical["viewset"]  # type: viewsets.VuedaViewSet
         model = viewset.queryset.model
-        filtering_data = []
+        filtering_data = {}
 
         if hasattr(viewset, "filterset_class"):
-            filterset = viewset.filterset_class
-            for field_name in filterset.Meta.fields:
-                field = get_fields_from_path(model, field_name)[-1]
-                field_type = FIELD_TYPE_MAPPING.get(field.get_internal_type(), "alpha")
-                available_filters = []
-                for available_filter in filterset.get_filters().values():
-                    if available_filter.field_name == field_name:
-                        available_filter_data = {}
-                        lookup_exprs = []
-                        if available_filter.label:
-                            available_filter_data["label"] = available_filter.label
-                        if "required" in available_filter.extra and available_filter.extra["required"]:
-                            available_filter_data["required"] = True
-                        if available_filter.lookup_expr:
-                            if isinstance(available_filter.lookup_expr, (list, tuple)):
-                                lookup_exprs.extend(available_filter.lookup_expr)
-                            else:
-                                lookup_exprs.append(available_filter.lookup_expr)
-                        if isinstance(available_filter, django_filters.RangeFilter) or isinstance(
-                            available_filter, django_filters.NumericRangeFilter
-                        ):
-                            lookup_exprs.append("range")  # Can have a start, stop, or start and stop value.
-                        if lookup_exprs:
-                            available_filter_data["lookup_exprs"] = lookup_exprs
-                        available_filters.append(available_filter_data)
+            filterset = viewset.filterset_class()
 
-                filtering_data.append(
-                    {
-                        "choices": hasattr(field, "choices") and bool(field.choices),
-                        "filters": available_filters,
-                        "name": field_name,
-                        "type": field_type,
-                    }
+            for filter_name, filter_obj in filterset.get_filters().items():
+                field = filter_obj.field
+
+                if filter_obj.exclude or field.disabled:
+                    continue
+
+                widget = field.widget
+                model_field = getattr(model, filter_obj.field_name, None)
+
+                # Label
+                label = self.get_model_filtering_label(filter_obj, model)
+
+                filtering_data[filter_obj.field_name] = {
+                    "field_class": filter_obj.field_class.__name__,
+                    "hidden": widget.is_hidden if hasattr(widget, "is_hidden") else False,
+                    "label": label,
+                    # Lookup expressions are not a list for single values, so return them all as lists.
+                    "lookup_exprs": (
+                        filter_obj.lookup_expr if isinstance(filter_obj.lookup_expr, list) else [filter_obj.lookup_expr]
+                    ),
+                    "required": field.required,
+                }
+
+                # Choices
+                # Returned as a list of values, if it is not a model of choices, otherwise true or false.
+                choices, extra_data = self.get_model_filtering_choices(
+                    filterset, filter_obj, filter_name, field, widget
                 )
+                filtering_data[filter_obj.field_name]["choices"] = choices
+                if extra_data is not None:
+                    filtering_data[filter_obj.field_name].update(extra_data)
+
+                # Decimal Places - Optional
+                decimal_places = self.get_model_filtering_decimal_places(field, model_field)
+                if decimal_places:
+                    filtering_data[filter_obj.field_name]["decimal_places"] = decimal_places
+
+                # Empty Label - Optional
+                if hasattr(field, "empty_label"):
+                    filtering_data[filter_obj.field_name]["empty_label"] = field.empty_label
+
+                # Empty Value - Optional
+                if hasattr(field, "empty_value"):
+                    filtering_data[filter_obj.field_name]["empty_value"] = field.empty_value
+
+                # Error Messages - Optional
+                # If the field is not required, don't return the required error message.
+                error_messages = self.get_model_filtering_error_messages(filter_obj, field)
+                if error_messages:
+                    filtering_data[filter_obj.field_name]["error_messages"] = error_messages
+
+                # Help Text - Optional
+                if hasattr(field, "help_text") and field.help_text:
+                    filtering_data[filter_obj.field_name]["help_text"] = field.help_text
+
+                # Input Formats - Optional
+                if hasattr(field, "input_formats") and isinstance(field.input_formats, Iterable):
+                    filtering_data[filter_obj.field_name]["input_formats"] = list(field.input_formats)
+
+                # Input Type
+                input_type = self.get_model_filtering_input_type(filter_obj, field, widget)
+                filtering_data[filter_obj.field_name]["input_type"] = input_type
+
+                # Lookup Expr
+                # The filters of filter.field_class (RangeField, DateTimeRangeField) have a lookup_expr of
+                # an empty list.  They only have their lookup expressions defined in the filter function.
+                if not filtering_data[filter_obj.field_name]["lookup_exprs"]:
+                    lookup_exprs = self.get_model_filtering_lookup_exprs(filter_obj)
+                    filtering_data[filter_obj.field_name]["lookup_exprs"] = lookup_exprs
+
+                # Max Digits - Optional
+                max_digits = self.get_model_filtering_max_digits(field, model_field)
+                if max_digits:
+                    filtering_data[filter_obj.field_name]["max_digits"] = max_digits
+
+                # Max Length - Optional
+                max_length = self.get_model_filtering_max_length(field, model_field)
+                if max_length:
+                    filtering_data[filter_obj.field_name]["max_length"] = max_length
+
+                # Max Value - Optional
+                max_value = self.get_model_filtering_max_value(field, model_field)
+                if max_value:
+                    filtering_data[filter_obj.field_name]["max_value"] = max_value
+
+                # Min Length - Optional
+                min_length = self.get_model_filtering_min_length(field, model_field)
+                if min_length:
+                    filtering_data[filter_obj.field_name]["min_length"] = min_length
+
+                # Min Value - Optional
+                min_value = self.get_model_filtering_min_value(field, model_field)
+                if min_value:
+                    filtering_data[filter_obj.field_name]["min_value"] = min_value
+
+                # Null Label - Optional
+                if hasattr(field, "null_label"):
+                    filtering_data[filter_obj.field_name]["null_label"] = field.null_label
+
+                # Null Value - Optional
+                if hasattr(field, "null_value"):
+                    filtering_data[filter_obj.field_name]["null_value"] = field.null_value
+
+                # Validators - Optional
+                validators = self.get_model_filtering_validators(field)
+                if validators:
+                    filtering_data[filter_obj.field_name]["validators"] = validators
+
+                # Widget Names - Optional
+                if hasattr(widget, "widgets_names"):
+                    filtering_data[filter_obj.field_name]["name_suffixes"] = widget.widgets_names
+
         return filtering_data
 
 
