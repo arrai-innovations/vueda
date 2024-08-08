@@ -409,6 +409,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
             label = django_filters.utils.label_for_filter(
                 model, filter_obj.field_name, filter_obj.lookup_expr, filter_obj.exclude
             )
+        return label
 
     @staticmethod
     def get_model_filtering_choices(filterset, filter_obj, filter_name, field, widget):
