@@ -329,22 +329,43 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
             },
-            "expected_filtering": [
-                {
-                    "name": "name",
-                    "type": "alpha",
-                    "filters": [
+            "expected_filtering": {
+                "id": {
+                    "choices": False,
+                    "error_messages": {
+                        "invalid": "Enter a number.",
+                    },
+                    "field_class": "DecimalInField",
+                    "help_text": "Multiple values may be separated by commas.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "ID is in",
+                    "lookup_exprs": ["in"],
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
+                    "required": False,
+                },
+                "name": {
+                    "choices": False,
+                    "empty_value": "",
+                    "field_class": "CharField",
+                    "hidden": False,
+                    "input_type": "text",
+                    "label": "Name",
+                    "lookup_exprs": [
+                        "exact",
+                        "contains",
+                    ],
+                    "max_length": 255,
+                    "required": False,
+                    "validators": [
                         {
-                            "label": "Name",
-                            "lookup_exprs": [
-                                "exact",
-                                "contains",
-                            ],
+                            "code": "null_characters_not_allowed",
+                            "message": "Null characters are not allowed.",
                         },
                     ],
-                    "choices": False,
                 },
-            ],
+            },
             "expected_ordering": [
                 {"name": "name", "type": "alpha"},
             ],
@@ -404,7 +425,7 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
             },
-            "expected_filtering": [],
+            "expected_filtering": {},
             "expected_ordering": [
                 {"name": "name", "type": "alpha"},
             ],
@@ -776,7 +797,7 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
             },
-            "expected_filtering": [],
+            "expected_filtering": {},
             "expected_ordering": [
                 {"name": "user__email", "type": "alpha"},
             ],
@@ -907,14 +928,105 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
             },
-            "expected_filtering": [
-                {
-                    "name": "last_modified",
-                    "type": "datetime",
-                    "filters": [{"label": "Last modified", "lookup_exprs": ["range"]}],
+            "expected_filtering": {
+                "expected_delivery_time": {
                     "choices": False,
-                }
-            ],
+                    "error_messages": {
+                        "invalid": "Enter a valid duration.",
+                        "overflow": "The number of days must be between -999999999 and 999999999.",
+                    },
+                    "field_class": "DurationField",
+                    "hidden": False,
+                    "input_type": "text",
+                    "label": "Expected delivery time",
+                    "lookup_exprs": ["exact"],
+                    "required": False,
+                },
+                "id": {
+                    "choices": False,
+                    "error_messages": {
+                        "invalid": "Enter a number.",
+                    },
+                    "field_class": "DecimalInField",
+                    "help_text": "Multiple values may be separated by commas.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "ID is in",
+                    "lookup_exprs": ["in"],
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
+                    "required": False,
+                },
+                "last_modified": {
+                    "choices": False,
+                    "error_messages": {
+                        "incomplete": "Enter a complete value.",
+                        "invalid": "Enter a list of values.",
+                    },
+                    "field_class": "DateTimeRangeField",
+                    "hidden": False,
+                    "input_type": "text",
+                    "label": "Last modified",
+                    "lookup_exprs": ["range", "gte", "lte"],
+                    "name_suffixes": [
+                        "_0",
+                        "_1",
+                    ],
+                    "required": False,
+                },
+                "reserved_delivery_time": {
+                    "choices": False,
+                    "error_messages": {
+                        "invalid": "Enter a valid date/time.",
+                    },
+                    "field_class": "DateTimeField",
+                    "hidden": False,
+                    "input_formats": [
+                        "%Y-%m-%d %H:%M:%S",
+                        "%Y-%m-%d %H:%M:%S.%f",
+                        "%Y-%m-%d %H:%M",
+                        "%m/%d/%Y %H:%M:%S",
+                        "%m/%d/%Y %H:%M:%S.%f",
+                        "%m/%d/%Y %H:%M",
+                        "%m/%d/%y %H:%M:%S",
+                        "%m/%d/%y %H:%M:%S.%f",
+                        "%m/%d/%y %H:%M",
+                        "%Y-%m-%d",
+                        "%Y-%m-%d",
+                        "%m/%d/%Y",
+                        "%m/%d/%y",
+                        "%b %d %Y",
+                        "%b %d, %Y",
+                        "%d %b %Y",
+                        "%d %b, %Y",
+                        "%B %d %Y",
+                        "%B %d, %Y",
+                        "%d %B %Y",
+                        "%d %B, %Y",
+                    ],
+                    "input_type": "text",
+                    "label": "Reserved delivery time",
+                    "lookup_exprs": ["exact"],
+                    "required": False,
+                },
+                "reserved_until": {
+                    "choices": False,
+                    "error_messages": {
+                        "invalid": "Enter a valid time.",
+                    },
+                    "field_class": "TimeField",
+                    "hidden": False,
+                    "input_formats": [
+                        "%H:%M:%S",
+                        "%H:%M:%S.%f",
+                        "%H:%M",
+                    ],
+                    "input_type": "text",
+                    "label": "Reserved until",
+                    "lookup_exprs": ["exact"],
+                    "required": False,
+                },
+            },
             "expected_ordering": [
                 {"name": "customer__user__email", "type": "alpha"},
                 {"name": "last_modified", "type": "datetime"},
@@ -1060,6 +1172,14 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": True,
                         },
+                        "shipping_method": {
+                            "choices": True,
+                            "label": "Shipping Method",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
+                        },
                         "user": {
                             "label": "User",
                             "type": "PrimaryKeyRelatedField",
@@ -1178,6 +1298,14 @@ DETAIL_PARAMETRIZE = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                        },
+                        "shipping_method": {
+                            "choices": True,
+                            "label": "Shipping Method",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
                         },
                         "user": {
                             "label": "User",
@@ -1298,6 +1426,14 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": True,
                         },
+                        "shipping_method": {
+                            "choices": True,
+                            "label": "Shipping Method",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
+                        },
                         "user": {
                             "label": "User",
                             "type": "PrimaryKeyRelatedField",
@@ -1410,6 +1546,14 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                },
+                "shipping_method": {
+                    "choices": True,
+                    "label": "Shipping Method",
+                    "many": False,
+                    "read_only": False,
+                    "required": False,
+                    "type": "CharField",
                 },
                 "current_history_id": {
                     "label": "Current History ID",
@@ -1631,6 +1775,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "last_ordered": {
+                            "choices": False,
+                            "label": "Last Ordered",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "DateField",
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
@@ -1685,6 +1837,22 @@ DETAIL_PARAMETRIZE = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                        },
+                        "shipping_method": {
+                            "choices": True,
+                            "label": "Shipping Method",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
+                        },
+                        "special_care": {
+                            "choices": True,
+                            "label": "Special Care",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
                         },
                         "tangible": {
                             "label": "Tangible",
@@ -1834,6 +2002,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "last_ordered": {
+                            "choices": False,
+                            "label": "Last Ordered",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "DateField",
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
@@ -1888,6 +2064,22 @@ DETAIL_PARAMETRIZE = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                        },
+                        "shipping_method": {
+                            "choices": True,
+                            "label": "Shipping Method",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
+                        },
+                        "special_care": {
+                            "choices": True,
+                            "label": "Special Care",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
                         },
                         "tangible": {
                             "label": "Tangible",
@@ -2037,6 +2229,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "last_ordered": {
+                            "choices": False,
+                            "label": "Last Ordered",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "DateField",
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
@@ -2091,6 +2291,22 @@ DETAIL_PARAMETRIZE = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                        },
+                        "shipping_method": {
+                            "choices": True,
+                            "label": "Shipping Method",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
+                        },
+                        "special_care": {
+                            "choices": True,
+                            "label": "Special Care",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
                         },
                         "tangible": {
                             "label": "Tangible",
@@ -2244,6 +2460,14 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
+                "last_ordered": {
+                    "choices": False,
+                    "label": "Last Ordered",
+                    "many": False,
+                    "read_only": False,
+                    "required": False,
+                    "type": "DateField",
+                },
                 "reviews": {
                     "label": "Reviews",
                     "type": "CharField",
@@ -2251,6 +2475,14 @@ DETAIL_PARAMETRIZE = [
                     "read_only": False,
                     "required": False,
                     "choices": False,
+                },
+                "special_care": {
+                    "choices": True,
+                    "label": "Special Care",
+                    "many": False,
+                    "read_only": False,
+                    "required": False,
+                    "type": "CharField",
                 },
                 "tangible": {
                     "label": "Tangible",
@@ -2281,47 +2513,162 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
             },
-            "expected_filtering": [
-                {
-                    "name": "name",
-                    "type": "alpha",
-                    "filters": [
-                        {
-                            "label": "Name",
-                            "lookup_exprs": [
-                                "exact",
-                                "contains",
-                            ],
-                        },
+            "expected_filtering": {
+                "disabled": {
+                    "choices": [("", "Unknown"), ("true", "Yes"), ("false", "No")],
+                    "field_class": "NullBooleanField",
+                    "hidden": False,
+                    "input_type": "select",
+                    "label": "Disabled",
+                    "lookup_exprs": [
+                        "exact",
                     ],
-                    "choices": False,
+                    "required": False,
                 },
-                {
-                    "name": "disabled",
-                    "type": "boolean",
-                    "filters": [
-                        {
-                            "lookup_exprs": [
-                                "exact",
-                            ],
-                        },
-                    ],
-                    "choices": False,
-                },
-                {
-                    "name": "tangible",
-                    "type": "alpha",
-                    "filters": [
-                        {
-                            "label": "Tangible",
-                            "lookup_exprs": [
-                                "exact",
-                            ],
-                        }
-                    ],
+                "distributor__name": {
+                    "app_label": "store",
                     "choices": True,
+                    "empty_label": None,
+                    "error_messages": {
+                        "invalid_choice": "Select a valid choice. %(value)s is not one of the available choices.",
+                        "invalid_list": "Enter a list of values.",
+                    },
+                    "field_class": "MultipleChoiceField",
+                    "filter_name": "distributor",
+                    "filterset_name": "ProductFilterSet",
+                    "hidden": False,
+                    "input_type": "select",
+                    "label": "Distributor name",
+                    "lookup_exprs": [
+                        "exact",
+                    ],
+                    "model": "product",
+                    "null_label": None,
+                    "null_value": "null",
+                    "required": False,
                 },
-            ],
+                "id": {
+                    "choices": False,
+                    "error_messages": {
+                        "invalid": "Enter a number.",
+                    },
+                    "field_class": "DecimalInField",
+                    "help_text": "Multiple values may be separated by commas.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "ID is in",
+                    "lookup_exprs": ["in"],
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
+                    "required": False,
+                },
+                "last_ordered": {
+                    "choices": False,
+                    "error_messages": {
+                        "invalid": "Enter a valid date.",
+                    },
+                    "field_class": "DateField",
+                    "hidden": False,
+                    "input_formats": [
+                        "%Y-%m-%d",
+                        "%m/%d/%Y",
+                        "%m/%d/%y",
+                        "%b %d %Y",
+                        "%b %d, %Y",
+                        "%d %b %Y",
+                        "%d %b, %Y",
+                        "%B %d %Y",
+                        "%B %d, %Y",
+                        "%d %B %Y",
+                        "%d %B, %Y",
+                    ],
+                    "input_type": "text",
+                    "label": "Last ordered",
+                    "lookup_exprs": [
+                        "exact",
+                    ],
+                    "required": False,
+                },
+                "name": {
+                    "choices": False,
+                    "empty_value": "",
+                    "field_class": "CharField",
+                    "hidden": False,
+                    "input_type": "text",
+                    "label": "Name",
+                    "lookup_exprs": [
+                        "exact",
+                        "contains",
+                    ],
+                    "max_length": 255,
+                    "required": False,
+                    "validators": [
+                        {
+                            "code": "null_characters_not_allowed",
+                            "message": "Null characters are not allowed.",
+                        },
+                    ],
+                },
+                "quantity": {
+                    "choices": False,
+                    "error_messages": {
+                        "invalid": "Enter a number.",
+                    },
+                    "field_class": "DecimalInField",
+                    "help_text": "Multiple values may be separated by commas.",
+                    "hidden": False,
+                    "input_type": "number",
+                    "label": "Quantity is in",
+                    "lookup_exprs": ["in"],
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
+                    "required": False,
+                },
+                "special_care": {
+                    "app_label": "store",
+                    "choices": True,
+                    "empty_label": None,
+                    "error_messages": {
+                        "invalid_choice": "Select a valid choice. %(value)s is not one of the available choices.",
+                        "invalid_list": "Enter a list of values.",
+                        "invalid_pk_value": "“%(pk)s” is not a valid value.",
+                    },
+                    "field_class": "ModelMultipleChoiceField",
+                    "filter_name": "special_care",
+                    "filterset_name": "ProductFilterSet",
+                    "hidden": False,
+                    "input_type": "select",
+                    "label": "Special Care",
+                    "lookup_exprs": [
+                        "exact",
+                    ],
+                    "model": "product",
+                    "null_label": None,
+                    "null_value": "null",
+                    "required": False,
+                },
+                "tangible": {
+                    "app_label": "store",
+                    "choices": True,
+                    "empty_label": "---------",
+                    "error_messages": {
+                        "invalid_choice": "Select a valid choice. That choice is not one of the available choices.",
+                    },
+                    "field_class": "ModelChoiceField",
+                    "filter_name": "tangible",
+                    "filterset_name": "ProductFilterSet",
+                    "hidden": False,
+                    "input_type": "select",
+                    "label": "Tangible",
+                    "lookup_exprs": [
+                        "exact",
+                    ],
+                    "model": "product",
+                    "null_label": None,
+                    "null_value": "null",
+                    "required": False,
+                },
+            },
             "expected_ordering": [
                 {"name": "distributor__name", "type": "alpha"},
                 {"name": "name", "type": "alpha"},
@@ -2523,6 +2870,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "last_ordered": {
+                            "choices": False,
+                            "label": "Last Ordered",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "DateField",
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
@@ -2604,6 +2959,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "shipping_method": {
+                            "choices": True,
+                            "label": "Shipping Method",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
+                        },
                         "sku": {
                             "label": "SKU",
                             "type": "CharField",
@@ -2612,6 +2975,14 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                        },
+                        "special_care": {
+                            "choices": True,
+                            "label": "Special Care",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
                         },
                         "tangible": {
                             "label": "Tangible",
@@ -2770,6 +3141,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "last_ordered": {
+                            "choices": False,
+                            "label": "Last Ordered",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "DateField",
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
@@ -2851,6 +3230,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "shipping_method": {
+                            "choices": True,
+                            "label": "Shipping Method",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
+                        },
                         "sku": {
                             "label": "SKU",
                             "type": "CharField",
@@ -2859,6 +3246,14 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                        },
+                        "special_care": {
+                            "choices": True,
+                            "label": "Special Care",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
                         },
                         "tangible": {
                             "label": "Tangible",
@@ -3017,6 +3412,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "last_ordered": {
+                            "choices": False,
+                            "label": "Last Ordered",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "DateField",
+                        },
                         "last_ten_order_betweens": {
                             "label": "Last Ten Order Betweens",
                             "type": "IntegerRangeField",
@@ -3098,6 +3501,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "shipping_method": {
+                            "choices": True,
+                            "label": "Shipping Method",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
+                        },
                         "sku": {
                             "label": "SKU",
                             "type": "CharField",
@@ -3106,6 +3517,14 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                        },
+                        "special_care": {
+                            "choices": True,
+                            "label": "Special Care",
+                            "many": False,
+                            "read_only": False,
+                            "required": False,
+                            "type": "CharField",
                         },
                         "tangible": {
                             "label": "Tangible",
@@ -3264,61 +3683,119 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
             },
-            "expected_filtering": [
-                {
-                    "name": "name",
-                    "type": "alpha",
-                    "filters": [
+            "expected_filtering": {
+                "disabled": {
+                    "choices": [
+                        ("false", "False"),
+                        ("true", "True"),
+                    ],
+                    "empty_value": "",
+                    "error_messages": {
+                        "invalid_choice": "Select a valid choice. %(value)s is not one of the available choices.",
+                    },
+                    "field_class": "TypedChoiceField",
+                    "hidden": False,
+                    "input_type": "select",
+                    "label": "Disabled",
+                    "lookup_exprs": [
+                        "exact",
+                    ],
+                    "required": False,
+                },
+                "id": {
+                    "choices": False,
+                    "error_messages": {
+                        "invalid": "Enter a number.",
+                    },
+                    "field_class": "DecimalInField",
+                    "help_text": "Multiple values may be separated by commas.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "ID is in",
+                    "lookup_exprs": ["in"],
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
+                    "required": False,
+                },
+                "name": {
+                    "choices": False,
+                    "empty_value": "",
+                    "field_class": "CharField",
+                    "hidden": False,
+                    "input_type": "text",
+                    "label": "Name",
+                    "lookup_exprs": [
+                        "exact",
+                        "contains",
+                    ],
+                    "max_length": 255,
+                    "required": False,
+                    "validators": [
                         {
-                            "label": "Name",
-                            "lookup_exprs": [
-                                "exact",
-                                "contains",
-                            ],
+                            "code": "null_characters_not_allowed",
+                            "message": "Null characters are not allowed.",
                         },
                     ],
-                    "choices": False,
                 },
-                {
-                    "name": "sku",
-                    "type": "alpha",
-                    "filters": [
+                "quantity_available": {
+                    "choices": False,
+                    "error_messages": {
+                        "invalid": "Enter a number.",
+                    },
+                    "field_class": "DecimalField",
+                    "hidden": False,
+                    "input_type": "number",
+                    "label": "Quantity available",
+                    "lookup_exprs": [
+                        "exact",
+                    ],
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
+                    "required": False,
+                },
+                "price": {
+                    "choices": False,
+                    "decimal_places": 2,
+                    "error_messages": {
+                        "incomplete": "Enter a complete value.",
+                        "invalid": "Enter a list of values.",
+                    },
+                    "field_class": "RangeField",
+                    "hidden": False,
+                    "input_type": "number",
+                    "label": "Price",
+                    "lookup_exprs": [
+                        "startswith",
+                        "endswith",
+                    ],
+                    "max_digits": 12,
+                    "name_suffixes": [
+                        "_0",
+                        "_1",
+                    ],
+                    "required": False,
+                },
+                "sku": {
+                    "choices": False,
+                    "empty_value": "",
+                    "field_class": "CharField",
+                    "hidden": False,
+                    "input_type": "text",
+                    "label": "SKU",
+                    "lookup_exprs": [
+                        "exact",
+                        "contains",
+                    ],
+                    "max_length": 255,
+                    "required": False,
+                    "validators": [
                         {
-                            "label": "SKU",
-                            "lookup_exprs": [
-                                "exact",
-                                "contains",
-                            ],
+                            "code": "null_characters_not_allowed",
+                            "message": "Null characters are not allowed.",
                         },
                     ],
-                    "choices": False,
                 },
-                {
-                    "name": "price",
-                    "type": "numeric",
-                    "filters": [
-                        {
-                            "label": "Price",
-                            "lookup_exprs": [
-                                "range",
-                            ],
-                        },
-                    ],
-                    "choices": False,
-                },
-                {
-                    "name": "disabled",
-                    "type": "boolean",
-                    "filters": [
-                        {
-                            "lookup_exprs": [
-                                "exact",
-                            ],
-                        },
-                    ],
-                    "choices": False,
-                },
-            ],
+            },
             "expected_ordering": [
                 {"name": "name", "type": "alpha"},
                 {"name": "option_type", "type": "alpha"},
@@ -3522,21 +3999,41 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
             },
-            "expected_filtering": [
-                {
-                    "name": "quantity",
-                    "type": "numeric",
-                    "filters": [
-                        {
-                            "label": "Quantity",
-                            "lookup_exprs": [
-                                "range",
-                            ],
-                        },
-                    ],
+            "expected_filtering": {
+                "quantity": {
                     "choices": False,
+                    "error_messages": {
+                        "invalid": "Enter a number.",
+                        "invalid_values": "Range query expects two values.",
+                    },
+                    "field_class": "DecimalRangeField",
+                    "help_text": "Multiple values may be separated by commas.",
+                    "hidden": False,
+                    "input_type": "text",
+                    "label": "Quantity",
+                    "lookup_exprs": [
+                        "range",
+                    ],
+                    "max_value": 1000,
+                    "min_value": 0,
+                    "required": False,
                 },
-            ],
+                "id": {
+                    "choices": False,
+                    "error_messages": {
+                        "invalid": "Enter a number.",
+                    },
+                    "field_class": "DecimalInField",
+                    "help_text": "Multiple values may be separated by commas.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "ID is in",
+                    "lookup_exprs": ["in"],
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
+                    "required": False,
+                },
+            },
             "expected_ordering": [
                 {"name": "customer_order__order_number", "type": "numeric"},
                 {"name": "product_option__name", "type": "alpha"},
@@ -3942,104 +4439,168 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
             },
-            "expected_filtering": [
-                {
-                    "name": "when",
-                    "type": "datetime",
-                    "filters": [
+            "expected_filtering": {
+                "cost": {
+                    "choices": False,
+                    "error_messages": {
+                        "incomplete": "Enter a complete value.",
+                        "invalid": "Enter a list of values.",
+                    },
+                    "field_class": "RangeField",
+                    "hidden": False,
+                    "input_type": "number",
+                    "label": "Cost",
+                    "lookup_exprs": [
+                        "exact",
+                    ],
+                    "max_digits": 12,
+                    "name_suffixes": [
+                        "_0",
+                        "_1",
+                    ],
+                    "required": False,
+                },
+                "id": {
+                    "choices": False,
+                    "error_messages": {
+                        "invalid": "Enter a number.",
+                    },
+                    "field_class": "DecimalInField",
+                    "help_text": "Multiple values may be separated by commas.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "ID is in",
+                    "lookup_exprs": ["in"],
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
+                    "required": False,
+                },
+                "is_added": {
+                    "choices": [
+                        ("", "Unknown"),
+                        ("true", "Yes"),
+                        ("false", "No"),
+                    ],
+                    "error_messages": {
+                        "required": "This field is required.",
+                    },
+                    "field_class": "NullBooleanField",
+                    "hidden": False,
+                    "input_type": "select",
+                    "label": "Is added",
+                    "lookup_exprs": [
+                        "exact",
+                    ],
+                    "required": True,
+                },
+                "margin": {
+                    "choices": False,
+                    "decimal_places": 2,
+                    "error_messages": {
+                        "incomplete": "Enter a complete value.",
+                        "invalid": "Enter a list of values.",
+                    },
+                    "field_class": "RangeField",
+                    "hidden": False,
+                    "input_type": "number",
+                    "label": "Margin",
+                    "lookup_exprs": [
+                        "exact",
+                    ],
+                    "max_digits": 12,
+                    "name_suffixes": [
+                        "_0",
+                        "_1",
+                    ],
+                    "required": False,
+                },
+                "price": {
+                    "choices": False,
+                    "decimal_places": 2,
+                    "error_messages": {
+                        "incomplete": "Enter a complete value.",
+                        "invalid": "Enter a list of values.",
+                    },
+                    "field_class": "RangeField",
+                    "hidden": False,
+                    "input_type": "number",
+                    "label": "Price",
+                    "lookup_exprs": [
+                        "exact",
+                    ],
+                    "max_digits": 12,
+                    "name_suffixes": [
+                        "_0",
+                        "_1",
+                    ],
+                    "required": False,
+                },
+                "quantity": {
+                    "choices": False,
+                    "error_messages": {
+                        "incomplete": "Enter a complete value.",
+                        "invalid": "Enter a list of values.",
+                    },
+                    "field_class": "RangeField",
+                    "hidden": False,
+                    "input_type": "number",
+                    "label": "Quantity",
+                    "lookup_exprs": [
+                        "exact",
+                    ],
+                    "name_suffixes": [
+                        "_0",
+                        "_1",
+                    ],
+                    "required": False,
+                    "validators": [
                         {
-                            "label": "When",
-                            "lookup_exprs": [
-                                "range",
-                            ],
+                            "code": "step_size",
+                            "message": "Ensure this value is a multiple of step size 6.",
                         },
                     ],
-                    "choices": False,
                 },
-                {
-                    "name": "reason",
-                    "type": "alpha",
-                    "filters": [
-                        {
-                            "lookup_exprs": [
-                                "exact",
-                            ],
-                        },
+                "reason": {
+                    "app_label": "store",
+                    "choices": True,
+                    "empty_label": "---------",
+                    "error_messages": {
+                        "invalid_choice": "Select a valid choice. That choice is not one of the available choices.",
+                    },
+                    "field_class": "ModelChoiceField",
+                    "filter_name": "reason",
+                    "filterset_name": "InventoryRecordFilterSet",
+                    "hidden": False,
+                    "input_type": "select",
+                    "label": "Reason",
+                    "lookup_exprs": [
+                        "exact",
                     ],
-                    "choices": False,
+                    "model": "inventoryrecordreason",
+                    "null_label": None,
+                    "null_value": "null",
+                    "required": False,
                 },
-                {
-                    "name": "is_added",
-                    "type": "boolean",
-                    "filters": [
-                        {
-                            "lookup_exprs": [
-                                "exact",
-                            ],
-                        },
-                        {
-                            "label": "isAdded",
-                            "lookup_exprs": [
-                                "exact",
-                            ],
-                            "required": True,
-                        },
+                "when": {
+                    "choices": False,
+                    "error_messages": {
+                        "incomplete": "Enter a complete value.",
+                        "invalid": "Enter a list of values.",
+                    },
+                    "field_class": "DateTimeRangeField",
+                    "hidden": False,
+                    "input_type": "text",
+                    "label": "When",
+                    "lookup_exprs": [
+                        "exact",
                     ],
-                    "choices": False,
-                },
-                {
-                    "name": "quantity",
-                    "type": "numeric",
-                    "filters": [
-                        {
-                            "label": "Quantity",
-                            "lookup_exprs": [
-                                "range",
-                            ],
-                        },
+                    "name_suffixes": [
+                        "_0",
+                        "_1",
                     ],
-                    "choices": False,
+                    "required": False,
                 },
-                {
-                    "name": "cost",
-                    "type": "numeric",
-                    "filters": [
-                        {
-                            "label": "Cost",
-                            "lookup_exprs": [
-                                "range",
-                            ],
-                        },
-                    ],
-                    "choices": False,
-                },
-                {
-                    "name": "price",
-                    "type": "numeric",
-                    "filters": [
-                        {
-                            "label": "Price",
-                            "lookup_exprs": [
-                                "range",
-                            ],
-                        },
-                    ],
-                    "choices": False,
-                },
-                {
-                    "name": "margin",
-                    "type": "numeric",
-                    "filters": [
-                        {
-                            "label": "Margin",
-                            "lookup_exprs": [
-                                "range",
-                            ],
-                        },
-                    ],
-                    "choices": False,
-                },
-            ],
+            },
             "expected_ordering": [
                 {"name": "when", "type": "datetime"},
                 {"name": "reason", "type": "alpha"},
@@ -4215,7 +4776,7 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
             },
-            "expected_filtering": [],
+            "expected_filtering": {},
             "expected_ordering": [
                 {"name": "product_option__name", "type": "alpha"},
                 {"name": "quantity", "type": "numeric"},
@@ -4555,6 +5116,16 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "ProductOption", "list"),
             ("tests", "User", "list"),
             ("store", "Customer", "read"),
+            ("workflow_changed", "WorkflowChanged", "read"),
+            ("vueda_workflow", "Workflow", "read"),
+            ("vueda_workflow", "Workflow", "list"),
+            ("vueda_workflow", "Workflow", "update"),
+            ("vueda_workflow", "State", "read"),
+            ("vueda_workflow", "State", "list"),
+            ("vueda_workflow", "State", "update"),
+            ("vueda_workflow", "Transition", "read"),
+            ("vueda_workflow", "Transition", "list"),
+            ("vueda_workflow", "Transition", "update"),
         ],
     }
 
@@ -5603,13 +6174,14 @@ class TestModelInfoSerializer:
     @staticmethod
     def check_model_filtering_data(response_data, expected_data):
         data = response_data.data["model_filtering"]
-        assert {x["name"] for x in data} == {x["name"] for x in expected_data}
-        for model_filter in data:
-            for expected_model_filter in expected_data:
-                if model_filter["name"] == expected_model_filter["name"]:
-                    assert frozenset(model_filter) == frozenset(expected_model_filter), str(model_filter)
+        assert frozenset(data) == frozenset(expected_data), "expected_filtering -> {keys}"
+        for model_filter_name, model_filter in data.items():
+            for expected_model_filter_name, expected_model_filter in expected_data.items():
+                if model_filter_name == expected_model_filter_name:
+                    failure_msg = f"expected_filtering -> {model_filter_name}"
+                    assert frozenset(model_filter) == frozenset(expected_model_filter), f"{failure_msg} -> {{keys}}"
                     for key, value in model_filter.items():
-                        assert value == expected_model_filter[key], str(model_filter)
+                        assert value == expected_model_filter[key], f"{failure_msg} -> {key}"
 
     @staticmethod
     def check_model_ordering_data(response_data, expected_data):
@@ -5832,7 +6404,7 @@ class TestModelInfoChoicesSerializer:
 
         assert response.status_code == 400, pformat(response.data)
         assert response.data["non_field_errors"] == [
-            "Invalid field. Valid fields with choices are distributor, tangible."
+            "Invalid field. Valid fields with choices are distributor, tangible, special_care."
         ]
 
     def test_info_choices_list_invalid_field_on_model_with_no_choice_fields(self, test_data, api_client):
