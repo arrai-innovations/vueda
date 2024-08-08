@@ -201,7 +201,6 @@ export async function requireModelInfo(instance, redirectTo, to) {
     /** @type {import('primevue/toastservice').ToastServiceMethods} */
     try {
         configStore = await waitForStoreInfoLoad(to.params.app, to.params.model);
-        console.log(configStore);
     } catch (e) {
         if (e instanceof ModelInfoError) {
             toast.add({
@@ -214,7 +213,6 @@ export async function requireModelInfo(instance, redirectTo, to) {
         throw e;
     }
     const actions = [...configStore.targetlessActions, ...configStore.detailActions, ...configStore.bulkActions];
-    console.log("actions", actions);
     if (actions.length && actions.includes(to.params.action)) {
         return true;
     } else {

@@ -67,19 +67,12 @@ const fieldComponentToWidgetComponent = {
  */
 const getWidgetComponent = (fieldComponentName, filterInfo, lookupExpr) => {
     if (filterInfo.choices) {
-        console.log("getWidgetComponent", fieldComponentName, filterInfo, lookupExpr, "!WidgetSelect");
         return ["WidgetSelect", availableWidgets.WidgetSelect];
     }
     if (filterInfo.type === "numeric" && lookupExpr === "range") {
-        console.log("getWidgetComponent", fieldComponentName, filterInfo, lookupExpr, "!WidgetSlider");
         return ["WidgetSlider", availableWidgets.WidgetSlider];
     }
-    const returnComponent = fieldComponentToWidgetComponent[fieldComponentName] || [
-        "WidgetInput",
-        availableWidgets.WidgetInput,
-    ];
-    console.log("getWidgetComponent", fieldComponentName, filterInfo, lookupExpr, returnComponent[0]);
-    return returnComponent;
+    return fieldComponentToWidgetComponent[fieldComponentName] || ["WidgetInput", availableWidgets.WidgetInput];
 };
 
 /**
