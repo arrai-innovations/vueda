@@ -98,7 +98,13 @@ const theme = useComputedClasses(vuedaTailwind.WidgetHtml, widgetContext.state);
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
-                <component :is="menuComponent" :class="theme('menu')" :disabled="disabled" :editor="editor" />
+                <component
+                    :is="menuComponent"
+                    v-if="menuComponent"
+                    :class="theme('menu')"
+                    :disabled="disabled"
+                    :editor="editor"
+                />
                 <editor-content :class="theme('editor')" v-bind="$attrs" :editor="editor" />
             </div>
         </widget-label>

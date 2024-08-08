@@ -51,5 +51,5 @@ const actionComponent = computedAsync(async () => {
 </script>
 
 <template>
-    <component :is="actionComponent" :app="app" :model="model" :pk="pk" />
+    <component :is="actionComponent" v-if="actionComponent" :app="app" :model="model" :pk="pk" />
 </template>

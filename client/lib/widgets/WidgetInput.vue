@@ -66,6 +66,7 @@ const theme = useComputedClasses(vuedaTailwind.WidgetInput, widgetContext.state)
                     <slot v-if="$slots.prefix" name="prefix" />
                     <component
                         :is="inputComponent"
+                        v-if="inputComponent"
                         v-model="widgetContext.state.combinedValue"
                         :name="widgetContext.state.combinedName"
                         :type="type"
