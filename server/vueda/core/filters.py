@@ -1,3 +1,4 @@
+from django import forms
 from django.db.models.constants import LOOKUP_SEP
 from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework
@@ -62,7 +63,7 @@ class NumberArrayFilter(BaseArrayInFilter, rest_framework.NumberFilter):
 
 
 class IdInFilterSet(rest_framework.FilterSet):
-    id = NumberArrayFilter(field_name="id", lookup_expr="in")
+    id = NumberArrayFilter(field_name="id", lookup_expr="in", widget=forms.HiddenInput)
 
 
 class VuedaFilterSet(IdInFilterSet, rest_framework.FilterSet):
