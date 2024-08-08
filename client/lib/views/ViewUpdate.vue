@@ -233,32 +233,30 @@ const detailActions = computed(() => (modelConfig.config.updateActions || []).fi
     <div :class="props.class">
         <page-title :loading="pageLoading" :title="titleStr">
             <template #button>
-                <div class="flex gap-1 w-full justify-end">
-                    <link-model-view
+                <link-model-view
+                    :app="app"
+                    class="whitespace-nowrap grow shrink-0"
+                    label="Return to List"
+                    :model="model"
+                    view="list"
+                />
+                <template v-for="actionName in targetlessActions" :key="actionName">
+                    <slot
                         :app="app"
-                        class="whitespace-nowrap grow shrink-0"
-                        label="Return to List"
+                        :label="memoizedStartCase(actionName)"
                         :model="model"
-                        view="list"
-                    />
-                    <template v-for="actionName in targetlessActions" :key="actionName">
-                        <slot
+                        name="target-less-action-button"
+                        :view="actionName"
+                    >
+                        <link-model-view
                             :app="app"
+                            class="w-full"
                             :label="memoizedStartCase(actionName)"
                             :model="model"
-                            name="target-less-action-button"
                             :view="actionName"
-                        >
-                            <link-model-view
-                                :app="app"
-                                class="w-full"
-                                :label="memoizedStartCase(actionName)"
-                                :model="model"
-                                :view="actionName"
-                            />
-                        </slot>
-                    </template>
-                </div>
+                        />
+                    </slot>
+                </template>
             </template>
             <template #under-actions>
                 <div class="flex gap-1 w-full justify-end">

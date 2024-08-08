@@ -47,7 +47,6 @@ const computedSelectionMode = computed(() =>
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
-                {{ widgetContext.state.combinedValue }}
                 <Calendar
                     v-model="widgetContext.state.combinedValue"
                     :name="widgetContext.state.combinedName"

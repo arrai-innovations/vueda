@@ -225,26 +225,30 @@ const computedFilterExpressions = computed(() => {
             </div>
         </form>
     </Dialog>
-    <div class="flex gap-1 lg:gap-2 my-1 items-center w-full">
+    <div class="flex flex-wrap gap-1 w-full my-1">
         <slot :click="addFilters" label="Add Filter" name="button" verb="addFilter">
-            <Button class="whitespace-nowrap" label="Add Filter" severity="secondary" @click="addFilters" />
+            <Button
+                class="whitespace-nowrap grow sm:grow-0"
+                label="Add Filter"
+                severity="secondary"
+                @click="addFilters"
+            />
         </slot>
-        <div class="flex gap-2">
-            <template v-for="filter in addedFilters" :key="filter.field">
-                <slot
-                    :click="() => removeFilter(filter)"
+        <template v-for="filter in addedFilters" :key="filter.field">
+            <slot
+                :click="() => removeFilter(filter)"
+                :label="`${filter.field.label} by ${filter.expression.label} for ${filter.value}`"
+                name="filter"
+                v-bind="filter"
+            >
+                <Button
+                    class="grow sm:grow-0"
                     :label="`${filter.field.label} by ${filter.expression.label} for ${filter.value}`"
-                    name="filter"
-                    v-bind="filter"
-                >
-                    <Button
-                        :label="`${filter.field.label} by ${filter.expression.label} for ${filter.value}`"
-                        severity="info"
-                        @click.prevent="removeFilter(filter)"
-                    />
-                </slot>
-            </template>
-        </div>
+                    severity="info"
+                    @click.prevent="removeFilter(filter)"
+                />
+            </slot>
+        </template>
     </div>
 </template>
 

@@ -136,35 +136,33 @@ const targetlessActions = computed(() =>
     <div :class="props.class">
         <page-title :loading="modelConfig.loading" :title="titleStr">
             <template #button>
-                <div class="flex gap-1 w-full justify-end">
-                    <link-model-view
+                <link-model-view
+                    :app="app"
+                    class="whitespace-nowrap grow shrink-0"
+                    label="Return to List"
+                    :model="model"
+                    view="list"
+                />
+                <template v-for="actionName in targetlessActions" :key="actionName">
+                    <slot
                         :app="app"
-                        class="whitespace-nowrap grow shrink-0"
-                        label="Return to List"
+                        :label="memoizedStartCase(actionName)"
                         :model="model"
-                        view="list"
-                    />
-                    <template v-for="actionName in targetlessActions" :key="actionName">
-                        <slot
+                        name="target-less-action-button"
+                        :view="actionName"
+                    >
+                        <link-model-view
                             :app="app"
+                            class="w-full"
                             :label="memoizedStartCase(actionName)"
                             :model="model"
-                            name="target-less-action-button"
                             :view="actionName"
-                        >
-                            <link-model-view
-                                :app="app"
-                                class="w-full"
-                                :label="memoizedStartCase(actionName)"
-                                :model="model"
-                                :view="actionName"
-                            />
-                        </slot>
-                    </template>
-                </div>
+                        />
+                    </slot>
+                </template>
             </template>
             <template #under-actions>
-                <div class="flex gap-1 w-full justify-end">
+                <div class="flex flex-col sm:flex-row gap-1 w-full justify-end">
                     <slot :click="objectForm.submit" :loading="objectForm.state.loading" name="submit-button">
                         <Button label="Submit" :loading="objectForm.state.loading" @click.prevent="objectForm.submit" />
                     </slot>

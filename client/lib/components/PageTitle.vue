@@ -33,7 +33,7 @@ defineProps({
             },
         ]"
     >
-        <div class="bg-surface-0 dark:bg-surface-950 flex flex-col gap-1 py-1">
+        <div class="bg-surface-0 dark:bg-surface-950 flex flex-col gap-1 mt-1">
             <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7">
                 <div class="w-full sm:w-auto flex items-baseline">
                     <h1 class="font-bold leading-relaxed text-3xl">
@@ -45,11 +45,14 @@ defineProps({
                     </h1>
                 </div>
                 <hr class="w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2" />
-                <div class="w-full sm:w-auto self-start flex flex-col sm:flex-row">
+                <div class="flex flex-col sm:flex-row gap-1 self-start w-full sm:w-auto">
                     <slot name="button" />
                 </div>
             </div>
-            <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7">
+            <div
+                v-if="$slots.subtitle || $slots['under-actions']"
+                class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7"
+            >
                 <slot name="subtitle" />
                 <slot name="under-actions" />
             </div>

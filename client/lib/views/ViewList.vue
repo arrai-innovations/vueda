@@ -307,23 +307,21 @@ const hasWorkFlow = computedAsync(
                 </template>
             </template>
         </page-title>
-        <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7">
-            <div class="flex gap-1 w-full">
-                <InputGroup>
-                    <InputText
-                        v-model="listSearch"
-                        class="max-w-[30ch]"
-                        name="search"
-                        placeholder="Search"
-                        type="search"
-                        @search="filterList"
-                    />
-                    <slot :click="filterList" label="Search" name="button" verb="search">
-                        <Button label="Search" @click="filterList" />
-                    </slot>
-                </InputGroup>
-            </div>
-            <div class="flex gap-1 w-full justify-end">
+        <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-1">
+            <InputGroup>
+                <InputText
+                    v-model="listSearch"
+                    class="lg:max-w-[30ch]"
+                    name="search"
+                    placeholder="Search"
+                    type="search"
+                    @search="filterList"
+                />
+                <slot :click="filterList" label="Search" name="button" verb="search">
+                    <Button label="Search" @click="filterList" />
+                </slot>
+            </InputGroup>
+            <div class="flex flex-wrap gap-1 w-full justify-end">
                 <template v-if="hasWorkFlow">
                     <slot
                         name="workflow-action-button"
@@ -337,6 +335,7 @@ const hasWorkFlow = computedAsync(
                         <link-model-view
                             :app="app"
                             button
+                            class="grow sm:grow-0"
                             label="Transition"
                             :model="model"
                             :pk="selectedObjects"
