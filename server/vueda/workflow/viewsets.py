@@ -17,6 +17,7 @@ from vueda.core.open_api import conditional_open_api_parameter
 from vueda.core.open_api import conditional_open_api_request
 from vueda.core.open_api import conditional_open_api_response
 from vueda.core.open_api import conditional_open_api_types
+from vueda.workflow.filtersets import WorkflowFilterSet
 from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import Workflow
 from vueda.workflow.serializers import WorkflowSerializer
@@ -37,6 +38,8 @@ from vueda.workflow.serializers import WorkflowSerializer
 class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     queryset = Workflow.objects.all()
     serializer_class = WorkflowSerializer
+    filterset_class = WorkflowFilterSet
+    permit_list_expands = ["states", "transitions"]
 
     def get_workflow(self):
         return get_object_or_404(
