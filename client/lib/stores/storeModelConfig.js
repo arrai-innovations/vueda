@@ -1,3 +1,4 @@
+import { keyDiff } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -174,7 +175,8 @@ export const storeModelConfig = defineStore({
                                         ...customConfig[detail][fieldName][fieldKey],
                                     };
                                 } else {
-                                    builtConfig[detail][fieldName][fieldKey] = customConfig[detail][fieldName][fieldKey];
+                                    builtConfig[detail][fieldName][fieldKey] =
+                                        customConfig[detail][fieldName][fieldKey];
                                 }
                             }
                         }
@@ -182,8 +184,8 @@ export const storeModelConfig = defineStore({
                         builtConfig[detail] = localDefaultConfig;
                     }
                 }
-                return builtConfig
-            }
+                return builtConfig;
+            };
             return this.initialized[appModelDotName]();
         },
         updateConfig(app, model, config) {
