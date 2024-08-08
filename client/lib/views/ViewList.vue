@@ -324,32 +324,32 @@ const hasWorkFlow = computedAsync(
                 </InputGroup>
             </div>
             <div class="flex gap-1 w-full justify-end">
-                <div v-if="hasWorkFlow">
-                        <slot
-                            name="workflow-action-button"
-                            v-bind="{
-                                model,
-                                app,
-                                click: detailActionOnClick(`transition`),
-                                selectedObjects,
-                            }"
-                        >
-                            <link-model-view
-                                :app="app"
-                                button
-                                label="Transition"
-                                :model="model"
-                                :pk="selectedObjects"
-                                view="transition"
-                            />
-                        </slot>
-                    </div>
-                 <template
-                        v-for="actionName in modelConfig.config.listActions?.filter((a) =>
-                            modelConfig.config.bulkActions.includes(a),
-                        )"
-                        :key="actionName"
+                <template v-if="hasWorkFlow">
+                    <slot
+                        name="workflow-action-button"
+                        v-bind="{
+                            model,
+                            app,
+                            click: detailActionOnClick(`transition`),
+                            selectedObjects,
+                        }"
                     >
+                        <link-model-view
+                            :app="app"
+                            button
+                            label="Transition"
+                            :model="model"
+                            :pk="selectedObjects"
+                            view="transition"
+                        />
+                    </slot>
+                </template>
+                <template
+                    v-for="actionName in modelConfig.config.listActions?.filter((a) =>
+                        modelConfig.config.bulkActions.includes(a),
+                    )"
+                    :key="actionName"
+                >
                     <slot
                         name="bulk-action-button"
                         v-bind="{
