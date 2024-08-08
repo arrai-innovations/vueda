@@ -7,6 +7,7 @@ import PageTitle from "@vueda/components/PageTitle.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useMergeFieldNameProps } from "@vueda/use/useMergeFieldNameProps.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -101,8 +102,11 @@ const instanceObjectProps = reactive({
 const instanceObject = useObject({
     props: instanceObjectProps,
 });
+
+const modelInitialValue = useModelInitialValues(toRef(props, "app"), toRef(props, "model"), calculatedDisplayFields);
+
 const formContextProps = reactive({
-    initialValues: {},
+    initialValues: modelInitialValue,
 });
 const formContext = useForm(formContextProps);
 const objectFormProps = reactive({
