@@ -4,7 +4,6 @@ import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
-import { isBulkView, isDetailView } from "@vueda/router/getCrud.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useMergeFieldNameProps } from "@vueda/use/useMergeFieldNameProps.js";
@@ -224,10 +223,6 @@ const combinedWhileText = computed(() =>
               : "",
 );
 const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObject.state.loading));
-const targetlessActions = computed(() =>
-    (modelConfig.config.updateActions || []).filter((x) => !(isDetailView(x) || isBulkView(x))),
-);
-const detailActions = computed(() => (modelConfig.config.updateActions || []).filter((x) => isDetailView(x)));
 </script>
 <template>
     <div :class="props.class">
@@ -240,7 +235,19 @@ const detailActions = computed(() => (modelConfig.config.updateActions || []).fi
                     :model="model"
                     view="list"
                 />
-                <template v-for="actionName in targetlessActions" :key="actionName">
+                <template
+                    v-for="actionName in modelConfig.info.actions
+                        ?.filter(
+                            (a) =>
+                                (modelConfig.config.updateActions
+                                    ? modelConfig.config.updateActions.includes(a.name)
+                                    : true) &&
+                                !a.detail &&
+                                !a.name.startsWith('bulk-'),
+                        )
+                        .map((a) => a.name)"
+                    :key="actionName"
+                >
                     <slot
                         :app="app"
                         :label="memoizedStartCase(actionName)"
@@ -259,8 +266,20 @@ const detailActions = computed(() => (modelConfig.config.updateActions || []).fi
                 </template>
             </template>
             <template #under-actions>
-                <div class="flex gap-1 w-full justify-end">
-                    <template v-for="actionName in detailActions" :key="actionName">
+                <div class="flex flex-col sm:flex-row gap-1 w-full justify-end">
+                    <template
+                        v-for="actionName in modelConfig.info.actions
+                            ?.filter(
+                                (a) =>
+                                    (modelConfig.config.updateActions
+                                        ? modelConfig.config.updateActions.includes(a.name)
+                                        : true) &&
+                                    a.detail &&
+                                    !a.name.startsWith('bulk-'),
+                            )
+                            .map((a) => a.name)"
+                        :key="actionName"
+                    >
                         <slot
                             :app="app"
                             :label="memoizedStartCase(actionName)"

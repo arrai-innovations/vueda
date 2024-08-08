@@ -254,6 +254,7 @@ export const storeModelInfo = defineStore({
                                 return [key, cV];
                             }),
                         );
+                        return this.modelInfos[key];
                     })
                     .finally(() => {
                         delete this.existingPromises[key];

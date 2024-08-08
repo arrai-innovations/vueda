@@ -282,9 +282,16 @@ const hasWorkFlow = computedAsync(
         <page-title :loading="instanceList.state.loading" :title="titleStr">
             <template #button>
                 <template
-                    v-for="actionName in modelConfig.config.listActions?.filter((a) =>
-                        modelConfig.config.targetlessActions.includes(a),
-                    )"
+                    v-for="actionName in modelConfig.info.actions
+                        ?.filter(
+                            (a) =>
+                                (modelConfig.config.listActions
+                                    ? modelConfig.config.listActions.includes(a.name)
+                                    : true) &&
+                                !a.detail &&
+                                !a.name.startsWith('bulk-'),
+                        )
+                        .map((a) => a.name)"
                     :key="
                         getCRUDName({
                             app: app,
@@ -344,9 +351,14 @@ const hasWorkFlow = computedAsync(
                     </slot>
                 </template>
                 <template
-                    v-for="actionName in modelConfig.config.listActions?.filter((a) =>
-                        modelConfig.config.bulkActions.includes(a),
-                    )"
+                    v-for="actionName in modelConfig.info.actions
+                        ?.filter(
+                            (a) =>
+                                (modelConfig.config.listActions
+                                    ? modelConfig.config.listActions.includes(a.name)
+                                    : true) && a.name.startsWith('bulk-'),
+                        )
+                        .map((a) => a.name)"
                     :key="actionName"
                 >
                     <slot
@@ -363,6 +375,7 @@ const hasWorkFlow = computedAsync(
                         <link-model-view
                             :app="app"
                             button
+                            class="grow sm:grow-0"
                             :label="memoizedStartCase(actionName)"
                             :model="model"
                             :pk="selectedObjects"

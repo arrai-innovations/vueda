@@ -21,11 +21,10 @@ import { defineStore } from "pinia";
  * @property {string[]} listFilterable - filters to display in list view
  * @property {string[]} listSortable - field names that can be sorted in list view
  * @property {string[]} listSorted - the default sort order for list view
- * @property {string[]} listActions - actions to display in list view
- * @property {string[]} detailActions - actions to display in detail view
- * @property {string[]} createActions - actions to display in create view
- * @property {string[]} updateActions - actions to display in update view
- * @property {string[]} readActions - actions to display in read view
+ * @property {string[]|null} listActions - allow list of actions to display in list view, otherwise all actions are displayed
+ * @property {string[]|null} createActions - allow list of actions to display in create view, otherwise all actions are displayed
+ * @property {string[]|null} updateActions - allow list of actions to display in update view, otherwise all actions are displayed
+ * @property {string[]|null} readActions - allow list of actions to display in read view, otherwise all actions are displayed
  * @property {{[propName: string]: any}} createFormProps - extra props to pass the form model for view create
  * @property {{[propName: string]: any}} updateFormProps - extra props to pass the form model for view update
  * @property {{[fieldPath: string]: {[propName: string]: any}}} createFieldProps - extra props to pass a field component in a form model for view create
@@ -43,11 +42,6 @@ import { defineStore } from "pinia";
 const getDefaultFromModelInfo = (modelInfo) => {
     const modelFields = Object.keys(modelInfo.fields);
     const orderableFields = modelInfo.ordering.map((o) => o.name);
-    const targetlessActions = modelInfo.actions
-        .filter((a) => !a.detail && !a.name.startsWith("bulk-"))
-        .map((a) => a.name);
-    const detailActions = modelInfo.actions.filter((a) => a.detail).map((a) => a.name);
-    const bulkActions = modelInfo.actions.filter((a) => a.name.startsWith("bulk-")).map((a) => a.name);
     const listFilterable = modelInfo.filtering.map((f) => f.name);
     return {
         fieldDetails: cloneDeep(modelInfo.fields),
@@ -66,13 +60,11 @@ const getDefaultFromModelInfo = (modelInfo) => {
         listFilterable: listFilterable,
         listSortable: orderableFields,
         listSorted: [], // todo: the server has default field(s) being sorted on, we should get that
-        targetlessActions: targetlessActions,
-        detailActions: detailActions,
-        bulkActions: bulkActions,
-        listActions: [...targetlessActions, ...bulkActions],
-        createActions: detailActions,
-        updateActions: [...detailActions, ...bulkActions],
-        readActions: detailActions,
+        routeActions: null, // actions use modelInfo.actions unless overridden
+        listActions: null, // actions use modelInfo.actions unless overridden
+        createActions: null, // actions use modelInfo.actions unless overridden
+        updateActions: null, // actions use modelInfo.actions unless overridden
+        readActions: null, // actions use modelInfo.actions unless overridden
         createFormProps: {},
         updateFormProps: {},
         createFieldProps: {},

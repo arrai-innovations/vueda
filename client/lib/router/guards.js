@@ -1,5 +1,5 @@
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
-import { ModelInfoError } from "@vueda/stores/storeModelInfo.js";
+import { ModelInfoError, storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import { useRouter } from "vue-router";
@@ -22,11 +22,14 @@ export async function waitForInitialising() {
  *  Wait for store model config to load
  * @param app
  * @param model
- * @returns {Promise<import('@vueda/stores/storeModelConfig.js').ModelConfig>}
+ * @returns {Promise<[import('@vueda/stores/storeModelInfo.js').ModelInfo, import('@vueda/stores/storeModelConfig.js').ModelConfig]>}
  */
 export async function waitForStoreInfoLoad(app, model) {
+    const modelInfoStore = storeModelInfo();
+    const infoStore = await modelInfoStore.fetchModelInfo(app, model);
     const modelConfig = storeModelConfig();
-    return await modelConfig.getConfig(app, model);
+    const configStore = await modelConfig.getConfig(app, model);
+    return [infoStore, configStore];
 }
 
 /**
@@ -196,11 +199,11 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to)
 }
 
 export async function requireModelInfo(instance, redirectTo, to) {
-    let configStore;
+    let configStore, infoStore;
     const toast = instance.config.globalProperties.$toast;
     /** @type {import('primevue/toastservice').ToastServiceMethods} */
     try {
-        configStore = await waitForStoreInfoLoad(to.params.app, to.params.model);
+        [infoStore, configStore] = await waitForStoreInfoLoad(to.params.app, to.params.model);
     } catch (e) {
         if (e instanceof ModelInfoError) {
             toast.add({
@@ -212,7 +215,11 @@ export async function requireModelInfo(instance, redirectTo, to) {
 
         throw e;
     }
-    const actions = [...configStore.targetlessActions, ...configStore.detailActions, ...configStore.bulkActions];
+    let actions = infoStore.actions.map((action) => action.name);
+    if (configStore.routerActions) {
+        // not ?.length because there could be no actions allowed
+        actions = actions.filter((action) => configStore.routerActions.includes(action));
+    }
     if (actions.length && actions.includes(to.params.action)) {
         return true;
     } else {
