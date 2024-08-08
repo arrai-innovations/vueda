@@ -159,7 +159,9 @@ const myFieldObjects = computed(() => props.fields.map((x) => formModel.fieldObj
                 >
                     <template v-for="fieldObject in myFieldObjects" :key="fieldObject?.name">
                         <slot
+                            :field-class="theme('field')"
                             :field-component="formModel.fieldComponents[fieldObject?.name]?.value"
+                            :field-inner-class="theme('fieldInner')"
                             :field-object="fieldObject"
                             :field-props="formModel.fieldProps[fieldObject?.name]"
                             :name="`field(${fieldObject?.name})`"
