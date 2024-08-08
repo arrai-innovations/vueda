@@ -85,8 +85,8 @@ const makeResultObject = (app, model, id) => ({
     model: unref(model),
     id: unref(id),
 });
-const workflowRetrieveTransitionUrl = (app, model) =>
-    `${httpOrHttpsHostname}${getUrl("workflowRetrieveTransition")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/?e=transitions`;
+const workflowListTransitionUrl = (app, model) =>
+    `${httpOrHttpsHostname}${getUrl("workflowList")}?app_label=${memoizedSnakeCase(app)}&model=${memoizedSnakeCase(model)}&e=transitions`;
 const modelStatesUrl = (app, model) =>
     `${httpOrHttpsHostname}${getUrl("workflowStates")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
 const objectStatesUrl = (result) =>
@@ -183,7 +183,7 @@ export const storeWorkflow = defineStore({
                     return existing;
                 }
                 const data = await fetchHelper(
-                    workflowRetrieveTransitionUrl(app, model),
+                    workflowListTransitionUrl(app, model),
                     {
                         method: "GET",
                     },
@@ -191,7 +191,10 @@ export const storeWorkflow = defineStore({
                     "marker",
                 );
                 if (data !== "marker") {
-                    set(this.workflowTransitions, key, data);
+                    if (!data.results.length) {
+                        return;
+                    }
+                    set(this.workflowTransitions, key, data.results[0]);
                 }
             } finally {
                 this.loading = false;

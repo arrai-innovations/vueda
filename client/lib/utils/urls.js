@@ -8,7 +8,7 @@ const defaultUrls = {
     userCurrentUser: "/routes/vueda.user/who-is/",
     userLogin: "/routes/vueda.user/login/",
     userLogout: "/routes/vueda.user/logout/",
-    workflowList: "/routes/workflow/workflow/",
+    workflowList: "/routes/vueda.workflow/workflows/",
     workflowRetrieveTransition: "/routes/vueda.workflow/workflows/",
     workflowExecuteTransition: "/routes/vueda.workflow/workflows/:app/:model/execute-transition/:pk/",
     workflowObjectState: "/routes/vueda.workflow/workflows/:app/:model/object-state/:pk/",
