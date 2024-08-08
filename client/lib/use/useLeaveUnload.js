@@ -1,6 +1,6 @@
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { onMounted, onUnmounted } from "vue";
-import { onBeforeRouteLeave } from "vue-router";
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 
 /**
  * @typedef {import('vue').Reactive} UseLeaveUnloadReactiveProps
@@ -43,6 +43,7 @@ export function useLeaveUnload(props) {
             event.returnValue = "You have unsaved changes, are you sure to leave?";
         }
     };
+    onBeforeRouteUpdate(beforeRouteLeaveListener);
     onBeforeRouteLeave(beforeRouteLeaveListener);
     onMounted(() => {
         window.addEventListener("beforeunload", beforeUnloadListener);

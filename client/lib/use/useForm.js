@@ -216,7 +216,7 @@ const calculateModified = (state, name) => {
     validateName(name);
     const value = get(state.values, name);
     const initialValue = get(state.initialValues, name);
-    if (value !== initialValue) {
+    if (!isEqual(value, initialValue)) {
         setModified(state, name);
     } else {
         clearModified(state, name);
