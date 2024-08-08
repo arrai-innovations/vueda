@@ -4,6 +4,7 @@ import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Calendar from "primevue/calendar";
+import { computed } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -26,10 +27,18 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    selectionMode: {
+        type: String,
+        default: undefined,
+    },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useComputedClasses(vuedaTailwind.WidgetDatePicker, widgetContext.state);
+const valueIsArray = computed(() => Array.isArray(widgetContext.state.combinedValue));
+const computedSelectionMode = computed(() =>
+    props.selectionMode ? props.selectionMode : valueIsArray.value ? "range" : "single",
+);
 </script>
 <template>
     <div :class="theme('root')">
@@ -38,9 +47,11 @@ const theme = useComputedClasses(vuedaTailwind.WidgetDatePicker, widgetContext.s
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
+                {{ widgetContext.state.combinedValue }}
                 <Calendar
                     v-model="widgetContext.state.combinedValue"
                     :name="widgetContext.state.combinedName"
+                    :selection-mode="computedSelectionMode"
                     v-bind="$attrs"
                     @blur="widgetContext.blur"
                     @focus="widgetContext.focus"
