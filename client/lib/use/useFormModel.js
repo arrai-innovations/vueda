@@ -65,15 +65,45 @@ const builtInTypes = {
 
 // todo: we should have a way to register custom widgets
 const defaultWidgets = {
-    FieldBoolean: async () => (await import("@vueda/widgets/WidgetCheckbox.vue")).default,
-    FieldDate: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    FieldDateTime: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    FieldNumber: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    FieldArray: async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default,
-    FieldObject: async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default,
-    FieldString: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    FieldTime: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    FieldRange: async () => (await import("@vueda/widgets/WidgetDatePicker.vue")).default,
+    IntegerRangeField: async () => (await import("@vueda/widgets/WidgetSlider.vue")).default,
+    DateRangeField: async () => (await import("@vueda/widgets/WidgetDatePicker.vue")).default,
+    TextField: async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default,
+    CharField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    BooleanField: async () => (await import("@vueda/widgets/WidgetCheckbox.vue")).default,
+    DateField: async () => (await import("@vueda/widgets/WidgetDatePicker.vue")).default,
+    DateTimeField: async () => (await import("@vueda/widgets/WidgetDatePicker.vue")).default,
+    DecimalField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    FloatField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    IntegerField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    PositiveIntegerField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    PositiveSmallIntegerField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    SmallIntegerField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    TimeField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    EmailField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    URLField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    UUIDField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    ForeignKey: async () => (await import("@vueda/widgets/WidgetSelect.vue")).default,
+    ManyToManyField: async () => (await import("@vueda/widgets/WidgetMultiSelect.vue")).default,
+    OneToOneField: async () => (await import("@vueda/widgets/WidgetSelect.vue")).default,
+    JSONField: async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default,
+    ArrayField: async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default,
+    BinaryField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    FilePathField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    IPAddressField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    GenericIPAddressField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    SlugField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    FileField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    ImageField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    AutoField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    BigAutoField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    BigIntegerField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    DurationSecondsField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    GenericRelation: async () => (await import("@vueda/widgets/WidgetSelect.vue")).default,
+    GenericForeignKey: async () => (await import("@vueda/widgets/WidgetSelect.vue")).default,
+    NullBooleanField: async () => (await import("@vueda/widgets/WidgetCheckbox.vue")).default,
+    PositiveBigIntegerField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    PositiveDecimalField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
+    ManyRelatedField: async () => (await import("@vueda/widgets/WidgetMultiSelect.vue")).default,
 };
 
 const defaultFieldProps = {};
@@ -145,29 +175,24 @@ const djangoTypeToFieldComponent = (field) => {
 /**
  * Get the default widget for a given field object.
  *
- * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - The field object.
+ * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} fieldObj - The field object.
  * @returns {()=>Promise<import('vue').Component>} The widget component.
  */
-const getDefaultWidget = (field) => {
-    if (field.readOnly) {
+const getDefaultWidget = (fieldObj) => {
+    if (fieldObj.readOnly) {
         return async () => (await import("@vueda/widgets/WidgetReadOnly.vue")).default;
     }
-    if (field.choices) {
+    if (fieldObj.choices) {
         return async () => (await import("@vueda/widgets/WidgetAutoComplete.vue")).default;
         // return WidgetMultiSelect;
     }
-    if (field.type === "TextField" || field.many) {
+    if (fieldObj.type === "TextField" || fieldObj.many) {
         return async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default;
     }
-    if (field.type === "IntegerRangeField") {
+    if (fieldObj.type === "IntegerRangeField") {
         return async () => (await import("@vueda/widgets/WidgetSlider.vue")).default;
     }
-    const fieldComponent = djangoTypeToFieldComponent(field);
-    // todo: it would be nice to have a way to just specify a widget, in addition to having to pass as a slot
-    if (fieldComponent[0] === "FieldInline") {
-        return undefined;
-    }
-    return defaultWidgets[fieldComponent[0]] || (async () => (await import("@vueda/widgets/WidgetInput.vue")).default);
+    return defaultWidgets[fieldObj.type] || (async () => (await import("@vueda/widgets/WidgetInput.vue")).default);
 };
 
 /**
