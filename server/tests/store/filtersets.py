@@ -1,16 +1,40 @@
+from distutils.util import strtobool
+
+from django.core.validators import StepValueValidator
 from django_filters import rest_framework
 
 import tests.store.models as my_models
+from tests import filters as test_filters
 from vueda.core.filters import VuedaFilterSet
 
 
 class ProductFilterSet(VuedaFilterSet):
+    distributor = rest_framework.AllValuesMultipleFilter(field_name="distributor__name")
+    distributor.model = my_models.Product
     name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr=["exact", "contains"])
-    tangible = rest_framework.ModelChoiceFilter(field_name="tangible", label="Tangible")
+    tangible = rest_framework.ModelChoiceFilter(
+        field_name="tangible", label="Tangible", queryset=my_models.Product.objects.all()
+    )
+    special_care = rest_framework.ModelMultipleChoiceFilter(
+        field_name="special_care", label="Special Care", queryset=my_models.Product.objects.all()
+    )
+    disabled = rest_framework.BooleanFilter(field_name="disabled", label="Disabled")
+    last_ordered = rest_framework.DateFilter()
+    quantity = test_filters.CustomNumberInFilter()
 
     class Meta:
         model = my_models.Product
         fields = ["name", "disabled", "tangible"]
+
+
+class CustomerOrderFilterSet(VuedaFilterSet):
+    shipping_method = rest_framework.ChoiceFilter(
+        choices=(("free", "Free"), ("regular", "Regular"), ("express", "Express")), default="regular"
+    )
+
+    class Meta:
+        model = my_models.CustomerOrder
+        fields = []
 
 
 class DistributorFilterSet(VuedaFilterSet):
@@ -25,6 +49,10 @@ class ProductOptionFilterSet(VuedaFilterSet):
     name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr=["exact", "contains"])
     sku = rest_framework.CharFilter(field_name="sku", label="SKU", lookup_expr=["exact", "contains"])
     price = rest_framework.NumericRangeFilter(field_name="price", label="Price", lookup_expr=[])
+    disabled = rest_framework.TypedChoiceFilter(
+        field_name="disabled", label="Disabled", choices=(("false", "False"), ("true", "True")), coerce=strtobool
+    )
+    quantity_available = rest_framework.NumberFilter()
 
     class Meta:
         model = my_models.ProductOption
@@ -35,6 +63,9 @@ class CartFilterSet(VuedaFilterSet):
     last_modified = rest_framework.DateTimeFromToRangeFilter(
         field_name="last_modified", label="Last modified", lookup_expr=[]
     )
+    reserved_delivery_time = rest_framework.DateTimeFilter()
+    reserved_until = rest_framework.TimeFilter()
+    expected_delivery_time = rest_framework.DurationFilter()
 
     class Meta:
         model = my_models.Cart
@@ -44,7 +75,7 @@ class CartFilterSet(VuedaFilterSet):
 
 
 class OrderItemFilterSet(VuedaFilterSet):
-    quantity = rest_framework.NumericRangeFilter(field_name="quantity", label="Quantity", lookup_expr=[])
+    quantity = test_filters.CustomRangeFilter(field_name="quantity", label="Quantity")
 
     class Meta:
         model = my_models.OrderItem
@@ -54,15 +85,15 @@ class OrderItemFilterSet(VuedaFilterSet):
 
 
 class InventoryRecordFilterSet(VuedaFilterSet):
-    when = rest_framework.DateTimeFromToRangeFilter(field_name="when", label="When", lookup_expr=[])
-    is_added_exact = rest_framework.BooleanFilter(
-        field_name="is_added", label="isAdded", lookup_expr="exact", required=True
+    when = rest_framework.DateTimeFromToRangeFilter(field_name="when", label="When")
+    is_added = rest_framework.BooleanFilter(field_name="is_added", label="Is added", lookup_expr="exact", required=True)
+    quantity = rest_framework.NumericRangeFilter(
+        field_name="quantity", label="Quantity", validators=[StepValueValidator(6)]
     )
-    quantity = rest_framework.NumericRangeFilter(field_name="quantity", label="Quantity", lookup_expr=[])
-    cost = rest_framework.NumericRangeFilter(field_name="cost", label="Cost", lookup_expr=[])
-    price = rest_framework.NumericRangeFilter(field_name="price", label="Price", lookup_expr=[])
-    margin = rest_framework.NumericRangeFilter(field_name="margin", label="Margin", lookup_expr=[])
+    cost = rest_framework.NumericRangeFilter(field_name="cost", label="Cost")
+    price = rest_framework.RangeFilter(field_name="price", label="Price")
+    margin = rest_framework.NumericRangeFilter(field_name="margin", label="Margin")
 
     class Meta:
         model = my_models.InventoryRecord
-        fields = ["when", "reason", "is_added", "quantity", "cost", "price", "margin"]
+        fields = ["reason"]

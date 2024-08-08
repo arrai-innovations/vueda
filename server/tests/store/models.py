@@ -3,6 +3,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.postgres import fields as postgres_fields
 from django.core import validators
+from django.core.validators import StepValueValidator
 from django.db import models
 from django.db.models import Max
 
@@ -34,6 +35,18 @@ class Product(SimpleHistoryModelMixin, models.Model):
     name = models.CharField(max_length=255)
     disabled = models.BooleanField(db_default=False)
     tangible = models.CharField(max_length=255, choices=(("digital", "Digital"), ("physical", "Physical")))
+    special_care = models.CharField(
+        max_length=255,
+        choices=(
+            ("alcohol", "Alcohol"),
+            ("dangerous", "Dangerous"),
+            ("fragile", "Fragile"),
+            ("oversized", "Oversized"),
+            ("perishable", "Perishable"),
+            ("temperature_controlled", "Temperature Controlled"),
+        ),
+        blank=True,
+    )
     order_between = postgres_fields.IntegerRangeField()
     last_ten_order_betweens = postgres_fields.ArrayField(postgres_fields.IntegerRangeField(), null=True)
     description = models.TextField(blank=True)
@@ -41,6 +54,8 @@ class Product(SimpleHistoryModelMixin, models.Model):
     future_sale_dates = postgres_fields.ArrayField(postgres_fields.DateRangeField(), null=True)
     reviews = postgres_fields.ArrayField(models.CharField(max_length=2048), blank=True, default=list)
     internal_comments = postgres_fields.ArrayField(models.TextField(), blank=True, default=list)
+    last_ordered = models.DateField(null=True)
+    quantity = models.IntegerField(db_default=0)
 
     class Meta(BaseModelMeta):
         unique_together = [
@@ -67,6 +82,7 @@ class ProductOption(SimpleHistoryModelMixin, models.Model):
     gtin = models.CharField(max_length=255, unique=True, verbose_name="GTIN")
     price = models.DecimalField(max_digits=12, decimal_places=2, null=True)
     disabled = models.BooleanField(db_default=False)
+    quantity_available = models.IntegerField(db_default=0)
 
     class Meta(BaseModelMeta):
         default_related_name = "product_options"
@@ -78,6 +94,9 @@ class ProductOption(SimpleHistoryModelMixin, models.Model):
 class Cart(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
     last_modified = models.DateTimeField(auto_now=True)
+    reserved_delivery_time = models.DateTimeField(null=True)
+    reserved_until = models.TimeField(null=True)
+    expected_delivery_time = models.DurationField(null=True)
 
     class Meta(BaseModelMeta):
         pass
@@ -111,6 +130,9 @@ class CustomerOrder(HasWorkflowModelMixin, SimpleHistoryModelMixin, models.Model
     when = models.DateTimeField(auto_now_add=True, verbose_name="Date / Time", db_index=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
     order_state = models.ForeignKey(OrderState, on_delete=models.PROTECT)
+    shipping_method = models.CharField(
+        max_length=255, choices=(("free", "Free"), ("regular", "Regular"), ("express", "Express")), blank=True
+    )
 
     class Meta(BaseModelMeta):
         permissions = [("fulfill_orders", "Can fulfill orders")]
@@ -160,7 +182,7 @@ class InventoryRecordReason(models.Model):
 class InventoryRecord(models.Model):
     product_option = models.ForeignKey(ProductOption, on_delete=models.PROTECT)
     when = models.DateTimeField(auto_now_add=True, verbose_name="Date / Time", db_index=True)
-    quantity = models.IntegerField(db_default=0)
+    quantity = models.IntegerField(db_default=0, validators=[StepValueValidator(6)])
     reason = models.ForeignKey(InventoryRecordReason, on_delete=models.PROTECT)
     # A flag, which is set via a management command, run nightly, to ignore records that are completely used.
     archived = models.BooleanField(db_default=False, db_index=True)

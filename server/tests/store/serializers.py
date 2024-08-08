@@ -96,12 +96,14 @@ class ProductSerializer(VuedaHistorySerializer):
             "description",
             "disabled",
             "tangible",
+            "special_care",
             "order_between",
             "last_ten_order_betweens",
             "current_sale_date",
             "future_sale_dates",
             "reviews",
             "internal_comments",
+            "last_ordered",
         ] + VuedaHistorySerializer.Meta.fields
         expandable_fields = {
             "distributor": (
@@ -271,6 +273,7 @@ class CustomerOrderSerializer(VuedaHistorySerializer):
             "when",
             "customer",
             "order_state",
+            "shipping_method",
         ] + VuedaHistorySerializer.Meta.fields
         expandable_fields = {
             "customer": (
