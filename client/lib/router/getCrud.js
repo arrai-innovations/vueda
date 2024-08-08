@@ -1,24 +1,4 @@
-import { storeViewInfo } from "@vueda/stores/storeViewInfo.js";
-
-/**
- * Check if a view is a detail view.
- *
- * @param {String} view - The name of the view.
- * @returns {boolean} True if the view is a detail view, false otherwise.
- */
-export const isDetailView = (view) => {
-    return storeViewInfo().isDetailView(view);
-};
-
-/**
- * Check if a view is a bulk view.
- *
- * @param {object} view - The view.
- * @returns {boolean} True if the view is a detail view, false otherwise.
- */
-export const isBulkView = (view) => {
-    return storeViewInfo().isBulkView(view);
-};
+import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 
 /**
  * Get the route configuration for a CRUD operation.
@@ -39,8 +19,9 @@ export const isBulkView = (view) => {
  * }} The route configuration.
  * @throws {Error} If parentPk or pk is required but not provided.
  */
-export function getCRUDForTo({ app, model, pk, view, throwOnUndefinedPk = false }) {
-    const viewStore = storeViewInfo();
+export async function getCRUDForTo({ app, model, pk, view, throwOnUndefinedPk = false }) {
+    const infoStore = storeModelInfo();
+    const modelInfo = await infoStore.fetchModelInfo(app, model);
     const returnValue = {
         name: "actionrouter.listview",
         params: {
@@ -57,9 +38,9 @@ export function getCRUDForTo({ app, model, pk, view, throwOnUndefinedPk = false 
             returnValue.name = "actionrouter.detailview";
         }
     }
-
-    if (model && !pk && !viewStore.detail.includes(view) && throwOnUndefinedPk) {
-        throw new Error(`pk is required when view is not one of ${viewStore.detail.join(", ")}`);
+    const isDetail = modelInfo.actions?.find((action) => action.name === view)?.detail;
+    if (model && !pk && !isDetail && throwOnUndefinedPk) {
+        throw new Error("pk is required for detail views");
     }
     return returnValue;
 }
