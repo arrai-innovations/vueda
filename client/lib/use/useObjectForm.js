@@ -2,6 +2,7 @@ import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
 import { LIST_VIEW_CRUD_NAME, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
+import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
 import { useToast } from "primevue/usetoast";
@@ -253,11 +254,7 @@ export function useObjectForm({ props, formContext, instanceObject }) {
                 return promises.submit;
             }
             // debug, don't submit, just toast the current state.
-            toast.add({
-                severity: "info",
-                summary: "Debug",
-                detail: JSON.stringify(formContext.state, null, 2),
-            });
+            console.info("state passed to doSubmit", cloneDeep(formContext.state));
             const submitPromise = doSubmit();
             promises.submit = submitPromise;
             return submitPromise;
