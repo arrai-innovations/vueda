@@ -79,7 +79,7 @@ const handleDelete = async () => {
             life: 5000,
         });
         await router.push(
-            getCRUDForTo({
+            await getCRUDForTo({
                 app: props.app,
                 model: props.model,
                 view: "list",

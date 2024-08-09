@@ -1,5 +1,6 @@
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { computedAsync } from "@vueuse/core";
 import { computed, toRef } from "vue";
 import { useRouter } from "vue-router";
 
@@ -26,9 +27,9 @@ export const useLinkModelView = (props) => {
         );
     });
     const pkValid = computed(() => (isDetailorBulkViewComputed.value && props.pk) || !isDetailorBulkViewComputed.value);
-    const toRouteArgs = computed(() => {
+    const toRouteArgs = computedAsync(async () => {
         return pkValid.value && props.view
-            ? getCRUDForTo({
+            ? await getCRUDForTo({
                   app: props.app,
                   model: props.model,
                   pk: isDetailorBulkViewComputed.value && props.pk ? props.pk : undefined,

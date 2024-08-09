@@ -235,7 +235,7 @@ const router = useRouter();
 const detailActionOnClick = (actionName) => {
     return async () => {
         await router.push(
-            getCRUDForTo({
+            await getCRUDForTo({
                 app: props.app,
                 model: props.model,
                 pk: unref(selectedObjects),
