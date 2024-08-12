@@ -329,7 +329,7 @@ export function useFormModel(props) {
                         const fieldName = `${expandName}__${expandFieldName}`;
                         if (expandFieldDetail.choices) {
                             // noinspection JSIgnoredPromiseFromCall
-                            modelChoicesStore.fetchChoices(props.app, props.model, fieldName);
+                            modelChoicesStore.fetchChoices(expandDetail.app, expandDetail.model, expandFieldName);
                         }
                         es.run(() => {
                             const fieldComponent = computed(

@@ -23,6 +23,10 @@ const props = defineProps({
         type: String,
         default: "default",
     },
+    fetchOptions: {
+        type: Function,
+        default: () => {},
+    },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);

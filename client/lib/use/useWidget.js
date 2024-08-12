@@ -111,6 +111,10 @@ export function useWidget(props, emit) {
         focus: () => {
             if (fieldContext) {
                 fieldContext.focus();
+                if (props.options && props.options.length < 1) {
+                    debugger;
+                    props.fetchOptions();
+                }
             }
         },
         blur: () => {
