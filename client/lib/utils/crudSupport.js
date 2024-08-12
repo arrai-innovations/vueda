@@ -94,8 +94,9 @@ export const getPermissionName = memoize(({ app, model, action }) => {
 /**
  * Get the app model dot name for a given app and model.
  *
- * @param {string} app - The app name.
- * @param {string} model - The model name.
+ * @param {object} params - The parameters.
+ * @param {string} params.app - The app name.
+ * @param {string} params.model - The model name.
  * @returns {string} The app model dot name.
  */
 export const getAppModelDotName = memoize(({ app, model }) => {
