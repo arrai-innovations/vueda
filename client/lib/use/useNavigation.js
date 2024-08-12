@@ -51,6 +51,7 @@ import { computed, reactive, watch } from "vue";
  * @returns {NavigationInstance} - An object containing reactive navigation data.
  */
 export function useNavigation(userConfig) {
+    // fetching many model info and configs, so useModelInfo and useModelConfig would have excessive overhead
     const modelConfigStore = storeModelConfig();
     const modelInfoStore = storeModelInfo();
 

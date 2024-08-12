@@ -1,8 +1,7 @@
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
-import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
-import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
@@ -24,43 +23,8 @@ export class ModelInfoError extends FetchError {
     }
 }
 
-/**
- * Fetch an url with options and handle.
- *
- * @param {string} url - The url to fetch.
- * @param {object} [options] - The fetch
- * @param {string} [messagePrefix] - The prefix for error messages.
- * @returns {Promise<object>} The response data.
- * @private
- */
-const fetchHelper = async (url, options = {}, messagePrefix) => {
-    const defaultHeaders = {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCSRFValue(),
-    };
-    const headers = { ...defaultHeaders, ...options.headers };
-    let response;
-    try {
-        response = await fetch(url, {
-            ...options,
-            headers,
-            credentials: "include",
-        });
-    } catch (error) {
-        throw new ModelInfoError(messagePrefix, error, {});
-    }
-    const responseData = await getJsonOrText(response);
-    if (!response.ok) {
-        throw new ModelInfoError(messagePrefix, response, responseData);
-    }
-    return responseData;
-};
-
 const modelInfoUrl = (app, model) =>
     `${httpOrHttpsHostname}${getUrl("infoModelInfo")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
-
-const modelInfoChoicesUrl = (app, model, field) =>
-    `${httpOrHttpsHostname}${getUrl("infoModelInfoChoices")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/${memoizedSnakeCase(field)}`;
 
 /**
  * A function to convert snake_case properties deeply on an object to be camelCase.
@@ -139,23 +103,51 @@ const camelCaseObject = (obj) => {
  */
 
 /**
- * A filter information item.
- *
- * @typedef {object} FilterInfoItem
- * @property {string} label - The label of the filter.
- * @property {boolean} required - A boolean indicating whether the filter is required.
- * @property {LookupExpr[]} lookupExprs - An array of django lookup expressions for the filter.
+ * @typedef {[label:string, value:string]} LabelValuePair
  */
 
 /**
- * A filter information.
+ * A filter information object.
  *
  * @typedef {object} FilterInfo
- * @property {string} name - The name of the filtering field.
- * @property {(
- *     'alpha'|'boolean'|'date'|'datetime'|'numeric'|'time'
- * )} type - The type of the filtering field (e.g., "alpha", "numeric").
- * @property {FilterInfoItem[]} filters - An array of available filters for the field.
+ *
+ * Basic filter information.
+ * @property {string} label - The label of the filter.
+ * @property {string} field_class - The django-filters FilterField class for the filter.
+ * @property {string} input_type - The django-filters determined HTML input type for the filter, derived from the widget associated with the field.
+ * @property {string} [help_text] - The help text for the filter, may be absent.
+ * @property {boolean} hidden - Indicates whether the filter is hidden.
+ * @property {boolean} required - Indicates whether the filter is required.
+ * @property {boolean|LabelValuePair[]} choices - Indicates whether the filter has choices. If it does, it's an array of label/value pairs.
+ *
+ * Validation and constraints.
+ * @property {number} [max_value] - The maximum value for the filter.
+ * @property {number} [min_value] - The minimum value for the filter.
+ * @property {number} [max_length] - The maximum length for the filter.
+ * @property {number} [min_length] - The minimum length for the filter.
+ * @property {number} [max_digits] - The maximum number of digits for the filter.
+ * @property {number} [decimal_places] - The number of decimal places for the filter.
+ * @property {string[]} [input_formats] - The input formats for the filter.
+ * @property {object[]} [validators] - Array of validator objects applied to the filter.
+ *
+ * Error handling.
+ * @property {{[code: string]: string}} error_messages - A map of server-side error codes to their corresponding messages.
+ *
+ * Lookup expressions.
+ * @property {LookupExpr[]} lookup_exprs - The Django filter lookup expressions available for the filter.
+ * @property {string[]} [name_suffixes] - The Django filter name suffixes for the filter.
+ *
+ * Associations and relationships.
+ * @property {string} [model] - The model associated with the filter.
+ * @property {string} [app_label] - The app label associated with the filter.
+ * @property {string} [filter_name] - The Django filter name for the filter.
+ * @property {string} [filterset_name] - The Django filter set name for the filter.
+ *
+ * Labels and special values.
+ * @property {boolean} [empty_value] - Indicates whether the filter has an empty value.
+ * @property {string} [empty_label] - The empty label for the filter.
+ * @property {string} [null_label] - The null label for the filter.
+ * @property {string} [null_value] - The null value for the filter.
  */
 
 /**
@@ -174,11 +166,11 @@ const camelCaseObject = (obj) => {
  * @property {string} model - The python model class name (lower case).
  * @property {string} verbose_name - The verbose name of the model.
  * @property {string} verbose_name_plural - The verbose name plural of the model.
- * @property {FieldInfo[]} fields - The fields of the model.
+ * @property {{[fieldName:string]: FieldInfo}} fields - The fields of the model.
  * @property {ActionInfo[]} actions - The actions of the model.
  * @property {ExpandInfo[]} expands - The expands of the model.
  * @property {OrderInfo[]} ordering - The ordering of the model.
- * @property {FilterInfo[]} filtering - The filtering of the model.
+ * @property {{[filterName: string]: FilterInfo}} filtering - The filtering of the model.
  * @property {PermissionInfo[]} permissions - The permissions of the model.
  */
 
@@ -187,7 +179,7 @@ const camelCaseObject = (obj) => {
  *
  * @returns {import('pinia').Store<{
  *     modelInfos: {[key: string]: ModelInfo},
- *     existingPromises: {[key: string]: Promise<ModelInfo>},
+ *     promises: {[key: string]: Promise<ModelInfo>},
  *     fetchModelInfo: (app: string, model: string) => Promise<ModelInfo>
  * }>}
  */
@@ -195,9 +187,7 @@ export const storeModelInfo = defineStore({
     id: "modelInfo",
     state: () => ({
         modelInfos: {},
-        existingPromises: {},
-        fieldChoices: {},
-        fieldChoicePromises: {},
+        promises: {},
     }),
     actions: {
         async fetchModelInfo(app, model) {
@@ -206,7 +196,7 @@ export const storeModelInfo = defineStore({
             if (existing) {
                 return existing;
             }
-            if (!this.existingPromises[key]) {
+            if (!this.promises[key]) {
                 const retrieveArgs = {
                     f: [
                         "app_label",
@@ -229,7 +219,7 @@ export const storeModelInfo = defineStore({
                         "model_permissions",
                     ],
                 };
-                this.existingPromises[key] = fetchHelper(
+                this.promises[key] = fetchHelper(
                     // @ts-ignore - URLSearchParams is fine with object with a values of an array of strings.
                     //  it includes the key multiple times, as we intend.
                     modelInfoUrl(app, model) + `?${new URLSearchParams(retrieveArgs).toString()}`,
@@ -237,60 +227,32 @@ export const storeModelInfo = defineStore({
                         method: "GET",
                     },
                     "Failed to fetch model info",
+                    ModelInfoError,
                 )
-                    .then((data) => {
-                        // server is serving all the expands as model_ to avoid server side conflicts
-                        // that is just noise client side, so we'll clean it up here
-                        this.modelInfos[key] = Object.fromEntries(
-                            Object.entries(data).map(([k, v]) => {
-                                const cV = camelCaseObject(v);
-                                let key = k;
-                                if (key.startsWith("model_")) {
-                                    key = k.slice(6);
-                                }
-                                if (key === "fields") {
-                                    return [key, v];
-                                }
-                                return [key, cV];
-                            }),
-                        );
-                        return this.modelInfos[key];
-                    })
+                    // server is serving all the expands as model_ to avoid server side conflicts
+                    // that is just noise client side, so we'll clean it up here
+                    .then(
+                        (data) =>
+                            (this.modelInfos[key] = Object.fromEntries(
+                                Object.entries(data).map(([k, v]) => {
+                                    const cV = camelCaseObject(v);
+                                    let key = k;
+                                    if (key.startsWith("model_")) {
+                                        key = k.slice(6);
+                                    }
+                                    if (key === "fields") {
+                                        return [key, v];
+                                    }
+                                    return [key, cV];
+                                }),
+                            )),
+                    )
                     .finally(() => {
-                        delete this.existingPromises[key];
+                        delete this.promises[key];
                     });
             }
 
-            return this.existingPromises[key];
-        },
-        async fetchFieldChoices(app, model, field) {
-            const key = getAppModelDotName({ app, model });
-
-            if (!this.fieldChoicePromises[key]) {
-                this.fieldChoicePromises[key] = {};
-            }
-
-            if (!this.fieldChoicePromises[key][field]) {
-                if (!this.fieldChoices[key]) {
-                    this.fieldChoices[key] = {};
-                }
-
-                this.fieldChoicePromises[key][field] = fetchHelper(
-                    modelInfoChoicesUrl(app, model, field),
-                    {
-                        method: "GET",
-                    },
-                    "Failed to fetch field choices",
-                )
-                    .then((data) => {
-                        this.fieldChoices[key][field] = data;
-                    })
-                    .finally(() => {
-                        delete this.fieldChoicePromises[key][field];
-                    });
-            }
-
-            return this.fieldChoicePromises[key][field];
+            return this.promises[key];
         },
     },
 });

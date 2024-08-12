@@ -1,9 +1,26 @@
-import { useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { assignReactiveObject, useLoadingError, useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
-import { storeModelInfo } from "@vueda/stores/storeModelInfo";
 import { useIsActive } from "@vueda/use/useIsActive";
+import { useModelInfo } from "@vueda/use/useModelInfo.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
-import { reactive, readonly, watch } from "vue";
+import cloneDeep from "lodash-es/cloneDeep.js";
+import isEqual from "lodash-es/isEqual.js";
+import { reactive, readonly, ref, toRef, unref, watch } from "vue";
+
+/**
+ * A view-specific configuration object for making use of a model client-side.
+ *
+ * @typedef {object} ViewSpecificModelConfig
+ * @property {string[]} fields - field names to display
+ * @property {string[]} expands - field names to expand
+ * @property {string[]|undefined} filterable - filters to display in list view
+ * @property {string[]|undefined} sortable - field names that can be sorted in list view
+ * @property {string[]|undefined} sorted - the default sort order for list view
+ * @property {string[]|null} actions - allow list of actions to display, otherwise all actions are displayed
+ * @property {{[propName: string]: any}|undefined} formProps - extra props to pass the form model
+ * @property {{[fieldPath: string]: {[propName: string]: any}}|undefined} fieldProps - extra props to pass a field component in a form model
+ * @property {{[fieldPath: string]: {[propName: string]: any}}|undefined} widgetProps - extra props to pass a widget component in a form model
+ */
 
 /**
  * The raw state for a model config.
@@ -29,23 +46,27 @@ import { reactive, readonly, watch } from "vue";
  *
  * @param {import('vue').Ref<string>} app - The app name
  * @param {import('vue').Ref<string>} model - The model name
+ * @param {import('vue').Ref<string>} view - What you are doing with the model
  * @returns {ModelConfigState} An object containing reactive fields and actions for create, update, read, and list views.
  */
-export function useModelConfig(app, model) {
+export function useModelConfig(app, model, view) {
     const loadingError = useLoadingError();
-    const modelInfoStore = storeModelInfo();
-    const modelConfigStore = storeModelConfig();
     const isActive = useIsActive();
+    const modelInfo = useModelInfo(app, model, isActive);
+    const modelConfigStore = storeModelConfig();
+    const proxyLoadingError = useProxyLoadingError([loadingError, modelInfo]);
+    /** @type {import('vue').Ref<null|import('vue').Ref<object>>} */
+    const originalConfig = ref(null);
     const returnObject = reactive({
-        loading: loadingError.loading,
-        error: loadingError.error,
-        errored: loadingError.errored,
-        clearError: loadingError.clearError,
-        info: {},
+        loading: proxyLoadingError.loading,
+        error: proxyLoadingError.error,
+        errored: proxyLoadingError.errored,
+        clearError: proxyLoadingError.clearError,
+        info: toRef(modelInfo, "info"),
         config: {},
     });
 
-    // Watch for changes in isActive, app, model to update modelInfo and modelConfig
+    // update originalConfig when app, model, or isActive changes
     watch(
         [isActive, app, model],
         async ([active, app, model], [oldActive, oldApp, oldModel]) => {
@@ -60,16 +81,29 @@ export function useModelConfig(app, model) {
                 loadingError.clearError();
                 loadingError.setLoading();
                 try {
-                    await modelInfoStore.fetchModelInfo(app, model);
-                    const modelConfig = await modelConfigStore.getConfig(app, model);
-                    // there was some mutation happening if we use assignReactiveObject. It seems unlikely we would want
-                    //  dynamic model info or config, or the ability to react to those changes, so we'll just assign it.
-                    returnObject.info = modelInfoStore.modelInfos[getAppModelDotName({ app, model })];
-                    returnObject.config = modelConfig;
+                    originalConfig.value = toRef(modelConfigStore.configs, getAppModelDotName(app, model));
+                    await modelConfigStore.getConfig(app, model);
                 } catch (e) {
                     loadingError.setError(e);
                 } finally {
                     loadingError.clearLoading();
+                }
+            }
+        },
+        { immediate: true },
+    );
+
+    // update returnObject.config when originalConfig changes
+    watch(
+        [originalConfig, view],
+        () => {
+            const theRef = unref(originalConfig);
+            const theValue = unref(theRef);
+            if (!theRef || !theValue) {
+                returnObject.config = {};
+            } else {
+                if (!isEqual(theValue, returnObject.config)) {
+                    assignReactiveObject(returnObject.config, cloneDeep(theValue));
                 }
             }
         },

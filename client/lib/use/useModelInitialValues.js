@@ -1,7 +1,6 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
-import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
-import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
-import { computed, reactive, readonly, shallowReactive, unref, watch } from "vue";
+import { useModelInfo } from "@vueda/use/useModelInfo.js";
+import { reactive, readonly, toRef, watch } from "vue";
 
 const builtInTypes = {
     DateRangeField: null,
@@ -45,29 +44,18 @@ const builtInTypes = {
 };
 
 export function useModelInitialValues(app, model, fields) {
-    const modelInfoStore = storeModelInfo();
+    const modelInfo = useModelInfo(app, model);
     const internalState = reactive({
         infoFields: {},
         displayFields: {},
     });
 
-    const initialValues = shallowReactive({});
-    watch(
-        [app, model],
-        ([appName, model], [oldAppName, oldModel]) => {
-            if (appName && model && (appName !== oldAppName || model !== oldModel)) {
-                modelInfoStore.fetchModelInfo(appName, model);
-            }
-        },
-        { immediate: true },
-    );
-
-    const appModelKey = computed(() => getAppModelDotName({ app: unref(app), model: unref(model) }));
+    const initialValues = reactive({});
 
     watch(
-        () => modelInfoStore.modelInfos[appModelKey.value],
-        (modelInfo) => {
-            assignReactiveObject(internalState.infoFields, modelInfo?.fields || {});
+        toRef(modelInfo, "info"),
+        (info) => {
+            assignReactiveObject(internalState.infoFields, info?.fields || {});
         },
         { immediate: true },
     );
