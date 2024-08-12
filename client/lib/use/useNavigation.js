@@ -65,15 +65,13 @@ export function useNavigation(userConfig) {
         },
     );
 
-    const fetchModelData = async (app, model) => {
+    const fetchModelData = async (args) => {
         try {
-            await modelInfoStore.fetchModelInfo(app, model);
-            await modelConfigStore.getConfig(app, model);
-            const modelInfo = modelInfoStore.modelInfos[`${app}.${model}`];
-            const modelConfig = modelConfigStore.builtConfigs[`${app}.${model}`];
+            const modelInfo = await modelInfoStore.fetchModelInfo(args);
+            const modelConfig = await modelConfigStore.getConfig(args);
             return { modelInfo, modelConfig };
         } catch (e) {
-            console.error(`Error fetching model data for ${app}.${model}:`, e);
+            console.error(`Error fetching model data for ${args.app}.${args.model}:`, e);
             return null;
         }
     };
@@ -102,8 +100,17 @@ export function useNavigation(userConfig) {
                 children: [],
             };
 
+            const allModelData = await Promise.all(
+                appConfig.models.map((modelConfig) =>
+                    fetchModelData({
+                        app: appConfig.name,
+                        model: modelConfig.name,
+                    }),
+                ),
+            );
+
             for (const modelConfig of appConfig.models) {
-                const modelData = await fetchModelData(appConfig.name, modelConfig.name);
+                const modelData = allModelData.shift();
                 if (modelData) {
                     const modelNav = {
                         name: modelConfig.name,

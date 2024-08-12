@@ -1,9 +1,6 @@
-import { keyDiff } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
-import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
+import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
-import isObject from "lodash-es/isObject.js";
-import omit from "lodash-es/omit.js";
 import { defineStore } from "pinia";
 
 /**
@@ -42,7 +39,7 @@ import { defineStore } from "pinia";
 const getDefaultFromModelInfo = (modelInfo) => {
     const modelFields = Object.keys(modelInfo.fields);
     const orderableFields = modelInfo.ordering.map((o) => o.name);
-    const listFilterable = modelInfo.filtering.map((f) => f.name);
+    const listFilterable = Object.keys(modelInfo.filtering);
     return {
         fieldDetails: cloneDeep(modelInfo.fields),
         listFieldDetails: cloneDeep(modelInfo.fields),
@@ -80,115 +77,101 @@ const getDefaultFromModelInfo = (modelInfo) => {
  * @returns {import('pinia').Store<{
  *     configs: {[key: string]: ModelConfig},
  *     builtConfigs: {[key: string]: ModelConfig},
- *     setConfig: (app: string, model: string, config: ModelConfig) => void,
+ *     setConfig: ({app: string, model: string}, genericConfig: ModelConfig=null, specificConfigs: {
+ *         [view: string]: ModelConfig
+ *     }=null) => void,
  *     getConfig: (app: string, model: string) => Promise<ModelConfig>,
  *     updateConfig: (app: string, model: string, config: Partial<ModelConfig>) => void
  * }>}
  *
  */
 export const storeModelConfig = defineStore({
-    id: "config",
+    id: "modelConfig",
     state: () => ({
-        configs: {},
-        builtConfigs: {},
-        initialized: {},
+        genericConfigs: {}, // view-independent configs
+        specificConfigs: {}, // view-specific configs
+        builtConfigs: {}, // a cache of merged generic and specific configs
+        initialized: {}, // a cache of promises for getConfig
     }),
     actions: {
-        setConfig(app, model, config) {
-            this.configs[getAppModelDotName({ app, model })] = config;
-            delete this.builtConfigs[getAppModelDotName({ app, model })];
-        },
-        async getConfig(app, model) {
-            const appModelDotName = getAppModelDotName({ app, model });
-            if (this.builtConfigs[appModelDotName]) {
-                return this.builtConfigs[appModelDotName];
+        setConfig({ app, model }, genericConfig = null, specificConfigs = null) {
+            if (!app || !model) {
+                throw new Error("setConfig requires app and model");
             }
-            if (this.initialized[appModelDotName]) {
-                return this.initialized[appModelDotName]();
+            const genericKey = getAppModelDotName({ app, model });
+            if (genericConfig) {
+                this.genericConfigs[genericKey] = genericConfig;
             }
-            this.initialized[appModelDotName] = async () => {
-                const modelInfoStore = storeModelInfo();
-                await modelInfoStore.fetchModelInfo(app, model);
-                const modelInfo = modelInfoStore.modelInfos[appModelDotName];
-                const defaultConfig = getDefaultFromModelInfo(modelInfo);
-                const customConfig = this.configs[appModelDotName];
-                const details = [
-                    "fieldDetails",
-                    "listFieldDetails",
-                    "createFieldDetails",
-                    "updateFieldDetails",
-                    "readFieldDetails",
-                ];
-                const builtConfig = {
-                    ...omit(defaultConfig, details),
-                    ...omit(customConfig, details),
-                };
-                for (const detail of details) {
-                    // overrides to fieldDetails affect all other detail layers
-                    const localDefaultConfig =
-                        detail === "fieldDetails" ? defaultConfig.fieldDetails : builtConfig.fieldDetails;
-                    if (detail in customConfig) {
-                        builtConfig[detail] = {};
-                        // merge at the field property level
-                        const {
-                            addedKeys: defaultOnlyFieldNames,
-                            removedKeys: customOnlyFieldNames,
-                            sameKeys: bothFieldNames,
-                        } = keyDiff(Object.keys(localDefaultConfig), Object.keys(customConfig[detail]));
-                        for (const fieldName of defaultOnlyFieldNames) {
-                            builtConfig[detail][fieldName] = localDefaultConfig[fieldName];
-                        }
-                        for (const fieldName of customOnlyFieldNames) {
-                            builtConfig[detail][fieldName] = customConfig[detail][fieldName];
-                        }
-                        for (const fieldName of bothFieldNames) {
-                            const {
-                                addedKeys: defaultFieldOnlyKeys,
-                                removedKeys: customFieldOnlyKeys,
-                                sameKeys: bothFieldKeys,
-                            } = keyDiff(
-                                Object.keys(localDefaultConfig[fieldName]),
-                                Object.keys(customConfig[detail][fieldName]),
-                            );
-                            builtConfig[detail][fieldName] = {};
-                            for (const fieldKey of defaultFieldOnlyKeys) {
-                                builtConfig[detail][fieldName][fieldKey] = localDefaultConfig[fieldName][fieldKey];
-                            }
-                            for (const fieldKey of customFieldOnlyKeys) {
-                                builtConfig[detail][fieldName][fieldKey] = customConfig[detail][fieldName][fieldKey];
-                            }
-                            for (const fieldKey of bothFieldKeys) {
-                                if (
-                                    isObject(localDefaultConfig[fieldName][fieldKey]) &&
-                                    isObject(customConfig[detail][fieldName][fieldKey])
-                                ) {
-                                    builtConfig[detail][fieldName][fieldKey] = {
-                                        ...localDefaultConfig[fieldName][fieldKey],
-                                        ...customConfig[detail][fieldName][fieldKey],
-                                    };
-                                } else {
-                                    builtConfig[detail][fieldName][fieldKey] =
-                                        customConfig[detail][fieldName][fieldKey];
-                                }
-                            }
-                        }
-                    } else {
-                        builtConfig[detail] = localDefaultConfig;
-                    }
+            if (specificConfigs) {
+                for (const [view, specificConfig] of Object.entries(specificConfigs)) {
+                    const key = getAppModelViewDotName({ app, model, view });
+                    this.specificConfigs[key] = specificConfig;
                 }
-                return builtConfig;
-            };
-            return this.initialized[appModelDotName]();
+            }
+            for (const key of Object.keys(this.builtConfigs)) {
+                // if the builtConfig is for this app/model, we need to rebuild delete it
+                if (key.startsWith(genericKey)) {
+                    delete this.builtConfigs[key];
+                }
+            }
         },
-        updateConfig(app, model, config) {
-            // partially update config
-            const key = getAppModelDotName({ app, model });
-            if (!this.configs[key]) {
-                this.configs[key] = {};
+        async getConfig({ app, model, view = null }) {
+            if (!app || !model) {
+                throw new Error("getConfig requires app and model");
             }
-            for (const [k, v] of Object.entries(config)) {
-                this.configs[key][k] = v;
+            const args = { app, model, view };
+            const genericKey = getAppModelDotName(args);
+            const specificKey = view ? getAppModelViewDotName(args) : null;
+            const builtKey = specificKey || genericKey;
+            if (this.builtConfigs[builtKey]) {
+                return this.builtConfigs[builtKey];
             }
+            if (this.initialized[builtKey]) {
+                return this.initialized[builtKey]();
+            }
+            this.initialized[builtKey] = async () => {
+                const modelInfoStore = storeModelInfo();
+                const modelInfo = await modelInfoStore.fetchModelInfo(args);
+                const defaultConfig = getDefaultFromModelInfo(modelInfo);
+                // clone to avoid mutation of original configs
+                const genericConfig = cloneDeep(this.genericConfigs[genericKey] || {});
+                const specificConfig = specificKey ? cloneDeep(this.specificConfigs[specificKey]) || {} : {};
+
+                const builtConfig = {
+                    ...defaultConfig,
+                    ...genericConfig,
+                    ...specificConfig,
+                };
+                // if there is any fieldDetails override, we need to merge them deeply
+                const defaultToGeneric = defaultConfig.fieldDetails && genericConfig.fieldDetails;
+                const genericToSpecific = genericConfig.fieldDetails && specificConfig.fieldDetails;
+                const defaultToSpecific = defaultConfig.fieldDetails && specificConfig.fieldDetails;
+                if (defaultToGeneric || genericToSpecific || defaultToSpecific) {
+                    const newFieldDetails = {
+                        // start with the least priority level
+                        ...(defaultConfig.fieldDetails || genericConfig.fieldDetails),
+                    };
+                    const priorityConfigs = [
+                        ...(defaultToGeneric ? [genericConfig.fieldDetails] : []),
+                        ...(genericToSpecific || defaultToSpecific ? [specificConfig.fieldDetails] : []),
+                    ];
+                    for (const priorityConfig in priorityConfigs) {
+                        for (const fieldName in priorityConfig) {
+                            if (fieldName in newFieldDetails) {
+                                newFieldDetails[fieldName] = {
+                                    ...newFieldDetails[fieldName],
+                                    ...priorityConfig[fieldName],
+                                };
+                            } else {
+                                newFieldDetails[fieldName] = priorityConfig[fieldName];
+                            }
+                        }
+                    }
+                    builtConfig.fieldDetails = newFieldDetails;
+                }
+                return (this.builtConfigs[builtKey] = builtConfig);
+            };
+            return this.initialized[builtKey]();
         },
     },
 });

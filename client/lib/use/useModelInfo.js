@@ -70,14 +70,9 @@ export function useModelInfo(app, model, isActive) {
                 loadingError.clearError();
                 loadingError.setLoading();
                 try {
-                    originalInfo.value = toRef(
-                        modelInfoStore.modelInfos,
-                        getAppModelDotName({
-                            app: newApp,
-                            model: newModel,
-                        }),
-                    );
-                    await modelInfoStore.fetchModelInfo(newApp, newModel);
+                    const args = { app: newApp, model: newModel };
+                    originalInfo.value = toRef(modelInfoStore.infos, getAppModelDotName(args));
+                    await modelInfoStore.fetchModelInfo(args);
                 } catch (e) {
                     loadingError.setError(e);
                 } finally {

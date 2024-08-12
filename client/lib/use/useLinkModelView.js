@@ -18,7 +18,7 @@ import { useRouter } from "vue-router";
  * }} The link model view.
  */
 export const useLinkModelView = (props) => {
-    const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+    const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
     const isDetailorBulkViewComputed = computed(() => {
         return (
             modelConfig.config.detailActions?.includes(props.view) ||

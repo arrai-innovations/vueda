@@ -20,8 +20,11 @@ import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
  * @throws {Error} If parentPk or pk is required but not provided.
  */
 export async function getCRUDForTo({ app, model, pk, view, throwOnUndefinedPk = false }) {
+    // ############################################################################################
+    // # don't use useModelInfo here to avoid creating reactive effects outside a component scope #
+    // ############################################################################################
     const infoStore = storeModelInfo();
-    const modelInfo = await infoStore.fetchModelInfo(app, model);
+    const modelInfo = await infoStore.fetchModelInfo({ app, model });
     const returnValue = {
         name: "actionrouter.listview",
         params: {

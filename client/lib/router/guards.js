@@ -25,10 +25,14 @@ export async function waitForInitialising() {
  * @returns {Promise<[import('@vueda/stores/storeModelInfo.js').ModelInfo, import('@vueda/stores/storeModelConfig.js').ModelConfig]>}
  */
 export async function waitForStoreInfoLoad(app, model) {
+    // ##############################################################################################################
+    // # don't use useModelInfo or useModelConfig here to avoid creating reactive effects outside a component scope #
+    // ##############################################################################################################
+    const args = { app, model };
     const modelInfoStore = storeModelInfo();
-    const infoStore = await modelInfoStore.fetchModelInfo(app, model);
+    const infoStore = await modelInfoStore.fetchModelInfo(args);
     const modelConfig = storeModelConfig();
-    const configStore = await modelConfig.getConfig(app, model);
+    const configStore = await modelConfig.getConfig(args);
     return [infoStore, configStore];
 }
 

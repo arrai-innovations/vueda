@@ -2,10 +2,9 @@ import { assignReactiveObject, useLoadingError, useProxyLoadingError } from "@ar
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { useIsActive } from "@vueda/use/useIsActive";
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
-import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
-import cloneDeep from "lodash-es/cloneDeep.js";
+import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/crudSupport.js";
 import isEqual from "lodash-es/isEqual.js";
-import { reactive, readonly, ref, toRef, unref, watch } from "vue";
+import { isRef, reactive, readonly, ref, toRef, unref, watch } from "vue";
 
 /**
  * A view-specific configuration object for making use of a model client-side.
@@ -50,6 +49,17 @@ import { reactive, readonly, ref, toRef, unref, watch } from "vue";
  * @returns {ModelConfigState} An object containing reactive fields and actions for create, update, read, and list views.
  */
 export function useModelConfig(app, model, view) {
+    if (!app || !model) {
+        throw new Error("app and model must be provided");
+    }
+    // makes the watch work for view in cases of hardcoded or falsy values
+    if (!view) {
+        view = ref(null);
+    } else {
+        if (!isRef(view)) {
+            view = ref(view);
+        }
+    }
     const loadingError = useLoadingError();
     const isActive = useIsActive();
     const modelInfo = useModelInfo(app, model, isActive);
@@ -68,23 +78,26 @@ export function useModelConfig(app, model, view) {
 
     // update originalConfig when app, model, or isActive changes
     watch(
-        [isActive, app, model],
-        async ([active, app, model], [oldActive, oldApp, oldModel]) => {
-            if (!active) {
+        [isActive, app, model, view],
+        async ([newIsActive, newApp, newModel, newView], [oldActive, oldApp, oldModel, oldView]) => {
+            if (!newIsActive) {
                 return; // we'll pick up again when the component is active
             }
-            if (oldActive === active && app === oldApp && model === oldModel) {
+            if (oldActive === newIsActive && newApp === oldApp && newModel === oldModel && newView === oldView) {
                 return; // no change, no need to update
             }
             // todo: we could look at implementing cancelling of fetches if the app/model changes while loading
-            if (app && model && !returnObject.loading) {
+            if (newApp && newModel) {
                 loadingError.clearError();
                 loadingError.setLoading();
                 try {
-                    originalConfig.value = toRef(modelConfigStore.configs, getAppModelDotName(app, model));
-                    await modelConfigStore.getConfig(app, model);
+                    const args = { app: newApp, model: newModel, view: newView };
+                    const key = view ? getAppModelViewDotName(args) : getAppModelDotName(args);
+                    originalConfig.value = toRef(modelConfigStore.builtConfigs, key);
+                    await modelConfigStore.getConfig(args);
                 } catch (e) {
                     loadingError.setError(e);
+                    console.error("useModelConfig: error fetching config", e);
                 } finally {
                     loadingError.clearLoading();
                 }
@@ -92,22 +105,19 @@ export function useModelConfig(app, model, view) {
         },
         { immediate: true },
     );
-
     // update returnObject.config when originalConfig changes
     watch(
-        [originalConfig, view],
-        () => {
-            const theRef = unref(originalConfig);
-            const theValue = unref(theRef);
-            if (!theRef || !theValue) {
+        [() => unref(unref(originalConfig)), view],
+        ([theValue]) => {
+            if (!theValue) {
                 returnObject.config = {};
             } else {
                 if (!isEqual(theValue, returnObject.config)) {
-                    assignReactiveObject(returnObject.config, cloneDeep(theValue));
+                    assignReactiveObject(returnObject.config, theValue);
                 }
             }
         },
-        { immediate: true },
+        { immediate: true, deep: true },
     );
 
     return readonly(returnObject);

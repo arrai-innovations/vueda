@@ -23,7 +23,7 @@ export class ModelInfoError extends FetchError {
     }
 }
 
-const modelInfoUrl = (app, model) =>
+const modelInfoUrl = ({ app, model }) =>
     `${httpOrHttpsHostname}${getUrl("infoModelInfo")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
 
 /**
@@ -178,21 +178,24 @@ const camelCaseObject = (obj) => {
  * A store for model information.
  *
  * @returns {import('pinia').Store<{
- *     modelInfos: {[key: string]: ModelInfo},
+ *     infos: {[key: string]: ModelInfo},
  *     promises: {[key: string]: Promise<ModelInfo>},
- *     fetchModelInfo: (app: string, model: string) => Promise<ModelInfo>
+ *     fetchModelInfo: (args: {app: string, model: string}) => Promise<ModelInfo>
  * }>}
  */
 export const storeModelInfo = defineStore({
     id: "modelInfo",
     state: () => ({
-        modelInfos: {},
+        infos: {},
         promises: {},
     }),
     actions: {
-        async fetchModelInfo(app, model) {
-            const key = getAppModelDotName({ app, model });
-            const existing = this.modelInfos[key];
+        async fetchModelInfo(args) {
+            if (!args.app || !args.model) {
+                throw new Error("storeModelInfo.fetchModelInfo: app and model must be provided");
+            }
+            const key = getAppModelDotName(args);
+            const existing = this.infos[key];
             if (existing) {
                 return existing;
             }
@@ -222,7 +225,7 @@ export const storeModelInfo = defineStore({
                 this.promises[key] = fetchHelper(
                     // @ts-ignore - URLSearchParams is fine with object with a values of an array of strings.
                     //  it includes the key multiple times, as we intend.
-                    modelInfoUrl(app, model) + `?${new URLSearchParams(retrieveArgs).toString()}`,
+                    modelInfoUrl(args) + `?${new URLSearchParams(retrieveArgs).toString()}`,
                     {
                         method: "GET",
                     },
@@ -233,7 +236,7 @@ export const storeModelInfo = defineStore({
                     // that is just noise client side, so we'll clean it up here
                     .then(
                         (data) =>
-                            (this.modelInfos[key] = Object.fromEntries(
+                            (this.infos[key] = Object.fromEntries(
                                 Object.entries(data).map(([k, v]) => {
                                     const cV = camelCaseObject(v);
                                     let key = k;

@@ -70,25 +70,13 @@ export const getPluralizedTitle = memoize((model) => {
 });
 
 /**
- * Get the permission case (lowercase without spaces) for a given model.
+ * Get the normalized key (lowercase without spaces) for a given app, model or view identifier.
  *
- * @param {string} model - The model name.
- * @returns {string} The permission case.
+ * @param {string} idx - The identifier.
+ * @returns {string} The normalized key.
  */
-export const getPermissionCase = memoize((model) => {
-    return `${lowerCase(model).replace(/ /g, "")}`;
-});
-
-/**
- * Get the permission name for a given app, model, and action.
- *
- * @param {string} app - The app name.
- * @param {string} model - The model name.
- * @param {string} action - The action name.
- * @returns {string} The permission name.
- */
-export const getPermissionName = memoize(({ app, model, action }) => {
-    return `${getPermissionCase(app)}.${getPermissionCase(action)}_${getPermissionCase(model)}`;
+export const getNormalizedKey = memoize((idx) => {
+    return `${lowerCase(idx).replace(/ /g, "")}`;
 });
 
 /**
@@ -100,7 +88,20 @@ export const getPermissionName = memoize(({ app, model, action }) => {
  * @returns {string} The app model dot name.
  */
 export const getAppModelDotName = memoize(({ app, model }) => {
-    return `${getPermissionCase(app)}.${getPermissionCase(model)}`;
+    return `${getNormalizedKey(app)}.${getNormalizedKey(model)}`;
+});
+
+/**
+ * Get the app model view dot name for a given app, model, and view.
+ * We rely on startsWith() on the resulting key to filter them using getAppModelDotName().
+ * @param {object} params - The parameters.
+ * @param {string} params.app - The app name.
+ * @param {string} params.model - The model name.
+ * @param {string} params.view - The view name.
+ * @returns {string} The app model view dot name.
+ */
+export const getAppModelViewDotName = memoize(({ app, model, view }) => {
+    return `${getAppModelDotName({ app, model })}-${getNormalizedKey(view)}`;
 });
 
 /**
