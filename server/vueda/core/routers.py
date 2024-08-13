@@ -101,7 +101,7 @@ class ContentTypeRouter(SimpleRouter):
 
 
 class ContentTypeChoicesRouter(SimpleRouter):
-    # Need a custom route for list, so we can require app_label, model, field, and label_field in the url.
+    # Need a custom route for list, so we can require app_label, model, and field in the url.
     routes = [
         Route(
             url=r"^{prefix}/(?P<app_label>[a-zA-Z0-9_]+)/(?P<model>[a-zA-Z0-9_]+)/(?P<field>[a-zA-Z0-9_]+){trailing_slash}$",
