@@ -1,18 +1,16 @@
 <script setup>
-import { assignReactiveObject, useObject } from "@arrai-innovations/reactive-helpers";
+import { useObject } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { useForm } from "@vueda/use/useForm.js";
-import { useMergeFieldNameProps } from "@vueda/use/useMergeFieldNameProps.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
-import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
-import { computed, reactive, toRef, watch } from "vue";
+import { computed, reactive, toRef } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -58,38 +56,6 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), v
 const titleStr = computed(() => {
     return `Create ${memoizedStartCase(modelConfig.config?.verboseName)}` || "Create Item";
 });
-const combinedFormProps = reactive({});
-watch(
-    [() => modelConfig.config?.formProps, toRef(props, "formProps")],
-    ([configFormProps, passedFormProps]) => {
-        const desiredState = {
-            ...configFormProps,
-            ...passedFormProps,
-        };
-        if (!isEqual(combinedFormProps, desiredState)) {
-            assignReactiveObject(combinedFormProps, desiredState);
-        }
-    },
-    { immediate: true, deep: true },
-);
-const calculatedDisplayFields = computed(() => {
-    return modelConfig.config?.fields;
-});
-const calculatedCreateFields = computed(() => {
-    const fields = new Set(modelConfig.config?.fields);
-    fields.add("id");
-    return Array.from(fields);
-});
-const calculatedCreateExpands = computed(() => modelConfig.config?.expands);
-const calculatedCreateFieldProps = useMergeFieldNameProps([
-    toRef(() => props.fieldProps),
-    toRef(() => modelConfig.config?.fieldProps),
-]);
-const calculatedCreateWidgetProps = useMergeFieldNameProps([
-    toRef(() => props.widgetProps),
-    toRef(() => modelConfig.config?.widgetProps),
-]);
-
 const instanceObjectProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
@@ -97,8 +63,10 @@ const instanceObjectProps = reactive({
     },
     id: null,
     retrieveArgs: {
-        f: calculatedCreateFields,
-        e: calculatedCreateExpands,
+        f: computed(() => {
+            return [modelConfig.config?.pk, ...(modelConfig.config?.fields || [])];
+        }),
+        e: computed(() => modelConfig.config?.expands),
     },
     intendToRetrieve: false,
 });
@@ -106,7 +74,11 @@ const instanceObject = useObject({
     props: instanceObjectProps,
 });
 
-const modelInitialValue = useModelInitialValues(toRef(props, "app"), toRef(props, "model"), calculatedDisplayFields);
+const modelInitialValue = useModelInitialValues(
+    toRef(props, "app"),
+    toRef(props, "model"),
+    toRef(() => modelConfig.config?.fields),
+);
 
 const formContextProps = reactive({
     initialValues: modelInitialValue,
@@ -180,16 +152,7 @@ const combinedWhileText = computed(() =>
                 :while-text="combinedWhileText"
             />
             <form v-bind="$attrs" @submit.prevent="objectForm.submit">
-                <form-model
-                    :app="app"
-                    :field-props="calculatedCreateFieldProps"
-                    :fields="calculatedDisplayFields"
-                    :model="model"
-                    :variant="formModelVariant"
-                    v-bind="combinedFormProps"
-                    :view="viewName"
-                    :widget-props="calculatedCreateWidgetProps"
-                >
+                <form-model :app="app" :model="model" :variant="formModelVariant" v-bind="formProps" :view="viewName">
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />
                     </template>

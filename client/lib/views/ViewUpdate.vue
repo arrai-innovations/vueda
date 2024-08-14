@@ -6,7 +6,6 @@ import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
-// import { useMergeFieldNameProps } from "@vueda/use/useMergeFieldNameProps.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
@@ -104,15 +103,7 @@ const props = defineProps({
 const isActive = useIsActive();
 
 const validAndActive = computed(
-    () =>
-        !!(
-            isActive.value &&
-            props.app &&
-            props.model &&
-            props.pk &&
-            calculatedUpdateFields.value &&
-            calculatedUpdateExpands.value
-        ),
+    () => !!(isActive.value && props.app && props.model && props.pk && modelConfig.config?.pk),
 );
 
 const viewName = "update";
@@ -120,21 +111,6 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), v
 const titleStr = computed(() => {
     return `Update ${memoizedStartCase(modelConfig.config?.verboseName)}` || "Update Item";
 });
-const calculatedUpdateFields = computed(() => {
-    const fields = new Set(modelConfig?.config?.fields);
-    fields.add("id");
-    return Array.from(fields);
-});
-const calculatedUpdateExpands = computed(() => modelConfig?.config?.expands);
-// const calculatedUpdateFieldProps = useMergeFieldNameProps([
-//     toRef(() => props.fieldProps),
-//     toRef(() => modelConfig?.config?.updateFieldProps),
-// ]);
-// const calculatedUpdateWidgetProps = useMergeFieldNameProps([
-//     toRef(() => props.widgetProps),
-//     toRef(() => modelConfig?.config?.updateWidgetProps),
-// ]);
-
 const instanceObjectProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
@@ -142,8 +118,10 @@ const instanceObjectProps = reactive({
     },
     id: toRef(props, "pk"),
     retrieveArgs: {
-        f: calculatedUpdateFields,
-        e: calculatedUpdateExpands,
+        f: computed(() => {
+            return [modelConfig.config?.pk, ...(modelConfig.config?.fields || [])];
+        }),
+        e: computed(() => modelConfig.config?.expands),
     },
     intendToRetrieve: validAndActive,
 });
