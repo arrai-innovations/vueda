@@ -7,10 +7,10 @@ const suggestedRoute = useSuggestRoute();
 </script>
 
 <template>
-    <div>
-        <h1>Not Found</h1>
+    <div class="flex flex-col items-center justify-center h-screen">
+        <h1 class="text-2xl font-bold mb-4">Route Not Found</h1>
         <p>
-            The path <code>{{ router.currentRoute.value.path }}</code> was not found.
+            The path <strong>{{ router.currentRoute.value.path }}</strong> was not found.
         </p>
         <p v-if="suggestedRoute">
             <router-link v-slot="slotProps" custom :to="suggestedRoute">

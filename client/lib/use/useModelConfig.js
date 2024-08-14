@@ -45,7 +45,7 @@ import { isRef, reactive, readonly, ref, toRef, unref, watch } from "vue";
  *
  * @param {import('vue').Ref<string>} app - The app name
  * @param {import('vue').Ref<string>} model - The model name
- * @param {import('vue').Ref<string>} view - What you are doing with the model
+ * @param {import('vue').Ref<string>|string} [view] - What you are doing with the model
  * @returns {ModelConfigState} An object containing reactive fields and actions for create, update, read, and list views.
  */
 export function useModelConfig(app, model, view) {

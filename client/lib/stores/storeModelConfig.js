@@ -1,8 +1,10 @@
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
+import identity from "lodash-es/identity.js";
 import { defineStore } from "pinia";
 
+// todo: ModelConfig type is out of date
 /**
  * A configuration object for making use of a model client-side.
  *
@@ -34,41 +36,33 @@ import { defineStore } from "pinia";
  * Get a default configuration object for a model based on model info.
  *
  * @param {import('@vueda/stores/storeModelInfo.js').ModelInfo} modelInfo - The model info to base the configuration on.
- * @returns {ModelConfig} The default configuration object.
+ * @returns {[generic:ModelConfig, {[view: string]: ModelConfig}]} The default configuration objects.
  */
 const getDefaultFromModelInfo = (modelInfo) => {
-    const modelFields = Object.keys(modelInfo.fields);
-    const orderableFields = modelInfo.ordering.map((o) => o.name);
-    const listFilterable = Object.keys(modelInfo.filtering);
-    return {
-        fieldDetails: cloneDeep(modelInfo.fields),
-        listFieldDetails: cloneDeep(modelInfo.fields),
-        createFieldDetails: cloneDeep(modelInfo.fields),
-        updateFieldDetails: cloneDeep(modelInfo.fields),
-        readFieldDetails: cloneDeep(modelInfo.fields),
-        listFields: modelFields,
-        listExpands: [],
-        createFields: modelFields,
-        createExpands: [],
-        updateFields: modelFields,
-        updateExpands: [],
-        readFields: modelFields,
-        readExpands: [],
-        listFilterable: listFilterable,
-        listSortable: orderableFields,
-        listSorted: [], // todo: the server has default field(s) being sorted on, we should get that
-        routeActions: null, // actions use modelInfo.actions unless overridden
-        listActions: null, // actions use modelInfo.actions unless overridden
-        createActions: null, // actions use modelInfo.actions unless overridden
-        updateActions: null, // actions use modelInfo.actions unless overridden
-        readActions: null, // actions use modelInfo.actions unless overridden
-        createFormProps: {},
-        updateFormProps: {},
-        createFieldProps: {},
-        updateFieldProps: {},
-        createWidgetProps: {},
-        updateWidgetProps: {},
-    };
+    const actionDetailsByName = modelInfo.actions.reduce((acc, action) => {
+        acc[action.name] = action;
+        return acc;
+    });
+    return [
+        {
+            fieldDetails: cloneDeep(modelInfo.fields),
+            fields: Object.keys(modelInfo.fields),
+            expands: [],
+            actionDetails: cloneDeep(actionDetailsByName),
+            routeActions: modelInfo.actions.map((a) => a.name),
+            actions: modelInfo.actions.map((a) => a.name),
+            formProps: {},
+            fieldProps: {},
+            widgetProps: {},
+        },
+        {
+            list: {
+                filterable: Object.keys(modelInfo.filtering),
+                sortable: modelInfo.ordering.map((o) => o.name),
+                sorted: [], // todo: the server has default field(s) being sorted on, we should get that
+            },
+        },
+    ];
 };
 
 /**
@@ -132,42 +126,46 @@ export const storeModelConfig = defineStore({
             this.initialized[builtKey] = async () => {
                 const modelInfoStore = storeModelInfo();
                 const modelInfo = await modelInfoStore.fetchModelInfo(args);
-                const defaultConfig = getDefaultFromModelInfo(modelInfo);
+                const [defaultGenericConfig, defaultSpecificConfigs] = getDefaultFromModelInfo(modelInfo);
                 // clone to avoid mutation of original configs
                 const genericConfig = cloneDeep(this.genericConfigs[genericKey] || {});
                 const specificConfig = specificKey ? cloneDeep(this.specificConfigs[specificKey]) || {} : {};
 
                 const builtConfig = {
-                    ...defaultConfig,
+                    ...defaultGenericConfig,
                     ...genericConfig,
+                    ...(view ? defaultSpecificConfigs[view] || {} : {}),
                     ...specificConfig,
                 };
-                // if there is any fieldDetails override, we need to merge them deeply
-                const defaultToGeneric = defaultConfig.fieldDetails && genericConfig.fieldDetails;
-                const genericToSpecific = genericConfig.fieldDetails && specificConfig.fieldDetails;
-                const defaultToSpecific = defaultConfig.fieldDetails && specificConfig.fieldDetails;
-                if (defaultToGeneric || genericToSpecific || defaultToSpecific) {
-                    const newFieldDetails = {
-                        // start with the least priority level
-                        ...(defaultConfig.fieldDetails || genericConfig.fieldDetails),
-                    };
-                    const priorityConfigs = [
-                        ...(defaultToGeneric ? [genericConfig.fieldDetails] : []),
-                        ...(genericToSpecific || defaultToSpecific ? [specificConfig.fieldDetails] : []),
-                    ];
-                    for (const priorityConfig in priorityConfigs) {
-                        for (const fieldName in priorityConfig) {
-                            if (fieldName in newFieldDetails) {
-                                newFieldDetails[fieldName] = {
-                                    ...newFieldDetails[fieldName],
-                                    ...priorityConfig[fieldName],
-                                };
-                            } else {
-                                newFieldDetails[fieldName] = priorityConfig[fieldName];
+                // if there are any detail field overrides, we need to merge them deeply
+                for (const detailName of ["fieldDetails", "actionDetails"]) {
+                    const defaultGenericDetails = defaultGenericConfig[detailName] || {};
+                    const genericDetails = genericConfig?.[detailName] || {};
+                    const defaultSpecificDetails = defaultSpecificConfigs[view]?.[detailName] || {};
+                    const specificDetails = specificConfig?.[detailName] || {};
+                    if (
+                        [defaultGenericDetails || genericDetails || defaultSpecificDetails || specificDetails].filter(
+                            identity,
+                        ).length > 1
+                    ) {
+                        const newDetailsObject = {
+                            ...defaultGenericDetails,
+                        };
+                        const configsInPriorityOrder = [genericDetails, defaultSpecificDetails, specificDetails];
+                        for (const overridingConfig of configsInPriorityOrder) {
+                            for (const fieldName in overridingConfig) {
+                                if (fieldName in newDetailsObject) {
+                                    newDetailsObject[fieldName] = {
+                                        ...newDetailsObject[fieldName],
+                                        ...overridingConfig[fieldName],
+                                    };
+                                } else {
+                                    newDetailsObject[fieldName] = overridingConfig[fieldName];
+                                }
                             }
                         }
+                        builtConfig[detailName] = newDetailsObject;
                     }
-                    builtConfig.fieldDetails = newFieldDetails;
                 }
                 return (this.builtConfigs[builtKey] = builtConfig);
             };

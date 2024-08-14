@@ -105,10 +105,10 @@ const props = defineProps({
 });
 const listSearch = ref(null);
 const isActive = useIsActive();
-const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), "list");
 const sorting = reactive({
     state: {
-        sortable: computed(() => modelConfig?.config?.listSortable),
+        sortable: computed(() => modelConfig?.config?.sortable),
         sorted: [],
     },
     updateSorted: (sorted) => {
@@ -118,21 +118,22 @@ const sorting = reactive({
 const calculatedListFields = computed(() => {
     if (props.listFields.length) {
         return props.listFields;
-    } else if (modelConfig.config.listFields?.length) {
-        return modelConfig.config.listFields;
+    } else if (modelConfig.config.fields?.length) {
+        return modelConfig.config.fields;
     }
     return [];
 });
 const calculatedDisplayFields = computed(() => {
     if (Object.keys(props.displayFields).length) {
         return Object.values(props.displayFields);
-    } else if (modelConfig.config.listFields?.length) {
-        return modelConfig.config.listFields.map((f) => ({
-            name: f,
-            ...(modelConfig.config.listFieldDetails[f] || modelConfig.config.fieldDetails[f]),
-        }));
+    } else {
+        return (
+            modelConfig.config.fields?.map((f) => ({
+                name: f,
+                ...modelConfig.config.fieldDetails[f],
+            })) || []
+        );
     }
-    return Object.values(modelConfig.info.fields || {});
 });
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model));
 const listState = reactive({
@@ -264,7 +265,7 @@ onMounted(() => {
 
 const hasWorkFlow = computedAsync(
     async () => {
-        if (modelConfig.config.listActions?.includes(`transition`)) {
+        if (modelConfig.config.actions.includes(`transition`)) {
             try {
                 await workflow.fetchWorkflowTransition(props.app, props.model);
                 return true;
@@ -282,16 +283,13 @@ const hasWorkFlow = computedAsync(
         <page-title :loading="instanceList.state.loading" :title="titleStr">
             <template #button>
                 <template
-                    v-for="actionName in modelConfig.info.actions
-                        ?.filter(
-                            (a) =>
-                                (modelConfig.config.listActions
-                                    ? modelConfig.config.listActions.includes(a.name)
-                                    : true) &&
-                                !a.detail &&
-                                !a.name.startsWith('bulk-'),
-                        )
-                        .map((a) => a.name)"
+                    v-for="actionName in modelConfig.config?.actions?.filter((name) => {
+                        if (name === 'list') {
+                            return false;
+                        }
+                        const actionDetails = modelConfig.config.actionDetails[name];
+                        return actionDetails && !actionDetails.detail && !name.startsWith('bulk-');
+                    })"
                     :key="
                         getCRUDName({
                             app: app,
@@ -351,14 +349,9 @@ const hasWorkFlow = computedAsync(
                     </slot>
                 </template>
                 <template
-                    v-for="actionName in modelConfig.info.actions
-                        ?.filter(
-                            (a) =>
-                                (modelConfig.config.listActions
-                                    ? modelConfig.config.listActions.includes(a.name)
-                                    : true) && a.name.startsWith('bulk-'),
-                        )
-                        .map((a) => a.name)"
+                    v-for="actionName in modelConfig.config.actions?.filter(
+                        (name) => modelConfig.config.actionDetails[name] && name.startsWith('bulk-'),
+                    )"
                     :key="actionName"
                 >
                     <slot
@@ -388,7 +381,7 @@ const hasWorkFlow = computedAsync(
         <filter-form
             v-model="listState.filterArgs"
             :app="app"
-            :filter-fields="modelConfig.config.listFilterable"
+            :filter-fields="modelConfig.config.filterable"
             :model="model"
         />
         <error-display :error="error" :errored="errored" @dismiss-error="dismissError" />
