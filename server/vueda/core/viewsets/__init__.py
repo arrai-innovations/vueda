@@ -5,10 +5,10 @@ from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import viewsets as drf_viewsets
-from rest_framework.decorators import action
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
 
+from vueda.core.decorators import action
 from vueda.core.models import ActivatableBaseModel
 from vueda.history.viewsets import SimpleHistoryViewSetMixin
 
@@ -307,12 +307,16 @@ class DeactivateActionViewSetMixin:
 class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
     detail_args = ["pk"]
 
-    @action(detail=False, methods=["delete"], name="Bulk Delete Objects")
-    def bulk_delete(self, request):
+    def destroy(self, request, **kwargs):
+        pk = kwargs.get("pk")
+        if pk:
+            instance = self.get_object()
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
         pks = request.data.get("pks", [])
         if not isinstance(pks, list):
             return Response({"error": "pks must be a list of primary keys."}, status=status.HTTP_400_BAD_REQUEST)
-
         try:
             pks = [int(pk) for pk in pks]
         except ValueError:

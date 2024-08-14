@@ -64,7 +64,6 @@ DETAIL_PARAMETRIZE = [
                 "partial_update",
                 "destroy",
                 "current",
-                "bulk-delete",
             },
             "expected_expands": [
                 {
@@ -391,7 +390,6 @@ DETAIL_PARAMETRIZE = [
                 "update",
                 "partial_update",
                 "destroy",
-                "bulk-delete",
             },
             "expected_expands": [],
             "expected_fields": {
@@ -452,7 +450,6 @@ DETAIL_PARAMETRIZE = [
                 "partial_update",
                 "destroy",
                 "current",
-                "bulk-delete",
             },
             "expected_expands": [
                 {
@@ -825,7 +822,6 @@ DETAIL_PARAMETRIZE = [
                 "destroy",
                 "abandoned-carts-count",
                 "create-order",
-                "bulk-delete",
             },
             "expected_expands": [
                 {
@@ -1054,7 +1050,6 @@ DETAIL_PARAMETRIZE = [
                 "partial_update",
                 "destroy",
                 "current",
-                "bulk-delete",
             },
             "expected_expands": [
                 {
@@ -1594,7 +1589,6 @@ DETAIL_PARAMETRIZE = [
                 "update",
                 "partial_update",
                 "destroy",
-                "bulk-delete",
             },
             "expected_expands": [],
             "expected_fields": {
@@ -1663,7 +1657,6 @@ DETAIL_PARAMETRIZE = [
                 "partial_update",
                 "destroy",
                 "current",
-                "bulk-delete",
             },
             "expected_expands": [
                 {
@@ -2697,7 +2690,6 @@ DETAIL_PARAMETRIZE = [
                 "partial_update",
                 "destroy",
                 "current",
-                "bulk-delete",
             },
             "expected_expands": [
                 {
@@ -3825,7 +3817,6 @@ DETAIL_PARAMETRIZE = [
                 "update",
                 "partial_update",
                 "destroy",
-                "bulk-delete",
             },
             "expected_expands": [
                 {
@@ -4061,7 +4052,6 @@ DETAIL_PARAMETRIZE = [
                 "update",
                 "partial_update",
                 "destroy",
-                "bulk-delete",
             },
             "expected_expands": [
                 {
@@ -4628,7 +4618,6 @@ DETAIL_PARAMETRIZE = [
                 "update",
                 "partial_update",
                 "destroy",
-                "bulk-delete",
             },
             "expected_expands": [
                 {
@@ -5068,6 +5057,7 @@ DETAIL_CHOICES_PARAMETRIZE = [
 
 
 class TestData(BaseTestUserMixin, BaseTestGroupMixin):
+
     groups_to_create = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
@@ -6095,7 +6085,6 @@ class TestModelInfoSerializer:
                 "partial_update": ["patch"],
                 "destroy": ["delete"],
                 "create-order": ["post"],
-                "bulk-delete": ["delete"],
             }
         )
         defaults = {
@@ -6103,11 +6092,16 @@ class TestModelInfoSerializer:
             "description": f"{name} {app_label}.{model_name}",
             "method_names": methods_dict[name],
             "detail": False,
+            "bulk": False,
         }
         # Update with specific defaults for certain actions
-        if name not in ["list", "create", "bulk-delete", "abandoned-carts-count"]:
+        if name not in ["list", "create", "abandoned-carts-count"]:
             defaults["detail"] = True
             defaults["parameters"] = ["pk"]
+
+        if name in ["destroy"]:
+            defaults["bulk"] = True
+
         return defaults
 
     def check_model_actions_data(self, response_data, expected_actions, app_label, model_name):

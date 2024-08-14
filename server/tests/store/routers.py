@@ -9,10 +9,10 @@ from tests.store.viewsets import OptionTypeViewSet
 from tests.store.viewsets import OrderItemViewSet
 from tests.store.viewsets import ProductOptionViewSet
 from tests.store.viewsets import ProductViewSet
-from vueda.core.routers import IncludeAppInRouteNameRouter
+from vueda.core.routers import VuedaRouter
 
 
-store_tests_router = IncludeAppInRouteNameRouter()
+store_tests_router = VuedaRouter()
 store_tests_router.register("carts", CartViewSet)
 store_tests_router.register("cart_items", CartItemViewSet)
 store_tests_router.register("customers", CustomerViewSet)

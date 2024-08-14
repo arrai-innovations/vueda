@@ -1,0 +1,3 @@
+[run]
+include = */vueda/*
+omit = *migrations*, *tests*

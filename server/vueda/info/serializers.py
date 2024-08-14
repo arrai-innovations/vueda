@@ -284,8 +284,12 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 "name": action,
                 "description": f"{action} {app_label}.{model_name}",
                 "detail": False,
+                "bulk": False,
                 "method_names": [METHOD_MAPPING[action]],
             }
+            if action in ("destroy",):
+                action_item_data["bulk"] = True
+
             if action not in ("list", "create"):
                 action_item_data["detail"] = True
                 parameters = viewset.detail_args
@@ -300,6 +304,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 "name": extra_action.url_name,
                 "description": f"{extra_action.url_name} {app_label}.{model_name}",
                 "detail": extra_action.detail,
+                "bulk": extra_action.bulk,
                 "method_names": list(extra_action.mapping.keys()),
             }
             parameters = [parameter for parameter in parameters if parameter not in ("self", "request")]

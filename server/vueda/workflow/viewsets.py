@@ -3,11 +3,11 @@ from rest_framework import mixins
 from rest_framework import serializers as drf_serializers
 from rest_framework import status as drf_status
 from rest_framework import viewsets
-from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
+from vueda.core.decorators import action
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_extend_schema_func
 from vueda.core.open_api import conditional_extend_schema_view_decorator
@@ -255,22 +255,49 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             ),
         },
     )
-    @action(detail=True, methods=["patch"], url_path=r"execute-transition/(?P<object_id>[^/.]+)")
+    @action(detail=True, bulk=True, methods=["patch"], url_path=r"execute-transition(?:/(?P<object_id>[0-9]+))?")
     def execute_transition(self, request, *args, **kwargs):
-        instance = self.get_object()
-        with transaction.atomic():
-            transition_code = request.data.get("transition_code")
-            # apply_transition does the permission checks
-            state, current_history_id = instance.apply_transition(transition_code, user=request.user)
-            response_data = {
-                "new_state": {
-                    "code": state.code,
-                    "name": state.name,
-                },
-                "new_transitions": list(
-                    instance.available_transitions(request.user).order_by("name").values("code", "name")
-                ),
-            }
-            if current_history_id:
-                response_data["new_state"]["current_history_id"] = current_history_id
+        transition_code = request.data.get("transition_code")
+        if "object_id" in self.request_kwargs:
+            instance = self.get_object()
+            with transaction.atomic():
+                # apply_transition does the permission checks
+                state, current_history_id = instance.apply_transition(transition_code, user=request.user)
+                response_data = {
+                    "new_state": {
+                        "code": state.code,
+                        "name": state.name,
+                    },
+                    "new_transitions": list(
+                        instance.available_transitions(request.user).order_by("name").values("code", "name")
+                    ),
+                }
+                if current_history_id:
+                    response_data["new_state"]["current_history_id"] = current_history_id
+            return Response(response_data)
+        else:
+            object_ids = request.data.get("object_ids", [])
+            if not isinstance(object_ids, list):
+                return Response({"error": "object_ids must be a list of primary keys."}, status=400)
+            try:
+                object_ids = [int(object_id) for object_id in object_ids]
+            except ValueError:
+                return Response({"error": "All primary keys must be valid integers."}, status=400)
+            response_data = {}
+            with transaction.atomic():
+                for object_id in object_ids:
+                    instance = get_object_or_404(self.get_workflow().content_type.model_class(), pk=object_id)
+                    state, current_history_id = instance.apply_transition(transition_code, user=request.user)
+                    response_data[object_id] = {
+                        "new_state": {
+                            "code": state.code,
+                            "name": state.name,
+                        },
+                        "new_transitions": list(
+                            instance.available_transitions(request.user).order_by("name").values("code", "name")
+                        ),
+                    }
+                    if current_history_id:
+                        response_data[object_id]["new_state"]["current_history_id"] = current_history_id
+
             return Response(response_data)

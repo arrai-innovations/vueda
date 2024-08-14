@@ -1,7 +1,6 @@
 from dateutil.relativedelta import relativedelta
 from django.http import Http404
 from django.utils.timezone import now
-from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
@@ -10,6 +9,7 @@ import tests.store.models as my_models
 import tests.store.serializers as my_serializers
 from tests.permissions import IsAdminUser
 from tests.permissions import IsCartOrOrderCreator
+from vueda.core.decorators import action
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import VuedaHistoryViewSet
 from vueda.core.viewsets import VuedaViewSet
