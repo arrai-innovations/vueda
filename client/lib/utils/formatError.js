@@ -18,10 +18,10 @@ export function formatError(error) {
 
         if (error?.stack && import.meta.env.DEV) {
             // client stacks will already include the name and message
-            lines.push(error.stack);
+            lines.push(`${error.name}${error.name ? "\u2014" : ""}${error.message}\n${error.stack}`);
         } else {
             if (error?.name && error?.message) {
-                lines.push(`${error.name}\u2014${error.message}`);
+                lines.push(`${error.name}${error.name ? "\u2014" : ""}${error.message}`);
             } else {
                 if (error?.name) {
                     lines.push(error.name);
@@ -31,31 +31,28 @@ export function formatError(error) {
                 }
             }
         }
-        // @ts-ignore - I know it may not be there, that's why I'm checking
+
         if (error?.response?.status || error?.response?.statusText) {
-            // @ts-ignore - I know it may not be there, that's why I'm checking
             lines.push(`${error.response.status}: ${error.response.statusText}`);
         }
-        // @ts-ignore - I know it may not be there, that's why I'm checking
+
         if (error?.responseData?.detail) {
-            // @ts-ignore - I know it may not be there, that's why I'm checking
             lines.push(error.responseData.detail);
         }
-        // @ts-ignore - I know it may not be there, that's why I'm checking
+
         if (error?.response?.stack) {
-            // @ts-ignore - I know it may not be there, that's why I'm checking
             lines.push(error.response.stack);
         }
-        // @ts-ignore - I know it may not be there, that's why I'm checking
+
         if (error?.responseData?.serverStack) {
-            // @ts-ignore - I know it may not be there, that's why I'm checking
             lines.push(error.responseData.serverStack);
         }
+
         if (!lines.length) {
-            // last resort, just inspect the error
             lines.push(inspect(error));
         }
+
         return lines.join("\n");
     });
-    return messages.join("\n");
+    return messages.join("\n\n");
 }

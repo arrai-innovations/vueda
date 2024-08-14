@@ -19,23 +19,25 @@ import { useRouter } from "vue-router";
  */
 export const useLinkModelView = (props) => {
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
-    const isDetailorBulkViewComputed = computed(() => {
-        const action = modelConfig.info.actions?.find((action) => action.name === props.view);
-        return action?.detail || action?.bulk;
-    });
-    const pkValid = computed(() => (isDetailorBulkViewComputed.value && props.pk) || !isDetailorBulkViewComputed.value);
+    const requiresPK = computed(
+        () =>
+            Object.entries(modelConfig.config?.actionDetails || {}).some(
+                ([n, d]) => n === props.view && (d.detail || d.bulk),
+            ) || props.view === "transition",
+    );
+    const pkValid = computed(() => (requiresPK.value && props.pk) || !requiresPK.value);
     const toRouteArgs = computedAsync(async () => {
         return pkValid.value && props.view
             ? await getCRUDForTo({
                   app: props.app,
                   model: props.model,
-                  pk: isDetailorBulkViewComputed.value && props.pk ? props.pk : undefined,
+                  pk: requiresPK.value && props.pk ? props.pk : undefined,
                   view: props.view,
               })
             : undefined;
     });
     const actionDisabled = computed(
-        () => isDetailorBulkViewComputed.value && (!props.pk || (Array.isArray(props.pk) && props.pk.length === 0)),
+        () => requiresPK.value && (!props.pk || (Array.isArray(props.pk) && props.pk.length === 0)),
     );
     const router = useRouter();
     const toRoute = computed(() =>

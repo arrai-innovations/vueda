@@ -10,10 +10,9 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
-import { LIST_VIEW_CRUD_NAME, memoizedStartCase } from "@vueda/utils/crudSupport.js";
-import isEqual from "lodash-es/isEqual.js";
+import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import Button from "primevue/button";
-import { computed, reactive, ref, toRef, useAttrs, watch } from "vue";
+import { computed, reactive, ref, toRef, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -84,6 +83,11 @@ const props = defineProps({
         default: undefined,
         description: "Any overriding widget components by field path.",
     },
+    formProps: {
+        type: Object,
+        default: undefined,
+        description: "Any overriding props for the form level.",
+    },
     fieldProps: {
         type: Object,
         default: undefined,
@@ -91,7 +95,7 @@ const props = defineProps({
     },
     widgetProps: {
         type: Object,
-        default: () => ({}),
+        default: undefined,
         description: "Any overriding widget props by field path.",
     },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
@@ -111,33 +115,17 @@ const validAndActive = computed(
         ),
 );
 
-const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+const viewName = "update";
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
 const titleStr = computed(() => {
-    return `Update ${memoizedStartCase(modelConfig.info?.verbose_name)}` || "Update Item";
+    return `Update ${memoizedStartCase(modelConfig.config?.verboseName)}` || "Update Item";
 });
-const attrs = useAttrs();
-// combined modelConfig?.config?.createFormProps with any attrs passed in
-const computedUpdateFormProps = reactive({});
-watch(
-    [() => modelConfig?.config?.updateFormProps, props, attrs],
-    ([updateFormProps, props, attrs]) => {
-        const desiredState = {
-            ...updateFormProps,
-            ...attrs,
-            ...props,
-        };
-        if (!isEqual(computedUpdateFormProps, desiredState)) {
-            assignReactiveObject(computedUpdateFormProps, desiredState);
-        }
-    },
-    { immediate: true, deep: true },
-);
 const calculatedUpdateFields = computed(() => {
-    const fields = new Set(modelConfig?.config?.updateFields);
+    const fields = new Set(modelConfig?.config?.fields);
     fields.add("id");
     return Array.from(fields);
 });
-const calculatedUpdateExpands = computed(() => modelConfig?.config?.updateExpands);
+const calculatedUpdateExpands = computed(() => modelConfig?.config?.expands);
 // const calculatedUpdateFieldProps = useMergeFieldNameProps([
 //     toRef(() => props.fieldProps),
 //     toRef(() => modelConfig?.config?.updateFieldProps),
@@ -169,7 +157,7 @@ const formContext = useForm(formContextProps);
 const objectFormProps = reactive({
     app: toRef(props, "app"),
     model: toRef(props, "model"),
-    verboseName: computed(() => modelConfig.info?.verbose_name),
+    verboseName: computed(() => modelConfig.config?.verboseName),
 });
 const objectForm = useObjectForm({
     props: objectFormProps,
@@ -193,48 +181,6 @@ watch(
 /** @type {import('vue').Ref<Error|null>} */
 const myError = ref(null);
 useObject404(props, instanceObject, modelConfig, myError);
-const checkIfValidAndActive = () => {
-    if (!validAndActive.value) {
-        const newE = new Error("Invalid props for ViewUpdate.");
-        newE.name = ""; // delete will just show the default Error.prototype.name
-        delete newE.stack;
-        if (!props.app) {
-            newE.message += "\nprop 'app' is required";
-        }
-        if (!props.model) {
-            newE.message += "\nprop 'model' is required";
-        }
-        if (!props.pk) {
-            newE.message += "\nprop 'pk' is required";
-        }
-        if (!calculatedUpdateFields.value) {
-            newE.message += "\nmodel config is not loaded or updateFields is falsy";
-        }
-        if (!calculatedUpdateExpands.value) {
-            newE.message += "\nmodel config is not loaded or updateExpands is falsy";
-        }
-        // if not active, you'll never see this anyway.
-        newE.redirectParams = {
-            name: LIST_VIEW_CRUD_NAME,
-        };
-        newE.redirectTitle = `Return to the ${memoizedStartCase(modelConfig.info.verbose_name)} list view.`;
-        delete newE.stack;
-        myError.value = newE;
-    }
-};
-let mountedOrActivatedTimeout = null;
-watch(
-    isActive,
-    (active) => {
-        if (active) {
-            if (mountedOrActivatedTimeout) {
-                clearTimeout(mountedOrActivatedTimeout);
-            }
-            mountedOrActivatedTimeout = setTimeout(checkIfValidAndActive, 2500);
-        }
-    },
-    { immediate: true },
-);
 const combinedError = computed(() => {
     return myError.value || modelConfig.error || instanceObject.state.error || objectForm.state.error;
 });
@@ -264,16 +210,10 @@ const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceO
                     view="list"
                 />
                 <template
-                    v-for="actionName in modelConfig.info.actions
-                        ?.filter(
-                            (a) =>
-                                (modelConfig.config.updateActions
-                                    ? modelConfig.config.updateActions.includes(a.name)
-                                    : true) &&
-                                !a.detail &&
-                                !a.bulk,
-                        )
-                        .map((a) => a.name)"
+                    v-for="actionName in modelConfig.config?.actions?.filter((n) => {
+                        const a = modelConfig.config?.actionDetails?.[n];
+                        return a && viewName !== n && !a.detail && !a.bulk;
+                    })"
                     :key="actionName"
                 >
                     <slot
@@ -296,16 +236,10 @@ const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceO
             <template #under-actions>
                 <div class="flex flex-col sm:flex-row gap-1 w-full justify-end">
                     <template
-                        v-for="actionName in modelConfig.info.actions
-                            ?.filter(
-                                (a) =>
-                                    (modelConfig.config.updateActions
-                                        ? modelConfig.config.updateActions.includes(a.name)
-                                        : true) &&
-                                    a.detail &&
-                                    !a.bulk,
-                            )
-                            .map((a) => a.name)"
+                        v-for="actionName in modelConfig.config?.actions?.filter((n) => {
+                            const a = modelConfig.config?.actionDetails?.[n];
+                            return a && viewName !== n && a.detail && !a.bulk;
+                        })"
                         :key="actionName"
                     >
                         <slot
@@ -340,7 +274,7 @@ const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceO
                 :ignore-form-validation-errors="true"
                 :while-text="combinedWhileText"
             />
-            <form @submit.prevent="objectForm.submit">
+            <form v-bind="$attrs" @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"
                     :field-components="fieldComponents"
@@ -349,10 +283,10 @@ const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceO
                     :fields="fields"
                     :model="model"
                     :variant="formModelVariant"
-                    v-bind="computedUpdateFormProps"
-                    view="update"
+                    :view="viewName"
                     :widget-components="widgetComponents"
                     :widget-props="widgetProps"
+                    v-bind="formProps"
                 >
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />
