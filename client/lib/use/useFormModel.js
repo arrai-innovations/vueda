@@ -1,235 +1,217 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
-import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
+import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
+import { availableFields, availableWidgets } from "@vueda/utils/filterLookups.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import { computedAsync } from "@vueuse/core";
-import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
-import {
-    computed,
-    effectScope,
-    provide,
-    reactive,
-    readonly,
-    ref,
-    shallowReactive,
-    shallowRef,
-    toRef,
-    watch,
-} from "vue";
+import { computed, effectScope, provide, reactive, readonly, shallowReactive, toRef, watch } from "vue";
 import { deepUnref } from "vue-deepunref";
 
 // todo: we should have a way to register custom field components
 const builtInTypes = {
-    IntegerRangeField: ["FieldRange", async () => (await import("@vueda/fields/FieldRange.vue")).default],
-    DateRangeField: ["FieldRange", async () => (await import("@vueda/fields/FieldRange.vue")).default],
-    TextField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    CharField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    BooleanField: ["FieldBoolean", async () => (await import("@vueda/fields/FieldBoolean.vue")).default],
-    DateField: ["FieldDate", async () => (await import("@vueda/fields/FieldDate.vue")).default],
-    DateTimeField: ["FieldDate", async () => (await import("@vueda/fields/FieldDate.vue")).default],
-    DecimalField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
-    FloatField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
-    IntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
-    PositiveIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
-    PositiveSmallIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
-    SmallIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
-    TimeField: ["FieldTime", async () => (await import("@vueda/fields/FieldTime.vue")).default],
-    EmailField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    URLField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    UUIDField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    ForeignKey: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    ManyToManyField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    OneToOneField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    JSONField: ["FieldObject", async () => (await import("@vueda/fields/FieldObject.vue")).default],
-    ArrayField: ["FieldArray", async () => (await import("@vueda/fields/FieldArray.vue")).default],
-    BinaryField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    FilePathField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    IPAddressField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    GenericIPAddressField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    SlugField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    FileField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    ImageField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    AutoField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    BigAutoField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    BigIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
-    DurationSecondsField: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    GenericRelation: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    GenericForeignKey: ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default],
-    NullBooleanField: ["FieldBoolean", async () => (await import("@vueda/fields/FieldBoolean.vue")).default],
-    PositiveBigIntegerField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
-    PositiveDecimalField: ["FieldNumber", async () => (await import("@vueda/fields/FieldNumber.vue")).default],
-    ManyRelatedField: ["FieldInline", async () => (await import("@vueda/fields/FieldInline.vue")).default],
+    IntegerRangeField: availableFields.FieldRange,
+    DateRangeField: availableFields.FieldRange,
+    TextField: availableFields.FieldString,
+    CharField: availableFields.FieldString,
+    BooleanField: availableFields.FieldBoolean,
+    DateField: availableFields.FieldDate,
+    DateTimeField: availableFields.FieldDate,
+    DecimalField: availableFields.FieldNumber,
+    FloatField: availableFields.FieldNumber,
+    IntegerField: availableFields.FieldNumber,
+    PositiveIntegerField: availableFields.FieldNumber,
+    PositiveSmallIntegerField: availableFields.FieldNumber,
+    SmallIntegerField: availableFields.FieldNumber,
+    TimeField: availableFields.FieldTime,
+    EmailField: availableFields.FieldString,
+    URLField: availableFields.FieldString,
+    UUIDField: availableFields.FieldString,
+    ForeignKey: availableFields.FieldString,
+    ManyToManyField: availableFields.FieldString,
+    OneToOneField: availableFields.FieldString,
+    JSONField: availableFields.FieldObject,
+    ArrayField: availableFields.FieldArray,
+    BinaryField: availableFields.FieldString,
+    FilePathField: availableFields.FieldString,
+    IPAddressField: availableFields.FieldString,
+    GenericIPAddressField: availableFields.FieldString,
+    SlugField: availableFields.FieldString,
+    FileField: availableFields.FieldString,
+    ImageField: availableFields.FieldString,
+    AutoField: availableFields.FieldString,
+    BigAutoField: availableFields.FieldString,
+    BigIntegerField: availableFields.FieldNumber,
+    DurationSecondsField: availableFields.FieldString,
+    GenericRelation: availableFields.FieldString,
+    GenericForeignKey: availableFields.FieldString,
+    NullBooleanField: availableFields.FieldBoolean,
+    PositiveBigIntegerField: availableFields.FieldNumber,
+    PositiveDecimalField: availableFields.FieldNumber,
+    ManyRelatedField: availableFields.FieldString,
 };
 
 // todo: we should have a way to register custom widgets
 const defaultWidgets = {
-    IntegerRangeField: async () => (await import("@vueda/widgets/WidgetSlider.vue")).default,
-    DateRangeField: async () => (await import("@vueda/widgets/WidgetDatePicker.vue")).default,
-    TextField: async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default,
-    CharField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    BooleanField: async () => (await import("@vueda/widgets/WidgetCheckbox.vue")).default,
-    DateField: async () => (await import("@vueda/widgets/WidgetDatePicker.vue")).default,
-    DateTimeField: async () => (await import("@vueda/widgets/WidgetDatePicker.vue")).default,
-    DecimalField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    FloatField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    IntegerField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    PositiveIntegerField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    PositiveSmallIntegerField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    SmallIntegerField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    TimeField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    EmailField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    URLField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    UUIDField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    ForeignKey: async () => (await import("@vueda/widgets/WidgetSelect.vue")).default,
-    ManyToManyField: async () => (await import("@vueda/widgets/WidgetMultiSelect.vue")).default,
-    OneToOneField: async () => (await import("@vueda/widgets/WidgetSelect.vue")).default,
-    JSONField: async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default,
-    ArrayField: async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default,
-    BinaryField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    FilePathField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    IPAddressField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    GenericIPAddressField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    SlugField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    FileField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    ImageField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    AutoField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    BigAutoField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    BigIntegerField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    DurationSecondsField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    GenericRelation: async () => (await import("@vueda/widgets/WidgetSelect.vue")).default,
-    GenericForeignKey: async () => (await import("@vueda/widgets/WidgetSelect.vue")).default,
-    NullBooleanField: async () => (await import("@vueda/widgets/WidgetCheckbox.vue")).default,
-    PositiveBigIntegerField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    PositiveDecimalField: async () => (await import("@vueda/widgets/WidgetInput.vue")).default,
-    ManyRelatedField: async () => (await import("@vueda/widgets/WidgetMultiSelect.vue")).default,
+    IntegerRangeField: availableWidgets.WidgetSlider,
+    DateRangeField: availableWidgets.WidgetDatePicker,
+    TextField: availableWidgets.WidgetTextarea,
+    CharField: availableWidgets.WidgetInput,
+    BooleanField: availableWidgets.WidgetCheckbox,
+    DateField: availableWidgets.WidgetDatePicker,
+    DateTimeField: availableWidgets.WidgetDatePicker,
+    DecimalField: availableWidgets.WidgetInput,
+    FloatField: availableWidgets.WidgetInput,
+    IntegerField: availableWidgets.WidgetInput,
+    PositiveIntegerField: availableWidgets.WidgetInput,
+    PositiveSmallIntegerField: availableWidgets.WidgetInput,
+    SmallIntegerField: availableWidgets.WidgetInput,
+    TimeField: availableWidgets.WidgetInput,
+    EmailField: availableWidgets.WidgetInput,
+    URLField: availableWidgets.WidgetInput,
+    UUIDField: availableWidgets.WidgetInput,
+    ForeignKey: availableWidgets.WidgetSelect,
+    ManyToManyField: availableWidgets.WidgetMultiSelect,
+    OneToOneField: availableWidgets.WidgetSelect,
+    JSONField: availableWidgets.WidgetTextarea,
+    ArrayField: availableWidgets.WidgetTextarea,
+    BinaryField: availableWidgets.WidgetInput,
+    FilePathField: availableWidgets.WidgetInput,
+    IPAddressField: availableWidgets.WidgetInput,
+    GenericIPAddressField: availableWidgets.WidgetInput,
+    SlugField: availableWidgets.WidgetInput,
+    FileField: availableWidgets.WidgetInput,
+    ImageField: availableWidgets.WidgetInput,
+    AutoField: availableWidgets.WidgetInput,
+    BigAutoField: availableWidgets.WidgetInput,
+    BigIntegerField: availableWidgets.WidgetInput,
+    DurationSecondsField: availableWidgets.WidgetInput,
+    GenericRelation: availableWidgets.WidgetSelect,
+    GenericForeignKey: availableWidgets.WidgetSelect,
+    NullBooleanField: availableWidgets.WidgetCheckbox,
+    PositiveBigIntegerField: availableWidgets.WidgetInput,
+    PositiveDecimalField: availableWidgets.WidgetInput,
+    ManyRelatedField: availableWidgets.WidgetMultiSelect,
 };
 
-const defaultFieldProps = {};
+const defaultFieldsProps = {};
 
 // todo: we should have a way to register custom widget props for custom fields
 // modelconfig should have a view that client can pass in custom props
 const defaultWidgetProps = {
-    FieldBoolean: {},
-    FieldDate: {
-        type: "date",
-    },
-    FieldDateTime: {
-        type: "datetime-local",
-    },
-    FieldNumber: {
-        type: "number",
-    },
-    FieldObject: {},
-    FieldString: {},
-    FieldTime: {
-        type: "time",
-    },
-    FieldRange: {
-        selectionMode: "range",
-    },
-};
-
-/**
- * Get the field props for a given field object.
- *
- * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} fieldObj - The field object.
- * @returns {{[key:string]: any}} The field props.
- */
-const getFieldProps = (fieldName, fieldObj) => {
-    const defaultProps = defaultFieldProps[fieldObj.type] || {};
-    return {
-        // useFormModel resolves type, the fields don't care about the server type.
-        ...omit(fieldObj, ["type"]),
-        ...defaultProps,
-        name: fieldName,
-    };
-};
-
-/**
- * Get the widget props for a given field type and field object.
- *
- * @param {string} fieldType - The field type.
- * @returns {{[key:string]: any}} The widget props.
- */
-const getWidgetProps = (fieldType) => {
-    return defaultWidgetProps[fieldType] || {};
+    IntegerRangeField: { selectionMode: "range" },
+    DateRangeField: { selectionMode: "range" },
+    TextField: {},
+    CharField: {},
+    BooleanField: {},
+    DateField: { type: "date" },
+    DateTimeField: { type: "datetime-local" },
+    DecimalField: { type: "number" },
+    FloatField: { type: "number" },
+    IntegerField: { type: "number" },
+    PositiveIntegerField: { type: "number" },
+    PositiveSmallIntegerField: { type: "number" },
+    SmallIntegerField: { type: "number" },
+    TimeField: { type: "time" },
+    EmailField: {},
+    URLField: {},
+    UUIDField: {},
+    ForeignKey: {},
+    ManyToManyField: {},
+    OneToOneField: {},
+    JSONField: {},
+    ArrayField: {},
+    BinaryField: {},
+    FilePathField: {},
+    IPAddressField: {},
+    GenericIPAddressField: {},
+    SlugField: {},
+    FileField: {},
+    ImageField: {},
+    AutoField: {},
+    BigAutoField: {},
+    BigIntegerField: { type: "number" },
+    DurationSecondsField: {},
+    GenericRelation: {},
+    GenericForeignKey: {},
+    NullBooleanField: {},
+    PositiveBigIntegerField: { type: "number" },
+    PositiveDecimalField: { type: "number" },
+    ManyRelatedField: {},
 };
 
 /**
  * Get the field component for a given Django field type.
  *
- * @param {string} field - The Django field type.
- * @returns {[componentName:string, ()=>Promise<import('vue').Component>]} The field component.
+ * @param {boolean} many - True if the field is many.
+ * @param {string} type - The Django field type.
+ * @returns {import('@vueda/utils/filterLookups.js').FieldComponent} The field component.
  */
-const djangoTypeToFieldComponent = (field) => {
-    // todo: we should have a way to register custom field components
-    if (field.many) {
-        return ["FieldArray", async () => (await import("@vueda/fields/FieldArray.vue")).default];
+const djangoTypeToFieldComponent = (many, type) => {
+    if (many) {
+        return availableFields.FieldArray;
     }
-    return (
-        builtInTypes[field.type] || ["FieldString", async () => (await import("@vueda/fields/FieldString.vue")).default]
-    );
+    return builtInTypes[type] || availableFields.FieldString;
 };
 /**
  * Get the default widget for a given field object.
  *
- * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} fieldObj - The field object.
- * @returns {()=>Promise<import('vue').Component>} The widget component.
+ * @param {boolean} choices - True if the field has choices.
+ * @param {boolean} many - True if the field is many.
+ * @param {boolean} readOnly - True if the field is read only.
+ * @param {string} type - The Django field type.
+ * @returns {import('@vueda/utils/filterLookups.js').WidgetComponent} The widget component.
  */
-const getDefaultWidget = (fieldObj) => {
-    if (fieldObj.readOnly) {
-        return async () => (await import("@vueda/widgets/WidgetReadOnly.vue")).default;
+const getDefaultWidget = (choices, many, readOnly, type) => {
+    if (readOnly) {
+        return availableWidgets.WidgetReadOnly;
     }
-    if (fieldObj.choices) {
-        return async () => (await import("@vueda/widgets/WidgetAutoComplete.vue")).default;
+    if (choices) {
+        return availableWidgets.WidgetAutoComplete;
         // return WidgetMultiSelect;
     }
-    if (fieldObj.type === "TextField" || fieldObj.many) {
-        return async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default;
+    if (type === "TextField" || many) {
+        return availableWidgets.WidgetTextarea;
     }
-    if (fieldObj.type === "IntegerRangeField") {
-        return async () => (await import("@vueda/widgets/WidgetSlider.vue")).default;
+    if (type === "IntegerRangeField") {
+        return availableWidgets.WidgetSlider;
     }
-    return defaultWidgets[fieldObj.type] || (async () => (await import("@vueda/widgets/WidgetInput.vue")).default);
+    return defaultWidgets[type] || availableWidgets.WidgetInput;
 };
 
 /**
  * @typedef {object} UseFormModelRawState
- * @property {{[fieldName:string]:import('@vueda/models/FieldModel').FieldModel}} fieldObjects -
- * @property {{[fieldName:string]:import('@vueda/models/FieldModel').FieldModel}} expandFieldObjects -
- * @property {{[fieldName:string]:import('vue').Component}} fieldComponents -
- * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps -
- * @property {{[fieldName:string]: import('vue').Component}} widgetComponents - The widget components
- * @property {{[fieldName:string]: {[key:string]: any}}} widgetProps -
+ * @property {string[]} fields - The fields to display, either passed in or from config.
+ * @property {string[]} expands - The fields to expand, either passed in or from config.
+ * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - The merged fieldDetails, either passed in, from config or from server info.
+ * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - The merged expandDetails, either passed in, from config or from server info.
+ * @property {{[fieldName:string]:import('vue').Component}} fieldComponents - The field components to use, either passed in or as a result of fieldObject or expandObject.
+ * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps - The field props to use, either passed in or as a result of fieldObject or expandObject.
+ * @property {{[fieldName:string]: import('vue').Component}} widgetComponents - The widget components to use, either passed in or as a result of fieldObject or expandObject.
+ * @property {{[fieldName:string]: {[key:string]: any}}} widgetProps - The widget props to use, either passed in or as a result of fieldObject or expandObject.
  */
 
 /**
- * @typedef {import('vue').shallowReactive<UseFormModelRawState>} UseFormModelState
+ * @typedef {import('vue').DeepReadonly<import('vue').UnwrapNestedRefs<UseFormModelRawState>>} UseFormModelState
  */
 
 /**
  * @typedef {object} UseFormModelRawProps
- * @property {string} app - The app name
- * @property {string} model - The model name
- * @property {string[]} fields - The fields to display
- * @property {{[fieldName:string]:import('@vueda/models/FieldModel').FieldModel}} fieldObjects - The field objects to
- *  use. This supports view specific customization.
- * @property {{[fieldName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}} fieldComponents - The field components
- * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps - The field props
- * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}} widgetComponents - The widget components
- * @property {{[fieldName:string]: {[key:string]: any}}} widgetProps -
+ * @property {string} app - The app name to load form configuration for
+ * @property {string} model - The model name to load form configuration for
+ * @property {string|undefined} view - The view name if wanting to use view specific configuration.
+ * @property {string[]|undefined} fields - The fields to display, if different from the default
+ * @property {string[]|undefined} expands - The fields to expand, if different from the default
+ * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').FieldInfo}|undefiend} fieldDetails - The field details to use, if different from the default
+ * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').ExpandInfo}|undefined} expandDetails - The expand details to use, if different from the default
+ * @property {{[fieldName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}|undefined} fieldComponents - The field components to use, if different from the default, by field path
+ * @property {{[fieldName:string]: {[key:string]: any}}|undefined} fieldProps - The field props to use, if different from the default, by field path
+ * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}|undefined} widgetComponents - The widget components to use, if different from the default, by field path
+ * @property {{[fieldName:string]: {[key:string]: any}}|undefined} widgetProps - The widget props to use, if different from the default, by field path
  */
 
-const UseFormModelStateKeys = [
-    "fieldObjects",
-    "expandFieldObjects",
-    "fieldComponents",
-    "fieldProps",
-    "widgetComponents",
-    "widgetProps",
-];
 /**
  * Using server model info and client model config, this hook provides the necessary reactive state for a form model.
  *
@@ -238,182 +220,228 @@ const UseFormModelStateKeys = [
  */
 export function useFormModel(props) {
     const es = effectScope();
-    const modelInfoStore = storeModelInfo();
+    const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
+    const modelChoicesStore = storeModelChoices();
     const internalState = reactive({
-        modelInfo: {},
-        modelInfoChoices: {},
+        choices: {},
     });
-    const state = shallowReactive(
+
+    const state = reactive(
         /** @type {UseFormModelRawState} */ {
-            fields: ref([]),
-            expandFields: ref([]),
-            fieldObjects: reactive({}),
-            expandFieldObjects: reactive({}),
-            // components themselves should not be deep reactive, avoiding vue warnings
-            fieldComponents: shallowRef({}),
-            fieldProps: reactive({}),
-            widgetComponents: shallowRef({}),
-            widgetProps: reactive({}),
+            fields: [],
+            expands: [],
+            fieldDetails: {},
+            expandDetails: {},
+            fieldComponents: shallowReactive({}),
+            fieldProps: {},
+            widgetComponents: shallowReactive({}),
+            widgetProps: {},
         },
     );
 
-    watch(
-        [toRef(props, "app"), toRef(props, "model")],
-        ([appName, model], [oldAppName, oldModel]) => {
-            if (appName && model && (appName !== oldAppName || model !== oldModel)) {
-                modelInfoStore.fetchModelInfo(appName, model);
-            }
-        },
-        { immediate: true },
-    );
     const appModelKey = computed(() => getAppModelDotName({ app: props.app, model: props.model }));
 
     watch(
-        () => modelInfoStore.modelInfos[appModelKey.value],
-        (modelInfo) => {
-            if (!isEqual(internalState.modelInfo, modelInfo)) {
-                assignReactiveObject(internalState.modelInfo, modelInfo || {});
+        [() => modelChoicesStore.choices[appModelKey.value], toRef(state, "widgetProps")],
+        ([fieldChoices]) => {
+            if (fieldChoices) {
+                for (const field in fieldChoices) {
+                    const choices = fieldChoices[field]?.results || [];
+                    if (state.widgetProps[field]) {
+                        if (!isEqual(state.widgetProps[field]?.options, choices)) {
+                            state.widgetProps[field].options = choices;
+                        }
+                    }
+                }
             }
-        },
-        { immediate: true },
-    );
-
-    watch(
-        () => modelInfoStore.fieldChoices[appModelKey.value],
-        (fieldChoices) => {
-            assignReactiveObject(internalState.modelInfoChoices, fieldChoices || {});
         },
         { immediate: true, deep: true },
     );
 
     const assignStateObjectsIfChanged = (args) => {
-        for (const key of UseFormModelStateKeys) {
+        for (const key in args) {
             if (!isEqual(state[key], args[key])) {
                 assignReactiveObject(state[key], args[key]);
             }
         }
     };
-    const setupWidgetComponent = (fieldName, fieldObj, props) => {
-        const widgetComponent = props.widgetComponents[fieldName] || getDefaultWidget(fieldObj);
-        return computedAsync(widgetComponent, null);
-    };
 
-    const setupWidgetProps = (fieldName, fieldObj, fieldComponent, props, internalState) => {
-        return computed(() => {
-            const baseProps = {
-                ...(deepUnref(props.widgetProps[fieldName]) || {}),
-                ...getWidgetProps(fieldComponent[0]),
-            };
-            if (fieldObj.choices) {
-                baseProps.options = internalState.modelInfoChoices[fieldName]?.results || [];
-            }
-            return baseProps;
-        });
-    };
-
-    const setupFieldProps = (fieldName, fieldObj, props) => {
-        return computed(() => {
-            return {
-                ...(deepUnref(props.fieldProps[fieldName]) || {}),
-                ...getFieldProps(fieldName, fieldObj),
-            };
-        });
-    };
-
-    // todo: what about figuring out fields through foreign keys?
+    // resolve the names and detail overrides from props over config
     watch(
-        [toRef(internalState.modelInfo, "expands"), toRef(props, "fields"), toRef(props, "fieldObjects")],
-        ([expands, fields, passedFieldObjects]) => {
-            if (Object.keys(passedFieldObjects || {}).length && fields.length) {
-                const fieldObjects = {};
-                const expandFieldObjects = {};
+        [
+            toRef(modelConfig, "config"),
+            toRef(props, "fields"),
+            toRef(props, "expands"),
+            toRef(props, "fieldDetails"),
+            toRef(props, "expandDetails"),
+        ],
+        (
+            [newConfig, newFields, newExpands, newFieldDetails, newExpandDetails],
+            [oldConfig, oldFields, oldExpands, oldFieldDetails, oldExpandDetails],
+        ) => {
+            // performance ordering the equality checks, lists of strings before objects
+            if (
+                isEqual(newFields, oldFields) &&
+                isEqual(newExpands, oldExpands) &&
+                isEqual(newFieldDetails, oldFieldDetails) &&
+                isEqual(newExpandDetails, oldExpandDetails) &&
+                isEqual(newConfig, oldConfig)
+            ) {
+                return;
+            }
+            // props has priority over config
+            const desiredFields = newFields || newConfig?.fields?.map((field) => field.name) || [];
+            const desiredExpands = newExpands || newConfig?.expands || [];
+            // details fields merge at the field property level
+            const desiredFieldDetails = { ...newConfig?.fieldDetails, ...newFieldDetails };
+            const desiredExpandDetails = { ...newConfig?.expandDetails, ...newExpandDetails };
+            assignStateObjectsIfChanged({
+                fields: desiredFields,
+                expands: desiredExpands,
+                fieldDetails: desiredFieldDetails,
+                expandDetails: desiredExpandDetails,
+            });
+        },
+        { immediate: true, deep: true },
+    );
+
+    // resolve the field/widget components and props from the fields, expands, and details
+    watch(
+        [toRef(state, "expands"), toRef(state, "fields"), toRef(state, "fieldDetails"), toRef(state, "expandDetails")],
+        ([expands, fields, fieldDetails, expandDetails]) => {
+            if (Object.keys(fieldDetails || {}).length && fields.length) {
                 const fieldComponents = {};
                 const fieldProps = {};
                 const widgetComponents = {};
                 const widgetProps = {};
-                if (expands) {
-                    for (const expand of expands) {
-                        if (!fields.includes(expand.name) || !expand.f) {
+                for (const expandName of deepUnref(expands) || []) {
+                    const expandDetail = expandDetails[expandName];
+                    if (!expandDetail) {
+                        throw new Error(`Unknown expand ${expandName} specified for ${props.app}.${props.model}`);
+                    }
+                    if (!fields.includes(expandDetail.name) || !expandDetail.f) {
+                        continue;
+                    }
+                    for (const [expandFieldName, expandFieldDetail] of Object.entries(expandDetail.f)) {
+                        if (expandFieldName === "pk") {
                             continue;
                         }
-                        for (const [fieldKey, fieldObj] of Object.entries(expand.f)) {
-                            if (fieldKey === "pk") {
-                                continue;
-                            }
-                            const fieldName = `${expand.name}__${fieldKey}`;
-                            if (fieldObj.choices) {
-                                modelInfoStore.fetchFieldChoices(props.app, props.model, fieldName);
-                            }
-                            expandFieldObjects[fieldName] = { ...fieldObj, name: fieldName };
-                            es.run(() => {
-                                const fieldComponent =
-                                    props.fieldComponents[fieldName] || djangoTypeToFieldComponent(fieldObj);
-                                fieldComponents[fieldName] = computedAsync(fieldComponent[1], null);
-                                fieldProps[fieldName] = setupFieldProps(fieldName, fieldObj, props);
-                                if (fieldComponent[0] !== "FieldInline") {
-                                    widgetComponents[fieldName] = setupWidgetComponent(fieldName, fieldObj, props);
-                                    widgetProps[fieldName] = setupWidgetProps(
-                                        fieldName,
-                                        fieldObj,
-                                        fieldComponent,
-                                        props,
-                                        internalState,
-                                    );
-                                }
-                            });
+                        const fieldName = `${expandName}__${expandFieldName}`;
+                        if (expandFieldDetail.choices) {
+                            // noinspection JSIgnoredPromiseFromCall
+                            modelChoicesStore.fetchChoices(props.app, props.model, fieldName);
                         }
+                        es.run(() => {
+                            const fieldComponent = computed(
+                                () =>
+                                    props.fieldComponents[fieldName] ||
+                                    djangoTypeToFieldComponent(expandFieldDetail.many, expandFieldDetail.type),
+                            );
+                            fieldComponents[fieldName] = computedAsync(async () => fieldComponent.value[1](), null);
+                            fieldProps[fieldName] = computed(() => {
+                                return {
+                                    ...{
+                                        // useFormModel resolves type, the fields don't care about the server type.
+                                        ...omit(expandFieldDetail, ["type"]),
+                                        ...(defaultFieldsProps[expandFieldDetail.type] || {}),
+                                    },
+                                    ...(deepUnref(props.fieldProps[fieldName]) || {}),
+                                    name: fieldName,
+                                };
+                            });
+                            const widgetComponent = computed(
+                                () =>
+                                    props.widgetComponents[fieldName] ||
+                                    getDefaultWidget(
+                                        expandFieldDetail.choices,
+                                        expandFieldDetail.many,
+                                        expandFieldDetail.readOnly,
+                                        expandFieldDetail.type,
+                                    ),
+                            );
+                            widgetComponents[fieldName] = computedAsync(async () => widgetComponent.value(), null);
+                            widgetProps[fieldName] = computed(() => {
+                                const baseProps = {
+                                    ...(deepUnref(props.widgetProps[fieldName]) || {}),
+                                    ...(defaultWidgetProps[expandFieldDetail.type] || {}),
+                                };
+                                if (expandFieldDetail.choices) {
+                                    baseProps.options = internalState.choices[fieldName]?.results || [];
+                                }
+                                return baseProps;
+                            });
+                        });
                     }
                 }
 
-                for (const [fieldName, fieldObj] of Object.entries(passedFieldObjects)) {
-                    if (!fields.includes(fieldName)) {
-                        continue;
+                for (const fieldName of deepUnref(fields) || []) {
+                    const fieldDetail = fieldDetails[fieldName];
+                    if (!fieldDetail) {
+                        throw new Error(`Unknown field ${fieldName} specified for ${props.app}.${props.model}`);
                     }
-                    if (fieldObj.choices) {
-                        modelInfoStore.fetchFieldChoices(props.app, props.model, fieldName);
+                    if (fieldDetail.choices) {
+                        // noinspection JSIgnoredPromiseFromCall
+                        modelChoicesStore.fetchChoices(props.app, props.model, fieldName);
                     }
-                    fieldObjects[fieldName] = { ...fieldObj, name: fieldName };
                     es.run(() => {
-                        const fieldComponent = props.fieldComponents[fieldName] || djangoTypeToFieldComponent(fieldObj);
-                        fieldComponents[fieldName] = computedAsync(fieldComponent[1], null);
-                        fieldProps[fieldName] = setupFieldProps(fieldName, fieldObj, props);
-                        if (fieldComponent[0] !== "FieldInline") {
-                            widgetComponents[fieldName] = setupWidgetComponent(fieldName, fieldObj, props);
-                            widgetProps[fieldName] = setupWidgetProps(
-                                fieldName,
-                                fieldObj,
-                                fieldComponent,
-                                props,
-                                internalState,
+                        fieldComponents[fieldName] = computed(() => {
+                            return (
+                                props.fieldComponents?.[fieldName] ||
+                                djangoTypeToFieldComponent(fieldDetail.many, fieldDetail.type)
                             );
-                        }
+                        });
+                        fieldProps[fieldName] = computed(() => {
+                            return {
+                                ...{
+                                    // useFormModel resolves type, the fields don't care about the server type.
+                                    ...omit(fieldDetail, ["type"]),
+                                    ...(defaultFieldsProps[fieldDetail.type] || {}),
+                                },
+                                ...(deepUnref(props.fieldProps[fieldName]) || {}),
+                                name: fieldName,
+                            };
+                        });
+                        widgetComponents[fieldName] = computed(() => {
+                            return (
+                                props.widgetComponents?.[fieldName] ||
+                                getDefaultWidget(
+                                    fieldDetail.choices,
+                                    fieldDetail.many,
+                                    fieldDetail.readOnly,
+                                    fieldDetail.type,
+                                )
+                            );
+                        });
+                        widgetProps[fieldName] = computed(() => {
+                            const baseProps = {
+                                ...(deepUnref(props.widgetProps[fieldName]) || {}),
+                                ...(defaultWidgetProps[fieldDetail.type] || {}),
+                            };
+                            if (fieldDetail.choices) {
+                                baseProps.options = internalState.choices[fieldName]?.results || [];
+                            }
+                            return baseProps;
+                        });
                     });
                 }
                 assignStateObjectsIfChanged({
-                    fieldObjects,
-                    expandFieldObjects,
                     fieldComponents,
                     fieldProps,
                     widgetComponents,
                     widgetProps,
                 });
-                assignReactiveObject(state.fields, fields.map((field) => fieldObjects[field]?.name).filter(identity));
-                assignReactiveObject(state.expandFields, Object.keys(expandFieldObjects));
             } else {
                 assignStateObjectsIfChanged({
-                    fieldObjects: {},
-                    expandFieldObjects: {},
                     fieldComponents: {},
                     fieldProps: {},
                     widgetComponents: {},
                     widgetProps: {},
                 });
-                assignReactiveObject(state.fields, []);
-                assignReactiveObject(state.expandFields, []);
             }
         },
         { immediate: true, deep: true },
     );
-    provide(FormModelSymbol, readonly(state));
-    return readonly(state);
+    const returnObject = readonly(state);
+    provide(FormModelSymbol, returnObject);
+    return returnObject;
 }

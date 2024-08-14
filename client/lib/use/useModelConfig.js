@@ -12,8 +12,8 @@ import { isRef, reactive, readonly, ref, toRef, unref, watch } from "vue";
  * @typedef {object} ViewSpecificModelConfig
  * @property {string[]} fields - field names to display
  * @property {string[]} expands - field names to expand
- * @property {string[]|undefined} filterable - filters to display in list view
- * @property {string[]|undefined} sortable - field names that can be sorted in list view
+ * @property {string[]|undefined} filterables - filters to display in list view
+ * @property {string[]|undefined} sortables - field names that can be sorted in list view
  * @property {string[]|undefined} sorted - the default sort order for list view
  * @property {string[]|null} actions - allow list of actions to display, otherwise all actions are displayed
  * @property {{[propName: string]: any}|undefined} formProps - extra props to pass the form model
@@ -92,7 +92,7 @@ export function useModelConfig(app, model, view) {
                 loadingError.setLoading();
                 try {
                     const args = { app: newApp, model: newModel, view: newView };
-                    const key = view ? getAppModelViewDotName(args) : getAppModelDotName(args);
+                    const key = newView ? getAppModelViewDotName(args) : getAppModelDotName(args);
                     originalConfig.value = toRef(modelConfigStore.builtConfigs, key);
                     await modelConfigStore.getConfig(args);
                 } catch (e) {

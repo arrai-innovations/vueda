@@ -12,7 +12,7 @@ import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
-import { computed, reactive, toRef, useAttrs, watch } from "vue";
+import { computed, reactive, toRef, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -39,6 +39,10 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
+    formProps: {
+        type: Object,
+        default: () => ({}),
+    },
     fieldProps: {
         type: Object,
         default: () => ({}),
@@ -49,42 +53,41 @@ const props = defineProps({
     },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
-const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+const viewName = "create";
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
 const titleStr = computed(() => {
-    return `Create ${memoizedStartCase(modelConfig.info?.verbose_name)}` || "Create Item";
+    return `Create ${memoizedStartCase(modelConfig.config?.verboseName)}` || "Create Item";
 });
-const attrs = useAttrs();
-// combined modelConfig?.config?.createFormProps with any attrs passed in
-const computedCreateFormProps = reactive({});
+const combinedFormProps = reactive({});
 watch(
-    [() => modelConfig?.config?.createFormProps, () => attrs],
-    ([createFormProps, attrs]) => {
+    [() => modelConfig.config?.formProps, toRef(props, "formProps")],
+    ([configFormProps, passedFormProps]) => {
         const desiredState = {
-            ...createFormProps,
-            ...attrs,
+            ...configFormProps,
+            ...passedFormProps,
         };
-        if (!isEqual(computedCreateFormProps, desiredState)) {
-            assignReactiveObject(computedCreateFormProps, desiredState);
+        if (!isEqual(combinedFormProps, desiredState)) {
+            assignReactiveObject(combinedFormProps, desiredState);
         }
     },
     { immediate: true, deep: true },
 );
 const calculatedDisplayFields = computed(() => {
-    return modelConfig?.config?.createFields;
+    return modelConfig.config?.fields;
 });
 const calculatedCreateFields = computed(() => {
-    const fields = new Set(modelConfig?.config?.createFields);
+    const fields = new Set(modelConfig.config?.fields);
     fields.add("id");
     return Array.from(fields);
 });
-const calculatedCreateExpands = computed(() => modelConfig?.config?.createExpands);
+const calculatedCreateExpands = computed(() => modelConfig.config?.expands);
 const calculatedCreateFieldProps = useMergeFieldNameProps([
     toRef(() => props.fieldProps),
-    toRef(() => modelConfig?.config?.createFieldProps),
+    toRef(() => modelConfig.config?.fieldProps),
 ]);
 const calculatedCreateWidgetProps = useMergeFieldNameProps([
     toRef(() => props.widgetProps),
-    toRef(() => modelConfig?.config?.createWidgetProps),
+    toRef(() => modelConfig.config?.widgetProps),
 ]);
 
 const instanceObjectProps = reactive({
@@ -112,7 +115,7 @@ const formContext = useForm(formContextProps);
 const objectFormProps = reactive({
     app: toRef(props, "app"),
     model: toRef(props, "model"),
-    verboseName: computed(() => modelConfig.info?.verbose_name),
+    verboseName: computed(() => modelConfig.config?.verboseName),
 });
 const objectForm = useObjectForm({
     props: objectFormProps,
@@ -137,24 +140,11 @@ const combinedWhileText = computed(() =>
     <div :class="props.class">
         <page-title :loading="modelConfig.loading" :title="titleStr">
             <template #button>
-                <link-model-view
-                    :app="app"
-                    class="whitespace-nowrap grow shrink-0"
-                    label="Return to List"
-                    :model="model"
-                    view="list"
-                />
                 <template
-                    v-for="actionName in modelConfig.info.actions
-                        ?.filter(
-                            (a) =>
-                                (modelConfig.config.createActions
-                                    ? modelConfig.config.createActions.includes(a.name)
-                                    : true) &&
-                                !a.detail &&
-                                !a.name.startsWith('bulk-'),
-                        )
-                        .map((a) => a.name)"
+                    v-for="actionName in modelConfig.config?.actions?.filter((name) => {
+                        const actionDetail = modelConfig.config?.actionDetails?.[name];
+                        return actionDetail && viewName !== name && !actionDetail.detail && !name.startsWith('bulk-');
+                    })"
                     :key="actionName"
                 >
                     <slot
@@ -189,16 +179,15 @@ const combinedWhileText = computed(() =>
                 :ignore-form-validation-errors="true"
                 :while-text="combinedWhileText"
             />
-            <form @submit.prevent="objectForm.submit">
+            <form v-bind="$attrs" @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"
-                    :field-objects="modelConfig.config?.createFieldDetails || modelConfig.config?.fieldDetails"
                     :field-props="calculatedCreateFieldProps"
                     :fields="calculatedDisplayFields"
                     :model="model"
                     :variant="formModelVariant"
                     :widget-props="calculatedCreateWidgetProps"
-                    v-bind="computedCreateFormProps"
+                    v-bind="combinedFormProps"
                 >
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />

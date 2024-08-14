@@ -52,7 +52,7 @@ const props = defineProps({
         default: "md",
         description: "When to switch to table layout.",
     },
-    sortable: {
+    sortables: {
         type: Array,
         default: () => [],
         description: "Field names that can be sorted.",
@@ -137,7 +137,7 @@ const evenCard = (index) => {
 };
 
 const sortClick = (e, fieldName) => {
-    if (!props.sortable.includes(fieldName)) {
+    if (!props.sortables.includes(fieldName)) {
         return;
     }
     const newSorted = [...props.sorted];
@@ -200,7 +200,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             :descending="sorted.includes(`-${field.name}`)"
                             :field="field"
                             :multi-sort-index="sorted.length > 1 ? directionlessSorted.indexOf(field.name) : undefined"
-                            :sortable="sortable.includes(field.name)"
+                            :sortable="sortables.includes(field.name)"
                         >
                             <template v-if="$slots['sort-icon']" #sort-icon="slotProps">
                                 <slot name="sort-icon" v-bind="slotProps" />

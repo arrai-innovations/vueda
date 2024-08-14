@@ -70,7 +70,7 @@ import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
-import { computed } from "vue";
+import { deepUnref } from "vue-deepunref";
 
 defineOptions({
     inheritAttrs: false,
@@ -85,9 +85,20 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    view: {
+        type: String,
+        default: undefined,
+        description: "If set, use view specific configuration for the form, otherwise use the default configuration.",
+    },
     fields: {
         type: Array,
+        default: undefined,
+        description: "The fields to render in the form, if not wanting to use the configuration default for this view.",
+    },
+    expands: {
+        type: Array,
         default: () => [],
+        description: "The fields to render in the form, expanded.",
     },
     variant: {
         type: String,
@@ -95,23 +106,28 @@ const props = defineProps({
     },
     fieldComponents: {
         type: Object,
-        default: () => ({}),
+        default: undefined,
+        description: "A map of field paths to async fns returning field component, as overrides.",
     },
     fieldProps: {
         type: Object,
-        default: () => ({}),
+        default: undefined,
+        description: "A map of field paths to props, as overrides.",
     },
-    fieldObjects: {
+    fieldDetails: {
         type: Object,
-        default: () => ({}),
+        default: undefined,
+        description: "A map of field paths to field details, as overrides.",
     },
     widgetComponents: {
         type: Object,
-        default: () => ({}),
+        default: undefined,
+        description: "A map of field paths to async fns returning widget component, as overrides.",
     },
     widgetProps: {
         type: Object,
-        default: () => ({}),
+        default: undefined,
+        description: "A map of field paths to props, as overrides.",
     },
     outerClass: {
         type: [String, Array, Object],
@@ -138,7 +154,6 @@ const formModel = useFormModel(props);
 // todo: look into customizability re: overriding field / widget components with arbitrary slot content
 // todo: it would be nice to have a way to layout the fields into fieldsets / grids
 const theme = useComputedClasses(vuedaTailwind.FormModel);
-const myFieldObjects = computed(() => props.fields.map((x) => formModel.fieldObjects[x]));
 </script>
 
 <template>
@@ -151,42 +166,42 @@ const myFieldObjects = computed(() => props.fields.map((x) => formModel.fieldObj
                 <slot
                     :all-widget-props="formModel.widgetProps"
                     :field-components="formModel.fieldComponents"
-                    :field-objects="myFieldObjects"
+                    :field-details="formModel.fieldDetails"
                     :field-props="formModel.fieldProps"
                     name="fields"
                     :theme="theme"
                     :widget-components="formModel.widgetComponents"
                 >
-                    <template v-for="fieldObject in myFieldObjects" :key="fieldObject?.name">
+                    <template v-for="fieldName in deepUnref(formModel.fields)" :key="fieldName">
                         <slot
                             :field-class="theme('field')"
-                            :field-component="formModel.fieldComponents[fieldObject?.name]?.value"
+                            :field-component="formModel.fieldComponents[fieldName]"
+                            :field-detail="formModel.fieldDetails[fieldName]"
                             :field-inner-class="theme('fieldInner')"
-                            :field-object="fieldObject"
-                            :field-props="formModel.fieldProps[fieldObject?.name]"
-                            :name="`field(${fieldObject?.name})`"
+                            :field-props="formModel.fieldProps[fieldName]"
+                            :name="`field(${fieldName})`"
                             :theme="theme"
-                            :widget-component="formModel.widgetComponents[fieldObject?.name]?.value"
-                            :widget-props="formModel.widgetProps[fieldObject?.name]?.value"
+                            :widget-component="formModel.widgetComponents[fieldName]"
+                            :widget-props="formModel.widgetProps[fieldName]"
                         >
                             <component
-                                :is="formModel.fieldComponents[fieldObject?.name].value"
-                                v-if="formModel.fieldComponents[fieldObject?.name]?.value"
+                                :is="formModel.fieldComponents[fieldName]"
+                                v-if="formModel.fieldComponents[fieldName]"
                                 :class="theme('field')"
-                                v-bind="formModel.fieldProps[fieldObject?.name]"
+                                v-bind="formModel.fieldProps[fieldName]"
                             >
                                 <div :class="theme('fieldInner')">
                                     <slot
-                                        :field-object="fieldObject"
-                                        :name="`widget(${fieldObject?.name})`"
+                                        :field-object="formModel.fieldDetails[fieldName]"
+                                        :name="`widget(${fieldName})`"
                                         :theme="theme"
-                                        :widget-component="formModel.widgetComponents[fieldObject?.name]?.value"
-                                        :widget-props="formModel.widgetProps[fieldObject?.name]"
+                                        :widget-component="formModel.widgetComponents[fieldName]"
+                                        :widget-props="formModel.widgetProps[fieldName]"
                                     >
                                         <component
-                                            :is="formModel.widgetComponents[fieldObject?.name]?.value"
-                                            v-bind="formModel.widgetProps[fieldObject?.name]"
-                                            v-if="formModel.widgetComponents[fieldObject?.name]?.value"
+                                            :is="formModel.widgetComponents[fieldName]"
+                                            v-bind="formModel.widgetProps[fieldName]"
+                                            v-if="formModel.widgetComponents[fieldName]"
                                         />
                                     </slot>
                                     <form-help-text />

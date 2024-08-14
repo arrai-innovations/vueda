@@ -105,10 +105,11 @@ const props = defineProps({
 });
 const listSearch = ref(null);
 const isActive = useIsActive();
-const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), "list");
+const viewName = "list";
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
 const sorting = reactive({
     state: {
-        sortable: computed(() => modelConfig?.config?.sortable),
+        sortables: computed(() => modelConfig?.config?.sortables),
         sorted: [],
     },
     updateSorted: (sorted) => {
@@ -215,7 +216,7 @@ watch(
 );
 
 const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
-const titleStr = computed(() => `List ${memoizedStartCase(modelConfig.info?.verbose_name_plural || "items")}`);
+const titleStr = computed(() => `List ${memoizedStartCase(modelConfig.config?.verboseNamePlural || "items")}`);
 const errored = computed(() => modelConfig.errored || instanceList.state.errored);
 const error = computed(() => modelConfig.error || instanceList.state.error);
 const dismissError = () => {
@@ -280,15 +281,13 @@ const hasWorkFlow = computedAsync(
 </script>
 <template>
     <div>
+        !hello!
         <page-title :loading="instanceList.state.loading" :title="titleStr">
             <template #button>
                 <template
                     v-for="actionName in modelConfig.config?.actions?.filter((name) => {
-                        if (name === 'list') {
-                            return false;
-                        }
-                        const actionDetails = modelConfig.config.actionDetails[name];
-                        return actionDetails && !actionDetails.detail && !name.startsWith('bulk-');
+                        const actionDetail = modelConfig.config?.actionDetails?.[name];
+                        return actionDetail && viewName !== name && !actionDetail.detail && !name.startsWith('bulk-');
                     })"
                     :key="
                         getCRUDName({
@@ -349,8 +348,8 @@ const hasWorkFlow = computedAsync(
                     </slot>
                 </template>
                 <template
-                    v-for="actionName in modelConfig.config.actions?.filter(
-                        (name) => modelConfig.config.actionDetails[name] && name.startsWith('bulk-'),
+                    v-for="actionName in modelConfig.config?.actions?.filter(
+                        (name) => modelConfig.config?.actionDetails?.[name] && name.startsWith('bulk-'),
                     )"
                     :key="actionName"
                 >
@@ -381,7 +380,7 @@ const hasWorkFlow = computedAsync(
         <filter-form
             v-model="listState.filterArgs"
             :app="app"
-            :filter-fields="modelConfig.config.filterable"
+            :filter-fields="modelConfig.config.filterables"
             :model="model"
         />
         <error-display :error="error" :errored="errored" @dismiss-error="dismissError" />
@@ -401,7 +400,7 @@ const hasWorkFlow = computedAsync(
             :objects-in-order="instanceList.state.objectsInOrder"
             :related-objects="instanceList.state.relatedObjects"
             selectable
-            :sortable="sorting.state.sortable"
+            :sortables="sorting.state.sortables"
             :sorted="sorting.state.sorted"
             table-breakpoint="lg"
             :variant="objectGridVariant"

@@ -4,79 +4,99 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import identity from "lodash-es/identity.js";
 import { defineStore } from "pinia";
 
-// todo: ModelConfig type is out of date
 /**
  * A configuration object for making use of a model client-side.
  *
  * @typedef {object} ModelConfig
- * @property {string[]} listFields - field names to display in list view
- * @property {string[]} listExpands - field names to expand in list view
- * @property {string[]} createFields - field names to display in a create form model
- * @property {string[]} createExpands - field names to expand in create form model
- * @property {string[]} updateFields - field names to display in an update form model
- * @property {string[]} updateExpands - field names to expand in update form model
- * @property {string[]} readFields - field names to display in read view
- * @property {string[]} readExpands - field names to expand in read view
- * @property {string[]} listFilterable - filters to display in list view
- * @property {string[]} listSortable - field names that can be sorted in list view
- * @property {string[]} listSorted - the default sort order for list view
- * @property {string[]|null} listActions - allow list of actions to display in list view, otherwise all actions are displayed
- * @property {string[]|null} createActions - allow list of actions to display in create view, otherwise all actions are displayed
- * @property {string[]|null} updateActions - allow list of actions to display in update view, otherwise all actions are displayed
- * @property {string[]|null} readActions - allow list of actions to display in read view, otherwise all actions are displayed
- * @property {{[propName: string]: any}} createFormProps - extra props to pass the form model for view create
- * @property {{[propName: string]: any}} updateFormProps - extra props to pass the form model for view update
- * @property {{[fieldPath: string]: {[propName: string]: any}}} createFieldProps - extra props to pass a field component in a form model for view create
- * @property {{[fieldPath: string]: {[propName: string]: any}}} updateFieldProps - extra props to pass a field component in a form model for view update
- * @property {{[fieldPath: string]: {[propName: string]: any}}} createWidgetProps - extra props to pass a widget component in a form model for view create
- * @property {{[fieldPath: string]: {[propName: string]: any}}} updateWidgetProps - extra props to pass a widget component in a form model for view update
+ * @property {string} verboseName - the human-readable name of the model
+ * @property {string} verboseNamePlural - the human-readable plural name of the model
+ * @property {string[]} fields - field names to display by default
+ * @property {string[]} expands - field names to expand by default
+ * @property {string[]} routeActions - actions to configure routes for
+ * @property {string[]} actions - actions to display by default
+ * @property {string[]} filterables - filters to display in list view
+ * @property {string[]} sortables - field names that can be sorted in list view
+ * @property {string[]} sorted - the default sort order for list view
+ * @property {object} fieldDetails - each available field details, by field name
+ * @property {object} expandDetails - each available expand details, by expand name
+ * @property {object} actionDetails - each available action details, by action name
+ * @property {object} formProps - extra props to pass the form model
+ * @property {object} fieldProps - extra props to pass a field component in a form model
+ * @property {object} widgetProps - extra props to pass a widget component in a form model
+ */
+
+/**
+ * A partial configuration object for making use of a model client-side.
+ *
+ * @typedef {object} OverridingModelConfig
+ * @property {string[]} [fields] - field names to display by default
+ * @property {string[]} [expands] - field names to expand by default
+ * @property {string[]} [routeActions] - actions to configure routes for
+ * @property {string[]} [actions] - actions to display by default
+ * @property {string[]} [filterables] - filters to display in list view
+ * @property {string[]} [sortables] - field names that can be sorted in list view
+ * @property {string[]} [sorted] - the default sort order for list view
+ * @property {object} [fieldDetails] - each available field details, by field name
+ * @property {object} [expandDetails] - each available expand details, by expand name
+ * @property {object} [actionDetails] - each available action details, by action name
+ * @property {object} [formProps] - extra props to pass the form model
+ * @property {object} [fieldProps] - extra props to pass a field component in a form model
+ * @property {object} [widgetProps] - extra props to pass a widget component in a form model
  */
 
 /**
  * Get a default configuration object for a model based on model info.
  *
  * @param {import('@vueda/stores/storeModelInfo.js').ModelInfo} modelInfo - The model info to base the configuration on.
- * @returns {[generic:ModelConfig, {[view: string]: ModelConfig}]} The default configuration objects.
+ * @returns {[generic:ModelConfig, {[view: string]: OverridingModelConfig}]} The default configuration objects.
  */
 const getDefaultFromModelInfo = (modelInfo) => {
-    const actionDetailsByName = modelInfo.actions.reduce((acc, action) => {
-        acc[action.name] = action;
-        return acc;
-    });
+    const actionDetailsByName = Object.fromEntries(modelInfo.actions.map((a) => [a.name, a]));
+    const expandDetailsByName = Object.fromEntries(modelInfo.expands.map((e) => [e.name, e]));
     return [
         {
-            fieldDetails: cloneDeep(modelInfo.fields),
+            verboseName: modelInfo.verbose_name,
+            verboseNamePlural: modelInfo.verbose_name_plural,
             fields: Object.keys(modelInfo.fields),
             expands: [],
-            actionDetails: cloneDeep(actionDetailsByName),
             routeActions: modelInfo.actions.map((a) => a.name),
             actions: modelInfo.actions.map((a) => a.name),
+            filterables: Object.keys(modelInfo.filtering),
+            sortables: modelInfo.ordering.map((o) => o.name),
+            sorted: [], // todo: the server has default field(s) being sorted on, we should get that
+            fieldDetails: cloneDeep(modelInfo.fields),
+            expandDetails: cloneDeep(expandDetailsByName),
+            actionDetails: cloneDeep(actionDetailsByName),
+            filterablesDetails: cloneDeep(modelInfo.filtering),
+            sortablesDetails: cloneDeep(modelInfo.ordering),
             formProps: {},
             fieldProps: {},
             widgetProps: {},
         },
-        {
-            list: {
-                filterable: Object.keys(modelInfo.filtering),
-                sortable: modelInfo.ordering.map((o) => o.name),
-                sorted: [], // todo: the server has default field(s) being sorted on, we should get that
-            },
-        },
+        {},
     ];
 };
 
 /**
  * A store for model configuration.
  *
- * @returns {import('pinia').Store<{
- *     configs: {[key: string]: ModelConfig},
- *     builtConfigs: {[key: string]: ModelConfig},
- *     setConfig: ({app: string, model: string}, genericConfig: ModelConfig=null, specificConfigs: {
- *         [view: string]: ModelConfig
- *     }=null) => void,
- *     getConfig: (app: string, model: string) => Promise<ModelConfig>,
- *     updateConfig: (app: string, model: string, config: Partial<ModelConfig>) => void
- * }>}
+ * @returns {import('pinia').Store<
+ *     'modelConfig',
+ *     {
+ *         genericConfigs: {[key: string]: ModelConfig},
+ *         specificConfigs: {[key: string]: OverridingModelConfig},
+ *         builtConfigs: {[key: string]: ModelConfig},
+ *         initailized: {[key: string]: Promise<ModelConfig>},
+ *     },
+ *     {
+ *         setConfig: (
+ *             {app: string, model: string},
+ *             genericConfig: OverridingModelConfig=null,
+ *             specificConfigs: {[view: string]: OverridingModelConfig}=null
+ *         ) => void,
+ *         getConfig: (app: string, model: string) => Promise<ModelConfig>,
+ *     }
+ * >}
  *
  */
 export const storeModelConfig = defineStore({
@@ -137,8 +157,14 @@ export const storeModelConfig = defineStore({
                     ...(view ? defaultSpecificConfigs[view] || {} : {}),
                     ...specificConfig,
                 };
-                // if there are any detail field overrides, we need to merge them deeply
-                for (const detailName of ["fieldDetails", "actionDetails"]) {
+                // if there are any detail field overrides, we need to merge them at the detail property level
+                for (const detailName of [
+                    "fieldDetails",
+                    "expandDetails",
+                    "actionDetails",
+                    "filterableDetails",
+                    "sortableDetails",
+                ]) {
                     const defaultGenericDetails = defaultGenericConfig[detailName] || {};
                     const genericDetails = genericConfig?.[detailName] || {};
                     const defaultSpecificDetails = defaultSpecificConfigs[view]?.[detailName] || {};

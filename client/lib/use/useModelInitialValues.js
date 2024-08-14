@@ -70,12 +70,12 @@ export function useModelInitialValues(app, model, fields) {
 
     watch(
         [() => internalState.infoFields, () => internalState.displayFields],
-        ([fieldObjects, fields]) => {
-            if (Object.keys(fieldObjects || {}).length && Object.keys(fields || {}).length) {
+        ([fieldDetails, fields]) => {
+            if (Object.keys(fieldDetails || {}).length && Object.keys(fields || {}).length) {
                 const newInitialValues = {};
-                Object.entries(fieldObjects).forEach(([fieldKey, fieldObj]) => {
+                Object.entries(fieldDetails).forEach(([fieldKey, fieldDetail]) => {
                     if (Object.values(fields).includes(fieldKey) && fieldKey !== "pk") {
-                        newInitialValues[fieldKey] = builtInTypes[fieldObj.type];
+                        newInitialValues[fieldKey] = builtInTypes[fieldDetail.type];
                     }
                 });
                 assignReactiveObject(initialValues, newInitialValues);

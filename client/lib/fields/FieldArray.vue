@@ -22,7 +22,7 @@ const preprocessSet = (value) => {
 useField(props, emit, { preprocessGet, preprocessSet });
 </script>
 <template>
-    <div data-qa="field-object">
+    <div data-qa="field-array">
         <slot />
     </div>
 </template>

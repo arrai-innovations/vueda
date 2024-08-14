@@ -6,7 +6,7 @@ import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
-import { useMergeFieldNameProps } from "@vueda/use/useMergeFieldNameProps.js";
+// import { useMergeFieldNameProps } from "@vueda/use/useMergeFieldNameProps.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
@@ -64,6 +64,36 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
+    fields: {
+        type: Array,
+        default: undefined,
+        description: "The fields to render in the form.",
+    },
+    fieldDetails: {
+        type: Object,
+        default: undefined,
+        description: "Any overriding field information by field path.",
+    },
+    fieldComponents: {
+        type: Object,
+        default: undefined,
+        description: "Any overriding field components by field path.",
+    },
+    widgetComponents: {
+        type: Object,
+        default: undefined,
+        description: "Any overriding widget components by field path.",
+    },
+    fieldProps: {
+        type: Object,
+        default: undefined,
+        description: "Any overriding field props by field path.",
+    },
+    widgetProps: {
+        type: Object,
+        default: () => ({}),
+        description: "Any overriding widget props by field path.",
+    },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
 
@@ -89,11 +119,12 @@ const attrs = useAttrs();
 // combined modelConfig?.config?.createFormProps with any attrs passed in
 const computedUpdateFormProps = reactive({});
 watch(
-    [() => modelConfig?.config?.updateFormProps, () => attrs],
-    ([createFormProps, attrs]) => {
+    [() => modelConfig?.config?.updateFormProps, props, attrs],
+    ([updateFormProps, props, attrs]) => {
         const desiredState = {
-            ...createFormProps,
+            ...updateFormProps,
             ...attrs,
+            ...props,
         };
         if (!isEqual(computedUpdateFormProps, desiredState)) {
             assignReactiveObject(computedUpdateFormProps, desiredState);
@@ -101,23 +132,20 @@ watch(
     },
     { immediate: true, deep: true },
 );
-const calculatedDisplayFields = computed(() => {
-    return modelConfig?.config?.updateFields;
-});
 const calculatedUpdateFields = computed(() => {
     const fields = new Set(modelConfig?.config?.updateFields);
     fields.add("id");
     return Array.from(fields);
 });
 const calculatedUpdateExpands = computed(() => modelConfig?.config?.updateExpands);
-const calculatedUpdateFieldProps = useMergeFieldNameProps([
-    toRef(() => props.fieldProps),
-    toRef(() => modelConfig?.config?.updateFieldProps),
-]);
-const calculatedUpdateWidgetProps = useMergeFieldNameProps([
-    toRef(() => props.widgetProps),
-    toRef(() => modelConfig?.config?.updateWidgetProps),
-]);
+// const calculatedUpdateFieldProps = useMergeFieldNameProps([
+//     toRef(() => props.fieldProps),
+//     toRef(() => modelConfig?.config?.updateFieldProps),
+// ]);
+// const calculatedUpdateWidgetProps = useMergeFieldNameProps([
+//     toRef(() => props.widgetProps),
+//     toRef(() => modelConfig?.config?.updateWidgetProps),
+// ]);
 
 const instanceObjectProps = reactive({
     crudArgs: {
@@ -315,13 +343,16 @@ const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceO
             <form @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"
-                    :field-objects="modelConfig.config?.updateFieldDetails || modelConfig.config?.fieldDetails"
-                    :field-props="calculatedUpdateFieldProps"
-                    :fields="calculatedDisplayFields"
+                    :field-components="fieldComponents"
+                    :field-details="fieldDetails"
+                    :field-props="fieldProps"
+                    :fields="fields"
                     :model="model"
                     :variant="formModelVariant"
-                    :widget-props="calculatedUpdateWidgetProps"
                     v-bind="computedUpdateFormProps"
+                    view="update"
+                    :widget-components="widgetComponents"
+                    :widget-props="widgetProps"
                 >
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />
