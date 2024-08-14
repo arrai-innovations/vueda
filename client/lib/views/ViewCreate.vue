@@ -141,23 +141,10 @@ const combinedWhileText = computed(() =>
         <page-title :loading="modelConfig.loading" :title="titleStr">
             <template #button>
                 <template
-<<<<<<< HEAD
                     v-for="actionName in modelConfig.config?.actions?.filter((name) => {
                         const actionDetail = modelConfig.config?.actionDetails?.[name];
-                        return actionDetail && viewName !== name && !actionDetail.detail && !name.startsWith('bulk-');
+                        return actionDetail && viewName !== name && !actionDetail.detail && !actionDetail.bulk;
                     })"
-=======
-                    v-for="actionName in modelConfig.info.actions
-                        ?.filter(
-                            (a) =>
-                                (modelConfig.config.createActions
-                                    ? modelConfig.config.createActions.includes(a.name)
-                                    : true) &&
-                                !a.detail &&
-                                !a.bulk,
-                        )
-                        .map((a) => a.name)"
->>>>>>> b46036b (wip: change to use bulk flag on actions and update objectsDelete)
                     :key="actionName"
                 >
                     <slot
