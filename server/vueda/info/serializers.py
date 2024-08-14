@@ -664,7 +664,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
                 # Min Value - Optional
                 min_value = self.get_model_filtering_min_value(field, model_field)
-                if min_value:
+                if min_value is not None:
                     filtering_data[filter_obj.field_name]["min_value"] = min_value
 
                 # Null Label - Optional
