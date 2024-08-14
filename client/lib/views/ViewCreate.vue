@@ -186,8 +186,9 @@ const combinedWhileText = computed(() =>
                     :fields="calculatedDisplayFields"
                     :model="model"
                     :variant="formModelVariant"
-                    :widget-props="calculatedCreateWidgetProps"
                     v-bind="combinedFormProps"
+                    :view="viewName"
+                    :widget-props="calculatedCreateWidgetProps"
                 >
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />

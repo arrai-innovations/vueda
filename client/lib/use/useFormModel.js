@@ -269,32 +269,34 @@ export function useFormModel(props) {
     // resolve the names and detail overrides from props over config
     watch(
         [
-            toRef(modelConfig, "config"),
+            () => modelConfig.config.fields,
+            () => modelConfig.config.expands,
+            () => modelConfig.config.fieldDetails,
+            () => modelConfig.config.expandDetails,
             toRef(props, "fields"),
             toRef(props, "expands"),
             toRef(props, "fieldDetails"),
             toRef(props, "expandDetails"),
         ],
-        (
-            [newConfig, newFields, newExpands, newFieldDetails, newExpandDetails],
-            [oldConfig, oldFields, oldExpands, oldFieldDetails, oldExpandDetails],
-        ) => {
-            // performance ordering the equality checks, lists of strings before objects
-            if (
-                isEqual(newFields, oldFields) &&
-                isEqual(newExpands, oldExpands) &&
-                isEqual(newFieldDetails, oldFieldDetails) &&
-                isEqual(newExpandDetails, oldExpandDetails) &&
-                isEqual(newConfig, oldConfig)
-            ) {
-                return;
-            }
+        () => {
             // props has priority over config
-            const desiredFields = newFields || newConfig?.fields?.map((field) => field.name) || [];
-            const desiredExpands = newExpands || newConfig?.expands || [];
+            const desiredFields = props.fields || modelConfig.config?.fields || [];
+            const desiredExpands = props.expands || modelConfig.config?.expands || [];
             // details fields merge at the field property level
-            const desiredFieldDetails = { ...newConfig?.fieldDetails, ...newFieldDetails };
-            const desiredExpandDetails = { ...newConfig?.expandDetails, ...newExpandDetails };
+            const desiredFieldDetails = {};
+            const desiredExpandDetails = {};
+            for (const field of desiredFields) {
+                desiredFieldDetails[field] = {
+                    ...modelConfig.config?.fieldDetails?.[field],
+                    ...props.fieldDetails?.[field],
+                };
+            }
+            for (const expand of desiredExpands) {
+                desiredExpandDetails[expand] = {
+                    ...modelConfig.config?.expandDetails?.[expand],
+                    ...props.expandDetails?.[expand],
+                };
+            }
             assignStateObjectsIfChanged({
                 fields: desiredFields,
                 expands: desiredExpands,
@@ -397,7 +399,7 @@ export function useFormModel(props) {
                                     ...omit(fieldDetail, ["type"]),
                                     ...(defaultFieldsProps[fieldDetail.type] || {}),
                                 },
-                                ...(deepUnref(props.fieldProps[fieldName]) || {}),
+                                ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
                                 name: fieldName,
                             };
                         });
@@ -414,7 +416,7 @@ export function useFormModel(props) {
                         });
                         widgetProps[fieldName] = computed(() => {
                             const baseProps = {
-                                ...(deepUnref(props.widgetProps[fieldName]) || {}),
+                                ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
                                 ...(defaultWidgetProps[fieldDetail.type] || {}),
                             };
                             if (fieldDetail.choices) {
@@ -439,7 +441,7 @@ export function useFormModel(props) {
                 });
             }
         },
-        { immediate: true, deep: true },
+        { deep: true },
     );
     const returnObject = readonly(state);
     provide(FormModelSymbol, returnObject);

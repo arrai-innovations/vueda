@@ -67,6 +67,7 @@ export function useModelConfig(app, model, view) {
     const proxyLoadingError = useProxyLoadingError([loadingError, modelInfo]);
     /** @type {import('vue').Ref<null|import('vue').Ref<object>>} */
     const originalConfig = ref(null);
+    let previousKey;
     const returnObject = reactive({
         loading: proxyLoadingError.loading,
         error: proxyLoadingError.error,
@@ -75,6 +76,21 @@ export function useModelConfig(app, model, view) {
         info: toRef(modelInfo, "info"),
         config: {},
     });
+
+    // update returnObject.config when originalConfig changes
+    watch(
+        [() => unref(unref(originalConfig)), view],
+        ([theValue]) => {
+            if (!theValue) {
+                assignReactiveObject(returnObject.config, {});
+            } else {
+                if (!isEqual(theValue, returnObject.config)) {
+                    assignReactiveObject(returnObject.config, theValue);
+                }
+            }
+        },
+        { deep: true },
+    );
 
     // update originalConfig when app, model, or isActive changes
     watch(
@@ -93,7 +109,10 @@ export function useModelConfig(app, model, view) {
                 try {
                     const args = { app: newApp, model: newModel, view: newView };
                     const key = newView ? getAppModelViewDotName(args) : getAppModelDotName(args);
-                    originalConfig.value = toRef(modelConfigStore.builtConfigs, key);
+                    if (previousKey !== key) {
+                        originalConfig.value = toRef(modelConfigStore.builtConfigs, key);
+                        previousKey = key;
+                    }
                     await modelConfigStore.getConfig(args);
                 } catch (e) {
                     loadingError.setError(e);
@@ -104,20 +123,6 @@ export function useModelConfig(app, model, view) {
             }
         },
         { immediate: true },
-    );
-    // update returnObject.config when originalConfig changes
-    watch(
-        [() => unref(unref(originalConfig)), view],
-        ([theValue]) => {
-            if (!theValue) {
-                returnObject.config = {};
-            } else {
-                if (!isEqual(theValue, returnObject.config)) {
-                    assignReactiveObject(returnObject.config, theValue);
-                }
-            }
-        },
-        { immediate: true, deep: true },
     );
 
     return readonly(returnObject);
