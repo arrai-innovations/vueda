@@ -266,6 +266,7 @@ onMounted(() => {
 
 const hasWorkFlow = computedAsync(
     async () => {
+<<<<<<< HEAD
         if (modelConfig.config.actions.includes(`transition`)) {
             try {
                 await workflow.fetchWorkflowTransition(props.app, props.model);
@@ -273,8 +274,14 @@ const hasWorkFlow = computedAsync(
             } catch (WorkflowError) {
                 return false;
             }
+=======
+        try {
+            await workflow.fetchWorkflowTransition(props.app, props.model);
+            return true;
+        } catch (WorkflowError) {
+            return false;
+>>>>>>> b46036b (wip: change to use bulk flag on actions and update objectsDelete)
         }
-        return false;
     },
     false, // initial state
 );
@@ -284,10 +291,23 @@ const hasWorkFlow = computedAsync(
         <page-title :loading="instanceList.state.loading" :title="titleStr">
             <template #button>
                 <template
+<<<<<<< HEAD
                     v-for="actionName in modelConfig.config?.actions?.filter((name) => {
                         const actionDetail = modelConfig.config?.actionDetails?.[name];
                         return actionDetail && viewName !== name && !actionDetail.detail && !name.startsWith('bulk-');
                     })"
+=======
+                    v-for="actionName in modelConfig.info.actions
+                        ?.filter(
+                            (a) =>
+                                (modelConfig.config.listActions
+                                    ? modelConfig.config.listActions.includes(a.name)
+                                    : true) &&
+                                !a.detail &&
+                                !a.bulk,
+                        )
+                        .map((a) => a.name)"
+>>>>>>> b46036b (wip: change to use bulk flag on actions and update objectsDelete)
                     :key="
                         getCRUDName({
                             app: app,
@@ -347,9 +367,20 @@ const hasWorkFlow = computedAsync(
                     </slot>
                 </template>
                 <template
+<<<<<<< HEAD
                     v-for="actionName in modelConfig.config?.actions?.filter(
                         (name) => modelConfig.config?.actionDetails?.[name] && name.startsWith('bulk-'),
                     )"
+=======
+                    v-for="actionName in modelConfig.info.actions
+                        ?.filter(
+                            (a) =>
+                                (modelConfig.config.listActions
+                                    ? modelConfig.config.listActions.includes(a.name)
+                                    : true) && a.bulk,
+                        )
+                        .map((a) => a.name)"
+>>>>>>> b46036b (wip: change to use bulk flag on actions and update objectsDelete)
                     :key="actionName"
                 >
                     <slot

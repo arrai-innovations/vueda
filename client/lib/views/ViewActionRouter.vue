@@ -1,9 +1,13 @@
 <script setup>
 import { crudComponents } from "@vueda/router/routerComponent.js";
+<<<<<<< HEAD
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
+=======
+import { useModelConfig } from "@vueda/use/useModelConfig";
+import { getPascalCaseName } from "@vueda/utils/crudSupport.js";
+>>>>>>> b46036b (wip: change to use bulk flag on actions and update objectsDelete)
 import ViewActionNotFound from "@vueda/views/ViewActionNotFound.vue";
 import ViewLoading from "@vueda/views/ViewLoading.vue";
-import ViewNotFound from "@vueda/views/ViewNotFound.vue";
 import ViewWorkFlowTransition from "@vueda/views/ViewWorkFlowTransition.vue";
 import { computedAsync } from "@vueuse/core";
 import { ref, toRaw, toRef, watch } from "vue";
@@ -27,6 +31,7 @@ const props = defineProps({
     },
 });
 
+<<<<<<< HEAD
 const modelInfo = useModelInfo(toRef(props, "app"), toRef(props, "model"));
 /** @type {import('vue').Ref<Promise<import('vue').Component>|()=>import('vue').Component>} */
 const actionComponentRef = ref(() => ViewLoading);
@@ -56,6 +61,40 @@ watch(
 );
 const actionComponent = computedAsync(async () => {
     return actionComponentRef.value();
+=======
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+const crudViews = ["list", "create", "update", "read", "delete"];
+
+const getExtraActionComponent = async (action) => {
+    try {
+        return (
+            await import(
+                `@/views/View${getPascalCaseName(props.app)}${getPascalCaseName(props.model)}${getPascalCaseName(action)}Action.vue`
+            )
+        ).default;
+    } catch (e) {
+        return ViewActionNotFound;
+    }
+};
+
+const actionComponent = computedAsync(async () => {
+    if (modelConfig.loading) {
+        return ViewLoading;
+    }
+    if (props.action === "transition") {
+        return ViewWorkFlowTransition;
+    }
+    // TODO: get_model_actions(self, instance) sever side return action name retrieve which correspond to read
+    const action = modelConfig?.info.actions?.find((action) => action.name === props.action);
+    if (!action) {
+        return ViewActionNotFound;
+    }
+    const actionName = toRaw(action).name === "destroy" ? "delete" : toRaw(action).name;
+    if (crudViews.includes(actionName)) {
+        return await crudComponents[actionName](props);
+    }
+    return await getExtraActionComponent(actionName);
+>>>>>>> b46036b (wip: change to use bulk flag on actions and update objectsDelete)
 }, null);
 </script>
 

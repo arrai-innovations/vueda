@@ -105,10 +105,12 @@ const objectHistoriesUrl = (result) =>
 const executeTransitionUrl = (result) => {
     const routeTemplate = getUrl("workflowExecuteTransition");
     // Replace placeholders with actual values from the result object
-    const urlWithVariables = routeTemplate
+    let urlWithVariables = routeTemplate
         .replace(":app", memoizedSnakeCase(result.app))
-        .replace(":model", memoizedSnakeCase(result.model))
-        .replace(":pk", result.id);
+        .replace(":model", memoizedSnakeCase(result.model));
+    if (!Array.isArray(result.id)) {
+        urlWithVariables = urlWithVariables + `${result.id}/`;
+    }
     return `${httpOrHttpsHostname}${urlWithVariables}`;
 };
 /**
@@ -283,12 +285,25 @@ export const storeWorkflow = defineStore({
             }
         },
         async executeTransition(app, model, objectId, transition_code, router, stateToRoute = undefined) {
-            const result = makeResultObject(app, model, objectId);
+            let result;
+            if (Array.isArray(objectId)) {
+                result = {
+                    app: unref(app),
+                    model: unref(model),
+                    id: objectId,
+                };
+            } else {
+                result = makeResultObject(app, model, objectId);
+            }
+            let body = { transition_code };
+            if (Array.isArray(objectId)) {
+                body = { transition_code, object_ids: objectId };
+            }
             const data = await fetchHelper(
                 executeTransitionUrl(result),
                 {
                     method: "PATCH",
-                    body: JSON.stringify({ transition_code }),
+                    body: JSON.stringify(body),
                 },
                 "Failed to execute transition",
             );

@@ -14,7 +14,7 @@ import { deepUnref } from "vue-deepunref";
 const getListUrl = (app, model, queryString) =>
     `${httpOrHttpsHostname}${getUrl("modelList").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model))}${queryString}`;
 
-const getActionUrl = (app, model, actionName) =>
+export const getActionUrl = (app, model, actionName) =>
     `${httpOrHttpsHostname}${getUrl("modelBulkAction").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model)).replace(":action_name", actionName)}`;
 
 const makeSearchParamsString = (searchParams) => {
@@ -149,7 +149,7 @@ export async function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, page
 
 export async function defaultObjectsDelete({ crudArgs, ids }) {
     const abortController = new AbortController();
-    const url = getActionUrl(crudArgs.app, crudArgs.model, "bulk_delete");
+    const url = getListUrl(crudArgs.app, crudArgs.model, "");
     const returnedPromise = fetch(url, {
         method: "DELETE",
         headers: {

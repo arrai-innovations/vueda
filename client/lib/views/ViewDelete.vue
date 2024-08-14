@@ -2,14 +2,11 @@
 import { useList } from "@arrai-innovations/reactive-helpers";
 import ActionForm from "@vueda/components/ActionForm.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
-import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
 import { isArray } from "lodash-es";
 import isEmpty from "lodash-es/isEmpty.js";
-import { useToast } from "primevue/usetoast";
 import { computed, reactive, toRef } from "vue";
-import { useRouter } from "vue-router";
 
 defineOptions({
     inheritAttrs: false,
@@ -58,34 +55,9 @@ const instanceList = useList({
     props: instanceListProps,
     paged: false,
 });
-const toast = useToast();
-const router = useRouter();
 
 const handleDelete = async () => {
     await instanceList.bulkDelete();
-    if (instanceList.state.errored) {
-        toast.add({
-            severity: "error",
-            summary: "Delete Error",
-            detail: `Error deleting ${modelConfig.info.verbose_name} with ID: ${props.pk}`,
-            life: 5000,
-        });
-        return;
-    } else {
-        toast.add({
-            severity: "success",
-            summary: "Delete Success",
-            detail: `Deleted ${modelConfig.info.verbose_name} with ID ${props.pk}`,
-            life: 5000,
-        });
-        await router.push(
-            await getCRUDForTo({
-                app: props.app,
-                model: props.model,
-                view: "list",
-            }),
-        );
-    }
 };
 </script>
 
@@ -94,7 +66,15 @@ const handleDelete = async () => {
     <!--  however, if we keep it as a separate page, that gives us more room to add more features -->
     <!--  like mass delete, etc. -->
     <div v-if="!isEmpty(modelConfig.info)">
-        <action-form action="delete" :app="app" :model="model" :pk="pk" :run-action="handleDelete"> </action-form>
+        <action-form
+            action="delete"
+            :app="app"
+            :model="model"
+            :pk="pk"
+            :run-action="handleDelete"
+            :state="instanceList.state"
+        >
+        </action-form>
     </div>
     <div v-else><loading-spinner-block /></div>
 </template>

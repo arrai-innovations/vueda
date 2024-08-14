@@ -20,11 +20,8 @@ import { useRouter } from "vue-router";
 export const useLinkModelView = (props) => {
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
     const isDetailorBulkViewComputed = computed(() => {
-        return (
-            modelConfig.config.detailActions?.includes(props.view) ||
-            modelConfig.config.bulkActions?.includes(props.view) ||
-            props.view === "transition"
-        );
+        const action = modelConfig.info.actions?.find((action) => action.name === props.view);
+        return action?.detail || action?.bulk;
     });
     const pkValid = computed(() => (isDetailorBulkViewComputed.value && props.pk) || !isDetailorBulkViewComputed.value);
     const toRouteArgs = computedAsync(async () => {

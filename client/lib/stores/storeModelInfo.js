@@ -75,6 +75,7 @@ const camelCaseObject = (obj) => {
  * @property {string} name - The name of the action.
  * @property {string} description - The description of the action.
  * @property {boolean} detail - A boolean indicating whether the action is a detail view.
+ * @property {boolean} bulk - A boolean indicating whether the action is a bulk action.
  * @property {string[]} methodNames - An array of HTTP methods (e.g., GET, POST) for the action.
  * @property {{name: string, type: string}[]} parameters - An optional array of parameters required for the action.
  */

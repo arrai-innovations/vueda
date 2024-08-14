@@ -271,7 +271,7 @@ const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceO
                                     ? modelConfig.config.updateActions.includes(a.name)
                                     : true) &&
                                 !a.detail &&
-                                !a.name.startsWith('bulk-'),
+                                !a.bulk,
                         )
                         .map((a) => a.name)"
                     :key="actionName"
@@ -303,7 +303,7 @@ const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceO
                                         ? modelConfig.config.updateActions.includes(a.name)
                                         : true) &&
                                     a.detail &&
-                                    !a.name.startsWith('bulk-'),
+                                    !a.bulk,
                             )
                             .map((a) => a.name)"
                         :key="actionName"

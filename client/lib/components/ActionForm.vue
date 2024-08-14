@@ -1,4 +1,5 @@
 <script setup>
+import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
 import { isArray } from "lodash-es";
 import Button from "primevue/button";
@@ -46,6 +47,10 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
+    state: {
+        type: Object,
+        default: () => {},
+    },
 });
 const toast = useToast();
 const router = useRouter();
@@ -74,12 +79,28 @@ const actionErrorSummary = computed(() => {
 });
 
 const handleConfirm = async () => {
-    try {
-        await props.runAction();
-        toast.add({ severity: "success", summary: actionSuccessSummary });
-        router.back();
-    } catch (error) {
-        toast.add({ severity: "error", summary: actionErrorSummary });
+    await props.runAction();
+    if (props.state.errored) {
+        toast.add({
+            severity: "error",
+            summary: actionErrorSummary,
+            detail: props.state.error,
+            life: 5000,
+        });
+        return;
+    } else {
+        toast.add({
+            severity: "success",
+            summary: actionSuccessSummary,
+            life: 5000,
+        });
+        await router.push(
+            await getCRUDForTo({
+                app: props.app,
+                model: props.model,
+                view: "list",
+            }),
+        );
     }
 };
 

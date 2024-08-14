@@ -112,7 +112,6 @@ export function useWidget(props, emit) {
             if (fieldContext) {
                 fieldContext.focus();
                 if (props.options && props.options.length < 1) {
-                    debugger;
                     props.fetchOptions();
                 }
             }

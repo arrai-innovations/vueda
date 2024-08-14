@@ -95,12 +95,11 @@ watch(
     { immediate: true },
 );
 
-const handleSubmit = async (actionCode) => {
+const handleSubmit = async () => {
     try {
-        debugger;
         //TODO: server side should support bulk execute transitions
-        if (props.pk && !Array.isArray(props.pk)) {
-            await workflow.executeTransition(props.app, props.model, props.pk, actionCode, router);
+        if (props.pk) {
+            await workflow.executeTransition(props.app, props.model, props.pk, selectedAction.value, router);
         }
         toast.add({ severity: "success", summary: "transition succeed" });
         router.back();
