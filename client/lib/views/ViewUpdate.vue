@@ -103,7 +103,7 @@ const props = defineProps({
 const isActive = useIsActive();
 
 const validAndActive = computed(
-    () => !!(isActive.value && props.app && props.model && props.pk && modelConfig.config?.pk),
+    () => !!(isActive.value && props.app && props.model && props.pk && modelConfig.info?.pk),
 );
 
 const viewName = "update";
@@ -119,7 +119,7 @@ const instanceObjectProps = reactive({
     id: toRef(props, "pk"),
     retrieveArgs: {
         f: computed(() => {
-            return [modelConfig.config?.pk, ...(modelConfig.config?.fields || [])];
+            return [modelConfig.info?.pk, ...(modelConfig.config?.fields || [])];
         }),
         e: computed(() => modelConfig.config?.expands),
     },

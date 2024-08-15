@@ -28,6 +28,11 @@ const props = defineProps({
         type: Number,
         default: undefined,
     },
+    fieldProps: {
+        type: Object,
+        default: () => ({}),
+        description: "Props to pass to the field slots",
+    },
 });
 
 const theme = useComputedClasses(vuedaTailwind.ObjectsGridTableHeader, props);
@@ -36,7 +41,15 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGridTableHeader, props);
     <div :class="theme('root')">
         <span :class="theme('label')">{{ field.label }}</span>
         <span v-if="sortable" :class="theme('sortIcon')">
-            <slot :ascending="ascending" :col-index="colIndex" :descending="descending" :field="field" name="sort-icon">
+            <slot
+                :ascending="ascending"
+                :col-index="colIndex"
+                :descending="descending"
+                :field="field"
+                name="sort-icon"
+                v-bind="fieldProps"
+            >
+                >
                 <!-- iconless text, screams to implementors to provide an icon -->
                 <template v-if="ascending">⬆️</template>
                 <template v-else-if="descending">⬇️</template>

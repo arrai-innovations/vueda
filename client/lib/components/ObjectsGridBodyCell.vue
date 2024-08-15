@@ -30,6 +30,11 @@ const props = defineProps({
         type: Number,
         required: true,
     },
+    fieldProps: {
+        type: Object,
+        default: () => ({}),
+        description: "Props to pass to the field slots",
+    },
 });
 
 const theme = useComputedClasses(vuedaTailwind.ObjectsGridBodyCell, props);
@@ -57,6 +62,7 @@ const valueComputed = computed(() => {
             :related-obj="relatedObject"
             :row-index="rowIndex"
             :value="valueComputed"
+            v-bind="fieldProps"
         >
             {{ formattedComputed }}
         </slot>

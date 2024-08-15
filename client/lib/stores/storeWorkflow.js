@@ -36,7 +36,7 @@ class WorkflowError extends FetchError {
  */
 const updateState = (target, source) => {
     const index = target.findIndex(
-        (state) => state.id === source.id && state.app === source.app && state.model === source.model,
+        (state) => state.pk === source.pk && state.app === source.app && state.model === source.model,
     );
     if (index === -1) {
         target.push(source);
@@ -80,36 +80,36 @@ const fetchHelper = async (url, options = {}, messagePrefix, emptyResponseValue)
 };
 
 const makeModelKey = (app, model) => `${memoizedSnakeCase(app)}.${memoizedSnakeCase(model)}`;
-const makeResultObject = (app, model, id) => ({
+const makeResultObject = (app, model, pk) => ({
     app: unref(app),
     model: unref(model),
-    id: unref(id),
+    pk: unref(pk),
 });
 const workflowListTransitionUrl = (app, model) =>
     `${httpOrHttpsHostname}${getUrl("workflowList")}?app_label=${memoizedSnakeCase(app)}&model=${memoizedSnakeCase(model)}&e=transitions`;
 const modelStatesUrl = (app, model) =>
     `${httpOrHttpsHostname}${getUrl("workflowStates")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
 const objectStatesUrl = (result) =>
-    `${httpOrHttpsHostname}${getUrl("workflowObjectState")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
+    `${httpOrHttpsHostname}${getUrl("workflowObjectState")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.pk}/`;
 const objectTransitionsUrl = (result) => {
     const routeTemplate = getUrl("workflowObjectTransitions");
     // Replace placeholders with actual values from the result object
     const urlWithVariables = routeTemplate
         .replace(":app", memoizedSnakeCase(result.app))
         .replace(":model", memoizedSnakeCase(result.model))
-        .replace(":pk", result.id);
+        .replace(":pk", result.pk);
     return `${httpOrHttpsHostname}${urlWithVariables}`;
 };
 const objectHistoriesUrl = (result) =>
-    `${httpOrHttpsHostname}${getUrl("workflowObjectHistory")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.id}/`;
+    `${httpOrHttpsHostname}${getUrl("workflowObjectHistory")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.pk}/`;
 const executeTransitionUrl = (result) => {
     const routeTemplate = getUrl("workflowExecuteTransition");
     // Replace placeholders with actual values from the result object
     let urlWithVariables = routeTemplate
         .replace(":app", memoizedSnakeCase(result.app))
         .replace(":model", memoizedSnakeCase(result.model));
-    if (!Array.isArray(result.id)) {
-        urlWithVariables = urlWithVariables + `${result.id}/`;
+    if (!Array.isArray(result.pk)) {
+        urlWithVariables = urlWithVariables + `${result.pk}/`;
     }
     return `${httpOrHttpsHostname}${urlWithVariables}`;
 };
@@ -117,18 +117,18 @@ const executeTransitionUrl = (result) => {
  * @typedef {import('pinia').Store<
  *     'workflow',
  *     {
- *         objectStates: {app: string, model: string, id: string, state: object}[],
- *         objectTransitions: {app: string, model: string, id: string, transitions: object[]}[],
- *         objectHistories: {app: string, model: string, id: string, history: object[]}[],
+ *         objectStates: {app: string, model: string, pk: string, state: object}[],
+ *         objectTransitions: {app: string, model: string, pk: string, transitions: object[]}[],
+ *         objectHistories: {app: string, model: string, pk: string, history: object[]}[],
  *         modelStates: {[key: string]: object[]},
  *     },
  *     {},
  *     {
  *         fetchModelStates: (app: string, model: string) => Promise<object[]>,
- *         fetchObjectState: (app: string, model: string, objectId: string) => Promise<{app: string, model: string, id: string, state: object}>,
- *         fetchObjectTransitions: (app: string, model: string, objectId: string) => Promise<{app: string, model: string, id: string, transitions: object[]}>,
- *         fetchObjectHistory: (app: string, model: string, objectId: string) => Promise<{app: string, model: string, id: string, history: object[]}>,
- *         executeTransition: (app: string, model: string, objectId: string, transition_code: string, router: import('vue-router').Router, stateToRoute: object) => Promise<{app: string, model: string, id: string}>,
+ *         fetchObjectState: (app: string, model: string, objectPk: string) => Promise<{app: string, model: string, pk: string, state: object}>,
+ *         fetchObjectTransitions: (app: string, model: string, objectPk: string) => Promise<{app: string, model: string, pk: string, transitions: object[]}>,
+ *         fetchObjectHistory: (app: string, model: string, objectPk: string) => Promise<{app: string, model: string, pk: string, history: object[]}>,
+ *         executeTransition: (app: string, model: string, objectPk: string, transition_code: string, router: import('vue-router').Router, stateToRoute: object) => Promise<{app: string, model: string, pk: string}>,
  *     }
  * >} WorkflowStore
  */
@@ -143,25 +143,25 @@ const executeTransitionUrl = (result) => {
  *     import { useArrayFind } from "@vueuse/core";
  *     const workflowStore = storeWorkflowStore();
  *
- *     workflowStore.objectStates; // array of objects with app, model, id, and state
- *     workflowStore.objectTransitions; // array of objects with app, model, id, and transitions
- *     workflowStore.objectHistories; // array of objects with app, model, id, and history
+ *     workflowStore.objectStates; // array of objects with app, model, pk, and state
+ *     workflowStore.objectTransitions; // array of objects with app, model, pk, and transitions
+ *     workflowStore.objectHistories; // array of objects with app, model, pk, and history
  *     workflowStore.modelStates; // object with keys of app.model and values of array of states
  *
  *     // examples of reactively looking at a particular object's state, transitions, and history
  *     const myApp = ref("myApp"); // reactive will work
  *     const myModel = ref("myModel"); // reactive will work
- *     const objectId = ref("myObjectId"); // reactive will work
- *     const objectState = useArrayFind(workflowStore.objectStates, (state) => state.app === myApp && state.model === myModel && state.id === objectId);
- *     const objectTransitions = useArrayFind(workflowStore.objectTransitions, (transition) => transition.app === myApp && transition.model === myModel && transition.id === objectId);
- *     const objectHistory = useArrayFind(workflowStore.objectHistories, (history) => history.app === myApp && history.model === myModel && history.id === objectId);
+ *     const objectPk = ref("myObjectPk"); // reactive will work
+ *     const objectState = useArrayFind(workflowStore.objectStates, (state) => state.app === myApp && state.model === myModel && state.pk === objectPk);
+ *     const objectTransitions = useArrayFind(workflowStore.objectTransitions, (transition) => transition.app === myApp && transition.model === myModel && transition.pk === objectPk);
+ *     const objectHistory = useArrayFind(workflowStore.objectHistories, (history) => history.app === myApp && history.model === myModel && history.pk === objectPk);
  *     const modelStates = computed(() => workflowStore.modelStates[`${unref(myApp)}.${unref(myModel)}`]);
  *
  *     await workflowStore.fetchModelStates(app, model);
- *     await workflowStore.fetchObjectState(app, model, objectId);
- *     await workflowStore.fetchObjectTransitions(app, model, objectId);
- *     await workflowStore.fetchObjectHistory(app, model, objectId);
- *     await workflowStore.executeTransition(app, model, objectId, transition_code);
+ *     await workflowStore.fetchObjectState(app, model, objectPk);
+ *     await workflowStore.fetchObjectTransitions(app, model, objectPk);
+ *     await workflowStore.fetchObjectHistory(app, model, objectPk);
+ *     await workflowStore.executeTransition(app, model, objectPk, transition_code);
  * ```
  * @returns {WorkflowStore} The store for workflow.
  */
@@ -225,10 +225,10 @@ export const storeWorkflow = defineStore({
                 this.loading = false;
             }
         },
-        async fetchObjectState(app, model, objectId) {
+        async fetchObjectState(app, model, objectPk) {
             this.loading = true;
             try {
-                const result = makeResultObject(app, model, objectId);
+                const result = makeResultObject(app, model, objectPk);
                 const data = await fetchHelper(
                     objectStatesUrl(result),
                     {
@@ -244,10 +244,10 @@ export const storeWorkflow = defineStore({
                 this.loading = false;
             }
         },
-        async fetchObjectTransitions(app, model, objectId) {
+        async fetchObjectTransitions(app, model, objectPk) {
             this.loading = true;
             try {
-                const result = makeResultObject(app, model, objectId);
+                const result = makeResultObject(app, model, objectPk);
                 const data = await fetchHelper(
                     objectTransitionsUrl(result),
                     {
@@ -264,10 +264,10 @@ export const storeWorkflow = defineStore({
                 this.loading = false;
             }
         },
-        async fetchObjectHistory(app, model, objectId) {
+        async fetchObjectHistory(app, model, objectPk) {
             this.loading = true;
             try {
-                const result = makeResultObject(app, model, objectId);
+                const result = makeResultObject(app, model, objectPk);
                 const data = await fetchHelper(
                     objectHistoriesUrl(result),
                     {
@@ -284,20 +284,20 @@ export const storeWorkflow = defineStore({
                 this.loading = false;
             }
         },
-        async executeTransition(app, model, objectId, transition_code, router, stateToRoute = undefined) {
+        async executeTransition(app, model, objectPk, transition_code, router, stateToRoute = undefined) {
             let result;
-            if (Array.isArray(objectId)) {
+            if (Array.isArray(objectPk)) {
                 result = {
                     app: unref(app),
                     model: unref(model),
-                    id: objectId,
+                    pk: objectPk,
                 };
             } else {
-                result = makeResultObject(app, model, objectId);
+                result = makeResultObject(app, model, objectPk);
             }
             let body = { transition_code };
-            if (Array.isArray(objectId)) {
-                body = { transition_code, object_ids: objectId };
+            if (Array.isArray(objectPk)) {
+                body = { transition_code, object_ids: objectPk };
             }
             const data = await fetchHelper(
                 executeTransitionUrl(result),

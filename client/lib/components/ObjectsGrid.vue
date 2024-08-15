@@ -35,6 +35,11 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    fieldProps: {
+        type: Object,
+        default: () => ({}),
+        description: "Extra props to pass to field slots.",
+    },
     headerClasses: {
         type: Object,
         default: () => ({}),
@@ -183,7 +188,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
         <div :class="theme('headerRowGroup')" role="rowgroup">
             <div :class="theme('headerRow')" role="row">
                 <div v-if="selectable" :class="[theme('headerCell'), headerClasses?.selected_]">
-                    <slot name="header(selected_)" />
+                    <slot name="header(selected_)" v-bind="fieldProps" />
                 </div>
                 <template v-for="(field, colIndex) in fields" :key="field?.name">
                     <div
@@ -199,6 +204,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             :col-index="colIndex"
                             :descending="sorted.includes(`-${field.name}`)"
                             :field="field"
+                            :field-props="fieldProps"
                             :multi-sort-index="sorted.length > 1 ? directionlessSorted.indexOf(field.name) : undefined"
                             :sortable="sortables.includes(field.name)"
                         >
@@ -244,7 +250,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                         :row-index="rowIndex"
                     >
                         <template #header>
-                            <slot name="header(selected_)">
+                            <slot name="header(selected_)" v-bind="fieldProps">
                                 <empty-component />
                             </slot>
                         </template>
@@ -255,6 +261,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                                 :obj="obj"
                                 :row-index="rowIndex"
                                 :selected="selected"
+                                v-bind="fieldProps"
                             >
                                 <Checkbox
                                     :input-id="`selected-row-${obj.id}`"
@@ -286,6 +293,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                                 :obj="obj"
                                 :row-index="rowIndex"
                                 :selected="selected"
+                                v-bind="fieldProps"
                             >
                                 <Checkbox
                                     :input-id="`selected-row-${obj.id}`"
@@ -308,6 +316,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             :data-field="field?.name"
                             data-qa="objects-grid-card-cell"
                             :field="field"
+                            :field-props="fieldProps"
                             :obj="obj"
                             :related-object="relatedObjects[obj.id]"
                             role="cell"
@@ -328,6 +337,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             :data-field="field?.name"
                             data-qa="objects-grid-table-cell"
                             :field="field"
+                            :field-props="fieldProps"
                             :obj="obj"
                             :related-object="relatedObjects[obj.id]"
                             role="cell"
