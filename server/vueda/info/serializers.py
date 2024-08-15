@@ -417,26 +417,52 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         return label
 
     @staticmethod
-    def get_model_filtering_choices(filterset, filter_obj, filter_name, field, widget):
+    def get_choices_data(field, widget=None):
         if hasattr(field, "choices"):
-            choices = field.choices
-            meta = None
-            if choices and hasattr(field.choices, "queryset"):
-                meta = field.choices.queryset.model._meta
-            elif choices and hasattr(filter_obj, "model"):  # AllValuesFilter, AllValuesMultipleFilter
-                meta = filter_obj.model._meta
-            if meta is not None:
-                return True, {
-                    "app_label": meta.app_label,
-                    "model": meta.model_name,
-                    "filter_name": filter_name,
-                    "filterset_name": filterset.__class__.__name__,
-                }
-            return choices, None
-        elif hasattr(widget, "choices"):
-            return widget.choices, None
+            return field.choices
+        elif widget and hasattr(widget, "choices"):
+            return widget.choices
         else:
-            return False, None
+            return False
+
+    @staticmethod
+    def get_choices_meta(field, obj, choices):
+        meta = None
+        if hasattr(field, "choices") and choices:
+            if hasattr(field.choices, "queryset"):
+                meta = field.choices.queryset.model._meta
+            elif hasattr(field, "child_relation") and hasattr(field.child_relation, "queryset"):
+                meta = field.child_relation.queryset.model._meta
+            elif hasattr(field, "queryset"):
+                meta = field.queryset.model._meta
+            elif hasattr(obj, "model"):  # AllValuesFilter, AllValuesMultipleFilter
+                meta = obj.model._meta
+        return meta
+
+    def get_model_filtering_choices(self, filterset, filter_obj, filter_name, field, widget):
+        choices = self.get_choices_data(field, widget)
+        meta = self.get_choices_meta(field, filter_obj, choices)
+        if meta is not None:
+            return True, {
+                "app_label": meta.app_label,
+                "model": meta.model_name,
+                "filter_name": filter_name,
+                "filterset_name": filterset.__class__.__name__,
+            }
+
+        # Convert choices to be (label, value).
+        if choices and isinstance(choices[0], dict):
+            choices_list = []
+            for value, label in choices.items():
+                choices_list.append(
+                    (
+                        label,
+                        value,
+                    )
+                )
+            return choices_list, None
+
+        return choices, None
 
     @staticmethod
     def get_model_filtering_decimal_places(field, model_field):
