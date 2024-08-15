@@ -1,16 +1,30 @@
 <script setup>
+import { useList } from "@arrai-innovations/reactive-helpers";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import AutoComplete from "primevue/autocomplete";
-import { computed, ref } from "vue";
+import { computed, reactive, ref, toRef } from "vue";
 
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
+    app: {
+        type: String,
+        required: true,
+    },
+    model: {
+        type: String,
+        required: true,
+    },
+    modelFields: {
+        type: Array,
+        default: () => [],
+    },
     options: {
         type: Array,
         required: true,
@@ -25,21 +39,44 @@ const props = defineProps({
     },
     fetchOptions: {
         type: Function,
-        default: () => {},
+        default: undefined,
+    },
+    searchKey: {
+        type: String,
+        default: "s",
     },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useComputedClasses(vuedaTailwind.WidgetAutoComplete, widgetContext.state);
-
-const filteredOptions = ref();
+const listSearch = ref(null);
 
 const modelItem = computed(() => {
     if (props.options && props.options.length > 0) {
-        const match = props.options.find((option) => option.value == widgetContext.state.combinedValue);
+        const match = props.options?.find((option) => option.value == widgetContext.state.combinedValue);
         return match ?? widgetContext.state.combinedValue;
     }
     return undefined;
+});
+const modelListProps = reactive({
+    crudArgs: {
+        app: toRef(props, "app"),
+        model: toRef(props, "model"),
+        list: allPagePaginatedListCrudAdaptor,
+    },
+    retrieveArgs: {
+        f: toRef(props, "modelFields"),
+    },
+    listArgs: {
+        [props.searchKey]: listSearch,
+    },
+    intendToList: computed(() => listSearch.value),
+});
+const modelListInstance = useList({
+    props: modelListProps,
+});
+const filteredOptions = computed(() => {
+    return modelListInstance.state.loading ? [] : modelListInstance.state.objects;
 });
 
 const valueUpdated = (selected) => {
@@ -52,20 +89,16 @@ const valueUpdated = (selected) => {
         widgetContext.state.combinedValue = selected;
     }
 };
-
 const search = (event) => {
     setTimeout(() => {
         if (!event.query.trim().length) {
-            filteredOptions.value = [...props.options];
-        } else {
-            filteredOptions.value = props.options.filter((v) => {
-                return v.label.toLowerCase().startsWith(event.query.toLowerCase());
-            });
+            listSearch.value = event.query;
         }
     }, 250);
 };
 </script>
 <template>
+    props.options {{ props.options }}
     <div :class="theme('root')">
         <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
             <template v-if="$slots.label" #label="slotProps">
@@ -76,6 +109,7 @@ const search = (event) => {
                     dropdown
                     v-bind="$attrs"
                     force-selection
+                    :loading="modelListInstance.state.loading"
                     :model-value="modelItem"
                     :name="widgetContext.state.combinedName"
                     option-label="label"

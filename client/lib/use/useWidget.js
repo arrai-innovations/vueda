@@ -108,12 +108,12 @@ export function useWidget(props, emit) {
                 fieldContext.calculateModified();
             }
         },
-        focus: () => {
+        focus: async () => {
             if (fieldContext) {
                 fieldContext.focus();
-                if (props.options && props.options.length < 1) {
-                    props.fetchOptions();
-                }
+                // if (props.fetchOptions && props.options.length<1) {
+                //     await props.fetchOptions();
+                // }
             }
         },
         blur: () => {

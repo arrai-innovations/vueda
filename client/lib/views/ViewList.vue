@@ -266,13 +266,11 @@ onMounted(() => {
 
 const hasWorkFlow = computedAsync(
     async () => {
-        if (modelConfig.config.actions.includes(`transition`)) {
-            try {
-                await workflow.fetchWorkflowTransition(props.app, props.model);
-                return true;
-            } catch (WorkflowError) {
-                return false;
-            }
+        try {
+            await workflow.fetchWorkflowTransition(props.app, props.model);
+            return true;
+        } catch (WorkflowError) {
+            return false;
         }
     },
     false, // initial state

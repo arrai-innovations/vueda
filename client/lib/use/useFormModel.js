@@ -1,7 +1,5 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
-import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import { availableFields, availableWidgets } from "@vueda/utils/filterLookups.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import { computedAsync } from "@vueuse/core";
@@ -221,10 +219,10 @@ const getDefaultWidget = (choices, many, readOnly, type) => {
 export function useFormModel(props) {
     const es = effectScope();
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
-    const modelChoicesStore = storeModelChoices();
-    const internalState = reactive({
-        choices: {},
-    });
+    // const modelChoicesStore = storeModelChoices();
+    // const internalState = reactive({
+    //     choices: {},
+    // });
 
     const state = reactive(
         /** @type {UseFormModelRawState} */ {
@@ -239,24 +237,18 @@ export function useFormModel(props) {
         },
     );
 
-    const appModelKey = computed(() => getAppModelDotName({ app: props.app, model: props.model }));
+    // const appModelKey = computed(() => getAppModelDotName({ app: props.app, model: props.model }));
 
-    watch(
-        [() => modelChoicesStore.choices[appModelKey.value], toRef(state, "widgetProps")],
-        ([fieldChoices]) => {
-            if (fieldChoices) {
-                for (const field in fieldChoices) {
-                    const choices = fieldChoices[field]?.results || [];
-                    if (state.widgetProps[field]) {
-                        if (!isEqual(state.widgetProps[field]?.options, choices)) {
-                            state.widgetProps[field].options = choices;
-                        }
-                    }
-                }
-            }
-        },
-        { immediate: true, deep: true },
-    );
+    // watch(
+    //     [toRef(modelChoicesStore.choices), toRef(state, "widgetProps")],
+    //     ([fieldChoices]) => {
+    //             debugger
+    //         if (fieldChoices) {
+    //             assignReactiveObject(internalState.choices, fieldChoices);
+    //         }
+    //     },
+    //     { immediate: true, deep: true },
+    // );
 
     const assignStateObjectsIfChanged = (args) => {
         for (const key in args) {
@@ -265,6 +257,15 @@ export function useFormModel(props) {
             }
         }
     };
+    // const initializeChoices = (app, model, fieldName) => {
+    //     const appModelKey = getAppModelDotName({ app, model });
+    //     if (!internalState.choices[appModelKey]) {
+    //         internalState.choices[appModelKey] = reactive({ [fieldName]: ref([]) });
+    //     } else if (!internalState.choices[appModelKey][fieldName]) {
+    //         internalState.choices[appModelKey][fieldName] = ref([]);
+    //     }
+    //     return internalState.choices[appModelKey][fieldName];
+    // };
 
     // resolve the names and detail overrides from props over config
     watch(
@@ -329,10 +330,6 @@ export function useFormModel(props) {
                             continue;
                         }
                         const fieldName = `${expandName}__${expandFieldName}`;
-                        if (expandFieldDetail.choices) {
-                            // noinspection JSIgnoredPromiseFromCall
-                            modelChoicesStore.fetchChoices(expandDetail.app, expandDetail.model, expandFieldName);
-                        }
                         es.run(() => {
                             const fieldComponent = computed(
                                 () =>
@@ -367,9 +364,16 @@ export function useFormModel(props) {
                                     ...(deepUnref(props.widgetProps[fieldName]) || {}),
                                     ...(defaultWidgetProps[expandFieldDetail.type] || {}),
                                 };
-                                if (expandFieldDetail.choices) {
-                                    baseProps.options = internalState.choices[fieldName]?.results || [];
-                                }
+                                // if (expandFieldDetail.choices) {
+                                //     if (Array.isArray(expandFieldDetail.choices)) {
+                                //             baseProps.options = expandFieldDetail.choices;
+                                //         } else {
+                                //             const appModelKey = getAppModelDotName({ app: expandFieldDetail.app, expandFieldDetail: props.model });
+                                //             modelChoicesStore.initializeChoice(expandFieldDetail.app, expandFieldDetail.model, expandFieldName);
+                                //             baseProps.options = internalState.choices[appModelKey][fieldName]
+                                //             baseProps.fetchOptions = async () => modelChoicesStore.fetchChoices(expandFieldDetail.app, expandFieldDetail.model, expandFieldName);
+                                //         }
+                                // }
                                 return baseProps;
                             });
                         });
@@ -380,10 +384,6 @@ export function useFormModel(props) {
                     const fieldDetail = fieldDetails[fieldName];
                     if (!fieldDetail) {
                         throw new Error(`Unknown field ${fieldName} specified for ${props.app}.${props.model}`);
-                    }
-                    if (fieldDetail.choices) {
-                        // noinspection JSIgnoredPromiseFromCall
-                        modelChoicesStore.fetchChoices(props.app, props.model, fieldName);
                     }
                     es.run(() => {
                         fieldComponents[fieldName] = computed(() => {
@@ -419,9 +419,17 @@ export function useFormModel(props) {
                                 ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
                                 ...(defaultWidgetProps[fieldDetail.type] || {}),
                             };
-                            if (fieldDetail.choices) {
-                                baseProps.options = internalState.choices[fieldName]?.results || [];
-                            }
+                            // if (fieldDetail.choices) {
+                            //     if (Array.isArray(fieldDetail.choices)) {
+                            //             baseProps.options = fieldDetail.choices
+                            //         }
+                            //     else {
+                            //         const appModelKey = getAppModelDotName({ app: props.app, model: props.model });
+                            //         modelChoicesStore.initializeChoice(props.app, props.model, fieldName);
+                            //         baseProps.options = internalState.choices[appModelKey][fieldName]
+                            //         baseProps.fetchOptions = async () => modelChoicesStore.fetchChoices(props.app, props.model, fieldName);
+                            //     }
+                            // }
                             return baseProps;
                         });
                     });
