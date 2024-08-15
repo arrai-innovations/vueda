@@ -383,7 +383,11 @@ const hasWorkFlow = computedAsync(
             :app="app"
             :filter-fields="modelConfig.config.filterables"
             :model="model"
-        />
+        >
+            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                <slot :name="slot" v-bind="slotProps || {}" />
+            </template>
+        </filter-form>
         <error-display :error="error" :errored="errored" @dismiss-error="dismissError" />
         <!-- todo: filters/search -->
         <!-- todo: hide/show columns -->
