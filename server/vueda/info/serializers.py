@@ -20,6 +20,7 @@ from django_filters.fields import ChoiceIterator
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers  # noqa F401
 from rest_framework import viewsets  # noqa F401
+from rest_framework.exceptions import ValidationError
 
 from vueda.core import open_api
 from vueda.info.registration import get_registration
@@ -368,14 +369,14 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                     field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
 
                 if not inspect.isclass(field_serializer):
-                    raise Exception(
+                    raise ValidationError(
                         "This is not a valid `expandable_fields` definition. It must be a tuple of a Serializer/Field"
                         " class and options, or simply a Serializer/Field Class.",
                         {"name": field_name},
                     )
 
                 if not issubclass(field_serializer, serializers.BaseSerializer):
-                    raise Exception(
+                    raise ValidationError(
                         "No `expandable_fields_data` specified for field. Model info only knows automatically about"
                         " fields expandable into serializers.",
                         {"name": field_name},
