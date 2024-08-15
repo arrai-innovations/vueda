@@ -15,6 +15,7 @@ from django.utils.functional import cached_property
 from django_filters import DateRangeFilter
 from django_filters import NumericRangeFilter
 from django_filters import RangeFilter
+from django_filters.fields import ChoiceIterator
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers  # noqa F401
 from rest_framework import viewsets  # noqa F401
@@ -449,6 +450,9 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 "filter_name": filter_name,
                 "filterset_name": filterset.__class__.__name__,
             }
+
+        if isinstance(choices, ChoiceIterator):
+            choices = [(label, value) for (value, label) in choices]
 
         # Convert choices to be (label, value).
         if choices and isinstance(choices[0], dict):
