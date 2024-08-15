@@ -73,15 +73,14 @@ const instanceObjectProps = reactive({
 const instanceObject = useObject({
     props: instanceObjectProps,
 });
-
-const modelInitialValue = useModelInitialValues(
+const modelInitialValues = useModelInitialValues(
     toRef(props, "app"),
     toRef(props, "model"),
     toRef(() => modelConfig.config?.fields),
 );
 
 const formContextProps = reactive({
-    initialValues: modelInitialValue,
+    initialValues: modelInitialValues,
 });
 const formContext = useForm(formContextProps);
 const objectFormProps = reactive({

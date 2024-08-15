@@ -1,6 +1,6 @@
-import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
-import { reactive, readonly, toRef, watch } from "vue";
+import isEqual from "lodash-es/isEqual.js";
+import { readonly, ref, watch } from "vue";
 
 const builtInTypes = {
     DateRangeField: null,
@@ -43,44 +43,43 @@ const builtInTypes = {
     ManyRelatedField: null,
 };
 
+/**
+ * @typedef {import("vue").DeepReadonly<import("vue").Ref<{[key: string]: any}>>} InitialValues
+ */
+
+/**
+ * Returns the initial values for a model, so that a blank form can be created, without fields being mutated
+ *  immediately by coercion of values, causing a form to be dirty.
+ *
+ * @param {import('vue').Ref<string>} app - A ref containing the app name that is being watched.
+ * @param {import('vue').Ref<string>} model - A ref containing the model name that is being watched.
+ * @param {import("vue").Ref<string[]>} fields - A ref containing the field names to display.
+ * @returns {InitialValues} An object containing the initial values for the model.
+ */
 export function useModelInitialValues(app, model, fields) {
     const modelInfo = useModelInfo(app, model);
-    const internalState = reactive({
-        infoFields: {},
-        displayFields: {},
-    });
 
-    const initialValues = reactive({});
+    const initialValues = ref({});
 
     watch(
-        toRef(modelInfo, "info"),
-        (info) => {
-            assignReactiveObject(internalState.infoFields, info?.fields || {});
-        },
-        { immediate: true },
-    );
-
-    watch(
-        fields,
-        (newFields) => {
-            assignReactiveObject(internalState.displayFields, newFields ?? {});
-        },
-        { immediate: true, deep: true },
-    );
-
-    watch(
-        [() => internalState.infoFields, () => internalState.displayFields],
-        ([fieldDetails, fields]) => {
-            if (Object.keys(fieldDetails || {}).length && Object.keys(fields || {}).length) {
+        [() => modelInfo.info.fields, fields],
+        ([newFieldDetails, newFields]) => {
+            const rawNewFieldDetails = newFieldDetails;
+            const rawNewFields = newFields;
+            if (Object.keys(rawNewFieldDetails || {}).length && rawNewFields?.length) {
                 const newInitialValues = {};
-                Object.entries(fieldDetails).forEach(([fieldKey, fieldDetail]) => {
-                    if (Object.values(fields).includes(fieldKey) && fieldKey !== "pk") {
+                Object.entries(rawNewFieldDetails).forEach(([fieldKey, fieldDetail]) => {
+                    if (rawNewFields.includes(fieldKey) && fieldKey !== "pk") {
                         newInitialValues[fieldKey] = builtInTypes[fieldDetail.type];
                     }
                 });
-                assignReactiveObject(initialValues, newInitialValues);
+                if (!isEqual(initialValues.value, newInitialValues)) {
+                    initialValues.value = newInitialValues;
+                }
             } else {
-                assignReactiveObject(initialValues, {});
+                if (!isEqual(initialValues.value, {})) {
+                    initialValues.value = {};
+                }
             }
         },
         { immediate: true, deep: true },
