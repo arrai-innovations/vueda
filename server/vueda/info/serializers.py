@@ -219,7 +219,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
         return field_type
 
-    def get_model_fields_data(self, serializer):
+    def get_model_fields_data(self, serializer, *, include_app_and_model=True):
         pk_field = serializer.Meta.model._meta.pk.name
         fields = {}
 
@@ -243,7 +243,9 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
             obj = serializer
             if hasattr(field, "queryset"):
                 obj = field.queryset.model
-            choices, extra_data = self.get_model_field_choices(field, widget, obj)
+            choices, extra_data = self.get_model_field_choices(
+                field, widget, obj, include_app_and_model=include_app_and_model
+            )
             field_data["choices"] = choices
             if extra_data:
                 field_data.update(extra_data)
@@ -383,7 +385,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                     model_name = field_serializer.Meta.model._meta.model_name
                     expand_item["app_label"] = app_label
                     expand_item["model"] = model_name
-                    field_data = self.get_model_fields_data(field_serializer)
+                    field_data = self.get_model_fields_data(field_serializer, include_app_and_model=False)
 
                 if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expand_options:
                     # We need to call tuple, as we are modifying the dictionary.
@@ -454,14 +456,16 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 meta = obj.model._meta
         return meta
 
-    def get_model_field_choices(self, field, widget, serializer):
+    def get_model_field_choices(self, field, widget, serializer, *, include_app_and_model=True):
         choices = self.get_choices_data(field, widget)
         meta = self.get_choices_meta(field, serializer, choices)
         if meta is not None:
-            return True, {
-                "app_label": meta.app_label,
-                "model": meta.model_name,
-            }
+            if include_app_and_model:
+                return True, {
+                    "app_label": meta.app_label,
+                    "model": meta.model_name,
+                }
+            return True, None
 
         # Convert choices to be {"label": label, "value": value}.
         if choices:

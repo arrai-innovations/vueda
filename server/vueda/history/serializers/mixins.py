@@ -170,7 +170,9 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
             }
 
             model_content_type = ContentType.objects.get_for_model(model)
-            fields = ModelInfoSerializer(model_content_type).get_model_fields(model_content_type)
+            serializer = ModelInfoSerializer(model_content_type)
+            canonical_serializer = serializer.canonical["serializer"]
+            fields = serializer.get_model_fields_data(canonical_serializer, include_app_and_model=False)
             for field_name, field in fields.items():
                 if field_name not in ("pk", "current_history_id"):
                     sorted_expandable_data[field_name] = field
