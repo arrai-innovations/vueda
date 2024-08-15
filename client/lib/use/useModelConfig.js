@@ -43,8 +43,8 @@ import { isRef, reactive, readonly, ref, toRef, unref, watch } from "vue";
  * Provides a reactive configuration for a given app and model.
  * Uses configuration from storeModelConfig if available, otherwise falls back to model info from storeModelInfo.
  *
- * @param {import('vue').Ref<string>} app - The app name
- * @param {import('vue').Ref<string>} model - The model name
+ * @param {import('vue').Ref<string>|string} app - The app name
+ * @param {import('vue').Ref<string>|string} model - The model name
  * @param {import('vue').Ref<string>|string} [view] - What you are doing with the model
  * @returns {ModelConfigState} An object containing reactive fields and actions for create, update, read, and list views.
  */
@@ -53,12 +53,19 @@ export function useModelConfig(app, model, view) {
         throw new Error("app and model must be provided");
     }
     // makes the watch work for view in cases of hardcoded or falsy values
+    // work with hardcoded view values
     if (!view) {
         view = ref(null);
     } else {
         if (!isRef(view)) {
             view = ref(view);
         }
+    }
+    if (!isRef(app)) {
+        app = ref(app);
+    }
+    if (!isRef(model)) {
+        model = ref(model);
     }
     const loadingError = useLoadingError();
     const isActive = useIsActive();
