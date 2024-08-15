@@ -20,6 +20,7 @@ import { defineStore } from "pinia";
  * @property {object} fieldDetails - each available field details, by field name
  * @property {object} expandDetails - each available expand details, by expand name
  * @property {object} actionDetails - each available action details, by action name
+ * @property {object} filterableDetails - each available filter details, by filter name
  * @property {object} formProps - extra props to pass the form model
  * @property {object} fieldProps - extra props to pass a field component in a form model
  * @property {object} widgetProps - extra props to pass a widget component in a form model
@@ -39,6 +40,7 @@ import { defineStore } from "pinia";
  * @property {object} [fieldDetails] - each available field details, by field name
  * @property {object} [expandDetails] - each available expand details, by expand name
  * @property {object} [actionDetails] - each available action details, by action name
+ * @property {object} [filterableDetails] - each available filter details, by filter name
  * @property {object} [formProps] - extra props to pass the form model
  * @property {object} [fieldProps] - extra props to pass a field component in a form model
  * @property {object} [widgetProps] - extra props to pass a widget component in a form model
@@ -69,7 +71,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
             fieldDetails: cloneDeep(modelInfo.fields),
             expandDetails: cloneDeep(expandDetailsByName),
             actionDetails: cloneDeep(actionDetailsByName),
-            filterablesDetails: cloneDeep(modelInfo.filtering),
+            filterableDetails: cloneDeep(modelInfo.filtering),
             sortablesDetails: cloneDeep(modelInfo.ordering),
             formProps: {},
             fieldProps: {},

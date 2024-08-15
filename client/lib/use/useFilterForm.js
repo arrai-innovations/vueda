@@ -127,7 +127,7 @@ const getWidgetComponent = (field_class, choices) => {
 /**
  * @typedef {object} UseFilterFormRaw
  * @property {import('vue').Ref<import('@vueda/stores/storeModelConfig.js').ModelConfig.filterables>} filterables - The fields to display
- * @property {import('vue').Ref<{[fieldName:string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}>} filterablesDetails - The field details
+ * @property {import('vue').Ref<{[fieldName:string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}>} filterableDetails - The field details
  * @property {{[fieldName:string]:import('vue').Component}} fieldComponents -
  * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps -
  * @property {{[fieldName:string]: import('vue').Component}} widgetComponents - The widget components
@@ -142,8 +142,9 @@ const getWidgetComponent = (field_class, choices) => {
  * @typedef {object} UseFilterFormRawProps
  * @property {string} app - The app name
  * @property {string} model - The model name
+ * @property {string|undefined} view - The view name
  * @property {import('@vueda/stores/storeModelConfig.js').ModelConfig.filterables} filterables - The fields to display
- * @property {{[fieldName:string]: {[key:string]: any}}|null} filterablesDetails - The field details
+ * @property {{[fieldName:string]: {[key:string]: any}}|null} filterableDetails - The field details
  * @property {{[fieldName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}|undefined} fieldComponents - The field components to use, if different from the default, by filterable name
  * @property {{[fieldName:string]: {[key:string]: any}}|undefined} fieldProps - The field props to use, if different from the default, by filterable name
  * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}|undefined} widgetComponents - The widget components to use, if different from the default, by filterable name
@@ -158,18 +159,18 @@ const getWidgetComponent = (field_class, choices) => {
  */
 export default function useFilterForm(props) {
     const es = effectScope();
-    // todo: we might have filtering on other views in the future
-    const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), "list");
+    const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
     const modelChoicesStore = storeModelChoices();
     const state = shallowReactive(
         /** @type {UseFilterFormRaw} */ {
             filterables: ref([]),
-            filterablesDetails: ref({}),
+            filterableDetails: ref({}),
             // components themselves should not be deep reactive, avoiding vue warnings
             fieldComponents: shallowRef({}),
             fieldProps: reactive({}),
             widgetComponents: shallowRef({}),
             widgetProps: reactive({}),
+            filterableOptions: ref([]), // the options for the user to pick from
         },
     );
 
@@ -202,63 +203,74 @@ export default function useFilterForm(props) {
 
     // resolve the names and detail overrides from props over config
     watch(
-        [toRef(modelConfig, "config"), toRef(props, "filterables"), toRef(props, "filterablesDetails")],
-        ([newConfig, newFilterables, newFilterablesDetails], [oldConfig, oldFilterables, oldFilterablesDetails]) => {
+        [
+            () => modelConfig.config.filterables,
+            () => modelConfig.config.filterableDetails,
+            toRef(props, "filterables"),
+            toRef(props, "filterableDetails"),
+        ],
+        (
+            [newConfigFilterables, newConfigFilterableDetails, newFilterables, newFilterableDetails],
+            [oldConfigFilterables, oldConfigFilterableDetails, oldFilterables, oldFilterableDetails],
+        ) => {
             // performance ordering the equality checks, lists of strings before objects
             if (
                 isEqual(newFilterables, oldFilterables) &&
-                isEqual(newFilterablesDetails, oldFilterablesDetails) &&
-                isEqual(newConfig, oldConfig)
+                isEqual(newConfigFilterables, oldConfigFilterables) &&
+                isEqual(newFilterableDetails, oldFilterableDetails) &&
+                isEqual(newConfigFilterableDetails, oldConfigFilterableDetails)
             ) {
                 return;
             }
             // props has priority over config
-            const desiredFilterables = newFilterables || newConfig.filterables;
+            const desiredFilterables = newFilterables || newConfigFilterables;
             // detail fields merge at the property level
-            const desiredFilterablesDetails = {};
+            const desiredFilterableDetails = {};
             const {
                 addedKeys: overrideKeys,
                 sameKeys: bothKeys,
                 removedKeys: defaultKeys,
-            } = keyDiff(Object.keys(newFilterablesDetails), Object.keys(newConfig.filterableDetails));
+            } = keyDiff(Object.keys(newFilterableDetails || {}), Object.keys(newConfigFilterableDetails || {}));
             for (const key of bothKeys) {
-                desiredFilterablesDetails[key] = {
-                    ...newConfig.filterableDetails[key],
-                    ...newFilterablesDetails[key],
+                desiredFilterableDetails[key] = {
+                    ...(newConfigFilterableDetails?.[key] || {}),
+                    ...newFilterableDetails?.[key],
                 };
             }
             for (const key of defaultKeys) {
-                desiredFilterablesDetails[key] = newConfig.filterableDetails[key];
+                desiredFilterableDetails[key] = newConfigFilterableDetails?.[key];
             }
             for (const key of overrideKeys) {
-                desiredFilterablesDetails[key] = newFilterablesDetails[key];
+                desiredFilterableDetails[key] = newFilterableDetails?.[key];
             }
             assignStateObjectsIfChanged({
                 filterables: desiredFilterables,
-                filterablesDetails: desiredFilterablesDetails,
+                filterableDetails: desiredFilterableDetails,
             });
         },
     );
 
-    // resolve the components and props from the filterables and filterablesDetails
+    // resolve the components and props from the filterables and filterableDetails
     watch(
-        [toRef(state, "filterables"), toRef(state, "filterablesDetails")],
-        ([filterables, filterablesDetails]) => {
+        [() => state.filterables, () => state.filterableDetails],
+        ([filterables, filterableDetails]) => {
             if (filterables?.length) {
                 const fieldComponents = {};
                 const fieldProps = {};
                 const widgetComponents = {};
                 const widgetProps = {};
+                const options = [];
+                // todo: build options somehow...
                 for (const filterableName of filterables) {
-                    const filterableDetails = filterablesDetails[filterableName];
-                    if (!filterableDetails) {
+                    const filterableDetail = filterableDetails[filterableName];
+                    if (!filterableDetail) {
                         throw new Error(`Unknown filterable ${filterableName} for ${props.app}.${props.model}`);
                     }
                     const lookupExpressions = [];
                     for (const expression of filterExpressions) {
                         // todo: the data on the server will be getting refactored, hopefully for less indirection
                         if (
-                            filterableDetails.filters.some((container) => {
+                            filterableDetail.filters.some((container) => {
                                 return container.lookupExprs.includes(expression.value);
                             })
                         ) {
@@ -271,20 +283,20 @@ export default function useFilterForm(props) {
                             const fieldComponent = computed(
                                 () =>
                                     props.fieldComponents[filterableName] ||
-                                    getFieldComponent(filterableDetails.field_class),
+                                    getFieldComponent(filterableDetail.field_class),
                             );
                             fieldComponents[key] = computedAsync(async () => fieldComponent.value(), null);
                             fieldProps[key] = computed(() => {
                                 const returnProps = {
-                                    ...omit(filterableDetails, ["field_class", "type"]),
-                                    type: filterableDetails.input_type,
+                                    ...omit(filterableDetail, ["field_class", "type"]),
+                                    type: filterableDetail.input_type,
                                 };
                                 if (!returnProps.label) {
                                     returnProps.label = memoizedStartCase(filterableName);
                                 }
-                                const includesTime = filterableDetails.field_class.includes("Time");
-                                const includesDate = filterableDetails.field_class.includes("Date");
-                                const includesRange = filterableDetails.field_class.includes("Range");
+                                const includesTime = filterableDetail.field_class.includes("Time");
+                                const includesDate = filterableDetail.field_class.includes("Date");
+                                const includesRange = filterableDetail.field_class.includes("Range");
                                 if (includesRange && (includesDate || includesTime)) {
                                     returnProps.rangeSuffix = ["after", "before"];
                                 }
@@ -292,14 +304,14 @@ export default function useFilterForm(props) {
                             });
                             const widgetComponent = computed(() => {
                                 props.widgetProps[filterableName] ||
-                                    getWidgetComponent(filterableDetails.field_class, filterableDetails.choices);
+                                    getWidgetComponent(filterableDetail.field_class, filterableDetails.choices);
                             });
                             widgetComponents[key] = computedAsync(async () => widgetComponent.value(), null);
                             widgetProps[key] = computed(() => {
                                 const returnProps = {};
-                                const fieldClass = filterableDetails.field_class;
+                                const fieldClass = filterableDetail.field_class;
                                 if (fieldClass === "BooleanField") {
-                                    returnProps.options = filterableDetails.options || [
+                                    returnProps.options = filterableDetail.options || [
                                         { label: "True", value: true },
                                         { label: "False", value: false },
                                     ];
@@ -322,7 +334,7 @@ export default function useFilterForm(props) {
                             });
                         });
                     }
-                    if (filterableDetails.choices) {
+                    if (filterableDetail.choices) {
                         // noinspection JSIgnoredPromiseFromCall
                         modelChoicesStore.fetchChoices(props.app, props.model, filterableName);
                     }
@@ -332,6 +344,7 @@ export default function useFilterForm(props) {
                     fieldProps,
                     widgetComponents,
                     widgetProps,
+                    filterableOptions: options,
                 });
             } else {
                 assignStateObjectsIfChanged({
@@ -339,6 +352,7 @@ export default function useFilterForm(props) {
                     fieldProps: {},
                     widgetComponents: {},
                     widgetProps: {},
+                    filterableOptions: [],
                 });
             }
         },

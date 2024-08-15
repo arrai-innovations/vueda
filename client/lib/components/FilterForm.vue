@@ -27,9 +27,19 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    filterFields: {
+    view: {
+        type: String,
+        default: undefined,
+    },
+    filterables: {
         type: Array,
-        default: () => [],
+        default: undefined,
+        description: "A list of the filterables to show in the filter form.",
+    },
+    filterableDetails: {
+        type: Object,
+        default: undefined,
+        description: "A dictionary of overriding filterable details.",
     },
 });
 const filterForm = useFilterForm(props);
@@ -86,7 +96,7 @@ const confirmAddField = async () => {
             return;
         }
         addedFilters.value.push({
-            field: filterForm.filterFields.find((f) => f.name === formContext.state.values.filterField),
+            field: filterForm.filterables.find((f) => f.name === formContext.state.values.filterField),
             expression: filterExpressions.find((e) => e.value === formContext.state.values.filterExpression),
             value: formContext.state.values.filterValue,
         });
@@ -125,9 +135,9 @@ watch(
 );
 const computedFilterExpressions = computed(() => {
     return filterExpressions.filter((e) => {
-        return filterForm.filterFields.some((f) => {
+        return filterForm.filterables.some((f) => {
             if (f.name === formContext.state.values.filterField) {
-                return f.filters.some((filter) => {
+                return f.filters?.some((filter) => {
                     return filter.lookupExprs.includes(e.value);
                 });
             }
@@ -155,7 +165,7 @@ const computedFilterExpressions = computed(() => {
             <hr class="w-full flex-1 border-primary-300 dark:border-primary-600 border-t" />
             <div>
                 <field-string label="Filter Field" name="filterField" required>
-                    <widget-radio option-label="labelVerbose" option-value="name" :options="filterForm.filterFields" />
+                    <widget-radio :options="filterForm.filterableOptions" />
                     <form-chores>
                         <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                             <slot :name="slot" v-bind="slotProps || {}" />

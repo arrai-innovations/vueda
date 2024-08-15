@@ -378,12 +378,7 @@ const hasWorkFlow = computedAsync(
                 </template>
             </div>
         </div>
-        <filter-form
-            v-model="listState.filterArgs"
-            :app="app"
-            :filter-fields="modelConfig.config.filterables"
-            :model="model"
-        >
+        <filter-form v-model="listState.filterArgs" :app="app" :model="model" :view="viewName">
             <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                 <slot :name="slot" v-bind="slotProps || {}" />
             </template>
