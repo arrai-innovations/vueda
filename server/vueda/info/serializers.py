@@ -10,6 +10,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import RangeField
 from django.core import validators
+from django.core.validators import StepValueValidator
 from django.db import connection
 from django.utils.functional import cached_property
 from django_filters import DateRangeFilter
@@ -608,6 +609,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
     @staticmethod
     def get_model_filtering_validators(field):
+        extra_data = {}
         if hasattr(field, "validators"):
             validators = []
             for validator in field.validators:
@@ -625,10 +627,15 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                         # django/core/validators.py > BaseValidator > __call__
                         # Not adding show_value or value to the dict, because we don't have a value.
                         validator_data["message"] %= {"limit_value": limit_value}
+                if isinstance(validator, StepValueValidator):
+                    extra_data["step"] = validator.limit_value
                 if validator_data:
                     validators.append(validator_data)
-            if validators:
-                return validators
+
+            if validators or extra_data:
+                return validators, extra_data
+
+        return None, None
 
     def get_model_filtering(self, instance):  # noqa C901 - complexity of 21
         """
@@ -748,9 +755,11 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                     filtering_data[filter_obj.field_name]["null_value"] = field.null_value
 
                 # Validators - Optional
-                validators = self.get_model_filtering_validators(field)
+                validators, extra_data = self.get_model_filtering_validators(field)
                 if validators:
                     filtering_data[filter_obj.field_name]["validators"] = validators
+                if extra_data:
+                    filtering_data[filter_obj.field_name].update(extra_data)
 
                 # Widget Names - Optional
                 if hasattr(widget, "widgets_names"):
