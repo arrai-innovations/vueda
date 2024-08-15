@@ -172,7 +172,7 @@ export const storeModelConfig = defineStore({
                     const defaultSpecificDetails = defaultSpecificConfigs[view]?.[detailName] || {};
                     const specificDetails = specificConfig?.[detailName] || {};
                     if (
-                        [defaultGenericDetails || genericDetails || defaultSpecificDetails || specificDetails].filter(
+                        [defaultGenericDetails, genericDetails, defaultSpecificDetails, specificDetails].filter(
                             identity,
                         ).length > 1
                     ) {
