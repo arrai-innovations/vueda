@@ -180,13 +180,6 @@ const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceO
     <div :class="props.class">
         <page-title :loading="pageLoading" :title="titleStr">
             <template #button>
-                <link-model-view
-                    :app="app"
-                    class="whitespace-nowrap grow shrink-0"
-                    label="Return to List"
-                    :model="model"
-                    view="list"
-                />
                 <template
                     v-for="actionName in modelConfig.config?.actions?.filter((n) => {
                         const a = modelConfig.config?.actionDetails?.[n];
