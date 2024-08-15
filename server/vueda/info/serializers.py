@@ -177,9 +177,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
     def get_model_fields_data(self, serializer):
         pk_field = serializer.Meta.model._meta.pk.name
-        fields = {
-            "pk": pk_field,
-        }
+        fields = {}
 
         for field_name, field in serializer().get_fields().items():
             many = isinstance(field, (serializers.ListField, serializers.ManyRelatedField))
@@ -250,6 +248,8 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 field_data["max_digits"] = field.max_digits
             if hasattr(field, "decimal_places") and field.decimal_places is not None:
                 field_data["decimal_places"] = field.decimal_places
+            if field_name == pk_field:
+                field_data["pk"] = True
 
             fields[field_name] = field_data
         return fields
