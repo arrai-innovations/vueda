@@ -176,6 +176,49 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 else:
                     return max_value
 
+    @staticmethod
+    def get_model_fields_field_type(field_name, field, model_field, pk_field, serializer, many):
+        child_field = None
+        if many:
+            if hasattr(field, "child"):
+                child_field = field.child
+            elif hasattr(field, "base_field"):
+                child_field = field.base_field
+            if hasattr(child_field, "model_field"):  # If the field is now a ModelField, then get the actual field.
+                child_field = child_field.model_field
+        else:
+            if hasattr(field, "model_field"):  # If the field is now a ModelField, then get the actual field.
+                child_field = field.model_field
+
+        # Get the field type.
+        field_type = field.__class__.__name__
+        if child_field is not None:
+            if hasattr(child_field, "get_internal_type"):
+                field_type = child_field.get_internal_type()
+            else:
+                field_type = child_field.__class__.__name__
+
+        # If the field is a CharField on the serializer, it could be a TextField on the model.
+        # If the field is a ChoiceField on the serializer, we need to know what kind of data the model has.
+        # If the field is an ArrayField on the model, we need to know what the base model is.
+        # So, for fields like this, we want to get the name from the models field instead of the serializer.
+        if (
+            field_name != pk_field
+            and not hasattr(serializer, field_name)
+            and field_type in SERIALIZER_FIELD_TYPES_TO_FETCH_MODEL_TYPE
+            and hasattr(model_field, "field")
+        ):
+            child_field = model_field.field
+            if many:
+                if hasattr(child_field, "child"):
+                    child_field = child_field.child
+                elif hasattr(child_field, "base_field"):
+                    child_field = child_field.base_field
+
+            field_type = child_field.get_internal_type()
+
+        return field_type
+
     def get_model_fields_data(self, serializer):
         pk_field = serializer.Meta.model._meta.pk.name
         fields = {}
@@ -183,56 +226,27 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         for field_name, field in serializer().get_fields().items():
             many = isinstance(field, (serializers.ListField, serializers.ManyRelatedField))
 
-            child_field = None
-            if many:
-                if hasattr(field, "child"):
-                    child_field = field.child
-                elif hasattr(field, "base_field"):
-                    child_field = field.base_field
-                if hasattr(child_field, "model_field"):  # If the field is now a ModelField, then get the actual field.
-                    child_field = child_field.model_field
-            else:
-                if hasattr(field, "model_field"):  # If the field is now a ModelField, then get the actual field.
-                    child_field = field.model_field
-
-            # Get the field type.
-            field_type = field.__class__.__name__
-            if child_field is not None:
-                if hasattr(child_field, "get_internal_type"):
-                    field_type = child_field.get_internal_type()
-                else:
-                    field_type = child_field.__class__.__name__
-
-            # If the field is a CharField on the serializer, it could be a TextField on the model.
-            # If the field is a ChoiceField on the serializer, we need to know what kind of data the model has.
-            # If the field is an ArrayField on the model, we need to know what the base model is.
-            # So, for fields like this, we want to get the name from the models field instead of the serializer.
             model_field = getattr(serializer.Meta.model, field_name, None)
-            if (
-                field_name != pk_field
-                and not hasattr(serializer, field_name)
-                and field_type in SERIALIZER_FIELD_TYPES_TO_FETCH_MODEL_TYPE
-                and hasattr(model_field, "field")
-            ):
-                child_field = model_field.field
-                if many:
-                    if hasattr(child_field, "child"):
-                        child_field = child_field.child
-                    elif hasattr(child_field, "base_field"):
-                        child_field = child_field.base_field
-
-                field_type = child_field.get_internal_type()
+            field_type = self.get_model_fields_field_type(field_name, field, model_field, pk_field, serializer, many)
 
             effective_label = field.label or field_name.replace("_", " ").title()
 
             field_data = {
-                "choices": hasattr(field, "choices") and bool(field.choices),
+                "choices": False,
                 "label": effective_label,
                 "type": field_type,
                 "many": many,
                 "read_only": field.read_only,
                 "required": field.required,
             }
+            widget = getattr(field, "widget", None)
+            obj = serializer
+            if hasattr(field, "queryset"):
+                obj = field.queryset.model
+            choices, extra_data = self.get_model_field_choices(field, widget, obj)
+            field_data["choices"] = choices
+            if extra_data:
+                field_data.update(extra_data)
             if field.help_text is not None:
                 field_data["help_text"] = field.help_text
             max_value = self.get_model_fields_max_data(field, model_field)
@@ -439,6 +453,30 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
             elif hasattr(obj, "model"):  # AllValuesFilter, AllValuesMultipleFilter
                 meta = obj.model._meta
         return meta
+
+    def get_model_field_choices(self, field, widget, serializer):
+        choices = self.get_choices_data(field, widget)
+        meta = self.get_choices_meta(field, serializer, choices)
+        if meta is not None:
+            return True, {
+                "app_label": meta.app_label,
+                "model": meta.model_name,
+            }
+
+        # Convert choices to be {"label": label, "value": value}.
+        if choices:
+            choices_list = []
+            for value, label in choices.items():
+                choices_list.append(
+                    {
+                        "label": label,
+                        "value": str(value),  # Convert ints to strings.
+                    }
+                )
+
+            return choices_list, None
+
+        return choices, None
 
     def get_model_filtering_choices(self, filterset, filter_obj, filter_name, field, widget):
         choices = self.get_choices_data(field, widget)
