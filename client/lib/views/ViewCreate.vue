@@ -122,7 +122,7 @@ const combinedWhileText = computed(() =>
                         :app="app"
                         :label="memoizedStartCase(actionName)"
                         :model="model"
-                        name="target-less-action-button"
+                        name="targetless-action-button"
                         :view="actionName"
                     >
                         <link-model-view

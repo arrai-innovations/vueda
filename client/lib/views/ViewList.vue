@@ -326,12 +326,14 @@ const hasWorkFlow = computedAsync(
             <div class="flex flex-wrap gap-1 w-full justify-end">
                 <template v-if="hasWorkFlow">
                     <slot
-                        name="workflow-action-button"
+                        name="bulk-action-button"
                         v-bind="{
                             model,
                             app,
                             click: detailActionOnClick(`transition`),
                             selectedObjects,
+                            label: `Transition`,
+                            view: `transition`,
                         }"
                     >
                         <link-model-view
