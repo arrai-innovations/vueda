@@ -167,6 +167,7 @@ const camelCaseObject = (obj) => {
  * @property {string} model - The python model class name (lower case).
  * @property {string} verbose_name - The verbose name of the model.
  * @property {string} verbose_name_plural - The verbose name plural of the model.
+ * @property {string} pk - The primary key field of the model
  * @property {{[fieldName:string]: FieldInfo}} fields - The fields of the model.
  * @property {ActionInfo[]} actions - The actions of the model.
  * @property {ExpandInfo[]} expands - The expands of the model.
@@ -251,6 +252,18 @@ export const storeModelInfo = defineStore({
                                 }),
                             )),
                     )
+                    .then((data) => {
+                        // another piece of cleanup, find the pk field and add its name to the top level
+                        Object.entries(data.fields).some(([k, v]) => {
+                            if (v.pk) {
+                                data.pk = k;
+                                return true;
+                            }
+                        });
+                        if (!data.pk) {
+                            throw new Error(`storeModelInfo.fetchModelInfo: no pk field found for ${key}`);
+                        }
+                    })
                     .finally(() => {
                         delete this.promises[key];
                     });

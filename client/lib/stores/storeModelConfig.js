@@ -51,12 +51,12 @@ import { defineStore } from "pinia";
  * @returns {[generic:ModelConfig, {[view: string]: OverridingModelConfig}]} The default configuration objects.
  */
 const getDefaultFromModelInfo = (modelInfo) => {
-    const fields = Object.keys(modelInfo.fields).filter((f) => f !== modelInfo.fields.pk);
+    const pkField = modelInfo.pk;
+    const fields = Object.keys(modelInfo.fields).filter((f) => f !== pkField);
     const actionDetailsByName = Object.fromEntries(modelInfo.actions.map((a) => [a.name, a]));
     const expandDetailsByName = Object.fromEntries(modelInfo.expands.map((e) => [e.name, e]));
     return [
         {
-            pk: modelInfo.fields.pk,
             verboseName: modelInfo.verbose_name,
             verboseNamePlural: modelInfo.verbose_name_plural,
             fields,
