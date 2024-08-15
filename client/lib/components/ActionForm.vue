@@ -106,8 +106,7 @@ const handleConfirm = async () => {
 
 const confirmMessage = computed(() => {
     if (isArray(props.pk)) {
-        return `Are you sure you want to ${props.action} the following ${modelConfig.info?.verbose_name_plural || props.model} with pk?
-        ${props.pk}`;
+        return `Are you sure you want to ${props.action} these ${modelConfig.info?.verbose_name_plural || props.model}?`;
     }
     return `Are you sure you want to ${props.action} this ${modelConfig.info?.verbose_name || props.model}?`;
 });
@@ -120,6 +119,7 @@ const confirmMessage = computed(() => {
         </slot>
         <slot name="action-body">
             <p>{{ props.confirmMessage || confirmMessage }}</p>
+            <!-- todo: show the item(s) somehow. -->
             <Button @click="handleConfirm"> Yes, continue </Button>
             <Button @click="router.back()"> Cancel </Button>
         </slot>

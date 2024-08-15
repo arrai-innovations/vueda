@@ -263,6 +263,7 @@ export const storeModelInfo = defineStore({
                         if (!data.pk) {
                             throw new Error(`storeModelInfo.fetchModelInfo: no pk field found for ${key}`);
                         }
+                        return data;
                     })
                     .finally(() => {
                         delete this.promises[key];
