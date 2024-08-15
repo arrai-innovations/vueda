@@ -394,12 +394,12 @@ const hasWorkFlow = computedAsync(
             :calculated-objects="instanceList.state.calculatedObjects"
             class="w-full"
             :data-qa="`view-list-${app}-${model}-objects-grid`"
-            :fields="calculatedDisplayFields"
-            :fields-props="{
+            :field-props="{
                 pkKey: modelConfig.info?.pk,
                 modelInfo: modelConfig.info,
                 modelConfig: modelConfig.config,
             }"
+            :fields="calculatedDisplayFields"
             :loading="loading"
             :objects-in-order="instanceList.state.objectsInOrder"
             :related-objects="instanceList.state.relatedObjects"

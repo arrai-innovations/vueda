@@ -282,6 +282,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             name: 'selected_',
                             label: '',
                         }"
+                        :field-props="fieldProps"
                         :obj="{ id: obj.id }"
                         :related-object="{}"
                         :row-index="rowIndex"
