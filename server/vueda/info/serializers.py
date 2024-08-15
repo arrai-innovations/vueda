@@ -789,8 +789,6 @@ class ModelInfoChoicesSerializer(FlexFieldsSerializerMixin, serializers.Serializ
     A serializer for providing metadata about field choices.
 
     This is a read-only serializer.
-
-    Effectively, this is a custom model serializer for content types.
     """
 
     label = serializers.CharField()
