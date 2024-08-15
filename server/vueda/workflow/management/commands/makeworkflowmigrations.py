@@ -1266,7 +1266,10 @@ class Command(BaseCommand):
                 if change.new:
                     new = {
                         "codename": history_diff.new_record.permission.codename,
-                        "content_type_id": {"app_label": ct.app_label, "model": ct.model},
+                        "content_type_id": {
+                            "app_label": history_diff.new_record.permission.content_type.app_label,
+                            "model": history_diff.new_record.permission.content_type.model,
+                        },
                     }
 
                 if change.old:
