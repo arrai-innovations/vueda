@@ -3,6 +3,7 @@ import operator
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import F
 from django.utils.functional import cached_property
 from rest_framework import generics
 from rest_framework import mixins
@@ -165,6 +166,54 @@ class ChoicesQueryset(collections.abc.Sequence):
         return len(self.choices)
 
 
+class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, GenericViewSet):
+    object = None  # type: ContentType
+    queryset = ContentType.objects.all()
+    permission_classes = []
+    serializer_class = ModelInfoChoicesSerializer
+
+    def __init__(self, *args, **kwargs):
+        self.choices_field = self.choices_serializer_instance = None
+        self.choices_queryset_model = self.choices_permissions = None
+
+        super().__init__(*args, **kwargs)
+
+        # Remove search and ordering filter backends, since these won't work on choices at the moment.
+        self.filter_backends = [
+            backend for backend in self.filter_backends if not issubclass(backend, (SearchFilter, OrderingFilter))
+        ]
+
+    @cached_property
+    def canonical(self):
+        return get_registration(self.choices_serializer_instance.pk)
+
+    def check_permissions(self, request):
+        """
+        For fields:
+            If the choices are hard coded on a field, then we check 'read' on the current model.
+            If the choices are a foreign key then we check 'read' on the current model and 'list'
+            on the related model.
+
+        For filters:
+            If the choices are hard coded on the filter, then we check 'read' on the current model,
+            because you may not be able to 'list' it.
+            If the choices are a foreign key on the filter, then we check 'read' on the current model
+            and 'list' on the related model.
+
+        If choices_permissions is None:
+            This happens when there is an issue which we need to raise as a validation error, so you
+            don't get back a permission issue when the real issue is an incorrect field name.
+        """
+        if self.choices_permissions is not None:
+            for permission in self.choices_permissions:
+                if not request.user.has_perm(permission):
+                    self.permission_denied(
+                        request, message=getattr(permission, "message", None), code=getattr(permission, "code", None)
+                    )
+
+        super().check_permissions(request)
+
+
 @conditional_extend_schema_view_decorator(
     list=conditional_extend_schema_func(
         operation_id="getFieldChoices",
@@ -192,7 +241,7 @@ class ChoicesQueryset(collections.abc.Sequence):
         summary="List field choices",
     ),
 )
-class ModelInfoChoicesViewSet(FlexFieldsMixin, mixins.ListModelMixin, GenericViewSet):
+class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
     """
     This viewset is for providing metadata about field and filtering choices to front-end clients. This is a read-only viewset.
 
@@ -203,26 +252,6 @@ class ModelInfoChoicesViewSet(FlexFieldsMixin, mixins.ListModelMixin, GenericVie
     path('model-info-choices/<str:app_label>/<str:model>/<str:field>/', ModelChoicesViewSet.as_view(), name='model-info-choices')
     ```
     """
-
-    object = None  # type: ContentType
-    queryset = ContentType.objects.all()
-    serializer_class = ModelInfoChoicesSerializer
-    permission_classes = [ObjectPermissions]
-
-    def __init__(self, *args, **kwargs):
-        self.choices_app_label = self.choices_model = self.choices_field = self.choices_serializer_instance = None
-        self.choices_permission_model = self.choices_permission_app_label = self.choices_permission_model_name = None
-
-        super().__init__(*args, **kwargs)
-
-        # Remove search and ordering filter backends, since these won't work on choices at the moment.
-        self.filter_backends = [
-            backend for backend in self.filter_backends if not issubclass(backend, (SearchFilter, OrderingFilter))
-        ]
-
-    @cached_property
-    def canonical(self):
-        return get_registration(self.choices_serializer_instance.pk)
 
     def dispatch(self, request, app_label, model, field, *args, **kwargs):
         self.choices_field = field
@@ -238,29 +267,27 @@ class ModelInfoChoicesViewSet(FlexFieldsMixin, mixins.ListModelMixin, GenericVie
         if self.choices_field in field_info.fields_and_pk:
             model_class = serializer.Meta.model
             meta = model_class._meta
-            self.choices_permission_app_label = meta.app_label
-            self.choices_permission_model = model_class
-            self.choices_permission_model_name = meta.model_name
+            self.choices_permissions = (f"{meta.app_label}.read_{meta.model_name}",)
+            self.choices_queryset_model = model_class
 
         elif self.choices_field in field_info.relations:
             related_field_info = field_info.relations[self.choices_field]
-            self.choices_permission_app_label = related_field_info.related_model._meta.app_label
-            self.choices_permission_model = related_field_info.related_model._meta.model
-            self.choices_permission_model_name = related_field_info.related_model._meta.model_name
+            model_class = serializer.Meta.model
+            meta = model_class._meta
+            self.choices_permissions = (
+                f"{meta.app_label}.read_{meta.model_name}",
+                f"{related_field_info.related_model._meta.app_label}.list"
+                f"_{related_field_info.related_model._meta.model_name}",
+            )
+            self.choices_queryset_model = related_field_info.related_model._meta.model
+
+        else:
+            # This field does not exist.  In order to get the appropriate
+            #  invalid field message, we need to not blow up in check_permissions.
+            self.choices_permissions = ()
+            self.choices_must_raise = True
 
         return super().dispatch(request, *args, **kwargs)
-
-    def check_permissions(self, request):
-        """
-        We need to check permissions on vueda.info as well as the queryset.
-        """
-        permission = f"{self.choices_permission_app_label}.list_{self.choices_permission_model_name}"
-        if not request.user.has_perm(permission):
-            self.permission_denied(
-                request, message=getattr(permission, "message", None), code=getattr(permission, "code", None)
-            )
-
-        super().check_permissions(request)
 
     def get_queryset(self):
         """
@@ -277,9 +304,13 @@ class ModelInfoChoicesViewSet(FlexFieldsMixin, mixins.ListModelMixin, GenericVie
                 if hasattr(field, "choices") and field.choices:
                     valid_fieldnames.append(field_name)
             if valid_fieldnames:
-                raise ValidationError(f"Invalid field. Valid fields with choices are {', '.join(valid_fieldnames)}.")
+                raise ValidationError(
+                    f"Invalid field '{self.choices_field}'. Valid fields with choices are {', '.join(valid_fieldnames)}."
+                )
             else:
-                raise ValidationError(f"Invalid field. No choice fields found on {serializer.Meta.model._meta.label}.")
+                raise ValidationError(
+                    f"Invalid field '{self.choices_field}'. No choice fields found on {serializer.Meta.model._meta.label}."
+                )
 
         elif not hasattr(fields[self.choices_field], "choices"):
             valid_fieldnames = []
@@ -288,9 +319,17 @@ class ModelInfoChoicesViewSet(FlexFieldsMixin, mixins.ListModelMixin, GenericVie
                     valid_fieldnames.append(field_name)
 
             if valid_fieldnames:
-                raise ValidationError(f"Invalid field. Valid fields with choices are {', '.join(valid_fieldnames)}.")
+                raise ValidationError(
+                    f"Invalid field '{self.choices_field}'. Valid fields with choices are {', '.join(valid_fieldnames)}."
+                )
             else:
-                raise ValidationError(f"Invalid field. No choice fields found on {serializer.Meta.model._meta.label}.")
+                raise ValidationError(
+                    f"Invalid field '{self.choices_field}'. No choice fields found on {serializer.Meta.model._meta.label}."
+                )
+
+        # If somehow we get here without raising, we must raise.
+        if hasattr(self, "choices_must_raise"):
+            raise ValidationError(f"Invalid field '{self.choices_field}'.")
 
         choices = []
         for value, label in sorted(fields[self.choices_field].choices.items(), key=lambda x: operator.itemgetter(1)(x)):
@@ -301,4 +340,94 @@ class ModelInfoChoicesViewSet(FlexFieldsMixin, mixins.ListModelMixin, GenericVie
                 }
             )
 
-        return ChoicesQueryset(choices, self.choices_permission_model)
+        return ChoicesQueryset(choices, self.choices_queryset_model)
+
+
+class FilterChoice:
+    def __init__(self, value, label):
+        self.label = label
+        self.value = value
+
+
+# Rest Framework tries to get the label and value off each choice.
+# Since we don't have a queryset, we need a class for each choice.
+class FilterChoicesQueryset(collections.abc.Sequence):
+    """
+    This is a list that stores the model on it.
+    """
+
+    def __init__(self, choices, model):
+        self.choices = [FilterChoice(*choice) for choice in choices]
+
+    def __getitem__(self, index):
+        return self.choices[index]
+
+    def __len__(self):
+        return len(self.choices)
+
+
+class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
+    @staticmethod
+    def get_filter_mapping_with_field_name(filters):
+        filter_mapping = {}
+        for filtr in filters.values():
+            filter_mapping[filtr.field_name] = filtr
+        return filter_mapping
+
+    def dispatch(self, request, app_label, model, field, *args, **kwargs):
+        self.choices_field = field
+        self.choices_serializer_instance = generics.get_object_or_404(
+            ContentType, app_label=app_label, model=model.replace("_", "")
+        )
+        serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
+        model_class = serializer.Meta.model
+        meta = model_class._meta
+
+        viewset = self.canonical["viewset"]
+        filterset = viewset.filterset_class
+        filters = filterset.get_filters()
+
+        filter_mapping = self.get_filter_mapping_with_field_name(filters)
+        if field not in filter_mapping:
+            self.validation_error_message = f"Invalid filter {field}.  Valid filters are {', '.join(filter_mapping)}."
+            return super().dispatch(request, *args, **kwargs)
+
+        filtr = filter_mapping[field]
+
+        self.queryset = None
+        if hasattr(filtr, "queryset"):
+            self.queryset = filtr.queryset
+            related_model = filtr.queryset.model
+            related_meta = related_model._meta
+
+            self.choices_permissions = (
+                f"{meta.app_label}.read_{meta.model_name}",
+                f"{related_meta.app_label}.list_{related_meta.model_name}",
+            )
+
+            self.choices_queryset_model = related_model
+
+        else:
+            self.choices = filtr.field.widget._choices
+
+            self.choices_permissions = (f"{meta.app_label}.read_{meta.model_name}",)
+
+            self.choices_queryset_model = model_class
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        """
+        Returns a queryset if the field is a relation.
+        Return a list if the field is not a relation.
+        """
+        # Need to raise this here, so the super dispatch can catch it and handle it correctly.
+        if hasattr(self, "validation_error_message"):
+            raise ValidationError(self.validation_error_message)
+
+        if hasattr(self, "choices"):
+            return FilterChoicesQueryset(self.choices, self.choices_queryset_model)
+
+        return self.queryset.annotate(label=F("formatted_name"), value=F("id")).values_list(
+            "label", "value", named=True
+        )
