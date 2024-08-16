@@ -282,9 +282,14 @@ export const storeModelInfo = defineStore({
                                             key,
                                             v.map((expand) => ({
                                                 ...expand,
-                                                f: Object.fromEntries(
-                                                    Object.entries(expand.f).map(([k, v]) => [k, camelCaseObject(v)]),
-                                                ),
+                                                f: expand.f
+                                                    ? Object.fromEntries(
+                                                          Object.entries(expand.f).map(([k, v]) => [
+                                                              k,
+                                                              camelCaseObject(v),
+                                                          ]),
+                                                      )
+                                                    : undefined,
                                             })),
                                         ];
                                     }
