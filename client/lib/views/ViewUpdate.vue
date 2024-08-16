@@ -175,6 +175,7 @@ const combinedWhileText = computed(() =>
               : "",
 );
 const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObject.state.loading));
+const formId = computed(() => `${props.app}-${props.model}-${props.pk}-update`);
 </script>
 <template>
     <div :class="props.class">
@@ -232,8 +233,14 @@ const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceO
                             />
                         </slot>
                     </template>
-                    <slot :click="objectForm.submit" :loading="objectForm.state.loading" name="submit-button">
-                        <Button label="Submit" :loading="objectForm.state.loading" @click.prevent="objectForm.submit" />
+                    <slot
+                        :form="formId"
+                        label="Submit"
+                        :loading="objectForm.state.loading"
+                        name="submit-button"
+                        type="submit"
+                    >
+                        <Button :form="formId" label="Submit" :loading="objectForm.state.loading" type="submit" />
                     </slot>
                 </div>
             </template>
@@ -245,7 +252,7 @@ const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceO
                 :ignore-form-validation-errors="true"
                 :while-text="combinedWhileText"
             />
-            <form v-bind="$attrs" @submit.prevent="objectForm.submit">
+            <form v-bind="$attrs" :id="formId" @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"
                     :field-components="fieldComponents"

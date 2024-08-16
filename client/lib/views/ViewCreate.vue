@@ -106,6 +106,7 @@ const combinedWhileText = computed(() =>
             ? "submitting form"
             : "",
 );
+const formId = `form-${props.app}-${props.model}-${viewName}`;
 </script>
 <template>
     <div :class="props.class">
@@ -137,8 +138,14 @@ const combinedWhileText = computed(() =>
             </template>
             <template #under-actions>
                 <div class="flex flex-col sm:flex-row gap-1 w-full justify-end">
-                    <slot :click="objectForm.submit" :loading="objectForm.state.loading" name="submit-button">
-                        <Button label="Submit" :loading="objectForm.state.loading" @click.prevent="objectForm.submit" />
+                    <slot
+                        :form="formId"
+                        label="Submit"
+                        :loading="objectForm.state.loading"
+                        name="submit-button"
+                        type="submit"
+                    >
+                        <Button :form="formId" label="Submit" :loading="objectForm.state.loading" type="submit" />
                     </slot>
                 </div>
             </template>
@@ -150,7 +157,7 @@ const combinedWhileText = computed(() =>
                 :ignore-form-validation-errors="true"
                 :while-text="combinedWhileText"
             />
-            <form v-bind="$attrs" @submit.prevent="objectForm.submit">
+            <form v-bind="$attrs" :id="formId" @submit.prevent="objectForm.submit">
                 <form-model :app="app" :model="model" :variant="formModelVariant" v-bind="formProps" :view="viewName">
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />
