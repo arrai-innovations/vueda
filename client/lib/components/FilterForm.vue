@@ -95,6 +95,19 @@ const confirmAddField = async () => {
             });
             return;
         }
+        // label is a nice version of the value.
+        let label = formContext.state.values.filterValue;
+        // if it is a date, don't just toString it
+        const fieldClass = filterForm.filterableDetails[formContext.state.values.filterField].fieldClass;
+        const isDate = fieldClass.includes("Date");
+        const isTime = fieldClass.includes("Time");
+        if (isDate && isTime) {
+            label = new Date(label).toLocaleString();
+        } else if (isDate) {
+            label = new Date(label).toLocaleDateString();
+        } else if (isTime) {
+            label = new Date(label).toLocaleTimeString();
+        }
         addedFilters.value.push({
             field: {
                 name: formContext.state.values.filterField,
@@ -103,6 +116,11 @@ const confirmAddField = async () => {
             expression: filterExpressions.find((e) => e.value === formContext.state.values.lookupExpression),
             param: selectedFilterableOption.value.lookupExpressionsToParams[formContext.state.values.lookupExpression],
             value: formContext.state.values.filterValue,
+            label: `${filterForm.filterableDetails[formContext.state.values.filterField].label}:${
+                selectedFilterableOption.value?.lookupExpressionsToParams?.length > 1
+                    ? filterExpressions.find((e) => e.value === formContext.state.values.lookupExpression).label + ":"
+                    : ""
+            }${label}`,
         });
         showFilters.value = false;
     } catch (e) {
@@ -271,7 +289,7 @@ const displayedWidgetProps = computed(() => {
         </template>
         <template v-for="filter in addedFilters" :key="filter.field">
             <slot
-                :label="`${filter.value}`"
+                :label="filter.label"
                 name="button"
                 severity="info"
                 :title="`Remove filter for ${filter.field.label} by ${filter.expression.label} for ${filter.value}`"
@@ -281,7 +299,7 @@ const displayedWidgetProps = computed(() => {
             >
                 <Button
                     class="grow sm:grow-0"
-                    :label="`${filter.value}`"
+                    :label="filter.label"
                     severity="info"
                     :title="`Remove filter for ${filter.field.label} by ${filter.expression.label} for ${filter.value}`"
                     @click.prevent="removeFilter(filter)"
