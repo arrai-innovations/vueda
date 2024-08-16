@@ -77,6 +77,7 @@ SERIALIZER_FIELD_TYPES_TO_FETCH_MODEL_TYPE = (
     "ArrayField",  # We need to know what the data is
     "CharField",  # Can become TextField
     "ChoiceField",  # We need to know what the data is
+    "ReadOnlyField",  # We need to know what the data is
 )
 
 
@@ -218,6 +219,11 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                     child_field = child_field.base_field
 
             field_type = child_field.get_internal_type()
+
+        # We couldn't figure out what the ReadOnlyField type was, so assume it is a CharField.
+        # This is the case for 'formatted_name', which doesn't exist on the serializer.
+        if field_type == "ReadOnlyField":
+            field_type = "CharField"
 
         return field_type
 
