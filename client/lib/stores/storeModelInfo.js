@@ -32,20 +32,26 @@ const modelInfoUrl = ({ app, model }) =>
  * A function to convert snake_case properties deeply on an object to be camelCase.
  *
  * @param {object} obj - The object to convert.
- * @returns {object} The object with all snake_case properties converted to camelCase.
+ * @param {string[]} [skipKeys=[]] - An array of keys to skip when converting.
+ * @returns {object} The object with all snake_case properties converted to camelCase, except for the specified keys.
  * @private
  */
-const camelCaseObject = (obj) => {
+const camelCaseObject = (obj, skipKeys = []) => {
     if (typeof obj !== "object" || obj === null) {
         return obj;
     }
     if (Array.isArray(obj)) {
-        return obj.map(camelCaseObject);
+        return obj.map((item) => camelCaseObject(item, skipKeys));
     }
     return Object.fromEntries(
         Object.entries(obj).map(([k, v]) => {
+            // Skip conversion if the key is in skipKeys
+            if (skipKeys.includes(k)) {
+                return [k, v];
+            }
+
             const newKey = k.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-            return [newKey, camelCaseObject(v)];
+            return [newKey, camelCaseObject(v, skipKeys)];
         }),
     );
 };
@@ -118,41 +124,41 @@ const camelCaseObject = (obj) => {
  *
  * Basic filter information.
  * @property {string} label - The label of the filter.
- * @property {string} field_class - The django-filters FilterField class for the filter.
- * @property {string} input_type - The django-filters determined HTML input type for the filter, derived from the widget associated with the field.
- * @property {string} [help_text] - The help text for the filter, may be absent.
+ * @property {string} fieldClass - The django-filters FilterField class for the filter.
+ * @property {string} inputType - The django-filters determined HTML input type for the filter, derived from the widget associated with the field.
+ * @property {string} [helpText] - The help text for the filter, may be absent.
  * @property {boolean} hidden - Indicates whether the filter is hidden.
  * @property {boolean} required - Indicates whether the filter is required.
  * @property {boolean|LabelValuePair[]} [choices] - Indicates whether the filter has choices. If it does, it's an array of label/value pairs.
  *
  * Validation and constraints.
- * @property {number} [max_value] - The maximum value for the filter.
- * @property {number} [min_value] - The minimum value for the filter.
- * @property {number} [max_length] - The maximum length for the filter.
- * @property {number} [min_length] - The minimum length for the filter.
- * @property {number} [max_digits] - The maximum number of digits for the filter.
- * @property {number} [decimal_places] - The number of decimal places for the filter.
- * @property {string[]} [input_formats] - The input formats for the filter, such as date formats, if applicable.
+ * @property {number} [maxValue] - The maximum value for the filter.
+ * @property {number} [minValue] - The minimum value for the filter.
+ * @property {number} [maxLength] - The maximum length for the filter.
+ * @property {number} [minLength] - The minimum length for the filter.
+ * @property {number} [maxDigits] - The maximum number of digits for the filter.
+ * @property {number} [decimalPlaces] - The number of decimal places for the filter.
+ * @property {string[]} [inputFormats] - The input formats for the filter, such as date formats, if applicable.
  * @property {object[]} [validators] - Array of validator objects applied to the filter.
  *
  * Error handling.
- * @property {{[code: string]: string}} error_messages - A map of server-side error codes to their corresponding messages.
+ * @property {{[code: string]: string}} errorMessages - A map of server-side error codes to their corresponding messages.
  *
  * Lookup expressions.
- * @property {LookupExpr[]} lookup_exprs - The Django filter lookup expressions available for the filter.
- * @property {string[]} [name_suffixes] - The Django filter name suffixes for the filter.
+ * @property {LookupExpr[]} lookupExprs - The Django filter lookup expressions available for the filter.
+ * @property {string[]} [nameSuffixes] - The Django filter name suffixes for the filter.
  *
  * Associations and relationships.
  * @property {string} [model] - The model associated with the filter.
- * @property {string} [app_label] - The app label associated with the filter.
- * @property {string} [filter_name] - The Django filter name for the filter.
- * @property {string} [filterset_name] - The Django filter set name for the filter.
+ * @property {string} [appLabel] - The app label associated with the filter.
+ * @property {string} [filterName] - The Django filter name for the filter.
+ * @property {string} [filtersetName] - The Django filter set name for the filter.
  *
  * Labels and special values.
- * @property {boolean} [empty_value] - Indicates whether the filter has an empty value.
- * @property {string} [empty_label] - The empty label for the filter.
- * @property {string} [null_label] - The null label for the filter.
- * @property {string} [null_value] - The null value for the filter.
+ * @property {boolean} [emptyValue] - Indicates whether the filter has an empty value.
+ * @property {string} [emptyLabel] - The empty label for the filter.
+ * @property {string} [nullLabel] - The null label for the filter.
+ * @property {string} [nullValue] - The null value for the filter.
  */
 
 /**
@@ -169,8 +175,8 @@ const camelCaseObject = (obj) => {
  * @typedef {object} ModelInfo
  * @property {string} app_label - The app label of the model.
  * @property {string} model - The python model class name (lower case).
- * @property {string} verbose_name - The verbose name of the model.
- * @property {string} verbose_name_plural - The verbose name plural of the model.
+ * @property {string} verboseName - The verbose name of the model.
+ * @property {string} verboseNamePlural - The verbose name plural of the model.
  * @property {string} pk - The primary key field of the model.
  * @property {{[fieldName:string]: FieldInfo}} fields - The fields of the model, with the field name as the key.
  * @property {ActionInfo[]} actions - The actions of the model.
@@ -257,15 +263,32 @@ export const storeModelInfo = defineStore({
                         (data) =>
                             (this.infos[key] = Object.fromEntries(
                                 Object.entries(data).map(([k, v]) => {
-                                    const cV = camelCaseObject(v);
                                     let key = k;
                                     if (key.startsWith("model_")) {
                                         key = k.slice(6);
                                     }
-                                    if (key === "fields") {
-                                        return [key, v];
+                                    // don't mash up key names, skip a level
+                                    if (key === "fields" || key === "filtering") {
+                                        return [
+                                            key,
+                                            Object.fromEntries(
+                                                Object.entries(v).map(([k, v]) => [k, camelCaseObject(v)]),
+                                            ),
+                                        ];
                                     }
-                                    return [key, cV];
+                                    if (key === "expands") {
+                                        // expands.f is also a mapping of field names to FieldInfo objects
+                                        return [
+                                            key,
+                                            v.map((expand) => ({
+                                                ...expand,
+                                                f: Object.fromEntries(
+                                                    Object.entries(expand.f).map(([k, v]) => [k, camelCaseObject(v)]),
+                                                ),
+                                            })),
+                                        ];
+                                    }
+                                    return [key, camelCaseObject(v)];
                                 }),
                             )),
                     )
