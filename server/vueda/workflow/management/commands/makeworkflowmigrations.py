@@ -1633,7 +1633,7 @@ class Command(BaseCommand):
                 MIGRATION_MODIFIED_COMMENT,
                 "import copy",
                 f"{NEWLINE}import datetime",
-                f"{NEWLINE}import os" if self.env_guarded_operations else "",
+                f"{NEWLINE}import os",
                 f"{NEWLINE}{NEWLINE}",
                 f"from django.apps import apps as django_apps{NEWLINE}",
                 f"from django.contrib.auth.management import create_permissions{NEWLINE}",
