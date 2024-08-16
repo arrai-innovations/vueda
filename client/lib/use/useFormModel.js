@@ -364,16 +364,17 @@ export function useFormModel(props) {
                                     ...(deepUnref(props.widgetProps[fieldName]) || {}),
                                     ...(defaultWidgetProps[expandFieldDetail.type] || {}),
                                 };
-                                // if (expandFieldDetail.choices) {
-                                //     if (Array.isArray(expandFieldDetail.choices)) {
-                                //             baseProps.options = expandFieldDetail.choices;
-                                //         } else {
-                                //             const appModelKey = getAppModelDotName({ app: expandFieldDetail.app, expandFieldDetail: props.model });
-                                //             modelChoicesStore.initializeChoice(expandFieldDetail.app, expandFieldDetail.model, expandFieldName);
-                                //             baseProps.options = internalState.choices[appModelKey][fieldName]
-                                //             baseProps.fetchOptions = async () => modelChoicesStore.fetchChoices(expandFieldDetail.app, expandFieldDetail.model, expandFieldName);
-                                //         }
-                                // }
+                                if (expandFieldDetail.choices) {
+                                    if (Array.isArray(expandFieldDetail.choices)) {
+                                        baseProps.options = expandFieldDetail.choices;
+                                    }
+                                    // else {
+                                    //             const appModelKey = getAppModelDotName({ app: expandFieldDetail.app, expandFieldDetail: props.model });
+                                    //             modelChoicesStore.initializeChoice(expandFieldDetail.app, expandFieldDetail.model, expandFieldName);
+                                    //             baseProps.options = internalState.choices[appModelKey][fieldName]
+                                    //             baseProps.fetchOptions = async () => modelChoicesStore.fetchChoices(expandFieldDetail.app, expandFieldDetail.model, expandFieldName);
+                                    //         }
+                                }
                                 return baseProps;
                             });
                         });
@@ -415,21 +416,24 @@ export function useFormModel(props) {
                             );
                         });
                         widgetProps[fieldName] = computed(() => {
+                            // TODO: needs to pass in app and model for WidgetMOdel
                             const baseProps = {
                                 ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
                                 ...(defaultWidgetProps[fieldDetail.type] || {}),
                             };
-                            // if (fieldDetail.choices) {
-                            //     if (Array.isArray(fieldDetail.choices)) {
-                            //             baseProps.options = fieldDetail.choices
-                            //         }
-                            //     else {
-                            //         const appModelKey = getAppModelDotName({ app: props.app, model: props.model });
-                            //         modelChoicesStore.initializeChoice(props.app, props.model, fieldName);
-                            //         baseProps.options = internalState.choices[appModelKey][fieldName]
-                            //         baseProps.fetchOptions = async () => modelChoicesStore.fetchChoices(props.app, props.model, fieldName);
-                            //     }
-                            // }
+                            console.log("fieldDetail: ", fieldDetail);
+                            if (fieldDetail.choices) {
+                                if (Array.isArray(fieldDetail.choices)) {
+                                    baseProps.options = fieldDetail.choices;
+                                }
+                                // else {
+                                //     const appModelKey = getAppModelDotName({ app: props.app, model: props.model });
+                                //     modelChoicesStore.initializeChoice(props.app, props.model, fieldName);
+                                //     baseProps.options = internalState.choices[appModelKey][fieldName]
+                                //     baseProps.fetchOptions = async () => modelChoicesStore.fetchChoices(props.app, props.model, fieldName);
+                                // }
+                                // modelChoicesStore.fetchChoices(props.app, props.model, fieldName);
+                            }
                             return baseProps;
                         });
                     });

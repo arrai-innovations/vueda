@@ -13,8 +13,21 @@ const props = defineProps({
         default: undefined,
     },
 });
+const preprocessGet = (value) => {
+    if (typeof value === "string") {
+        return new Date(value);
+    }
+    return value;
+};
+const preprocessSet = (value) => {
+    if (value instanceof Date) {
+        return value.toISOString().split("T")[0];
+    }
+    return value;
+};
+
 const emit = defineEmits([...FIELD_EMITS]);
-const fieldContext = useField(props, emit);
+const fieldContext = useField(props, emit, { preprocessGet, preprocessSet });
 const valueAsDate = computed(() => {
     const value = fieldContext.state.value;
     if (value) {

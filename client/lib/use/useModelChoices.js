@@ -70,7 +70,7 @@ export function useModelChoices(app, model, field, isActive) {
                 loadingError.setLoading();
                 try {
                     originalChoices.value = toRef(modelChoicesStore.choices, getAppModelDotName({ app, model }));
-                    await modelChoicesStore.fetchChoices(app, model, field);
+                    // await modelChoicesStore.fetchChoices(app, model, field);
                 } catch (e) {
                     loadingError.setError(e);
                 } finally {

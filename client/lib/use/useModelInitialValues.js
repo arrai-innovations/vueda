@@ -23,7 +23,7 @@ const builtInTypes = {
     ManyToManyField: "",
     OneToOneField: "",
     JSONField: null,
-    ArrayField: null,
+    ArrayField: undefined,
     BinaryField: "",
     FilePathField: "",
     IPAddressField: "",
@@ -43,6 +43,12 @@ const builtInTypes = {
     ManyRelatedField: null,
 };
 
+const getFieldInitialValue = (fieldDetail) => {
+    if (fieldDetail.many) {
+        return undefined;
+    }
+    return builtInTypes[fieldDetail.type];
+};
 /**
  * @typedef {import("vue").DeepReadonly<import("vue").Ref<{[key: string]: any}>>} InitialValues
  */
@@ -70,7 +76,7 @@ export function useModelInitialValues(app, model, fields) {
                 const newInitialValues = {};
                 Object.entries(rawNewFieldDetails).forEach(([fieldKey, fieldDetail]) => {
                     if (rawNewFields.includes(fieldKey) && fieldKey !== "pk") {
-                        newInitialValues[fieldKey] = builtInTypes[fieldDetail.type];
+                        newInitialValues[fieldKey] = getFieldInitialValue(fieldDetail);
                     }
                 });
                 if (!isEqual(initialValues.value, newInitialValues)) {

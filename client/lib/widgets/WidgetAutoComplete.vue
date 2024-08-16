@@ -25,10 +25,6 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    options: {
-        type: Array,
-        required: true,
-    },
     label: {
         type: String,
         default: "",
@@ -36,10 +32,6 @@ const props = defineProps({
     variant: {
         type: String,
         default: "default",
-    },
-    fetchOptions: {
-        type: Function,
-        default: undefined,
     },
     searchKey: {
         type: String,
@@ -49,15 +41,9 @@ const props = defineProps({
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useComputedClasses(vuedaTailwind.WidgetAutoComplete, widgetContext.state);
-const listSearch = ref(null);
+const listSearch = ref("");
+const selectedValue = ref(null);
 
-const modelItem = computed(() => {
-    if (props.options && props.options.length > 0) {
-        const match = props.options?.find((option) => option.value == widgetContext.state.combinedValue);
-        return match ?? widgetContext.state.combinedValue;
-    }
-    return undefined;
-});
 const modelListProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
@@ -69,36 +55,56 @@ const modelListProps = reactive({
     },
     listArgs: {
         [props.searchKey]: listSearch,
+        id: computed(() => {
+            if (!listSearch.value) {
+                return selectedValue.value ?? undefined;
+            }
+            return undefined;
+        }),
     },
-    intendToList: computed(() => listSearch.value),
+    intendToList: computed(() => listSearch.value || widgetContext.state.combinedValue),
 });
 const modelListInstance = useList({
     props: modelListProps,
 });
 const filteredOptions = computed(() => {
-    return modelListInstance.state.loading ? [] : modelListInstance.state.objects;
+    if (modelListInstance.state.loading) {
+        return [];
+    }
+    return Object.entries(modelListInstance.state.objects).map(([id, obj]) => ({
+        value: id,
+        label: obj.email,
+    }));
 });
-
+const modelItem = computed(() => {
+    let match = null;
+    if (filteredOptions.value && filteredOptions.value.length > 0) {
+        match = filteredOptions.value?.find((option) => option.value == widgetContext.state.combinedValue);
+    }
+    return match ?? widgetContext.state.combinedValue;
+});
 const valueUpdated = (selected) => {
     if (selected && typeof selected === "object" && "value" in selected) {
         widgetContext.state.combinedValue = selected.value;
+        selectedValue.value = selected.value;
     } else if (props.multiple && selected && selected.length) {
         const selectedIds = selected.flatMap((i) => i.value);
         widgetContext.state.combinedValue = selectedIds;
+        selectedValue.value = null;
     } else {
         widgetContext.state.combinedValue = selected;
+        selectedValue.value = null;
     }
 };
 const search = (event) => {
     setTimeout(() => {
-        if (!event.query.trim().length) {
+        if (event.query.trim().length) {
             listSearch.value = event.query;
         }
     }, 250);
 };
 </script>
 <template>
-    props.options {{ props.options }}
     <div :class="theme('root')">
         <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
             <template v-if="$slots.label" #label="slotProps">
