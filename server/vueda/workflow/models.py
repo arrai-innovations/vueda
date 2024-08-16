@@ -34,6 +34,7 @@ class Workflow(SimpleHistoryModelMixin, Lookup):
     # was for the deleted workflow, so we can add that workflow to the migration to delete.
     historical_app_label = models.CharField(max_length=255, blank=True)
     historical_model = models.CharField(max_length=255, blank=True)
+    formatted_name = None  # Workflow doesn't need a formatted name.
 
     class Meta(BaseModelMeta):
         default_related_name = "workflows"

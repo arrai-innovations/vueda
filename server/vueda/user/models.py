@@ -7,6 +7,7 @@ from django.contrib.auth.models import PermissionsMixin
 from django.contrib.auth.models import UserManager
 from django.contrib.postgres.indexes import GinIndex
 from django.db import models
+from django.db.models import F
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
@@ -86,6 +87,12 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, PermissionsMixin
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["name"]
+
+    formatted_name = models.GeneratedField(
+        expression=F(EMAIL_FIELD),
+        output_field=models.CharField(),
+        db_persist=True,
+    )
 
     objects = VUEDAUserManager()
 

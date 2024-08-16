@@ -8,12 +8,28 @@ class BaseModelMeta:
 class Lookup(models.Model):
     code = models.CharField(max_length=255, unique=True, db_index=True)
     name = models.CharField(max_length=255)
+    formatted_name = models.GeneratedField(
+        expression=models.F("name"),
+        output_field=models.CharField(),
+        db_persist=True,
+    )
 
     class Meta:
         abstract = True
 
     def __str__(self):
         return f"name: {self.name}, code:{self.code}"
+
+
+class VuedaBaseModel(models.Model):
+    formatted_name = models.GeneratedField(
+        expression=models.F("name"),
+        output_field=models.CharField(),
+        db_persist=True,
+    )
+
+    class Meta:
+        abstract = True
 
 
 class ActivatableBaseModel(models.Model):

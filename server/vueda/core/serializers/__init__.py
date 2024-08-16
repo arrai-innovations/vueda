@@ -95,7 +95,7 @@ class VuedaSerializer(
     class Meta:
         expandable_fields = {}
         expandable_fields_data = {}
-        fields = []
+        fields = ["formatted_name"]
 
     @classmethod
     def populate_expandable_fields_defaults(cls, expandable_fields_data):
@@ -134,4 +134,9 @@ class VuedaSerializer(
 
 
 class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):
-    pass
+    class Meta(SimpleHistorySerializerMixin.Meta, VuedaSerializer.Meta):
+        expandable_fields = SimpleHistorySerializerMixin.Meta.expandable_fields
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+        expandable_fields_data = SimpleHistorySerializerMixin.Meta.expandable_fields_data
+        expandable_fields_data.update(VuedaSerializer.Meta.expandable_fields_data)
+        fields = VuedaSerializer.Meta.fields + SimpleHistorySerializerMixin.Meta.fields
