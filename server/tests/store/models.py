@@ -14,11 +14,11 @@ from django.db.models.functions import Concat
 from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
 from vueda.core.models import VuedaBaseModel
-from vueda.history.models import SimpleHistoryModelMixin
+from vueda.history.models import VuedaHistoryBaseModel
 from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class Customer(HasWorkflowModelMixin, SimpleHistoryModelMixin, VuedaBaseModel):
+class Customer(HasWorkflowModelMixin, VuedaHistoryBaseModel):
     user = models.OneToOneField(get_user_model(), on_delete=models.PROTECT)
 
     formatted_name = None  # noqa T101 - TODO: Setup generated field as F('user__email')
@@ -30,7 +30,7 @@ class Customer(HasWorkflowModelMixin, SimpleHistoryModelMixin, VuedaBaseModel):
         return self.user.email
 
 
-class Distributor(SimpleHistoryModelMixin, VuedaBaseModel):
+class Distributor(VuedaHistoryBaseModel):
     name = models.CharField(max_length=255)
 
     class Meta(BaseModelMeta):
@@ -58,14 +58,14 @@ class SpecialCare(VuedaBaseModel):
         db_persist=True,
     )
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaBaseModel.Meta):
         pass
 
     def __str__(self):
         return self.field_that_contains_the_name
 
 
-class Product(SimpleHistoryModelMixin, VuedaBaseModel):
+class Product(VuedaHistoryBaseModel):
     distributor = models.ForeignKey(Distributor, on_delete=models.PROTECT)
     name = models.CharField(max_length=255)
     disabled = models.BooleanField(db_default=False)
@@ -98,7 +98,7 @@ class OptionType(Lookup):
         return self.name
 
 
-class ProductOption(SimpleHistoryModelMixin, VuedaBaseModel):
+class ProductOption(VuedaHistoryBaseModel):
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     option_type = models.ForeignKey(OptionType, null=True, on_delete=models.PROTECT)
     name = models.CharField(max_length=255)
@@ -124,7 +124,7 @@ class Cart(VuedaBaseModel):
 
     formatted_name = None  # noqa T101 - TODO: Setup generated field as F('customer__user__email')
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaBaseModel.Meta):
         pass
 
     def __str__(self):
@@ -143,7 +143,7 @@ class CartItem(VuedaBaseModel):
         db_persist=True,
     )
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaBaseModel.Meta):
         default_related_name = "cart_items"
 
     def __str__(self):
@@ -158,7 +158,7 @@ class OrderState(Lookup):
         return self.name
 
 
-class CustomerOrder(HasWorkflowModelMixin, SimpleHistoryModelMixin, VuedaBaseModel):
+class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryBaseModel):
     order_number = models.DecimalField(max_digits=7, decimal_places=0)
     when = models.DateTimeField(auto_now_add=True, verbose_name="Date / Time", db_index=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
@@ -202,7 +202,7 @@ class OrderItem(VuedaBaseModel):
         db_persist=True,
     )
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaBaseModel.Meta):
         verbose_name = "ORDER item"
         verbose_name_plural = "ORDER items"
 
@@ -215,7 +215,7 @@ class InventoryRecordReason(VuedaBaseModel):
     code = models.CharField(max_length=255, db_index=True)
     is_added_reason = models.BooleanField(db_index=True)
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaBaseModel.Meta):
         default_related_name = "inventory_record_reason"
         unique_together = ("code", "is_added_reason")
         verbose_name = "inventory entry reason"
@@ -271,7 +271,7 @@ class InventoryRecord(VuedaBaseModel):
         db_persist=True,
     )
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaBaseModel.Meta):
         verbose_name = "inventory entry"
         verbose_name_plural = "inventory entries"
 

@@ -28,7 +28,7 @@ class VuedaBaseModel(models.Model):
         db_persist=True,
     )
 
-    class Meta:
+    class Meta(BaseModelMeta):
         abstract = True
 
 

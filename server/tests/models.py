@@ -11,10 +11,8 @@ from django.db.models.functions import Concat
 from django.db.models.functions import Extract
 from django.db.models.functions import LPad
 
-from vueda.core.models import BaseModelMeta
-from vueda.core.models import VuedaBaseModel
 from vueda.core.permissions import BaseRowLevelPermissions
-from vueda.history.models import SimpleHistoryModelMixin
+from vueda.history.models import VuedaHistoryBaseModel
 from vueda.user.models import AbstractVUEDAUser
 
 
@@ -23,7 +21,7 @@ class User(AbstractVUEDAUser):
         default_related_name = "users"
 
 
-class Employee(SimpleHistoryModelMixin, VuedaBaseModel):
+class Employee(VuedaHistoryBaseModel):
     user = models.ForeignKey("User", on_delete=models.CASCADE)
     employee_number = models.CharField(max_length=255)
 
@@ -33,11 +31,11 @@ class Employee(SimpleHistoryModelMixin, VuedaBaseModel):
         db_persist=True,
     )
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaHistoryBaseModel.Meta):
         default_related_name = "employees"
 
 
-class Timesheet(SimpleHistoryModelMixin, VuedaBaseModel):
+class Timesheet(VuedaHistoryBaseModel):
     period_start = models.DateField()
     period_end = models.DateField()
     employee = models.ForeignKey("Employee", on_delete=models.CASCADE)
@@ -65,7 +63,7 @@ class Timesheet(SimpleHistoryModelMixin, VuedaBaseModel):
         db_persist=True,
     )
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaHistoryBaseModel.Meta):
         default_related_name = "timesheets"
 
     def __str__(self):
@@ -74,7 +72,7 @@ class Timesheet(SimpleHistoryModelMixin, VuedaBaseModel):
         )
 
 
-class TimesheetEntry(SimpleHistoryModelMixin, VuedaBaseModel):
+class TimesheetEntry(VuedaHistoryBaseModel):
     timesheet = models.ForeignKey("Timesheet", on_delete=models.CASCADE)
     date = models.DateField()
     hours = models.DecimalField(max_digits=5, decimal_places=2)
@@ -94,16 +92,16 @@ class TimesheetEntry(SimpleHistoryModelMixin, VuedaBaseModel):
         db_persist=True,
     )
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaHistoryBaseModel.Meta):
         default_related_name = "timesheet_entries"
 
 
-class Product(SimpleHistoryModelMixin, VuedaBaseModel):
+class Product(VuedaHistoryBaseModel):
     name = models.CharField(max_length=255)
     available_for_sale = models.BooleanField(db_default=True)
     buzz_words = ArrayField(models.CharField(max_length=255, blank=True), null=True)
 
-    class Meta(SimpleHistoryModelMixin.Meta, VuedaBaseModel.Meta):
+    class Meta(VuedaHistoryBaseModel.Meta):
         default_related_name = "products"
 
     class RowLevelPermissions(BaseRowLevelPermissions):

@@ -3,6 +3,7 @@ from django.db.models import Max
 from simple_history.models import HistoricalRecords
 
 from vueda.core.models import BaseModelMeta
+from vueda.core.models import VuedaBaseModel
 
 
 class SimpleHistoryManager(models.Manager):
@@ -15,5 +16,10 @@ class SimpleHistoryModelMixin(models.Model):
 
     history = HistoricalRecords(related_name="history_records", inherit=True)
 
+    class Meta:
+        abstract = True
+
+
+class VuedaHistoryBaseModel(SimpleHistoryModelMixin, VuedaBaseModel):
     class Meta(BaseModelMeta):
         abstract = True
