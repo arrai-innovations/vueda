@@ -3,9 +3,10 @@
 from django.db import models
 
 from vueda.core.models import BaseModelMeta
+from vueda.core.models import VuedaBaseModel
 
 
-class NoExpandableFieldsData(models.Model):
+class NoExpandableFieldsData(VuedaBaseModel):
     name = models.CharField(max_length=255)
 
     class Meta(BaseModelMeta):
@@ -14,3 +15,29 @@ class NoExpandableFieldsData(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class NoNameField(VuedaBaseModel):
+    the_name_field = models.CharField(max_length=255)
+
+    formatted_name = None
+
+    class Meta(BaseModelMeta):
+        verbose_name = "No name field"
+        verbose_name_plural = "No name field"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class RelatedObjectsAreMissingData(VuedaBaseModel):
+    no_name = models.ManyToManyField(NoNameField, blank=True)
+
+    formatted_name = None
+
+    class Meta(BaseModelMeta):
+        verbose_name = "Related objects are missing data"
+        verbose_name_plural = "Related objects are missing data"
+
+    def __str__(self):
+        return self.pk
