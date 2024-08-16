@@ -438,7 +438,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         if label is None:
             label = django_filters.utils.label_for_filter(
                 model, filter_obj.field_name, filter_obj.lookup_expr, filter_obj.exclude
-            )
+            ).title()
         return label
 
     @staticmethod
