@@ -166,13 +166,10 @@ const computedLookupExpressionOptions = computed(() => {
 watch(
     () => toRaw(unref(computedLookupExpressionOptions)),
     (newLookupExprs, oldLookupExprs) => {
-        console.log("watching lookup expressions", newLookupExprs, oldLookupExprs);
         if (!isEqual(newLookupExprs, oldLookupExprs)) {
             if (newLookupExprs.length === 1) {
-                console.log("updating lookup expression", newLookupExprs[0]);
                 formContext.updateValue("lookupExpression", newLookupExprs[0].value);
             } else {
-                console.log("clearing lookup expression");
                 formContext.updateValue("lookupExpression", null);
             }
         }
