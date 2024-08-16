@@ -259,25 +259,31 @@ const displayedWidgetProps = computed(() => {
         </form>
     </Dialog>
     <div class="flex flex-wrap gap-1 w-full my-1">
-        <slot label="Add Filter" name="button" verb="addFilter" @click="addFilters">
-            <Button
-                class="whitespace-nowrap grow sm:grow-0"
-                label="Add Filter"
-                severity="secondary"
-                @click="addFilters"
-            />
-        </slot>
+        <template v-if="filterForm.filterableOptions?.length">
+            <slot label="Add Filter" name="button" verb="addFilter" @click="addFilters">
+                <Button
+                    class="whitespace-nowrap grow sm:grow-0"
+                    label="Add Filter"
+                    severity="secondary"
+                    @click="addFilters"
+                />
+            </slot>
+        </template>
         <template v-for="filter in addedFilters" :key="filter.field">
             <slot
-                :label="`${filter.field.label} by ${filter.expression.label} for ${filter.value}`"
-                name="filter"
+                :label="`${filter.value}`"
+                name="button"
+                severity="info"
+                :title="`Remove filter for ${filter.field.label} by ${filter.expression.label} for ${filter.value}`"
+                verb="removeFilter"
                 v-bind="filter"
                 @click.prevent="() => removeFilter(filter)"
             >
                 <Button
                     class="grow sm:grow-0"
-                    :label="`${filter.field.label} by ${filter.expression.label} for ${filter.value}`"
+                    :label="`${filter.value}`"
                     severity="info"
+                    :title="`Remove filter for ${filter.field.label} by ${filter.expression.label} for ${filter.value}`"
                     @click.prevent="removeFilter(filter)"
                 />
             </slot>
