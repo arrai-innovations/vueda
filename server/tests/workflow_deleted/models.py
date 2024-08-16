@@ -3,11 +3,12 @@
 from django.db import models
 
 from vueda.core.models import BaseModelMeta
+from vueda.core.models import VuedaBaseModel
 from vueda.history.models import SimpleHistoryModelMixin
 from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class WorkflowDeleted(HasWorkflowModelMixin, SimpleHistoryModelMixin, models.Model):
+class WorkflowDeleted(HasWorkflowModelMixin, SimpleHistoryModelMixin, VuedaBaseModel):
     name = models.CharField(max_length=255)
 
     class Meta(BaseModelMeta):

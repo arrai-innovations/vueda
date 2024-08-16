@@ -22,6 +22,12 @@ class Migration(migrations.Migration):
             name="WorkflowAdded",
             fields=[
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True, expression=models.F("name"), output_field=models.CharField()
+                    ),
+                ),
                 ("name", models.CharField(max_length=255)),
             ],
             options={
@@ -36,6 +42,12 @@ class Migration(migrations.Migration):
             name="HistoricalWorkflowAdded",
             fields=[
                 ("id", models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID")),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True, expression=models.F("name"), output_field=models.CharField()
+                    ),
+                ),
                 ("name", models.CharField(max_length=255)),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
                 ("history_date", models.DateTimeField(db_index=True)),

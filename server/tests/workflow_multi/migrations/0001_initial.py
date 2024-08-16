@@ -22,6 +22,12 @@ class Migration(migrations.Migration):
             name="WorkflowMulti",
             fields=[
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True, expression=models.F("description"), output_field=models.CharField()
+                    ),
+                ),
                 ("is_completed", models.BooleanField(default=False)),
                 ("due_date", models.DateField(blank=True, null=True)),
                 ("priority", models.IntegerField()),
