@@ -1,13 +1,13 @@
 # Serializers that produce some kind of error when fetching their model info.
 from rest_framework import serializers
 
-from tests.erring.models import NoExpandableFieldsData
+from tests.erring import models as my_models
 from vueda.core.serializers import VuedaSerializer
 
 
 class NoExpandableFieldsDataSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
-        model = NoExpandableFieldsData
+        model = my_models.NoExpandableFieldsData
         fields = [
             "id",
         ] + VuedaSerializer.Meta.fields
@@ -18,3 +18,12 @@ class NoExpandableFieldsDataSerializer(VuedaSerializer):
 
     def get_test_function(self, instance):
         return ["Test"]
+
+
+class RelatedObjectsAreMissingDataSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.RelatedObjectsAreMissingData
+        fields = [
+            "id",
+            "no_name",
+        ] + VuedaSerializer.Meta.fields
