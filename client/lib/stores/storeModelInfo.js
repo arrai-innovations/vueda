@@ -310,6 +310,10 @@ export const storeModelInfo = defineStore({
                         }
                         return data;
                     })
+                    .catch((e) => {
+                        // we need to cache the error, otherwise we'll ddos the server
+                        this.infos[key] = e;
+                    })
                     .finally(() => {
                         delete this.promises[key];
                     });
