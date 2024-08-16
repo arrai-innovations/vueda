@@ -4,10 +4,10 @@ import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { getAppModelDotName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import { availableFields, availableWidgets, filterExpressions } from "@vueda/utils/filterLookups.js";
-import { computedAsync } from "@vueuse/core";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import { computed, effectScope, reactive, readonly, ref, shallowReactive, shallowRef, toRef, watch } from "vue";
+import { deepUnref } from "vue-deepunref";
 
 const filterFieldClassToFieldComponent = {
     IntegerRangeField: availableFields.FieldRange,
@@ -125,9 +125,13 @@ const getWidgetComponent = (field_class, choices) => {
 };
 
 /**
+ * @typedef {{[fieldName:string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} FilterInfoByName
+ */
+
+/**
  * @typedef {object} UseFilterFormRaw
- * @property {import('vue').Ref<import('@vueda/stores/storeModelConfig.js').ModelConfig.filterables>} filterables - The fields to display
- * @property {import('vue').Ref<{[fieldName:string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}>} filterableDetails - The field details
+ * @property {string[]} filterables - The fields to display
+ * @property {import('vue').Ref<FilterInfoByName>} filterableDetails - The field details
  * @property {{[fieldName:string]:import('vue').Component}} fieldComponents -
  * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps -
  * @property {{[fieldName:string]: import('vue').Component}} widgetComponents - The widget components
@@ -143,8 +147,8 @@ const getWidgetComponent = (field_class, choices) => {
  * @property {string} app - The app name
  * @property {string} model - The model name
  * @property {string|undefined} view - The view name
- * @property {import('@vueda/stores/storeModelConfig.js').ModelConfig.filterables} filterables - The fields to display
- * @property {{[fieldName:string]: {[key:string]: any}}|null} filterableDetails - The field details
+ * @property {string[]|undefined} filterables - The fields to display
+ * @property {FilterInfoByName|undefined} filterableDetails - The field details
  * @property {{[fieldName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}|undefined} fieldComponents - The field components to use, if different from the default, by filterable name
  * @property {{[fieldName:string]: {[key:string]: any}}|undefined} fieldProps - The field props to use, if different from the default, by filterable name
  * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}|undefined} widgetComponents - The widget components to use, if different from the default, by filterable name
@@ -171,27 +175,11 @@ export default function useFilterForm(props) {
             widgetComponents: shallowRef({}),
             widgetProps: reactive({}),
             filterableOptions: ref([]), // the options for the user to pick from
+            widgetOptions: ref([]),
         },
     );
 
     const appModelKey = computed(() => getAppModelDotName({ app: props.app, model: props.model }));
-
-    watch(
-        [() => modelChoicesStore.choices[appModelKey.value], toRef(state, "widgetProps")],
-        ([fieldChoices]) => {
-            if (fieldChoices) {
-                for (const field in fieldChoices) {
-                    const choices = fieldChoices[field]?.results || [];
-                    if (state.widgetProps[field]) {
-                        if (!isEqual(state.widgetProps[field]?.options, choices)) {
-                            state.widgetProps[field].options = choices;
-                        }
-                    }
-                }
-            }
-        },
-        { immediate: true, deep: true },
-    );
 
     const assignStateObjectsIfChanged = (args) => {
         for (const key in args) {
@@ -204,44 +192,44 @@ export default function useFilterForm(props) {
     // resolve the names and detail overrides from props over config
     watch(
         [
-            () => modelConfig.config.filterables,
-            () => modelConfig.config.filterableDetails,
-            toRef(props, "filterables"),
-            toRef(props, "filterableDetails"),
+            () => deepUnref(modelConfig.config.filterables),
+            () => deepUnref(modelConfig.config.filterableDetails),
+            () => deepUnref(props.filterables),
+            () => deepUnref(props.filterableDetails),
         ],
         (
-            [newConfigFilterables, newConfigFilterableDetails, newFilterables, newFilterableDetails],
-            [oldConfigFilterables, oldConfigFilterableDetails, oldFilterables, oldFilterableDetails],
+            [newConfigFilterables, newConfigFilterableDetails, newPropsFilterables, newPropsFilterableDetails],
+            [oldConfigFilterables, oldConfigFilterableDetails, oldPropsFilterables, oldPropsFilterableDetails],
         ) => {
             // performance ordering the equality checks, lists of strings before objects
             if (
-                isEqual(newFilterables, oldFilterables) &&
+                isEqual(newPropsFilterables, oldPropsFilterables) &&
                 isEqual(newConfigFilterables, oldConfigFilterables) &&
-                isEqual(newFilterableDetails, oldFilterableDetails) &&
+                isEqual(newPropsFilterableDetails, oldPropsFilterableDetails) &&
                 isEqual(newConfigFilterableDetails, oldConfigFilterableDetails)
             ) {
                 return;
             }
             // props has priority over config
-            const desiredFilterables = newFilterables || newConfigFilterables;
+            const desiredFilterables = newPropsFilterables || newConfigFilterables;
             // detail fields merge at the property level
             const desiredFilterableDetails = {};
             const {
                 addedKeys: overrideKeys,
                 sameKeys: bothKeys,
                 removedKeys: defaultKeys,
-            } = keyDiff(Object.keys(newFilterableDetails || {}), Object.keys(newConfigFilterableDetails || {}));
+            } = keyDiff(Object.keys(newPropsFilterableDetails || {}), Object.keys(newConfigFilterableDetails || {}));
             for (const key of bothKeys) {
                 desiredFilterableDetails[key] = {
                     ...(newConfigFilterableDetails?.[key] || {}),
-                    ...newFilterableDetails?.[key],
+                    ...newPropsFilterableDetails?.[key],
                 };
             }
             for (const key of defaultKeys) {
                 desiredFilterableDetails[key] = newConfigFilterableDetails?.[key];
             }
             for (const key of overrideKeys) {
-                desiredFilterableDetails[key] = newFilterableDetails?.[key];
+                desiredFilterableDetails[key] = newPropsFilterableDetails?.[key];
             }
             assignStateObjectsIfChanged({
                 filterables: desiredFilterables,
@@ -252,7 +240,7 @@ export default function useFilterForm(props) {
 
     // resolve the components and props from the filterables and filterableDetails
     watch(
-        [() => state.filterables, () => state.filterableDetails],
+        [() => deepUnref(state.filterables), () => deepUnref(state.filterableDetails)],
         ([filterables, filterableDetails]) => {
             if (filterables?.length) {
                 const fieldComponents = {};
@@ -268,48 +256,54 @@ export default function useFilterForm(props) {
                     }
                     const lookupExpressions = [];
                     for (const expression of filterExpressions) {
-                        // todo: the data on the server will be getting refactored, hopefully for less indirection
-                        if (
-                            filterableDetail.filters.some((container) => {
-                                return container.lookupExprs.includes(expression.value);
-                            })
-                        ) {
+                        if (filterableDetail.lookupExprs.includes(expression.value)) {
                             lookupExpressions.push(expression);
                         }
                     }
+                    const lookupExpressionsToParams = {};
                     for (const expression of lookupExpressions) {
                         es.run(() => {
                             const key = `${filterableName}__${expression.value}`;
-                            const fieldComponent = computed(
+                            lookupExpressionsToParams[expression.value] =
+                                lookupExpressions.length > 1 ? key : filterableName;
+                            if (filterableDetail.nameSuffixes?.length) {
+                                lookupExpressionsToParams[expression.value] = filterableDetail.nameSuffixes.map(
+                                    (suffix) => {
+                                        return lookupExpressions.length > 1
+                                            ? `${filterableName}${suffix}__${expression.value}`
+                                            : `${filterableName}${suffix}`;
+                                    },
+                                );
+                            }
+                            fieldComponents[key] = computed(
                                 () =>
-                                    props.fieldComponents[filterableName] ||
-                                    getFieldComponent(filterableDetail.field_class),
+                                    props.fieldComponents?.[filterableName] ||
+                                    getFieldComponent(filterableDetail.fieldClass),
                             );
-                            fieldComponents[key] = computedAsync(async () => fieldComponent.value(), null);
                             fieldProps[key] = computed(() => {
                                 const returnProps = {
-                                    ...omit(filterableDetail, ["field_class", "type"]),
-                                    type: filterableDetail.input_type,
+                                    ...omit(filterableDetail, ["fieldClass", "type"]),
+                                    type: filterableDetail.inputType,
                                 };
                                 if (!returnProps.label) {
                                     returnProps.label = memoizedStartCase(filterableName);
                                 }
-                                const includesTime = filterableDetail.field_class.includes("Time");
-                                const includesDate = filterableDetail.field_class.includes("Date");
-                                const includesRange = filterableDetail.field_class.includes("Range");
+                                const includesTime = filterableDetail.fieldClass.includes("Time");
+                                const includesDate = filterableDetail.fieldClass.includes("Date");
+                                const includesRange = filterableDetail.fieldClass.includes("Range");
                                 if (includesRange && (includesDate || includesTime)) {
                                     returnProps.rangeSuffix = ["after", "before"];
                                 }
                                 return returnProps;
                             });
-                            const widgetComponent = computed(() => {
-                                props.widgetProps[filterableName] ||
-                                    getWidgetComponent(filterableDetail.field_class, filterableDetails.choices);
-                            });
-                            widgetComponents[key] = computedAsync(async () => widgetComponent.value(), null);
+                            widgetComponents[key] = computed(
+                                () =>
+                                    props.widgetComponents?.[filterableName] ||
+                                    getWidgetComponent(filterableDetail.fieldClass, filterableDetails.choices),
+                            );
                             widgetProps[key] = computed(() => {
                                 const returnProps = {};
-                                const fieldClass = filterableDetail.field_class;
+                                const fieldClass = filterableDetail.fieldClass;
                                 if (fieldClass === "BooleanField") {
                                     returnProps.options = filterableDetail.options || [
                                         { label: "True", value: true },
@@ -330,11 +324,21 @@ export default function useFilterForm(props) {
                                         returnProps.showTime = true;
                                     }
                                 }
+                                if (filterableDetails.choices === true) {
+                                    returnProps.options = toRef(modelChoicesStore.choices, appModelKey.value);
+                                } else if (filterableDetails.choices) {
+                                    returnProps.options = filterableDetails.choices;
+                                }
                                 return returnProps;
                             });
                         });
                     }
-                    if (filterableDetail.choices) {
+                    options.push({
+                        value: filterableName,
+                        label: filterableDetail.label || memoizedStartCase(filterableName),
+                        lookupExpressionsToParams,
+                    });
+                    if (filterableDetail.choices === true) {
                         // noinspection JSIgnoredPromiseFromCall
                         modelChoicesStore.fetchChoices(props.app, props.model, filterableName);
                     }

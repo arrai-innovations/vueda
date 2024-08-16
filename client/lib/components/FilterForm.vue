@@ -12,7 +12,7 @@ import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import { useToast } from "primevue/usetoast";
-import { computed, nextTick, ref, unref, watch } from "vue";
+import { computed, nextTick, ref, toRaw, unref, watch } from "vue";
 
 const listArgs = defineModel({
     type: Object,
@@ -54,7 +54,7 @@ const addedFilters = ref([]);
 const formContext = useForm({
     initialValues: {
         filterField: null,
-        filterExpression: null,
+        lookupExpression: null,
         filterValue: null,
     },
 });
@@ -96,8 +96,12 @@ const confirmAddField = async () => {
             return;
         }
         addedFilters.value.push({
-            field: filterForm.filterables.find((f) => f.name === formContext.state.values.filterField),
-            expression: filterExpressions.find((e) => e.value === formContext.state.values.filterExpression),
+            field: {
+                name: formContext.state.values.filterField,
+                ...filterForm.filterableDetails[formContext.state.values.filterField],
+            },
+            expression: filterExpressions.find((e) => e.value === formContext.state.values.lookupExpression),
+            param: selectedFilterableOption.value.lookupExpressionsToParams[formContext.state.values.lookupExpression],
             value: formContext.state.values.filterValue,
         });
         showFilters.value = false;
@@ -120,10 +124,10 @@ const removeFilter = (filter) => {
 };
 watch(
     addedFilters,
-    () => {
+    (newAddedFilters) => {
         const desiredListArgs = {};
-        for (const filter of addedFilters.value) {
-            desiredListArgs[`${filter.field.name}__${filter.expression.value}`] = filter.value;
+        for (const filter of newAddedFilters) {
+            desiredListArgs[`${filter.param}`] = filter.value;
         }
         if (!isEqual(desiredListArgs, listArgs.value)) {
             listArgs.value = desiredListArgs;
@@ -133,16 +137,55 @@ watch(
         deep: true,
     },
 );
-const computedFilterExpressions = computed(() => {
-    return filterExpressions.filter((e) => {
-        return filterForm.filterables.some((f) => {
-            if (f.name === formContext.state.values.filterField) {
-                return f.filters?.some((filter) => {
-                    return filter.lookupExprs.includes(e.value);
-                });
-            }
-        });
+const selectedFilterableOption = computed(() => {
+    return filterForm.filterableOptions.find((o) => o.value === formContext.state.values.filterField);
+});
+const computedLookupExpressionOptions = computed(() => {
+    return Object.keys(selectedFilterableOption.value?.lookupExpressionsToParams || {}).map((value) => {
+        return filterExpressions.find((e) => e.value === value);
     });
+});
+watch(
+    () => toRaw(unref(computedLookupExpressionOptions)),
+    (newLookupExprs, oldLookupExprs) => {
+        console.log("watching lookup expressions", newLookupExprs, oldLookupExprs);
+        if (!isEqual(newLookupExprs, oldLookupExprs)) {
+            if (newLookupExprs.length === 1) {
+                console.log("updating lookup expression", newLookupExprs[0]);
+                formContext.updateValue("lookupExpression", newLookupExprs[0].value);
+            } else {
+                console.log("clearing lookup expression");
+                formContext.updateValue("lookupExpression", null);
+            }
+        }
+    },
+    {
+        immediate: true,
+    },
+);
+const displayedFieldComponent = computed(() => {
+    return unref(
+        filterForm.fieldComponents[
+            `${formContext.state.values.filterField}__${formContext.state.values.lookupExpression}`
+        ],
+    );
+});
+const displayedFieldProps = computed(() => {
+    return unref(
+        filterForm.fieldProps[`${formContext.state.values.filterField}__${formContext.state.values.lookupExpression}`],
+    );
+});
+const displayedWidgetComponent = computed(() => {
+    return unref(
+        filterForm.widgetComponents[
+            `${formContext.state.values.filterField}__${formContext.state.values.lookupExpression}`
+        ],
+    );
+});
+const displayedWidgetProps = computed(() => {
+    return unref(
+        filterForm.widgetProps[`${formContext.state.values.filterField}__${formContext.state.values.lookupExpression}`],
+    );
 });
 </script>
 
@@ -174,8 +217,12 @@ const computedFilterExpressions = computed(() => {
                 </field-string>
             </div>
             <div>
-                <field-string label="Filter Expression" name="filterExpression" required>
-                    <widget-radio option-label="label" option-value="value" :options="computedFilterExpressions" />
+                <field-string label="Lookup Expression" name="lookupExpression" required>
+                    <widget-radio
+                        option-label="label"
+                        option-value="value"
+                        :options="computedLookupExpressionOptions"
+                    />
                     <form-chores>
                         <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                             <slot :name="slot" v-bind="slotProps || {}" />
@@ -185,41 +232,17 @@ const computedFilterExpressions = computed(() => {
             </div>
             <div>
                 <component
-                    :is="
-                        filterForm.fieldComponents[
-                            `${formContext.state.values.filterField}__${formContext.state.values.filterExpression}`
-                        ]
-                    "
-                    v-if="
-                        filterForm.fieldComponents[
-                            `${formContext.state.values.filterField}__${formContext.state.values.filterExpression}`
-                        ]
-                    "
-                    v-bind="
-                        filterForm.fieldProps[
-                            `${formContext.state.values.filterField}__${formContext.state.values.filterExpression}`
-                        ]
-                    "
+                    :is="displayedFieldComponent"
+                    v-if="displayedFieldComponent"
+                    v-bind="displayedFieldProps"
                     label="Filter Value"
                     name="filterValue"
                     required
                 >
                     <component
-                        :is="
-                            filterForm.widgetComponents[
-                                `${formContext.state.values.filterField}__${formContext.state.values.filterExpression}`
-                            ]
-                        "
-                        v-if="
-                            filterForm.widgetComponents[
-                                `${formContext.state.values.filterField}__${formContext.state.values.filterExpression}`
-                            ]
-                        "
-                        v-bind="
-                            filterForm.widgetProps[
-                                `${formContext.state.values.filterField}__${formContext.state.values.filterExpression}`
-                            ]
-                        "
+                        :is="displayedWidgetComponent"
+                        v-if="displayedWidgetComponent"
+                        v-bind="displayedWidgetProps"
                     />
                     <form-chores>
                         <template v-for="(_, slot) in $slots" #[slot]="slotProps">
@@ -236,7 +259,7 @@ const computedFilterExpressions = computed(() => {
         </form>
     </Dialog>
     <div class="flex flex-wrap gap-1 w-full my-1">
-        <slot :click="addFilters" label="Add Filter" name="button" verb="addFilter">
+        <slot label="Add Filter" name="button" verb="addFilter" @click="addFilters">
             <Button
                 class="whitespace-nowrap grow sm:grow-0"
                 label="Add Filter"
@@ -246,10 +269,10 @@ const computedFilterExpressions = computed(() => {
         </slot>
         <template v-for="filter in addedFilters" :key="filter.field">
             <slot
-                :click="() => removeFilter(filter)"
                 :label="`${filter.field.label} by ${filter.expression.label} for ${filter.value}`"
                 name="filter"
                 v-bind="filter"
+                @click.prevent="() => removeFilter(filter)"
             >
                 <Button
                     class="grow sm:grow-0"
