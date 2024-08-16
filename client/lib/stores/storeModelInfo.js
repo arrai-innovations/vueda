@@ -7,7 +7,9 @@ import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
 
 /**
- * An error for use from the model info store.
+ * An error for use in the model info store.
+ * Extends the FetchError class to include additional context for model information errors.
+ *
  * @extends {FetchError}
  */
 export class ModelInfoError extends FetchError {
@@ -15,7 +17,7 @@ export class ModelInfoError extends FetchError {
      * Creates an instance of ModelInfoError.
      * @param {string} messagePrefix - The prefix for the error message.
      * @param {Response} [response] - The response object associated with the error.
-     * @param {object|string} [responseData] - The data returned in the response.
+     * @param {object|string} [responseData] - The data returned in the response, could be an object or a string.
      */
     constructor(messagePrefix, response, responseData) {
         super(messagePrefix, response, responseData);
@@ -59,13 +61,14 @@ const camelCaseObject = (obj) => {
  * @property {boolean} readOnly - A boolean indicating whether the field is read-only.
  * @property {boolean} required - A boolean indicating whether the field is required.
  * @property {string} helpText - The help text for the field.
- * @property {number} maxValue - The maximum value for the field.
- * @property {number} minValue - The minimum value for the field.
- * @property {number} maxLength - The maximum length for the field.
- * @property {number} minLength - The minimum length for the field.
- * @property {number} maxDigits - The maximum number of digits for the field.
- * @property {number} decimalPlaces - The number of decimal places for the field.
- * @property {{label: string, value: string}[]} choices - The choices for the field.
+ * @property {number} [maxValue] - The maximum value for the field.
+ * @property {number} [minValue] - The minimum value for the field.
+ * @property {number} [maxLength] - The maximum length for the field.
+ * @property {number} [minLength] - The minimum length for the field.
+ * @property {number} [maxDigits] - The maximum number of digits for the field.
+ * @property {number} [decimalPlaces] - The number of decimal places for the field.
+ * @property {boolean|LabelValuePair[]} [choices] - Indicates whether the field has choices. If it does, it's an array of label/value pairs.
+ * @property {boolean} [pk] - Indicates whether the field is a primary key.
  */
 
 /**
@@ -77,7 +80,7 @@ const camelCaseObject = (obj) => {
  * @property {boolean} detail - A boolean indicating whether the action is a detail view.
  * @property {boolean} bulk - A boolean indicating whether the action is a bulk action.
  * @property {string[]} methodNames - An array of HTTP methods (e.g., GET, POST) for the action.
- * @property {{name: string, type: string}[]} parameters - An optional array of parameters required for the action.
+ * @property {string[]} [parameters] - An optional array of string parameters required for the action, typically primary keys.
  */
 
 /**
@@ -85,7 +88,8 @@ const camelCaseObject = (obj) => {
  *
  * @typedef {object} ExpandInfo
  * @property {string} name - The name of the expand field.
- * @property {string[]} fields - An optional array of fields that can be expanded.
+ * @property {string[]} [fields] - An optional array of fields that can be expanded.
+ * @property {{[fieldName: string]: FieldInfo}} [f] - A mapping of field names to FieldInfo objects for the expanded model.
  */
 
 /**
@@ -93,7 +97,7 @@ const camelCaseObject = (obj) => {
  *
  * @typedef {object} OrderInfo
  * @property {string} name - The name of the ordering field.
- * @property {string} type - The type of the ordering field (e.g., "alpha", "numeric").
+ * @property {string} type - The type of the ordering field (e.g., "alpha", "numeric", "boolean", "date").
  */
 
 /**
@@ -119,7 +123,7 @@ const camelCaseObject = (obj) => {
  * @property {string} [help_text] - The help text for the filter, may be absent.
  * @property {boolean} hidden - Indicates whether the filter is hidden.
  * @property {boolean} required - Indicates whether the filter is required.
- * @property {boolean|LabelValuePair[]} choices - Indicates whether the filter has choices. If it does, it's an array of label/value pairs.
+ * @property {boolean|LabelValuePair[]} [choices] - Indicates whether the filter has choices. If it does, it's an array of label/value pairs.
  *
  * Validation and constraints.
  * @property {number} [max_value] - The maximum value for the filter.
@@ -128,7 +132,7 @@ const camelCaseObject = (obj) => {
  * @property {number} [min_length] - The minimum length for the filter.
  * @property {number} [max_digits] - The maximum number of digits for the filter.
  * @property {number} [decimal_places] - The number of decimal places for the filter.
- * @property {string[]} [input_formats] - The input formats for the filter.
+ * @property {string[]} [input_formats] - The input formats for the filter, such as date formats, if applicable.
  * @property {object[]} [validators] - Array of validator objects applied to the filter.
  *
  * Error handling.
@@ -167,8 +171,8 @@ const camelCaseObject = (obj) => {
  * @property {string} model - The python model class name (lower case).
  * @property {string} verbose_name - The verbose name of the model.
  * @property {string} verbose_name_plural - The verbose name plural of the model.
- * @property {string} pk - The primary key field of the model
- * @property {{[fieldName:string]: FieldInfo}} fields - The fields of the model.
+ * @property {string} pk - The primary key field of the model.
+ * @property {{[fieldName:string]: FieldInfo}} fields - The fields of the model, with the field name as the key.
  * @property {ActionInfo[]} actions - The actions of the model.
  * @property {ExpandInfo[]} expands - The expands of the model.
  * @property {OrderInfo[]} ordering - The ordering of the model.
@@ -177,12 +181,25 @@ const camelCaseObject = (obj) => {
  */
 
 /**
+ * Fetches the model information for the given app and model.
+ * If the information is already cached in `infos`, it returns it directly.
+ * Otherwise, it fetches from the server and caches the result.
+ *
+ * @function FetchModelInfo
+ * @param {object} args - The arguments for fetching model info.
+ * @param {string} args.app - The app label for the model.
+ * @param {string} args.model - The model name.
+ * @returns {Promise<ModelInfo>} A promise that resolves to the model information.
+ * @throws {ModelInfoError} Throws an error if the fetch operation fails.
+ */
+
+/**
  * A store for model information.
  *
  * @returns {import('pinia').Store<{
  *     infos: {[key: string]: ModelInfo},
  *     promises: {[key: string]: Promise<ModelInfo>},
- *     fetchModelInfo: (args: {app: string, model: string}) => Promise<ModelInfo>
+ *     fetchModelInfo: FetchModelInfo
  * }>}
  */
 export const storeModelInfo = defineStore({
