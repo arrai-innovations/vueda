@@ -319,7 +319,7 @@ const hasWorkFlow = computedAsync(
                     type="search"
                     @search="filterList"
                 />
-                <slot :click="filterList" label="Search" name="button" verb="search">
+                <slot label="Search" name="button" verb="search" @click="filterList">
                     <Button label="Search" @click="filterList" />
                 </slot>
             </InputGroup>
