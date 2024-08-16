@@ -1,6 +1,4 @@
-import datetime
 from collections import defaultdict
-from decimal import Decimal
 from pprint import pformat
 
 import pytest
@@ -9,43 +7,9 @@ from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
-from tests.erring.models import NoExpandableFieldsData
-from tests.erring.serializers import NoExpandableFieldsDataSerializer
-from tests.erring.viewsets import NoExpandableFieldsDataViewSet
-from tests.store.models import Cart
-from tests.store.models import CartItem
-from tests.store.models import Customer
-from tests.store.models import CustomerOrder
-from tests.store.models import Distributor
-from tests.store.models import InventoryRecord
-from tests.store.models import InventoryRecordReason
-from tests.store.models import OptionType
-from tests.store.models import OrderItem
-from tests.store.models import OrderState
-from tests.store.models import Product
-from tests.store.models import ProductOption
-from tests.store.serializers import CartItemSerializer
-from tests.store.serializers import CartSerializer
-from tests.store.serializers import CustomerOrderSerializer
-from tests.store.serializers import CustomerSerializer
-from tests.store.serializers import DistributorSerializer
-from tests.store.serializers import InventoryRecordReasonSerializer
-from tests.store.serializers import InventoryRecordSerializer
-from tests.store.serializers import OptionTypeSerializer
-from tests.store.serializers import OrderItemSerializer
-from tests.store.serializers import ProductOptionSerializer
-from tests.store.serializers import ProductSerializer
-from tests.store.viewsets import CartItemViewSet
-from tests.store.viewsets import CartViewSet
-from tests.store.viewsets import CustomerOrderViewSet
-from tests.store.viewsets import CustomerViewSet
-from tests.store.viewsets import DistributorViewSet
-from tests.store.viewsets import InventoryRecordReasonViewSet
-from tests.store.viewsets import InventoryRecordViewSet
-from tests.store.viewsets import OptionTypeViewSet
-from tests.store.viewsets import OrderItemViewSet
-from tests.store.viewsets import ProductOptionViewSet
-from tests.store.viewsets import ProductViewSet
+from tests.store import serializers as store_serializers
+from tests.store import viewsets as store_viewsets
+from tests.unit.info.utils import create_test_data
 from vueda import info
 
 
@@ -79,6 +43,14 @@ DETAIL_PARAMETRIZE = [
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -161,6 +133,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
                         "name": {
                             "label": "Name",
                             "type": "CharField",
@@ -238,6 +218,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
                         "name": {
                             "label": "Name",
                             "type": "CharField",
@@ -305,6 +293,14 @@ DETAIL_PARAMETRIZE = [
                     "type": "IntegerField",
                     "max_value": 2147483647,
                     "min_value": -2147483648,
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                },
+                "formatted_name": {
+                    "label": "Formatted Name",
+                    "type": "CharField",
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -399,6 +395,14 @@ DETAIL_PARAMETRIZE = [
                     "type": "IntegerField",
                     "max_value": 2147483647,
                     "min_value": -2147483648,
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                },
+                "formatted_name": {
+                    "label": "Formatted Name",
+                    "type": "CharField",
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -527,6 +531,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
                         "name": {
                             "label": "Name",
                             "type": "CharField",
@@ -607,6 +619,14 @@ DETAIL_PARAMETRIZE = [
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -697,6 +717,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
                         "name": {
                             "label": "Name",
                             "type": "CharField",
@@ -777,10 +805,20 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
+                "formatted_name": {
+                    "label": "Formatted Name",
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                },
                 "user": {
+                    "app_label": "tests",
                     "label": "User",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "user",
                     "read_only": False,
                     "required": True,
                     "choices": True,
@@ -899,10 +937,20 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
+                "formatted_name": {
+                    "label": "Formatted Name",
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                },
                 "customer": {
+                    "app_label": "store",
                     "label": "Customer",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "customer",
                     "read_only": False,
                     "required": True,
                     "choices": True,
@@ -916,12 +964,14 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
                 "cart_items": {
+                    "app_label": "store",
                     "label": "Cart Items",
                     "type": "ManyRelatedField",
                     "many": True,
+                    "model": "cartitem",
                     "read_only": False,
                     "required": True,
-                    "choices": False,
+                    "choices": True,
                 },
             },
             "expected_filtering": {
@@ -1132,6 +1182,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
                         "name": {
                             "label": "Name",
                             "type": "CharField",
@@ -1168,7 +1226,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": True,
                         },
                         "shipping_method": {
-                            "choices": True,
+                            "choices": [
+                                {"label": "Free", "value": "free"},
+                                {"label": "Regular", "value": "regular"},
+                                {"label": "Express", "value": "express"},
+                            ],
                             "label": "Shipping Method",
                             "many": False,
                             "read_only": False,
@@ -1259,6 +1321,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
                         "name": {
                             "label": "Name",
                             "type": "CharField",
@@ -1295,7 +1365,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": True,
                         },
                         "shipping_method": {
-                            "choices": True,
+                            "choices": [
+                                {"label": "Free", "value": "free"},
+                                {"label": "Regular", "value": "regular"},
+                                {"label": "Express", "value": "express"},
+                            ],
                             "label": "Shipping Method",
                             "many": False,
                             "read_only": False,
@@ -1386,6 +1460,14 @@ DETAIL_PARAMETRIZE = [
                             "required": False,
                             "choices": False,
                         },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
                         "name": {
                             "label": "Name",
                             "type": "CharField",
@@ -1422,7 +1504,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": True,
                         },
                         "shipping_method": {
-                            "choices": True,
+                            "choices": [
+                                {"label": "Free", "value": "free"},
+                                {"label": "Regular", "value": "regular"},
+                                {"label": "Express", "value": "express"},
+                            ],
                             "label": "Shipping Method",
                             "many": False,
                             "read_only": False,
@@ -1508,6 +1594,14 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
+                "formatted_name": {
+                    "label": "Formatted Name",
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                },
                 "order_number": {
                     "label": "Order Number",
                     "type": "DecimalField",
@@ -1527,23 +1621,31 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
                 "customer": {
+                    "app_label": "store",
                     "label": "Customer",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "customer",
                     "read_only": False,
                     "required": True,
                     "choices": True,
                 },
                 "order_state": {
+                    "app_label": "store",
                     "label": "Order State",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "orderstate",
                     "read_only": False,
                     "required": True,
                     "choices": True,
                 },
                 "shipping_method": {
-                    "choices": True,
+                    "choices": [
+                        {"label": "Free", "value": "free"},
+                        {"label": "Regular", "value": "regular"},
+                        {"label": "Express", "value": "express"},
+                    ],
                     "label": "Shipping Method",
                     "many": False,
                     "read_only": False,
@@ -1559,7 +1661,44 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
             },
-            "expected_filtering": [],
+            "expected_filtering": {
+                "id": {
+                    "choices": False,
+                    "error_messages": {
+                        "invalid": "Enter a number.",
+                    },
+                    "field_class": "DecimalInField",
+                    "help_text": "Multiple values may be separated by commas.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "ID is in",
+                    "lookup_exprs": ["in"],
+                    "max_value": 2147483647,
+                    "min_value": -2147483648,
+                    "required": False,
+                },
+                "shipping_method": {
+                    "choices": [
+                        ("---------", ""),
+                        ("Regular", "regular"),
+                        ("Express", "express"),
+                    ],
+                    "empty_label": "---------",
+                    "error_messages": {
+                        "invalid_choice": "Select a valid choice. %(value)s is not one of the available choices.",
+                    },
+                    "field_class": "ChoiceField",
+                    "hidden": False,
+                    "input_type": "select",
+                    "label": "Shipping method",
+                    "lookup_exprs": [
+                        "exact",
+                    ],
+                    "null_label": None,
+                    "null_value": "null",
+                    "required": False,
+                },
+            },
             "expected_ordering": [
                 {"name": "order_number", "type": "numeric"},
                 {"name": "customer__user__email", "type": "alpha"},
@@ -1603,6 +1742,14 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
+                "formatted_name": {
+                    "label": "Formatted Name",
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                },
                 "name": {
                     "label": "Reason",
                     "type": "CharField",
@@ -1630,7 +1777,7 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
             },
-            "expected_filtering": [],
+            "expected_filtering": {},
             "expected_ordering": [
                 {"name": "name", "type": "alpha"},
             ],
@@ -1670,6 +1817,14 @@ DETAIL_PARAMETRIZE = [
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -1752,6 +1907,14 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": True,
                         },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
                         "future_sale_dates": {
                             "label": "Future Sale Dates",
                             "type": "DateRangeField",
@@ -1832,7 +1995,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": False,
                         },
                         "shipping_method": {
-                            "choices": True,
+                            "choices": [
+                                {"label": "Free", "value": "free"},
+                                {"label": "Regular", "value": "regular"},
+                                {"label": "Express", "value": "express"},
+                            ],
                             "label": "Shipping Method",
                             "many": False,
                             "read_only": False,
@@ -1842,14 +2009,14 @@ DETAIL_PARAMETRIZE = [
                         "special_care": {
                             "choices": True,
                             "label": "Special Care",
-                            "many": False,
+                            "many": True,
                             "read_only": False,
                             "required": False,
-                            "type": "CharField",
+                            "type": "ManyRelatedField",
                         },
-                        "tangible": {
-                            "label": "Tangible",
-                            "type": "CharField",
+                        "tangible_type": {
+                            "label": "Tangible Type",
+                            "type": "PrimaryKeyRelatedField",
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -1979,6 +2146,14 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": True,
                         },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
                         "future_sale_dates": {
                             "label": "Future Sale Dates",
                             "type": "DateRangeField",
@@ -2059,7 +2234,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": False,
                         },
                         "shipping_method": {
-                            "choices": True,
+                            "choices": [
+                                {"label": "Free", "value": "free"},
+                                {"label": "Regular", "value": "regular"},
+                                {"label": "Express", "value": "express"},
+                            ],
                             "label": "Shipping Method",
                             "many": False,
                             "read_only": False,
@@ -2069,14 +2248,14 @@ DETAIL_PARAMETRIZE = [
                         "special_care": {
                             "choices": True,
                             "label": "Special Care",
-                            "many": False,
+                            "many": True,
                             "read_only": False,
                             "required": False,
-                            "type": "CharField",
+                            "type": "ManyRelatedField",
                         },
-                        "tangible": {
-                            "label": "Tangible",
-                            "type": "CharField",
+                        "tangible_type": {
+                            "label": "Tangible Type",
+                            "type": "PrimaryKeyRelatedField",
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -2206,6 +2385,14 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": True,
                         },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
                         "future_sale_dates": {
                             "label": "Future Sale Dates",
                             "type": "DateRangeField",
@@ -2286,7 +2473,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": False,
                         },
                         "shipping_method": {
-                            "choices": True,
+                            "choices": [
+                                {"label": "Free", "value": "free"},
+                                {"label": "Regular", "value": "regular"},
+                                {"label": "Express", "value": "express"},
+                            ],
                             "label": "Shipping Method",
                             "many": False,
                             "read_only": False,
@@ -2296,14 +2487,14 @@ DETAIL_PARAMETRIZE = [
                         "special_care": {
                             "choices": True,
                             "label": "Special Care",
-                            "many": False,
+                            "many": True,
                             "read_only": False,
                             "required": False,
-                            "type": "CharField",
+                            "type": "ManyRelatedField",
                         },
-                        "tangible": {
-                            "label": "Tangible",
-                            "type": "CharField",
+                        "tangible_type": {
+                            "label": "Tangible Type",
+                            "type": "PrimaryKeyRelatedField",
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -2388,6 +2579,14 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
+                "formatted_name": {
+                    "label": "Formatted Name",
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                },
                 "current_history_id": {
                     "label": "Current History ID",
                     "type": "IntegerField",
@@ -2413,9 +2612,11 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
                 "distributor": {
+                    "app_label": "store",
                     "label": "Distributor",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "distributor",
                     "read_only": False,
                     "required": True,
                     "choices": True,
@@ -2470,17 +2671,21 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
                 "special_care": {
+                    "app_label": "store",
                     "choices": True,
                     "label": "Special Care",
-                    "many": False,
+                    "many": True,
+                    "model": "specialcare",
                     "read_only": False,
                     "required": False,
-                    "type": "CharField",
+                    "type": "ManyRelatedField",
                 },
-                "tangible": {
-                    "label": "Tangible",
-                    "type": "CharField",
+                "tangible_type": {
+                    "app_label": "store",
+                    "label": "Tangible Type",
+                    "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "tangibletype",
                     "read_only": False,
                     "required": True,
                     "choices": True,
@@ -2508,7 +2713,11 @@ DETAIL_PARAMETRIZE = [
             },
             "expected_filtering": {
                 "disabled": {
-                    "choices": [("", "Unknown"), ("true", "Yes"), ("false", "No")],
+                    "choices": [
+                        ("", "Unknown"),
+                        ("true", "Yes"),
+                        ("false", "No"),
+                    ],
                     "field_class": "NullBooleanField",
                     "hidden": False,
                     "input_type": "select",
@@ -2635,12 +2844,12 @@ DETAIL_PARAMETRIZE = [
                     "lookup_exprs": [
                         "exact",
                     ],
-                    "model": "product",
+                    "model": "specialcare",
                     "null_label": None,
                     "null_value": "null",
                     "required": False,
                 },
-                "tangible": {
+                "tangible_type": {
                     "app_label": "store",
                     "choices": True,
                     "empty_label": "---------",
@@ -2648,15 +2857,15 @@ DETAIL_PARAMETRIZE = [
                         "invalid_choice": "Select a valid choice. That choice is not one of the available choices.",
                     },
                     "field_class": "ModelChoiceField",
-                    "filter_name": "tangible",
+                    "filter_name": "tangible_type",
                     "filterset_name": "ProductFilterSet",
                     "hidden": False,
                     "input_type": "select",
-                    "label": "Tangible",
+                    "label": "Tangible Type",
                     "lookup_exprs": [
                         "exact",
                     ],
-                    "model": "product",
+                    "model": "tangibletype",
                     "null_label": None,
                     "null_value": "null",
                     "required": False,
@@ -2769,9 +2978,9 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": False,
                         },
-                        "tangible": {
-                            "label": "Tangible",
-                            "type": "CharField",
+                        "tangible_type": {
+                            "label": "Tangible Type",
+                            "type": "PrimaryKeyRelatedField",
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -2836,6 +3045,14 @@ DETAIL_PARAMETRIZE = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                        },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
                         },
                         "future_sale_dates": {
                             "label": "Future Sale Dates",
@@ -2952,7 +3169,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": False,
                         },
                         "shipping_method": {
-                            "choices": True,
+                            "choices": [
+                                {"label": "Free", "value": "free"},
+                                {"label": "Regular", "value": "regular"},
+                                {"label": "Express", "value": "express"},
+                            ],
                             "label": "Shipping Method",
                             "many": False,
                             "read_only": False,
@@ -2971,14 +3192,14 @@ DETAIL_PARAMETRIZE = [
                         "special_care": {
                             "choices": True,
                             "label": "Special Care",
-                            "many": False,
+                            "many": True,
                             "read_only": False,
                             "required": False,
-                            "type": "CharField",
+                            "type": "ManyRelatedField",
                         },
-                        "tangible": {
-                            "label": "Tangible",
-                            "type": "CharField",
+                        "tangible_type": {
+                            "label": "Tangible Type",
+                            "type": "PrimaryKeyRelatedField",
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -3108,6 +3329,14 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": True,
                         },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
                         "future_sale_dates": {
                             "label": "Future Sale Dates",
                             "type": "DateRangeField",
@@ -3223,7 +3452,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": False,
                         },
                         "shipping_method": {
-                            "choices": True,
+                            "choices": [
+                                {"label": "Free", "value": "free"},
+                                {"label": "Regular", "value": "regular"},
+                                {"label": "Express", "value": "express"},
+                            ],
                             "label": "Shipping Method",
                             "many": False,
                             "read_only": False,
@@ -3242,14 +3475,14 @@ DETAIL_PARAMETRIZE = [
                         "special_care": {
                             "choices": True,
                             "label": "Special Care",
-                            "many": False,
+                            "many": True,
                             "read_only": False,
                             "required": False,
-                            "type": "CharField",
+                            "type": "ManyRelatedField",
                         },
-                        "tangible": {
-                            "label": "Tangible",
-                            "type": "CharField",
+                        "tangible_type": {
+                            "label": "Tangible Type",
+                            "type": "PrimaryKeyRelatedField",
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -3379,6 +3612,14 @@ DETAIL_PARAMETRIZE = [
                             "required": True,
                             "choices": True,
                         },
+                        "formatted_name": {
+                            "label": "Formatted Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
                         "future_sale_dates": {
                             "label": "Future Sale Dates",
                             "type": "DateRangeField",
@@ -3494,7 +3735,11 @@ DETAIL_PARAMETRIZE = [
                             "choices": False,
                         },
                         "shipping_method": {
-                            "choices": True,
+                            "choices": [
+                                {"label": "Free", "value": "free"},
+                                {"label": "Regular", "value": "regular"},
+                                {"label": "Express", "value": "express"},
+                            ],
                             "label": "Shipping Method",
                             "many": False,
                             "read_only": False,
@@ -3513,14 +3758,14 @@ DETAIL_PARAMETRIZE = [
                         "special_care": {
                             "choices": True,
                             "label": "Special Care",
-                            "many": False,
+                            "many": True,
                             "read_only": False,
                             "required": False,
-                            "type": "CharField",
+                            "type": "ManyRelatedField",
                         },
-                        "tangible": {
-                            "label": "Tangible",
-                            "type": "CharField",
+                        "tangible_type": {
+                            "label": "Tangible Type",
+                            "type": "PrimaryKeyRelatedField",
                             "many": False,
                             "read_only": False,
                             "required": True,
@@ -3605,18 +3850,30 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
+                "formatted_name": {
+                    "label": "Formatted Name",
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                },
                 "product": {
+                    "app_label": "store",
                     "label": "Product",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "product",
                     "read_only": False,
                     "required": True,
                     "choices": True,
                 },
                 "option_type": {
+                    "app_label": "store",
                     "label": "Option Type",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "optiontype",
                     "read_only": False,
                     "required": False,
                     "choices": True,
@@ -3963,18 +4220,30 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
+                "formatted_name": {
+                    "label": "Formatted Name",
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                },
                 "customer_order": {
+                    "app_label": "store",
                     "label": "Customer Order",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "customerorder",
                     "read_only": False,
                     "required": True,
                     "choices": True,
                 },
                 "product_option": {
+                    "app_label": "store",
                     "label": "Product Option",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "productoption",
                     "read_only": False,
                     "required": True,
                     "choices": True,
@@ -4006,7 +4275,6 @@ DETAIL_PARAMETRIZE = [
                         "range",
                     ],
                     "max_value": 1000,
-                    "min_value": 0,
                     "required": False,
                 },
                 "id": {
@@ -4332,10 +4600,20 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
+                "formatted_name": {
+                    "label": "Formatted Name",
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                },
                 "product_option": {
+                    "app_label": "store",
                     "label": "Product Option",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "productoption",
                     "read_only": False,
                     "required": True,
                     "choices": True,
@@ -4359,9 +4637,11 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
                 "reason": {
+                    "app_label": "store",
                     "label": "Reason",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "inventoryrecordreason",
                     "read_only": False,
                     "required": True,
                     "choices": True,
@@ -4393,17 +4673,21 @@ DETAIL_PARAMETRIZE = [
                     "choices": False,
                 },
                 "added_inventory_record": {
+                    "app_label": "store",
                     "label": "Added Inventory Entry",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "inventoryrecord",
                     "read_only": False,
                     "required": False,
                     "choices": True,
                 },
                 "order_item": {
+                    "app_label": "store",
                     "label": "Order Item",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "orderitem",
                     "read_only": False,
                     "required": False,
                     "choices": True,
@@ -4543,6 +4827,7 @@ DETAIL_PARAMETRIZE = [
                         "_1",
                     ],
                     "required": False,
+                    "step": 6,
                     "validators": [
                         {
                             "code": "step_size",
@@ -4738,18 +5023,30 @@ DETAIL_PARAMETRIZE = [
                     "required": False,
                     "choices": False,
                 },
+                "formatted_name": {
+                    "label": "Formatted Name",
+                    "type": "CharField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                },
                 "cart": {
+                    "app_label": "store",
                     "label": "Cart",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "cart",
                     "read_only": False,
                     "required": True,
                     "choices": True,
                 },
                 "product_option": {
+                    "app_label": "store",
                     "label": "Product Option",
                     "type": "PrimaryKeyRelatedField",
                     "many": False,
+                    "model": "productoption",
                     "read_only": False,
                     "required": True,
                     "choices": True,
@@ -4782,280 +5079,6 @@ DETAIL_PARAMETRIZE = [
 ]
 
 
-DETAIL_CHOICES_PARAMETRIZE = [
-    (
-        "store",
-        "customer",
-        "user",
-        {
-            "choices": (
-                "test_admin@example.com",
-                "test_customer_1@example.com",
-                "test_customer_2@example.com",
-            ),
-        },
-    ),
-    (
-        "store",
-        "cart",
-        "customer",
-        {
-            "choices": (
-                "test_customer_1@example.com",
-                "test_customer_2@example.com",
-            ),
-        },
-    ),
-    (
-        "store",
-        "customerorder",
-        "customer",
-        {
-            "choices": (
-                "test_customer_1@example.com",
-                "test_customer_2@example.com",
-            ),
-        },
-    ),
-    (
-        "store",
-        "customerorder",
-        "order_state",
-        {
-            "choices": (
-                "New",
-                "Packed",
-                "Returned",
-                "Shipped",
-            ),
-        },
-    ),
-    (
-        "store",
-        "product",
-        "distributor",
-        {
-            "choices": (
-                "T-Shirt Corp.",
-                "Tasty Treats Assoc.",
-                "Vibrant Looks Inc.",
-            ),
-        },
-    ),
-    (
-        "store",
-        "product",
-        "tangible",
-        {
-            "choices": (
-                "Digital",
-                "Physical",
-            ),
-        },
-    ),
-    (
-        "store",
-        "productoption",
-        "product",
-        {
-            "choices": (
-                "Men's White T-Shirt",
-                "Paint",
-                "Shaped Cookies For Drapes",
-                "Spray Paint",
-                "Square Cookies For Squares",
-                "Women's White T-Shirt",
-            ),
-        },
-    ),
-    (
-        "store",
-        "productoption",
-        "option_type",
-        {
-            "choices": (
-                "Size",
-                "Colour",
-                "Flavour",
-            ),
-        },
-    ),
-    (
-        "store",
-        "orderitem",
-        "customer_order",
-        {
-            "choices": (
-                "1001",
-                "1002",
-                "1003",
-                "1004",
-                "1005",
-            ),
-        },
-    ),
-    (
-        "store",
-        "orderitem",
-        "product_option",
-        {
-            "choices": (
-                "Explosive Dynamite",
-                "Gentle Cinnamon",
-                "Large",
-                "Medium",
-                "Pearl Whisper",
-                "Red",
-                "Royal Crimson",
-                "Small",
-                "Sweet Sugar",
-                "White",
-            ),
-        },
-    ),
-    (
-        "store",
-        "inventoryrecord",
-        "product_option",
-        {
-            "choices": (
-                "Explosive Dynamite",
-                "Gentle Cinnamon",
-                "Large",
-                "Medium",
-                "Pearl Whisper",
-                "Red",
-                "Royal Crimson",
-                "Small",
-                "Sweet Sugar",
-                "White",
-            ),
-        },
-    ),
-    (
-        "store",
-        "inventoryrecord",
-        "reason",
-        {
-            "choices": (
-                "Damaged Inventory",
-                "Order Fulfillment",
-                "Received Inventory",
-                "Returned Inventory",
-            ),
-        },
-    ),
-    (
-        "store",
-        "inventoryrecord",
-        "added_inventory_record",
-        {
-            "choices": (
-                "Damaged Inventory 2x Medium",
-                "Order Fulfillment 1x Small",
-                "Order Fulfillment 2x Large",
-                "Order Fulfillment 2x Medium",
-                "Order Fulfillment 2x Sweet Sugar",
-                "Order Fulfillment 2x Sweet Sugar",
-                "Order Fulfillment 2x White",
-                "Order Fulfillment 3x Pearl Whisper",
-                "Order Fulfillment 3x Red",
-                "Order Fulfillment 3x Royal Crimson",
-                "Order Fulfillment 3x White",
-                "Order Fulfillment 4x Explosive Dynamite",
-                "Order Fulfillment 4x Large",
-                "Order Fulfillment 4x Pearl Whisper",
-                "Order Fulfillment 4x Red",
-                "Order Fulfillment 4x Sweet Sugar",
-                "Order Fulfillment 5x Small",
-                "Order Fulfillment 6x Explosive Dynamite",
-                "Order Fulfillment 6x Gentle Cinnamon",
-                "Order Fulfillment 6x Gentle Cinnamon",
-                "Order Fulfillment 6x Medium",
-                "Order Fulfillment 6x Medium",
-                "Order Fulfillment 6x Royal Crimson",
-                "Order Fulfillment 8x Explosive Dynamite",
-                "Received Inventory 12x Explosive Dynamite",
-                "Received Inventory 12x Explosive Dynamite",
-                "Received Inventory 12x Medium",
-                "Received Inventory 12x Medium",
-                "Received Inventory 12x Royal Crimson",
-                "Received Inventory 12x White",
-                "Received Inventory 15x Red",
-                "Received Inventory 6x Gentle Cinnamon",
-                "Received Inventory 6x Gentle Cinnamon",
-                "Received Inventory 6x Large",
-                "Received Inventory 6x Small",
-                "Received Inventory 6x Small",
-                "Received Inventory 6x Sweet Sugar",
-                "Received Inventory 6x Sweet Sugar",
-                "Received Inventory 8x Pearl Whisper",
-                "Returned Inventory 2x Medium",
-                "Returned Inventory 3x Royal Crimson",
-            ),
-        },
-    ),
-    (
-        "store",
-        "inventoryrecord",
-        "order_item",
-        {
-            "choices": (
-                "1001 - 3x Red",
-                "1001 - 5x Small",
-                "1001 - 6x Gentle Cinnamon",
-                "1001 - 6x Medium",
-                "1002 - 3x Pearl Whisper",
-                "1002 - 4x Large",
-                "1002 - 4x Royal Crimson",
-                "1002 - 4x Sweet Sugar",
-                "1002 - 6x Medium",
-                "1002 - 8x Explosive Dynamite",
-                "1003 - 2x Medium",
-                "1003 - 2x White",
-                "1003 - 4x Explosive Dynamite",
-                "1003 - 4x Red",
-                "1004 - 2x Large",
-                "1004 - 3x Royal Crimson",
-                "1004 - 4x Pearl Whisper",
-                "1004 - 4x Sweet Sugar",
-                "1004 - 6x Explosive Dynamite",
-                "1004 - 6x Small",
-                "1005 - 3x White",
-                "1005 - 6x Gentle Cinnamon",
-            ),
-        },
-    ),
-    (
-        "store",
-        "cartitem",
-        "cart",
-        {
-            "choices": ("test_customer_1@example.com",),
-        },
-    ),
-    (
-        "store",
-        "cartitem",
-        "product_option",
-        {
-            "choices": (
-                "Explosive Dynamite",
-                "Gentle Cinnamon",
-                "Large",
-                "Medium",
-                "Pearl Whisper",
-                "Red",
-                "Royal Crimson",
-                "Small",
-                "Sweet Sugar",
-                "White",
-            ),
-        },
-    ),
-]
-
-
 class TestData(BaseTestUserMixin, BaseTestGroupMixin):
 
     groups_to_create = {
@@ -5067,23 +5090,37 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "Cart", "list"),
             ("store", "Cart", "read"),
             ("store", "Cart", "update"),
+            ("store", "CartItem", "list"),
             ("store", "CartItem", "read"),
             ("store", "Customer", "list"),
+            ("store", "Customer", "read"),
             ("store", "CustomerOrder", "create"),
             ("store", "CustomerOrder", "delete"),
             ("store", "CustomerOrder", "list"),
             ("store", "CustomerOrder", "read"),
             ("store", "CustomerOrder", "update"),
             ("store", "Distributor", "list"),
+            ("store", "Distributor", "read"),
             ("store", "InventoryRecord", "list"),
+            ("store", "InventoryRecord", "read"),
             ("store", "InventoryRecordReason", "list"),
+            ("store", "InventoryRecordReason", "read"),
             ("store", "OptionType", "list"),
+            ("store", "OptionType", "read"),
             ("store", "OrderItem", "list"),
+            ("store", "OrderItem", "read"),
             ("store", "OrderState", "list"),
+            ("store", "OrderState", "read"),
             ("store", "Product", "list"),
+            ("store", "Product", "read"),
             ("store", "ProductOption", "list"),
+            ("store", "ProductOption", "read"),
+            ("store", "SpecialCare", "list"),
+            ("store", "SpecialCare", "read"),
+            ("store", "TangibleType", "list"),
+            ("store", "TangibleType", "read"),
             ("tests", "User", "list"),
-            ("store", "Customer", "read"),
+            ("tests", "User", "read"),
         ],
         "Customer": [
             ("contenttypes", "ContentType", "list"),
@@ -5092,30 +5129,31 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "Cart", "delete"),
             ("store", "Cart", "read"),
             ("store", "Cart", "update"),
-            ("store", "CartItem", "read"),
-            ("store", "CartItem", "list"),
-            ("store", "CartItem", "update"),
             ("store", "CartItem", "delete"),
+            ("store", "CartItem", "list"),
+            ("store", "CartItem", "read"),
+            ("store", "CartItem", "update"),
+            ("store", "Customer", "read"),
+            ("store", "Customer", "delete"),
             ("store", "CustomerOrder", "create"),
             ("store", "CustomerOrder", "read"),
             ("store", "Distributor", "list"),
+            ("store", "Distributor", "read"),
             ("store", "OptionType", "list"),
+            ("store", "OptionType", "read"),
             ("store", "OrderItem", "list"),
+            ("store", "OrderItem", "read"),
             ("store", "OrderState", "list"),
+            ("store", "OrderState", "read"),
             ("store", "Product", "list"),
+            ("store", "Product", "read"),
             ("store", "ProductOption", "list"),
-            ("tests", "User", "list"),
-            ("store", "Customer", "read"),
-            ("workflow_changed", "WorkflowChanged", "read"),
-            ("vueda_workflow", "Workflow", "read"),
-            ("vueda_workflow", "Workflow", "list"),
-            ("vueda_workflow", "Workflow", "update"),
-            ("vueda_workflow", "State", "read"),
-            ("vueda_workflow", "State", "list"),
-            ("vueda_workflow", "State", "update"),
-            ("vueda_workflow", "Transition", "read"),
-            ("vueda_workflow", "Transition", "list"),
-            ("vueda_workflow", "Transition", "update"),
+            ("store", "ProductOption", "read"),
+            ("store", "SpecialCare", "list"),
+            ("store", "SpecialCare", "read"),
+            ("store", "TangibleType", "list"),
+            ("store", "TangibleType", "read"),
+            ("tests", "User", "read"),
         ],
     }
 
@@ -5138,919 +5176,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     def __init__(self):
-        # Option Types
-        option_types = OptionType.objects.bulk_create(
-            OptionType(**data)
-            for data in (
-                {
-                    "name": "Size",
-                    "code": "size",
-                },
-                {
-                    "name": "Colour",
-                    "code": "colour",
-                },
-                {
-                    "name": "Flavour",
-                    "code": "flavour",
-                },
-            )
-        )
-        self.option_types = option_types = {item.code: item for item in option_types}
-
-        # Order States
-        order_states = OrderState.objects.bulk_create(
-            OrderState(**data)
-            for data in (
-                {
-                    "name": "New",
-                    "code": "new",
-                },
-                {
-                    "name": "Packed",
-                    "code": "packed",
-                },
-                {
-                    "name": "Returned",
-                    "code": "returned",
-                },
-                {
-                    "name": "Shipped",
-                    "code": "shipped",
-                },
-            )
-        )
-        self.order_states = order_states = {item.code: item for item in order_states}
-
-        # Inventory Entry Reasons
-        inventory_record_reasons = InventoryRecordReason.objects.bulk_create(
-            InventoryRecordReason(**data)
-            for data in (
-                {
-                    "name": "Damaged Inventory",
-                    "code": "damaged_inventory",
-                    "is_added_reason": False,
-                },
-                {
-                    "name": "Order Fulfillment",
-                    "code": "order_fulfillment",
-                    "is_added_reason": False,
-                },
-                {
-                    "name": "Received Inventory",
-                    "code": "received_inventory",
-                    "is_added_reason": True,
-                },
-                {
-                    "name": "Returned Inventory",
-                    "code": "returned_inventory",
-                    "is_added_reason": True,
-                },
-            )
-        )
-        self.inventory_record_reasons = inventory_record_reasons = {
-            (item.code, item.is_added_reason): item for item in inventory_record_reasons
-        }
-
-        # Customers
-        customers = {}
-        for data in (
-            {"user": "test_customer_1@example.com"},
-            {"user": "test_customer_2@example.com"},
-        ):
-            data["user"] = self.users[data["user"]]
-            customer = Customer.objects.create(**data)
-            customers[customer.user.email] = customer
-        self.customers = customers
-
-        # Distributors
-        distributors = {}
-        for data in (
-            {"name": "T-Shirt Corp."},
-            {"name": "Tasty Treats Assoc."},
-            {"name": "Vibrant Looks Inc."},
-        ):
-            distributor = Distributor.objects.create(**data)
-            distributors[distributor.name] = distributor
-        self.distributors = distributors
-
-        # Orders
-        customer_orders = {}
-        for data in (
-            {
-                "order_number": 1001,
-                "when": datetime.datetime(2023, 12, 13, 13, 0, 0),
-                "customer": "test_customer_1@example.com",
-                "order_state": "shipped",
-            },
-            {
-                "order_number": 1002,
-                "when": datetime.datetime(2023, 12, 13, 14, 0, 0),
-                "customer": "test_customer_2@example.com",
-                "order_state": "shipped",
-            },
-            {
-                "order_number": 1003,
-                "when": datetime.datetime(2024, 1, 7, 13, 0, 0),
-                "customer": "test_customer_2@example.com",
-                "order_state": "shipped",
-            },
-            {
-                "order_number": 1004,
-                "when": datetime.datetime(2024, 3, 13, 12, 0, 0),
-                "customer": "test_customer_2@example.com",
-                "order_state": "packed",
-            },
-            {
-                "order_number": 1005,
-                "when": datetime.datetime(2024, 3, 13, 16, 0, 0),
-                "customer": "test_customer_1@example.com",
-                "order_state": "new",
-            },
-        ):
-            data["customer"] = customers[data["customer"]]
-            data["order_state"] = order_states[data["order_state"]]
-            order = CustomerOrder.objects.create(**data)
-            customer_orders[order.order_number] = order
-        self.customer_orders = customer_orders
-
-        # Products, Product Options, Inventory Entries, Orders, and Order Items.
-        products = {}
-        product_options = {}
-        order_items = {}
-        inventory_records = {}
-
-        for data in (
-            {
-                "distributor": "T-Shirt Corp.",
-                "products": (
-                    {
-                        "product": {"name": "Men's White T-Shirt", "order_between": [12, 24]},
-                        "options": (
-                            {
-                                "option": {
-                                    "option_type": "size",
-                                    "name": "Medium",
-                                    "sku": "1001",
-                                    "gtin": "3032076999853",
-                                    "price": Decimal("19.99"),
-                                },
-                                "order_items": (
-                                    {
-                                        "identifier": "order_item_1",
-                                        "customer_order": 1001,
-                                        "quantity": 6,
-                                    },
-                                    {
-                                        "identifier": "order_item_2",
-                                        "customer_order": 1002,
-                                        "quantity": 6,
-                                    },
-                                    {
-                                        "identifier": "order_item_3",
-                                        "customer_order": 1003,
-                                        "quantity": 2,
-                                    },
-                                ),
-                                "inventory_records": (
-                                    {
-                                        # This exists as a way to associate between inventory entries.
-                                        "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2023, 12, 12, 12, 0, 0),
-                                        "quantity": 12,
-                                        "reason": ("received_inventory", True),
-                                        "archived": True,
-                                        "is_added": True,
-                                        "cost": Decimal("12.34"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2023, 12, 13, 13, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": True,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_1",
-                                        "price": Decimal("19.99"),
-                                        "margin": Decimal("7.65"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2023, 12, 13, 14, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": True,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_2",
-                                        "price": Decimal("19.99"),
-                                        "margin": Decimal("7.65"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2023, 12, 20, 10, 0, 0),
-                                        "quantity": 2,
-                                        "reason": ("returned_inventory", True),
-                                        "archived": True,
-                                        "is_added": True,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "cost": Decimal("12.34"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2023, 12, 20, 10, 15, 0),
-                                        "quantity": 2,
-                                        "reason": ("damaged_inventory", False),
-                                        "archived": True,
-                                        "is_added": True,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "price": Decimal("12.34"),
-                                        "margin": Decimal("0.00"),
-                                    },
-                                    {
-                                        "identifier": "inventory_record_2",
-                                        "when": datetime.datetime(2024, 1, 1, 12, 0, 0),
-                                        "quantity": 12,
-                                        "reason": ("received_inventory", True),
-                                        "archived": False,
-                                        "is_added": True,
-                                        "cost": Decimal("12.36"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 1, 7, 13, 0, 0),
-                                        "quantity": 2,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_2",
-                                        "order_item": "order_item_3",
-                                        "price": Decimal("19.99"),
-                                        "margin": Decimal("7.63"),
-                                    },
-                                ),
-                            },
-                            {
-                                "option": {
-                                    "option_type": "size",
-                                    "name": "Large",
-                                    "sku": "1002",
-                                    "gtin": "3032076999854",
-                                    "price": Decimal("19.99"),
-                                },
-                                "order_items": (
-                                    {
-                                        "identifier": "order_item_1",
-                                        "customer_order": 1002,
-                                        "quantity": 4,
-                                    },
-                                    {
-                                        "identifier": "order_item_2",
-                                        "customer_order": 1004,
-                                        "quantity": 2,
-                                    },
-                                ),
-                                "inventory_records": (
-                                    {
-                                        # This exists as a way to associate between inventory entries.
-                                        "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2023, 12, 12, 12, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("received_inventory", True),
-                                        "archived": True,
-                                        "is_added": True,
-                                        "cost": Decimal("12.44"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2023, 12, 13, 14, 0, 0),
-                                        "quantity": 4,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": True,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_1",
-                                        "price": Decimal("19.99"),
-                                        "margin": Decimal("7.55"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 3, 13, 12, 0, 0),
-                                        "quantity": 2,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": True,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_2",
-                                        "price": Decimal("19.99"),
-                                        "margin": Decimal("7.55"),
-                                    },
-                                ),
-                            },
-                        ),
-                    },
-                    {
-                        "product": {"name": "Women's White T-Shirt", "order_between": [12, 24]},
-                        "options": (
-                            {
-                                "option": {
-                                    "option_type": "size",
-                                    "name": "Small",
-                                    "sku": "1011",
-                                    "gtin": "4109009311819",
-                                    "price": Decimal("18.99"),
-                                },
-                                "order_items": (
-                                    {
-                                        "identifier": "order_item_1",
-                                        "customer_order": 1001,
-                                        "quantity": 5,
-                                    },
-                                    {
-                                        "identifier": "order_item_2",
-                                        "customer_order": 1004,
-                                        "quantity": 6,
-                                    },
-                                ),
-                                "inventory_records": (
-                                    {
-                                        "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2023, 12, 12, 12, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("received_inventory", True),
-                                        "archived": False,
-                                        "is_added": True,
-                                        "cost": Decimal("12.14"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2023, 12, 13, 13, 0, 0),
-                                        "quantity": 5,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_1",
-                                        "price": Decimal("18.99"),
-                                        "margin": Decimal("6.85"),
-                                    },
-                                    {
-                                        "identifier": "inventory_record_2",
-                                        "when": datetime.datetime(2024, 1, 1, 12, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("received_inventory", True),
-                                        "archived": False,
-                                        "is_added": True,
-                                        "cost": Decimal("12.19"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 3, 13, 12, 0, 0),
-                                        "quantity": 1,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_2",
-                                        "order_item": "order_item_2",
-                                        "price": Decimal("19.99"),
-                                        "margin": Decimal("6.80"),
-                                    },
-                                ),
-                            },
-                        ),
-                    },
-                ),
-            },
-            {
-                "distributor": "Tasty Treats Assoc.",
-                "products": (
-                    {
-                        "product": {"name": "Square Cookies For Squares", "order_between": [6, 12]},
-                        "options": (
-                            {
-                                "option": {
-                                    "option_type": "flavour",
-                                    "name": "Gentle Cinnamon",
-                                    "sku": "10010",
-                                    "gtin": "4189517411291",
-                                    "price": Decimal("14.99"),
-                                },
-                                "order_items": (
-                                    {
-                                        "identifier": "order_item_1",
-                                        "customer_order": 1001,
-                                        "quantity": 6,
-                                    },
-                                    {
-                                        "identifier": "order_item_3",
-                                        "customer_order": 1005,
-                                        "quantity": 6,
-                                    },
-                                ),
-                                "inventory_records": (
-                                    {
-                                        # This exists as a way to associate between inventory entries.
-                                        "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2023, 12, 12, 12, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("received_inventory", True),
-                                        "archived": True,
-                                        "is_added": True,
-                                        "cost": Decimal("7.56"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2023, 12, 13, 13, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": True,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_1",
-                                        "price": Decimal("14.99"),
-                                        "margin": Decimal("7.43"),
-                                    },
-                                    {
-                                        "identifier": "inventory_record_2",
-                                        "when": datetime.datetime(2024, 2, 5, 11, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("received_inventory", True),
-                                        "archived": False,
-                                        "is_added": True,
-                                        "cost": Decimal("7.56"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 3, 13, 16, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_2",
-                                        "order_item": "order_item_3",
-                                        "price": Decimal("14.99"),
-                                        "margin": Decimal("7.43"),
-                                    },
-                                ),
-                            },
-                            {
-                                "option": {
-                                    "option_type": "size",
-                                    "name": "Sweet Sugar",
-                                    "sku": "10011",
-                                    "gtin": "4189517411292",
-                                    "price": Decimal("14.99"),
-                                },
-                                "order_items": (
-                                    {
-                                        "identifier": "order_item_1",
-                                        "customer_order": 1002,
-                                        "quantity": 4,
-                                    },
-                                    {
-                                        "identifier": "order_item_2",
-                                        "customer_order": 1004,
-                                        "quantity": 4,
-                                    },
-                                ),
-                                "inventory_records": (
-                                    {
-                                        # This exists as a way to associate between inventory entries.
-                                        "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2023, 12, 12, 12, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("received_inventory", True),
-                                        "archived": True,
-                                        "is_added": True,
-                                        "cost": Decimal("7.56"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2023, 12, 13, 13, 0, 0),
-                                        "quantity": 4,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": True,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_1",
-                                        "price": Decimal("14.99"),
-                                        "margin": Decimal("7.43"),
-                                    },
-                                    {
-                                        "identifier": "inventory_record_2",
-                                        "when": datetime.datetime(2024, 2, 5, 11, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("received_inventory", True),
-                                        "archived": False,
-                                        "is_added": True,
-                                        "cost": Decimal("7.56"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 3, 13, 16, 0, 0),
-                                        "quantity": 2,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_1",
-                                        "price": Decimal("14.99"),
-                                        "margin": Decimal("7.43"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 3, 13, 16, 0, 0),
-                                        "quantity": 2,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_2",
-                                        "order_item": "order_item_2",
-                                        "price": Decimal("14.99"),
-                                        "margin": Decimal("7.43"),
-                                    },
-                                ),
-                            },
-                        ),
-                    },
-                    {
-                        "product": {"name": "Shaped Cookies For Drapes", "order_between": [6, 12]},
-                        "options": (
-                            {
-                                "option": {
-                                    "option_type": "size",
-                                    "name": "Explosive Dynamite",
-                                    "sku": "10020",
-                                    "gtin": "4481104569956",
-                                    "price": Decimal("15.99"),
-                                },
-                                "order_items": (
-                                    {
-                                        "identifier": "order_item_1",
-                                        "customer_order": 1002,
-                                        "quantity": 8,
-                                    },
-                                    {
-                                        "identifier": "order_item_2",
-                                        "customer_order": 1003,
-                                        "quantity": 4,
-                                    },
-                                    {
-                                        "identifier": "order_item_3",
-                                        "customer_order": 1004,
-                                        "quantity": 6,
-                                    },
-                                ),
-                                "inventory_records": (
-                                    {
-                                        "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2023, 12, 12, 12, 0, 0),
-                                        "quantity": 12,
-                                        "reason": ("received_inventory", True),
-                                        "archived": True,
-                                        "is_added": True,
-                                        "cost": Decimal("7.01"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2023, 12, 13, 14, 0, 0),
-                                        "quantity": 8,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": True,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_1",
-                                        "price": Decimal("15.99"),
-                                        "margin": Decimal("8.98"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 1, 7, 13, 0, 0),
-                                        "quantity": 4,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": True,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_2",
-                                        "price": Decimal("15.99"),
-                                        "margin": Decimal("8.98"),
-                                    },
-                                    {
-                                        "identifier": "inventory_record_2",
-                                        "when": datetime.datetime(2024, 2, 1, 12, 0, 0),
-                                        "quantity": 12,
-                                        "reason": ("received_inventory", True),
-                                        "archived": False,
-                                        "is_added": True,
-                                        "cost": Decimal("12.19"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 3, 13, 12, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_2",
-                                        "order_item": "order_item_3",
-                                        "price": Decimal("15.99"),
-                                        "margin": Decimal("8.98"),
-                                    },
-                                ),
-                            },
-                        ),
-                    },
-                ),
-            },
-            {
-                "distributor": "Vibrant Looks Inc.",
-                "products": (
-                    {
-                        "product": {"name": "Spray Paint", "order_between": [1, 6]},
-                        "options": (
-                            {
-                                "option": {
-                                    "option_type": "colour",
-                                    "name": "Red",
-                                    "sku": "100021",
-                                    "gtin": "00313235428144",
-                                    "price": Decimal("39.99"),
-                                },
-                                "order_items": (
-                                    {
-                                        "identifier": "order_item_1",
-                                        "customer_order": 1001,
-                                        "quantity": 3,
-                                    },
-                                    {
-                                        "identifier": "order_item_2",
-                                        "customer_order": 1003,
-                                        "quantity": 4,
-                                    },
-                                ),
-                                "inventory_records": (
-                                    {
-                                        "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2023, 12, 5, 12, 0, 0),
-                                        "quantity": 15,
-                                        "reason": ("received_inventory", True),
-                                        "archived": False,
-                                        "is_added": True,
-                                        "cost": Decimal("25.00"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2023, 12, 13, 13, 0, 0),
-                                        "quantity": 3,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_1",
-                                        "price": Decimal("39.99"),
-                                        "margin": Decimal("14.99"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 1, 7, 13, 0, 0),
-                                        "quantity": 4,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_2",
-                                        "price": Decimal("39.99"),
-                                        "margin": Decimal("14.99"),
-                                    },
-                                ),
-                            },
-                            {
-                                "option": {
-                                    "option_type": "colour",
-                                    "name": "White",
-                                    "sku": "100022",
-                                    "gtin": "00315654222969",
-                                    "price": Decimal("44.99"),
-                                },
-                                "order_items": (
-                                    {
-                                        "identifier": "order_item_1",
-                                        "customer_order": 1003,
-                                        "quantity": 2,
-                                    },
-                                    {
-                                        "identifier": "order_item_2",
-                                        "customer_order": 1005,
-                                        "quantity": 3,
-                                    },
-                                ),
-                                "inventory_records": (
-                                    {
-                                        "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2023, 12, 5, 12, 0, 0),
-                                        "quantity": 12,
-                                        "reason": ("received_inventory", True),
-                                        "archived": False,
-                                        "is_added": True,
-                                        "cost": Decimal("30.00"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 1, 7, 13, 0, 0),
-                                        "quantity": 2,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_1",
-                                        "price": Decimal("44.99"),
-                                        "margin": Decimal("14.99"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 3, 13, 16, 0, 0),
-                                        "quantity": 3,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_2",
-                                        "price": Decimal("44.99"),
-                                        "margin": Decimal(" 14.99"),
-                                    },
-                                ),
-                            },
-                        ),
-                    },
-                    {
-                        "product": {"name": "Paint", "order_between": [1, 8]},
-                        "options": (
-                            {
-                                "option": {
-                                    "option_type": "colour",
-                                    "name": "Pearl Whisper",
-                                    "sku": "100123",
-                                    "gtin": "00316462430690",
-                                    "price": Decimal("49.99"),
-                                },
-                                "order_items": (
-                                    {
-                                        "identifier": "order_item_1",
-                                        "customer_order": 1002,
-                                        "quantity": 3,
-                                    },
-                                    {
-                                        "identifier": "order_item_2",
-                                        "customer_order": 1004,
-                                        "quantity": 4,
-                                    },
-                                ),
-                                "inventory_records": (
-                                    {
-                                        "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2023, 12, 5, 12, 0, 0),
-                                        "quantity": 8,
-                                        "reason": ("received_inventory", True),
-                                        "archived": False,
-                                        "is_added": True,
-                                        "cost": Decimal("30.00"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2023, 12, 13, 14, 0, 0),
-                                        "quantity": 3,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_1",
-                                        "price": Decimal("49.99"),
-                                        "margin": Decimal("19.99"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 3, 13, 12, 0, 0),
-                                        "quantity": 4,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_2",
-                                        "price": Decimal("49.99"),
-                                        "margin": Decimal("19.99"),
-                                    },
-                                ),
-                            },
-                            {
-                                "option": {
-                                    "option_type": "colour",
-                                    "name": "Royal Crimson",
-                                    "sku": "100124",
-                                    "gtin": "00368135511625",
-                                    "price": Decimal("54.99"),
-                                },
-                                "order_items": (
-                                    {
-                                        "identifier": "order_item_1",
-                                        "customer_order": 1002,
-                                        "quantity": 4,
-                                    },
-                                    {
-                                        "identifier": "order_item_2",
-                                        "customer_order": 1004,
-                                        "quantity": 3,
-                                    },
-                                ),
-                                "inventory_records": (
-                                    {
-                                        "identifier": "inventory_record_1",
-                                        "when": datetime.datetime(2023, 12, 5, 12, 0, 0),
-                                        "quantity": 12,
-                                        "reason": ("received_inventory", True),
-                                        "archived": True,
-                                        "is_added": False,
-                                        "order_item": "order_item_1",
-                                        "cost": Decimal("35.00"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2023, 12, 13, 14, 0, 0),
-                                        "quantity": 6,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": False,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "price": Decimal("54.99"),
-                                        "margin": Decimal("19.99"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 3, 13, 12, 0, 0),
-                                        "quantity": 3,
-                                        "reason": ("order_fulfillment", False),
-                                        "archived": True,
-                                        "is_added": False,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "order_item": "order_item_2",
-                                        "price": Decimal("54.99"),
-                                        "margin": Decimal("19.99"),
-                                    },
-                                    {
-                                        "when": datetime.datetime(2024, 3, 17, 10, 0, 0),
-                                        "quantity": 3,
-                                        "reason": ("returned_inventory", True),
-                                        "archived": True,
-                                        "is_added": True,
-                                        "added_inventory_record": "inventory_record_1",
-                                        "cost": Decimal("35.00"),
-                                    },
-                                ),
-                            },
-                        ),
-                    },
-                ),
-            },
-        ):
-            distributor = distributors[data["distributor"]]
-            for product_data in data["products"]:
-                product_data["product"]["distributor"] = distributor
-                product = Product.objects.create(**product_data["product"])
-                products[product.name] = product
-                for product_option_data in product_data["options"]:
-                    product_option_data["option"]["product"] = product
-                    product_option_data["option"]["option_type"] = option_types[
-                        product_option_data["option"]["option_type"]
-                    ]
-                    product_option = ProductOption.objects.create(**product_option_data["option"])
-                    product_options[product_option.name] = product_option
-                    stored_order_items = {}
-                    for order_item_data in product_option_data["order_items"]:
-                        order_item_data["customer_order"] = customer_orders[order_item_data["customer_order"]]
-                        order_item_data["product_option"] = product_option
-                        stored_order_item = None
-                        if "identifier" in order_item_data:
-                            stored_order_item = order_item_data["identifier"]
-                            del order_item_data["identifier"]
-                        order_item = OrderItem.objects.create(**order_item_data)
-                        order_items[order_item.quantity] = order_item
-                        if stored_order_item:
-                            stored_order_items[stored_order_item] = order_item
-                    stored_inventory_records = {}
-                    for inventory_record_data in product_option_data["inventory_records"]:
-                        if "added_inventory_record" in inventory_record_data:
-                            inventory_record_data["added_inventory_record"] = stored_inventory_records[
-                                inventory_record_data["added_inventory_record"]
-                            ]
-                        if "order_item" in inventory_record_data:
-                            inventory_record_data["order_item"] = stored_order_items[
-                                inventory_record_data["order_item"]
-                            ]
-                        inventory_record_data["reason"] = inventory_record_reasons[inventory_record_data["reason"]]
-                        inventory_record_data["product_option"] = product_option
-                        stored_inventory_record = None
-                        if "identifier" in inventory_record_data:
-                            stored_inventory_record = inventory_record_data["identifier"]
-                            del inventory_record_data["identifier"]
-                        inventory_record = InventoryRecord.objects.create(**inventory_record_data)
-                        inventory_records[inventory_record.pk] = inventory_record
-                        if stored_inventory_record:
-                            stored_inventory_records[stored_inventory_record] = inventory_record
-
-        self.products = products
-        self.product_options = product_options
-        self.order_items = order_items
-        self.inventory_records = inventory_records
-
-        # Make a cart for one of the customers.
-        cart = Cart.objects.create(customer=customers["test_customer_1@example.com"])
-        self.carts = [cart]
-        CartItem.objects.create(
-            cart=cart,
-            product_option=self.product_options["Medium"],
-            quantity=1,
-        )
-
-
-def idfn(val):
-    if isinstance(val, dict):
-        return None
-    return val
+        create_test_data(self)
 
 
 @pytest.mark.django_db
@@ -6062,17 +5188,17 @@ class TestModelInfoSerializer:
     @staticmethod
     def register_viewsets():
         info.registration.get_empty_registry()
-        info.register(CustomerSerializer, CustomerViewSet)
-        info.register(DistributorSerializer, DistributorViewSet)
-        info.register(ProductSerializer, ProductViewSet)
-        info.register(OptionTypeSerializer, OptionTypeViewSet)
-        info.register(ProductOptionSerializer, ProductOptionViewSet)
-        info.register(CartSerializer, CartViewSet)
-        info.register(CartItemSerializer, CartItemViewSet)
-        info.register(CustomerOrderSerializer, CustomerOrderViewSet)
-        info.register(OrderItemSerializer, OrderItemViewSet)
-        info.register(InventoryRecordReasonSerializer, InventoryRecordReasonViewSet)
-        info.register(InventoryRecordSerializer, InventoryRecordViewSet)
+        info.register(store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet)
+        info.register(store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet)
+        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
+        info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
+        info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
+        info.register(store_serializers.CartSerializer, store_viewsets.CartViewSet)
+        info.register(store_serializers.CartItemSerializer, store_viewsets.CartItemViewSet)
+        info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
+        info.register(store_serializers.OrderItemSerializer, store_viewsets.OrderItemViewSet)
+        info.register(store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet)
+        info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
 
     @staticmethod
     def get_default_action(name, app_label, model_name):
@@ -6257,210 +5383,3 @@ class TestModelInfoSerializer:
         self.check_model_filtering_data(response, kwargs["expected_filtering"])
         self.check_model_ordering_data(response, kwargs["expected_ordering"])
         self.check_model_permissions_data(response, kwargs["expected_permissions"])
-
-
-@pytest.mark.django_db
-class TestModelInfoChoicesSerializer:
-    @pytest.fixture
-    def test_data(self):
-        return TestData()
-
-    @staticmethod
-    def register_viewsets():
-        info.registration.get_empty_registry()
-        info.register(CustomerSerializer, CustomerViewSet)
-        info.register(DistributorSerializer, DistributorViewSet)
-        info.register(ProductSerializer, ProductViewSet)
-        info.register(OptionTypeSerializer, OptionTypeViewSet)
-        info.register(ProductOptionSerializer, ProductOptionViewSet)
-        info.register(CartSerializer, CartViewSet)
-        info.register(CartItemSerializer, CartItemViewSet)
-        info.register(CustomerOrderSerializer, CustomerOrderViewSet)
-        info.register(OrderItemSerializer, OrderItemViewSet)
-        info.register(InventoryRecordReasonSerializer, InventoryRecordReasonViewSet)
-        info.register(InventoryRecordSerializer, InventoryRecordViewSet)
-
-    @pytest.mark.parametrize(
-        "app_label, model_name, field_name, kwargs",
-        DETAIL_CHOICES_PARAMETRIZE,  # pytest likes to dump the whole def, so we move the parameterize details elsewhere
-        ids=idfn,
-    )
-    def test_info_choices_list_customer(
-        self,
-        test_data,
-        api_client,
-        app_label,
-        model_name,
-        field_name,
-        kwargs,
-    ):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response = api_client.get(
-            reverse(
-                "info.model_info_choices-list",
-                args=(
-                    app_label,
-                    model_name,
-                    field_name,
-                ),
-            ),
-            format="json",
-        )
-
-        # The customer is not able to list customer orders or inventory entries.
-        match (app_label, model_name, field_name):
-            case (
-                ("store", "cart", "customer")
-                | ("store", "cartitem", "cart")
-                | ("store", "customerorder", "customer")
-                | ("store", "inventoryrecord", "added_inventory_record")
-                | ("store", "inventoryrecord", "reason")
-                | ("store", "orderitem", "customer_order")
-            ):
-                assert response.status_code == 403, pformat(response.data)
-
-            case _:
-                assert response.status_code == 200, f"{(app_label, model_name, field_name)}\n\n{pformat(response.data)}"
-
-                choices = kwargs["choices"]
-
-                assert response.data["totalRecords"] == len(choices)
-                assert frozenset(result["label"] for result in response.data["results"]) == frozenset(choices)
-
-    @pytest.mark.parametrize(
-        "app_label, model_name, field_name, kwargs",
-        DETAIL_CHOICES_PARAMETRIZE,  # pytest likes to dump the whole def, so we move the parameterize details elsewhere
-        ids=idfn,
-    )
-    def test_info_choices_list_admin(
-        self,
-        test_data,
-        api_client,
-        app_label,
-        model_name,
-        field_name,
-        kwargs,
-    ):
-        user = test_data.users["test_admin@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response = api_client.get(
-            reverse(
-                "info.model_info_choices-list",
-                args=(
-                    app_label,
-                    model_name,
-                    field_name,
-                ),
-            ),
-            format="json",
-        )
-
-        assert response.status_code == 200, f"{(app_label, model_name, field_name)}\n\n{pformat(response.data)}"
-
-        choices = kwargs["choices"]
-        assert response.data["totalRecords"] == len(choices)
-
-        match (app_label, model_name, field_name):
-            case ("store", "inventoryrecord", "added_inventory_record"):
-                # Remove the date from the label.  The date has 2
-                # dashes and the 3rd is the separator after the date.
-                assert frozenset(
-                    "-".join(result["label"].split("-")[3:]).strip() for result in response.data["results"]
-                ) == frozenset(choices)
-
-            case _:
-                assert frozenset(result["label"] for result in response.data["results"]) == frozenset(choices)
-
-    def test_info_choices_list_invalid_field_on_model_with_choice_fields(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response = api_client.get(
-            reverse(
-                "info.model_info_choices-list",
-                args=(
-                    "store",
-                    "product",
-                    "name",
-                ),
-            ),
-            format="json",
-        )
-
-        assert response.status_code == 400, pformat(response.data)
-        assert response.data["non_field_errors"] == [
-            "Invalid field. Valid fields with choices are distributor, tangible, special_care."
-        ]
-
-    def test_info_choices_list_invalid_field_on_model_with_no_choice_fields(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response = api_client.get(
-            reverse(
-                "info.model_info_choices-list",
-                args=(
-                    "store",
-                    "distributor",
-                    "name",
-                ),
-            ),
-            format="json",
-        )
-
-        assert response.status_code == 400, pformat(response.data)
-        assert response.data["non_field_errors"] == ["Invalid field. No choice fields found on store.Distributor."]
-
-
-@pytest.mark.django_db
-class TestModelInfoErrsSerializer:
-    @pytest.fixture
-    def test_data(self):
-        return TestData()
-
-    @staticmethod
-    def register_viewsets():
-        info.registration.get_empty_registry()
-        info.register(NoExpandableFieldsDataSerializer, NoExpandableFieldsDataViewSet)
-
-    def test_no_expandable_field_data(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        NoExpandableFieldsData.objects.create(name="Test")
-
-        self.register_viewsets()
-
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    "erring",
-                    "noexpandablefieldsdata",
-                ),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_expands",
-                ],
-            },
-        )
-
-        assert response.status_code == 500, response.status_code
-
-        assert (
-            b"No `expandable_fields_data` specified for field. Model info only knows automatically about fields expandable into serializers."
-            in response.content
-        ), response.content
