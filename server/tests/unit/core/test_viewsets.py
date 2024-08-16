@@ -41,21 +41,25 @@ class TestProductViewSet(BaseTestModelViewSet):
     page_data_arguments = (
         {
             "name": "Apple",
+            "formatted_name": "Apple",
             "available_for_sale": True,
             "buzz_words": ("Organic", "Local"),
         },
         {
             "name": "Banana",
+            "formatted_name": "Banana",
             "available_for_sale": False,
             "buzz_words": ("Hand-held", "Tropical"),
         },
         {
             "name": "Mango",
+            "formatted_name": "Mango",
             "available_for_sale": True,
             "buzz_words": ("Organic", "Tasty", "Tropical"),
         },
         {
             "name": "Orange",
+            "formatted_name": "Orange",
             "available_for_sale": False,
             "buzz_words": ("Organic", "Citrus", "Tangy", "Local"),
         },
@@ -96,11 +100,24 @@ class TestProductViewSet(BaseTestModelViewSet):
         instance = page_data.first()
         return {
             "name": "Apple",
+            "formatted_name": "Apple",
             "available_for_sale": True,
             "buzz_words": ["Organic", "Local"],
             "current_history_id": instance.current_history_id,
             "id": instance.id,
         }
+
+    def update_expected_create_response(self, expected_create_response, new_instance):
+        super().update_expected_create_response(expected_create_response, new_instance)
+        expected_create_response["formatted_name"] = expected_create_response["name"]
+
+    def update_expected_retrieve_response(self, expected_retrieve_response, instance):
+        super().update_expected_retrieve_response(expected_retrieve_response, instance)
+        expected_retrieve_response["formatted_name"] = expected_retrieve_response["name"]
+
+    def update_expected_update_response(self, expected_update_response, updated_instance):
+        super().update_expected_update_response(expected_update_response, updated_instance)
+        expected_update_response["formatted_name"] = expected_update_response["name"]
 
     def test_list_with_invalid_expands(self, page_data, authenticated_client, list_querystring):
         keys = {"id", "current_history_id"}.union(self.list_keys_arguments)
@@ -295,8 +312,32 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
             "id": instance.id,
         }
 
+    def update_expected_create_response(self, expected_create_response, new_instance):
+        super().update_expected_create_response(expected_create_response, new_instance)
+
+        period_start = new_instance.period_start
+        period_end = new_instance.period_end
+        formatted_name = f" on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        expected_create_response["formatted_name"] = formatted_name
+
+    def update_expected_retrieve_response(self, expected_retrieve_response, instance):
+        super().update_expected_retrieve_response(expected_retrieve_response, instance)
+
+        period_start = instance.period_start
+        period_end = instance.period_end
+        formatted_name = f" on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        expected_retrieve_response["formatted_name"] = formatted_name
+
+    def update_expected_update_response(self, expected_update_response, updated_instance):
+        super().update_expected_update_response(expected_update_response, updated_instance)
+
+        period_start = updated_instance.period_start
+        period_end = updated_instance.period_end
+        formatted_name = f" on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        expected_update_response["formatted_name"] = formatted_name
+
     def test_list_with_valid_expands(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "current_history_id"}.union(self.list_keys_arguments)
+        keys = {"id", "current_history_id", "formatted_name"}.union(self.list_keys_arguments)
 
         # Do we have a workflow?
         if hasattr(self.model, "workflow"):
@@ -353,7 +394,12 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
             "id": employee.id,
             "user": employee.user_id,
             "employee_number": employee.employee_number,
+            "formatted_name": str(employee.employee_number),
         }
+        period_start = instance.period_start
+        period_end = instance.period_end
+        formatted_name = f" on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        expected_retrieve_response["formatted_name"] = formatted_name
 
         assert response.status_code == 200, f"{response.status_code} != 200, response.data: {response.data}"
         assert expected_retrieve_response == response.data

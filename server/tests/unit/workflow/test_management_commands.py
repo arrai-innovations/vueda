@@ -233,6 +233,7 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
         assert data == [
             {
                 "code": "added_workflow",
+                "formatted_name": "Added Workflow",
                 "historical_app_label": "workflow_added",
                 "historical_model": "workflowadded",
                 "name": "Added Workflow",
@@ -513,6 +514,7 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand):
         assert orig_data_workflow == [
             {
                 "code": "changed_workflow",
+                "formatted_name": "Changed Workflow",
                 "historical_app_label": "workflow_changed",
                 "historical_model": "workflowchanged",
                 "name": "Changed Workflow",
@@ -662,6 +664,7 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand):
         assert data == [
             {
                 "code": "changed_workflow_2",
+                "formatted_name": "Changed Workflow 2",
                 "historical_app_label": "workflow_changed",
                 "historical_model": "workflowchanged",
                 "name": "Changed Workflow 2",
@@ -959,6 +962,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand):
         assert orig_data_workflow == [
             {
                 "code": "deleted_workflow",
+                "formatted_name": "Deleted Workflow",
                 "historical_app_label": "workflow_deleted",
                 "historical_model": "workflowdeleted",
                 "name": "Deleted Workflow",

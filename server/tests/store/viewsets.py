@@ -105,6 +105,7 @@ class CustomerOrderViewSet(VuedaHistoryViewSet):
     queryset = my_models.CustomerOrder.objects.all()
     serializer_class = my_serializers.CustomerOrderSerializer
     permission_classes = [ObjectPermissions]
+    filterset_class = my_filtersets.CustomerOrderFilterSet
     ordering_fields = ["order_number", "customer__user__email", "when", "order_state"]
 
 

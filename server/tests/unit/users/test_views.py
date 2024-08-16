@@ -29,5 +29,6 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
         response = api_client.get(url, format="json")
 
         assert response.status_code == 200
-        assert set(response.data) == {"id", "email", "name", "groups", "is_superuser"}
+        assert set(response.data) == {"id", "email", "name", "groups", "is_superuser", "formatted_name"}
         assert response.data["email"] == "test_user+timesheet+reader@example.com"
+        assert response.data["formatted_name"] == response.data["email"]

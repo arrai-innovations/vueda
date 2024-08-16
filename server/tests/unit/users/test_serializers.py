@@ -46,7 +46,7 @@ class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
         serializer = WhoIsSerializer(instance=user_2, data=get_data, context=context)
 
         fields = serializer.get_fields()
-        assert tuple(fields.keys()) == ("id", "email", "name", "groups", "is_superuser")
+        assert tuple(fields.keys()) == ("id", "email", "name", "groups", "is_superuser", "formatted_name")
 
     def test_as_another_user(self):
         user = self.users["testuser@example.com"]
@@ -58,4 +58,4 @@ class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
         serializer = WhoIsSerializer(instance=another_user, data=get_data, context=context)
 
         fields = serializer.get_fields()
-        assert tuple(fields.keys()) == ("id", "email", "name")
+        assert tuple(fields.keys()) == ("id", "email", "name", "formatted_name")

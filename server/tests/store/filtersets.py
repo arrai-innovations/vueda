@@ -12,11 +12,11 @@ class ProductFilterSet(VuedaFilterSet):
     distributor = rest_framework.AllValuesMultipleFilter(field_name="distributor__name")
     distributor.model = my_models.Product
     name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr=["exact", "contains"])
-    tangible = rest_framework.ModelChoiceFilter(
-        field_name="tangible", label="Tangible", queryset=my_models.Product.objects.all()
+    tangible_type = rest_framework.ModelChoiceFilter(
+        field_name="tangible_type", label="Tangible Type", queryset=my_models.TangibleType.objects.all()
     )
     special_care = rest_framework.ModelMultipleChoiceFilter(
-        field_name="special_care", label="Special Care", queryset=my_models.Product.objects.all()
+        field_name="special_care", label="Special Care", queryset=my_models.SpecialCare.objects.exclude(code="alcohol")
     )
     disabled = rest_framework.BooleanFilter(field_name="disabled", label="Disabled")
     last_ordered = rest_framework.DateFilter()
@@ -24,13 +24,11 @@ class ProductFilterSet(VuedaFilterSet):
 
     class Meta:
         model = my_models.Product
-        fields = ["name", "disabled", "tangible"]
+        fields = ["name", "disabled", "tangible_type"]
 
 
 class CustomerOrderFilterSet(VuedaFilterSet):
-    shipping_method = rest_framework.ChoiceFilter(
-        choices=(("free", "Free"), ("regular", "Regular"), ("express", "Express")), default="regular"
-    )
+    shipping_method = rest_framework.ChoiceFilter(choices=(("regular", "Regular"), ("express", "Express")))
 
     class Meta:
         model = my_models.CustomerOrder
