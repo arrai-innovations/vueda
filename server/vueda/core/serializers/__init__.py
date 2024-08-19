@@ -135,8 +135,8 @@ class VuedaSerializer(
 
 class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):
     class Meta(SimpleHistorySerializerMixin.Meta, VuedaSerializer.Meta):
-        expandable_fields = SimpleHistorySerializerMixin.Meta.expandable_fields
-        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
-        expandable_fields_data = SimpleHistorySerializerMixin.Meta.expandable_fields_data
-        expandable_fields_data.update(VuedaSerializer.Meta.expandable_fields_data)
+        expandable_fields = VuedaSerializer.Meta.expandable_fields.copy()
+        expandable_fields.update(SimpleHistorySerializerMixin.Meta.expandable_fields)
+        expandable_fields_data = VuedaSerializer.Meta.expandable_fields_data.copy()
+        expandable_fields_data.update(SimpleHistorySerializerMixin.Meta.expandable_fields_data)
         fields = VuedaSerializer.Meta.fields + SimpleHistorySerializerMixin.Meta.fields
