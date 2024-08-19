@@ -13,9 +13,6 @@ from django.core import validators
 from django.core.validators import StepValueValidator
 from django.db import connection
 from django.utils.functional import cached_property
-from django_filters import DateRangeFilter
-from django_filters import NumericRangeFilter
-from django_filters import RangeFilter
 from django_filters.fields import ChoiceIterator
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers  # noqa F401
@@ -275,7 +272,6 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 field_data["decimal_places"] = field.decimal_places
             if field_name == pk_field:
                 field_data["pk"] = True
-
             fields[field_name] = field_data
         return fields
 
@@ -442,8 +438,10 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         return label
 
     @staticmethod
-    def get_choices_data(field, widget=None):
-        if hasattr(field, "choices"):
+    def get_choices_data(filter_obj, field, widget=None):
+        if hasattr(filter_obj, "choices"):
+            return filter_obj.choices
+        elif hasattr(field, "choices"):
             return field.choices
         elif widget and hasattr(widget, "choices"):
             return widget.choices
@@ -491,7 +489,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         return choices, None
 
     def get_model_filtering_choices(self, filterset, filter_obj, filter_name, field, widget):
-        choices = self.get_choices_data(field, widget)
+        choices = self.get_choices_data(filter_obj, field, widget)
         meta = self.get_choices_meta(field, filter_obj, choices)
         if meta is not None:
             return True, {
@@ -556,17 +554,6 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 return tuple(input_types)[0]
         # Currently no test data returns unknown, so if you get this, how did you get it?
         return "unknown"
-
-    @staticmethod
-    def get_model_filtering_lookup_exprs(filter_obj):
-        if isinstance(filter_obj, RangeFilter):
-            return ["range", "gte", "lte"]
-        elif isinstance(filter_obj, NumericRangeFilter):
-            return ["startswith", "endswith"]
-        elif isinstance(filter_obj, DateRangeFilter):
-            return list(filter_obj.filters)
-        else:
-            raise RuntimeError(f"Unable to determine the lookup_exprs for filter {filter_obj}")
 
     @staticmethod
     def get_model_filtering_max_digits(field, model_field):
@@ -721,12 +708,10 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 input_type = self.get_model_filtering_input_type(filter_obj, field, widget)
                 filtering_data[filter_obj.field_name]["input_type"] = input_type
 
-                # Lookup Expr
-                # The filters of filter.field_class (RangeField, DateTimeRangeField) have a lookup_expr of
-                # an empty list.  They only have their lookup expressions defined in the filter function.
-                if not filtering_data[filter_obj.field_name]["lookup_exprs"]:
-                    lookup_exprs = self.get_model_filtering_lookup_exprs(filter_obj)
-                    filtering_data[filter_obj.field_name]["lookup_exprs"] = lookup_exprs
+                # Suffixes - Optional
+                # These are what is needed to do a query.
+                if hasattr(widget, "suffixes"):
+                    filtering_data[filter_obj.field_name]["suffixes"] = widget.suffixes
 
                 # Max Digits - Optional
                 max_digits = self.get_model_filtering_max_digits(field, model_field)
@@ -767,10 +752,6 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                     filtering_data[filter_obj.field_name]["validators"] = validators
                 if extra_data:
                     filtering_data[filter_obj.field_name].update(extra_data)
-
-                # Widget Names - Optional
-                if hasattr(widget, "widgets_names"):
-                    filtering_data[filter_obj.field_name]["name_suffixes"] = widget.widgets_names
 
         return filtering_data
 
