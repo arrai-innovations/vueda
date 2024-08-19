@@ -49,6 +49,7 @@ const builtInTypes = {
     PositiveBigIntegerField: availableFields.FieldNumber,
     PositiveDecimalField: availableFields.FieldNumber,
     ManyRelatedField: availableFields.FieldString,
+    PrimaryKeyRelatedField: availableFields.FieldString,
 };
 
 // todo: we should have a way to register custom widgets
@@ -70,9 +71,9 @@ const defaultWidgets = {
     EmailField: availableWidgets.WidgetInput,
     URLField: availableWidgets.WidgetInput,
     UUIDField: availableWidgets.WidgetInput,
-    ForeignKey: availableWidgets.WidgetSelect,
-    ManyToManyField: availableWidgets.WidgetMultiSelect,
-    OneToOneField: availableWidgets.WidgetSelect,
+    ForeignKey: availableWidgets.WidgetModel,
+    ManyToManyField: availableWidgets.WidgetModel,
+    OneToOneField: availableWidgets.WidgetModel,
     JSONField: availableWidgets.WidgetTextarea,
     ArrayField: availableWidgets.WidgetTextarea,
     BinaryField: availableWidgets.WidgetInput,
@@ -86,12 +87,13 @@ const defaultWidgets = {
     BigAutoField: availableWidgets.WidgetInput,
     BigIntegerField: availableWidgets.WidgetInput,
     DurationSecondsField: availableWidgets.WidgetInput,
-    GenericRelation: availableWidgets.WidgetSelect,
-    GenericForeignKey: availableWidgets.WidgetSelect,
+    GenericRelation: availableWidgets.WidgetModel,
+    GenericForeignKey: availableWidgets.WidgetModel,
     NullBooleanField: availableWidgets.WidgetCheckbox,
     PositiveBigIntegerField: availableWidgets.WidgetInput,
     PositiveDecimalField: availableWidgets.WidgetInput,
-    ManyRelatedField: availableWidgets.WidgetMultiSelect,
+    ManyRelatedField: availableWidgets.WidgetModel,
+    PrimaryKeyRelatedField: availableWidgets.WidgetModel,
 };
 
 const defaultFieldsProps = {};
@@ -116,9 +118,9 @@ const defaultWidgetProps = {
     EmailField: {},
     URLField: {},
     UUIDField: {},
-    ForeignKey: {},
-    ManyToManyField: {},
-    OneToOneField: {},
+    ForeignKey: { type: "select" },
+    ManyToManyField: { type: "multiSelect" },
+    OneToOneField: { type: "select" },
     JSONField: {},
     ArrayField: {},
     BinaryField: {},
@@ -132,12 +134,13 @@ const defaultWidgetProps = {
     BigAutoField: {},
     BigIntegerField: { type: "number" },
     DurationSecondsField: {},
-    GenericRelation: {},
-    GenericForeignKey: {},
+    GenericRelation: { type: "select" },
+    GenericForeignKey: { type: "select" },
     NullBooleanField: {},
     PositiveBigIntegerField: { type: "number" },
     PositiveDecimalField: { type: "number" },
-    ManyRelatedField: {},
+    ManyRelatedField: { type: "multiSelect" },
+    PrimaryKeyRelatedField: { type: "select" },
 };
 
 /**
@@ -167,7 +170,7 @@ const getDefaultWidget = (choices, many, readOnly, type) => {
         return availableWidgets.WidgetReadOnly;
     }
     if (choices) {
-        return availableWidgets.WidgetAutoComplete;
+        return availableWidgets.WidgetModel;
         // return WidgetMultiSelect;
     }
     if (type === "TextField" || many) {
@@ -219,10 +222,6 @@ const getDefaultWidget = (choices, many, readOnly, type) => {
 export function useFormModel(props) {
     const es = effectScope();
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
-    // const modelChoicesStore = storeModelChoices();
-    // const internalState = reactive({
-    //     choices: {},
-    // });
 
     const state = reactive(
         /** @type {UseFormModelRawState} */ {
@@ -237,19 +236,6 @@ export function useFormModel(props) {
         },
     );
 
-    // const appModelKey = computed(() => getAppModelDotName({ app: props.app, model: props.model }));
-
-    // watch(
-    //     [toRef(modelChoicesStore.choices), toRef(state, "widgetProps")],
-    //     ([fieldChoices]) => {
-    //             debugger
-    //         if (fieldChoices) {
-    //             assignReactiveObject(internalState.choices, fieldChoices);
-    //         }
-    //     },
-    //     { immediate: true, deep: true },
-    // );
-
     const assignStateObjectsIfChanged = (args) => {
         for (const key in args) {
             if (!isEqual(state[key], args[key])) {
@@ -257,17 +243,7 @@ export function useFormModel(props) {
             }
         }
     };
-    // const initializeChoices = (app, model, fieldName) => {
-    //     const appModelKey = getAppModelDotName({ app, model });
-    //     if (!internalState.choices[appModelKey]) {
-    //         internalState.choices[appModelKey] = reactive({ [fieldName]: ref([]) });
-    //     } else if (!internalState.choices[appModelKey][fieldName]) {
-    //         internalState.choices[appModelKey][fieldName] = ref([]);
-    //     }
-    //     return internalState.choices[appModelKey][fieldName];
-    // };
 
-    // resolve the names and detail overrides from props over config
     watch(
         [
             () => modelConfig.config.fields,
@@ -367,13 +343,11 @@ export function useFormModel(props) {
                                 if (expandFieldDetail.choices) {
                                     if (Array.isArray(expandFieldDetail.choices)) {
                                         baseProps.options = expandFieldDetail.choices;
+                                    } else {
+                                        baseProps.app = expandFieldDetail.app;
+                                        baseProps.model = expandFieldDetail.model;
+                                        baseProps.fieldName = fieldName;
                                     }
-                                    // else {
-                                    //             const appModelKey = getAppModelDotName({ app: expandFieldDetail.app, expandFieldDetail: props.model });
-                                    //             modelChoicesStore.initializeChoice(expandFieldDetail.app, expandFieldDetail.model, expandFieldName);
-                                    //             baseProps.options = internalState.choices[appModelKey][fieldName]
-                                    //             baseProps.fetchOptions = async () => modelChoicesStore.fetchChoices(expandFieldDetail.app, expandFieldDetail.model, expandFieldName);
-                                    //         }
                                 }
                                 return baseProps;
                             });
@@ -416,7 +390,6 @@ export function useFormModel(props) {
                             );
                         });
                         widgetProps[fieldName] = computed(() => {
-                            // TODO: needs to pass in app and model for WidgetMOdel
                             const baseProps = {
                                 ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
                                 ...(defaultWidgetProps[fieldDetail.type] || {}),
@@ -425,14 +398,13 @@ export function useFormModel(props) {
                             if (fieldDetail.choices) {
                                 if (Array.isArray(fieldDetail.choices)) {
                                     baseProps.options = fieldDetail.choices;
+                                } else {
+                                    baseProps.parentApp = props.app;
+                                    baseProps.parentModel = props.model;
+                                    baseProps.app = fieldDetail.app_label;
+                                    baseProps.model = fieldDetail.model;
+                                    baseProps.fieldName = fieldName;
                                 }
-                                // else {
-                                //     const appModelKey = getAppModelDotName({ app: props.app, model: props.model });
-                                //     modelChoicesStore.initializeChoice(props.app, props.model, fieldName);
-                                //     baseProps.options = internalState.choices[appModelKey][fieldName]
-                                //     baseProps.fetchOptions = async () => modelChoicesStore.fetchChoices(props.app, props.model, fieldName);
-                                // }
-                                // modelChoicesStore.fetchChoices(props.app, props.model, fieldName);
                             }
                             return baseProps;
                         });

@@ -21,10 +21,18 @@ const props = defineProps({
         type: String,
         default: "default",
     },
+    onFocus: {
+        type: Function,
+        default: () => {},
+    },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useComputedClasses(vuedaTailwind.WidgetAutoComplete, widgetContext.state);
+const handleFocus = () => {
+    widgetContext.focus();
+    props.onFocus();
+};
 </script>
 <template>
     <div :class="theme('root')">
@@ -38,7 +46,7 @@ const theme = useComputedClasses(vuedaTailwind.WidgetAutoComplete, widgetContext
             option-label="label"
             :options="props.options"
             @blur="widgetContext.blur"
-            @focus="widgetContext.focus"
+            @focus="handleFocus"
         />
     </div>
 </template>

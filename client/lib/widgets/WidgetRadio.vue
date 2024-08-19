@@ -24,6 +24,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    onFocus: {
+        type: Function,
+        default: () => {},
+    },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
@@ -37,6 +41,10 @@ const computedOptions = computed(() => {
         };
     });
 });
+const handleFocus = () => {
+    widgetContext.focus();
+    props.onFocus();
+};
 </script>
 
 <template>
@@ -62,7 +70,7 @@ const computedOptions = computed(() => {
                                 :name="widgetContext.state.combinedName"
                                 :value="option.value"
                                 @blur="widgetContext.blur"
-                                @focus="widgetContext.focus"
+                                @focus="handleFocus"
                             />
                         </slot>
                         <slot

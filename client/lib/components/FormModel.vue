@@ -97,7 +97,7 @@ const props = defineProps({
     },
     expands: {
         type: Array,
-        default: () => [],
+        default: undefined,
         description: "The fields to render in the form, expanded.",
     },
     variant: {

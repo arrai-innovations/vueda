@@ -112,7 +112,6 @@ const search = (event) => {
             </template>
             <div :class="theme('inner')">
                 <AutoComplete
-                    dropdown
                     v-bind="$attrs"
                     force-selection
                     :loading="modelListInstance.state.loading"

@@ -34,14 +34,16 @@ import { reactive, readonly, ref, toRef, unref, watch } from "vue";
  * @param {import('vue').Ref<string>} model - A ref containing the model name that is being watched.
  * @param {import('vue').Ref<string>} field - A ref containing the field name that is being watched.
  * @param {import('@vueda/use/useIsActive.js').IsActive|undefined} [isActive] - An IsActive instance, if one can be reused.
+ * @param {import('vue').Ref<boolean>} intendToFetch - A ref containing the indicator whether the model choices should be fetched.
  * @returns {UseModelChoices} An object containing reactive fields and actions for model choices.
  */
-export function useModelChoices(app, model, field, isActive) {
+export function useModelChoices(app, model, field, isActive, intendToFetch) {
     const loadingError = useLoadingError();
     if (!isActive) {
         isActive = useIsActive();
     }
     const modelChoicesStore = storeModelChoices();
+    modelChoicesStore.initializeChoice(app.value, model.value);
     /** @type {import('vue').Ref<null|import('vue').Ref<object>>} */
     const originalChoices = ref(null);
     const returnObject = reactive(
@@ -56,21 +58,30 @@ export function useModelChoices(app, model, field, isActive) {
 
     // update originalChoices when app, model, field, or isActive changes
     watch(
-        [isActive, app, model, field],
-        async ([active, app, model, field], [oldActive, oldApp, oldModel, oldField]) => {
+        [isActive, app, model, field, intendToFetch],
+        async (
+            [active, app, model, field, intendToFetch],
+            [oldActive, oldApp, oldModel, oldField, oldIntendToFetch],
+        ) => {
             if (!active) {
                 return; // we'll pick up again when the component is active
             }
-            if (oldActive === active && app === oldApp && model === oldModel && field === oldField) {
+            if (
+                oldActive === active &&
+                app === oldApp &&
+                model === oldModel &&
+                field === oldField &&
+                intendToFetch === oldIntendToFetch
+            ) {
                 return; // no change, no need to update
             }
             // todo: we could look at implementing cancelling of fetches if the app/model/field changes while loading
-            if (app && model && field && !returnObject.loading) {
+            if (app && model && field && !returnObject.loading && intendToFetch) {
                 loadingError.clearError();
                 loadingError.setLoading();
                 try {
-                    originalChoices.value = toRef(modelChoicesStore.choices, getAppModelDotName({ app, model }));
-                    // await modelChoicesStore.fetchChoices(app, model, field);
+                    originalChoices.value = toRef(modelChoicesStore.choices[getAppModelDotName({ app, model })], field);
+                    await modelChoicesStore.fetchChoices(app, model, field);
                 } catch (e) {
                     loadingError.setError(e);
                 } finally {

@@ -84,16 +84,11 @@ export const storeModelChoices = defineStore({
                 delete this.promises[key][field];
             }
         },
-        //     initializeChoice(app, model, field) {
-        //         const key = getAppModelDotName({ app, model });
-        //         if (!this.choices[key]) {
-        //             this.choices[key] = {};
-        //         }
-        //         if (!this.choices[key][field]) {
-        //             this.choices[key][field] = {};
-        //         }
-        //         const c = this.choices
-        //         debugger
-        // },
+        initializeChoice(app, model) {
+            const key = getAppModelDotName({ app, model });
+            if (!this.choices[key]) {
+                this.choices[key] = {};
+            }
+        },
     },
 });

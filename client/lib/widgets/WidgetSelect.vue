@@ -4,6 +4,7 @@ import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Dropdown from "primevue/dropdown";
+import { computed } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -34,12 +35,30 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    onFocus: {
+        type: Function,
+        default: () => {},
+    },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useComputedClasses(vuedaTailwind.WidgetSelect, widgetContext.state);
-</script>
+const handleFocus = () => {
+    widgetContext.focus();
+    props.onFocus();
+};
 
+const modelItem = computed(() => {
+    let match = null;
+    if (props.options && props.options.length > 0) {
+        match = props.options.find((option) => option.value == widgetContext.state.combinedValue);
+    }
+    return match?.value ?? widgetContext.state.combinedValue;
+});
+const valueUpdated = (selected) => {
+    widgetContext.state.combinedValue = selected;
+};
+</script>
 <template>
     <div :class="theme('root')">
         <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
@@ -47,15 +66,16 @@ const theme = useComputedClasses(vuedaTailwind.WidgetSelect, widgetContext.state
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
-                <dropdown
-                    v-model="widgetContext.state.combinedValue"
-                    :name="widgetContext.state.combinedName"
-                    :option-label="$attrs.optionlabel || 'label'"
-                    :option-value="$attrs.optionValue || 'value'"
+                <Dropdown
+                    :model-value="modelItem"
+                    option-label="label"
+                    option-value="value"
                     :options="props.options"
+                    show-clear
                     v-bind="$attrs"
                     @blur="widgetContext.blur"
-                    @focus="widgetContext.focus"
+                    @focus="handleFocus"
+                    @update:model-value="(selected) => valueUpdated(selected)"
                 />
             </div>
         </widget-label>
