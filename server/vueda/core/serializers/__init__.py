@@ -105,9 +105,7 @@ class VuedaSerializer(
             if "many" not in expandable_field_item:
                 expandable_field_item["many"] = False
             if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expandable_field_item:
-                for field_name, field in expandable_field_item[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]].items():
-                    if field_name == "pk":
-                        continue
+                for field in expandable_field_item[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]].values():
                     if "many" not in field:
                         field["many"] = False
                     if "read_only" not in field:

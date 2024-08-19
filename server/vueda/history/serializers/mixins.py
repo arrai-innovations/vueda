@@ -30,11 +30,11 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
                 "many": True,
                 "read_only": True,
                 settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                    "pk": "history_id",
                     "history_id": {
                         "label": "History ID",
                         "type": "IntegerField",
                         "read_only": True,
+                        "pk": True,
                     },
                     "history_date": {
                         "label": "History Date",
@@ -66,11 +66,11 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
             "first_history_entry": {
                 "read_only": True,
                 settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                    "pk": "history_id",
                     "history_id": {
                         "label": "History ID",
                         "type": "IntegerField",
                         "read_only": True,
+                        "pk": True,
                     },
                     "history_date": {
                         "label": "History Date",
@@ -102,11 +102,11 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
             "last_history_entry": {
                 "read_only": True,
                 settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                    "pk": "history_id",
                     "history_id": {
                         "label": "History ID",
                         "type": "IntegerField",
                         "read_only": True,
+                        "pk": True,
                     },
                     "history_date": {
                         "label": "History Date",
@@ -165,16 +165,16 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
             expandable_fields_data[key]["model"] = history_model._meta.model_name
 
             # Add the fields from the serializer.  These fields should be first, after pk.
-            sorted_expandable_data = {
-                "pk": "history_id",
-            }
+            sorted_expandable_data = {}
 
             model_content_type = ContentType.objects.get_for_model(model)
             serializer = ModelInfoSerializer(model_content_type)
             canonical_serializer = serializer.canonical["serializer"]
             fields = serializer.get_model_fields_data(canonical_serializer, include_app_and_model=False)
             for field_name, field in fields.items():
-                if field_name not in ("pk", "current_history_id"):
+                if "pk" in field:
+                    del field["pk"]
+                if field_name not in ("current_history_id",):
                     sorted_expandable_data[field_name] = field
 
             if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expandable_fields_data[key]:
