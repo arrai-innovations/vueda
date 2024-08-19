@@ -37,7 +37,6 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -69,6 +68,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -122,7 +122,6 @@ DETAIL_PARAMETRIZE = [
                     "many": True,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -154,6 +153,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -207,7 +207,6 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -239,6 +238,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -287,13 +287,13 @@ DETAIL_PARAMETRIZE = [
                 },
             ],
             "expected_fields": {
-                "pk": "id",
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "many": False,
+                    "pk": True,
                     "read_only": True,
                     "required": False,
                     "choices": False,
@@ -334,7 +334,7 @@ DETAIL_PARAMETRIZE = [
                     "help_text": "Multiple values may be separated by commas.",
                     "hidden": True,
                     "input_type": "hidden",
-                    "label": "ID is in",
+                    "label": "Id Is In",
                     "lookup_exprs": ["in"],
                     "max_value": 2147483647,
                     "min_value": -2147483648,
@@ -389,13 +389,13 @@ DETAIL_PARAMETRIZE = [
             },
             "expected_expands": [],
             "expected_fields": {
-                "pk": "id",
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "many": False,
+                    "pk": True,
                     "read_only": True,
                     "required": False,
                     "choices": False,
@@ -461,13 +461,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "tests",
                     "model": "user",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -520,7 +520,6 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -560,6 +559,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -613,7 +613,6 @@ DETAIL_PARAMETRIZE = [
                     "many": True,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -653,6 +652,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -706,7 +706,6 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -746,6 +745,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -794,13 +794,13 @@ DETAIL_PARAMETRIZE = [
                 },
             ],
             "expected_fields": {
-                "pk": "id",
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "many": False,
+                    "pk": True,
                     "read_only": True,
                     "required": False,
                     "choices": False,
@@ -867,13 +867,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "customer",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -893,13 +893,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "cartitem",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -926,13 +926,13 @@ DETAIL_PARAMETRIZE = [
                 },
             ],
             "expected_fields": {
-                "pk": "id",
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "many": False,
+                    "pk": True,
                     "read_only": True,
                     "required": False,
                     "choices": False,
@@ -984,7 +984,7 @@ DETAIL_PARAMETRIZE = [
                     "field_class": "DurationField",
                     "hidden": False,
                     "input_type": "text",
-                    "label": "Expected delivery time",
+                    "label": "Expected Delivery Time",
                     "lookup_exprs": ["exact"],
                     "required": False,
                 },
@@ -997,7 +997,7 @@ DETAIL_PARAMETRIZE = [
                     "help_text": "Multiple values may be separated by commas.",
                     "hidden": True,
                     "input_type": "hidden",
-                    "label": "ID is in",
+                    "label": "Id Is In",
                     "lookup_exprs": ["in"],
                     "max_value": 2147483647,
                     "min_value": -2147483648,
@@ -1013,10 +1013,10 @@ DETAIL_PARAMETRIZE = [
                     "hidden": False,
                     "input_type": "text",
                     "label": "Last modified",
-                    "lookup_exprs": ["range", "gte", "lte"],
-                    "name_suffixes": [
-                        "_0",
-                        "_1",
+                    "lookup_exprs": [],
+                    "suffixes": [
+                        "after",
+                        "before",
                     ],
                     "required": False,
                 },
@@ -1051,7 +1051,7 @@ DETAIL_PARAMETRIZE = [
                         "%d %B, %Y",
                     ],
                     "input_type": "text",
-                    "label": "Reserved delivery time",
+                    "label": "Reserved Delivery Time",
                     "lookup_exprs": ["exact"],
                     "required": False,
                 },
@@ -1068,7 +1068,7 @@ DETAIL_PARAMETRIZE = [
                         "%H:%M",
                     ],
                     "input_type": "text",
-                    "label": "Reserved until",
+                    "label": "Reserved Until",
                     "lookup_exprs": ["exact"],
                     "required": False,
                 },
@@ -1107,13 +1107,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "customer",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -1133,13 +1133,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "orderstate",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -1171,7 +1171,6 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -1257,6 +1256,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -1310,7 +1310,6 @@ DETAIL_PARAMETRIZE = [
                     "many": True,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -1396,6 +1395,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -1449,7 +1449,6 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -1535,6 +1534,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -1583,13 +1583,13 @@ DETAIL_PARAMETRIZE = [
                 },
             ],
             "expected_fields": {
-                "pk": "id",
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "many": False,
+                    "pk": True,
                     "read_only": True,
                     "required": False,
                     "choices": False,
@@ -1671,7 +1671,7 @@ DETAIL_PARAMETRIZE = [
                     "help_text": "Multiple values may be separated by commas.",
                     "hidden": True,
                     "input_type": "hidden",
-                    "label": "ID is in",
+                    "label": "Id Is In",
                     "lookup_exprs": ["in"],
                     "max_value": 2147483647,
                     "min_value": -2147483648,
@@ -1690,7 +1690,7 @@ DETAIL_PARAMETRIZE = [
                     "field_class": "ChoiceField",
                     "hidden": False,
                     "input_type": "select",
-                    "label": "Shipping method",
+                    "label": "Shipping Method",
                     "lookup_exprs": [
                         "exact",
                     ],
@@ -1731,13 +1731,13 @@ DETAIL_PARAMETRIZE = [
             },
             "expected_expands": [],
             "expected_fields": {
-                "pk": "id",
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "many": False,
+                    "pk": True,
                     "read_only": True,
                     "required": False,
                     "choices": False,
@@ -1811,13 +1811,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "distributor",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -1856,7 +1856,6 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -2042,6 +2041,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -2095,7 +2095,6 @@ DETAIL_PARAMETRIZE = [
                     "many": True,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -2281,6 +2280,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -2334,7 +2334,6 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -2520,6 +2519,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -2568,13 +2568,13 @@ DETAIL_PARAMETRIZE = [
                 },
             ],
             "expected_fields": {
-                "pk": "id",
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "many": False,
+                    "pk": True,
                     "read_only": True,
                     "required": False,
                     "choices": False,
@@ -2758,7 +2758,7 @@ DETAIL_PARAMETRIZE = [
                     "help_text": "Multiple values may be separated by commas.",
                     "hidden": True,
                     "input_type": "hidden",
-                    "label": "ID is in",
+                    "label": "Id Is In",
                     "lookup_exprs": ["in"],
                     "max_value": 2147483647,
                     "min_value": -2147483648,
@@ -2785,7 +2785,7 @@ DETAIL_PARAMETRIZE = [
                         "%d %B, %Y",
                     ],
                     "input_type": "text",
-                    "label": "Last ordered",
+                    "label": "Last Ordered",
                     "lookup_exprs": [
                         "exact",
                     ],
@@ -2820,7 +2820,7 @@ DETAIL_PARAMETRIZE = [
                     "help_text": "Multiple values may be separated by commas.",
                     "hidden": False,
                     "input_type": "number",
-                    "label": "Quantity is in",
+                    "label": "Quantity Is In",
                     "lookup_exprs": ["in"],
                     "max_value": 2147483647,
                     "min_value": -2147483648,
@@ -2906,13 +2906,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "optiontype",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -2942,13 +2942,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "product",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -2995,7 +2995,6 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -3225,6 +3224,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -3278,7 +3278,6 @@ DETAIL_PARAMETRIZE = [
                     "many": True,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -3508,6 +3507,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -3561,7 +3561,6 @@ DETAIL_PARAMETRIZE = [
                     "many": False,
                     "read_only": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "history_id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
@@ -3791,6 +3790,7 @@ DETAIL_PARAMETRIZE = [
                             "label": "History ID",
                             "type": "IntegerField",
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -3839,13 +3839,13 @@ DETAIL_PARAMETRIZE = [
                 },
             ],
             "expected_fields": {
-                "pk": "id",
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "many": False,
+                    "pk": True,
                     "read_only": True,
                     "required": False,
                     "choices": False,
@@ -3960,7 +3960,7 @@ DETAIL_PARAMETRIZE = [
                     "help_text": "Multiple values may be separated by commas.",
                     "hidden": True,
                     "input_type": "hidden",
-                    "label": "ID is in",
+                    "label": "Id Is In",
                     "lookup_exprs": ["in"],
                     "max_value": 2147483647,
                     "min_value": -2147483648,
@@ -3994,7 +3994,7 @@ DETAIL_PARAMETRIZE = [
                     "field_class": "DecimalField",
                     "hidden": False,
                     "input_type": "number",
-                    "label": "Quantity available",
+                    "label": "Quantity Available",
                     "lookup_exprs": [
                         "exact",
                     ],
@@ -4013,14 +4013,11 @@ DETAIL_PARAMETRIZE = [
                     "hidden": False,
                     "input_type": "number",
                     "label": "Price",
-                    "lookup_exprs": [
-                        "startswith",
-                        "endswith",
-                    ],
+                    "lookup_exprs": [],
                     "max_digits": 12,
-                    "name_suffixes": [
-                        "_0",
-                        "_1",
+                    "suffixes": [
+                        "min",
+                        "max",
                     ],
                     "required": False,
                 },
@@ -4081,13 +4078,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "customerorder",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -4133,13 +4130,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "productoption",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -4209,13 +4206,13 @@ DETAIL_PARAMETRIZE = [
                 },
             ],
             "expected_fields": {
-                "pk": "id",
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "many": False,
+                    "pk": True,
                     "read_only": True,
                     "required": False,
                     "choices": False,
@@ -4275,6 +4272,7 @@ DETAIL_PARAMETRIZE = [
                         "range",
                     ],
                     "max_value": 1000,
+                    "min_value": 0,
                     "required": False,
                 },
                 "id": {
@@ -4286,7 +4284,7 @@ DETAIL_PARAMETRIZE = [
                     "help_text": "Multiple values may be separated by commas.",
                     "hidden": True,
                     "input_type": "hidden",
-                    "label": "ID is in",
+                    "label": "Id Is In",
                     "lookup_exprs": ["in"],
                     "max_value": 2147483647,
                     "min_value": -2147483648,
@@ -4327,13 +4325,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "productoption",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -4406,13 +4404,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "inventoryrecordreason",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -4450,13 +4448,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "inventoryrecord",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -4556,13 +4554,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "orderitem",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -4589,13 +4587,13 @@ DETAIL_PARAMETRIZE = [
                 },
             ],
             "expected_fields": {
-                "pk": "id",
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "many": False,
+                    "pk": True,
                     "read_only": True,
                     "required": False,
                     "choices": False,
@@ -4728,9 +4726,9 @@ DETAIL_PARAMETRIZE = [
                         "exact",
                     ],
                     "max_digits": 12,
-                    "name_suffixes": [
-                        "_0",
-                        "_1",
+                    "suffixes": [
+                        "min",
+                        "max",
                     ],
                     "required": False,
                 },
@@ -4743,7 +4741,7 @@ DETAIL_PARAMETRIZE = [
                     "help_text": "Multiple values may be separated by commas.",
                     "hidden": True,
                     "input_type": "hidden",
-                    "label": "ID is in",
+                    "label": "Id Is In",
                     "lookup_exprs": ["in"],
                     "max_value": 2147483647,
                     "min_value": -2147483648,
@@ -4782,9 +4780,9 @@ DETAIL_PARAMETRIZE = [
                         "exact",
                     ],
                     "max_digits": 12,
-                    "name_suffixes": [
-                        "_0",
-                        "_1",
+                    "suffixes": [
+                        "min",
+                        "max",
                     ],
                     "required": False,
                 },
@@ -4803,9 +4801,9 @@ DETAIL_PARAMETRIZE = [
                         "exact",
                     ],
                     "max_digits": 12,
-                    "name_suffixes": [
-                        "_0",
-                        "_1",
+                    "suffixes": [
+                        "min",
+                        "max",
                     ],
                     "required": False,
                 },
@@ -4822,9 +4820,9 @@ DETAIL_PARAMETRIZE = [
                     "lookup_exprs": [
                         "exact",
                     ],
-                    "name_suffixes": [
-                        "_0",
-                        "_1",
+                    "suffixes": [
+                        "min",
+                        "max",
                     ],
                     "required": False,
                     "step": 6,
@@ -4869,9 +4867,9 @@ DETAIL_PARAMETRIZE = [
                     "lookup_exprs": [
                         "exact",
                     ],
-                    "name_suffixes": [
-                        "_0",
-                        "_1",
+                    "suffixes": [
+                        "after",
+                        "before",
                     ],
                     "required": False,
                 },
@@ -4910,13 +4908,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "cart",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -4936,13 +4934,13 @@ DETAIL_PARAMETRIZE = [
                     "app_label": "store",
                     "model": "productoption",
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "pk": "id",
                         "id": {
                             "label": "ID",
                             "type": "IntegerField",
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "many": False,
+                            "pk": True,
                             "read_only": True,
                             "required": False,
                             "choices": False,
@@ -5012,13 +5010,13 @@ DETAIL_PARAMETRIZE = [
                 },
             ],
             "expected_fields": {
-                "pk": "id",
                 "id": {
                     "label": "ID",
                     "type": "IntegerField",
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "many": False,
+                    "pk": True,
                     "read_only": True,
                     "required": False,
                     "choices": False,
@@ -5270,23 +5268,17 @@ class TestModelInfoSerializer:
         else:
             assert frozenset(data) == frozenset(expected_data), "expected_fields -> {{keys}}"
         for field_name, field_data in data.items():
-            if field_name == "pk":
-                if extra_key is not None:
-                    assert field_data == expected_data[field_name], f'{extra_key} -> FIELDS_PARAM -> "pk"'
-                else:
-                    assert field_data == expected_data[field_name], 'expected_fields -> "pk"'
-            else:
-                for expected_field_name, expected_field_data in expected_data.items():
-                    if field_name == expected_field_name:
-                        if extra_key is not None:
-                            failure_msg = f"{extra_key} -> FIELDS_PARAM -> {field_name}"
-                        else:
-                            failure_msg = f"expected_fields -> {field_name}"
-                        assert frozenset(field_data) == frozenset(expected_field_data), f"{failure_msg} -> {{keys}}"
-                        for key, value in field_data.items():
-                            if key == "help_text":  # Don't worry about adding help text messages into our test data.
-                                value = None
-                            assert value == expected_field_data[key], f"{failure_msg} -> {key}"
+            for expected_field_name, expected_field_data in expected_data.items():
+                if field_name == expected_field_name:
+                    if extra_key is not None:
+                        failure_msg = f"{extra_key} -> FIELDS_PARAM -> {field_name}"
+                    else:
+                        failure_msg = f"expected_fields -> {field_name}"
+                    assert frozenset(field_data) == frozenset(expected_field_data), f"{failure_msg} -> {{keys}}"
+                    for key, value in field_data.items():
+                        if key == "help_text":  # Don't worry about adding help text messages into our test data.
+                            value = None
+                        assert value == expected_field_data[key], f"{failure_msg} -> {key}"
 
     def check_model_fields_data(self, response_data, expected_data):
         self.check_model_fields(response_data.data["model_fields"], expected_data)
