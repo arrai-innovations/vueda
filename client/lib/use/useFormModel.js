@@ -2,7 +2,6 @@ import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { availableFields, availableWidgets } from "@vueda/utils/filterLookups.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
-import { computedAsync } from "@vueuse/core";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import { computed, effectScope, provide, reactive, readonly, shallowReactive, toRef, watch } from "vue";
@@ -298,7 +297,7 @@ export function useFormModel(props) {
                     if (!expandDetail) {
                         throw new Error(`Unknown expand ${expandName} specified for ${props.app}.${props.model}`);
                     }
-                    if (!fields.includes(expandDetail.name) || !expandDetail.f) {
+                    if (!expandDetail.f) {
                         continue;
                     }
                     for (const [expandFieldName, expandFieldDetail] of Object.entries(expandDetail.f)) {
@@ -307,12 +306,12 @@ export function useFormModel(props) {
                         }
                         const fieldName = `${expandName}__${expandFieldName}`;
                         es.run(() => {
-                            const fieldComponent = computed(
-                                () =>
-                                    props.fieldComponents[fieldName] ||
-                                    djangoTypeToFieldComponent(expandFieldDetail.many, expandFieldDetail.type),
-                            );
-                            fieldComponents[fieldName] = computedAsync(async () => fieldComponent.value[1](), null);
+                            fieldComponents[fieldName] = computed(() => {
+                                return (
+                                    props.fieldComponents?.[fieldName] ||
+                                    djangoTypeToFieldComponent(expandFieldDetail.many, expandFieldDetail.type)
+                                );
+                            });
                             fieldProps[fieldName] = computed(() => {
                                 return {
                                     ...{
@@ -320,33 +319,35 @@ export function useFormModel(props) {
                                         ...omit(expandFieldDetail, ["type"]),
                                         ...(defaultFieldsProps[expandFieldDetail.type] || {}),
                                     },
-                                    ...(deepUnref(props.fieldProps[fieldName]) || {}),
+                                    ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
                                     name: fieldName,
                                 };
                             });
-                            const widgetComponent = computed(
-                                () =>
-                                    props.widgetComponents[fieldName] ||
+                            widgetComponents[fieldName] = computed(() => {
+                                return (
+                                    props.widgetComponents?.[fieldName] ||
                                     getDefaultWidget(
                                         expandFieldDetail.choices,
                                         expandFieldDetail.many,
                                         expandFieldDetail.readOnly,
                                         expandFieldDetail.type,
-                                    ),
-                            );
-                            widgetComponents[fieldName] = computedAsync(async () => widgetComponent.value(), null);
+                                    )
+                                );
+                            });
                             widgetProps[fieldName] = computed(() => {
                                 const baseProps = {
-                                    ...(deepUnref(props.widgetProps[fieldName]) || {}),
+                                    ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
                                     ...(defaultWidgetProps[expandFieldDetail.type] || {}),
                                 };
                                 if (expandFieldDetail.choices) {
                                     if (Array.isArray(expandFieldDetail.choices)) {
                                         baseProps.options = expandFieldDetail.choices;
                                     } else {
-                                        baseProps.app = expandFieldDetail.app;
+                                        baseProps.fieldApp = expandDetail.app_label;
+                                        baseProps.fieldModel = expandDetail.model;
+                                        baseProps.app = expandFieldDetail.appLabel;
                                         baseProps.model = expandFieldDetail.model;
-                                        baseProps.fieldName = fieldName;
+                                        baseProps.fieldName = expandFieldName;
                                     }
                                 }
                                 return baseProps;
@@ -394,14 +395,13 @@ export function useFormModel(props) {
                                 ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
                                 ...(defaultWidgetProps[fieldDetail.type] || {}),
                             };
-                            console.log("fieldDetail: ", fieldDetail);
                             if (fieldDetail.choices) {
                                 if (Array.isArray(fieldDetail.choices)) {
                                     baseProps.options = fieldDetail.choices;
                                 } else {
-                                    baseProps.parentApp = props.app;
-                                    baseProps.parentModel = props.model;
-                                    baseProps.app = fieldDetail.app_label;
+                                    baseProps.fieldApp = props.app;
+                                    baseProps.fieldModel = props.model;
+                                    baseProps.app = fieldDetail.appLabel;
                                     baseProps.model = fieldDetail.model;
                                     baseProps.fieldName = fieldName;
                                 }

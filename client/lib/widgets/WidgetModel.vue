@@ -11,11 +11,11 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
-    parentApp: {
+    fieldApp: {
         type: String,
         required: true,
     },
-    parentModel: {
+    fieldModel: {
         type: String,
         required: true,
     },
@@ -44,8 +44,8 @@ const intendToFetch = computed(() => {
     return widgetContext.state.combinedValue || hasBeenFocused.value;
 });
 const modelChoices = useModelChoices(
-    toRef(props.parentApp),
-    toRef(props.parentModel),
+    toRef(props.fieldApp),
+    toRef(props.fieldModel),
     toRef(props.fieldName),
     isActive,
     intendToFetch,
