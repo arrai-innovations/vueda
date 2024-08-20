@@ -389,7 +389,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                     model_name = field_serializer.Meta.model._meta.model_name
                     expand_item["app_label"] = app_label
                     expand_item["model"] = model_name
-                    field_data = self.get_model_fields_data(field_serializer, include_app_and_model=False)
+                    field_data = self.get_model_fields_data(field_serializer)
 
                 if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expand_options:
                     # We need to call tuple, as we are modifying the dictionary.
