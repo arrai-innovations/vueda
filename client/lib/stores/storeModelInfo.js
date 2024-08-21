@@ -146,7 +146,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  *
  * Lookup expressions.
  * @property {LookupExpr[]} lookupExprs - The Django filter lookup expressions available for the filter.
- * @property {string[]} [nameSuffixes] - The Django filter name suffixes for the filter.
+ * @property {string[]} [suffixes] - The Django filter suffixes for the filter.
  *
  * Associations and relationships.
  * @property {string} [model] - The model associated with the filter.

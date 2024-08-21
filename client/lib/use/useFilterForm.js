@@ -266,12 +266,12 @@ export default function useFilterForm(props) {
                             const key = `${filterableName}__${expression.value}`;
                             lookupExpressionsToParams[expression.value] =
                                 lookupExpressions.length > 1 ? key : filterableName;
-                            if (filterableDetail.nameSuffixes?.length) {
-                                lookupExpressionsToParams[expression.value] = filterableDetail.nameSuffixes.map(
+                            if (filterableDetail.suffixes?.length) {
+                                lookupExpressionsToParams[expression.value] = filterableDetail.suffixes.map(
                                     (suffix) => {
                                         return lookupExpressions.length > 1
-                                            ? `${filterableName}${suffix}__${expression.value}`
-                                            : `${filterableName}${suffix}`;
+                                            ? `${filterableName}_${suffix}__${expression.value}`
+                                            : `${filterableName}_${suffix}`;
                                     },
                                 );
                             }
