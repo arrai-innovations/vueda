@@ -1,7 +1,6 @@
 <script setup>
 /**
- * This component is the contests of a simple form for when a simple form will do. Customization means making your own.
- * It does not handle the form, you do.
+ * This component is a form model that renders fields based on the configuration for the model.
  *
  * @name FormModel
  * @example

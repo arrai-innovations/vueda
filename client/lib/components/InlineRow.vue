@@ -43,13 +43,13 @@ const props = defineProps({
     },
 });
 const formModel = inject(FormModelSymbol, null);
-const theme = useComputedClasses(vuedaTailwind.FormModel);
+const theme = useComputedClasses(vuedaTailwind.FieldInlineRow);
 
 const emit = defineEmits(["delete-row"]);
 const onDelete = () => emit("delete-row", props.index);
 </script>
 <template>
-    <template v-if="formModel.expands?.length">
+    <div v-if="formModel.expands?.length" :class="theme('root')">
         <div v-if="$slots.beforeFields" :class="theme('beforeFields')">
             <slot name="beforeFields" />
         </div>
@@ -110,10 +110,10 @@ const onDelete = () => emit("delete-row", props.index);
         <div v-if="$slots.afterFields" :class="theme('afterFields')">
             <slot name="afterFields" />
         </div>
-    </template>
-    <slot name="inline-row-delete" :on-delete="onDelete">
-        <Button label="delete" @click="onDelete" />
-    </slot>
+        <slot label="Delete" name="inline-row-delete" size="small" verb="delete" @delete="onDelete">
+            <Button label="Delete" size="small" @click="onDelete" />
+        </slot>
+    </div>
 </template>
 
 <style scoped></style>

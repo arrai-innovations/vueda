@@ -5,14 +5,13 @@ import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import Button from "primevue/button";
-import Divider from "primevue/divider";
 
 const props = defineProps({
     ...FIELD_PROPS,
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
-const theme = useComputedClasses(vuedaTailwind.FormModel);
+const theme = useComputedClasses(vuedaTailwind.FieldInline);
 
 const addRow = () => {
     fieldContext.state.value = [...cloneDeep(fieldContext.state.value), {}];
@@ -24,20 +23,22 @@ const removeRow = (index) => {
 
 <template>
     <div :class="theme('root')">
-        <div>
-            <slot name="inline-title">
-                {{ fieldContext.state.name }}
+        <div :class="theme('header')">
+            <slot :class="theme('title')" name="inline-title">
+                <div :class="theme('title')">
+                    {{ fieldContext.state.label }}
+                </div>
             </slot>
-            <slot name="inline-add-row" :onclick="addRow">
-                <Button label="add" @click="addRow"></Button>
+            <slot label="Add" name="inline-add-row" size="small" verb="add" @click="addRow">
+                <Button label="Add" size="small" @click="addRow" />
             </slot>
         </div>
-        <Divider />
+        <hr :class="theme('hr')" />
         <slot></slot>
-        <div v-for="(_, index) in fieldContext.state.value" :key="index">
+        <div v-for="(_, index) in fieldContext.state.value" :key="index" :class="theme('inlineRows')">
             <InlineRow :field-name="fieldContext.state.name" :index="index" @delete-row="removeRow">
-                <template #inline-row-delete="{ onDelete }">
-                    <slot :index="index" name="inline-row-delete" :on-delete="onDelete" />
+                <template #inline-row-delete="slotProps">
+                    <slot :index="index" name="inline-row-delete" v-bind="slotProps" />
                 </template>
             </InlineRow>
         </div>
