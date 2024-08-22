@@ -87,6 +87,8 @@ class DistributorSerializer(VuedaHistorySerializer):
 
 
 class ProductSerializer(VuedaHistorySerializer):
+    internal_comments = serializers.ListField(child=serializers.CharField(), required=False)
+
     class Meta(VuedaHistorySerializer.Meta):
         model = Product
         fields = [
