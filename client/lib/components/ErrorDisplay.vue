@@ -1,4 +1,6 @@
 <script setup>
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import { formatError } from "@vueda/utils/formatError.js";
 import isArray from "lodash-es/isArray.js";
@@ -76,18 +78,17 @@ const attrs = useAttrs();
 // if there is a dismiss-error event, show the dismiss button
 const showDismiss = computed(() => !!attrs.onDismissError);
 const onDismiss = () => emit("dismiss-error");
+const theme = useComputedClasses(vuedaTailwind.ErrorDisplay, props);
 </script>
 
 <template>
-    <template v-if="errored">
-        <Message class="w-full" :closable="showDismiss" severity="error" @close="onDismiss">
-            <div class="max-w-full overflow-x-auto p-1 flex flex-col gap-2">
-                <p>There was an error while {{ whileText }}.</p>
-                <pre><code>{{ formatError(error) }}</code></pre>
-                <p v-if="redirectParams">
-                    <router-link :to="redirectParams">{{ redirectTitle }}</router-link>
-                </p>
-            </div>
-        </Message>
-    </template>
+    <Message v-if="errored" :class="theme('root')" :closable="showDismiss" severity="error" @close="onDismiss">
+        <div :class="theme('container')">
+            <p :class="theme('message')">There was an error while {{ whileText }}.</p>
+            <pre :class="theme('codeBlock')"><code>{{ formatError(error) }}</code></pre>
+            <p v-if="redirectParams">
+                <router-link :class="theme('link')" :to="redirectParams">{{ redirectTitle }}</router-link>
+            </p>
+        </div>
+    </Message>
 </template>

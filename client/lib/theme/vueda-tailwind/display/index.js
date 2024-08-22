@@ -23,4 +23,21 @@ export default {
             class: "text-gray-500",
         },
     },
+    ErrorDisplay: {
+        root: {
+            class: "w-full",
+        },
+        container: {
+            class: "max-w-full overflow-x-auto p-1 flex flex-col gap-2",
+        },
+        message: {
+            class: [],
+        },
+        codeBlock: {
+            class: "bg-gray-100 dark:bg-gray-800 p-2 rounded", // Styling for the code block
+        },
+        link: {
+            class: "underline",
+        },
+    },
 };
