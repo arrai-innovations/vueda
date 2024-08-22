@@ -224,7 +224,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
 
         return field_type
 
-    def get_model_fields_data(self, serializer, *, include_app_and_model=True):
+    def get_model_fields_data(self, serializer):
         pk_field = serializer.Meta.model._meta.pk.name
         fields = {}
 
@@ -248,9 +248,7 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
             obj = serializer
             if hasattr(field, "queryset"):
                 obj = field.queryset.model
-            choices, extra_data = self.get_model_field_choices(
-                field, widget, obj, include_app_and_model=include_app_and_model
-            )
+            choices, extra_data = self.get_model_field_choices(field, widget, obj)
             field_data["choices"] = choices
             if extra_data:
                 field_data.update(extra_data)
@@ -462,16 +460,14 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
                 meta = obj.model._meta
         return meta
 
-    def get_model_field_choices(self, field, widget, serializer, *, include_app_and_model=True):
+    def get_model_field_choices(self, field, widget, serializer):
         choices = self.get_choices_data(field, widget)
         meta = self.get_choices_meta(field, serializer, choices)
         if meta is not None:
-            if include_app_and_model:
-                return True, {
-                    "app_label": meta.app_label,
-                    "model": meta.model_name,
-                }
-            return True, None
+            return True, {
+                "app_label": meta.app_label,
+                "model": meta.model_name,
+            }
 
         # Convert choices to be {"label": label, "value": value}.
         if choices:

@@ -170,7 +170,7 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
             model_content_type = ContentType.objects.get_for_model(model)
             serializer = ModelInfoSerializer(model_content_type)
             canonical_serializer = serializer.canonical["serializer"]
-            fields = serializer.get_model_fields_data(canonical_serializer, include_app_and_model=False)
+            fields = serializer.get_model_fields_data(canonical_serializer)
             for field_name, field in fields.items():
                 if "pk" in field:
                     del field["pk"]
