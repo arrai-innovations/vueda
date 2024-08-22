@@ -211,7 +211,7 @@ class NoExtraFieldsForViewSetMixin:
             for key in request.query_params.keys():
                 if key not in fields:
                     return Response(
-                        {"detail": f"Invalid query parameter: {key}"},
+                        {"detail": f"Invalid query parameter: '{key}'"},
                         status=500,
                     )
         serializer = self.get_serializer()
