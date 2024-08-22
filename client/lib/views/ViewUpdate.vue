@@ -103,7 +103,15 @@ const props = defineProps({
 const isActive = useIsActive();
 
 const validAndActive = computed(
-    () => !!(isActive.value && props.app && props.model && props.pk && modelConfig.info?.pk),
+    () =>
+        !!(
+            isActive.value &&
+            props.app &&
+            props.model &&
+            props.pk &&
+            modelConfig.info?.pk &&
+            modelConfig.config?.fields
+        ),
 );
 
 const viewName = "update";
