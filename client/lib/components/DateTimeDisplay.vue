@@ -1,6 +1,8 @@
 <script setup>
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { DateTime } from "luxon";
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, toRef, watch } from "vue";
 
 const props = defineProps({
     value: {
@@ -67,26 +69,31 @@ onUnmounted(() => {
     }
 });
 defineExpose({ parsedValue, relative, absolute });
+const theme = useComputedClasses(vuedaTailwind.DateTimeDisplay, props);
+const tooltipTheme = computed(() => toRef(props, "showTooltip") && theme("tooltip"));
 </script>
 
 <template>
-    <template v-if="props.value && parsedValue.isValid">
-        <template v-if="format === 'inline'">
-            <span class="whitespace-nowrap">{{ absolute }}</span>
-            <span> ({{ relative }})</span>
+    <div :class="theme('root')">
+        <template v-if="props.value && parsedValue.isValid">
+            <template v-if="format === 'inline'">
+                <span :class="theme('inline')">{{ absolute }}</span>
+                <span> ({{ relative }})</span>
+            </template>
+            <template v-else-if="format === 'break'">
+                <span :class="theme('break.absolute')">{{ absolute }}</span>
+                <br />
+                <span :class="theme('break.relative')">{{ relative }}</span>
+            </template>
+            <template v-else-if="format === 'absolute'">
+                <span :class="[theme('absolute'), tooltipTheme]" :title="showTooltip ? relative : undefined">{{
+                    absolute
+                }}</span>
+            </template>
+            <span v-else :class="[theme('relative'), tooltipTheme]" :title="showTooltip ? absolute : undefined">
+                {{ relative }}
+            </span>
         </template>
-        <template v-else-if="format === 'break'">
-            <span class="whitespace-nowrap">{{ absolute }}</span>
-            <br />
-            <span class="whitespace-nowrap">{{ relative }}</span>
-        </template>
-        <template v-else-if="format === 'absolute'">
-            <span class="whitespace-nowrap" :title="showTooltip ? relative : undefined">{{ absolute }}</span>
-        </template>
-        <span v-else :title="showTooltip ? absolute : undefined">
-            <!-- relative -->
-            {{ relative }}
-        </span>
-    </template>
-    <span v-else>-</span>
+        <span v-else :class="theme('dash')">-</span>
+    </div>
 </template>
