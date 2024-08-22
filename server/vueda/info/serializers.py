@@ -74,6 +74,7 @@ SERIALIZER_FIELD_TYPES_TO_FETCH_MODEL_TYPE = (
     "ArrayField",  # We need to know what the data is
     "CharField",  # Can become TextField
     "ChoiceField",  # We need to know what the data is
+    "ListField",  # The child of these should be used.  This is in case it is possible for a child to be a list field.
     "ReadOnlyField",  # We need to know what the data is
 )
 
