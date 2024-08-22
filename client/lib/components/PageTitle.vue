@@ -1,7 +1,9 @@
 <script setup>
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 
-defineProps({
+const props = defineProps({
     headerClass: {
         type: [String, Array, Object],
         default: () => [],
@@ -23,20 +25,14 @@ defineProps({
         default: true,
     },
 });
+const theme = useComputedClasses(vuedaTailwind.PageTitle, props);
 </script>
 <template>
-    <div
-        :class="[
-            headerClass,
-            {
-                'sticky top-0 z-30': sticky,
-            },
-        ]"
-    >
-        <div class="bg-surface-0 dark:bg-surface-950 flex flex-col gap-1 mt-1">
-            <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7">
-                <div class="w-full sm:w-auto flex items-baseline">
-                    <h1 class="font-bold leading-relaxed text-3xl">
+    <div :class="theme('root')">
+        <div :class="theme('container')">
+            <div :class="theme('titleContainer')">
+                <div :class="theme('titleWrapper')">
+                    <h1 :class="theme('title')">
                         <slot name="title">{{ title }}</slot>
                         <template v-if="loading">
                             &nbsp;
@@ -44,22 +40,17 @@ defineProps({
                         </template>
                     </h1>
                 </div>
-                <hr class="w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2" />
-                <div class="flex flex-col sm:flex-row gap-1 self-start w-full sm:w-auto">
+                <hr :class="theme('divider')" />
+                <div :class="theme('buttons')">
                     <slot name="button" />
                 </div>
             </div>
-            <div
-                v-if="$slots.subtitle || $slots['under-actions']"
-                class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7"
-            >
+            <div v-if="$slots.subtitle || $slots['under-actions']" :class="theme('subtitleContainer')">
                 <slot name="subtitle" />
                 <slot name="under-actions" />
             </div>
-            <slot name="footer" />
+            <slot :class="theme('footer')" name="footer" />
         </div>
-        <div
-            class="w-full h-2 md:h-3 lg:h-4 bg-gradient-to-b from-surface-0 to-transparent dark:from-surface-950 dark:to-transparent"
-        />
+        <div :class="theme('gradient')" />
     </div>
 </template>
