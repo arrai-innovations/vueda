@@ -20,7 +20,7 @@ export default {
             class: "cursor-help",
         },
         dash: {
-            class: "text-gray-500",
+            class: "text-surface-500",
         },
     },
     ErrorDisplay: {
@@ -34,7 +34,7 @@ export default {
             class: [],
         },
         codeBlock: {
-            class: "bg-gray-100 dark:bg-gray-800 p-2 rounded", // Styling for the code block
+            class: "bg-surface-100 dark:bg-surface-800 p-2 rounded", // Styling for the code block
         },
         link: {
             class: "underline",

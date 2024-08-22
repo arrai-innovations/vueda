@@ -3,6 +3,8 @@ import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import FieldString from "@vueda/fields/FieldString.vue";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import useFilterForm from "@vueda/use/useFilterForm.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
@@ -202,16 +204,18 @@ const displayedWidgetProps = computed(() => {
         filterForm.widgetProps[`${formContext.state.values.filterField}__${formContext.state.values.lookupExpression}`],
     );
 });
+const theme = useComputedClasses(vuedaTailwind.FilterForm, props);
 </script>
 
 <template>
-    <Dialog v-model:visible="showFilters" class="w-64" header="Add Filter" modal>
+    <Dialog v-model:visible="showFilters" :class="theme('dialog')" header="Add Filter" modal>
         <error-display
+            :class="theme('errorDisplay')"
             :error="unref(loadingError.error)"
             :errored="unref(loadingError.errored)"
             while-text="adding a filter field"
         />
-        <form class="flex flex-col gap-2" @submit.prevent="confirmAddField">
+        <form :class="theme('form')" @submit.prevent="confirmAddField">
             <form-chores :name="NON_FIELD_ERRORS_KEY">
                 <template v-if="!$slots['field-help']" #field-help>
                     <p>Select a filter field & expression and set a filter value.</p>
@@ -220,10 +224,10 @@ const displayedWidgetProps = computed(() => {
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>
             </form-chores>
-            <hr class="w-full flex-1 border-primary-300 dark:border-primary-600 border-t" />
-            <div>
-                <field-string label="Filter Field" name="filterField" required>
-                    <widget-radio :options="filterForm.filterableOptions" />
+            <hr :class="theme('hr')" />
+            <div :class="theme('fieldContainer')">
+                <field-string :class="theme('fieldLabel')" label="Filter Field" name="filterField" required>
+                    <widget-radio :class="theme('fieldInput')" :options="filterForm.filterableOptions" />
                     <form-chores>
                         <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                             <slot :name="slot" v-bind="slotProps || {}" />
@@ -231,9 +235,10 @@ const displayedWidgetProps = computed(() => {
                     </form-chores>
                 </field-string>
             </div>
-            <div>
-                <field-string label="Lookup Expression" name="lookupExpression" required>
+            <div :class="theme('fieldContainer')">
+                <field-string :class="theme('fieldLabel')" label="Lookup Expression" name="lookupExpression" required>
                     <widget-radio
+                        :class="theme('fieldInput')"
                         option-label="label"
                         option-value="value"
                         :options="computedLookupExpressionOptions"
@@ -245,11 +250,12 @@ const displayedWidgetProps = computed(() => {
                     </form-chores>
                 </field-string>
             </div>
-            <div>
+            <div :class="theme('fieldContainer')">
                 <component
                     :is="displayedFieldComponent"
                     v-if="displayedFieldComponent"
                     v-bind="displayedFieldProps"
+                    :class="theme('fieldLabel')"
                     label="Filter Value"
                     name="filterValue"
                     required
@@ -257,6 +263,7 @@ const displayedWidgetProps = computed(() => {
                     <component
                         :is="displayedWidgetComponent"
                         v-if="displayedWidgetComponent"
+                        :class="theme('fieldInput')"
                         v-bind="displayedWidgetProps"
                     />
                     <form-chores>
@@ -266,22 +273,17 @@ const displayedWidgetProps = computed(() => {
                     </form-chores>
                 </component>
             </div>
-            <div class="flex justify-end">
+            <div :class="theme('addButtonContainer')">
                 <slot label="Add Field" name="button" type="submit" verb="addFilter">
-                    <Button class="whitespace-nowrap" label="Add Field" severity="secondary" type="submit" />
+                    <Button :class="theme('submitButton')" label="Add Field" severity="secondary" type="submit" />
                 </slot>
             </div>
         </form>
     </Dialog>
-    <div class="flex flex-wrap gap-1 w-full my-1">
+    <div :class="theme('filterListContainer')">
         <template v-if="filterForm.filterableOptions?.length">
             <slot label="Add Filter" name="button" verb="addFilter" @click="addFilters">
-                <Button
-                    class="whitespace-nowrap grow sm:grow-0"
-                    label="Add Filter"
-                    severity="secondary"
-                    @click="addFilters"
-                />
+                <Button :class="theme('filterButton')" label="Add Filter" severity="secondary" @click="addFilters" />
             </slot>
         </template>
         <template v-for="filter in addedFilters" :key="filter.field">
@@ -295,7 +297,7 @@ const displayedWidgetProps = computed(() => {
                 @click.prevent="() => removeFilter(filter)"
             >
                 <Button
-                    class="grow sm:grow-0"
+                    :class="theme('filterButton')"
                     :label="filter.label"
                     severity="info"
                     :title="`Remove filter for ${filter.field.label} by ${filter.expression.label} for ${filter.value}`"

@@ -1,10 +1,12 @@
 <script setup>
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import Paginator from "primevue/paginator";
 import { ref } from "vue";
 
 const emit = defineEmits(["update:currentPage"]);
 
-defineProps({
+const props = defineProps({
     totalRecords: {
         type: Number,
         required: true,
@@ -22,12 +24,14 @@ const offset = ref(0);
 const onPaginate = async (page) => {
     emit("update:currentPage", page.first / page.rows + 1);
 };
+const theme = useComputedClasses(vuedaTailwind.PaginationComponent, props);
 </script>
 
 <template>
-    <div class="card">
+    <div :class="theme('root')">
         <Paginator
             v-model:first="offset"
+            :class="theme('paginator')"
             :rows="rows"
             template="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
             :total-records="totalRecords"

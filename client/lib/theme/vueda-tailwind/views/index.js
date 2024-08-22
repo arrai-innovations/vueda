@@ -30,7 +30,7 @@ export default {
             class: "w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7",
         },
         footer: {
-            class: "pt-4 border-t border-gray-200 dark:border-gray-700",
+            class: "pt-4 border-t border-surface-200 dark:border-surface-700",
         },
         gradient: {
             class: "w-full h-2 md:h-3 lg:h-4 bg-gradient-to-b from-surface-0 to-transparent dark:from-surface-950 dark:to-transparent",

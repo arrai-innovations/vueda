@@ -67,4 +67,42 @@ export default {
             ],
         },
     },
+    FilterForm: {
+        dialog: {
+            class: "w-64",
+        },
+        form: {
+            class: "flex flex-col gap-2",
+        },
+        fieldContainer: {
+            class: "mb-2",
+        },
+        fieldLabel: {
+            class: [],
+        },
+        fieldInput: {
+            class: "w-full rounded border border-surface-300 dark:border-surface-600 p-2",
+        },
+        submitButton: {
+            class: "whitespace-nowrap",
+        },
+        addButtonContainer: {
+            class: "flex justify-end mt-2",
+        },
+        filterListContainer: {
+            class: "flex flex-wrap gap-1 w-full my-1",
+        },
+        filterButton: {
+            class: "grow sm:grow-0",
+        },
+        errorDisplay: {
+            class: "mb-2",
+        },
+        hr: {
+            class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t",
+        },
+        message: {
+            class: "text-red-600 dark:text-red-400",
+        },
+    },
 };

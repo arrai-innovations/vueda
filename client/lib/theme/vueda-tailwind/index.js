@@ -10,4 +10,12 @@ export default {
     ...widgets,
     ...views,
     ...display,
+    PaginationComponent: {
+        root: {
+            class: "card",
+        },
+        paginator: {
+            class: [],
+        },
+    },
 };
