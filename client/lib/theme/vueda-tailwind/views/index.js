@@ -8,6 +8,15 @@ export default {
                 },
             ],
         }),
+        container: {
+            class: "bg-surface-0 dark:bg-surface-950 flex flex-col gap-1 mt-1",
+        },
+        titleContainer: {
+            class: "w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7",
+        },
+        titleWrapper: {
+            class: "w-full sm:w-auto flex items-baseline",
+        },
         title: {
             class: "font-bold leading-relaxed text-3xl",
         },
@@ -17,11 +26,8 @@ export default {
         buttons: {
             class: "flex flex-col sm:flex-row gap-1 self-start w-full sm:w-auto",
         },
-        subtitle: {
-            class: "text-base leading-snug text-gray-500",
-        },
-        underActions: {
-            class: "flex flex-wrap items-center gap-2",
+        subtitleContainer: {
+            class: "w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7",
         },
         footer: {
             class: "pt-4 border-t border-gray-200 dark:border-gray-700",
