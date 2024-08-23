@@ -41,6 +41,10 @@ export const FIELD_PROPS = {
         type: Function,
         default: null,
     },
+    requiredFn: {
+        type: Function,
+        default: null,
+    },
 };
 
 export const FIELD_EMITS = ["update:modelValue"];
@@ -96,9 +100,8 @@ export function defaultValidateRequired(value) {
  * The non-reactive `functions` that can be passed to useField.
  *
  * @typedef {object} FieldContextFunctions
- * @property {(value: any) => boolean} [required] - A custom required validation function
  * @property {(value: any) => any} [preprocessSet] - A custom function to preprocess the value before updating
- * @property {(value: any) => any} [preprocessGet] - A custom function to preprocess the value before updating
+ * @property {(value: any) => any} [preprocessGet] - A custom function to preprocess the value before retrieving
  */
 
 /**
@@ -111,6 +114,7 @@ export function defaultValidateRequired(value) {
  *     label: string,
  *     help: string,
  *     validate: (value: any) => boolean,
+ *     requiredFn: (value: any) => boolean,
  * }>} FieldContextProps
  */
 
@@ -129,7 +133,7 @@ export function useField(props, emit, functions) {
     /** @type {import('@vueda/use/useForm.js').FormContext|null} */
     const formContext = inject(FormContextSymbol, null);
 
-    const requiredFn = functions?.required || defaultValidateRequired;
+    const requiredFn = computed(() => props.requiredFn || defaultValidateRequired);
     const requiredMessage = computed(() => {
         return props.requiredMessage || "This field is required.";
     });
@@ -215,23 +219,24 @@ export function useField(props, emit, functions) {
             toRef(props, "required"),
             toRef(props, "requiredMessage"),
             toRef(props, "validate"),
+            requiredFn,
             toRef(state, "touched"),
             toRef(state, "modified"),
         ],
         (
-            [newRequired, newRequiredMessage, newValidate, newTouched, newModified],
-            [oldRequired, oldRequiredMessage, oldValidate, oldTouched, oldModified],
+            [newRequired, newRequiredMessage, newValidate, newRequiredFn, newTouched, newModified],
+            [oldRequired, oldRequiredMessage, oldValidate, oldRequiredfn, oldTouched, oldModified],
         ) => {
             const requiredChanged = newRequired !== oldRequired;
             const requiredMessageChanged = newRequiredMessage !== oldRequiredMessage;
             const validateChanged = newValidate !== oldValidate;
+            const requiredFnChanged = newRequiredFn !== oldRequiredfn;
             const touchedChanged = newTouched !== oldTouched;
             const modifiedChanged = newModified !== oldModified;
-            const doValidation = touchedChanged || modifiedChanged;
-            if (requiredChanged || requiredMessageChanged || doValidation) {
+            if (requiredChanged || requiredMessageChanged || touchedChanged || modifiedChanged || requiredFnChanged) {
                 checkRequired();
             }
-            if (validateChanged || doValidation) {
+            if (validateChanged || touchedChanged || modifiedChanged) {
                 checkCustomValidation();
             }
         },

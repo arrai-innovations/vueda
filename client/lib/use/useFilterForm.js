@@ -43,7 +43,7 @@ const filterFieldClassToFieldComponent = {
     AutoField: availableFields.FieldString,
     BigAutoField: availableFields.FieldString,
     BigIntegerField: availableFields.FieldNumber,
-    DurationSecondsField: availableFields.FieldDuration,
+    DurationSecondsField: availableFields.FieldNumber,
     GenericRelation: availableFields.FieldString,
     GenericForeignKey: availableFields.FieldString,
     NullBooleanField: availableFields.FieldBoolean,
@@ -285,6 +285,11 @@ export default function useFilterForm(props) {
                                     ...omit(filterableDetail, ["fieldClass", "type"]),
                                     type: filterableDetail.inputType,
                                 };
+                                if (filterableDetail.fieldClass === "DurationSecondsField") {
+                                    returnProps.type = "number";
+                                    returnProps.step = 1;
+                                    returnProps.minValue = 0;
+                                }
                                 if (!returnProps.label) {
                                     returnProps.label = memoizedStartCase(filterableName);
                                 }
