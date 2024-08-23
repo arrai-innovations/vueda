@@ -35,24 +35,51 @@ const valueAsDate = computed(() => {
     }
     return null;
 });
+const maxValueAsDate = computed(() => {
+    const maxValue = props.maxValue;
+    if (maxValue) {
+        return new Date(maxValue);
+    }
+    return null;
+});
+const minValueAsDate = computed(() => {
+    const minValue = props.minValue;
+    if (minValue) {
+        return new Date(minValue);
+    }
+    return null;
+});
 watch(
-    [toRef(props, "maxValue"), valueAsDate],
-    ([maxValue, value]) => {
-        if (maxValue && value > maxValue) {
-            fieldContext.updateError("maxValue", `Must be ${maxValue} or less.`);
-        } else {
-            fieldContext.deleteError("maxValue");
+    toRef(fieldContext.state, "value"),
+    (newValue) => {
+        if (newValue instanceof Date) {
+            fieldContext.state.value = preprocessSet(newValue);
         }
     },
     { immediate: true },
 );
 watch(
-    [toRef(props, "minValue"), valueAsDate],
+    [maxValueAsDate, valueAsDate],
+    ([maxValue, value]) => {
+        if (maxValue) {
+            if (value && value > maxValue) {
+                fieldContext.updateError("maxValue", `Must be ${maxValue.toISOString().split("T")[0]} or less.`);
+            } else {
+                fieldContext.deleteError("maxValue");
+            }
+        }
+    },
+    { immediate: true },
+);
+watch(
+    [minValueAsDate, valueAsDate],
     ([minValue, value]) => {
-        if (minValue && value < minValue) {
-            fieldContext.updateError("minValue", `Must be ${minValue} or more.`);
-        } else {
-            fieldContext.deleteError("minValue");
+        if (minValue) {
+            if (value && value < minValue) {
+                fieldContext.updateError("minValue", `Must be ${minValue.toISOString().split("T")[0]} or more.`);
+            } else {
+                fieldContext.deleteError("minValue");
+            }
         }
     },
     { immediate: true },
