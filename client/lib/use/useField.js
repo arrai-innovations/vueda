@@ -3,7 +3,7 @@ import { isArray } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
-import { computed, inject, provide, reactive, readonly, toRef, watch } from "vue";
+import { computed, inject, provide, reactive, readonly, toRef, unref, watch } from "vue";
 
 /**
  * The reactive props we expect fields to receive and pass to useField when creating a field context.
@@ -181,7 +181,7 @@ export function useField(props, emit, functions) {
     });
     const checkRequired = () => {
         if (props.required && state.touched && formContext) {
-            if (!requiredFn(state.value)) {
+            if (!unref(requiredFn)(state.value)) {
                 formContext.updateError(props.name, "required", requiredMessage.value);
             } else {
                 formContext.deleteError(props.name, "required");
