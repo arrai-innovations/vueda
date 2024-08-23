@@ -18,4 +18,5 @@ const widgetContext = inject(WidgetContextSymbol);
             widgetContext.state.combinedLabel
         }}</slot>
     </label>
+    <slot></slot>
 </template>
