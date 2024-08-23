@@ -29,7 +29,7 @@ export default {
             class: [],
         },
     },
-    FieldInline: {
+    FieldSetStackedInline: {
         root: {
             class: [],
         },
@@ -46,7 +46,7 @@ export default {
             class: [],
         },
     },
-    FieldInlineRow: {
+    FieldSetStackedInlineRow: {
         root: {
             class: [],
         },

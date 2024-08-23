@@ -11,7 +11,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
-const theme = useComputedClasses(vuedaTailwind.FieldInline);
+const theme = useComputedClasses(vuedaTailwind.FieldSetStackedInline);
 
 const addRow = () => {
     fieldContext.state.value = [...cloneDeep(fieldContext.state.value), {}];

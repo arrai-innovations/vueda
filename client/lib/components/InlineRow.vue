@@ -43,7 +43,7 @@ const props = defineProps({
     },
 });
 const formModel = inject(FormModelSymbol, null);
-const theme = useComputedClasses(vuedaTailwind.FieldInlineRow);
+const theme = useComputedClasses(vuedaTailwind.FieldSetStackedInlineRow);
 
 const emit = defineEmits(["delete-row"]);
 const onDelete = () => emit("delete-row", props.index);

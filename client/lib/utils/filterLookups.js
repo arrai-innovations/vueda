@@ -49,7 +49,9 @@ export const availableFields = {
     FieldBoolean: defineAsyncComponent(async () => (await import("@vueda/fields/FieldBoolean.vue")).default),
     FieldDate: defineAsyncComponent(async () => (await import("@vueda/fields/FieldDate.vue")).default),
     FieldDateTime: defineAsyncComponent(async () => (await import("@vueda/fields/FieldDateTime.vue")).default),
-    FieldInline: defineAsyncComponent(async () => (await import("@vueda/fields/FieldSetStackedInline.vue")).default),
+    FieldSetStackedInline: defineAsyncComponent(
+        async () => (await import("@vueda/fields/FieldSetStackedInline.vue")).default,
+    ),
     FieldNumber: defineAsyncComponent(async () => (await import("@vueda/fields/FieldNumber.vue")).default),
     FieldObject: defineAsyncComponent(async () => (await import("@vueda/fields/FieldObject.vue")).default),
     FieldRange: defineAsyncComponent(async () => (await import("@vueda/fields/FieldRange.vue")).default),
