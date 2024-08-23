@@ -43,22 +43,6 @@ const props = defineProps({
             TextAlign.configure({ types: ["paragraph", "list"] }),
         ],
     },
-    variant: {
-        type: String,
-        default: "default",
-    },
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    menuClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    editorClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
@@ -93,7 +77,7 @@ const theme = useComputedClasses(vuedaTailwind.WidgetHtml, widgetContext.state);
 </script>
 <template>
     <div :class="theme('outer')">
-        <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
+        <widget-label :label-class="theme('label')">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>

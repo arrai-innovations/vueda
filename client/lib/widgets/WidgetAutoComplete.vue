@@ -23,15 +23,7 @@ const props = defineProps({
     },
     modelFields: {
         type: Array,
-        default: () => [],
-    },
-    label: {
-        type: String,
-        default: "",
-    },
-    variant: {
-        type: String,
-        default: "default",
+        required: true,
     },
     searchKey: {
         type: String,
@@ -106,7 +98,7 @@ const search = (event) => {
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
+        <widget-label :label-class="theme('label')">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>

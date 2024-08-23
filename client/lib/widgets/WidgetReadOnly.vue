@@ -5,18 +5,6 @@ import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 
 const props = defineProps({
     ...WIDGET_PROPS,
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    innerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    labelClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
 });
 
 const emit = defineEmits([...WIDGET_EMITS]);
@@ -33,7 +21,7 @@ const theme = useComputedClasses(vuedaTailwind.WidgetReadOnly, widgetContext.sta
                 }}</slot>
             </div>
             <div :class="theme('input')" v-bind="$attrs">
-                <slot>{{ widgetContext.state.combinedValue }}</slot>
+                <slot :value="widgetContext.state.combinedValue">{{ widgetContext.state.combinedValue }}</slot>
             </div>
         </div>
     </div>

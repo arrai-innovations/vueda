@@ -10,22 +10,6 @@ defineOptions({
 });
 const props = defineProps({
     ...WIDGET_PROPS,
-    variant: {
-        type: String,
-        default: "default",
-    },
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    labelClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    useFloatingLabel: {
-        type: Boolean,
-        default: false,
-    },
     minValue: {
         type: Number,
         default: 0,
@@ -41,7 +25,7 @@ const theme = useComputedClasses(vuedaTailwind.WidgetDatePicker, widgetContext.s
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
+        <widget-label :label-class="theme('label')">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>

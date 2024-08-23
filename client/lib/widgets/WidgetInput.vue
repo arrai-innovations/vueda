@@ -19,26 +19,6 @@ const props = defineProps({
         type: String,
         default: "text",
     },
-    variant: {
-        type: String,
-        default: "default",
-    },
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    innerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    labelClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    useFloatingLabel: {
-        type: Boolean,
-        default: false,
-    },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
@@ -57,7 +37,7 @@ const theme = useComputedClasses(vuedaTailwind.WidgetInput, widgetContext.state)
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
+        <widget-label :label-class="theme('label')">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>

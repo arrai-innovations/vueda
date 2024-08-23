@@ -20,10 +20,6 @@ const props = defineProps({
         type: String,
         default: "value",
     },
-    useFloatingLabel: {
-        type: Boolean,
-        default: false,
-    },
     onFocus: {
         type: Function,
         default: () => {},
@@ -49,7 +45,7 @@ const handleFocus = () => {
 
 <template>
     <div :class="theme('root')">
-        <widget-label :label-class="theme('optionLabel')" :use-floating-label="props.useFloatingLabel">
+        <widget-label :label-class="theme('optionLabel')">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
@@ -59,9 +55,11 @@ const handleFocus = () => {
                         <slot
                             :id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
                             :class="theme('optionInput')"
+                            :input-name="widgetContext.state.combinedName"
+                            :model-value="widgetContext.state.combinedValue"
                             :name="$slots[`radio(${option.value})`] ? `radio(${option.value})` : 'radio'"
-                            :option="option"
-                            :widget-context="widgetContext"
+                            :value="option.value"
+                            @update:model-value="widgetContext.state.combinedValue = $event"
                         >
                             <radio-button
                                 v-model="widgetContext.state.combinedValue"

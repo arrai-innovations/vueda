@@ -11,22 +11,6 @@ defineOptions({
 });
 const props = defineProps({
     ...WIDGET_PROPS,
-    variant: {
-        type: String,
-        default: "default",
-    },
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    labelClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    useFloatingLabel: {
-        type: Boolean,
-        default: false,
-    },
     selectionMode: {
         type: String,
         default: undefined,
@@ -42,7 +26,7 @@ const computedSelectionMode = computed(() =>
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :label-class="theme('label')" :use-floating-label="props.useFloatingLabel">
+        <widget-label :label-class="theme('label')">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
@@ -59,6 +43,3 @@ const computedSelectionMode = computed(() =>
         </widget-label>
     </div>
 </template>
-
-<!-- TODO: make a field level that handles when returned array it should retrun the disaed way?
-      IT should know what filter it is and return the disred formated query string -->

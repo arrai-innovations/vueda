@@ -9,26 +9,6 @@ defineOptions({
 });
 const props = defineProps({
     ...WIDGET_PROPS,
-    label: {
-        type: String,
-        default: "",
-    },
-    variant: {
-        type: String,
-        default: "default",
-    },
-    inputClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    labelClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
