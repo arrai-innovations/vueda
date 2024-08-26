@@ -56,6 +56,7 @@ const instanceObjectProps = reactive({
         model: toRef(props, "model"),
     },
     id: toRef(props, "pk"),
+    pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     retrieveArgs: {
         f: calculatedReadFields,
     },

@@ -136,7 +136,7 @@ const calculatedDisplayFields = computed(() => {
         );
     }
 });
-const validAndActive = computed(() => !!(isActive.value && props.app && props.model));
+const validAndActive = computed(() => !!(isActive.value && props.app && props.model && modelConfig.info?.pk));
 const listState = reactive({
     currentPage: 1,
     search: "",
@@ -150,6 +150,7 @@ const instanceListProps = reactive({
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
+    pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     retrieveArgs: {
         f: calculatedListFields,
     },

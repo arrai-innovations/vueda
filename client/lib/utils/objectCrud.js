@@ -36,10 +36,10 @@ const getDetailUrl = (app, model, pk, queryString) =>
 const getCreateUrl = (app, model, queryString) =>
     `${httpOrHttpsHostname}${getUrl("modelList").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model))}${queryString}`;
 
-export async function defaultObjectRetrieve({ crudArgs, id, retrieveArgs }) {
+export async function defaultObjectRetrieve({ crudArgs, pk, retrieveArgs }) {
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
-    const url = getDetailUrl(crudArgs.app, crudArgs.model, id, query);
+    const url = getDetailUrl(crudArgs.app, crudArgs.model, pk, query);
     /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "GET",
@@ -87,7 +87,7 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
 export async function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
-    const url = getDetailUrl(crudArgs.app, crudArgs.model, object.id, query);
+    const url = getDetailUrl(crudArgs.app, crudArgs.model, object.pk, query);
     /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "PUT",
@@ -112,10 +112,10 @@ export async function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
     return returnPromise;
 }
 
-export async function defaultObjectPatch({ crudArgs, id, partialObject, retrieveArgs }) {
+export async function defaultObjectPatch({ crudArgs, pk, partialObject, retrieveArgs }) {
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
-    const url = getDetailUrl(crudArgs.app, crudArgs.model, id, query);
+    const url = getDetailUrl(crudArgs.app, crudArgs.model, pk, query);
     /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "PATCH",
@@ -140,9 +140,9 @@ export async function defaultObjectPatch({ crudArgs, id, partialObject, retrieve
     return returnPromise;
 }
 
-export async function defaultObjectDelete({ crudArgs, id, deleteArgs }) {
+export async function defaultObjectDelete({ crudArgs, pk, deleteArgs }) {
     const abortController = new AbortController();
-    const url = getDetailUrl(crudArgs.app, crudArgs.model, id);
+    const url = getDetailUrl(crudArgs.app, crudArgs.model, pk);
     /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "DELETE",

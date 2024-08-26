@@ -124,7 +124,8 @@ const instanceObjectProps = reactive({
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
-    id: toRef(props, "pk"),
+    pkKey: computed(() => modelConfig.info?.pk ?? "id"),
+    pk: toRef(props, "pk"),
     retrieveArgs: {
         f: computed(() => {
             return [modelConfig.info?.pk, ...(modelConfig.config?.fields || [])];
