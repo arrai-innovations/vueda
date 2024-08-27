@@ -88,14 +88,6 @@ class UserSerializer(VuedaSerializer):
             ),
         }
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
-        expandable_fields_data = {
-            "groups": {
-                "read_only": False,
-                "many": True,
-                "type": "CharField",
-            },
-        }
-        expandable_fields_data.update(VuedaSerializer.Meta.expandable_fields_data)
 
     def validate_password(self, value):
         try:
