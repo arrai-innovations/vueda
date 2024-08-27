@@ -1,10 +1,8 @@
 import datetime
 import inspect
 from collections.abc import Iterable
-from copy import deepcopy
 
 import django_filters
-from django.conf import settings
 from django.contrib.admin.utils import get_fields_from_path
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -17,9 +15,9 @@ from django_filters.fields import ChoiceIterator
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers  # noqa F401
 from rest_framework import viewsets  # noqa F401
-from rest_framework.exceptions import ValidationError
 
 from vueda.core import open_api
+from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.info.registration import get_registration
 
 
@@ -79,7 +77,7 @@ SERIALIZER_FIELD_TYPES_TO_FETCH_MODEL_TYPE = (
 )
 
 
-class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer):
+class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerializerMixin, serializers.ModelSerializer):
     """
     A serializer for providing metadata about models, including fields, actions, and permissions.
 
@@ -341,67 +339,8 @@ class ModelInfoSerializer(FlexFieldsSerializerMixin, serializers.ModelSerializer
         """
         # Similar to actions, we'll need to have a canonical serializer to determine what expands are available
         serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
-        expands_data = []
 
-        # Stores data about what to return for fields that do not have a serializer.
-        expandable_fields_data = serializer.get_expandable_fields_data()
-
-        if hasattr(serializer.Meta, "expandable_fields"):
-            for field_name, field_data in serializer.Meta.expandable_fields.items():
-                expand_item = {
-                    "name": field_name,
-                }
-
-                if field_name in expandable_fields_data:
-                    expand_item.update(deepcopy(expandable_fields_data[field_name]))
-                    expands_data.append(expand_item)
-                    continue
-
-                if isinstance(field_data, tuple):  # flex fields only deals with tuples, not lists.
-                    field_serializer, expand_options = field_data
-                else:
-                    field_serializer = field_data
-                    expand_options = {}
-
-                # Copied to deal with serializer strings.
-                # https://github.com/rsinger86/drf-flex-fields/blob/9dd6a9140fd6d2ffe1baf9ab1ffc728540dea84d/
-                #   rest_flex_fields/serializers.py#L127-L130
-                if type(field_serializer) == str:  # noqa E721
-                    field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
-
-                if not inspect.isclass(field_serializer):
-                    raise ValidationError(
-                        "This is not a valid `expandable_fields` definition. It must be a tuple of a Serializer/Field"
-                        " class and options, or simply a Serializer/Field Class.",
-                        {"name": field_name},
-                    )
-
-                if not issubclass(field_serializer, serializers.BaseSerializer):
-                    raise ValidationError(
-                        "No `expandable_fields_data` specified for field. Model info only knows automatically about"
-                        " fields expandable into serializers.",
-                        {"name": field_name},
-                    )
-
-                if hasattr(field_serializer, "Meta") and hasattr(field_serializer.Meta, "model"):
-                    app_label = field_serializer.Meta.model._meta.app_label
-                    model_name = field_serializer.Meta.model._meta.model_name
-                    expand_item["app_label"] = app_label
-                    expand_item["model"] = model_name
-                    field_data = self.get_model_fields_data(field_serializer)
-
-                if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expand_options:
-                    # We need to call tuple, as we are modifying the dictionary.
-                    for field_name in tuple(field_data):
-                        if field_name == "pk":  # Always keep the pk.
-                            continue
-                        if field_name not in expand_options[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]:
-                            del field_data[field_name]
-                expand_item[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = field_data
-
-                expands_data.append(expand_item)
-
-        return expands_data
+        return serializer().get_expandable_fields()
 
     def get_model_ordering(self, instance):
         """
@@ -768,7 +707,9 @@ class OpenAPIModelInfoSerializer(ModelInfoSerializer):
         return fields
 
 
-class ModelInfoChoicesSerializer(FlexFieldsSerializerMixin, serializers.Serializer):
+class ModelInfoChoicesSerializer(
+    VuedaExpandableFieldsSerializerMixin, FlexFieldsSerializerMixin, serializers.Serializer
+):
     """
     A serializer for providing metadata about field choices.
 
@@ -780,3 +721,4 @@ class ModelInfoChoicesSerializer(FlexFieldsSerializerMixin, serializers.Serializ
 
     class Meta:
         fields = ["label", "value"]  # value is the pk
+        expandable_fields = {}

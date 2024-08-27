@@ -25,144 +25,134 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
                 {"read_only": True},
             ),
         }
-        expandable_fields_data = {
-            "history": {
-                "many": True,
-                "read_only": True,
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                    "history_id": {
-                        "label": "History ID",
-                        "type": "IntegerField",
-                        "read_only": True,
-                        "pk": True,
-                    },
-                    "history_date": {
-                        "label": "History Date",
-                        "type": "DateTimeField",
-                        "read_only": True,
-                    },
-                    "history_change_reason": {
-                        "label": "Change Reason",
-                        "type": "CharField",
-                        "read_only": True,
-                    },
-                    "history_type": {
-                        "label": "History Type",
-                        "type": "CharField",
-                        "read_only": True,
-                    },
-                    "history_relation": {
-                        "label": "In Relation To",
-                        "type": "PrimaryKeyRelatedField",
-                        "read_only": True,
-                    },
-                    "history_user": {
-                        "label": "History User",
-                        "type": "PrimaryKeyRelatedField",
-                        "read_only": True,
-                    },
-                },
-            },
-            "first_history_entry": {
-                "read_only": True,
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                    "history_id": {
-                        "label": "History ID",
-                        "type": "IntegerField",
-                        "read_only": True,
-                        "pk": True,
-                    },
-                    "history_date": {
-                        "label": "History Date",
-                        "type": "DateTimeField",
-                        "read_only": True,
-                    },
-                    "history_change_reason": {
-                        "label": "Change Reason",
-                        "type": "CharField",
-                        "read_only": True,
-                    },
-                    "history_type": {
-                        "label": "History Type",
-                        "type": "CharField",
-                        "read_only": True,
-                    },
-                    "history_relation": {
-                        "label": "In Relation To",
-                        "type": "PrimaryKeyRelatedField",
-                        "read_only": True,
-                    },
-                    "history_user": {
-                        "label": "History User",
-                        "type": "PrimaryKeyRelatedField",
-                        "read_only": True,
-                    },
-                },
-            },
-            "last_history_entry": {
-                "read_only": True,
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                    "history_id": {
-                        "label": "History ID",
-                        "type": "IntegerField",
-                        "read_only": True,
-                        "pk": True,
-                    },
-                    "history_date": {
-                        "label": "History Date",
-                        "type": "DateTimeField",
-                        "read_only": True,
-                    },
-                    "history_change_reason": {
-                        "label": "Change Reason",
-                        "type": "CharField",
-                        "read_only": True,
-                    },
-                    "history_type": {
-                        "label": "History Type",
-                        "type": "CharField",
-                        "read_only": True,
-                    },
-                    "history_relation": {
-                        "label": "In Relation To",
-                        "type": "PrimaryKeyRelatedField",
-                        "read_only": True,
-                    },
-                    "history_user": {
-                        "label": "History User",
-                        "type": "PrimaryKeyRelatedField",
-                        "read_only": True,
-                    },
-                },
-            },
-        }
 
-    @classmethod
-    def get_expandable_fields_data(cls):
-        """
-        Add the historical models content type and fields from the non history model to the expandable fields data.
-        Add them in the following order:
-            pk
-            Model fields
-            History model fields
-        """
+    def get_expandable_fields(self):
         from vueda.info.serializers import ModelInfoSerializer
 
-        if not hasattr(cls.Meta, "expandable_fields"):
-            return {}
+        expandable_fields = super().get_expandable_fields()
 
-        history_expandable_field_names = tuple(SimpleHistorySerializerMixin.Meta.expandable_fields)
-        expandable_fields_data = cls.Meta.expandable_fields_data
-        for key in expandable_fields_data:
-            # Don't add data to expandable fields, if the serializer doesn't have this field.
-            if key not in history_expandable_field_names:
-                continue
+        model = self.Meta.model
+        history_model = model.history.model
 
-            model = cls.Meta.model
-            history_model = model.history.model
+        for expandable_field in expandable_fields:
+            match expandable_field["name"]:
+                case "history":
+                    expandable_field["many"] = True
+                    expandable_field["read_only"] = True
+                    expandable_field[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = {
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "read_only": True,
+                            "pk": True,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "read_only": True,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "read_only": True,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "read_only": True,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "read_only": True,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "read_only": True,
+                        },
+                    }
+                case "first_history_entry":
+                    expandable_field["read_only"] = True
+                    expandable_field[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = {
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "read_only": True,
+                            "pk": True,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "read_only": True,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "read_only": True,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "read_only": True,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "read_only": True,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "read_only": True,
+                        },
+                    }
+                case "last_history_entry":
+                    expandable_field["read_only"] = True
+                    expandable_field[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = {
+                        "history_id": {
+                            "label": "History ID",
+                            "type": "IntegerField",
+                            "read_only": True,
+                            "pk": True,
+                        },
+                        "history_date": {
+                            "label": "History Date",
+                            "type": "DateTimeField",
+                            "read_only": True,
+                        },
+                        "history_change_reason": {
+                            "label": "Change Reason",
+                            "type": "CharField",
+                            "read_only": True,
+                        },
+                        "history_type": {
+                            "label": "History Type",
+                            "type": "CharField",
+                            "read_only": True,
+                        },
+                        "history_relation": {
+                            "label": "In Relation To",
+                            "type": "PrimaryKeyRelatedField",
+                            "read_only": True,
+                        },
+                        "history_user": {
+                            "label": "History User",
+                            "type": "PrimaryKeyRelatedField",
+                            "read_only": True,
+                        },
+                    }
+                case _:
+                    # This should only modify the history expandable fields.
+                    continue
 
-            expandable_fields_data[key]["app_label"] = history_model._meta.app_label
-            expandable_fields_data[key]["model"] = history_model._meta.model_name
+            expandable_field["app_label"] = history_model._meta.app_label
+            expandable_field["model"] = history_model._meta.model_name
+
+            if "read_only" not in expandable_field:
+                expandable_field["read_only"] = False
+            if "many" not in expandable_field:
+                expandable_field["many"] = False
 
             # Add the fields from the serializer.  These fields should be first, after pk.
             sorted_expandable_data = {}
@@ -177,13 +167,21 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
                 if field_name not in ("current_history_id",):
                     sorted_expandable_data[field_name] = field
 
-            if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expandable_fields_data[key]:
-                sorted_expandable_data.update(expandable_fields_data[key][settings.REST_FLEX_FIELDS["FIELDS_PARAM"]])
-                expandable_fields_data[key][settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = sorted_expandable_data
+            if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expandable_field:
+                sorted_expandable_data.update(expandable_field[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]])
+                expandable_field[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = sorted_expandable_data
 
-        cls.populate_expandable_fields_defaults(expandable_fields_data)
+                for field in expandable_field[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]].values():
+                    if "many" not in field:
+                        field["many"] = False
+                    if "read_only" not in field:
+                        field["read_only"] = False
+                    if "required" not in field:
+                        field["required"] = False
+                    if "choices" not in field:
+                        field["choices"] = False
 
-        return expandable_fields_data
+        return expandable_fields
 
     def get_first_history_entry(self, data):
         value_fields = filter_fields_for_flexlike_on_historical_records(self, "first_history_entry", data.__class__)

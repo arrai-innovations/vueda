@@ -47,28 +47,29 @@ class CustomerSerializer(VuedaHistorySerializer):
             "single_value": serializers.SerializerMethodField,
         }
         expandable_fields.update(VuedaHistorySerializer.Meta.expandable_fields)
-        expandable_fields_data = {
-            "dict_data": {
-                "many": False,
-                "read_only": True,
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                    "name": {
-                        "label": "Name",
-                        "type": "CharField",
-                        "many": False,
-                        "read_only": True,
-                        "required": False,
-                        "choices": False,
-                    },
-                },
-            },
-            "single_value": {
-                "many": False,
-                "read_only": True,
-                "type": "CharField",
-            },
-        }
-        expandable_fields_data.update(VuedaHistorySerializer.Meta.expandable_fields_data)
+
+    def get_expandable_fields(self):
+        expandable_fields = super().get_expandable_fields()
+
+        for expandable_field in expandable_fields:
+            match expandable_field["name"]:
+                case "dict_data":
+                    expandable_field["read_only"] = True
+                    expandable_field[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = {
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    }
+                case "single_value":
+                    expandable_field["read_only"] = True
+                    expandable_field["type"] = "CharField"
+
+        return expandable_fields
 
     def get_dict_data(self, instance):
         return {"name": "Test"}
