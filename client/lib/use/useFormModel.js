@@ -74,7 +74,7 @@ const defaultWidgets = {
     ManyToManyField: availableWidgets.WidgetModel,
     OneToOneField: availableWidgets.WidgetModel,
     JSONField: availableWidgets.WidgetTextarea,
-    ArrayField: availableWidgets.WidgetTextarea,
+    ArrayField: availableWidgets.FieldSetMany,
     BinaryField: availableWidgets.WidgetInput,
     FilePathField: availableWidgets.WidgetInput,
     IPAddressField: availableWidgets.WidgetInput,
@@ -95,7 +95,11 @@ const defaultWidgets = {
     PrimaryKeyRelatedField: availableWidgets.WidgetModel,
 };
 
-const defaultFieldsProps = {};
+const defaultFieldsProps = {
+    CharField: {
+        manyComponent: computed(() => availableFields.FieldString),
+    },
+};
 
 // todo: we should have a way to register custom widget props for custom fields
 // modelconfig should have a view that client can pass in custom props
@@ -151,7 +155,7 @@ const defaultWidgetProps = {
  */
 const djangoTypeToFieldComponent = (many, type) => {
     if (many) {
-        return availableFields.FieldArray;
+        return availableFields.FieldSetMany;
     }
     return builtInTypes[type] || availableFields.FieldString;
 };
@@ -172,7 +176,10 @@ const getDefaultWidget = (choices, many, readOnly, type) => {
         return availableWidgets.WidgetModel;
         // return WidgetMultiSelect;
     }
-    if (type === "TextField" || many) {
+    if (many) {
+        return availableWidgets.WidgetInput;
+    }
+    if (type === "TextField") {
         return availableWidgets.WidgetTextarea;
     }
     if (type === "IntegerRangeField") {

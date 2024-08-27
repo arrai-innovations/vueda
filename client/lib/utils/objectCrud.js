@@ -87,7 +87,7 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
 export async function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
-    const url = getDetailUrl(crudArgs.app, crudArgs.model, object.pk, query);
+    const url = getDetailUrl(crudArgs.app, crudArgs.model, object.id, query);
     /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "PUT",

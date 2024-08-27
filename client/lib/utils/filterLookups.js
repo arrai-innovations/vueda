@@ -57,6 +57,8 @@ export const availableFields = {
     FieldRange: defineAsyncComponent(async () => (await import("@vueda/fields/FieldRange.vue")).default),
     FieldString: defineAsyncComponent(async () => (await import("@vueda/fields/FieldString.vue")).default),
     FieldTime: defineAsyncComponent(async () => (await import("@vueda/fields/FieldTime.vue")).default),
+    FieldSetMany: defineAsyncComponent(async () => (await import("@vueda/fields/FieldSetMany.vue")).default),
+    FieldSetRange: defineAsyncComponent(async () => (await import("@vueda/fields/FieldSetRange.vue")).default),
 };
 
 /**
