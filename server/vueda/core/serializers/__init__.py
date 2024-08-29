@@ -25,7 +25,7 @@ class NoExtraFieldsSerializerMixin:
             # because the parent serializer will validate the extra fields.
             extra_keys_fields = set(self.initial_data.keys()) - set(self.fields.keys())
             for extra_key in extra_keys_fields:
-                msg = f"Invalid field.  Valid fields are {', '.join(self.get_fields())}."
+                msg = f"Invalid field.  Valid fields are {', '.join(sorted(self.get_fields()))}."
                 if extra_key in errors:
                     errors[extra_key].append(msg)
                 else:
@@ -33,7 +33,7 @@ class NoExtraFieldsSerializerMixin:
 
             extra_keys_expand = set(self._flex_options_rep_only["expand"]) - set(self.expanded_fields)
             for extra_key in extra_keys_expand:
-                msg = f"Invalid expands. Valid expands are {', '.join(self._expandable_fields)}."
+                msg = f"Invalid expands. Valid expands are {', '.join(sorted(self._expandable_fields))}."
                 if extra_key in errors:
                     errors[extra_key].append(msg)
                 else:

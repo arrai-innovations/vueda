@@ -309,7 +309,9 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
         filter_mapping = self.get_filter_mapping_with_field_name(filters)
         if field not in filter_mapping:
-            self.validation_error_message = f"Invalid filter {field}.  Valid filters are {', '.join(filter_mapping)}."
+            self.validation_error_message = (
+                f"Invalid filter {field}.  Valid filters are {', '.join(sorted(filter_mapping))}."
+            )
             return super().dispatch(request, *args, **kwargs)
 
         filtr = filter_mapping[field]
