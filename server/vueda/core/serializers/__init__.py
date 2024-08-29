@@ -105,7 +105,11 @@ class VuedaExpandableFieldsSerializerMixin:
                 "many": False,
             }
 
-            # noqa T101 - TODO: System check framework -
+            # noqa T101 - TODO: We need to do something when the field is a SerializerMethodField, and
+            #   get_expandable_fields hasn't been overridden on the serializer to return custom data.
+            #   But, would an error here be good, or can it be figured out in a system check?
+
+            # noqa T101 - TODO: Move this into a system check.
             if isinstance(field_data, tuple):  # flex fields only deals with tuples, not lists.
                 field_serializer, expand_options = field_data
             else:
@@ -118,6 +122,7 @@ class VuedaExpandableFieldsSerializerMixin:
             if type(field_serializer) == str:  # noqa E721
                 field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
 
+            # noqa T101 - TODO: Move this into a system check.
             if not inspect.isclass(field_serializer):
                 raise ValidationError(
                     "This is not a valid `expandable_fields` definition. It must be a tuple of a Serializer/Field"
