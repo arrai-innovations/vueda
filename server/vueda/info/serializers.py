@@ -64,18 +64,6 @@ FIELD_TYPE_MAPPING = {
 }
 
 
-UNUSABLE_FILTER_TYPES = (django_filters.rest_framework.LookupChoiceFilter,)
-
-
-SERIALIZER_FIELD_TYPES_TO_FETCH_MODEL_TYPE = (
-    "ArrayField",  # We need to know what the data is
-    "CharField",  # Can become TextField
-    "ChoiceField",  # We need to know what the data is
-    "ListField",  # The child of these should be used.  This is in case it is possible for a child to be a list field.
-    "ReadOnlyField",  # We need to know what the data is
-)
-
-
 class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerializerMixin, serializers.ModelSerializer):
     """
     A serializer for providing metadata about models, including fields, actions, and permissions.
@@ -175,48 +163,59 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     return max_value
 
     @staticmethod
-    def get_model_fields_field_type(field_name, field, model_field, pk_field, serializer, many):
-        child_field = None
-        if many:
-            if hasattr(field, "child"):
-                child_field = field.child
-            elif hasattr(field, "base_field"):
-                child_field = field.base_field
-            if hasattr(child_field, "model_field"):  # If the field is now a ModelField, then get the actual field.
-                child_field = child_field.model_field
-        else:
-            if hasattr(field, "model_field"):  # If the field is now a ModelField, then get the actual field.
-                child_field = field.model_field
+    def get_model_fields_db_field_type(field_name, model_field, many):
+        if model_field is None:
+            return
+
+        if hasattr(model_field, "field"):
+            model_field = model_field.field
+
+        child_field = model_field.base_field if many and hasattr(model_field, "base_field") else None
 
         # Get the field type.
-        field_type = field.__class__.__name__
-        if child_field is not None:
-            if hasattr(child_field, "get_internal_type"):
-                field_type = child_field.get_internal_type()
-            else:
-                field_type = child_field.__class__.__name__
-
-        # If the field is a CharField on the serializer, it could be a TextField on the model.
-        # If the field is a ChoiceField on the serializer, we need to know what kind of data the model has.
-        # If the field is an ArrayField on the model, we need to know what the base model is.
-        # So, for fields like this, we want to get the name from the models field instead of the serializer.
-        if (
-            field_name != pk_field
-            and not hasattr(serializer, field_name)
-            and field_type in SERIALIZER_FIELD_TYPES_TO_FETCH_MODEL_TYPE
-            and hasattr(model_field, "field")
-        ):
-            child_field = model_field.field
-            if many:
-                if hasattr(child_field, "child"):
-                    child_field = child_field.child
-                elif hasattr(child_field, "base_field"):
-                    child_field = child_field.base_field
-
+        if child_field is None:
+            field_type = model_field.get_internal_type()
+        else:
             field_type = child_field.get_internal_type()
 
+        return field_type
+
+    @staticmethod
+    def get_model_fields_model_field_type(field_name, model_field, many):
+        if model_field is None:
+            return
+
+        if hasattr(model_field, "field"):
+            model_field = model_field.field
+
+        child_field = model_field.base_field if many and hasattr(model_field, "base_field") else None
+
+        # Get the field type.
+        if child_field is None:
+            field_type = model_field.__class__.__name__
+        else:
+            field_type = child_field.__class__.__name__
+
+        return field_type
+
+    @staticmethod
+    def get_model_fields_serializer_field_type(field_name, model_field, many):
+        if model_field is None:
+            return
+
+        if hasattr(model_field, "field"):
+            model_field = model_field.field
+
+        child_field = model_field.child if many and hasattr(model_field, "child") else None
+
+        # Get the field type.
+        if child_field is None:
+            field_type = model_field.__class__.__name__
+        else:
+            field_type = child_field.__class__.__name__
+
         # We couldn't figure out what the ReadOnlyField type was, so assume it is a CharField.
-        # This is the case for 'formatted_name', which doesn't exist on the serializer.
+        # This is the case for 'formatted_name', which doesn't exist on the serializer and doesn't have a model field.
         if field_type == "ReadOnlyField":
             field_type = "CharField"
 
@@ -229,18 +228,22 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         for field_name, field in serializer().get_fields().items():
             many = isinstance(field, (serializers.ListField, serializers.ManyRelatedField))
 
-            model_field = getattr(serializer.Meta.model, field_name, None)
-            field_type = self.get_model_fields_field_type(field_name, field, model_field, pk_field, serializer, many)
-
             effective_label = field.label or field_name.replace("_", " ").title()
+
+            model_field = getattr(serializer.Meta.model, field_name, None)
+            field_type_db = self.get_model_fields_db_field_type(field_name, model_field, many)
+            field_type_model = self.get_model_fields_model_field_type(field_name, model_field, many)
+            field_type_serializer = self.get_model_fields_serializer_field_type(field_name, field, many)
 
             field_data = {
                 "choices": False,
                 "label": effective_label,
-                "type": field_type,
                 "many": many,
                 "read_only": field.read_only,
                 "required": field.required,
+                "type_db": field_type_db,
+                "type_model": field_type_model,
+                "type_serializer": field_type_serializer,
             }
             widget = getattr(field, "widget", None)
             obj = serializer
@@ -592,6 +595,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 # Label
                 label = self.get_model_filtering_label(filter_obj, model)
 
+                field_type_db = self.get_model_fields_db_field_type(filter_name, model_field, True)
+                field_type_model = self.get_model_fields_model_field_type(filter_name, model_field, True)
+                field_type_filter = self.get_model_fields_serializer_field_type(filter_name, field, True)
+
                 filtering_data[filter_name] = {
                     "hidden": widget.is_hidden if hasattr(widget, "is_hidden") else False,
                     "label": label,
@@ -600,6 +607,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                         filter_obj.lookup_expr if isinstance(filter_obj.lookup_expr, list) else [filter_obj.lookup_expr]
                     ),
                     "required": field.required,
+                    "type_db": field_type_db,
+                    "type_model": field_type_model,
+                    "type_filter": field_type_filter,
                 }
 
                 # Choices
