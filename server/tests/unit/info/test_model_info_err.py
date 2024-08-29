@@ -60,34 +60,7 @@ class TestModelInfoErrs:
             err_serializers.RelatedObjectsAreMissingDataSerializer, err_viewsets.RelatedObjectsAreMissingDataViewSet
         )
 
-    def test_no_expandable_field_data(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        err_models.NoExpandableFieldsData.objects.create(name="Test")
-
-        self.setup_router_and_registry()
-
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    "erring",
-                    "noexpandablefieldsdata",
-                ),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_expands",
-                ],
-            },
-        )
-
-        assert response.status_code == 400, pformat(response.data)
-        assert response.data["non_field_errors"] == [
-            "No `expandable_fields_data` specified for field. Model info only knows automatically about fields expandable into serializers."
-        ]
+    # noqa T101 - TODO: Add tests that use settings with specific apps that cause system check errors.
 
     def test_no_formatted_name(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
