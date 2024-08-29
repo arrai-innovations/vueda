@@ -241,7 +241,7 @@ EXPECTED_RESULTS = [
         "store",
         "cartitem",
         "cart",
-        ("test_customer_1@example.com",),
+        ("test_customer_1@example.com", "test_customer_2@example.com"),
     ),
     (
         "store",
