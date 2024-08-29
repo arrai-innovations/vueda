@@ -290,8 +290,8 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
     @staticmethod
     def get_filter_mapping_with_field_name(filters):
         filter_mapping = {}
-        for filtr in filters.values():
-            filter_mapping[filtr.field_name] = filtr
+        for filter_name, filtr in filters.items():
+            filter_mapping[filter_name] = filtr
         return filter_mapping
 
     def dispatch(self, request, app_label, model, field, *args, **kwargs):

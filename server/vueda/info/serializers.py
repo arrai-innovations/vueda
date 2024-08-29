@@ -592,8 +592,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 # Label
                 label = self.get_model_filtering_label(filter_obj, model)
 
-                filtering_data[filter_obj.field_name] = {
-                    "field_class": filter_obj.field_class.__name__,
+                filtering_data[filter_name] = {
                     "hidden": widget.is_hidden if hasattr(widget, "is_hidden") else False,
                     "label": label,
                     # Lookup expressions are not a list for single values, so return them all as lists.
@@ -605,88 +604,86 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
                 # Choices
                 # Returned as a list of values, if it is not a model of choices, otherwise true or false.
-                choices, extra_data = self.get_model_filtering_choices(
-                    filterset, filter_obj, filter_name, field, widget
-                )
-                filtering_data[filter_obj.field_name]["choices"] = choices
+                choices, extra_data = self.get_model_filtering_choices(filterset, filter_obj, field, widget)
+                filtering_data[filter_name]["choices"] = choices
                 if extra_data is not None:
-                    filtering_data[filter_obj.field_name].update(extra_data)
+                    filtering_data[filter_name].update(extra_data)
 
                 # Decimal Places - Optional
                 decimal_places = self.get_model_filtering_decimal_places(field, model_field)
                 if decimal_places:
-                    filtering_data[filter_obj.field_name]["decimal_places"] = decimal_places
+                    filtering_data[filter_name]["decimal_places"] = decimal_places
 
                 # Empty Label - Optional
                 if hasattr(field, "empty_label"):
-                    filtering_data[filter_obj.field_name]["empty_label"] = field.empty_label
+                    filtering_data[filter_name]["empty_label"] = field.empty_label
 
                 # Empty Value - Optional
                 if hasattr(field, "empty_value"):
-                    filtering_data[filter_obj.field_name]["empty_value"] = field.empty_value
+                    filtering_data[filter_name]["empty_value"] = field.empty_value
 
                 # Error Messages - Optional
                 # If the field is not required, don't return the required error message.
                 error_messages = self.get_model_filtering_error_messages(filter_obj, field)
                 if error_messages:
-                    filtering_data[filter_obj.field_name]["error_messages"] = error_messages
+                    filtering_data[filter_name]["error_messages"] = error_messages
 
                 # Help Text - Optional
                 if hasattr(field, "help_text") and field.help_text:
-                    filtering_data[filter_obj.field_name]["help_text"] = field.help_text
+                    filtering_data[filter_name]["help_text"] = field.help_text
 
                 # Input Formats - Optional
                 if hasattr(field, "input_formats") and isinstance(field.input_formats, Iterable):
-                    filtering_data[filter_obj.field_name]["input_formats"] = list(field.input_formats)
+                    filtering_data[filter_name]["input_formats"] = list(field.input_formats)
 
                 # Input Type
                 input_type = self.get_model_filtering_input_type(filter_obj, field, widget)
-                filtering_data[filter_obj.field_name]["input_type"] = input_type
+                filtering_data[filter_name]["input_type"] = input_type
 
                 # Suffixes - Optional
                 # These are what is needed to do a query.
                 if hasattr(widget, "suffixes"):
-                    filtering_data[filter_obj.field_name]["suffixes"] = widget.suffixes
+                    filtering_data[filter_name]["suffixes"] = widget.suffixes
 
                 # Max Digits - Optional
                 max_digits = self.get_model_filtering_max_digits(field, model_field)
                 if max_digits:
-                    filtering_data[filter_obj.field_name]["max_digits"] = max_digits
+                    filtering_data[filter_name]["max_digits"] = max_digits
 
                 # Max Length - Optional
                 max_length = self.get_model_filtering_max_length(field, model_field)
                 if max_length:
-                    filtering_data[filter_obj.field_name]["max_length"] = max_length
+                    filtering_data[filter_name]["max_length"] = max_length
 
                 # Max Value - Optional
                 max_value = self.get_model_filtering_max_value(field, model_field)
                 if max_value:
-                    filtering_data[filter_obj.field_name]["max_value"] = max_value
+                    filtering_data[filter_name]["max_value"] = max_value
 
                 # Min Length - Optional
                 min_length = self.get_model_filtering_min_length(field, model_field)
                 if min_length:
-                    filtering_data[filter_obj.field_name]["min_length"] = min_length
+                    filtering_data[filter_name]["min_length"] = min_length
 
                 # Min Value - Optional
                 min_value = self.get_model_filtering_min_value(field, model_field)
                 if min_value is not None:
-                    filtering_data[filter_obj.field_name]["min_value"] = min_value
+                    filtering_data[filter_name]["min_value"] = min_value
 
                 # Null Label - Optional
                 if hasattr(field, "null_label"):
-                    filtering_data[filter_obj.field_name]["null_label"] = field.null_label
+                    filtering_data[filter_name]["null_label"] = field.null_label
 
                 # Null Value - Optional
                 if hasattr(field, "null_value"):
-                    filtering_data[filter_obj.field_name]["null_value"] = field.null_value
+                    filtering_data[filter_name]["null_value"] = field.null_value
 
                 # Validators - Optional
                 validators, extra_data = self.get_model_filtering_validators(field)
                 if validators:
-                    filtering_data[filter_obj.field_name]["validators"] = validators
+                    filtering_data[filter_name]["validators"] = validators
                 if extra_data:
-                    filtering_data[filter_obj.field_name].update(extra_data)
+                    filtering_data[filter_name].update(extra_data)
 
         return filtering_data
 
