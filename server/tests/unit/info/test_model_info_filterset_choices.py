@@ -15,6 +15,28 @@ from vueda import info
 DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
     (
         "store",
+        "cart",
+        "product_quantity",
+        (
+            {"label": "0", "value": "0"},
+            {"label": "10", "value": "10"},
+            {"label": "4", "value": "4"},
+            {"label": "6", "value": "6"},
+        ),
+    ),
+    (
+        "store",
+        "cart",
+        "product_name",
+        (
+            {"label": "Men's White T-Shirt", "value": "Men's White T-Shirt"},
+            {"label": "Shaped Cookies For Drapes", "value": "Shaped Cookies For Drapes"},
+            {"label": "Square Cookies For Squares", "value": "Square Cookies For Squares"},
+            {"label": "Women's White T-Shirt", "value": "Women's White T-Shirt"},
+        ),
+    ),
+    (
+        "store",
         "product",
         "disabled",
         (
@@ -26,7 +48,7 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
     (
         "store",
         "product",
-        "distributor__name",
+        "distributor",
         (
             {"label": "Tasty Treats Assoc.", "value": "Tasty Treats Assoc."},
             {"label": "T-Shirt Corp.", "value": "T-Shirt Corp."},
@@ -306,6 +328,6 @@ class TestModelInfoFiltersetChoices:
 
         assert response.status_code == 400, pformat(response.data)
         assert response.data["non_field_errors"] == [
-            "Invalid filter invalid_filterset_field.  Valid filters are name, disabled, "
-            "tangible_type, id, distributor__name, special_care, last_ordered, quantity."
+            "Invalid filter invalid_filterset_field.  Valid filters are disabled, "
+            "distributor, id, last_ordered, name, quantity, special_care, tangible_type."
         ]

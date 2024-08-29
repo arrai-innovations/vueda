@@ -65,6 +65,15 @@ class CartFilterSet(VuedaFilterSet):
     reserved_until = rest_framework.TimeFilter()
     expected_delivery_time = rest_framework.DurationFilter()
 
+    product_name = rest_framework.AllValuesMultipleFilter(
+        field_name="cart_items__product_option__product__name", label="Product name"
+    )
+    product_name.model = my_models.Cart
+    product_quantity = rest_framework.AllValuesMultipleFilter(
+        field_name="cart_items__product_option__quantity_available", label="Product quantity"
+    )
+    product_quantity.model = my_models.Cart
+
     class Meta:
         model = my_models.Cart
         fields = [
