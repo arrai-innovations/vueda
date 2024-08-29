@@ -1,5 +1,6 @@
 import datetime
 from decimal import Decimal
+from unittest import mock
 
 from tests.store import models as store_models
 
@@ -70,7 +71,6 @@ def create_test_data(self):
     self.customer_orders = customer_orders
 
     products = {}
-    product_options = {}
     order_items = {}
     inventory_records = {}
 
@@ -92,6 +92,7 @@ def create_test_data(self):
                                 "sku": "1001",
                                 "gtin": "3032076999853",
                                 "price": Decimal("19.99"),
+                                "quantity_available": 10,
                             },
                             "order_items": (
                                 {
@@ -191,6 +192,7 @@ def create_test_data(self):
                                 "sku": "1002",
                                 "gtin": "3032076999854",
                                 "price": Decimal("19.99"),
+                                "quantity_available": 0,
                             },
                             "order_items": (
                                 {
@@ -255,6 +257,7 @@ def create_test_data(self):
                                 "sku": "1011",
                                 "gtin": "4109009311819",
                                 "price": Decimal("18.99"),
+                                "quantity_available": 6,
                             },
                             "order_items": (
                                 {
@@ -337,6 +340,7 @@ def create_test_data(self):
                                 "sku": "10010",
                                 "gtin": "4189517411291",
                                 "price": Decimal("14.99"),
+                                "quantity_available": 0,
                             },
                             "order_items": (
                                 {
@@ -401,6 +405,7 @@ def create_test_data(self):
                                 "sku": "10011",
                                 "gtin": "4189517411292",
                                 "price": Decimal("14.99"),
+                                "quantity_available": 4,
                             },
                             "order_items": (
                                 {
@@ -490,6 +495,7 @@ def create_test_data(self):
                                 "sku": "10020",
                                 "gtin": "4481104569956",
                                 "price": Decimal("15.99"),
+                                "quantity_available": 6,
                             },
                             "order_items": (
                                 {
@@ -584,6 +590,7 @@ def create_test_data(self):
                                 "sku": "100021",
                                 "gtin": "00313235428144",
                                 "price": Decimal("39.99"),
+                                "quantity_available": 8,
                             },
                             "order_items": (
                                 {
@@ -638,6 +645,7 @@ def create_test_data(self):
                                 "sku": "100022",
                                 "gtin": "00315654222969",
                                 "price": Decimal("44.99"),
+                                "quantity_available": 7,
                             },
                             "order_items": (
                                 {
@@ -702,6 +710,7 @@ def create_test_data(self):
                                 "sku": "100123",
                                 "gtin": "00316462430690",
                                 "price": Decimal("49.99"),
+                                "quantity_available": 1,
                             },
                             "order_items": (
                                 {
@@ -756,6 +765,7 @@ def create_test_data(self):
                                 "sku": "100124",
                                 "gtin": "00368135511625",
                                 "price": Decimal("54.99"),
+                                "quantity_available": 6,
                             },
                             "order_items": (
                                 {
@@ -827,14 +837,17 @@ def create_test_data(self):
             product = store_models.Product.objects.create(**product_data["product"])
             for special_care_obj in special_care_objs:
                 product.special_care.add(special_care_obj)
-            products[product.name] = product
+            products[product.name] = {
+                "product": product,
+                "product_options": {},
+            }
             for product_option_data in product_data["options"]:
                 product_option_data["option"]["product"] = product
                 product_option_data["option"]["option_type"] = option_types[
                     product_option_data["option"]["option_type"]
                 ]
                 product_option = store_models.ProductOption.objects.create(**product_option_data["option"])
-                product_options[product_option.name] = product_option
+                products[product.name]["product_options"][product_option.name] = product_option
                 stored_order_items = {}
                 for order_item_data in product_option_data["order_items"]:
                     order_item_data["customer_order"] = customer_orders[order_item_data["customer_order"]]
@@ -866,18 +879,65 @@ def create_test_data(self):
                     if stored_inventory_record:
                         stored_inventory_records[stored_inventory_record] = inventory_record
 
-        self.products = products
-        self.product_options = product_options
-        self.order_items = order_items
-        self.inventory_records = inventory_records
+    self.products = products
+    self.order_items = order_items
+    self.inventory_records = inventory_records
 
-        # Make a cart for one of the customers.
-        cart = store_models.Cart.objects.create(customer=customers["test_customer_1@example.com"])
-        self.carts = [cart]
+    # Make carts.
+    carts = {}
+    for cart_data in (
+        {
+            "customer_email": "test_customer_1@example.com",
+            "cart_items": [
+                {
+                    "product_option": products["Men's White T-Shirt"]["product_options"]["Medium"],
+                    "quantity": 1,
+                },
+                {
+                    "product_option": products["Women's White T-Shirt"]["product_options"]["Small"],
+                    "quantity": 2,
+                },
+            ],
+            "last_modified": datetime.datetime(2024, 8, 10, 12, 0, 0),
+        },
+        {
+            "customer_email": "test_customer_2@example.com",
+            "cart_items": [
+                {
+                    "product_option": products["Square Cookies For Squares"]["product_options"]["Gentle Cinnamon"],
+                    "quantity": 6,
+                },
+                {
+                    "product_option": products["Square Cookies For Squares"]["product_options"]["Sweet Sugar"],
+                    "quantity": 12,
+                },
+                {
+                    "product_option": products["Shaped Cookies For Drapes"]["product_options"]["Explosive Dynamite"],
+                    "quantity": 24,
+                },
+            ],
+            "last_modified": datetime.datetime(2024, 7, 20, 6, 0, 0),
+        },
+    ):
+        with mock.patch("django.db.models.fields.timezone.now") as mocked_now:
+            mocked_now.return_value = cart_data["last_modified"]
 
-        cart_item = store_models.CartItem.objects.create(
-            cart=cart,
-            product_option=product_options["Medium"],
-            quantity=1,
-        )
-        self.cart_item = cart_item
+            cart = store_models.Cart.objects.create(
+                customer=customers[cart_data["customer_email"]],
+            )
+
+        cart_items = []
+        for cart_item in cart_data["cart_items"]:
+            cart_item = store_models.CartItem.objects.create(
+                cart=cart,
+                product_option=cart_item["product_option"],
+                quantity=cart_item["quantity"],
+            )
+            cart_items.append(cart_item)
+
+        carts[cart_data["customer_email"]] = {
+            "cart": cart,
+            "cart_items": cart_items,
+        }
+
+    self.carts = carts
