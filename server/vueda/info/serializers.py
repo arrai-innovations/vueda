@@ -108,17 +108,21 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         return list(Permission.objects.filter(content_type=instance).values("codename", "name"))
 
     def get_model_fields_min_data(self, field, model_field):
+        if hasattr(model_field, "field"):
+            model_field = model_field.field
+
         if hasattr(field, "min_value") and field.min_value is not None:
             return field.min_value
-        elif model_field and model_field.field:
+
+        elif model_field:
             # If the field has validators, are any of them MinValueValidator?
-            if hasattr(model_field.field, "validators") and model_field.field.validators:
-                for validator in model_field.field.validators:
+            if hasattr(model_field, "validators") and model_field.validators:
+                for validator in model_field.validators:
                     if isinstance(validator, validators.MinValueValidator):
                         return validator.limit_value
 
             # Is the field a range field?
-            range_field = model_field.field
+            range_field = model_field
             if getattr(field, "child", None) is not None and hasattr(field.child, "model_field"):
                 # Or an array of range fields?
                 range_field = field.child.model_field
@@ -135,18 +139,21 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     return min_value
 
     def get_model_fields_max_data(self, field, model_field):
+        if hasattr(model_field, "field"):
+            model_field = model_field.field
+
         if hasattr(field, "max_value") and field.max_value:
             return field.max_value
 
-        elif model_field and model_field.field:
+        elif model_field and model_field:
             # If the field has validators, are any of them MaxValueValidator?
-            if hasattr(model_field.field, "validators") and model_field.field.validators:
-                for validator in model_field.field.validators:
+            if hasattr(model_field, "validators") and model_field.validators:
+                for validator in model_field.validators:
                     if isinstance(validator, validators.MaxValueValidator):
                         return validator.limit_value
 
             # Is the field a range field?
-            range_field = model_field.field
+            range_field = model_field
             if getattr(field, "child", None) is not None and hasattr(field.child, "model_field"):
                 # Or an array of range fields?
                 range_field = field.child.model_field
@@ -426,14 +433,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return choices, None
 
-    def get_model_filtering_choices(self, filterset, filter_obj, filter_name, field, widget):
+    def get_model_filtering_choices(self, filterset, filter_obj, field, widget):
         choices = self.get_choices_data(filter_obj, field, widget)
         meta = self.get_choices_meta(field, filter_obj, choices)
         if meta is not None:
             return True, {
                 "app_label": meta.app_label,
                 "model": meta.model_name,
-                "filter_name": filter_name,
                 "filterset_name": filterset.__class__.__name__,
             }
 
@@ -456,15 +462,14 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
     @staticmethod
     def get_model_filtering_decimal_places(field, model_field):
+        if hasattr(model_field, "field"):
+            model_field = model_field.field
+
         if hasattr(field, "decimal_places") and field.decimal_places:
             return field.decimal_places
-        elif (
-            model_field
-            and model_field.field
-            and hasattr(model_field.field, "decimal_places")
-            and model_field.field.decimal_places
-        ):
-            return model_field.field.decimal_places
+
+        elif model_field and hasattr(model_field, "decimal_places") and model_field.decimal_places:
+            return model_field.decimal_places
 
     @staticmethod
     def get_model_filtering_error_messages(filter_obj, field):
@@ -495,23 +500,25 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
     @staticmethod
     def get_model_filtering_max_digits(field, model_field):
+        if hasattr(model_field, "field"):
+            model_field = model_field.field
+
         if hasattr(field, "max_digits") and field.max_digits:
             return field.max_digits
-        elif (
-            model_field
-            and model_field.field
-            and hasattr(model_field.field, "max_digits")
-            and model_field.field.max_digits
-        ):
-            return model_field.field.max_digits
+
+        elif model_field and hasattr(model_field, "max_digits") and model_field.max_digits:
+            return model_field.max_digits
 
     @staticmethod
     def get_model_filtering_max_length(field, model_field):
+        if hasattr(model_field, "field"):
+            model_field = model_field.field
+
         if hasattr(field, "max_length"):
             if field.max_length is not None:
                 return field.max_length
-            elif model_field and model_field.field and hasattr(model_field.field, "max_length"):
-                return model_field.field.max_length
+            elif model_field and hasattr(model_field, "max_length"):
+                return model_field.max_length
 
     def get_model_filtering_max_value(self, field, model_field):
         if hasattr(field, "max_value"):
@@ -524,11 +531,14 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
     @staticmethod
     def get_model_filtering_min_length(field, model_field):
+        if hasattr(model_field, "field"):
+            model_field = model_field.field
+
         if hasattr(field, "min_length"):
             if field.min_length is not None:
                 return field.min_length
-            elif model_field and model_field.field and hasattr(model_field.field, "min_length"):
-                return model_field.field.min_length
+            elif model_field and hasattr(model_field, "min_length"):
+                return model_field.min_length
 
     def get_model_filtering_min_value(self, field, model_field):
         if hasattr(field, "min_value"):
@@ -590,7 +600,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     continue
 
                 widget = field.widget
-                model_field = getattr(model, filter_obj.field_name, None)
+                try:
+                    model_fields = get_fields_from_path(model, filter_obj.field_name)
+                except Exception:
+                    model_field = None
+                else:
+                    model_field = model_fields[-1]
 
                 # Label
                 label = self.get_model_filtering_label(filter_obj, model)
