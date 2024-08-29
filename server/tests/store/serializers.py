@@ -58,7 +58,9 @@ class CustomerSerializer(VuedaHistorySerializer):
                     expandable_field[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = {
                         "name": {
                             "label": "Name",
-                            "type": "CharField",
+                            "type_db": None,
+                            "type_model": None,
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -67,7 +69,9 @@ class CustomerSerializer(VuedaHistorySerializer):
                     }
                 case "single_value":
                     expandable_field["read_only"] = True
-                    expandable_field["type"] = "CharField"
+                    expandable_field["type_db"] = None
+                    expandable_field["type_model"] = None
+                    expandable_field["type_serializer"] = "CharField"
 
         return expandable_fields
 
