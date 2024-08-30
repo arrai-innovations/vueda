@@ -1,5 +1,5 @@
 <script setup>
-import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { FIELD_EMITS, FIELD_PROPS, onBeforeFieldUnmount, useField } from "@vueda/use/useField.js";
 import { toRef, watch } from "vue";
 
 const props = defineProps({
@@ -18,6 +18,7 @@ watch(
     },
     { immediate: true },
 );
+onBeforeFieldUnmount(fieldContext);
 </script>
 <template>
     <div data-qa="field-boolean">

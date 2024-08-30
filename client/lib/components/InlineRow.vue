@@ -47,6 +47,13 @@ const theme = useComputedClasses(vuedaTailwind.FieldSetStackedInlineRow);
 
 const emit = defineEmits(["delete-row"]);
 const onDelete = () => emit("delete-row", props.index);
+
+const getFieldName = (fieldName) => {
+    return `${props.fieldName}__${fieldName}`;
+};
+const getFieldPath = (fieldName) => {
+    return `${props.fieldName}[${props.index}].${fieldName}`;
+};
 </script>
 <template>
     <div v-if="formModel.expands?.length" :class="theme('root')">
@@ -64,38 +71,39 @@ const onDelete = () => emit("delete-row", props.index);
                 :widget-components="formModel.widgetComponents"
             >
                 <template
-                    v-for="fieldName in Object.keys(deepUnref(formModel.expandDetails)?.[props.fieldName]?.f)"
-                    :key="fieldName"
+                    v-for="field in Object.keys(deepUnref(formModel.expandDetails)?.[props.fieldName]?.f)"
+                    :key="field"
                 >
                     <slot
                         :field-class="theme('field')"
-                        :field-component="formModel.fieldComponents[`${props.fieldName}__${fieldName}`]"
-                        :field-detail="formModel.fieldDetails[`${props.fieldName}__${fieldName}`]"
+                        :field-component="formModel.fieldComponents[getFieldName(field)]"
+                        :field-detail="formModel.fieldDetails[getFieldName(field)]"
                         :field-inner-class="theme('fieldInner')"
-                        :field-props="formModel.fieldProps[`${props.fieldName}__${fieldName}`]"
-                        :name="`field(${props.fieldName}__${fieldName})`"
+                        :field-props="formModel.fieldProps[getFieldName(field)]"
+                        :name="`field(${getFieldPath(field)})`"
                         :theme="theme"
-                        :widget-component="formModel.widgetComponents[`${props.fieldName}__${fieldName}`]"
-                        :widget-props="formModel.widgetProps[`${props.fieldName}__${fieldName}`]"
+                        :widget-component="formModel.widgetComponents[getFieldName(field)]"
+                        :widget-props="formModel.widgetProps[getFieldName(field)]"
                     >
                         <component
-                            :is="formModel.fieldComponents[`${props.fieldName}__${fieldName}`]"
-                            v-if="formModel.fieldComponents[`${props.fieldName}__${fieldName}`]"
+                            :is="formModel.fieldComponents[getFieldName(field)]"
+                            v-if="formModel.fieldComponents[getFieldName(field)]"
                             :class="theme('field')"
-                            v-bind="formModel.fieldProps[`${props.fieldName}__${fieldName}`]"
+                            v-bind="formModel.fieldProps[getFieldName(field)]"
+                            :name="getFieldPath(field)"
                         >
                             <div :class="theme('fieldInner')">
                                 <slot
-                                    :field-object="formModel.fieldDetails[`${props.fieldName}__${fieldName}`]"
-                                    :name="`widget(${props.fieldName}__${fieldName})`"
+                                    :field-object="formModel.fieldDetails[getFieldName(field)]"
+                                    :name="`widget(${getFieldPath(field)})`"
                                     :theme="theme"
-                                    :widget-component="formModel.widgetComponents[`${props.fieldName}__${fieldName}`]"
-                                    :widget-props="formModel.widgetProps[`${props.fieldName}__${fieldName}`]"
+                                    :widget-component="formModel.widgetComponents[getFieldName(field)]"
+                                    :widget-props="formModel.widgetProps[getFieldName(field)]"
                                 >
                                     <component
-                                        :is="formModel.widgetComponents[`${props.fieldName}__${fieldName}`]"
-                                        v-bind="formModel.widgetProps[`${props.fieldName}__${fieldName}`]"
-                                        v-if="formModel.widgetComponents[`${props.fieldName}__${fieldName}`]"
+                                        :is="formModel.widgetComponents[getFieldName(field)]"
+                                        v-bind="formModel.widgetProps[getFieldName(field)]"
+                                        v-if="formModel.widgetComponents[getFieldName(field)]"
                                     />
                                 </slot>
                                 <form-help-text />
@@ -110,7 +118,7 @@ const onDelete = () => emit("delete-row", props.index);
         <div v-if="$slots.afterFields" :class="theme('afterFields')">
             <slot name="afterFields" />
         </div>
-        <slot label="Delete" name="inline-row-delete" size="small" verb="delete" @delete="onDelete">
+        <slot label="Delete" name="inline-row-delete" size="small" verb="delete" @click="onDelete">
             <Button label="Delete" size="small" @click="onDelete" />
         </slot>
     </div>

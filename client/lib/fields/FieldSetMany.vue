@@ -1,4 +1,5 @@
 <script setup>
+import FormChores from "@vueda/components/FormChores.vue";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
@@ -47,10 +48,14 @@ const onDelete = (index) => {
     fieldContext.state.value = cloneDeep(fieldContext.state.value).filter((_, i) => i !== index);
 };
 const theme = useComputedClasses(vuedaTailwind.FieldSetMany);
+
+const isEmptyValue = (value) => {
+    return value === "";
+};
 watch(
     toRef(fieldContext.state, "value"),
     (newValue) => {
-        if (Array.isArray(newValue) && newValue.length === 1 && newValue[0] === "") {
+        if (Array.isArray(newValue) && newValue.length === 1 && isEmptyValue(newValue[0])) {
             fieldContext.state.value = [];
         }
     },
@@ -70,7 +75,7 @@ watch(
                 <div :class="theme('component')">
                     <div class="w-5/6">
                         <component :is="props.manyComponent" v-bind="field.props" :required="field.index > 0">
-                            <slot />
+                            <slot :show-label="false" />
                         </component>
                     </div>
                     <div v-if="field.index">
@@ -79,5 +84,6 @@ watch(
                 </div>
             </template>
         </div>
+        <form-chores />
     </div>
 </template>

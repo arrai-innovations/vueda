@@ -99,6 +99,15 @@ const defaultFieldsProps = {
     CharField: {
         manyComponent: computed(() => availableFields.FieldString),
     },
+    ManyRelatedField: {
+        requiredFn: (value) => {
+            if (Array.isArray(value)) {
+                return value.length;
+            } else {
+                return value !== null && value !== undefined && Object.keys(value).length > 0;
+            }
+        },
+    },
 };
 
 // todo: we should have a way to register custom widget props for custom fields
@@ -350,6 +359,7 @@ export function useFormModel(props) {
                                     if (Array.isArray(expandFieldDetail.choices)) {
                                         baseProps.options = expandFieldDetail.choices;
                                     } else {
+                                        // TODO: only widgetModel and widgetAutoComplete need these
                                         baseProps.fieldApp = expandDetail.app_label;
                                         baseProps.fieldModel = expandDetail.model;
                                         baseProps.app = expandFieldDetail.appLabel;

@@ -3,7 +3,7 @@ import { isArray } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
-import { computed, inject, provide, reactive, readonly, toRef, unref, watch } from "vue";
+import { computed, inject, onBeforeUnmount, provide, reactive, readonly, toRef, unref, watch } from "vue";
 
 /**
  * The reactive props we expect fields to receive and pass to useField when creating a field context.
@@ -59,6 +59,16 @@ export function defaultValidateRequired(value) {
     return value !== null && value !== undefined && value !== "" && value !== false && value !== 0;
 }
 
+/**
+ * The lifecycle hook that is called to ensure any error or message associated with field is cleared.
+ * @param {FieldContext} fieldContext
+ */
+export function onBeforeFieldUnmount(fieldContext) {
+    return onBeforeUnmount(() => {
+        fieldContext.deleteError(undefined);
+        fieldContext.deleteMessage(undefined);
+    });
+}
 /**
  * @typedef {object} FieldContextRawState
  * @property {import('vue').ComputedRef<string>} name - The name of the field.
@@ -130,6 +140,7 @@ const returnVoid = () => {};
  * @returns {FieldContext} The field context object.
  */
 export function useField(props, emit, functions) {
+    console.log(props.name);
     /** @type {import('@vueda/use/useForm.js').FormContext|null} */
     const formContext = inject(FormContextSymbol, null);
 

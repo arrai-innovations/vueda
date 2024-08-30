@@ -186,6 +186,7 @@ const theme = useComputedClasses(vuedaTailwind.FormModel);
                             <component
                                 :is="formModel.fieldComponents[fieldName]"
                                 v-if="formModel.fieldComponents[fieldName]"
+                                v-slot="slotProps"
                                 :class="theme('field')"
                                 v-bind="formModel.fieldProps[fieldName]"
                             >
@@ -195,11 +196,11 @@ const theme = useComputedClasses(vuedaTailwind.FormModel);
                                         :name="`widget(${fieldName})`"
                                         :theme="theme"
                                         :widget-component="formModel.widgetComponents[fieldName]"
-                                        :widget-props="formModel.widgetProps[fieldName]"
+                                        :widget-props="{ ...formModel.widgetProps[fieldName], ...slotProps }"
                                     >
                                         <component
                                             :is="formModel.widgetComponents[fieldName]"
-                                            v-bind="formModel.widgetProps[fieldName]"
+                                            v-bind="{ ...formModel.widgetProps[fieldName], ...slotProps }"
                                             v-if="formModel.widgetComponents[fieldName]"
                                         />
                                     </slot>

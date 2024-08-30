@@ -43,7 +43,7 @@ const builtInTypes = {
     ManyRelatedField: null,
 };
 
-const getFieldInitialValue = (fieldDetail) => {
+export const getFieldInitialValue = (fieldDetail) => {
     if (fieldDetail.many) {
         return undefined;
     }

@@ -15,7 +15,7 @@ const theme = useComputedClasses(vuedaTailwind.WidgetReadOnly, widgetContext.sta
 <template>
     <div :class="theme('root')">
         <div :class="theme('inner')">
-            <div :class="theme('label')">
+            <div v-if="showLabel" :class="theme('label')">
                 <slot :label="widgetContext.state.combinedLabel" name="label">{{
                     widgetContext.state.combinedLabel
                 }}</slot>

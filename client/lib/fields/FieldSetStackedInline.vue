@@ -1,4 +1,5 @@
 <script setup>
+import FormChores from "@vueda/components/FormChores.vue";
 import InlineRow from "@vueda/components/InlineRow.vue";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
@@ -14,9 +15,11 @@ const fieldContext = useField(props, emit);
 const theme = useComputedClasses(vuedaTailwind.FieldSetStackedInline);
 
 const addRow = () => {
+    fieldContext.blur();
     fieldContext.state.value = [...cloneDeep(fieldContext.state.value), {}];
 };
 const removeRow = (index) => {
+    fieldContext.blur();
     fieldContext.state.value = cloneDeep(fieldContext.state.value).filter((_, i) => i !== index);
 };
 </script>
@@ -42,5 +45,6 @@ const removeRow = (index) => {
                 </template>
             </InlineRow>
         </div>
+        <form-chores />
     </div>
 </template>

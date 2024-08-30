@@ -388,7 +388,6 @@ const hasWorkFlow = computedAsync(
         <!-- todo: filters return here? @submit=filterList -->
         <slot name="before-list" />
         <objects-grid
-            ref="objectsGridRef"
             v-bind="$attrs"
             v-model:selected="selectedObjects"
             :calculated-objects="instanceList.state.calculatedObjects"

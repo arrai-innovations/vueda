@@ -22,6 +22,10 @@ export const WIDGET_PROPS = {
         type: String,
         default: undefined,
     },
+    showLabel: {
+        type: Boolean,
+        default: true,
+    },
 };
 
 export const WIDGET_EMITS = ["update:modelValue"];

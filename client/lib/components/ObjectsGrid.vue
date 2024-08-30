@@ -311,7 +311,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                     <template v-if="field?.name">
                         <objects-grid-card-cell
                             v-if="!isTable"
-                            :calculated-object="calculatedObjects[obj.id]"
+                            :calculated-object="calculatedObjects[obj.id] ?? {}"
                             :class="fieldClasses?.[field?.name]"
                             :col-index="colIndex"
                             :data-field="field?.name"
@@ -319,7 +319,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             :field="field"
                             :field-props="fieldProps"
                             :obj="obj"
-                            :related-object="relatedObjects[obj.id]"
+                            :related-object="relatedObjects[obj.id] ?? {}"
                             role="cell"
                             :row-index="rowIndex"
                         >
@@ -332,7 +332,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                         </objects-grid-card-cell>
                         <objects-grid-body-cell
                             v-else
-                            :calculated-object="calculatedObjects[obj.id]"
+                            :calculated-object="calculatedObjects[obj.id] ?? {}"
                             :class="fieldClasses?.[field?.name]"
                             :col-index="colIndex"
                             :data-field="field?.name"
@@ -340,7 +340,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             :field="field"
                             :field-props="fieldProps"
                             :obj="obj"
-                            :related-object="relatedObjects[obj.id]"
+                            :related-object="relatedObjects[obj.id] ?? {}"
                             role="cell"
                             :row-index="rowIndex"
                         >

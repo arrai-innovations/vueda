@@ -1,5 +1,5 @@
 <script setup>
-import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { FIELD_EMITS, FIELD_PROPS, onBeforeFieldUnmount, useField } from "@vueda/use/useField.js";
 import isArray from "lodash-es/isArray.js";
 
 const props = defineProps({
@@ -19,7 +19,8 @@ const preprocessSet = (value) => {
     return isArray(value) ? value : value.split("\n");
 };
 
-useField(props, emit, { preprocessGet, preprocessSet });
+const fieldContext = useField(props, emit, { preprocessGet, preprocessSet });
+onBeforeFieldUnmount(fieldContext);
 </script>
 <template>
     <div data-qa="field-array">

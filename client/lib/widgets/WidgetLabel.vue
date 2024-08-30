@@ -7,13 +7,17 @@ defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
+    showLabel: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 /** @type {import('@vueda/use/useWidget.js').WidgetContext} */
 const widgetContext = inject(WidgetContextSymbol);
 </script>
 <template>
-    <label :class="labelClass" :for="widgetContext.state.combinedName">
+    <label v-if="showLabel" :class="labelClass" :for="widgetContext.state.combinedName">
         <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label">{{
             widgetContext.state.combinedLabel
         }}</slot>
