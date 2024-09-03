@@ -140,7 +140,6 @@ const returnVoid = () => {};
  * @returns {FieldContext} The field context object.
  */
 export function useField(props, emit, functions) {
-    console.log(props.name);
     /** @type {import('@vueda/use/useForm.js').FormContext|null} */
     const formContext = inject(FormContextSymbol, null);
 

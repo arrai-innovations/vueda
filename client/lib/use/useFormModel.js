@@ -7,196 +7,505 @@ import omit from "lodash-es/omit.js";
 import { computed, effectScope, provide, reactive, readonly, shallowReactive, toRef, watch } from "vue";
 import { deepUnref } from "vue-deepunref";
 
-// todo: we should have a way to register custom field components
-const builtInTypes = {
-    IntegerRangeField: availableFields.FieldRange,
-    DateRangeField: availableFields.FieldRange,
-    TextField: availableFields.FieldString,
-    CharField: availableFields.FieldString,
-    BooleanField: availableFields.FieldBoolean,
-    DateField: availableFields.FieldDate,
-    DateTimeField: availableFields.FieldDate,
-    DecimalField: availableFields.FieldNumber,
-    FloatField: availableFields.FieldNumber,
-    IntegerField: availableFields.FieldNumber,
-    PositiveIntegerField: availableFields.FieldNumber,
-    PositiveSmallIntegerField: availableFields.FieldNumber,
-    SmallIntegerField: availableFields.FieldNumber,
-    TimeField: availableFields.FieldTime,
-    EmailField: availableFields.FieldString,
-    URLField: availableFields.FieldString,
-    UUIDField: availableFields.FieldString,
-    ForeignKey: availableFields.FieldString,
-    ManyToManyField: availableFields.FieldString,
-    OneToOneField: availableFields.FieldString,
-    JSONField: availableFields.FieldObject,
-    ArrayField: availableFields.FieldArray,
-    BinaryField: availableFields.FieldString,
-    FilePathField: availableFields.FieldString,
-    IPAddressField: availableFields.FieldString,
-    GenericIPAddressField: availableFields.FieldString,
-    SlugField: availableFields.FieldString,
-    FileField: availableFields.FieldString,
-    ImageField: availableFields.FieldString,
-    AutoField: availableFields.FieldString,
-    BigAutoField: availableFields.FieldString,
-    BigIntegerField: availableFields.FieldNumber,
-    DurationSecondsField: availableFields.FieldString,
-    GenericRelation: availableFields.FieldString,
-    GenericForeignKey: availableFields.FieldString,
-    NullBooleanField: availableFields.FieldBoolean,
-    PositiveBigIntegerField: availableFields.FieldNumber,
-    PositiveDecimalField: availableFields.FieldNumber,
-    ManyRelatedField: availableFields.FieldString,
-    PrimaryKeyRelatedField: availableFields.FieldString,
-};
-
-// todo: we should have a way to register custom widgets
-const defaultWidgets = {
-    IntegerRangeField: availableWidgets.WidgetSlider,
-    DateRangeField: availableWidgets.WidgetDatePicker,
-    TextField: availableWidgets.WidgetTextarea,
-    CharField: availableWidgets.WidgetInput,
-    BooleanField: availableWidgets.WidgetCheckbox,
-    DateField: availableWidgets.WidgetDatePicker,
-    DateTimeField: availableWidgets.WidgetDatePicker,
-    DecimalField: availableWidgets.WidgetInput,
-    FloatField: availableWidgets.WidgetInput,
-    IntegerField: availableWidgets.WidgetInput,
-    PositiveIntegerField: availableWidgets.WidgetInput,
-    PositiveSmallIntegerField: availableWidgets.WidgetInput,
-    SmallIntegerField: availableWidgets.WidgetInput,
-    TimeField: availableWidgets.WidgetInput,
-    EmailField: availableWidgets.WidgetInput,
-    URLField: availableWidgets.WidgetInput,
-    UUIDField: availableWidgets.WidgetInput,
-    ForeignKey: availableWidgets.WidgetModel,
-    ManyToManyField: availableWidgets.WidgetModel,
-    OneToOneField: availableWidgets.WidgetModel,
-    JSONField: availableWidgets.WidgetTextarea,
-    ArrayField: availableWidgets.FieldSetMany,
-    BinaryField: availableWidgets.WidgetInput,
-    FilePathField: availableWidgets.WidgetInput,
-    IPAddressField: availableWidgets.WidgetInput,
-    GenericIPAddressField: availableWidgets.WidgetInput,
-    SlugField: availableWidgets.WidgetInput,
-    FileField: availableWidgets.WidgetInput,
-    ImageField: availableWidgets.WidgetInput,
-    AutoField: availableWidgets.WidgetInput,
-    BigAutoField: availableWidgets.WidgetInput,
-    BigIntegerField: availableWidgets.WidgetInput,
-    DurationSecondsField: availableWidgets.WidgetInput,
-    GenericRelation: availableWidgets.WidgetModel,
-    GenericForeignKey: availableWidgets.WidgetModel,
-    NullBooleanField: availableWidgets.WidgetCheckbox,
-    PositiveBigIntegerField: availableWidgets.WidgetInput,
-    PositiveDecimalField: availableWidgets.WidgetInput,
-    ManyRelatedField: availableWidgets.WidgetModel,
-    PrimaryKeyRelatedField: availableWidgets.WidgetModel,
-};
-
-const defaultFieldsProps = {
+const defaultFieldMappings = {
+    BooleanField: {
+        BooleanField: { component: availableFields.FieldBoolean, widget: availableWidgets.WidgetCheckbox },
+    },
     CharField: {
-        manyComponent: computed(() => availableFields.FieldString),
+        CharField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput },
+        TextField: { component: availableFields.FieldString, widget: availableWidgets.WidgetTextarea },
+    },
+    ChoiceField: {
+        CharField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput },
+        TextField: { component: availableFields.FieldString, widget: availableWidgets.WidgetTextarea },
+    },
+    DateField: {
+        DateField: { component: availableFields.FieldDate, widget: availableWidgets.WidgetDatePicker },
+    },
+    DateTimeField: {
+        DateTimeField: {
+            component: availableFields.FieldDateTime,
+            widget: availableWidgets.WidgetDatePicker,
+            widgetProps: { showTime: true },
+        },
+    },
+    DecimalField: {
+        DecimalField: {
+            component: availableFields.FieldNumber,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "number" },
+        },
+        PositiveDecimalField: {
+            component: availableFields.FieldNumber,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "number" },
+        },
+    },
+    DurationSecondsField: {
+        DurationField: {
+            component: availableFields.FieldDuration,
+            widget: availableWidgets.WidgetDuration,
+            widgetProps: { unit: "minutes" },
+        },
+    },
+    EmailField: {
+        EmailField: {
+            component: availableFields.FieldEmail,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "email" },
+        },
+    },
+    FileField: {
+        FileField: { component: availableFields.FieldFile, widget: availableWidgets.WidgetFile },
+    },
+    FloatField: {
+        FloatField: {
+            component: availableFields.FieldNumber,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "number" },
+        },
+    },
+    ImageField: {
+        ImageField: { component: availableFields.FieldImage, widget: availableWidgets.WidgetImage },
+    },
+    IntegerField: {
+        AutoField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput },
+        BigAutoField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput },
+        BigIntegerField: {
+            component: availableFields.FieldNumber,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "number" },
+        },
+        IntegerField: {
+            component: availableFields.FieldNumber,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "number" },
+        },
+        PositiveBigIntegerField: {
+            component: availableFields.FieldNumber,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "number" },
+        },
+        PositiveIntegerField: {
+            component: availableFields.FieldNumber,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "number" },
+        },
+        PositiveSmallIntegerField: {
+            component: availableFields.FieldNumber,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "number" },
+        },
+        SmallIntegerField: {
+            component: availableFields.FieldNumber,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "number" },
+        },
+    },
+    IntegerRangeField: {
+        BigIntegerRangeField: {
+            component: availableFields.FieldSetRange,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "number" },
+            fieldProps: { boundaryComponent: availableFields.FieldNumber },
+        },
+    },
+    IPAddressField: {
+        IPAddressField: { component: availableFields.FieldIP, widget: availableWidgets.WidgetIP },
+        GenericIPAddressField: { component: availableFields.FieldIP, widget: availableWidgets.WidgetIP },
+    },
+    JSONField: {
+        JSONField: { component: availableFields.FieldObject, widget: availableWidgets.WidgetJSON, fieldProps: {} },
+    },
+    ListField: {
+        ArrayField: {
+            component: availableFields.FieldArray,
+            widget: availableWidgets.WidgetJSON,
+            widgetProps: { type: "array" },
+            fieldProps: {},
+        },
+        DateRangeField: {
+            component: availableFields.FieldSetRange,
+            widget: availableWidgets.WidgetDatePicker,
+            widgetProps: { selectionMode: "range" },
+            fieldProps: { boundaryComponent: availableFields.FieldDate },
+        },
+        DateTimeRangeField: {
+            component: availableFields.FieldSetRange,
+            widget: availableWidgets.WidgetDatePicker,
+            widgetProps: { showTime: true, selectionMode: "range" },
+            fieldProps: { boundaryComponent: availableFields.FieldDateTime },
+        },
+        FloatRangeField: {
+            component: availableFields.FieldSetRange,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "number" },
+            fieldProps: { boundaryComponent: availableFields.FieldNumber },
+        },
+        IntegerRangeField: {
+            component: availableFields.FieldSetRange,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "number" },
+            fieldProps: { boundaryComponent: availableFields.FieldNumber },
+        },
+    },
+    DateRangeField: {
+        DateRangeField: {
+            component: availableFields.FieldSetRange,
+            widget: availableWidgets.WidgetDatePicker,
+            widgetProps: { selectionMode: "range" },
+            fieldProps: { boundaryComponent: availableFields.FieldDate },
+        },
     },
     ManyRelatedField: {
-        requiredFn: (value) => {
-            if (Array.isArray(value)) {
-                return value.length;
-            } else {
-                return value !== null && value !== undefined && Object.keys(value).length > 0;
-            }
+        ManyToManyField: {
+            component: null,
+            widget: availableWidgets.WidgetAutoComplete,
+            widgetProps: { multiple: true },
+            fieldProps: {
+                requiredFn: (value) => {
+                    if (Array.isArray(value)) {
+                        return value.length;
+                    } else {
+                        return value !== null && value !== undefined && Object.keys(value).length > 0;
+                    }
+                },
+            },
+        },
+        ManyRelatedField: {
+            component: null,
+            widget: availableWidgets.WidgetAutoComplete,
+            widgetProps: { multiple: true },
+            fieldProps: {
+                requiredFn: (value) => {
+                    if (Array.isArray(value)) {
+                        return value.length;
+                    } else {
+                        return value !== null && value !== undefined && Object.keys(value).length > 0;
+                    }
+                },
+            },
+        },
+    },
+    NullBooleanField: {
+        NullBooleanField: { component: availableFields.FieldBoolean, widget: availableWidgets.WidgetTriStateCheckbox },
+    },
+    PrimaryKeyRelatedField: {
+        ForeignKey: { component: availableFields.FieldString, widget: availableWidgets.WidgetAutoComplete },
+        OneToOneField: { component: availableFields.FieldString, widget: availableWidgets.WidgetAutoComplete },
+        RelatedField: {
+            component: availableFields.FieldString,
+            widget: availableWidgets.WidgetAutoComplete,
+            widgetProps: { multiple: true },
+        },
+    },
+    SerializerField: {
+        BinaryField: { component: null, widget: null, fieldProps: {} },
+    },
+    SerializerMethodField: {
+        GenericForeignKey: {
+            component: availableFields.FieldString,
+            widget: availableWidgets.WidgetGenericAutoComplete,
+            fieldProps: {},
+        },
+        GenericRelation: {
+            component: availableFields.FieldString,
+            widget: availableWidgets.WidgetGenericAutoComplete,
+            fieldProps: {},
+        },
+    },
+    SlugField: {
+        SlugField: { component: availableFields.FieldSlug, widget: availableWidgets.WidgetInput, fieldProps: {} },
+    },
+    TimeField: {
+        TimeField: {
+            component: availableFields.FieldTime,
+            widget: availableWidgets.WidgetDatePicker,
+            widgetProps: { timeOnly: true },
+            fieldProps: {},
+        },
+    },
+    TimeRangeField: {
+        TimeRangeField: {
+            component: availableFields.FieldSetRange,
+            widget: availableWidgets.WidgetDatePicker,
+            widgetProps: { timeOnly: true },
+            fieldProps: { boundaryComponent: availableFields.FieldTime },
+        },
+    },
+    URLField: {
+        URLField: {
+            component: availableFields.FieldURL,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "url" },
+            fieldProps: {},
+        },
+    },
+    UUIDField: {
+        UUIDField: {
+            component: availableFields.FieldUUID,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "mask", mask: "****-****-****-****-************" },
+            fieldProps: {},
         },
     },
 };
 
-// todo: we should have a way to register custom widget props for custom fields
-// modelconfig should have a view that client can pass in custom props
-const defaultWidgetProps = {
-    IntegerRangeField: { selectionMode: "range" },
-    DateRangeField: { selectionMode: "range" },
-    TextField: {},
-    CharField: {},
-    BooleanField: {},
-    DateField: { type: "date" },
-    DateTimeField: { type: "datetime-local" },
-    DecimalField: { type: "number" },
-    FloatField: { type: "number" },
-    IntegerField: { type: "number" },
-    PositiveIntegerField: { type: "number" },
-    PositiveSmallIntegerField: { type: "number" },
-    SmallIntegerField: { type: "number" },
-    TimeField: { type: "time" },
-    EmailField: {},
-    URLField: {},
-    UUIDField: {},
-    ForeignKey: { type: "select" },
-    ManyToManyField: { type: "multiSelect" },
-    OneToOneField: { type: "select" },
-    JSONField: {},
-    ArrayField: {},
-    BinaryField: {},
-    FilePathField: {},
-    IPAddressField: {},
-    GenericIPAddressField: {},
-    SlugField: {},
-    FileField: {},
-    ImageField: {},
-    AutoField: {},
-    BigAutoField: {},
-    BigIntegerField: { type: "number" },
-    DurationSecondsField: {},
-    GenericRelation: { type: "select" },
-    GenericForeignKey: { type: "select" },
-    NullBooleanField: {},
-    PositiveBigIntegerField: { type: "number" },
-    PositiveDecimalField: { type: "number" },
-    ManyRelatedField: { type: "multiSelect" },
-    PrimaryKeyRelatedField: { type: "select" },
+const choiceFieldMappings = {
+    BooleanField: {
+        BooleanField: { widget: availableWidgets.WidgetRadio, manyWidget: availableWidgets.WidgetRadio },
+    },
+    CharField: {
+        CharField: { widget: availableWidgets.WidgetSelect, manyWidget: availableWidgets.WidgetMultiSelect },
+        TextField: { widget: availableWidgets.WidgetSelect, manyWidget: availableWidgets.WidgetMultiSelect },
+    },
+    ChoiceField: {
+        CharField: { widget: availableWidgets.WidgetSelect, manyWidget: availableWidgets.WidgetMultiSelect },
+    },
+    EmailField: {
+        EmailField: { widget: availableWidgets.WidgetInput, widgetProps: { type: "email" } },
+    },
+    ManyRelatedField: {
+        ManyToManyField: {
+            widget: availableWidgets.WidgetAutoComplete,
+            manyWidget: availableWidgets.WidgetAutoComplete,
+            manyWidgetProps: { multiple: true },
+        },
+        ManyRelatedField: {
+            widget: availableWidgets.WidgetAutoComplete,
+            manyWidget: availableWidgets.WidgetAutoComplete,
+            manyWidgetProps: { multiple: true },
+        },
+    },
+    NullBooleanField: {
+        NullBooleanField: { widget: availableWidgets.WidgetTriStateCheckbox },
+    },
+    PrimaryKeyRelatedField: {
+        ForeignKey: { widget: availableWidgets.WidgetAutoComplete },
+        OneToOneField: { widget: availableWidgets.WidgetAutoComplete },
+        RelatedField: {
+            widget: availableWidgets.WidgetAutoComplete,
+            manyWidget: availableWidgets.WidgetAutoComplete,
+            manyWidgetProps: { multiple: true },
+        },
+    },
+    SerializerMethodField: {
+        GenericForeignKey: {
+            widget: availableWidgets.WidgetGenericAutoComplete,
+            widgetMany: availableWidgets.WidgetGenericAutoComplete,
+        },
+        GenericRelation: {
+            widget: availableWidgets.WidgetGenericAutoComplete,
+            widgetMany: availableWidgets.WidgetGenericAutoComplete,
+        },
+    },
+    SlugField: {
+        SlugField: { widget: availableWidgets.WidgetSelect, widgetMany: availableWidgets.WidgetMultiSelect },
+    },
+    URLField: {
+        URLField: { widget: availableWidgets.WidgetSelect, widgetMany: availableWidgets.WidgetMultiSelect },
+    },
+};
+
+const manyFieldMappings = {
+    BooleanField: {
+        BooleanField: {
+            fieldProps: { manyComponent: availableFields.FieldBoolean },
+            widget: availableWidgets.WidgetCheckbox,
+        },
+    },
+    CharField: {
+        CharField: { widget: availableWidgets.WidgetInput, fieldProps: { manyComponent: availableFields.FieldString } },
+        TextField: {
+            widget: availableWidgets.WidgetTextarea,
+            fieldProps: { manyComponent: availableFields.FieldString },
+        },
+    },
+    DateField: {
+        DateField: {
+            widget: availableWidgets.WidgetDatePickerm,
+            fieldProps: { manyComponent: availableFields.FieldDate },
+        },
+    },
+    DateTimeField: {
+        DateTimeField: {
+            widget: availableWidgets.WidgetDatePicker,
+            fieldProps: { manyComponent: availableFields.FieldDateTime },
+        },
+    },
+    DecimalField: {
+        DecimalField: {
+            widget: availableWidgets.WidgetInput,
+            fieldProps: { manyComponent: availableFields.FieldNumber },
+        },
+        PositiveDecimalField: {
+            widget: availableWidgets.WidgetInput,
+            fieldProps: { manyComponent: availableFields.FieldNumber },
+        },
+    },
+    DurationSecondsField: {
+        DurationField: {
+            widget: availableWidgets.WidgetDuration,
+            fieldProps: { manyComponent: availableFields.FieldDuration },
+        },
+    },
+    EmailField: {
+        EmailField: { widget: availableWidgets.WidgetInput, fieldProps: { manyComponent: availableFields.FieldEmail } },
+    },
+    FileField: {
+        FileField: { widget: availableWidgets.WidgetFile, fieldProps: { manyComponent: availableFields.FieldString } },
+    },
+    FloatField: {
+        FloatField: {
+            widget: availableWidgets.WidgetInput,
+            fieldProps: { manyComponent: availableFields.FieldNumber },
+        },
+    },
+    ImageField: {
+        ImageField: { widget: availableWidgets.WidgetImage, fieldProps: { manyComponent: availableFields.FieldImage } },
+    },
+    IntegerField: {
+        AutoField: { widget: availableWidgets.WidgetInput, fieldProps: { manyComponent: availableFields.FieldString } },
+        BigAutoField: {
+            widget: availableWidgets.WidgetInput,
+            fieldProps: { manyComponent: availableFields.FieldString },
+        },
+    },
+    IntegerRangeField: {
+        BigIntegerRangeField: {
+            widget: availableWidgets.WidgetInput,
+            fieldProps: { manyComponent: availableFields.FieldSetRange },
+        },
+    },
+    IPAddressField: {
+        IPAddressField: { widget: availableWidgets.WidgetIP, fieldProps: { manyComponent: availableFields.FieldIP } },
+        GenericIPAddressField: {
+            widget: availableWidgets.WidgetIP,
+            fieldProps: { manyComponent: availableFields.FieldIP },
+        },
+    },
+    JSONField: {
+        JSONField: { widget: availableWidgets.WidgetJSON, fieldProps: { manyComponent: availableFields.FieldObject } },
+    },
+    ListField: {
+        ArrayField: { widget: availableWidgets.WidgetJSON, fieldProps: { manyComponent: availableFields.FieldArray } },
+        DateRangeField: {
+            widget: availableWidgets.WidgetDatePicker,
+            fieldProps: { manyComponent: availableFields.FieldSetRange },
+        },
+        DateTimeRangeField: {
+            widget: availableWidgets.WidgetDatePicker,
+            fieldProps: { manyComponent: availableFields.FieldSetRange },
+        },
+        FloatRangeField: {
+            widget: availableWidgets.WidgetInput,
+            fieldProps: { manyComponent: availableFields.FieldSetRange },
+        },
+        IntegerRangeField: {
+            widget: availableWidgets.WidgetInput,
+            fieldProps: { manyComponent: availableFields.FieldSetRange },
+        },
+    },
+    DateRangeField: {
+        DateRangeField: {
+            widget: availableWidgets.WidgetDatePicker,
+            fieldProps: { manyComponent: availableFields.FieldSetRange },
+        },
+    },
+    NullBooleanField: {
+        NullBooleanField: {
+            widget: availableWidgets.WidgetTriStateCheckbox,
+            fieldProps: { manyComponent: availableFields.FieldBoolean },
+        },
+    },
+    SlugField: {
+        SlugField: { widget: availableWidgets.WidgetInput, fieldProps: { manyComponent: availableFields.FieldString } },
+    },
+    TimeField: {
+        TimeField: {
+            widget: availableWidgets.WidgetDatePicker,
+            fieldProps: { manyComponent: availableFields.FieldTime },
+        },
+    },
+    TimeRangeField: {
+        TimeRangeField: {
+            widget: availableWidgets.WidgetDatePicker,
+            fieldProps: { manyComponent: availableFields.FieldSetRange },
+        },
+    },
+    URLField: {
+        URLField: { widget: availableWidgets.WidgetInput, fieldProps: { manyComponent: availableFields.FieldURL } },
+    },
+    UUIDField: {
+        UUIDField: { widget: availableWidgets.WidgetInput, fieldProps: { manyComponent: availableFields.FieldUUID } },
+    },
 };
 
 /**
  * Get the field component for a given Django field type.
  *
  * @param {boolean} many - True if the field is many.
- * @param {string} type - The Django field type.
+ * @param {Object} field - The field detail object
  * @returns {import('@vueda/utils/filterLookups.js').FieldComponent} The field component.
  */
-const djangoTypeToFieldComponent = (many, type) => {
-    if (many) {
-        return availableFields.FieldSetMany;
+const djangoTypeToFieldComponent = (field) => {
+    let component;
+    if (field.choices) {
+        component = choiceFieldMappings[field.typeSerializer]?.[field.typeModel]?.component;
+    } else if (field.many) {
+        component = availableFields.FieldSetMany;
     }
-    return builtInTypes[type] || availableFields.FieldString;
+    return component ?? defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.component;
 };
 /**
  * Get the default widget for a given field object.
  *
- * @param {boolean} choices - True if the field has choices.
- * @param {boolean} many - True if the field is many.
- * @param {boolean} readOnly - True if the field is read only.
- * @param {string} type - The Django field type.
+ * @param {object} field - Object that contains detail of a field
  * @returns {import('@vueda/utils/filterLookups.js').WidgetComponent} The widget component.
  */
-const getDefaultWidget = (choices, many, readOnly, type) => {
-    if (readOnly) {
+const getDefaultWidget = (field) => {
+    if (field.readOnly) {
         return availableWidgets.WidgetReadOnly;
     }
-    if (choices) {
-        return availableWidgets.WidgetModel;
-        // return WidgetMultiSelect;
+    let widget;
+    if (field.choices) {
+        const fieldObject = choiceFieldMappings[field.typeSerializer]?.[field.typeModel];
+        widget = field.many ? fieldObject?.manyWidget : fieldObject?.widget;
+    } else if (field.many) {
+        widget = manyFieldMappings[field.typeSerializer]?.[field.typeModel]?.widget;
     }
-    if (many) {
-        return availableWidgets.WidgetInput;
-    }
-    if (type === "TextField") {
-        return availableWidgets.WidgetTextarea;
-    }
-    if (type === "IntegerRangeField") {
-        return availableWidgets.WidgetSlider;
-    }
-    return defaultWidgets[type] || availableWidgets.WidgetInput;
+    return widget ?? defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.widget;
 };
 
+/**
+ * Get the default widget props for a given field object.
+ *
+ * @param {object} field - Object that contains detail of a field
+ * @returns {import('@vueda/utils/filterLookups.js').WidgetComponent} The widget component.
+ */
+const getDefaultWidgetProps = (field) => {
+    let baseProps;
+    if (field.choices) {
+        baseProps = field.many ? choiceFieldMappings[field.typeSerializer]?.[field.typeModel]?.manyWidgetProps : {};
+    } else if (field.many) {
+        baseProps = manyFieldMappings[field.typeSerializer]?.[field.typeModel]?.widgetProps;
+    }
+    return { ...defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.widgetProps, ...(baseProps ?? {}) };
+};
+
+/**
+ * Get the default field props for a given field object.
+ *
+ * @param {object} field - Object that contains detail of a field
+ * @returns {import('@vueda/utils/filterLookups.js').WidgetComponent} The widget component.
+ */
+const getDefaultFieldsProps = (field) => {
+    let baseProps;
+    if (field.many && !field.choices) {
+        baseProps = manyFieldMappings[field.typeSerializer]?.[field.typeModel]?.fieldProps;
+    }
+    return { ...defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.fieldProps, ...(baseProps ?? {}) };
+};
 /**
  * @typedef {object} UseFormModelRawState
  * @property {string[]} fields - The fields to display, either passed in or from config.
@@ -324,8 +633,7 @@ export function useFormModel(props) {
                         es.run(() => {
                             fieldComponents[fieldName] = computed(() => {
                                 return (
-                                    props.fieldComponents?.[fieldName] ||
-                                    djangoTypeToFieldComponent(expandFieldDetail.many, expandFieldDetail.type)
+                                    props.fieldComponents?.[fieldName] || djangoTypeToFieldComponent(expandFieldDetail)
                                 );
                             });
                             fieldProps[fieldName] = computed(() => {
@@ -333,27 +641,19 @@ export function useFormModel(props) {
                                     ...{
                                         // useFormModel resolves type, the fields don't care about the server type.
                                         ...omit(expandFieldDetail, ["type"]),
-                                        ...(defaultFieldsProps[expandFieldDetail.type] || {}),
+                                        ...(getDefaultFieldsProps(expandFieldDetail) || {}),
                                     },
                                     ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
                                     name: fieldName,
                                 };
                             });
                             widgetComponents[fieldName] = computed(() => {
-                                return (
-                                    props.widgetComponents?.[fieldName] ||
-                                    getDefaultWidget(
-                                        expandFieldDetail.choices,
-                                        expandFieldDetail.many,
-                                        expandFieldDetail.readOnly,
-                                        expandFieldDetail.type,
-                                    )
-                                );
+                                return props.widgetComponents?.[fieldName] || getDefaultWidget(expandFieldDetail);
                             });
                             widgetProps[fieldName] = computed(() => {
                                 const baseProps = {
                                     ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
-                                    ...(defaultWidgetProps[expandFieldDetail.type] || {}),
+                                    ...(getDefaultWidgetProps(expandFieldDetail) || {}),
                                 };
                                 if (expandFieldDetail.choices) {
                                     if (Array.isArray(expandFieldDetail.choices)) {
@@ -380,37 +680,26 @@ export function useFormModel(props) {
                     }
                     es.run(() => {
                         fieldComponents[fieldName] = computed(() => {
-                            return (
-                                props.fieldComponents?.[fieldName] ||
-                                djangoTypeToFieldComponent(fieldDetail.many, fieldDetail.type)
-                            );
+                            return props.fieldComponents?.[fieldName] || djangoTypeToFieldComponent(fieldDetail);
                         });
                         fieldProps[fieldName] = computed(() => {
                             return {
                                 ...{
                                     // useFormModel resolves type, the fields don't care about the server type.
                                     ...omit(fieldDetail, ["type"]),
-                                    ...(defaultFieldsProps[fieldDetail.type] || {}),
+                                    ...(getDefaultFieldsProps(fieldDetail) || {}),
                                 },
                                 ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
                                 name: fieldName,
                             };
                         });
                         widgetComponents[fieldName] = computed(() => {
-                            return (
-                                props.widgetComponents?.[fieldName] ||
-                                getDefaultWidget(
-                                    fieldDetail.choices,
-                                    fieldDetail.many,
-                                    fieldDetail.readOnly,
-                                    fieldDetail.type,
-                                )
-                            );
+                            return props.widgetComponents?.[fieldName] || getDefaultWidget(fieldDetail);
                         });
                         widgetProps[fieldName] = computed(() => {
                             const baseProps = {
                                 ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
-                                ...(defaultWidgetProps[fieldDetail.type] || {}),
+                                ...(getDefaultWidgetProps(fieldDetail) || {}),
                             };
                             if (fieldDetail.choices) {
                                 if (Array.isArray(fieldDetail.choices)) {

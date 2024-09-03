@@ -2,6 +2,7 @@
 import { useList } from "@arrai-innovations/reactive-helpers";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
@@ -30,6 +31,7 @@ const props = defineProps({
         default: "s",
     },
 });
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useComputedClasses(vuedaTailwind.WidgetAutoComplete, widgetContext.state);
@@ -45,6 +47,7 @@ const modelListProps = reactive({
     retrieveArgs: {
         f: toRef(props, "modelFields"),
     },
+    pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     listArgs: {
         [props.searchKey]: listSearch,
         id: computed(() => {
@@ -65,7 +68,7 @@ const filteredOptions = computed(() => {
     }
     return Object.entries(modelListInstance.state.objects).map(([id, obj]) => ({
         value: id,
-        label: obj.email,
+        label: obj.id,
     }));
 });
 const modelItem = computed(() => {
