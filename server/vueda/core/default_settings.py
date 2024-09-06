@@ -43,8 +43,11 @@ def get_defaults(env: Env):
         "SESSION_COOKIE_HTTPONLY": True,
         "SESSION_COOKIE_SECURE": True,
         "SESSION_COOKIE_SAMESITE": "Strict",
+        "SECURE_CONTENT_TYPE_NOSNIFF": env.bool("SECURE_CONTENT_TYPE_NOSNIFF", default=True),
+        "SECURE_CROSS_ORIGIN_OPENER_POLICY": env("SECURE_CROSS_ORIGIN_OPENER_POLICY", default="same-origin") or None,
+        "SECURE_HSTS_SECONDS": env.int("SECURE_HSTS_SECONDS", default=31536000),  # 1 year
         "SECURE_PROXY_SSL_HEADER": ("HTTP_X_FORWARDED_PROTO", "https"),
-        "SECURE_HSTS_SECONDS": 31536000,  # 1 year
+        "SECURE_REFERRER_POLICY": env("SECURE_REFERRER_POLICY", default="same-origin") or None,
         "CSRF_COOKIE_HTTPONLY": False,  # csrf expects this value in post requests, so our client's js needs to be able to read it
         "CSRF_TRUSTED_ORIGINS": env.list("CSRF_TRUSTED_ORIGINS"),
         "CSRF_COOKIE_SECURE": True,
