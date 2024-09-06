@@ -15,6 +15,7 @@ from django_filters.fields import ChoiceIterator
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers  # noqa F401
 from rest_framework import viewsets  # noqa F401
+from rest_framework.fields import _UnvalidatedField
 
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.info.registration import get_registration
@@ -214,6 +215,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             model_field = model_field.field
 
         child_field = model_field.child if many and hasattr(model_field, "child") else None
+
+        if isinstance(child_field, _UnvalidatedField):
+            child_field = None
 
         # Get the field type.
         if child_field is None:
