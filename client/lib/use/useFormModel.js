@@ -260,7 +260,10 @@ const choiceFieldMappings = {
         TextField: { widget: availableWidgets.WidgetSelect, manyWidget: availableWidgets.WidgetMultiSelect },
     },
     ChoiceField: {
-        CharField: { widget: availableWidgets.WidgetSelect, manyWidget: availableWidgets.WidgetMultiSelect },
+        CharField: {
+            widget: availableWidgets.WidgetGenericAutoComplete,
+            manyWidget: availableWidgets.WidgetMultiSelect,
+        },
     },
     EmailField: {
         EmailField: { widget: availableWidgets.WidgetInput, widgetProps: { type: "email" } },
@@ -464,9 +467,9 @@ const djangoTypeToFieldComponent = (field) => {
  * @returns {import('@vueda/utils/filterLookups.js').WidgetComponent} The widget component.
  */
 const getDefaultWidget = (field) => {
-    if (field.readOnly) {
-        return availableWidgets.WidgetReadOnly;
-    }
+    // if (field.readOnly) {
+    //     return availableWidgets.WidgetReadOnly;
+    // }
     let widget;
     if (field.choices) {
         const fieldObject = choiceFieldMappings[field.typeSerializer]?.[field.typeModel];

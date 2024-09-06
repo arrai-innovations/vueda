@@ -25,7 +25,7 @@ const theme = useComputedClasses(vuedaTailwind.WidgetCheckbox, widgetContext.sta
                 @blur="widgetContext.blur"
                 @focus="widgetContext.focus"
             />
-            <label v-if="showLabel" :class="theme('label')" :for="widgetContext.state.combinedName">
+            <label v-if="!hidden" :class="theme('label')" :for="widgetContext.state.combinedName">
                 <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label">{{
                     widgetContext.state.combinedLabel
                 }}</slot>

@@ -37,7 +37,7 @@ const theme = useComputedClasses(vuedaTailwind.WidgetInput, widgetContext.state)
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :label-class="theme('label')" :show-label="showLabel">
+        <widget-label :hidden="hidden" :label-class="theme('label')">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>

@@ -28,6 +28,7 @@ import { provide, reactive, readonly, toRef, watch } from "vue";
  * @property {boolean} anyTouched - Whether any field has been blurred.
  * @property {string|undefined} focused - The field currently in focus.
  * @property {{[fieldName: string]: any}} initialValues - The form's initial values.
+ * @property {{string[]}} ignores - The ignored fields on the form
  */
 
 /**
@@ -216,7 +217,7 @@ const calculateModified = (state, name) => {
     validateName(name);
     const value = get(state.values, name);
     const initialValue = get(state.initialValues, name);
-    if (!isEqual(value, initialValue)) {
+    if (!isEqual(value, initialValue) && !state.ignores.includes(name)) {
         setModified(state, name);
     } else {
         clearModified(state, name);
@@ -356,6 +357,33 @@ const reset = (state) => {
 };
 
 /**
+ *
+ * @param {FormContextState} state
+ * @param {string} name
+ * @private
+ */
+const ignore = (state, name) => {
+    validateName(name);
+    if (!state.ignores.includes(name)) {
+        state.ignores.push(name);
+    }
+};
+
+/**
+ *
+ * @param {FormContextState} state
+ * @param {string} name
+ * @private
+ */
+const removeIgnore = (state, name) => {
+    validateName(name);
+    const index = state.ignores.indexOf(name);
+    if (index > -1) {
+        state.ignores.splice(index, 1);
+    }
+};
+
+/**
  * The form context object, providing methods to update the form's values, errors, messages, touched state, modified
  *  state, and to reset the form.
  *
@@ -379,6 +407,8 @@ const reset = (state) => {
  *  error.
  * @property {(name: string) => void} focus - Focus on a field.
  * @property {(name: string) => void} blur - Blur a field.
+ * @property {(name: string) => void} ignore - Ignore a field.
+ * @property {(name: string) => void} removeIgnore - remove ignoring a field.
  */
 
 /**
@@ -473,6 +503,7 @@ export function useForm(props) {
         anyTouched: false,
         initialValues: toRef(props, "initialValues"),
         focused: undefined,
+        ignores: [],
     });
     watch(
         toRef(state, "initialValues"),
@@ -506,6 +537,8 @@ export function useForm(props) {
         focus: focus.bind(null, state),
         blur: blur.bind(null, state),
         reset: reset.bind(null, state),
+        ignore: ignore.bind(null, state),
+        removeIgnore: removeIgnore.bind(null, state),
     };
     provide(FormContextSymbol, formContext);
     return formContext;

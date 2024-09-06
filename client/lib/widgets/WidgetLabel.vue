@@ -7,9 +7,9 @@ defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    showLabel: {
+    hidden: {
         type: Boolean,
-        default: true,
+        default: false,
     },
 });
 
@@ -17,7 +17,7 @@ defineProps({
 const widgetContext = inject(WidgetContextSymbol);
 </script>
 <template>
-    <label v-if="showLabel" :class="labelClass" :for="widgetContext.state.combinedName">
+    <label :class="labelClass" :for="widgetContext.state.combinedName" :hidden="hidden">
         <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label">{{
             widgetContext.state.combinedLabel
         }}</slot>

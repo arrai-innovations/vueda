@@ -68,7 +68,7 @@ const filteredOptions = computed(() => {
     }
     return Object.entries(modelListInstance.state.objects).map(([id, obj]) => ({
         value: id,
-        label: obj.id,
+        label: obj.formatted_name,
     }));
 });
 const modelItem = computed(() => {
@@ -101,7 +101,7 @@ const search = (event) => {
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :label-class="theme('label')" :show-label="showLabel">
+        <widget-label :hidden="hidden" :label-class="theme('label')">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>

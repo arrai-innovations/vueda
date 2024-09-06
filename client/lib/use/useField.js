@@ -104,6 +104,8 @@ export function onBeforeFieldUnmount(fieldContext) {
  *  fields as touched automatically.
  * @property {() => void} focus - Focus on the field.
  * @property {() => void} blur - Blur the field.
+ * @property {() => void} ignore - Ignore the field.
+ * @property {() => void} removeIgnore - Remove ignoring the field.
  */
 
 /**
@@ -270,6 +272,8 @@ export function useField(props, emit, functions) {
         clearTouched: ifFormContext(() => formContext.clearTouched(state.name)),
         focus: ifFormContext(() => formContext.focus(state.name)),
         blur: ifFormContext(() => formContext.blur(state.name)),
+        ignore: ifFormContext(() => formContext.ignore(state.name)),
+        removeIgnore: ifFormContext(() => formContext.removeIgnore(state.name)),
     };
     provide(FieldContextSymbol, returnObj);
     return returnObj;

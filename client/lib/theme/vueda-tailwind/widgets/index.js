@@ -71,6 +71,51 @@ export default {
             class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
+    WidgetTriStateCheckbox: {
+        root: {
+            class: [],
+        },
+        inner: {
+            class: ["flex flex-col"],
+        },
+        label: {
+            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+        },
+    },
+    WidgetFile: {
+        root: {
+            class: [],
+        },
+        inner: {
+            class: ["flex flex-col"],
+        },
+        file: {
+            class: ["flex flex-wrap justify-between"],
+        },
+        label: {
+            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+        },
+        link: {
+            class: ["font-semibold text-ellipsis max-w-60 whitespace-nowrap overflow-hidden"],
+        },
+        buttonGroup: {
+            class: ["flex gap-4"],
+        },
+    },
+    WidgetImage: {
+        root: {
+            class: [],
+        },
+        inner: {
+            class: ["flex flex-col"],
+        },
+        image: {
+            class: ["flex flex-wrap justify-between"],
+        },
+        label: {
+            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+        },
+    },
     WidgetRadio: {
         root: { class: [] },
         inner: {

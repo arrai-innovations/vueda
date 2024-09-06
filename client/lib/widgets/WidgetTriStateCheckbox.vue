@@ -3,8 +3,7 @@ import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
-// don't shadow html element names
-import PrimevueTextarea from "primevue/textarea";
+import { ref } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -14,25 +13,21 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useComputedClasses(vuedaTailwind.WidgetTextarea, widgetContext.state);
+
+const theme = useComputedClasses(vuedaTailwind.WidgetTriStateCheckbox, widgetContext.state);
+
+const value = ref(null);
 </script>
+
 <template>
-    <div :class="theme('root')">
+    <div :class="theme('outer')">
         <widget-label :hidden="hidden" :label-class="theme('label')">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
-                <primevue-textarea
-                    v-bind="$attrs"
-                    v-model="widgetContext.state.combinedValue"
-                    auto-resize
-                    cols="30"
-                    :name="widgetContext.state.combinedName"
-                    rows="5"
-                    @blur="widgetContext.blur"
-                    @focus="widgetContext.focus"
-                />
+                <TriStateCheckbox v-model="value" />
+                <label for="checkbox">{{ value == null ? "null" : value }}</label>
             </div>
         </widget-label>
     </div>

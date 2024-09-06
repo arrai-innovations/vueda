@@ -75,7 +75,7 @@ watch(
                 <div :class="theme('component')">
                     <div class="w-5/6">
                         <component :is="props.manyComponent" v-bind="field.props" :required="field.index > 0">
-                            <slot :show-label="false" />
+                            <slot :hidden="true" />
                         </component>
                     </div>
                     <div v-if="field.index">

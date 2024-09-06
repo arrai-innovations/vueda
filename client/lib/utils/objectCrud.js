@@ -5,7 +5,9 @@ import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
+import { isObject } from "lodash-es";
 import isArray from "lodash-es/isArray.js";
+import { unref } from "vue";
 import { deepUnref } from "vue-deepunref";
 
 const makeSearchParamsString = (searchParams) => {
@@ -36,6 +38,30 @@ const getDetailUrl = (app, model, pk, queryString) =>
 const getCreateUrl = (app, model, queryString) =>
     `${httpOrHttpsHostname}${getUrl("modelList").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model))}${queryString}`;
 
+const getFormData = (object) => {
+    const formData = new FormData();
+    for (const key in object) {
+        if (object[key] && object[key] !== {} && object[key] !== []) {
+            if (Array.isArray(object[key])) {
+                const o = unref(object[key]);
+                o.forEach((value, i) => {
+                    if (isObject(value) && !(value instanceof File)) {
+                        for (const name in value) {
+                            formData.append(`${key}[${i}]${name}`, value[name]);
+                        }
+                    } else {
+                        formData.append(`${key}`, value);
+                    }
+                });
+            } else {
+                formData.append(`${key}`, object[key]);
+            }
+        } else {
+            formData.append(`${key}`, "");
+        }
+    }
+    return formData;
+};
 export async function defaultObjectRetrieve({ crudArgs, pk, retrieveArgs }) {
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
@@ -65,10 +91,9 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
         method: "POST",
         headers: {
             "X-CSRFToken": getCSRFValue(),
-            "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(object),
+        body: getFormData(object),
         signal: controller.signal,
     }).then(async (response) => {
         const responseData = await getJsonOrText(response);
@@ -93,10 +118,9 @@ export async function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
         method: "PUT",
         headers: {
             "X-CSRFToken": getCSRFValue(),
-            "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(object),
+        body: getFormData(object),
         signal: controller.signal,
     }).then(async (response) => {
         const responseData = await getJsonOrText(response);

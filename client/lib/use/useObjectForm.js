@@ -296,10 +296,13 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             }
             const isUpdate = !!instanceObject.state.object.id;
             const createOrUpdate = isUpdate ? instanceObject.update : instanceObject.create;
+            const formValues = formContext.state.ignores.length
+                ? omit(formContext.state.values, formContext.state.ignores)
+                : formContext.state.values;
             await createOrUpdate({
                 object: {
                     id: instanceObject.state.object.id,
-                    ...formContext.state.values,
+                    ...formValues,
                 },
             });
             if (instanceObject.state.errored) {

@@ -59,6 +59,11 @@ export const availableFields = {
     FieldTime: defineAsyncComponent(async () => (await import("@vueda/fields/FieldTime.vue")).default),
     FieldSetMany: defineAsyncComponent(async () => (await import("@vueda/fields/FieldSetMany.vue")).default),
     FieldSetRange: defineAsyncComponent(async () => (await import("@vueda/fields/FieldSetRange.vue")).default),
+    FieldEmail: defineAsyncComponent(async () => (await import("@vueda/fields/FieldEmail.vue")).default),
+    FieldFile: defineAsyncComponent(async () => (await import("@vueda/fields/FieldFile.vue")).default),
+    FieldImage: defineAsyncComponent(async () => (await import("@vueda/fields/FieldImage.vue")).default),
+    FieldURL: defineAsyncComponent(async () => (await import("@vueda/fields/FieldURL.vue")).default),
+    FieldUUID: defineAsyncComponent(async () => (await import("@vueda/fields/FieldUUID.vue")).default),
 };
 
 /**
@@ -81,4 +86,12 @@ export const availableWidgets = {
     WidgetSelect: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetSelect.vue")).default),
     WidgetSlider: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetSlider.vue")).default),
     WidgetTextarea: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default),
+    WidgetFile: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetFile.vue")).default),
+    WidgetGenericAutoComplete: defineAsyncComponent(
+        async () => (await import("@vueda/widgets/WidgetGenericAutoComplete.vue")).default,
+    ),
+    WidgetImage: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetImage.vue")).default),
+    WidgetTriStateCheckbox: defineAsyncComponent(
+        async () => (await import("@vueda/widgets/WidgetTriStateCheckbox.vue")).default,
+    ),
 };

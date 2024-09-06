@@ -22,9 +22,9 @@ export const WIDGET_PROPS = {
         type: String,
         default: undefined,
     },
-    showLabel: {
+    hidden: {
         type: Boolean,
-        default: true,
+        default: false,
     },
 };
 
@@ -115,9 +115,6 @@ export function useWidget(props, emit) {
         focus: async () => {
             if (fieldContext) {
                 fieldContext.focus();
-                // if (props.fetchOptions && props.options.length<1) {
-                //     await props.fetchOptions();
-                // }
             }
         },
         blur: () => {

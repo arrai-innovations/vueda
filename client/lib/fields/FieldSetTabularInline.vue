@@ -141,7 +141,7 @@ const onDelete = (index) => {
                         :name="`field(${field.name})`"
                         :theme="theme"
                         :widget-component="formModel.widgetComponents[field.name]"
-                        :widget-props="{ ...formModel.widgetProps[field.name], showLabel: false }"
+                        :widget-props="{ ...formModel.widgetProps[field.name], hidden: true }"
                     >
                         <component
                             :is="formModel.fieldComponents[field.name]"
@@ -156,13 +156,13 @@ const onDelete = (index) => {
                                     :name="`widget(${field.name})`"
                                     :theme="theme"
                                     :widget-component="formModel.widgetComponents[field.name]"
-                                    :widget-props="{ ...formModel.widgetProps[field.name], showLabel: false }"
+                                    :widget-props="{ ...formModel.widgetProps[field.name], hidden: true }"
                                 >
                                     <component
                                         :is="formModel.widgetComponents[field.name]"
                                         v-bind="formModel.widgetProps[field.name]"
                                         v-if="formModel.widgetComponents[field.name]"
-                                        :show-label="false"
+                                        :hidden="true"
                                     />
                                 </slot>
                                 <form-help-text />
