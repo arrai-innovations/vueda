@@ -3,6 +3,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from tests.fields import RangeField
 from tests.store.models import Cart
 from tests.store.models import CartItem
 from tests.store.models import Customer
@@ -93,6 +94,7 @@ class DistributorSerializer(VuedaHistorySerializer):
 
 class ProductSerializer(VuedaHistorySerializer):
     internal_comments = serializers.ListField(child=serializers.CharField(), required=False)
+    current_sale_date = RangeField(required=False)  # This mimics the range field in integration, with no children.
 
     class Meta(VuedaHistorySerializer.Meta):
         model = Product

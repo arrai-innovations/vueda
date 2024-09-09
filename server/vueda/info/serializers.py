@@ -238,6 +238,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         for field_name, field in serializer().get_fields().items():
             many = isinstance(field, (serializers.ListField, serializers.ManyRelatedField))
+            if many:
+                child_field = field.child if many and hasattr(field, "child") else None
+                if isinstance(child_field, _UnvalidatedField):
+                    many = False
 
             effective_label = field.label or field_name.replace("_", " ").title()
 
