@@ -18,8 +18,28 @@ const props = defineProps({
         description: "The step in seconds.",
     },
 });
+const convertUTCToLocalTime = (utcTimeString) => {
+    const [hours, minutes, seconds] = utcTimeString.split(":").map(Number);
+    const now = new Date();
+    const utcDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), hours, minutes, seconds),
+    );
+    return new Date(utcDate.toLocaleString("en-US", { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }));
+};
+const preprocessSet = (value) => {
+    if (value instanceof Date) {
+        return formatTime(value);
+    }
+    return value;
+};
+const preprocessGet = (value) => {
+    if (value === undefined || value === null) {
+        return value;
+    }
+    return value instanceof Date ? value : convertUTCToLocalTime(value);
+};
 const emit = defineEmits([...FIELD_EMITS]);
-const fieldContext = useField(props, emit);
+const fieldContext = useField(props, emit, { preprocessSet, preprocessGet });
 const formatTime = (date) => {
     const hours = date.getUTCHours().toString().padStart(2, "0");
     const minutes = date.getUTCMinutes().toString().padStart(2, "0");
@@ -36,18 +56,9 @@ const timeToComparableValue = (time) => {
         const [hours, minutes, seconds] = time.split(":").map(Number);
         return hours * 3600 + minutes * 60 + (seconds || 0);
     }
-    return time instanceof Date ? time.getUTCHours() * 3600 + time.getUTCMinutes() * 60 + time.getUTCSeconds() : null;
+    return time instanceof Date ? time.getUTCHours() * 3600 + time.getUTCMinutes() * 60 : null;
 };
-watch(
-    toRef(fieldContext.state, "value"),
-    (newValue) => {
-        if (newValue instanceof Date) {
-            // coerce to string
-            fieldContext.state.value = formatTime(newValue);
-        }
-    },
-    { immediate: true },
-);
+
 /**
  * The value as a comparable time value.
  * @type {import('vue').ComputedRef<number|null>}
