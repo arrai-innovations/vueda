@@ -16,15 +16,15 @@ class TestContentTypeField:
         self.field = core_fields_serializers.ContentTypeField(queryset=ContentType.objects.all())
 
     def test_to_representation(self):
-        content_type = ContentType.objects.get(app_label="store", model="storehours")
-        expected_output = "store/storehours"
+        content_type = ContentType.objects.get(app_label="store", model="inventoryrecord")
+        expected_output = "store/inventoryrecord"
         assert self.field.to_representation(content_type) == expected_output
 
     def test_to_internal_value_valid(self):
-        input_data = "store/storehours"
+        input_data = "store/inventoryrecord"
         content_type = self.field.to_internal_value(input_data)
         assert content_type.app_label == "store"
-        assert content_type.model == "storehours"
+        assert content_type.model == "inventoryrecord"
 
     def test_to_internal_value_invalid_format(self):
         input_data = "invalidformat"
