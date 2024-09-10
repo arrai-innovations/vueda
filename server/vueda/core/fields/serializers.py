@@ -1,5 +1,6 @@
 import datetime
 
+from django.contrib.postgres.fields.ranges import Range
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.encoding import smart_str
 from rest_framework import serializers as drf_serializers
@@ -45,3 +46,33 @@ class DurationSecondsField(drf_serializers.Field):
             total_seconds = int(value.total_seconds())
             return total_seconds
         raise drf_serializers.ValidationError("Expected a timedelta object.")
+
+
+class RangeField(drf_serializers.JSONField):
+    def to_representation(self, value):
+        if isinstance(value, Range):
+            return {"upper": value.upper, "lower": value.lower}
+        return value
+
+    def to_internal_value(self, data):
+        data = super().to_internal_value(data)
+        try:
+            lower = data["lower"]
+            upper = data["upper"]
+            return Range(lower, upper)
+        except KeyError:
+            raise drf_serializers.ValidationError("Invalid data for RangeField")
+
+
+class FileField(drf_serializers.FileField):
+    def to_representation(self, value):
+        if not value:
+            return None
+        try:
+            url = value.url
+        except AttributeError:
+            return None
+        request = self.context.get("request", None)
+        if request is not None:
+            url = request.build_absolute_uri(url)
+        return {"name": value.name, "url": url}
