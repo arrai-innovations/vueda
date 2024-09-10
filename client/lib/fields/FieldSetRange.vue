@@ -24,10 +24,10 @@ const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
 
 const fieldRangeProps = computed(() => {
-    return [0, 1].map((index) => ({
+    return ["lower", "upper"].map((index) => ({
         ...omit(props, "boundaryComponent"),
         ...attrs,
-        name: `${fieldContext.state.name}[${index}]`,
+        name: `${fieldContext.state.name}.${index}`,
     }));
 });
 

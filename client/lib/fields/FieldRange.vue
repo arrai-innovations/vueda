@@ -1,6 +1,5 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import { isArray } from "lodash-es";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -21,22 +20,9 @@ const props = defineProps({
         default: undefined,
     },
 });
-const preprocessGet = (value) => {
-    if (value === undefined || value === null || !isArray(value)) {
-        return value;
-    }
-    if (props.type === "date") {
-        return value.map((v) => {
-            if (typeof v === "string") {
-                return new Date(v);
-            }
-            return v;
-        });
-    }
-    return value;
-};
+
 const emit = defineEmits([...FIELD_EMITS]);
-useField(props, emit, { preprocessGet });
+useField(props, emit);
 </script>
 <template>
     <div data-qa="field-date">

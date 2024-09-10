@@ -131,7 +131,7 @@ const defaultFieldMappings = {
     },
     DateRangeField: {
         DateRangeField: {
-            component: availableFields.FieldSetRange,
+            component: availableFields.FieldRange,
             widget: availableWidgets.WidgetDatePicker,
             widgetProps: { selectionMode: "range" },
             fieldProps: { boundaryComponent: availableFields.FieldDate },

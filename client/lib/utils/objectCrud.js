@@ -53,6 +53,8 @@ const getFormData = (object) => {
                         formData.append(`${key}`, value);
                     }
                 });
+            } else if (isObject(object[key]) && !(object[key] instanceof File)) {
+                formData.append(`${key}`, JSON.stringify(object[key]));
             } else {
                 formData.append(`${key}`, object[key]);
             }
