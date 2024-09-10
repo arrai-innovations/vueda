@@ -15,10 +15,6 @@ const defaultFieldMappings = {
         CharField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput },
         TextField: { component: availableFields.FieldString, widget: availableWidgets.WidgetTextarea },
     },
-    ChoiceField: {
-        CharField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput },
-        TextField: { component: availableFields.FieldString, widget: availableWidgets.WidgetTextarea },
-    },
     DateField: {
         DateField: { component: availableFields.FieldDate, widget: availableWidgets.WidgetDatePicker },
     },
@@ -103,7 +99,7 @@ const defaultFieldMappings = {
         },
     },
     IntegerRangeField: {
-        BigIntegerRangeField: {
+        IntegerRangeField: {
             component: availableFields.FieldSetRange,
             widget: availableWidgets.WidgetInput,
             widgetProps: { type: "number" },
@@ -117,32 +113,16 @@ const defaultFieldMappings = {
     JSONField: {
         JSONField: { component: availableFields.FieldObject, widget: availableWidgets.WidgetJSON, fieldProps: {} },
     },
-    ListField: {
-        ArrayField: {
-            component: availableFields.FieldArray,
-            widget: availableWidgets.WidgetJSON,
-            widgetProps: { type: "array" },
-            fieldProps: {},
-        },
-        DateRangeField: {
-            component: availableFields.FieldSetRange,
-            widget: availableWidgets.WidgetDatePicker,
-            widgetProps: { selectionMode: "range" },
-            fieldProps: { boundaryComponent: availableFields.FieldDate },
-        },
+    DateTimeRangeField: {
         DateTimeRangeField: {
-            component: availableFields.FieldSetRange,
-            widget: availableWidgets.WidgetDatePicker,
-            widgetProps: { showTime: true, selectionMode: "range" },
-            fieldProps: { boundaryComponent: availableFields.FieldDateTime },
-        },
-        FloatRangeField: {
             component: availableFields.FieldSetRange,
             widget: availableWidgets.WidgetInput,
             widgetProps: { type: "number" },
             fieldProps: { boundaryComponent: availableFields.FieldNumber },
         },
-        IntegerRangeField: {
+    },
+    FloatRangeField: {
+        FloatRangeField: {
             component: availableFields.FieldSetRange,
             widget: availableWidgets.WidgetInput,
             widgetProps: { type: "number" },
@@ -191,7 +171,7 @@ const defaultFieldMappings = {
         NullBooleanField: { component: availableFields.FieldBoolean, widget: availableWidgets.WidgetTriStateCheckbox },
     },
     PrimaryKeyRelatedField: {
-        ForeignKey: { component: availableFields.FieldString, widget: availableWidgets.WidgetAutoComplete },
+        ForeignKey: { component: availableFields.FieldString, widget: availableWidgets.WidgetGenericAutoComplete },
         OneToOneField: { component: availableFields.FieldString, widget: availableWidgets.WidgetAutoComplete },
         RelatedField: {
             component: availableFields.FieldString,
@@ -221,7 +201,7 @@ const defaultFieldMappings = {
         TimeField: {
             component: availableFields.FieldTime,
             widget: availableWidgets.WidgetDatePicker,
-            widgetProps: { timeOnly: true },
+            widgetProps: { timeOnly: true, hourFormat: "12" },
             fieldProps: {},
         },
     },
@@ -229,7 +209,7 @@ const defaultFieldMappings = {
         TimeRangeField: {
             component: availableFields.FieldSetRange,
             widget: availableWidgets.WidgetDatePicker,
-            widgetProps: { timeOnly: true },
+            widgetProps: { timeOnly: true, hourFormat: "12" },
             fieldProps: { boundaryComponent: availableFields.FieldTime },
         },
     },
@@ -261,7 +241,13 @@ const choiceFieldMappings = {
     },
     ChoiceField: {
         CharField: {
-            widget: availableWidgets.WidgetGenericAutoComplete,
+            component: availableFields.FieldString,
+            widget: availableWidgets.WidgetSelect,
+            manyWidget: availableWidgets.WidgetMultiSelect,
+        },
+        TextField: {
+            component: availableFields.FieldString,
+            widget: availableWidgets.WidgetSelect,
             manyWidget: availableWidgets.WidgetMultiSelect,
         },
     },
@@ -294,12 +280,12 @@ const choiceFieldMappings = {
     },
     SerializerMethodField: {
         GenericForeignKey: {
-            widget: availableWidgets.WidgetGenericAutoComplete,
-            widgetMany: availableWidgets.WidgetGenericAutoComplete,
+            widget: availableWidgets.WidgetAutoComplete,
+            widgetMany: availableWidgets.WidgetAutoComplete,
         },
         GenericRelation: {
-            widget: availableWidgets.WidgetGenericAutoComplete,
-            widgetMany: availableWidgets.WidgetGenericAutoComplete,
+            widget: availableWidgets.WidgetAutoComplete,
+            widgetMany: availableWidgets.WidgetAutoComplete,
         },
     },
     SlugField: {
@@ -375,7 +361,7 @@ const manyFieldMappings = {
         },
     },
     IntegerRangeField: {
-        BigIntegerRangeField: {
+        IntegerRangeField: {
             widget: availableWidgets.WidgetInput,
             fieldProps: { manyComponent: availableFields.FieldSetRange },
         },
@@ -389,25 +375,6 @@ const manyFieldMappings = {
     },
     JSONField: {
         JSONField: { widget: availableWidgets.WidgetJSON, fieldProps: { manyComponent: availableFields.FieldObject } },
-    },
-    ListField: {
-        ArrayField: { widget: availableWidgets.WidgetJSON, fieldProps: { manyComponent: availableFields.FieldArray } },
-        DateRangeField: {
-            widget: availableWidgets.WidgetDatePicker,
-            fieldProps: { manyComponent: availableFields.FieldSetRange },
-        },
-        DateTimeRangeField: {
-            widget: availableWidgets.WidgetDatePicker,
-            fieldProps: { manyComponent: availableFields.FieldSetRange },
-        },
-        FloatRangeField: {
-            widget: availableWidgets.WidgetInput,
-            fieldProps: { manyComponent: availableFields.FieldSetRange },
-        },
-        IntegerRangeField: {
-            widget: availableWidgets.WidgetInput,
-            fieldProps: { manyComponent: availableFields.FieldSetRange },
-        },
     },
     DateRangeField: {
         DateRangeField: {
@@ -456,9 +423,10 @@ const djangoTypeToFieldComponent = (field) => {
     if (field.choices) {
         component = choiceFieldMappings[field.typeSerializer]?.[field.typeModel]?.component;
     } else if (field.many) {
-        component = availableFields.FieldSetMany;
+        component =
+            manyFieldMappings[field.typeSerializer]?.[field.typeModel]?.component || availableFields.FieldSetMany;
     }
-    return component ?? defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.component;
+    return component || defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.component;
 };
 /**
  * Get the default widget for a given field object.
@@ -484,7 +452,7 @@ const getDefaultWidget = (field) => {
  * Get the default widget props for a given field object.
  *
  * @param {object} field - Object that contains detail of a field
- * @returns {import('@vueda/utils/filterLookups.js').WidgetComponent} The widget component.
+ * @returns {{[fieldName:string]: {[key:string]: any}}|undefined} widgetProps - The default widget props
  */
 const getDefaultWidgetProps = (field) => {
     let baseProps;
@@ -500,7 +468,7 @@ const getDefaultWidgetProps = (field) => {
  * Get the default field props for a given field object.
  *
  * @param {object} field - Object that contains detail of a field
- * @returns {import('@vueda/utils/filterLookups.js').WidgetComponent} The widget component.
+ * @returns {{[fieldName:string]: {[key:string]: any}}|undefined} fieldProps - The default field props
  */
 const getDefaultFieldsProps = (field) => {
     let baseProps;
@@ -557,7 +525,7 @@ export function useFormModel(props) {
             fieldDetails: {},
             expandDetails: {},
             fieldComponents: shallowReactive({}),
-            fieldProps: {},
+            fieldProps: shallowReactive({}),
             widgetComponents: shallowReactive({}),
             widgetProps: {},
         },

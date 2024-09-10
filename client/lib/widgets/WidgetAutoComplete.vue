@@ -24,7 +24,7 @@ const props = defineProps({
     },
     modelFields: {
         type: Array,
-        required: true,
+        default: () => [],
     },
     searchKey: {
         type: String,

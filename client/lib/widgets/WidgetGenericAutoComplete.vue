@@ -1,165 +1,204 @@
 <script setup>
-import EmptyComponent from "@vueda/components/EmptyComponent.vue";
+import { useList } from "@arrai-innovations/reactive-helpers";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
-import InputGroup from "primevue/inputgroup";
-import TreeSelect from "primevue/treeselect";
-import { ref } from "vue";
+import AutoComplete from "primevue/autocomplete";
+import Dropdown from "primevue/dropdown";
+import { computed, reactive, ref, toRef } from "vue";
 
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
-    type: {
+    app: {
         type: String,
-        default: "text",
+        required: true,
+    },
+    model: {
+        type: String,
+        required: true,
+    },
+    modelFields: {
+        type: Array,
+        required: true,
+    },
+    searchKey: {
+        type: String,
+        default: "s",
     },
 });
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-
-const testNodes = [
-    {
-        key: 1,
-        label: "Product",
-        value: "Product",
-        children: [
-            {
-                key: 2,
-                label: "product1",
-                value: "product1",
-            },
-            {
-                key: 3,
-                label: "product2",
-                value: "product2",
-            },
-        ],
-    },
-    {
-        label: "Orders",
-        value: "Orders",
-        key: 4,
-        children: [
-            {
-                key: 5,
-                label: "order1",
-                value: "order1",
-            },
-            {
-                key: 6,
-                label: "order2",
-                value: "order2",
-            },
-        ],
-    },
-];
+const theme = useComputedClasses(vuedaTailwind.WidgetGenericAutoComplete, widgetContext.state);
+const listSearch = ref("");
 const selectedValue = ref(null);
-const theme = useComputedClasses(vuedaTailwind.WidgetInput, widgetContext.state);
-const valueUpdated = (selected) => {
-    console.log("selected: ", selected);
-    selectedValue.value = selected;
-};
-</script>
 
+// TODO: the app and model here should be matched from the selected content type
+const modelListProps = reactive({
+    crudArgs: {
+        app: toRef(props, "app"),
+        model: toRef(props, "model"),
+        list: allPagePaginatedListCrudAdaptor,
+    },
+    retrieveArgs: {
+        f: toRef(props, "modelFields"),
+    },
+    pkKey: computed(() => modelConfig.info?.pk ?? "id"),
+    listArgs: {
+        [props.searchKey]: listSearch,
+        id: computed(() => {
+            if (!listSearch.value) {
+                return selectedValue.value ?? undefined;
+            }
+            return undefined;
+        }),
+    },
+    intendToList: computed(() => listSearch.value || widgetContext.state.combinedValue),
+});
+const modelListInstance = useList({
+    props: modelListProps,
+});
+const filteredOptions = computed(() => {
+    if (modelListInstance.state.loading) {
+        return [];
+    }
+    return Object.entries(modelListInstance.state.objects).map(([id, obj]) => ({
+        value: id,
+        label: obj.formatted_name,
+    }));
+});
+
+/*
+Assuming that the value will look like this:
+{
+    content_type: "id",
+    object_id: "id",
+}
+ */
+const selectedObject = reactive({
+    content_type: null,
+    object_id: null,
+});
+const contentObject = computed(() => {
+    let match = null;
+    if (filteredOptions.value && filteredOptions.value.length > 0) {
+        match = filteredOptions.value?.find((option) => option.value == widgetContext.state.combinedValue?.object_id);
+    }
+    return match ?? widgetContext.state.combinedValue?.object_id;
+});
+const objectUpdated = (selected) => {
+    if (selected && typeof selected === "object" && "value" in selected) {
+        selectedObject.object_id = selected.value;
+        selectedValue.value = selected.value;
+    } else if (props.multiple && selected && selected.length) {
+        const selectedIds = selected.flatMap((i) => i.value);
+        selectedObject.object_id = selectedIds;
+        selectedValue.value = null;
+    } else {
+        selectedObject.object_id = selected;
+        selectedValue.value = null;
+    }
+    widgetContext.state.combinedValue = selectedObject;
+};
+const search = (event) => {
+    setTimeout(() => {
+        if (event.query.trim().length) {
+            listSearch.value = event.query;
+        }
+    }, 250);
+};
+
+const selectedType = computed(() => {
+    let match = null;
+    if (dropdownOptions.value && dropdownOptions.value.length > 0) {
+        match = dropdownOptions.value?.find(
+            (option) => option.value == widgetContext.state.combinedValue?.content_type,
+        );
+    }
+    return match?.value ?? widgetContext.state.combinedValue?.content_type;
+});
+const typeUpdate = (selected) => {
+    selectedObject.content_type = selected;
+    widgetContext.state.combinedValue = selectedObject;
+};
+
+//Should go fetch for a lit of model that has GenericRelations?
+// const dropdownOptions = ref([
+//     {
+//         label: 'Store',
+//         code: 'ST',
+//         items: [
+//             { label: 'Task', value: 'contentTypeID1' },
+//             { label: 'Inventory', value: 'contentTypeID2' },
+//             { label: 'WarehouseLocation', value: 'contentTypeID3' },
+//             { label: 'OrderItem', value: 'contentTypeID4' }
+//         ]
+//     },
+//     {
+//         label: 'Hr',
+//         code: 'HR',
+//         items: [
+//             { label: 'TimeSheet', value: 'contentTypeID5' },
+//             { label: 'Project', value: 'contentTypeID6' },
+//         ]
+//     }
+// ]);
+
+const dropdownOptions = ref([
+    { label: "Task", value: "contentTypeID1" },
+    { label: "Inventory", value: "contentTypeID2" },
+    { label: "WarehouseLocation", value: "contentTypeID3" },
+    { label: "OrderItem", value: "contentTypeID4" },
+    { label: "TimeSheet", value: "contentTypeID5" },
+    { label: "Project", value: "contentTypeID6" },
+]);
+const hintText = computed(() => {
+    return selectedType.value ? `Type to select a ${selectedType.value}` : "";
+});
+</script>
 <template>
     <div :class="theme('root')">
-        {{ selectedValue }}
         <widget-label :hidden="hidden" :label-class="theme('label')">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
-                <component :is="$slots.prefix || $slots.suffix ? InputGroup : EmptyComponent">
-                    <slot v-if="$slots.prefix" name="prefix" />
-                    <TreeSelect
-                        v-model="selectedValue"
-                        class="md:w-80 w-full"
-                        :model-value="selectedValue"
-                        :options="testNodes"
-                        @blur="widgetContext.blur"
-                        @focus="widgetContext.focus"
-                    /><slot
-                        v-if="$slots.suffix"
-                        name="suffix"
-                        @update:model-value="(selected) => valueUpdated(selected)"
+                <div :class="theme('dropdownOuter')">
+                    <Dropdown
+                        :model-value="selectedType"
+                        option-label="label"
+                        option-value="value"
+                        :options="dropdownOptions"
+                        v-bind="$attrs"
+                        placeholder="Select a model"
+                        show-clear
+                        @update:model-value="(selected) => typeUpdate(selected)"
                     />
-                </component>
+                </div>
+                <div :class="theme('autoCompleteOuter')">
+                    <AutoComplete
+                        :disabled="!selectedType"
+                        v-bind="$attrs"
+                        force-selection
+                        :loading="modelListInstance.state.loading"
+                        :model-value="contentObject"
+                        :name="widgetContext.state.combinedName"
+                        option-label="label"
+                        :placeholder="hintText"
+                        :suggestions="filteredOptions"
+                        @blur="widgetContext.blur"
+                        @complete="search"
+                        @focus="widgetContext.focus"
+                        @update:model-value="(selected) => objectUpdated(selected)"
+                    />
+                </div>
             </div>
         </widget-label>
     </div>
 </template>
-
-//
-
-<!--<template>-->
-<!--    <div class="card flex justify-center">-->
-<!--        <AutoComplete v-model="selectedCity" :suggestions="filteredCities" @complete="search" optionLabel="label" optionGroupLabel="label" optionGroupChildren="items" placeholder="Hint: type 'a'">-->
-<!--            <template #optiongroup="slotProps">-->
-<!--                <div class="flex items-center country-item">-->
-<!--                    <img :alt="slotProps.option.label" src="https://primefaces.org/cdn/primevue/images/flag/flag_placeholder.png" :class="`flag flag-${slotProps.option.code.toLowerCase()} mr-2`" style="width: 18px" />-->
-<!--                    <div>{{ slotProps.option.label }}</div>-->
-<!--                </div>-->
-<!--            </template>-->
-<!--        </AutoComplete>-->
-<!--    </div>-->
-<!--</template>-->
-
-<!--<script setup>-->
-<!--import { ref } from "vue";-->
-<!--import { FilterMatchMode, FilterService } from '@primevue/core/api';-->
-
-<!--const cities = ref();-->
-<!--const selectedCity = ref();-->
-<!--const filteredCities = ref();-->
-<!--const groupedCities = ref([-->
-<!--    {-->
-<!--        label: 'Germany',-->
-<!--        code: 'DE',-->
-<!--        items: [-->
-<!--            { label: 'Berlin', value: 'Berlin' },-->
-<!--            { label: 'Frankfurt', value: 'Frankfurt' },-->
-<!--            { label: 'Hamburg', value: 'Hamburg' },-->
-<!--            { label: 'Munich', value: 'Munich' }-->
-<!--        ]-->
-<!--    },-->
-<!--    {-->
-<!--        label: 'USA',-->
-<!--        code: 'US',-->
-<!--        items: [-->
-<!--            { label: 'Chicago', value: 'Chicago' },-->
-<!--            { label: 'Los Angeles', value: 'Los Angeles' },-->
-<!--            { label: 'New York', value: 'New York' },-->
-<!--            { label: 'San Francisco', value: 'San Francisco' }-->
-<!--        ]-->
-<!--    },-->
-<!--    {-->
-<!--        label: 'Japan',-->
-<!--        code: 'JP',-->
-<!--        items: [-->
-<!--            { label: 'Kyoto', value: 'Kyoto' },-->
-<!--            { label: 'Osaka', value: 'Osaka' },-->
-<!--            { label: 'Tokyo', value: 'Tokyo' },-->
-<!--            { label: 'Yokohama', value: 'Yokohama' }-->
-<!--        ]-->
-<!--    }-->
-<!--]);-->
-
-<!--const search = (event) => {-->
-<!--    let query = event.query;-->
-<!--    let newFilteredCities = [];-->
-
-<!--    for (let country of groupedCities.value) {-->
-<!--        let filteredItems = FilterService.filter(country.items, ['label'], query, FilterMatchMode.CONTAINS);-->
-<!--        if (filteredItems && filteredItems.length) {-->
-<!--            newFilteredCities.push({...country, ...{items: filteredItems}});-->
-<!--        }-->
-<!--    }-->
-
-<!--    filteredCities.value = newFilteredCities;-->
-
-<!--}-->
-<!--</script>-->

@@ -27,16 +27,13 @@ const emit = defineEmits([...FIELD_EMITS]);
 
 const fieldContext = useField(props, emit, { preprocessGet });
 
-const fieldData = computed(() => {
+const fieldProps = computed(() => {
     const values = fieldContext.state.value;
     const indexes = isArray(values) && values.length ? values.map((_, index) => index) : [0];
     return indexes.map((index) => ({
-        props: {
-            ...props,
-            ...attrs,
-            name: `${fieldContext.state.name}[${index}]`,
-        },
-        index,
+        ...props,
+        ...attrs,
+        name: `${fieldContext.state.name}[${index}]`,
     }));
 });
 
@@ -65,23 +62,31 @@ watch(
 <template>
     <div data-qa="field-set-many">
         <div :class="theme('header')">
-            <label :class="theme('label')" :for="fieldContext.state.name">
-                {{ fieldContext.state.label }}
-            </label>
-            <Button label="add" @click="onAdd"></Button>
+            <slot :field-label="fieldContext.state.label" :field-name="fieldContext.state.name" name="label">
+                <label :class="theme('label')" :for="fieldContext.state.name">
+                    {{ fieldContext.state.label }}
+                </label>
+            </slot>
+            <slot name="add" @click="onAdd">
+                <Button label="add" @click="onAdd"></Button>
+            </slot>
         </div>
-        <div v-if="fieldData?.length">
-            <template v-for="field in fieldData" :key="field.index">
-                <div :class="theme('component')">
-                    <div class="w-5/6">
-                        <component :is="props.manyComponent" v-bind="field.props" :required="field.index > 0">
-                            <slot :hidden="true" />
-                        </component>
+        <div v-if="fieldProps?.length">
+            <template v-for="(fieldProp, index) in fieldProps" :key="index">
+                <slot :name="`field(${fieldProp.name})`" v-bind="{ fieldProps, index }">
+                    <div :class="theme('row')">
+                        <div :class="theme('component')">
+                            <component :is="props.manyComponent" v-bind="fieldProp" :required="index > 0">
+                                <slot :hidden="true" />
+                            </component>
+                        </div>
+                        <div v-if="index">
+                            <slot name="delete" @click="onDelete(index)">
+                                <Button icon="pi pi-times" rounded @click="onDelete(index)" />
+                            </slot>
+                        </div>
                     </div>
-                    <div v-if="field.index">
-                        <Button label="delete" @click="onDelete(field.index)" />
-                    </div>
-                </div>
+                </slot>
             </template>
         </div>
         <form-chores />

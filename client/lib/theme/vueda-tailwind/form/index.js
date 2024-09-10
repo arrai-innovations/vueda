@@ -70,19 +70,13 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-col"],
+            class: ["flex flex-row flex-wrap"],
         },
         header: {
             class: ["flex items-baseline gap-2"],
         },
         title: {
             class: "ml-3 leading-7 text-surface-900 dark:text-white text-lg",
-        },
-        hr: {
-            class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2 my-2",
-        },
-        inlineRows: {
-            class: [],
         },
         label: {
             class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
@@ -93,12 +87,6 @@ export default {
                 "px-1 lg:px-2 py-1 lg:py-2",
                 "mb-2 lg:mb-4",
             ],
-        },
-        fieldInner: {
-            class: [],
-        },
-        addButton: {
-            class: "grow",
         },
     },
     FieldSetStackedInlineRow: {
@@ -135,8 +123,14 @@ export default {
         header: {
             class: ["flex", "items-center", "justify-between"],
         },
+        row: {
+            class: ["flex", "flex-wrap", "gap-2", "flex-row"],
+        },
         component: {
-            class: ["flex", "flex-wrap", "items-center"],
+            class: ["w-5/6"],
+        },
+        addButton: {
+            class: [],
         },
     },
     FilterForm: {

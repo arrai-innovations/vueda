@@ -10,7 +10,6 @@ const fieldContext = useField(props, emit);
 onBeforeFieldUnmount(fieldContext);
 </script>
 <template>
-    {{ props }}
     <div data-qa="field-UUID">
         <slot />
     </div>
