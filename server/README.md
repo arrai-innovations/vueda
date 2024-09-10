@@ -51,10 +51,10 @@ extended in your application, ensuring both control and adaptability.
 
 1. Start a `pipenv` `Pipfile` for your project.
     ```console
-    [you@your MyVuedaServer]$ pipenv shell
-    (MyVuedaServer)[you@your MyVuedaServer]$
+    [MyVuedaServer]$ pipenv shell
+    (MyVuedaServer)[MyVuedaServer]$
     ```
-2. If not already setup, add `PIP_EXTRA_INDEX_URL` to your environment.
+2. If not already setup, add `PIP_EXTRA_INDEX_URL` to your environment (`~/.bashrc`, `~/.bash_profile`, etc.):
     ```shell
     export PIP_EXTRA_INDEX_URL=https://you:password@pypi.arrai.dev
     ```
@@ -72,7 +72,7 @@ extended in your application, ensuring both control and adaptability.
     ```
 5. Install packages.
     ```console
-    (MyVuedaServer)[you@your MyVuedaServer]$ pipenv install
+    (MyVuedaServer)[MyVuedaServer]$ pipenv install
     ```
 6. Install the os python test package. For python 3.11 it is called `python3.11-test`.
 
@@ -194,14 +194,24 @@ Once the management command that will create group migrations is written, then y
 
 ## Development
 
+First, clone the repository:
+
+```console
+$ git clone https://github.com/arrai-innovations/vueda-server.git
+$ # or
+$ git clone git@github.com:arrai-innovations/vueda-server.git
+$ cd vueda-server
+[vueda-server]$
+```
+
 ### Environment
 
 Install packages:
 
 ```console
-[you@your vueda-server]$ pipenv install --dev
-[you@your vueda-server]$ pipenv shell
-(vueda-server)[you@your vueda-server]$
+[vueda-server]$ pipenv install --dev
+[vueda-server]$ pipenv shell
+(vueda-server)[vueda-server]$
 ```
 
 ### Dependency Management
@@ -220,9 +230,9 @@ not see the changes otherwise.
 Setup pre-commit hooks:
 
 ```console
-(vueda-server)[you@your vueda-server]$ pre-commit install
+(vueda-server)[vueda-server]$ pre-commit install
 pre-commit installed at .git/hooks/pre-commit
-(vueda-server)[you@your vueda-server]$ pre-commit install --hook-type commit-msg
+(vueda-server)[vueda-server]$ pre-commit install --hook-type commit-msg
 pre-commit installed at .git/hooks/commit-msg
 ```
 
@@ -231,8 +241,8 @@ pre-commit installed at .git/hooks/commit-msg
 With the dev packages installed, you can call the following two commands:
 
 ```console
-(vueda-server)[you@your vueda-server]$ python manage.py spectacular --color --file schema.yml
-(vueda-server)[you@your vueda-server]$ npx @redocly/cli build-docs schema.yml
+(vueda-server)[vueda-server]$ python manage.py spectacular --color --file schema.yml
+(vueda-server)[vueda-server]$ npx @redocly/cli build-docs schema.yml
 ```
 
 The first command will generate the `schema.yml` file.
@@ -244,8 +254,8 @@ If you would like, you can get json by clicking the download button when viewing
 In development, pull new changes from the git repo and update your environment with:
 
 ```console
-(vueda-server)[you@your vueda-server]$ git pull --ff-only
-(vueda-server)[you@your vueda-server]$ pipenv sync --dev
+(vueda-server)[vueda-server]$ git pull --ff-only
+(vueda-server)[vueda-server]$ pipenv sync --dev
 ```
 
 ### Tagging Releases
@@ -253,8 +263,8 @@ In development, pull new changes from the git repo and update your environment w
 Git tags are used to indicate to CircleCI that a commit is considered a release. You can make git tags like this:
 
 ```console
-(vueda-server)[you@your vueda-server]$ git tag v1.0.1
-(vueda-server)[you@your vueda-server]$ git push --tags
+(vueda-server)[vueda-server]$ git tag v1.0.1
+(vueda-server)[vueda-server]$ git push --tags
 ```
 
 Tags will have GitHub releases created and be published to our pypi index.
@@ -266,9 +276,9 @@ Tags will have GitHub releases created and be published to our pypi index.
 You'll need a database role that can make databases, if a vueda role doesn't already exist. You can create a role like this:
 
 ```console
-(vueda-server)[you@your vueda-server]$ createuser --username postgres --pwprompt --createdb vueda
+(vueda-server)[vueda-server]$ createuser --username postgres --pwprompt --createdb vueda
 # or
-(vueda-server)[you@your vueda-server]$ createuser -U postgres -P -d vueda
+(vueda-server)[vueda-server]$ createuser -U postgres -P -d vueda
 ```
 
 And you'll then need to put the connection details in your `.env.local`, like this:
@@ -282,7 +292,7 @@ Depending on your local postgres setup, you may need to add a `pg_hba.conf` entr
 ### Running Tests
 
 ```console
-(vueda-server)[you@your vueda-server]$ pytest
+(vueda-server)[vueda-server]$ pytest
 ```
 
 ### Generating Coverage Locally
@@ -290,10 +300,10 @@ Depending on your local postgres setup, you may need to add a `pg_hba.conf` entr
 Coverage will be generated in circleci, but you can do so locally if you don't want to commit & push.
 
 ```console
-(vueda-server)[you@your vueda-server]$ pytest --cov-config=.coveragerc
-(vueda-server)[you@your vueda-server]$ coverage combine
-(vueda-server)[you@your vueda-server]$ coverage html
-(vueda-server)[you@your vueda-server]$ open htmlcov/index.html
+(vueda-server)[vueda-server]$ pytest --cov-config=.coveragerc
+(vueda-server)[vueda-server]$ coverage combine
+(vueda-server)[vueda-server]$ coverage html
+(vueda-server)[vueda-server]$ open htmlcov/index.html
 ```
 
 [code style: black]: https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge
