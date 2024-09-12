@@ -98,14 +98,6 @@ const defaultFieldMappings = {
             widgetProps: { type: "number" },
         },
     },
-    IntegerRangeField: {
-        IntegerRangeField: {
-            component: availableFields.FieldSetRange,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "number" },
-            fieldProps: { boundaryComponent: availableFields.FieldNumber },
-        },
-    },
     IPAddressField: {
         IPAddressField: { component: availableFields.FieldIP, widget: availableWidgets.WidgetIP },
         GenericIPAddressField: { component: availableFields.FieldIP, widget: availableWidgets.WidgetIP },
@@ -113,28 +105,33 @@ const defaultFieldMappings = {
     JSONField: {
         JSONField: { component: availableFields.FieldObject, widget: availableWidgets.WidgetJSON, fieldProps: {} },
     },
-    DateTimeRangeField: {
-        DateTimeRangeField: {
-            component: availableFields.FieldSetRange,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "number" },
-            fieldProps: { boundaryComponent: availableFields.FieldNumber },
+    RangeField: {
+        DateRangeField: {
+            component: availableFields.FieldRange,
+            widget: availableWidgets.WidgetDatePicker,
+            widgetProps: { selectionMode: "range" },
         },
-    },
-    FloatRangeField: {
+        DateTimeRangeField: {
+            component: availableFields.FieldRange,
+            widget: availableWidgets.WidgetDatePicker,
+            widgetProps: { type: "number" },
+        },
         FloatRangeField: {
             component: availableFields.FieldSetRange,
             widget: availableWidgets.WidgetInput,
             widgetProps: { type: "number" },
             fieldProps: { boundaryComponent: availableFields.FieldNumber },
         },
-    },
-    DateRangeField: {
-        DateRangeField: {
+        IntegerRangeField: {
+            component: availableFields.FieldSetRange,
+            widget: availableWidgets.WidgetInput,
+            widgetProps: { type: "number" },
+            fieldProps: { boundaryComponent: availableFields.FieldNumber },
+        },
+        TimeRangeField: {
             component: availableFields.FieldRange,
             widget: availableWidgets.WidgetDatePicker,
-            widgetProps: { selectionMode: "range" },
-            fieldProps: { boundaryComponent: availableFields.FieldDate },
+            widgetProps: { timeOnly: true, hourFormat: "12" },
         },
     },
     ManyRelatedField: {
@@ -168,7 +165,11 @@ const defaultFieldMappings = {
         },
     },
     NullBooleanField: {
-        NullBooleanField: { component: availableFields.FieldBoolean, widget: availableWidgets.WidgetTriStateCheckbox },
+        NullBooleanField: {
+            component: availableFields.FieldBoolean,
+            widget: availableWidgets.WidgetTriStateCheckbox,
+            fieldProps: { nullable: true },
+        },
     },
     PrimaryKeyRelatedField: {
         ForeignKey: { component: availableFields.FieldString, widget: availableWidgets.WidgetGenericAutoComplete },
@@ -203,14 +204,6 @@ const defaultFieldMappings = {
             widget: availableWidgets.WidgetDatePicker,
             widgetProps: { timeOnly: true, hourFormat: "12" },
             fieldProps: {},
-        },
-    },
-    TimeRangeField: {
-        TimeRangeField: {
-            component: availableFields.FieldSetRange,
-            widget: availableWidgets.WidgetDatePicker,
-            widgetProps: { timeOnly: true, hourFormat: "12" },
-            fieldProps: { boundaryComponent: availableFields.FieldTime },
         },
     },
     URLField: {

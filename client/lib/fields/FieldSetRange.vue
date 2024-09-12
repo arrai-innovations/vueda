@@ -17,6 +17,10 @@ const props = defineProps({
         type: String,
         default: "number",
     },
+    rangeSuffix: {
+        type: Array,
+        default: () => ["lower", "upper"],
+    },
 });
 const theme = useComputedClasses(vuedaTailwind.FieldSetRange);
 const emit = defineEmits([...FIELD_EMITS]);
@@ -24,10 +28,10 @@ const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
 
 const fieldRangeProps = computed(() => {
-    return ["lower", "upper"].map((index) => ({
-        ...omit(props, "boundaryComponent"),
+    return props.rangeSuffix.map((suffix) => ({
+        ...omit(props, "boundaryComponent", "label"),
         ...attrs,
-        name: `${fieldContext.state.name}.${index}`,
+        name: `${fieldContext.state.name}.${suffix}`,
     }));
 });
 
@@ -60,8 +64,13 @@ watch(
         </div>
         <div :class="theme('inner')">
             <template v-for="(fieldProp, i) in fieldRangeProps" :key="fieldProp.name">
-                <component :is="props.boundaryComponent" v-bind="fieldProp" class="flex-grow flex-row">
-                    <slot :label="getLabel(i)" />
+                <component
+                    :is="props.boundaryComponent"
+                    v-bind="fieldProp"
+                    class="flex-grow flex-row"
+                    :label="getLabel(i)"
+                >
+                    <slot />
                 </component>
             </template>
         </div>

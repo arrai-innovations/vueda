@@ -4,14 +4,6 @@ import { toRef, watch } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
-    nullable: {
-        type: Boolean,
-        default: false,
-    },
-    requiredFn: {
-        type: Function,
-        default: () => () => true,
-    },
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
@@ -19,20 +11,21 @@ const fieldContext = useField(props, emit);
 watch(
     toRef(fieldContext.state, "value"),
     (newValue) => {
-        if (newValue === null && props.nullable) {
+        if (newValue === undefined || newValue === null) {
             return;
         }
-        const coercedValue = !!newValue;
+        const coercedValue = newValue.toString();
         if (coercedValue !== newValue) {
-            fieldContext.state.value = coercedValue;
+            fieldContext.state.value = newValue;
         }
     },
     { immediate: true },
 );
+
 onBeforeFieldUnmount(fieldContext);
 </script>
 <template>
-    <div data-qa="field-boolean">
+    <div data-qa="field-string">
         <slot />
     </div>
 </template>

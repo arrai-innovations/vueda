@@ -1,5 +1,7 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { isObject } from "lodash-es";
+import isArray from "lodash-es/isArray.js";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -17,12 +19,36 @@ const props = defineProps({
     },
     rangeSuffix: {
         type: Array,
-        default: undefined,
+        default: () => ["lower", "upper"],
     },
 });
+const preprocessGet = (value) => {
+    if (isObject(value)) {
+        const newValue = [value[props.rangeSuffix[0]], value[props.rangeSuffix[1]]];
 
+        if (props.type === "date") {
+            return newValue.map((v) => {
+                if (typeof v === "string") {
+                    return new Date(v);
+                }
+                return v;
+            });
+        }
+        return newValue;
+    }
+    return value;
+};
+const preprocessSet = (value) => {
+    if (isArray(value) && props.rangeSuffix) {
+        return {
+            [props.rangeSuffix[0]]: value[0],
+            [props.rangeSuffix[1]]: value[1],
+        };
+    }
+    return value;
+};
 const emit = defineEmits([...FIELD_EMITS]);
-useField(props, emit);
+useField(props, emit, { preprocessGet, preprocessSet });
 </script>
 <template>
     <div data-qa="field-date">

@@ -1,5 +1,4 @@
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
-import { isArray } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -61,12 +60,15 @@ export function defaultValidateRequired(value) {
 
 /**
  * The lifecycle hook that is called to ensure any error or message associated with field is cleared.
+ * This ensures that when different fields are rendered for the same form field (e.g., the filter value on a filter form),
+ * we need to manually clear any associated errors, messages, or values. This is necessary because the same field context is being reused.
  * @param {FieldContext} fieldContext
  */
 export function onBeforeFieldUnmount(fieldContext) {
     return onBeforeUnmount(() => {
         fieldContext.deleteError(undefined);
         fieldContext.deleteMessage(undefined);
+        fieldContext.deleteValue();
     });
 }
 /**
@@ -157,12 +159,6 @@ export function useField(props, emit, functions) {
         value: formContext
             ? computed({
                   get: () => {
-                      if (props.rangeSuffix) {
-                          const values = props.rangeSuffix
-                              .map((s) => get(formContext.state.values, `${props.name}_${s}`))
-                              .filter((value) => value !== null && value !== undefined);
-                          return values.length > 0 ? values : undefined;
-                      }
                       const value = get(formContext.state.values, props.name);
                       return functions?.preprocessGet ? functions.preprocessGet(value) : value;
                   },
@@ -173,11 +169,6 @@ export function useField(props, emit, functions) {
                       if (newValue === undefined) {
                           formContext.deleteValue(state.name);
                           emit("update:modelValue", undefined);
-                      } else if (isArray(newValue) && props.rangeSuffix) {
-                          newValue.forEach((v, index) => {
-                              formContext.updateValue(`${state.name}_${state.suffix[index]}`, v);
-                          });
-                          emit("update:modelValue", newValue);
                       } else {
                           formContext.updateValue(state.name, newValue);
                           emit("update:modelValue", newValue);
@@ -274,6 +265,7 @@ export function useField(props, emit, functions) {
         blur: ifFormContext(() => formContext.blur(state.name)),
         ignore: ifFormContext(() => formContext.ignore(state.name)),
         removeIgnore: ifFormContext(() => formContext.removeIgnore(state.name)),
+        deleteValue: ifFormContext(() => formContext.deleteValue(state.name)),
     };
     provide(FieldContextSymbol, returnObj);
     return returnObj;

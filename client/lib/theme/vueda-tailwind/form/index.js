@@ -70,7 +70,7 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-row flex-wrap"],
+            class: ["flex flex-row flex-wrap gap-2"],
         },
         header: {
             class: ["flex items-baseline gap-2"],

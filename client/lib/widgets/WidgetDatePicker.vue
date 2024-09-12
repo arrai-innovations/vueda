@@ -24,19 +24,10 @@ const computedSelectionMode = computed(() =>
     props.selectionMode ? props.selectionMode : valueIsArray.value ? "range" : "single",
 );
 const modelValue = computed(() => {
-    const value = widgetContext.state.value;
-    return value ? [value.lower, value.upper] : value;
+    return widgetContext.state.combinedValue;
 });
 const valueUpdated = (value) => {
-    if (value === null || value === undefined) {
-        widgetContext.state.value = value;
-        return;
-    }
-    const rangeObject = {
-        lower: value[0],
-        upper: value[1],
-    };
-    widgetContext.state.value = rangeObject;
+    widgetContext.state.combinedValue = value;
 };
 </script>
 <template>

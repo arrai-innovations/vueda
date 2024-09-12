@@ -10,6 +10,8 @@ import { useForm } from "@vueda/use/useForm.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { filterExpressions } from "@vueda/utils/filterLookups.js";
 import WidgetRadio from "@vueda/widgets/WidgetRadio.vue";
+import { isObject } from "lodash-es";
+import isArray from "lodash-es/isArray.js";
 import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
@@ -65,6 +67,22 @@ const promises = {
     submit: null,
 };
 const toast = useToast();
+const convertObjectToString = (obj) => {
+    return Object.entries(obj)
+        .filter((entry) => entry[1] !== null && entry[1] !== undefined)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(", ");
+};
+const formatDateTime = (value, isDate, isTime) => {
+    if (isDate && isTime) {
+        return new Date(value).toLocaleString();
+    } else if (isDate) {
+        return new Date(value).toLocaleDateString();
+    } else if (isTime) {
+        return new Date(value).toLocaleTimeString();
+    }
+    return value;
+};
 const confirmAddField = async () => {
     if (promises.submit) {
         return promises.submit;
@@ -99,16 +117,21 @@ const confirmAddField = async () => {
         }
         // label is a nice version of the value.
         let label = formContext.state.values.filterValue;
-        // if it is a date, don't just toString it
-        const fieldClass = filterForm.filterableDetails[formContext.state.values.filterField].fieldClass;
+        const fieldClass = filterForm.filterableDetails[formContext.state.values.filterField].typeFilter;
         const isDate = fieldClass.includes("Date");
         const isTime = fieldClass.includes("Time");
-        if (isDate && isTime) {
-            label = new Date(label).toLocaleString();
-        } else if (isDate) {
-            label = new Date(label).toLocaleDateString();
-        } else if (isTime) {
-            label = new Date(label).toLocaleTimeString();
+        const isRange = fieldClass.includes("Range");
+
+        if (isRange) {
+            for (const key in label) {
+                label[key] = formatDateTime(label[key], isDate, isTime);
+            }
+            label = convertObjectToString(label);
+        } else {
+            label = formatDateTime(label, isDate, isTime);
+            if (isObject(label)) {
+                label = convertObjectToString(label);
+            }
         }
         addedFilters.value.push({
             field: {
@@ -147,6 +170,18 @@ watch(
     (newAddedFilters) => {
         const desiredListArgs = {};
         for (const filter of newAddedFilters) {
+            if (isArray(filter.param)) {
+                filter.param.forEach((p) => {
+                    if (isObject(filter.value)) {
+                        const parts = p.split("_");
+                        const key = parts[parts.length - 1];
+                        desiredListArgs[p] = filter.value[key] ?? "";
+                    } else {
+                        desiredListArgs[p] = filter.value;
+                    }
+                });
+                continue;
+            }
             desiredListArgs[`${filter.param}`] = filter.value;
         }
         if (!isEqual(desiredListArgs, listArgs.value)) {

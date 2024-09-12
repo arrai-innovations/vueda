@@ -1,111 +1,125 @@
 /* eslint-disable vue/return-in-computed-property */
 import { assignReactiveObject, keyDiff } from "@arrai-innovations/reactive-helpers";
-import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { getAppModelDotName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import { availableFields, availableWidgets, filterExpressions } from "@vueda/utils/filterLookups.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import { computed, effectScope, reactive, readonly, ref, shallowReactive, shallowRef, toRef, watch } from "vue";
 import { deepUnref } from "vue-deepunref";
 
-const filterFieldClassToFieldComponent = {
-    IntegerRangeField: availableFields.FieldRange,
-    DateRangeField: availableFields.FieldRange,
-    DateTimeRangeField: availableFields.FieldRange,
-    TextField: availableFields.FieldString,
-    CharField: availableFields.FieldString,
-    BooleanField: availableFields.FieldBoolean,
-    DateField: availableFields.FieldDate,
-    DateTimeField: availableFields.FieldDateTime,
-    DecimalField: availableFields.FieldNumber,
-    FloatField: availableFields.FieldNumber,
-    IntegerField: availableFields.FieldNumber,
-    PositiveIntegerField: availableFields.FieldNumber,
-    PositiveSmallIntegerField: availableFields.FieldNumber,
-    SmallIntegerField: availableFields.FieldNumber,
-    TimeField: availableFields.FieldTime,
-    EmailField: availableFields.FieldString,
-    URLField: availableFields.FieldString,
-    UUIDField: availableFields.FieldString,
-    ForeignKey: availableFields.FieldString,
-    ManyToManyField: availableFields.FieldString,
-    OneToOneField: availableFields.FieldString,
-    JSONField: availableFields.FieldObject,
-    ArrayField: availableFields.FieldArray,
-    BinaryField: availableFields.FieldString,
-    FilePathField: availableFields.FieldString,
-    IPAddressField: availableFields.FieldString,
-    GenericIPAddressField: availableFields.FieldString,
-    SlugField: availableFields.FieldString,
-    FileField: availableFields.FieldString,
-    ImageField: availableFields.FieldString,
-    AutoField: availableFields.FieldString,
-    BigAutoField: availableFields.FieldString,
-    BigIntegerField: availableFields.FieldNumber,
-    DurationSecondsField: availableFields.FieldNumber,
-    GenericRelation: availableFields.FieldString,
-    GenericForeignKey: availableFields.FieldString,
-    NullBooleanField: availableFields.FieldBoolean,
-    PositiveBigIntegerField: availableFields.FieldNumber,
-    PositiveDecimalField: availableFields.FieldNumber,
-    ManyRelatedField: availableFields.FieldString,
+const filterFieldClassAndModelTypeToFieldComponent = {
+    ChoiceField: {
+        CharField: availableFields.FieldString,
+        TextField: availableFields.FieldString,
+        EmailField: availableFields.FieldEmail,
+        UUIDField: availableFields.FieldString,
+        URLField: availableFields.FieldString,
+        SlugField: availableFields.FieldString,
+    },
+    CharField: {
+        CharField: availableFields.FieldString,
+        TextField: availableFields.FieldString,
+        EmailField: availableFields.FieldEmail,
+        UUIDField: availableFields.FieldString,
+        URLField: availableFields.FieldString,
+        SlugField: availableFields.FieldString,
+    },
+    NullBooleanField: {
+        BooleanField: availableFields.FieldBoolean,
+    },
+    DateField: {
+        DateField: availableFields.FieldDate,
+    },
+    DateTimeField: {
+        DateTimeField: availableFields.FieldDateTime,
+    },
+    TimeField: {
+        TimeField: availableFields.FieldTime,
+    },
+    ModelChoiceField: {
+        ForeignKeyField: availableFields.FieldString,
+        OneToOneField: availableFields.FieldString,
+    },
+    ModelMultipleChoiceField: {
+        ManyToManyField: availableFields.FieldString,
+    },
+    NumberField: {
+        DecimalField: availableFields.FieldNumber,
+        FloatField: availableFields.FieldNumber,
+        IntegerField: availableFields.FieldNumber,
+        PositiveIntegerField: availableFields.FieldNumber,
+        PositiveSmallIntegerField: availableFields.FieldNumber,
+        SmallIntegerField: availableFields.FieldNumber,
+        DurationSecondsField: availableFields.FieldNumber,
+    },
+    NumberRangeField: {
+        DecimalField: availableFields.FieldSetRange,
+        FloatField: availableFields.FieldSetRange,
+        IntegerField: availableFields.FieldSetRange,
+        PositiveIntegerField: availableFields.FieldSetRange,
+        PositiveSmallIntegerField: availableFields.FieldSetRange,
+        SmallIntegerField: availableFields.FieldSetRange,
+        DurationSecondsField: availableFields.FieldSetRange,
+    },
+    RangeField: {
+        DecimalField: availableFields.FieldSetRange,
+        FloatField: availableFields.FieldSetRange,
+        IntegerField: availableFields.FieldSetRange,
+        PositiveIntegerField: availableFields.FieldSetRange,
+        DurationSecondsField: availableFields.FieldSetRange,
+    },
+    UUIDField: {
+        UUIDField: availableFields.FieldString,
+    },
+    DateRangeField: {
+        DateField: availableFields.FieldRange,
+    },
+    DateTimeRangeField: {
+        DateTimeField: availableFields.FieldRange,
+    },
+    DateFromToRangeFilter: {
+        DateField: availableFields.FieldRange,
+        DateTimeField: availableFields.FieldRange,
+    },
+    TimeRangeField: {
+        TimeField: availableFields.FieldRange,
+    },
+    IsoDateTimeRangeField: {
+        IsoDateTimeRangeField: availableFields.FieldRange,
+    },
 };
 
 /**
  * Get the field component for a given Django field type.
  *
- * @param {import('@vueda/stores/storeModelInfo.js').FilterInfo.field_class} field_class - The Django field class.
+ * @param {import('@vueda/stores/storeModelInfo.js').FilterInfo} filter_info - The Django field class.
  * @returns {import('@vueda/utils/filterLookups.js').FieldComponent} The field component.
  */
-const getFieldComponent = (field_class) => {
-    const returnComponent = filterFieldClassToFieldComponent[field_class];
-    if (returnComponent) {
-        return returnComponent;
-    }
-    return availableFields.FieldString;
+const getFieldComponent = (filter_info) => {
+    const returnComponent =
+        filterFieldClassAndModelTypeToFieldComponent[filter_info.typeFilter]?.[filter_info.typeModel];
+    return returnComponent ?? availableFields.FieldString;
 };
 
 const defaultWidgets = {
-    IntegerRangeField: availableWidgets.WidgetSlider,
-    DateRangeField: availableWidgets.WidgetDatePicker,
-    TextField: availableWidgets.WidgetTextarea,
+    ChoiceField: availableWidgets.WidgetSelect,
     CharField: availableWidgets.WidgetInput,
-    BooleanField: availableWidgets.WidgetCheckbox,
+    NullBooleanField: availableWidgets.WidgetTriStateCheckbox,
     DateField: availableWidgets.WidgetDatePicker,
     DateTimeField: availableWidgets.WidgetDatePicker,
-    DecimalField: availableWidgets.WidgetInput,
-    FloatField: availableWidgets.WidgetInput,
-    IntegerField: availableWidgets.WidgetInput,
-    PositiveIntegerField: availableWidgets.WidgetInput,
-    PositiveSmallIntegerField: availableWidgets.WidgetInput,
-    SmallIntegerField: availableWidgets.WidgetInput,
-    TimeField: availableWidgets.WidgetInput,
-    EmailField: availableWidgets.WidgetInput,
-    URLField: availableWidgets.WidgetInput,
+    TimeField: availableWidgets.WidgetDatePicker,
+    ModelChoiceField: availableWidgets.WidgetSelect,
+    ModelMultipleChoiceField: availableWidgets.WidgetSelect,
+    NumberField: availableWidgets.WidgetInput,
+    NumberRangeField: availableWidgets.WidgetInput,
+    RangeField: availableWidgets.WidgetInput,
     UUIDField: availableWidgets.WidgetInput,
-    ForeignKey: availableWidgets.WidgetSelect,
-    ManyToManyField: availableWidgets.WidgetMultiSelect,
-    OneToOneField: availableWidgets.WidgetSelect,
-    JSONField: availableWidgets.WidgetTextarea,
-    ArrayField: availableWidgets.WidgetTextarea,
-    BinaryField: availableWidgets.WidgetInput,
-    FilePathField: availableWidgets.WidgetInput,
-    IPAddressField: availableWidgets.WidgetInput,
-    GenericIPAddressField: availableWidgets.WidgetInput,
-    SlugField: availableWidgets.WidgetInput,
-    FileField: availableWidgets.WidgetInput,
-    ImageField: availableWidgets.WidgetInput,
-    AutoField: availableWidgets.WidgetInput,
-    BigAutoField: availableWidgets.WidgetInput,
-    BigIntegerField: availableWidgets.WidgetInput,
-    DurationSecondsField: availableWidgets.WidgetInput,
-    GenericRelation: availableWidgets.WidgetSelect,
-    GenericForeignKey: availableWidgets.WidgetSelect,
-    NullBooleanField: availableWidgets.WidgetCheckbox,
-    PositiveBigIntegerField: availableWidgets.WidgetInput,
-    PositiveDecimalField: availableWidgets.WidgetInput,
-    ManyRelatedField: availableWidgets.WidgetMultiSelect,
+    DateRangeField: availableWidgets.WidgetDatePicker,
+    DateTimeRangeField: availableWidgets.WidgetDatePicker,
+    DateFromToRangeFilter: availableWidgets.WidgetDatePicker,
+    TimeRangeField: availableWidgets.WidgetDatePicker,
+    IsoDateTimeRangeField: availableWidgets.WidgetDatePicker,
 };
 
 /**
@@ -114,14 +128,98 @@ const defaultWidgets = {
  * @param {boolean|undefined} choices - If the field has choices.
  * @returns {import('@vueda/utils/filterLookups.js').WidgetComponent} The widget component.
  */
-const getWidgetComponent = (field_class, choices) => {
-    if (choices) {
-        if (choices === true) {
-            return availableWidgets.WidgetAutoComplete;
-        }
-        return availableWidgets.WidgetSelect;
-    }
+const getWidgetComponent = (field_class) => {
     return defaultWidgets[field_class] || availableWidgets.WidgetInput;
+};
+
+const defaultWidgetProps = {
+    ChoiceField: {
+        EmailField: { type: "email" },
+        UUIDField: { type: "mask", mask: "****-****-****-****-************" },
+        URLField: { type: "url" },
+    },
+    CharField: {
+        EmailField: { type: "email" },
+        UUIDField: { type: "mask", mask: "****-****-****-****-************" },
+        URLField: { type: "url" },
+    },
+    DateTimeField: {
+        DateTimeField: { showTime: true },
+    },
+    TimeField: {
+        TimeField: { timeOnly: true },
+    },
+    NumberField: {
+        DurationSecondsField: { unit: "minutes" },
+    },
+    NumberRangeField: {
+        DecimalField: { type: "number" },
+        FloatField: { type: "number" },
+        IntegerField: { type: "number" },
+        PositiveIntegerField: { type: "number" },
+        PositiveSmallIntegerField: { type: "number" },
+        SmallIntegerField: { type: "number" },
+        DurationSecondsField: { unit: "minutes" },
+    },
+    RangeField: {
+        DecimalField: { type: "number" },
+        FloatField: { type: "number" },
+        IntegerField: { type: "number" },
+        PositiveIntegerField: { type: "number" },
+        DurationSecondsField: { unit: "minutes" },
+    },
+    UUIDField: {
+        UUIDField: { type: "mask", mask: "****-****-****-****-************" },
+    },
+    DateRangeField: {
+        DateField: { selectionMode: "range" },
+    },
+    DateFromToRangeFilter: {
+        DateField: { selectionMode: "range" },
+        DateTimeField: { selectionMode: "range", showTime: true },
+    },
+    DateTimeRangeField: {
+        DateTimeField: { selectionMode: "range", showTime: true },
+    },
+    TimeRangeField: {
+        TimeField: { selectionMode: "range", timeOnly: true },
+    },
+};
+
+const getDefaultFieldProps = (filterableDetail) => {
+    const defaultProps = defaultFieldProps[filterableDetail.typeFilter]?.[filterableDetail.typeModel] || {};
+    const baseProps = {
+        ...omit(filterableDetail, ["typeModel", "typeDB", "typeFilter", "suffixes"]),
+        ...defaultProps,
+        rangeSuffix: filterableDetail.suffixes,
+    };
+    if (filterableDetail.suffixes) {
+        baseProps.rangeSuffix = filterableDetail.suffixes;
+    }
+    return baseProps;
+};
+
+const defaultFieldProps = {
+    NumberRangeField: {
+        DecimalField: { boundaryComponent: availableFields.FieldNumber },
+        FloatField: { boundaryComponent: availableFields.FieldNumber },
+        IntegerField: { boundaryComponent: availableFields.FieldNumber },
+        PositiveIntegerField: { boundaryComponent: availableFields.FieldNumber },
+        PositiveSmallIntegerField: { boundaryComponent: availableFields.FieldNumber },
+        SmallIntegerField: { boundaryComponent: availableFields.FieldNumber },
+    },
+    RangeField: {
+        DecimalField: { boundaryComponent: availableFields.FieldNumber },
+        FloatField: { boundaryComponent: availableFields.FieldNumber },
+        IntegerField: { boundaryComponent: availableFields.FieldNumber },
+        PositiveIntegerField: { boundaryComponent: availableFields.FieldNumber },
+    },
+    UUIDField: {
+        UUIDField: { type: "mask", mask: "****-****-****-****-************" },
+    },
+    NullBooleanField: {
+        BooleanField: { nullable: true },
+    },
 };
 
 /**
@@ -164,7 +262,6 @@ const getWidgetComponent = (field_class, choices) => {
 export default function useFilterForm(props) {
     const es = effectScope();
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
-    const modelChoicesStore = storeModelChoices();
     const state = shallowReactive(
         /** @type {UseFilterFormRaw} */ {
             filterables: ref([]),
@@ -178,8 +275,6 @@ export default function useFilterForm(props) {
             widgetOptions: ref([]),
         },
     );
-
-    const appModelKey = computed(() => getAppModelDotName({ app: props.app, model: props.model }));
 
     const assignStateObjectsIfChanged = (args) => {
         for (const key in args) {
@@ -276,63 +371,25 @@ export default function useFilterForm(props) {
                                 );
                             }
                             fieldComponents[key] = computed(
-                                () =>
-                                    props.fieldComponents?.[filterableName] ||
-                                    getFieldComponent(filterableDetail.fieldClass),
+                                () => props.fieldComponents?.[filterableName] || getFieldComponent(filterableDetail),
                             );
-                            fieldProps[key] = computed(() => {
-                                const returnProps = {
-                                    ...omit(filterableDetail, ["fieldClass", "type"]),
-                                    type: filterableDetail.inputType,
-                                };
-                                if (filterableDetail.fieldClass === "DurationSecondsField") {
-                                    returnProps.type = "number";
-                                    returnProps.step = 1;
-                                    returnProps.minValue = 0;
-                                }
-                                if (!returnProps.label) {
-                                    returnProps.label = memoizedStartCase(filterableName);
-                                }
-                                const includesTime = filterableDetail.fieldClass.includes("Time");
-                                const includesDate = filterableDetail.fieldClass.includes("Date");
-                                const includesRange = filterableDetail.fieldClass.includes("Range");
-                                if (includesRange && (includesDate || includesTime)) {
-                                    returnProps.rangeSuffix = ["after", "before"];
-                                }
-                                return returnProps;
-                            });
+                            fieldProps[key] = computed(() => getDefaultFieldProps(filterableDetail));
                             widgetComponents[key] = computed(
                                 () =>
                                     props.widgetComponents?.[filterableName] ||
-                                    getWidgetComponent(filterableDetail.fieldClass, filterableDetails.choices),
+                                    getWidgetComponent(filterableDetail.typeFilter),
                             );
                             widgetProps[key] = computed(() => {
-                                const returnProps = {};
-                                const fieldClass = filterableDetail.fieldClass;
-                                if (fieldClass === "BooleanField") {
-                                    returnProps.options = filterableDetail.options || [
-                                        { label: "True", value: true },
-                                        { label: "False", value: false },
-                                    ];
-                                }
-                                const includesTime = fieldClass.includes("Time");
-                                const includesDate = fieldClass.includes("Date");
-                                const includesRange = fieldClass.includes("Range");
-                                if (includesRange && (includesTime || includesDate)) {
-                                    returnProps.selectionMode = "range";
-                                    returnProps.type = {
-                                        DateRangeField: "date",
-                                        DateTimeRangeField: "datetime-local",
-                                        TimeRangeField: "time",
-                                    }[fieldClass];
-                                    if (includesDate && includesTime) {
-                                        returnProps.showTime = true;
-                                    }
-                                }
-                                if (filterableDetails.choices === true) {
-                                    returnProps.options = toRef(modelChoicesStore.choices, appModelKey.value);
-                                } else if (filterableDetails.choices) {
-                                    returnProps.options = filterableDetails.choices;
+                                const returnProps =
+                                    defaultWidgetProps[filterableDetail.typeFilter]?.[filterableDetail.typeModel] || {};
+                                if (filterableDetail.choices === true) {
+                                    returnProps.fieldApp = props.app;
+                                    returnProps.fieldModel = props.model;
+                                    returnProps.app = filterableDetails.appLabel;
+                                    returnProps.model = filterableDetails.model;
+                                    returnProps.fieldName = filterableName;
+                                } else if (filterableDetail.choices) {
+                                    returnProps.options = filterableDetail.choices;
                                 }
                                 return returnProps;
                             });
@@ -343,10 +400,6 @@ export default function useFilterForm(props) {
                         label: filterableDetail.label || memoizedStartCase(filterableName),
                         lookupExpressionsToParams,
                     });
-                    if (filterableDetail.choices === true) {
-                        // noinspection JSIgnoredPromiseFromCall
-                        modelChoicesStore.fetchChoices(props.app, props.model, filterableName);
-                    }
                 }
                 assignStateObjectsIfChanged({
                     fieldComponents,
