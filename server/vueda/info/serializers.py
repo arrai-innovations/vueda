@@ -452,19 +452,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             }
 
         if isinstance(choices, ChoiceIterator):
-            choices = [(label, value) for (value, label) in choices]
-
-        # Convert choices to be (label, value).
-        if choices and isinstance(choices[0], dict):
-            choices_list = []
-            for value, label in choices.items():
-                choices_list.append(
-                    (
-                        label,
-                        value,
-                    )
-                )
-            return choices_list, None
+            choices = [{"label": label, "value": value} for (value, label) in choices]
 
         return choices, None
 

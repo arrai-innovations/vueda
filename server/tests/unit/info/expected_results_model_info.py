@@ -2185,9 +2185,9 @@ EXPECTED_RESULTS = [
                 },
                 "shipping_method": {
                     "choices": [
-                        ("---------", ""),
-                        ("Regular", "regular"),
-                        ("Express", "express"),
+                        {"label": "---------", "value": ""},
+                        {"label": "Regular", "value": "regular"},
+                        {"label": "Express", "value": "express"},
                     ],
                     "empty_label": "---------",
                     "error_messages": {
