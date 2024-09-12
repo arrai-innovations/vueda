@@ -3360,9 +3360,9 @@ EXPECTED_RESULTS = [
                 },
                 "disabled": {
                     "choices": [
-                        ("", "Unknown"),
-                        ("true", "Yes"),
-                        ("false", "No"),
+                        {"label": "Unknown", "value": ""},
+                        {"label": "Yes", "value": "true"},
+                        {"label": "No", "value": "false"},
                     ],
                     "hidden": False,
                     "input_type": "select",
@@ -4349,8 +4349,8 @@ EXPECTED_RESULTS = [
                 },
                 "disabled": {
                     "choices": [
-                        ("false", "False"),
-                        ("true", "True"),
+                        {"label": "False", "value": "false"},
+                        {"label": "True", "value": "true"},
                     ],
                     "empty_value": "",
                     "error_messages": {
@@ -5392,9 +5392,9 @@ EXPECTED_RESULTS = [
                 },
                 "is_added": {
                     "choices": [
-                        ("", "Unknown"),
-                        ("true", "Yes"),
-                        ("false", "No"),
+                        {"label": "Unknown", "value": ""},
+                        {"label": "Yes", "value": "true"},
+                        {"label": "No", "value": "false"},
                     ],
                     "error_messages": {
                         "required": "This field is required.",
