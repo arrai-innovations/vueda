@@ -35,6 +35,14 @@ const props = defineProps({
         default: () => ({}),
         description: "Props to pass to the field slots",
     },
+    pkKey: {
+        type: String,
+        default: "id",
+    },
+    pk: {
+        type: [String, Number],
+        default: undefined,
+    },
 });
 
 const theme = useComputedClasses(vuedaTailwind.ObjectsGridCardCell, props);
@@ -65,6 +73,8 @@ const valueComputed = computed(() => {
                 :formatted="formattedComputed"
                 name="value"
                 :obj="obj"
+                :pk="obj?.[pkKey]"
+                :pk-key="pkKey"
                 :related-obj="relatedObject"
                 :row-index="rowIndex"
                 :value="valueComputed"

@@ -127,6 +127,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    pkKey: {
+        type: String,
+        default: "id",
+    },
 });
 const emit = defineEmits(["update:sorted", "update:selected"]);
 
@@ -226,7 +230,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
         <div v-else :class="theme('bodyRowGroup')" role="rowgroup">
             <div
                 v-for="(obj, rowIndex) in objectsInOrder || []"
-                :key="obj?.id"
+                :key="obj?.[pkKey]"
                 :class="[
                     theme('bodyRow', {
                         evenCard: evenCard(rowIndex),
@@ -245,7 +249,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             name: 'selected_',
                             label: '',
                         }"
-                        :obj="{ id: obj.id }"
+                        :obj="{ [pkKey]: obj?.[pkKey] }"
                         :related-object="{}"
                         :row-index="rowIndex"
                     >
@@ -259,15 +263,17 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                                 :emit-selected="(e) => emit('update:selected', e)"
                                 name="field(selected_)"
                                 :obj="obj"
+                                :pk="obj?.[pkKey]"
+                                :pk-key="pkKey"
                                 :row-index="rowIndex"
                                 :selected="selected"
                                 v-bind="fieldProps"
                             >
                                 <Checkbox
-                                    :input-id="`selected-row-${obj.id}`"
+                                    :input-id="`selected-row-${obj?.[pkKey]}`"
                                     :model-value="selected"
                                     name="selected"
-                                    :value="obj.id"
+                                    :value="obj?.[pkKey]"
                                     @update:model-value="emit('update:selected', $event)"
                                 />
                             </slot>
@@ -283,7 +289,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             label: '',
                         }"
                         :field-props="fieldProps"
-                        :obj="{ id: obj.id }"
+                        :obj="{ [pkKey]: obj?.[pkKey] }"
                         :related-object="{}"
                         :row-index="rowIndex"
                     >
@@ -292,15 +298,17 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                                 :emit-selected="(e) => emit('update:selected', e)"
                                 name="field(selected_)"
                                 :obj="obj"
+                                :pk="obj?.[pkKey]"
+                                :pk-key="pkKey"
                                 :row-index="rowIndex"
                                 :selected="selected"
                                 v-bind="fieldProps"
                             >
                                 <Checkbox
-                                    :input-id="`selected-row-${obj.id}`"
+                                    :input-id="`selected-row-${obj?.[pkKey]}`"
                                     :model-value="selected"
                                     name="selected"
-                                    :value="obj.id"
+                                    :value="obj?.[pkKey]"
                                     @update:model-value="emit('update:selected', $event)"
                                 />
                             </slot>
@@ -311,7 +319,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                     <template v-if="field?.name">
                         <objects-grid-card-cell
                             v-if="!isTable"
-                            :calculated-object="calculatedObjects[obj.id] ?? {}"
+                            :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
                             :class="fieldClasses?.[field?.name]"
                             :col-index="colIndex"
                             :data-field="field?.name"
@@ -319,7 +327,9 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             :field="field"
                             :field-props="fieldProps"
                             :obj="obj"
-                            :related-object="relatedObjects[obj.id] ?? {}"
+                            :pk="obj?.[pkKey]"
+                            :pk-key="pkKey"
+                            :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
                             role="cell"
                             :row-index="rowIndex"
                         >
@@ -332,7 +342,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                         </objects-grid-card-cell>
                         <objects-grid-body-cell
                             v-else
-                            :calculated-object="calculatedObjects[obj.id] ?? {}"
+                            :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
                             :class="fieldClasses?.[field?.name]"
                             :col-index="colIndex"
                             :data-field="field?.name"
@@ -340,7 +350,9 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             :field="field"
                             :field-props="fieldProps"
                             :obj="obj"
-                            :related-object="relatedObjects[obj.id] ?? {}"
+                            :pk="obj?.[pkKey]"
+                            :pk-key="pkKey"
+                            :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
                             role="cell"
                             :row-index="rowIndex"
                         >
