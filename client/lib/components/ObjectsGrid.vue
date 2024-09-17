@@ -209,7 +209,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                             :descending="sorted.includes(`-${field.name}`)"
                             :field="field"
                             :field-props="fieldProps"
-                            :multi-sort-index="sorted.length > 1 ? directionlessSorted.indexOf(field.name) : undefined"
+                            :multi-sort-index="sorted.length > 1 ? directionlessSorted.indexOf(field.name) : -1"
                             :sortable="sortables.includes(field.name)"
                         >
                             <template v-if="$slots['sort-icon']" #sort-icon="slotProps">

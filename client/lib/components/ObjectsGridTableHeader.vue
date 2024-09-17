@@ -54,7 +54,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGridTableHeader, props);
                 <template v-else-if="descending">⬇️</template>
                 <template v-else>↕️</template>
             </slot>
-            <span v-if="multiSortIndex !== undefined" :class="theme('multiSortNumber')">
+            <span v-if="multiSortIndex !== -1" :class="theme('multiSortNumber')">
                 {{ multiSortIndex + 1 }}
             </span>
         </span>
