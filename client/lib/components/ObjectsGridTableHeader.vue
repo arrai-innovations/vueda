@@ -49,7 +49,6 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGridTableHeader, props);
                 name="sort-icon"
                 v-bind="fieldProps"
             >
-                >
                 <!-- iconless text, screams to implementors to provide an icon -->
                 <template v-if="ascending">⬆️</template>
                 <template v-else-if="descending">⬇️</template>
