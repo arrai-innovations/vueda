@@ -72,7 +72,6 @@
     "@vueuse/core": "^10.1.2",
     "lodash-es": "^4.17.21",
     "pinia": "^2.1.7",
-    "primeicons": "^7.0.0",
     "primevue": "^3.52.0",
     "vue": "^3.4.0",
     "vue-deepunref": "^1.0.1",
