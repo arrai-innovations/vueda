@@ -16,7 +16,11 @@ const theme = useComputedClasses(vuedaTailwind.FieldSetStackedInline);
 
 const addRow = () => {
     fieldContext.blur();
-    fieldContext.state.value = [...cloneDeep(fieldContext.state.value), {}];
+    if (fieldContext.state.value) {
+        fieldContext.state.value = [...cloneDeep(fieldContext.state.value), {}];
+    } else {
+        fieldContext.state.value = [{}];
+    }
 };
 const removeRow = (index) => {
     fieldContext.blur();

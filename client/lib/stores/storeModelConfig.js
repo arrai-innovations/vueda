@@ -55,6 +55,7 @@ import { defineStore } from "pinia";
 const getDefaultFromModelInfo = (modelInfo) => {
     const pkField = modelInfo.pk;
     const fields = Object.keys(modelInfo.fields).filter((f) => f !== pkField);
+    const expandFields = modelInfo.expands.map((e) => e.name);
     const actionDetailsByName = Object.fromEntries(modelInfo.actions.map((a) => [a.name, a]));
     const expandDetailsByName = Object.fromEntries(modelInfo.expands.map((e) => [e.name, e]));
     return [
@@ -62,7 +63,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
             verboseName: modelInfo.verbose_name,
             verboseNamePlural: modelInfo.verbose_name_plural,
             fields,
-            expands: [],
+            expands: expandFields,
             routeActions: modelInfo.actions.map((a) => a.name),
             actions: modelInfo.actions.map((a) => a.name),
             filterables: Object.keys(modelInfo.filtering),
