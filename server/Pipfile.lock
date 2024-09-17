@@ -159,10 +159,10 @@
         },
         "dj-rest-auth": {
             "hashes": [
-                "sha256:aad7d912476169e9991547bf98645344d3939be2d7052098048d819524c115d9"
+                "sha256:760b45f3a07cd6182e6a20fe07d0c55230c5f950167df724d7914d0dd8c50133"
             ],
-            "markers": "python_version >= '3.6'",
-            "version": "==5.0.2"
+            "markers": "python_version >= '3.8'",
+            "version": "==6.0.0"
         },
         "django": {
             "hashes": [
