@@ -194,8 +194,8 @@ If you want your changes OK'd before making a pull request, you can create an is
 4. Merge the changes into the `main` branch.
 5. On the `main` branch, with the latest changes, create a new tag and push to GitHub.
     ```console
-    git tag v1.0.0
-    git push --tags
+    $ git tag v1.0.0
+    $ git push --tags
     ```
 6. The circleci will publish a new version to NPM and create a release on GitHub.
 
