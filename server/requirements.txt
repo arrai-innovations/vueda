@@ -1,5 +1,5 @@
 ansicolors>=1.1.8,<2
-argparse-color-formatter>=1.2.2.post2,<2
+argparse-color-formatter>=2.0.0.post1,<3
 asgi-cors-middleware>=0.0.2,<0.1
 dj-rest-auth>=5.0.2,<6
 django-anymail[mailgun]>=10.2,<11
