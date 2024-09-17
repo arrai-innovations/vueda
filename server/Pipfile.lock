@@ -308,11 +308,11 @@
         },
         "pwned-passwords-django": {
             "hashes": [
-                "sha256:09cd29d3699bfea9f4a367e92a9eb106bfc09eefb873e58c15e5f48800992f8e",
-                "sha256:9c76a9f47261507dd29da5e4937462bba0dbfa7045ce0d0fcdb51c610dba8ac5"
+                "sha256:425cc00768216048bc2b52ae5af965f68c00e3ba5430e9a91c0a1db14e9f9b3e",
+                "sha256:6182f79f796b43eb66c4f5484c5839898a0376e235021327e214ee38a2d171ef"
             ],
             "markers": "python_version >= '3.8'",
-            "version": "==2.1"
+            "version": "==5.1.0"
         },
         "python-dateutil": {
             "hashes": [
