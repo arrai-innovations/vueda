@@ -1,4 +1,18 @@
 export default {
+    DateRangeDisplay: {
+        root: {
+            class: "whitespace-nowrap",
+        },
+        separator: {
+            class: "",
+        },
+        from: {
+            class: "",
+        },
+        to: {
+            class: "",
+        },
+    },
     DateTimeDisplay: {
         root: {
             class: "flex items-center space-x-2",
