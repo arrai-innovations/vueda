@@ -177,11 +177,11 @@
                 "mailgun"
             ],
             "hashes": [
-                "sha256:1e72f059e96930d3675d35fe4c61f82b138ae4a7fcb0337be39dcb4823f94a4f",
-                "sha256:35d8ec20b06000af3c1638492e32f416fd1a584f0a572cded03f1bc570169ed0"
+                "sha256:65789c1b0f42915aa0450a4f173f77572d4c552979b748ddd8125af41972ad30",
+                "sha256:de8458d713d0f9776da9ed04dcd3a0161be23e9ecbcb49dcf149219700ecd274"
             ],
-            "markers": "python_version >= '3.7'",
-            "version": "==10.3"
+            "markers": "python_version >= '3.8'",
+            "version": "==12.0"
         },
         "django-cors-headers": {
             "hashes": [
