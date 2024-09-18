@@ -53,7 +53,7 @@ import { defineStore } from "pinia";
  * @returns {[generic:ModelConfig, {[view: string]: OverridingModelConfig}]} The default configuration objects.
  */
 const getDefaultFromModelInfo = (modelInfo) => {
-    if (!modelInfo) {
+    if (!modelInfo || !modelInfo.fields || !modelInfo.expands || !modelInfo.actions) {
         return [{}, {}];
     }
     const pkField = modelInfo.pk;
