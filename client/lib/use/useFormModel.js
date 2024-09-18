@@ -137,7 +137,7 @@ const defaultFieldMappings = {
     ManyRelatedField: {
         ManyToManyField: {
             component: null,
-            widget: availableWidgets.WidgetAutoComplete,
+            widget: availableWidgets.WidgetSearchableSelect,
             widgetProps: { multiple: true },
             fieldProps: {
                 requiredFn: (value) => {
@@ -151,7 +151,7 @@ const defaultFieldMappings = {
         },
         ManyRelatedField: {
             component: null,
-            widget: availableWidgets.WidgetAutoComplete,
+            widget: availableWidgets.WidgetSearchableSelect,
             widgetProps: { multiple: true },
             fieldProps: {
                 requiredFn: (value) => {
@@ -172,11 +172,11 @@ const defaultFieldMappings = {
         },
     },
     PrimaryKeyRelatedField: {
-        ForeignKey: { component: availableFields.FieldString, widget: availableWidgets.WidgetGenericAutoComplete },
-        OneToOneField: { component: availableFields.FieldString, widget: availableWidgets.WidgetAutoComplete },
+        ForeignKey: { component: availableFields.FieldString, widget: availableWidgets.WidgetSearchableSelect },
+        OneToOneField: { component: availableFields.FieldString, widget: availableWidgets.WidgetSearchableSelect },
         RelatedField: {
             component: availableFields.FieldString,
-            widget: availableWidgets.WidgetAutoComplete,
+            widget: availableWidgets.WidgetSearchableSelect,
             widgetProps: { multiple: true },
         },
     },
@@ -249,13 +249,13 @@ const choiceFieldMappings = {
     },
     ManyRelatedField: {
         ManyToManyField: {
-            widget: availableWidgets.WidgetAutoComplete,
-            manyWidget: availableWidgets.WidgetAutoComplete,
+            widget: availableWidgets.WidgetSearchableSelect,
+            manyWidget: availableWidgets.WidgetSearchableSelect,
             manyWidgetProps: { multiple: true },
         },
         ManyRelatedField: {
-            widget: availableWidgets.WidgetAutoComplete,
-            manyWidget: availableWidgets.WidgetAutoComplete,
+            widget: availableWidgets.WidgetSearchableSelect,
+            manyWidget: availableWidgets.WidgetSearchableSelect,
             manyWidgetProps: { multiple: true },
         },
     },
@@ -263,22 +263,22 @@ const choiceFieldMappings = {
         NullBooleanField: { widget: availableWidgets.WidgetTriStateCheckbox },
     },
     PrimaryKeyRelatedField: {
-        ForeignKey: { widget: availableWidgets.WidgetAutoComplete },
-        OneToOneField: { widget: availableWidgets.WidgetAutoComplete },
+        ForeignKey: { widget: availableWidgets.WidgetSearchableSelect },
+        OneToOneField: { widget: availableWidgets.WidgetSearchableSelect },
         RelatedField: {
-            widget: availableWidgets.WidgetAutoComplete,
-            manyWidget: availableWidgets.WidgetAutoComplete,
+            widget: availableWidgets.WidgetSearchableSelect,
+            manyWidget: availableWidgets.WidgetSearchableSelect,
             manyWidgetProps: { multiple: true },
         },
     },
     SerializerMethodField: {
         GenericForeignKey: {
-            widget: availableWidgets.WidgetAutoComplete,
-            widgetMany: availableWidgets.WidgetAutoComplete,
+            widget: availableWidgets.WidgetSearchableSelect,
+            widgetMany: availableWidgets.WidgetSearchableSelect,
         },
         GenericRelation: {
-            widget: availableWidgets.WidgetAutoComplete,
-            widgetMany: availableWidgets.WidgetAutoComplete,
+            widget: availableWidgets.WidgetSearchableSelect,
+            widgetMany: availableWidgets.WidgetSearchableSelect,
         },
     },
     SlugField: {
@@ -623,7 +623,7 @@ export function useFormModel(props) {
                                     if (Array.isArray(expandFieldDetail.choices)) {
                                         baseProps.options = expandFieldDetail.choices;
                                     } else {
-                                        // TODO: only widgetModel and widgetAutoComplete need these
+                                        // TODO: only widgetModel, WidgetSearchableSelect and widgetAutoComplete need these
                                         baseProps.fieldApp = expandDetail.app_label;
                                         baseProps.fieldModel = expandDetail.model;
                                         baseProps.app = expandFieldDetail.appLabel;
