@@ -52,6 +52,7 @@ export const availableFields = {
     FieldSetStackedInline: defineAsyncComponent(
         async () => (await import("@vueda/fields/FieldSetStackedInline.vue")).default,
     ),
+    FieldDuration: defineAsyncComponent(async () => (await import("@vueda/fields/FieldDuration.vue")).default),
     FieldNumber: defineAsyncComponent(async () => (await import("@vueda/fields/FieldNumber.vue")).default),
     FieldObject: defineAsyncComponent(async () => (await import("@vueda/fields/FieldObject.vue")).default),
     FieldRange: defineAsyncComponent(async () => (await import("@vueda/fields/FieldRange.vue")).default),
@@ -78,6 +79,7 @@ export const availableWidgets = {
     WidgetCheckbox: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetCheckbox.vue")).default),
     WidgetDatePicker: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDatePicker.vue")).default),
     WidgetFile: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetFile.vue")).default),
+    WidgetDuration: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDuration.vue")).default),
     WidgetGenericAutoComplete: defineAsyncComponent(
         async () => (await import("@vueda/widgets/WidgetGenericAutoComplete.vue")).default,
     ),

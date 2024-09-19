@@ -49,6 +49,20 @@ export default {
             class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
+    WidgetDuration: {
+        root: {
+            class: [],
+        },
+        inner: {
+            class: ["flex flex-row gap-2 flex-wrap [&_input]:w-full"],
+        },
+        label: {
+            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+        },
+        innerItem: {
+            class: ["flex flex-col flex-grow"],
+        },
+    },
     WidgetDatePicker: {
         root: {
             class: [],

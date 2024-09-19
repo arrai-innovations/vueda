@@ -9,6 +9,7 @@ import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
+import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import { computed, inject } from "vue";
 
@@ -53,7 +54,7 @@ const fieldNames = computed(() => {
     } else {
         //TODO: prob needs to ignore ID for display fields
         const fields = formModel?.expandDetails?.[fieldContext.state.name].f;
-        return fields ? Object.keys(fields) : [];
+        return fields ? Object.keys(omit(fields, "id")) : [];
     }
 });
 
@@ -97,9 +98,6 @@ const emptyFieldObject = () => {
 };
 
 const theme = useComputedClasses(vuedaTailwind.FieldSetStackedInline);
-// TODO: Form Chores Setup Similar to FieldInline,
-//  FieldTabularInline is responsible for setting up form chores for its subfields, including labels, help text, error messages, and non-error messages.
-// TODO: it needs to grab all the fields from the expand:
 const onAdd = () => {
     fieldContext.blur();
     fieldContext.state.value = [...fieldContext.state.value, emptyFieldObject()];

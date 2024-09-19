@@ -44,6 +44,13 @@ const defaultFieldMappings = {
             widgetProps: { unit: "minutes" },
         },
     },
+    DurationField: {
+        DurationField: {
+            component: availableFields.FieldDuration,
+            widget: availableWidgets.WidgetDuration,
+            fieldProps: { manyComponent: availableFields.FieldDuration },
+        },
+    },
     EmailField: {
         EmailField: {
             component: availableFields.FieldEmail,
@@ -326,6 +333,12 @@ const manyFieldMappings = {
         },
     },
     DurationSecondsField: {
+        DurationField: {
+            widget: availableWidgets.WidgetDuration,
+            fieldProps: { manyComponent: availableFields.FieldDuration },
+        },
+    },
+    DurationField: {
         DurationField: {
             widget: availableWidgets.WidgetDuration,
             fieldProps: { manyComponent: availableFields.FieldDuration },
