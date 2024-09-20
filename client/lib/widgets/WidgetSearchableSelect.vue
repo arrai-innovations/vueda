@@ -47,6 +47,8 @@ const props = defineProps({
         default: false,
     },
 });
+const autoCompleteShown = ref(false);
+const autoCompleteModelValue = ref(null);
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
@@ -73,7 +75,7 @@ const modelListProps = reactive({
         }),
     },
     intendToList: computed(
-        () => !props.options && autoCompleteShown && (listSearch.value || widgetContext.state.combinedValue),
+        () => !props.options && autoCompleteShown.value && (listSearch.value || widgetContext.state.combinedValue),
     ),
 });
 const callableOptionLabel = computed(() => {
@@ -108,9 +110,6 @@ watch(
         immediate: true,
     },
 );
-
-const autoCompleteShown = ref(false);
-const autoCompleteModelValue = ref(null);
 
 const handleComplete = (event) => {
     // complete = "Callback to invoke to search for suggestions."
