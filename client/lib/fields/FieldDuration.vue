@@ -60,7 +60,6 @@ const fieldContext = useField(props, emit, { preprocessSet, preprocessGet });
 onBeforeFieldUnmount(fieldContext);
 </script>
 <template>
-    field
     <div data-qa="field-string">
         <slot />
     </div>

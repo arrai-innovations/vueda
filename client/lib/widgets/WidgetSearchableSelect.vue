@@ -6,7 +6,7 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
-import AutoComplete from "primevue/autocomplete";
+import Dropdown from "primevue/dropdown";
 import { computed, reactive, ref, toRef, watch } from "vue";
 
 defineOptions({
@@ -36,7 +36,7 @@ const props = defineProps({
     },
     optionValue: {
         type: String,
-        default: "value",
+        default: "id",
     },
     optionLabel: {
         type: String,
@@ -46,12 +46,24 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    placeholder: {
+        type: String,
+        default: undefined,
+    },
+    pageKey: {
+        type: String,
+        default: "p",
+    },
 });
-const autoCompleteModelValue = ref(null);
+const fetchedPages = ref(1);
+const hasBeenFocused = ref(false);
+const intendToList = computed(() => {
+    return widgetContext.state.combinedValue || hasBeenFocused.value;
+});
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useComputedClasses(vuedaTailwind.WidgetAutoComplete, widgetContext.state);
+const theme = useComputedClasses(vuedaTailwind.WidgetSearchableSelect, widgetContext.state);
 const listSearch = ref("");
 const pkKey = computed(() => modelConfig.info?.pk ?? "id");
 const modelListProps = reactive({
@@ -65,27 +77,34 @@ const modelListProps = reactive({
     },
     pkKey,
     listArgs: {
+        [props.pageKey]: fetchedPages,
         [props.searchKey]: listSearch,
-        [pkKey]: computed(() => {
-            if (!listSearch.value) {
+        [pkKey.value]: computed(() => {
+            if (!listSearch.value?.length) {
                 return widgetContext.state.combinedValue ?? undefined;
             }
             return undefined;
         }),
     },
-    intendToList: computed(() => !props.options && (listSearch.value || widgetContext.state.combinedValue)),
+    intendToList,
 });
+const handleFocus = () => {
+    hasBeenFocused.value = true;
+    widgetContext.focus();
+};
 const callableOptionLabel = computed(() => {
     return typeof props.optionLabel === "function";
 });
 const modelList = useList({
     props: modelListProps,
+    paged: true,
+    keepOldPages: true,
 });
 watch(
     [toRef(props, "options")],
     ([options]) => {
         if (options) {
-            modelList.managed.listInstance.clearList();
+            modelList.managed.listInstance.clearList(); // TODO
             modelList.managed.listInstance.pageCallback(props.options);
             if (!modelListProps.textSearchRules) {
                 if (callableOptionLabel.value) {
@@ -107,37 +126,24 @@ watch(
         immediate: true,
     },
 );
-
-const handleComplete = (event) => {
-    // complete = "Callback to invoke to search for suggestions."
-    if (event.query.trim().length) {
-        listSearch.value = event.query;
+const handleFilter = (event) => {
+    fetchedPages.value = 1;
+    listSearch.value = event.value;
+};
+const placeHolderText = computed(() => {
+    return props.placeholder || `Select a ${props.model}`;
+});
+const perPage = computed(() => {
+    return modelList.state?.perPage ?? 100;
+});
+const onLazyLoad = (event) => {
+    if (event.last >= fetchedPages.value * perPage.value && event.last < modelList.state.totalRecords) {
+        fetchedPages.value += 1;
     }
 };
-const handleItemSelect = (event) => {
-    // we don't want the form to submit when the user selects an item.
-    if (event.originalEvent && event.originalEvent.type === "keydown") {
-        event.originalEvent.preventDefault();
-    }
-    const value = event.value[pkKey.value];
-    if (props.multiple) {
-        if (!widgetContext.state.combinedValue) {
-            widgetContext.state.combinedValue = [];
-        }
-        widgetContext.state.combinedValue.push(value);
-    } else {
-        widgetContext.state.combinedValue = value;
-    }
-};
-const handleItemUnselect = (event) => {
-    // we don't want the form to submit when the user selects an item.
-    if (event.originalEvent && event.originalEvent.type === "keydown") {
-        event.originalEvent.preventDefault();
-    }
-    // this should only happen if props.multiple is true.
-    const value = event.value[pkKey.value];
-    // noinspection EqualityComparisonWithCoercionJS
-    widgetContext.state.combinedValue = widgetContext.state.combinedValue.filter((v) => v != value);
+const onValueChange = () => {
+    listSearch.value = "";
+    fetchedPages.value = 1;
 };
 </script>
 <template>
@@ -147,23 +153,31 @@ const handleItemUnselect = (event) => {
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
-                <AutoComplete
+                <Dropdown
+                    v-model="widgetContext.state.combinedValue"
                     v-bind="$attrs"
-                    v-model="autoCompleteModelValue"
-                    :data-key="props.optionValue"
-                    dropdown
-                    force-selection
-                    :loading="modelList.state.loading"
-                    :multiple="props.multiple"
-                    :name="widgetContext.state.combinedName"
+                    filter
                     :option-label="props.optionLabel"
-                    :suggestions="modelList.state.objectsInOrder"
+                    :option-value="pkKey"
+                    :options="modelList.state.objectsInOrder"
+                    :placeholder="placeHolderText"
+                    reset-filter-on-clear
+                    show-clear
+                    :virtual-scroller-options="{
+                        class: '[&_ul]:w-full',
+                        showSpacer: false,
+                        lazy: true,
+                        onLazyLoad: onLazyLoad,
+                        itemSize: 38,
+                        showLoader: true,
+                        loading: modelList.state.loading,
+                    }"
                     @blur="widgetContext.blur"
-                    @complete="handleComplete"
-                    @focus="widgetContext.focus"
-                    @item-select="handleItemSelect"
-                    @item-unselect="handleItemUnselect"
-                />
+                    @change="onValueChange"
+                    @filter="handleFilter"
+                    @focus="handleFocus"
+                >
+                </Dropdown>
             </div>
         </widget-label>
     </div>

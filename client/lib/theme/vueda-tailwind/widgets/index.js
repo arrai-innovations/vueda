@@ -38,6 +38,17 @@ export default {
             class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
+    WidgetSearchableSelect: {
+        root: {
+            class: [],
+        },
+        inner: {
+            class: ["flex flex-col [&_input]:w-full"],
+        },
+        label: {
+            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+        },
+    },
     WidgetCheckbox: {
         root: {
             class: ["ml-3"],
