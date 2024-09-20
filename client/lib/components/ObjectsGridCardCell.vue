@@ -1,14 +1,13 @@
 <script setup>
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
-import { unifiedGet } from "@vueda/utils/unifiedGet.js";
-import { computed } from "vue";
+import { useObjectGridCell } from "@vueda/use/useObjectGridCell.js";
 
 const props = defineProps({
     field: {
         type: Object,
         required: true,
-        description: "The field definition, we use name, label, and formatted",
+        description: "The field definition, we use name, label, value, and formatted",
     },
     obj: {
         type: Object,
@@ -46,17 +45,7 @@ const props = defineProps({
 });
 
 const theme = useComputedClasses(vuedaTailwind.ObjectsGridCardCell, props);
-const formattedComputed = computed(() => {
-    return unifiedGet(
-        props.obj,
-        props.relatedObject,
-        props.calculatedObject,
-        props.field.formatted ?? props.field.name,
-    );
-});
-const valueComputed = computed(() => {
-    return unifiedGet(props.obj, props.relatedObject, props.calculatedObject, props.field.name);
-});
+const { formattedComputed, valueComputed } = useObjectGridCell(props);
 </script>
 <template>
     <div :class="[theme('root'), $attrs.class]" data-qa="objects-grid-card-cell" role="cell">

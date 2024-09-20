@@ -35,6 +35,14 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    tableFieldClasses: {
+        type: Object,
+        default: () => ({}),
+    },
+    cardFieldClasses: {
+        type: Object,
+        default: () => ({}),
+    },
     fieldProps: {
         type: Object,
         default: () => ({}),
@@ -243,7 +251,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                     <objects-grid-card-cell
                         v-if="!isTable"
                         :calculated-object="{}"
-                        :class="fieldClasses?.selected_"
+                        :class="[fieldClasses?.selected_, cardFieldClasses?.selected_]"
                         :col-index="-1"
                         :field="{
                             name: 'selected_',
@@ -282,7 +290,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                     <objects-grid-body-cell
                         v-else
                         :calculated-object="{}"
-                        :class="fieldClasses?.selected_"
+                        :class="[fieldClasses?.selected_, tableFieldClasses?.selected_]"
                         :col-index="-1"
                         :field="{
                             name: 'selected_',
@@ -320,7 +328,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                         <objects-grid-card-cell
                             v-if="!isTable"
                             :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
-                            :class="fieldClasses?.[field?.name]"
+                            :class="[fieldClasses?.[field?.name], cardFieldClasses?.[field?.name]]"
                             :col-index="colIndex"
                             :data-field="field?.name"
                             data-qa="objects-grid-card-cell"
@@ -343,7 +351,7 @@ const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kw
                         <objects-grid-body-cell
                             v-else
                             :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
-                            :class="fieldClasses?.[field?.name]"
+                            :class="[fieldClasses?.[field?.name], tableFieldClasses?.[field?.name]]"
                             :col-index="colIndex"
                             :data-field="field?.name"
                             data-qa="objects-grid-table-cell"
