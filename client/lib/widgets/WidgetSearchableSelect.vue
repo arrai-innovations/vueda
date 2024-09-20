@@ -47,7 +47,6 @@ const props = defineProps({
         default: false,
     },
 });
-const autoCompleteShown = ref(false);
 const autoCompleteModelValue = ref(null);
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const emit = defineEmits([...WIDGET_EMITS]);
@@ -74,9 +73,7 @@ const modelListProps = reactive({
             return undefined;
         }),
     },
-    intendToList: computed(
-        () => !props.options && autoCompleteShown.value && (listSearch.value || widgetContext.state.combinedValue),
-    ),
+    intendToList: computed(() => !props.options && (listSearch.value || widgetContext.state.combinedValue)),
 });
 const callableOptionLabel = computed(() => {
     return typeof props.optionLabel === "function";
@@ -154,6 +151,7 @@ const handleItemUnselect = (event) => {
                     v-bind="$attrs"
                     v-model="autoCompleteModelValue"
                     :data-key="props.optionValue"
+                    dropdown
                     force-selection
                     :loading="modelList.state.loading"
                     :multiple="props.multiple"
@@ -163,10 +161,8 @@ const handleItemUnselect = (event) => {
                     @blur="widgetContext.blur"
                     @complete="handleComplete"
                     @focus="widgetContext.focus"
-                    @hide="autoCompleteShown = false"
                     @item-select="handleItemSelect"
                     @item-unselect="handleItemUnselect"
-                    @show="autoCompleteShown = true"
                 />
             </div>
         </widget-label>
