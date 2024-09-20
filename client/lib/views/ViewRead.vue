@@ -36,19 +36,23 @@ const isActive = useIsActive();
 
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model && props.pk));
 
-const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), "read");
 const titleStr = computed(() => {
     return `Read ${memoizedStartCase(modelConfig.info?.verbose_name)}` || "Read Item";
 });
 const calculatedReadFields = computed(() => {
     // if they don't pass readFields, use the modelConfig fields.
     //  modelConfig fields already falls back to models fields supplied by the server
+    let fields = [];
     if (props.readFields.length) {
-        return props.readFields;
-    } else if (modelConfig.config.readFields?.length) {
-        return modelConfig.config.readFields;
+        fields = [...props.readFields];
+    } else if (modelConfig.config.fetchFields?.length) {
+        fields = [...modelConfig.config.fetchFields];
     }
-    return [];
+    if (!fields.includes(modelConfig.info?.pk)) {
+        fields.unshift(modelConfig.info?.pk);
+    }
+    return fields;
 });
 const instanceObjectProps = reactive({
     crudArgs: {

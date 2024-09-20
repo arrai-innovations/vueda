@@ -110,7 +110,7 @@ const validAndActive = computed(
             props.model &&
             props.pk &&
             modelConfig.info?.pk &&
-            modelConfig.config?.fields
+            modelConfig.config?.fetchFields
         ),
 );
 
@@ -128,7 +128,7 @@ const instanceObjectProps = reactive({
     pk: toRef(props, "pk"),
     retrieveArgs: {
         f: computed(() => {
-            return [modelConfig.info?.pk, ...(modelConfig.config?.fields || [])];
+            return [modelConfig.info?.pk, ...(modelConfig.config?.fetchFields || [])];
         }),
         e: computed(() => modelConfig.config?.expands),
     },

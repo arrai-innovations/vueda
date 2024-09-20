@@ -10,7 +10,8 @@ import { defineStore } from "pinia";
  * @typedef {object} ModelConfig
  * @property {string} verboseName - the human-readable name of the model
  * @property {string} verboseNamePlural - the human-readable plural name of the model
- * @property {string[]} fields - field names to display by default
+ * @property {string[]} displayFields - field names to display by default
+ * @property {string[]} fetchFields - field names to fetch by default
  * @property {string[]} expands - field names to expand by default
  * @property {string[]} routeActions - actions to configure routes for
  * @property {string[]} actions - actions to display by default
@@ -30,7 +31,10 @@ import { defineStore } from "pinia";
  * A partial configuration object for making use of a model client-side.
  *
  * @typedef {object} OverridingModelConfig
- * @property {string[]} [fields] - field names to display by default
+ * @property {string} [verboseName] - the human-readable name of the model
+ * @property {string} [verboseNamePlural] - the human-readable plural name of the model
+ * @property {string[]} [displayFields] - field names to display by default
+ * @property {string[]} [fetchFields] - field names to fetch by default
  * @property {string[]} [expands] - field names to expand by default
  * @property {string[]} [routeActions] - actions to configure routes for
  * @property {string[]} [actions] - actions to display by default
@@ -65,7 +69,8 @@ const getDefaultFromModelInfo = (modelInfo) => {
         {
             verboseName: modelInfo.verbose_name,
             verboseNamePlural: modelInfo.verbose_name_plural,
-            fields,
+            displayFields: fields,
+            fetchFields: fields,
             expands: expandFields,
             routeActions: modelInfo.actions.map((a) => a.name),
             actions: modelInfo.actions.map((a) => a.name),

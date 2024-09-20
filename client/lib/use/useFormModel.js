@@ -547,7 +547,7 @@ export function useFormModel(props) {
 
     watch(
         [
-            () => modelConfig.config.fields,
+            () => modelConfig.config.displayFields,
             () => modelConfig.config.expands,
             () => modelConfig.config.fieldDetails,
             () => modelConfig.config.expandDetails,
@@ -558,7 +558,7 @@ export function useFormModel(props) {
         ],
         () => {
             // props has priority over config
-            const desiredFields = props.fields || modelConfig.config?.fields || [];
+            const desiredFields = props.fields || modelConfig.config?.displayFields || [];
             const desiredExpands = props.expands || modelConfig.config?.expands || [];
             // details fields merge at the field property level
             const desiredFieldDetails = {};

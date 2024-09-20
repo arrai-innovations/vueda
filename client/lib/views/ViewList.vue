@@ -101,7 +101,15 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    retrieveArgs: {
+        type: Object,
+        default: () => ({}),
+    },
     // as long as there are no collisions, $attrs can be used to pass through any other props to objects-grid
+    tableBreakpoint: {
+        type: String,
+        default: "lg",
+    },
 });
 const listSearch = ref(null);
 const isActive = useIsActive();
@@ -117,19 +125,23 @@ const sorting = reactive({
     },
 });
 const calculatedListFields = computed(() => {
+    let fields = [];
     if (props.listFields.length) {
-        return props.listFields;
-    } else if (modelConfig.config.fields?.length) {
-        return modelConfig.config.fields;
+        fields = [...props.listFields];
+    } else if (modelConfig.config.fetchFields?.length) {
+        fields = [...modelConfig.config.fetchFields];
     }
-    return [];
+    if (!fields.includes(modelConfig.info?.pk)) {
+        fields.unshift(modelConfig.info?.pk);
+    }
+    return fields;
 });
 const calculatedDisplayFields = computed(() => {
     if (Object.keys(props.displayFields).length) {
         return Object.values(props.displayFields);
     } else {
         return (
-            modelConfig.config.fields?.map((f) => ({
+            modelConfig.config.displayFields?.map((f) => ({
                 name: f,
                 ...modelConfig.config.fieldDetails[f],
             })) || []
@@ -142,6 +154,8 @@ const listState = reactive({
     search: "",
     listArgs: {
         o: toRef(sorting.state, "sorted"),
+        f: calculatedListFields,
+        e: modelConfig.config?.expands,
     },
     filterArgs: {},
 });
@@ -151,9 +165,7 @@ const instanceListProps = reactive({
         model: toRef(props, "model"),
     },
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-    retrieveArgs: {
-        f: calculatedListFields,
-    },
+    retrieveArgs: {},
     listArgs: toRef(listState, "listArgs"),
     intendToList: validAndActive,
     // intendToSubscribe: validAndActive,
@@ -163,6 +175,8 @@ const instanceListProps = reactive({
 const instanceList = useList({
     props: instanceListProps,
     paged: true,
+    keepOldPages: false,
+    clearListOnListIntentTriggered: true,
 });
 watch(toRef(listState, "search"), (newSearch, oldSearch) => {
     if (newSearch !== oldSearch) {
@@ -190,7 +204,7 @@ watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, 
 watch(
     toRef(props, "listArgs"),
     () => {
-        assignReactiveObject(listState.listArgs, props.listArgs, [...Object.keys(listState.filterArgs), "o"]);
+        assignReactiveObject(listState.listArgs, props.listArgs, [...Object.keys(listState.filterArgs), "o", "f"]);
     },
     { deep: true, immediate: true },
 );
@@ -203,13 +217,13 @@ watch(
         Object.entries(listState.filterArgs).forEach(([key, value]) => {
             if (value instanceof Date) {
                 const rawFilterArgs = toRaw(listState.filterArgs);
-                const updatedFilterArgs = { ...rawFilterArgs, [key]: value.toISOString().split("T")[0] };
-                listState.filterArgs = updatedFilterArgs;
+                listState.filterArgs = { ...rawFilterArgs, [key]: value.toISOString().split("T")[0] };
             }
         });
         assignReactiveObject(listState.listArgs, listState.filterArgs, [
             ...Object.keys(props.listArgs),
             "o",
+            "f",
             props.searchKey,
         ]);
     },
@@ -405,7 +419,7 @@ const hasWorkFlow = computedAsync(
             selectable
             :sortables="sorting.state.sortables"
             :sorted="sorting.state.sorted"
-            table-breakpoint="lg"
+            :table-breakpoint="tableBreakpoint"
             :variant="objectGridVariant"
             @update:sorted="sorting.updateSorted"
         >

@@ -65,7 +65,7 @@ const instanceObjectProps = reactive({
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     retrieveArgs: {
         f: computed(() => {
-            return [modelConfig.info?.pk, ...(modelConfig.config?.fields || [])];
+            return [modelConfig.info?.pk, ...(modelConfig.config?.fetchFields || [])];
         }),
         e: computed(() => modelConfig.config?.expands),
     },
@@ -77,7 +77,7 @@ const instanceObject = useObject({
 const modelInitialValues = useModelInitialValues(
     toRef(props, "app"),
     toRef(props, "model"),
-    toRef(() => modelConfig.config?.fields),
+    toRef(() => modelConfig.config?.displayFields),
 );
 
 const formContextProps = reactive({
