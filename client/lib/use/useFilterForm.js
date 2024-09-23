@@ -2,7 +2,8 @@
 import { assignReactiveObject, keyDiff } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
-import { availableFields, availableWidgets, filterExpressions } from "@vueda/utils/filterLookups.js";
+import { filterExpressions } from "@vueda/utils/filterLookups.js";
+import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import { computed, effectScope, reactive, readonly, ref, shallowReactive, shallowRef, toRef, watch } from "vue";

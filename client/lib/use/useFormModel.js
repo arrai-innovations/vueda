@@ -1,6 +1,6 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { availableFields, availableWidgets } from "@vueda/utils/filterLookups.js";
+import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
