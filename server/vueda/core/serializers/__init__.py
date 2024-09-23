@@ -23,7 +23,13 @@ class NoExtraFieldsSerializerMixin:
         if hasattr(self, "initial_data") and self.context.get("view").get_serializer_class() == self.__class__:
             # if the serializer is a nested serializer, we don't want to validate the extra fields
             # because the parent serializer will validate the extra fields.
-            extra_keys_fields = set(self.initial_data.keys()) - set(self.fields.keys())
+            initial_fields = set()
+            for field_name in self.initial_data:
+                # Handle data like cart_items[0]quantity.
+                if field_name.find("[") != -1:
+                    field_name = field_name.split("[")[0]
+                initial_fields.add(field_name)
+            extra_keys_fields = initial_fields - set(self.fields.keys())
             for extra_key in extra_keys_fields:
                 msg = f"Invalid field.  Valid fields are {', '.join(sorted(self.get_fields()))}."
                 if extra_key in errors:
