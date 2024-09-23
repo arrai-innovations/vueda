@@ -40,8 +40,8 @@ const removeRow = (index) => {
                 <Button label="Add" size="small" @click="addRow" />
             </slot>
         </div>
+        <form-chores />
         <hr :class="theme('hr')" />
-        <slot></slot>
         <div v-for="(_, index) in fieldContext.state.value" :key="index" :class="theme('inlineRows')">
             <InlineRow :field-name="fieldContext.state.name" :index="index" @delete-row="removeRow">
                 <template #inline-row-delete="slotProps">
@@ -49,6 +49,5 @@ const removeRow = (index) => {
                 </template>
             </InlineRow>
         </div>
-        <form-chores />
     </div>
 </template>

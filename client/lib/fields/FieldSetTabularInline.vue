@@ -77,6 +77,7 @@ const extraFieldObjects = computed(() => {
         {
             name: `${fieldContext.state.name}__delete`,
             label: "Delete?",
+            value: "Delete",
         },
     ];
 });
@@ -97,7 +98,7 @@ const emptyFieldObject = () => {
     return emptyObject;
 };
 
-const theme = useComputedClasses(vuedaTailwind.FieldSetStackedInline);
+const theme = useComputedClasses(vuedaTailwind.FieldSetTabularInline);
 const onAdd = () => {
     fieldContext.blur();
     fieldContext.state.value = [...fieldContext.state.value, emptyFieldObject()];
@@ -109,13 +110,15 @@ const onDelete = (index) => {
 </script>
 
 <template>
-    <div data-qa="fieldset-tabular-inline">
+    <div :class="theme('root')" data-qa="fieldset-tabular-inline">
         <div :class="theme('inner')">
             <label :class="theme('label')" :for="fieldContext.state.name">
                 <slot name="label">
                     {{ fieldContext.state.label }}
                 </slot>
             </label>
+            <form-chores />
+            <hr :class="theme('hr')" />
             <objects-grid
                 v-bind="$attrs"
                 class="w-full"
@@ -176,17 +179,17 @@ const onDelete = (index) => {
                         :label="field.label"
                         :name="`field(${field.name})`"
                         :theme="theme"
+                        :value="field.value"
                         verb="delete"
                         @click="onDelete(slotProps.rowIndex)"
                     >
-                        <Button text @click="onDelete(slotProps.rowIndex)"> delete </Button>
+                        <Button text @click="onDelete(slotProps.rowIndex)">{{ field.value }}</Button>
                     </slot>
                 </template>
             </objects-grid>
             <slot :class="theme('addButton')" label="Add" name="add-button" verb="add" @click="onAdd">
                 <Button :class="theme('addButton')" label="Add" raised text @click="onAdd" />
             </slot>
-            <form-chores />
         </div>
     </div>
 </template>
