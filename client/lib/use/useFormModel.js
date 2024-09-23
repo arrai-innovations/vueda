@@ -620,6 +620,7 @@ export function useFormModel(props) {
                                         ...omit(expandFieldDetail, ["type"]),
                                         ...(getDefaultFieldsProps(expandFieldDetail) || {}),
                                     },
+                                    ...(deepUnref(modelConfig.config?.fieldProps?.[fieldName]) || {}),
                                     ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
                                     name: fieldName,
                                 };
@@ -629,8 +630,9 @@ export function useFormModel(props) {
                             });
                             widgetProps[fieldName] = computed(() => {
                                 const baseProps = {
-                                    ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
                                     ...(getDefaultWidgetProps(expandFieldDetail) || {}),
+                                    ...(deepUnref(modelConfig.config?.widgetProps?.[fieldName]) || {}),
+                                    ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
                                 };
                                 if (expandFieldDetail.choices) {
                                     if (Array.isArray(expandFieldDetail.choices)) {
@@ -656,52 +658,55 @@ export function useFormModel(props) {
                         throw new Error(`Unknown field ${fieldName} specified for ${props.app}.${props.model}`);
                     }
                     es.run(() => {
-                        if (deepUnref(expands).includes(fieldName)) {
-                            // if (false) {
-                            fieldComponents[fieldName] = computed(() => availableFields.FieldSetStackedInline);
-                            fieldProps[fieldName] = computed(() => {
-                                return {
+                        const expanded = computed(() => deepUnref(expands).includes(fieldName));
+                        fieldComponents[fieldName] = computed(() => {
+                            return (
+                                props.fieldComponents?.[fieldName] ||
+                                (expanded.value
+                                    ? availableFields.FieldSetStackedInline
+                                    : djangoTypeToFieldComponent(fieldDetail))
+                            );
+                        });
+                        fieldProps[fieldName] = computed(() => {
+                            return {
+                                ...{
+                                    // useFormModel resolves type, the fields don't care about the server type.
                                     ...omit(fieldDetail, ["type"]),
-                                    name: fieldName,
-                                };
-                            });
-                        } else {
-                            fieldComponents[fieldName] = computed(() => {
-                                return props.fieldComponents?.[fieldName] || djangoTypeToFieldComponent(fieldDetail);
-                            });
-                            fieldProps[fieldName] = computed(() => {
-                                return {
-                                    ...{
-                                        // useFormModel resolves type, the fields don't care about the server type.
-                                        ...omit(fieldDetail, ["type"]),
-                                        ...(getDefaultFieldsProps(fieldDetail) || {}),
-                                    },
-                                    ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
-                                    name: fieldName,
-                                };
-                            });
-                            widgetComponents[fieldName] = computed(() => {
-                                return props.widgetComponents?.[fieldName] || getDefaultWidget(fieldDetail);
-                            });
-                            widgetProps[fieldName] = computed(() => {
-                                const baseProps = {
-                                    ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
-                                    ...(getDefaultWidgetProps(fieldDetail) || {}),
-                                };
-                                if (fieldDetail.choices) {
-                                    if (Array.isArray(fieldDetail.choices)) {
-                                        baseProps.options = fieldDetail.choices;
-                                    } else {
-                                        baseProps.fieldApp = props.app;
-                                        baseProps.fieldModel = props.model;
-                                        baseProps.app = fieldDetail.appLabel;
-                                        baseProps.model = fieldDetail.model;
-                                        baseProps.fieldName = fieldName;
-                                    }
+                                    ...(getDefaultFieldsProps(fieldDetail) || {}),
+                                },
+                                ...(deepUnref(modelConfig.config?.fieldProps?.[fieldName]) || {}),
+                                ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
+                                name: fieldName,
+                            };
+                        });
+                        widgetComponents[fieldName] = computed(() => {
+                            if (expanded.value) {
+                                return null;
+                            }
+                            return props.widgetComponents?.[fieldName] || getDefaultWidget(fieldDetail);
+                        });
+                        widgetProps[fieldName] = computed(() => {
+                            if (expanded.value) {
+                                return {};
+                            }
+                            const baseProps = {
+                                ...(getDefaultWidgetProps(fieldDetail) || {}),
+                                ...(deepUnref(modelConfig.config?.widgetProps?.[fieldName]) || {}),
+                                ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
+                            };
+                            if (fieldDetail.choices) {
+                                if (Array.isArray(fieldDetail.choices)) {
+                                    baseProps.options = fieldDetail.choices;
+                                } else {
+                                    baseProps.fieldApp = props.app;
+                                    baseProps.fieldModel = props.model;
+                                    baseProps.app = fieldDetail.appLabel;
+                                    baseProps.model = fieldDetail.model;
+                                    baseProps.fieldName = fieldName;
                                 }
-                                return baseProps;
-                            });
-                        }
+                            }
+                            return baseProps;
+                        });
                     });
                 }
                 assignStateObjectsIfChanged({
