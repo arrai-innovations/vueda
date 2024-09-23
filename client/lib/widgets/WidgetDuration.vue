@@ -26,13 +26,13 @@ const durationObject = reactive({
     seconds: 0,
 });
 const valueHour = computed(() => {
-    return widgetContext.state.combinedValue.hours;
+    return widgetContext.state.combinedValue?.hours;
 });
 const valueMinute = computed(() => {
-    return widgetContext.state.combinedValue.minutes;
+    return widgetContext.state.combinedValue?.minutes;
 });
 const valueSecond = computed(() => {
-    return widgetContext.state.combinedValue.seconds;
+    return widgetContext.state.combinedValue?.seconds;
 });
 const updateHour = (newValue) => {
     durationObject.hours = newValue;
