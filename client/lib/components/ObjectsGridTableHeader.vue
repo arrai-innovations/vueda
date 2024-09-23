@@ -1,6 +1,5 @@
 <script setup>
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 
 const props = defineProps({
     field: {
@@ -35,7 +34,7 @@ const props = defineProps({
     },
 });
 
-const theme = useComputedClasses(vuedaTailwind.ObjectsGridTableHeader, props);
+const theme = useTheme("ObjectsGridTableHeader", props);
 </script>
 <template>
     <div :class="theme('root')">

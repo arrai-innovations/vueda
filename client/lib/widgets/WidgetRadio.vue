@@ -1,6 +1,5 @@
 <script setup>
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import RadioButton from "primevue/radiobutton";
@@ -27,7 +26,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useComputedClasses(vuedaTailwind.WidgetRadio, widgetContext.state);
+const theme = useTheme("WidgetRadio", widgetContext.state);
 const computedOptions = computed(() => {
     return props.options.map((option) => {
         return {

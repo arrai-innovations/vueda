@@ -1,8 +1,7 @@
 <script setup>
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import Button from "primevue/button";
 import { inject } from "vue";
@@ -43,7 +42,7 @@ const props = defineProps({
     },
 });
 const formModel = inject(FormModelSymbol, null);
-const theme = useComputedClasses(vuedaTailwind.FieldSetStackedInlineRow);
+const theme = useTheme("FieldSetStackedInlineRow");
 
 const emit = defineEmits(["delete-row"]);
 const onDelete = () => emit("delete-row", props.index);

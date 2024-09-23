@@ -1,6 +1,5 @@
 <script setup>
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { DateTime } from "luxon";
 import { computed, onMounted, onUnmounted, ref, toRef, watch } from "vue";
 
@@ -69,7 +68,7 @@ onUnmounted(() => {
     }
 });
 defineExpose({ parsedValue, relative, absolute });
-const theme = useComputedClasses(vuedaTailwind.DateTimeDisplay, props);
+const theme = useTheme("DateTimeDisplay", props);
 const tooltipTheme = computed(() => toRef(props, "showTooltip") && theme("tooltip"));
 </script>
 

@@ -1,6 +1,5 @@
 <script setup>
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Slider from "primevue/slider";
@@ -21,7 +20,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useComputedClasses(vuedaTailwind.WidgetDatePicker, widgetContext.state);
+const theme = useTheme("WidgetDatePicker", widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">

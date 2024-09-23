@@ -3,10 +3,9 @@ import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import FieldString from "@vueda/fields/FieldString.vue";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import useFilterForm from "@vueda/use/useFilterForm.js";
 import { useForm } from "@vueda/use/useForm.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { filterExpressions } from "@vueda/utils/filterLookups.js";
 import WidgetRadio from "@vueda/widgets/WidgetRadio.vue";
@@ -239,7 +238,7 @@ const displayedWidgetProps = computed(() => {
         filterForm.widgetProps[`${formContext.state.values.filterField}__${formContext.state.values.lookupExpression}`],
     );
 });
-const theme = useComputedClasses(vuedaTailwind.FilterForm, props);
+const theme = useTheme("FilterForm", props);
 </script>
 
 <template>

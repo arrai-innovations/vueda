@@ -1,8 +1,7 @@
 <script setup>
 import FormChores from "@vueda/components/FormChores.vue";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isArray from "lodash-es/isArray.js";
 import Button from "primevue/button";
@@ -44,7 +43,7 @@ const onAdd = () => {
 const onDelete = (index) => {
     fieldContext.state.value = cloneDeep(fieldContext.state.value).filter((_, i) => i !== index);
 };
-const theme = useComputedClasses(vuedaTailwind.FieldSetMany);
+const theme = useTheme("FieldSetMany");
 
 const isEmptyValue = (value) => {
     return value === "";

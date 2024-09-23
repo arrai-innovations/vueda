@@ -3,10 +3,9 @@ import FormChores from "@vueda/components/FormChores.vue";
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
@@ -98,7 +97,7 @@ const emptyFieldObject = () => {
     return emptyObject;
 };
 
-const theme = useComputedClasses(vuedaTailwind.FieldSetTabularInline);
+const theme = useTheme("FieldSetTabularInline");
 const onAdd = () => {
     fieldContext.blur();
     fieldContext.state.value = [...fieldContext.state.value, emptyFieldObject()];

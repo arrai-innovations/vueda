@@ -1,6 +1,5 @@
 <script setup>
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Calendar from "primevue/calendar";
@@ -18,7 +17,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useComputedClasses(vuedaTailwind.WidgetDatePicker, widgetContext.state);
+const theme = useTheme("WidgetDatePicker", widgetContext.state);
 const valueIsArray = computed(() => Array.isArray(widgetContext.state.combinedValue));
 const computedSelectionMode = computed(() =>
     props.selectionMode ? props.selectionMode : valueIsArray.value ? "range" : "single",

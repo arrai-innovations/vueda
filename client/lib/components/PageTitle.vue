@@ -1,7 +1,6 @@
 <script setup>
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 
 const props = defineProps({
     headerClass: {
@@ -25,7 +24,7 @@ const props = defineProps({
         default: true,
     },
 });
-const theme = useComputedClasses(vuedaTailwind.PageTitle, props);
+const theme = useTheme("PageTitle", props);
 </script>
 <template>
     <div :class="theme('root')">

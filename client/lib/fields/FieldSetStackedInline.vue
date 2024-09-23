@@ -1,9 +1,8 @@
 <script setup>
 import FormChores from "@vueda/components/FormChores.vue";
 import InlineRow from "@vueda/components/InlineRow.vue";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import Button from "primevue/button";
 
@@ -16,7 +15,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
-const theme = useComputedClasses(vuedaTailwind.FieldSetStackedInline);
+const theme = useTheme("FieldSetStackedInline");
 
 const addRow = () => {
     fieldContext.blur();

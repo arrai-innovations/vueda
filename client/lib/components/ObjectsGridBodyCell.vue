@@ -1,7 +1,6 @@
 <script setup>
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { useObjectGridCell } from "@vueda/use/useObjectGridCell.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 
 const props = defineProps({
     field: {
@@ -44,7 +43,7 @@ const props = defineProps({
     },
 });
 
-const theme = useComputedClasses(vuedaTailwind.ObjectsGridBodyCell, props);
+const theme = useTheme("ObjectsGridBodyCell", props);
 const { formattedComputed, valueComputed } = useObjectGridCell(props);
 </script>
 <template>

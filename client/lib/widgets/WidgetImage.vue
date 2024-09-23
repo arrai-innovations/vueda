@@ -1,6 +1,5 @@
 <script setup>
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Button from "primevue/button";
@@ -22,7 +21,7 @@ const upload = (e) => {
 const onRemove = () => {
     widgetContext.state.combinedValue = null;
 };
-const theme = useComputedClasses(vuedaTailwind.WidgetImage, widgetContext.state);
+const theme = useTheme("WidgetImage", widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">

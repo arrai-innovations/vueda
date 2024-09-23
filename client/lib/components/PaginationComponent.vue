@@ -1,6 +1,5 @@
 <script setup>
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import Paginator from "primevue/paginator";
 import { ref } from "vue";
 
@@ -24,7 +23,7 @@ const offset = ref(0);
 const onPaginate = async (page) => {
     emit("update:currentPage", page.first / page.rows + 1);
 };
-const theme = useComputedClasses(vuedaTailwind.PaginationComponent, props);
+const theme = useTheme("PaginationComponent", props);
 </script>
 
 <template>

@@ -1,7 +1,6 @@
 <script setup>
 import EmptyComponent from "@vueda/components/EmptyComponent.vue";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import InputGroup from "primevue/inputgroup";
@@ -33,7 +32,7 @@ const inputComponent = computed(
         })[props.type] || InputText,
 );
 
-const theme = useComputedClasses(vuedaTailwind.WidgetInput, widgetContext.state);
+const theme = useTheme("WidgetInput", widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">

@@ -1,8 +1,7 @@
 <script setup>
 import FormChores from "@vueda/components/FormChores.vue";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import omit from "lodash-es/omit.js";
 import { computed, toRef, useAttrs, watch } from "vue";
 
@@ -22,7 +21,7 @@ const props = defineProps({
         default: () => ["lower", "upper"],
     },
 });
-const theme = useComputedClasses(vuedaTailwind.FieldSetRange);
+const theme = useTheme("FieldSetRange");
 const emit = defineEmits([...FIELD_EMITS]);
 
 const fieldContext = useField(props, emit);

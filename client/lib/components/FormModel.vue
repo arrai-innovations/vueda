@@ -66,9 +66,8 @@
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { deepUnref } from "vue-deepunref";
 
 defineOptions({
@@ -152,7 +151,7 @@ const props = defineProps({
 const formModel = useFormModel(props);
 // todo: look into customizability re: overriding field / widget components with arbitrary slot content
 // todo: it would be nice to have a way to layout the fields into fieldsets / grids
-const theme = useComputedClasses(vuedaTailwind.FormModel);
+const theme = useTheme("FormModel");
 </script>
 
 <template>

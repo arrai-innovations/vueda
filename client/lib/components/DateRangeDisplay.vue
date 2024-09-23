@@ -1,6 +1,5 @@
 <script setup>
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { DateTime } from "luxon";
 import { computed } from "vue";
 
@@ -23,7 +22,7 @@ const props = defineProps({
     },
 });
 
-const theme = useComputedClasses(vuedaTailwind.DateRangeDisplay, props);
+const theme = useTheme("DateRangeDisplay", props);
 
 const startDate = computed(() => {
     if (DateTime.isDateTime(props.start)) {

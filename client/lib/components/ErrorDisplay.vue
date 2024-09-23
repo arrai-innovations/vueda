@@ -1,6 +1,5 @@
 <script setup>
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import { formatError } from "@vueda/utils/formatError.js";
 import isArray from "lodash-es/isArray.js";
@@ -78,7 +77,7 @@ const attrs = useAttrs();
 // if there is a dismiss-error event, show the dismiss button
 const showDismiss = computed(() => !!attrs.onDismissError);
 const onDismiss = () => emit("dismiss-error");
-const theme = useComputedClasses(vuedaTailwind.ErrorDisplay, props);
+const theme = useTheme("ErrorDisplay", props);
 </script>
 
 <template>

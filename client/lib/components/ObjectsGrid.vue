@@ -3,8 +3,7 @@ import EmptyComponent from "@vueda/components/EmptyComponent.vue";
 import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import ObjectsGridCardCell from "@vueda/components/ObjectsGridCardCell.vue";
 import ObjectsGridTableHeader from "@vueda/components/ObjectsGridTableHeader.vue";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind";
-import { useComputedClasses } from "@vueda/use/useComputedClasses.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsTailwind } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
 import Checkbox from "primevue/checkbox";
@@ -187,7 +186,7 @@ const themeProps = reactive({
     isTable,
     tableBreakpoint: toRef(props, "tableBreakpoint"),
 });
-const theme = useComputedClasses(vuedaTailwind.ObjectsGrid, themeProps, (key, kwargs) => {
+const theme = useTheme("ObjectsGrid", themeProps, (key, kwargs) => {
     if ("evenCard" in kwargs) {
         return key + (kwargs.evenCard ? "Even" : "Odd");
     }
