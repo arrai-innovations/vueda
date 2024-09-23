@@ -659,6 +659,7 @@ export function useFormModel(props) {
                 for (const field of allFields) {
                     const { fieldName, fieldDetail, baseExpanded, isExpandedField } = field;
                     es.run(() => {
+                        const expanded = computed(() => deepUnref(expands).includes(fieldName));
                         fieldComponents[fieldName] = computed(() => {
                             const component =
                                 props.fieldComponents?.[fieldName] ||

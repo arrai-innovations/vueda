@@ -11,7 +11,7 @@ import { deepUnref } from "vue-deepunref";
 const props = defineProps({
     index: {
         type: Number,
-        required: true,
+        default: undefined,
     },
     fieldName: {
         type: String,
@@ -52,6 +52,9 @@ const getFieldName = (fieldName) => {
     return `${props.fieldName}__${fieldName}`;
 };
 const getFieldPath = (fieldName) => {
+    if (props.index === undefined) {
+        return `${props.fieldName}.${fieldName}`;
+    }
     return `${props.fieldName}[${props.index}].${fieldName}`;
 };
 </script>
@@ -118,9 +121,11 @@ const getFieldPath = (fieldName) => {
         <div v-if="$slots.afterFields" :class="theme('afterFields')">
             <slot name="afterFields" />
         </div>
-        <slot label="Delete" name="inline-row-delete" size="small" verb="delete" @click="onDelete">
-            <Button label="Delete" size="small" @click="onDelete" />
-        </slot>
+        <div v-if="props.index" class="card-header">
+            <slot label="Delete" name="inline-row-delete" size="small" verb="delete" @click="onDelete">
+                <Button label="Delete" size="small" @click="onDelete" />
+            </slot>
+        </div>
     </div>
 </template>
 

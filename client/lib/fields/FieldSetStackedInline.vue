@@ -9,6 +9,10 @@ import Button from "primevue/button";
 
 const props = defineProps({
     ...FIELD_PROPS,
+    many: {
+        type: Boolean,
+        default: true,
+    },
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
@@ -36,13 +40,18 @@ const removeRow = (index) => {
                     {{ fieldContext.state.label }}
                 </div>
             </slot>
-            <slot label="Add" name="inline-add-row" size="small" verb="add" @click="addRow">
-                <Button label="Add" size="small" @click="addRow" />
-            </slot>
+            <div v-if="props.many">
+                <slot label="Add" name="inline-add-row" size="small" verb="add" @click="addRow">
+                    <Button label="Add" size="small" @click="addRow" />
+                </slot>
+            </div>
         </div>
         <form-chores />
         <hr :class="theme('hr')" />
-        <div v-for="(_, index) in fieldContext.state.value" :key="index" :class="theme('inlineRows')">
+        <div v-if="!props.many">
+            <InlineRow :field-name="fieldContext.state.name" />
+        </div>
+        <div v-else v-for="(_, index) in fieldContext.state.value" :key="index" :class="theme('inlineRows')">
             <InlineRow :field-name="fieldContext.state.name" :index="index" @delete-row="removeRow">
                 <template #inline-row-delete="slotProps">
                     <slot :index="index" name="inline-row-delete" v-bind="slotProps" />
