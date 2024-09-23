@@ -514,6 +514,8 @@ const getDefaultFieldsProps = (field) => {
  * @property {{[fieldName:string]: {[key:string]: any}}|undefined} widgetProps - The widget props to use, if different from the default, by field path
  */
 
+const isExpandedFieldName = (fieldName) => fieldName.includes("__");
+
 /**
  * Using server model info and client model config, this hook provides the necessary reactive state for a form model.
  *
@@ -594,76 +596,74 @@ export function useFormModel(props) {
                 const fieldProps = {};
                 const widgetComponents = {};
                 const widgetProps = {};
-                for (const expandName of deepUnref(expands) || []) {
-                    const expandDetail = expandDetails[expandName];
-                    if (!expandDetail) {
-                        throw new Error(`Unknown expand ${expandName} specified for ${props.app}.${props.model}`);
+                const allFields = [];
+                const unrefExpands = deepUnref(expands) || [];
+                let anySpecifiedExpands = false;
+                for (const fieldName of deepUnref(fields) || []) {
+                    const item = {
+                        fieldName,
+                        fieldDetail: fieldDetails[fieldName],
+                        isExpandedField: isExpandedFieldName(fieldName),
+                        baseExpanded: unrefExpands.includes(fieldName),
+                        expandName: null,
+                    };
+                    if (item.isExpandedField) {
+                        anySpecifiedExpands = true;
+                        // we don't deal with nested expands. we might need to in the future
+                        [item.expandName, item.expandFieldName] = fieldName.split("__", 1);
+                        item.expandDetail = expandDetails[item.expandName];
+                        if (!item.expandDetail) {
+                            throw new Error(
+                                `Unknown expand ${item.expandName} specified for ${props.app}.${props.model}`,
+                            );
+                        }
+                        item.fieldDetail = item.expandDetail.f[item.expandFieldName];
+                        if (!item.fieldDetail) {
+                            throw new Error(
+                                `Unknown field ${item.expandFieldName} specified for expand ${item.expandName} on ${props.app}.${props.model}`,
+                            );
+                        }
                     }
-                    if (!expandDetail.f) {
-                        continue;
+                    if (!item.fieldDetail) {
+                        throw new Error(`Unknown field ${fieldName} specified for ${props.app}.${props.model}`);
                     }
-                    for (const [expandFieldName, expandFieldDetail] of Object.entries(expandDetail.f)) {
-                        if (expandFieldName === "pk") {
+                    allFields.push(item);
+                }
+                if (!anySpecifiedExpands && unrefExpands.length) {
+                    // if you didn't ask for any expand fields manually, but you did specify an expands,
+                    //  add all expansion fields
+                    for (const expandName of unrefExpands) {
+                        const baseIndex = allFields.findIndex((item) => item.fieldName === expandName);
+                        if (baseIndex === -1) {
                             continue;
                         }
-                        const fieldName = `${expandName}__${expandFieldName}`;
-                        es.run(() => {
-                            fieldComponents[fieldName] = computed(() => {
-                                return (
-                                    props.fieldComponents?.[fieldName] || djangoTypeToFieldComponent(expandFieldDetail)
-                                );
-                            });
-                            fieldProps[fieldName] = computed(() => {
-                                return {
-                                    ...{
-                                        // useFormModel resolves type, the fields don't care about the server type.
-                                        ...omit(expandFieldDetail, ["type"]),
-                                        ...(getDefaultFieldsProps(expandFieldDetail) || {}),
-                                    },
-                                    ...(deepUnref(modelConfig.config?.fieldProps?.[fieldName]) || {}),
-                                    ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
-                                    name: fieldName,
-                                };
-                            });
-                            widgetComponents[fieldName] = computed(() => {
-                                return props.widgetComponents?.[fieldName] || getDefaultWidget(expandFieldDetail);
-                            });
-                            widgetProps[fieldName] = computed(() => {
-                                const baseProps = {
-                                    ...(getDefaultWidgetProps(expandFieldDetail) || {}),
-                                    ...(deepUnref(modelConfig.config?.widgetProps?.[fieldName]) || {}),
-                                    ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
-                                };
-                                if (expandFieldDetail.choices) {
-                                    if (Array.isArray(expandFieldDetail.choices)) {
-                                        baseProps.options = expandFieldDetail.choices;
-                                    } else {
-                                        // TODO: only widgetModel, WidgetSearchableSelect and widgetAutoComplete need these
-                                        baseProps.fieldApp = expandDetail.app_label;
-                                        baseProps.fieldModel = expandDetail.model;
-                                        baseProps.app = expandFieldDetail.appLabel;
-                                        baseProps.model = expandFieldDetail.model;
-                                        baseProps.fieldName = expandFieldName;
-                                    }
-                                }
-                                return baseProps;
-                            });
-                        });
+                        const baseItem = allFields[baseIndex];
+                        console.log(baseItem);
+                        for (const [expandFieldName, expandFieldDetail] of Object.entries(
+                            expandDetails[expandName].f,
+                        )) {
+                            const fieldName = `${expandName}__${expandFieldName}`;
+                            const item = {
+                                fieldName,
+                                fieldDetail: expandFieldDetail,
+                                isExpandedField: true,
+                                expandName,
+                                expandFieldName,
+                                expandDetail: baseItem.expandDetail,
+                            };
+                            allFields.splice(baseIndex + 1, 0, item);
+                        }
                     }
                 }
 
-                for (const fieldName of deepUnref(fields) || []) {
-                    const fieldDetail = fieldDetails[fieldName];
-                    if (!fieldDetail) {
-                        throw new Error(`Unknown field ${fieldName} specified for ${props.app}.${props.model}`);
-                    }
+                for (const field of allFields) {
+                    const { fieldName, fieldDetail, baseExpanded, isExpandedField } = field;
                     es.run(() => {
-                        const expanded = computed(() => deepUnref(expands).includes(fieldName));
                         fieldComponents[fieldName] = computed(() => {
                             const component =
                                 props.fieldComponents?.[fieldName] ||
                                 modelConfig?.config?.fieldComponents?.[fieldName] ||
-                                (expanded.value && fieldDetail.many
+                                (baseExpanded && fieldDetail.many
                                     ? availableFields.FieldSetStackedInline
                                     : djangoTypeToFieldComponent(fieldDetail));
                             if (typeof component === "string") {
@@ -674,18 +674,16 @@ export function useFormModel(props) {
                         });
                         fieldProps[fieldName] = computed(() => {
                             return {
-                                ...{
-                                    // useFormModel resolves type, the fields don't care about the server type.
-                                    ...omit(fieldDetail, ["type"]),
-                                    ...(getDefaultFieldsProps(fieldDetail) || {}),
-                                },
+                                // useFormModel resolves type, the fields don't care about the server type.
+                                ...omit(fieldDetail, ["type"]),
+                                ...(getDefaultFieldsProps(fieldDetail) || {}),
                                 ...(deepUnref(modelConfig.config?.fieldProps?.[fieldName]) || {}),
                                 ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
                                 name: fieldName,
                             };
                         });
                         widgetComponents[fieldName] = computed(() => {
-                            if (expanded.value) {
+                            if (baseExpanded) {
                                 return null;
                             }
                             const component =
@@ -693,13 +691,13 @@ export function useFormModel(props) {
                                 modelConfig?.config?.widgetComponents?.[fieldName] ||
                                 getDefaultWidget(fieldDetail);
                             if (typeof component === "string") {
-                                // let props and modelConfig not pass actual components
+                                // Allow props and modelConfig to pass component names
                                 return availableWidgets[component];
                             }
                             return component;
                         });
                         widgetProps[fieldName] = computed(() => {
-                            if (expanded.value) {
+                            if (baseExpanded) {
                                 return {};
                             }
                             const baseProps = {
@@ -711,11 +709,20 @@ export function useFormModel(props) {
                                 if (Array.isArray(fieldDetail.choices)) {
                                     baseProps.options = fieldDetail.choices;
                                 } else {
-                                    baseProps.fieldApp = props.app;
-                                    baseProps.fieldModel = props.model;
-                                    baseProps.app = fieldDetail.appLabel;
-                                    baseProps.model = fieldDetail.model;
-                                    baseProps.fieldName = fieldName;
+                                    if (isExpandedField) {
+                                        const { expandDetail, expandFieldName } = field;
+                                        baseProps.fieldApp = expandDetail.app_label;
+                                        baseProps.fieldModel = expandDetail.model;
+                                        baseProps.app = fieldDetail.appLabel;
+                                        baseProps.model = fieldDetail.model;
+                                        baseProps.fieldName = expandFieldName;
+                                    } else {
+                                        baseProps.fieldApp = props.app;
+                                        baseProps.fieldModel = props.model;
+                                        baseProps.app = fieldDetail.appLabel;
+                                        baseProps.model = fieldDetail.model;
+                                        baseProps.fieldName = fieldName;
+                                    }
                                 }
                             }
                             return baseProps;
