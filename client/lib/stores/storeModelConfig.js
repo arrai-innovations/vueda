@@ -23,7 +23,9 @@ import { defineStore } from "pinia";
  * @property {{actionName: import('@vueda/stores/storeModelInfo.js').ActionInfo}} actionDetails - each available action details, by action name
  * @property {{filterName: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - each available filter details, by filter name
  * @property {object} formProps - extra props to pass the form model
+ * @property {{[fieldComponentName:string]: import('@vueda/utils/formLookups.js').FieldComponent}} fieldComponents - overriding components for individual fields
  * @property {object} fieldProps - extra props to pass a field component in a form model
+ * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} widgetComponents - overriding components for individual widgets
  * @property {object} widgetProps - extra props to pass a widget component in a form model
  */
 
@@ -46,7 +48,9 @@ import { defineStore } from "pinia";
  * @property {{actionName: import('@vueda/stores/storeModelInfo.js').ActionInfo}} [actionDetails] - each available action details, by action name
  * @property {{filterName: import('@vueda/stores/storeModelInfo.js').FilterInfo}} [filterableDetails] - each available filter details, by filter name
  * @property {object} [formProps] - extra props to pass the form model
+ * @property {{[fieldComponentName:string]: import('@vueda/utils/formLookups.js').FieldComponent}} [fieldComponents] - overriding components for individual fields
  * @property {object} [fieldProps] - extra props to pass a field component in a form model
+ * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} [widgetComponents] - overriding components for individual widgets
  * @property {object} [widgetProps] - extra props to pass a widget component in a form model
  */
 
@@ -83,7 +87,9 @@ const getDefaultFromModelInfo = (modelInfo) => {
             filterableDetails: cloneDeep(modelInfo.filtering),
             sortablesDetails: cloneDeep(modelInfo.ordering),
             formProps: {},
+            fieldComponents: {},
             fieldProps: {},
+            widgetComponents: {},
             widgetProps: {},
         },
         {},
@@ -115,9 +121,9 @@ const getDefaultFromModelInfo = (modelInfo) => {
 export const storeModelConfig = defineStore({
     id: "modelConfig",
     state: () => ({
-        genericConfigs: {}, // view-independent configs
-        specificConfigs: {}, // view-specific configs
-        builtConfigs: {}, // a cache of merged generic and specific configs
+        genericConfigs: {}, // view-independent config overrides
+        specificConfigs: {}, // view-specific config overrides
+        builtConfigs: {}, // a cache of merged configs, both generic and specific
         initialized: {}, // a cache of promises for getConfig
     }),
     actions: {
@@ -150,38 +156,50 @@ export const storeModelConfig = defineStore({
             const genericKey = getAppModelDotName(args);
             const specificKey = view ? getAppModelViewDotName(args) : null;
             const builtKey = specificKey || genericKey;
-            if (this.builtConfigs[builtKey]) {
+            // if we have a cached builtConfig, return it
+            if (builtKey in this.builtConfigs) {
                 return this.builtConfigs[builtKey];
             }
-            if (this.initialized[builtKey]) {
-                return this.initialized[builtKey]();
+            // if we are building already for this key, return the promise
+            if (builtKey in this.initialized) {
+                return this.initialized[builtKey];
             }
-            this.initialized[builtKey] = async () => {
+            // otherwise, build the config and cache the promise
+            this.initialized[builtKey] = (async () => {
                 const modelInfoStore = storeModelInfo();
                 const modelInfo = await modelInfoStore.fetchModelInfo(args);
                 const [defaultGenericConfig, defaultSpecificConfigs] = getDefaultFromModelInfo(modelInfo);
-                // clone to avoid mutation of original configs
-                const genericConfig = cloneDeep(this.genericConfigs[genericKey] || {});
-                const specificConfig = specificKey ? cloneDeep(this.specificConfigs[specificKey]) || {} : {};
-
+                const defaultSpecificConfig = defaultSpecificConfigs[view] || {};
+                // clone each to avoid mutation of original configs
+                const customGenericConfig = cloneDeep(this.genericConfigs[genericKey] || {});
+                const customSpecificConfig = specificKey ? cloneDeep(this.specificConfigs[specificKey]) || {} : {};
                 const builtConfig = {
                     ...defaultGenericConfig,
-                    ...genericConfig,
-                    ...(view ? defaultSpecificConfigs[view] || {} : {}),
-                    ...specificConfig,
+                    ...customGenericConfig,
+                    ...defaultSpecificConfig,
+                    ...customSpecificConfig,
                 };
-                // if there are any detail field overrides, we need to merge them at the detail property level
+                for (const objectKeyForMerge of ["formProps", "fieldComponents", "widgetComponents"]) {
+                    builtConfig[objectKeyForMerge] = {
+                        ...(defaultGenericConfig[objectKeyForMerge] || {}),
+                        ...(customGenericConfig[objectKeyForMerge] || {}),
+                        ...(defaultSpecificConfig[objectKeyForMerge] || {}),
+                        ...(customSpecificConfig[objectKeyForMerge] || {}),
+                    };
+                }
                 for (const detailName of [
                     "fieldDetails",
                     "expandDetails",
                     "actionDetails",
                     "filterableDetails",
                     "sortableDetails",
+                    "fieldProps",
+                    "widgetProps",
                 ]) {
                     const defaultGenericDetails = defaultGenericConfig[detailName] || {};
-                    const genericDetails = genericConfig?.[detailName] || {};
+                    const genericDetails = customGenericConfig?.[detailName] || {};
                     const defaultSpecificDetails = defaultSpecificConfigs[view]?.[detailName] || {};
-                    const specificDetails = specificConfig?.[detailName] || {};
+                    const specificDetails = customSpecificConfig?.[detailName] || {};
                     if (
                         [defaultGenericDetails, genericDetails, defaultSpecificDetails, specificDetails].filter(
                             identity,
@@ -207,8 +225,8 @@ export const storeModelConfig = defineStore({
                     }
                 }
                 return (this.builtConfigs[builtKey] = builtConfig);
-            };
-            return this.initialized[builtKey]();
+            })();
+            return this.initialized[builtKey];
         },
     },
 });

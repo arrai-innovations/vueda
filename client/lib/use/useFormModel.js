@@ -660,12 +660,17 @@ export function useFormModel(props) {
                     es.run(() => {
                         const expanded = computed(() => deepUnref(expands).includes(fieldName));
                         fieldComponents[fieldName] = computed(() => {
-                            return (
+                            const component =
                                 props.fieldComponents?.[fieldName] ||
-                                (expanded.value
+                                modelConfig?.config?.fieldComponents?.[fieldName] ||
+                                (expanded.value && fieldDetail.many
                                     ? availableFields.FieldSetStackedInline
-                                    : djangoTypeToFieldComponent(fieldDetail))
-                            );
+                                    : djangoTypeToFieldComponent(fieldDetail));
+                            if (typeof component === "string") {
+                                // let props and modelConfig not pass actual components
+                                return availableFields[component];
+                            }
+                            return component;
                         });
                         fieldProps[fieldName] = computed(() => {
                             return {
@@ -683,7 +688,15 @@ export function useFormModel(props) {
                             if (expanded.value) {
                                 return null;
                             }
-                            return props.widgetComponents?.[fieldName] || getDefaultWidget(fieldDetail);
+                            const component =
+                                props.widgetComponents?.[fieldName] ||
+                                modelConfig?.config?.widgetComponents?.[fieldName] ||
+                                getDefaultWidget(fieldDetail);
+                            if (typeof component === "string") {
+                                // let props and modelConfig not pass actual components
+                                return availableWidgets[component];
+                            }
+                            return component;
                         });
                         widgetProps[fieldName] = computed(() => {
                             if (expanded.value) {
