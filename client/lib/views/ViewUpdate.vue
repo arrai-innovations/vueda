@@ -151,7 +151,6 @@ const objectForm = useObjectForm({
     formContext,
     instanceObject,
 });
-
 watch(
     [validAndActive, toRef(instanceObject.state, "loading")],
     ([vAA, loading]) => {
@@ -183,6 +182,12 @@ const combinedWhileText = computed(() =>
               ? "submitting form"
               : "",
 );
+const combinedFormProps = computed(() => {
+    return {
+        ...(modelConfig.config.formProps || {}),
+        ...(props.formProps || {}),
+    };
+});
 const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObject.state.loading));
 const formId = computed(() => `${props.app}-${props.model}-${props.pk}-update`);
 </script>
@@ -273,7 +278,7 @@ const formId = computed(() => `${props.app}-${props.model}-${props.pk}-update`);
                     :view="viewName"
                     :widget-components="widgetComponents"
                     :widget-props="widgetProps"
-                    v-bind="formProps"
+                    v-bind="combinedFormProps"
                 >
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />

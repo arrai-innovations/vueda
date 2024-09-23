@@ -107,6 +107,12 @@ const combinedWhileText = computed(() =>
             ? "submitting form"
             : "",
 );
+const combinedFormProps = computed(() => {
+    return {
+        ...(modelConfig.config.formProps || {}),
+        ...(props.formProps || {}),
+    };
+});
 const formId = `form-${props.app}-${props.model}-${viewName}`;
 </script>
 <template>
@@ -159,7 +165,13 @@ const formId = `form-${props.app}-${props.model}-${viewName}`;
                 :while-text="combinedWhileText"
             />
             <form v-bind="$attrs" :id="formId" @submit.prevent="objectForm.submit">
-                <form-model :app="app" :model="model" :variant="formModelVariant" v-bind="formProps" :view="viewName">
+                <form-model
+                    :app="app"
+                    :model="model"
+                    :variant="formModelVariant"
+                    v-bind="combinedFormProps"
+                    :view="viewName"
+                >
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />
                     </template>
