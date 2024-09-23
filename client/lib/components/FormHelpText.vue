@@ -1,19 +1,12 @@
 <script setup>
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
+import Message from "primevue/message";
 import { computed, inject } from "vue";
 
 const props = defineProps({
     help: {
         type: String,
         default: "",
-    },
-    variant: {
-        type: String,
-        default: "default",
-    },
-    helpClass: {
-        type: [String, Array, Object],
-        default: () => [],
     },
 });
 /** @type {import("@vueda/use/useField.js").FieldContext|null} */
@@ -22,8 +15,6 @@ const computedHelp = computed(() => (props.help?.length ? props.help : fieldCont
 </script>
 <template>
     <slot :help="computedHelp">
-        <div v-if="computedHelp?.length">
-            {{ computedHelp }}
-        </div>
+        <Message v-if="computedHelp?.length" :closable="false" severity="info">{{ computedHelp }}</Message>
     </slot>
 </template>

@@ -19,26 +19,6 @@ const props = defineProps({
         default: null,
         description: "Messages to display, in code: message pairs",
     },
-    variant: {
-        type: String,
-        default: "default",
-    },
-    errorsClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    errorClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    messagesClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    messageClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
 });
 /** @type {import("@vueda/use/useForm.js").FormContext|null} */
 const formContext = inject(FormContextSymbol, null);
@@ -80,7 +60,7 @@ watch(
 <template>
     <template v-if="!isEmpty(feedbackItems)" v-for="message in Object.values(feedbackItems)" :key="message">
         <slot :name="type" v-bind="{ message, type }">
-            <Message :closable="false" :severity="type === 'message' ? 'info' : 'error'">{{ message }}</Message>
+            <Message :closable="false" :severity="type === 'message' ? 'warn' : 'error'">{{ message }}</Message>
         </slot>
     </template>
 </template>
