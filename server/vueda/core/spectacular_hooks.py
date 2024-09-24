@@ -80,4 +80,15 @@ def postprocess_schema_components(result, generator, **kwargs):
                         }
                     ]
 
+                case "vueda.workflow_workflows_list":
+                    method["summary"] = "List workflows"
+                    method["description"] = "Get a list of the available workflows."
+
+                case "vueda.workflow_workflows_retrieve":
+                    method["summary"] = "Get workflow"
+                    method["description"] = (
+                        "Get details about an available workflow.  "
+                        "Currently this contains the same information as list."
+                    )
+
     return result

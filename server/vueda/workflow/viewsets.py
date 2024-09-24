@@ -9,8 +9,6 @@ from rest_framework.response import Response
 
 from vueda.core.decorators import action
 from vueda.core.open_api import conditional_extend_schema_decorator
-from vueda.core.open_api import conditional_extend_schema_func
-from vueda.core.open_api import conditional_extend_schema_view_decorator
 from vueda.core.open_api import conditional_inline_serializer
 from vueda.core.open_api import conditional_open_api_example
 from vueda.core.open_api import conditional_open_api_parameter
@@ -23,18 +21,6 @@ from vueda.workflow.models import Workflow
 from vueda.workflow.serializers import WorkflowSerializer
 
 
-@conditional_extend_schema_view_decorator(
-    list=conditional_extend_schema_func(
-        operation_id="vueda.workflow_workflows_list",
-        description="Get a list of the available workflows.",
-        summary="List workflows",
-    ),
-    retrieve=conditional_extend_schema_func(
-        operation_id="vueda.workflow_workflows_retrieve",
-        description="Get details about an available workflow.  Currently this contains the same information as list.",
-        summary="Get workflow",
-    ),
-)
 class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     queryset = Workflow.objects.all()
     serializer_class = WorkflowSerializer
