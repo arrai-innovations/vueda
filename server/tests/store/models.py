@@ -7,9 +7,7 @@ from django.core.validators import StepValueValidator
 from django.db import models
 from django.db.models import F
 from django.db.models import Max
-from django.db.models import Value
 from django.db.models.functions import Cast
-from django.db.models.functions import Concat
 
 from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
@@ -21,13 +19,19 @@ from vueda.workflow.models import HasWorkflowModelMixin
 class Customer(HasWorkflowModelMixin, VuedaHistoryBaseModel):
     user = models.OneToOneField(get_user_model(), on_delete=models.PROTECT)
 
-    formatted_name = None  # noqa T101 - TODO: Setup generated field as F('user__email')
+    formatted_name = None
 
     class Meta(BaseModelMeta):
         pass
 
-    def __str__(self):
-        return self.user.email
+
+class CustomerData(models.Model):
+    customer = models.OneToOneField(Customer, on_delete=models.DO_NOTHING, related_name="data")
+    formatted_name = models.CharField()
+
+    class Meta:
+        managed = False
+        db_table = "customer_data"
 
 
 class Distributor(VuedaHistoryBaseModel):
@@ -36,16 +40,10 @@ class Distributor(VuedaHistoryBaseModel):
     class Meta(BaseModelMeta):
         pass
 
-    def __str__(self):
-        return self.name
-
 
 class TangibleType(Lookup):
     class Meta(BaseModelMeta):
         pass
-
-    def __str__(self):
-        return self.name
 
 
 class SpecialCare(VuedaBaseModel):
@@ -60,9 +58,6 @@ class SpecialCare(VuedaBaseModel):
 
     class Meta(VuedaBaseModel.Meta):
         pass
-
-    def __str__(self):
-        return self.field_that_contains_the_name
 
 
 class Product(VuedaHistoryBaseModel):
@@ -86,16 +81,10 @@ class Product(VuedaHistoryBaseModel):
             ["distributor", "name"],
         ]
 
-    def __str__(self):
-        return self.name
-
 
 class OptionType(Lookup):
     class Meta(BaseModelMeta):
         pass
-
-    def __str__(self):
-        return self.name
 
 
 class ProductOption(VuedaHistoryBaseModel):
@@ -111,9 +100,6 @@ class ProductOption(VuedaHistoryBaseModel):
     class Meta(BaseModelMeta):
         default_related_name = "product_options"
 
-    def __str__(self):
-        return self.name
-
 
 class Cart(VuedaBaseModel):
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
@@ -122,13 +108,19 @@ class Cart(VuedaBaseModel):
     reserved_until = models.TimeField(null=True)
     expected_delivery_time = models.DurationField(null=True)
 
-    formatted_name = None  # noqa T101 - TODO: Setup generated field as F('customer__user__email')
+    formatted_name = None
 
     class Meta(VuedaBaseModel.Meta):
         pass
 
-    def __str__(self):
-        return self.customer.user.email
+
+class CartData(models.Model):
+    cart = models.OneToOneField(Cart, on_delete=models.DO_NOTHING, related_name="data")
+    formatted_name = models.CharField()
+
+    class Meta:
+        managed = False
+        db_table = "cart_data"
 
 
 class CartItem(VuedaBaseModel):
@@ -136,26 +128,24 @@ class CartItem(VuedaBaseModel):
     product_option = models.ForeignKey(ProductOption, on_delete=models.PROTECT)
     quantity = models.IntegerField(db_default=0)
 
-    # noqa T101 - TODO: Add at the end of the generated field F('product_option__name')
-    formatted_name = models.GeneratedField(
-        expression=Concat(Cast(F("quantity"), output_field=models.CharField()), Value("x ")),
-        output_field=models.CharField(),
-        db_persist=True,
-    )
+    formatted_name = None
 
     class Meta(VuedaBaseModel.Meta):
         default_related_name = "cart_items"
 
-    def __str__(self):
-        return f"{self.quantity}x {self.product_option.name}"
+
+class CartItemData(models.Model):
+    cart_item = models.OneToOneField(CartItem, on_delete=models.DO_NOTHING, related_name="data")
+    formatted_name = models.CharField()
+
+    class Meta:
+        managed = False
+        db_table = "cart_item_data"
 
 
 class OrderState(Lookup):
     class Meta(BaseModelMeta):
         pass
-
-    def __str__(self):
-        return self.name
 
 
 class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryBaseModel):
@@ -176,9 +166,6 @@ class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryBaseModel):
     class Meta(BaseModelMeta):
         permissions = [("fulfill_orders", "Can fulfill orders")]
 
-    def __str__(self):
-        return str(self.order_number)
-
     @classmethod
     def get_next_order_number(cls):
         # This is a poor way to do this, but is sufficient for testing.
@@ -194,20 +181,20 @@ class OrderItem(VuedaBaseModel):
         db_default=0, validators=[validators.MinValueValidator(0), validators.MaxValueValidator(1000)]
     )
 
-    # noqa T101 - TODO: Add at the beginning of the generated field Cast(F('customer_order__order_number'), output_field=models.CharField())
-    # noqa T101 - TODO: Add at the end of the generated field F('product_option__name')
-    formatted_name = models.GeneratedField(
-        expression=Concat(Value(" - "), Cast(F("quantity"), output_field=models.CharField()), Value("x ")),
-        output_field=models.CharField(),
-        db_persist=True,
-    )
+    formatted_name = None
 
     class Meta(VuedaBaseModel.Meta):
         verbose_name = "ORDER item"
         verbose_name_plural = "ORDER items"
 
-    def __str__(self):
-        return f"{self.customer_order.order_number} - {self.quantity}x {self.product_option.name}"
+
+class OrderItemData(models.Model):
+    order_item = models.OneToOneField(OrderItem, on_delete=models.DO_NOTHING, related_name="data")
+    formatted_name = models.CharField()
+
+    class Meta:
+        managed = False
+        db_table = "order_item_data"
 
 
 class InventoryRecordReason(VuedaBaseModel):
@@ -220,9 +207,6 @@ class InventoryRecordReason(VuedaBaseModel):
         unique_together = ("code", "is_added_reason")
         verbose_name = "inventory entry reason"
         verbose_name_plural = "inventory entry reasons"
-
-    def __str__(self):
-        return self.name
 
 
 # No history on inventory, since we only add records.
@@ -257,23 +241,17 @@ class InventoryRecord(VuedaBaseModel):
     price = models.DecimalField(max_digits=12, decimal_places=2, null=True)
     margin = models.DecimalField(max_digits=12, decimal_places=2, null=True)
 
-    # noqa T101 - TODO: Add at the beginning of the generated field, after I figure out how to get dates to work. Cast(F("when"), models.CharField())
-    # noqa T101 - TODO: Add at the middle of the generated field F('reason__name')
-    # noqa T101 - TODO: Add at the end of the generated field F('product_option__name')
-    formatted_name = models.GeneratedField(
-        expression=Concat(
-            Value(" - "),
-            Value(" "),
-            Cast(F("quantity"), output_field=models.CharField()),
-            Value("x "),
-        ),
-        output_field=models.CharField(),
-        db_persist=True,
-    )
+    formatted_name = None
 
     class Meta(VuedaBaseModel.Meta):
         verbose_name = "inventory entry"
         verbose_name_plural = "inventory entries"
 
-    def __str__(self):
-        return f"{self.when} - {self.reason.name} {self.quantity}x {self.product_option.name}"
+
+class InventoryRecordData(models.Model):
+    inventory_record = models.OneToOneField(InventoryRecord, on_delete=models.DO_NOTHING, related_name="data")
+    formatted_name = models.CharField()
+
+    class Meta:
+        managed = False
+        db_table = "inventory_record_data"
