@@ -33,6 +33,7 @@ isort = "==5.13.2"
 # other
 black = "==24.4.2"
 django_extensions = "==3.2.3"
+django-view-manager = "1.0.4"
 coverage = ">=7.3.3"
 ipdb = ">=0.13.13"
 md-toc = ">=8.2.2"

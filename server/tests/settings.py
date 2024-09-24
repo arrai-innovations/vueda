@@ -33,6 +33,7 @@ LOCAL_APPS = [
     "tests.workflow_changed.apps.WorkflowChangedConfig",
     "tests.workflow_deleted.apps.WorkflowDeletedConfig",
     "tests.workflow_multi.apps.WorkflowMultiConfig",
+    "django_view_manager.utils",
 ]
 
 # noinspection PyUnresolvedReferences
