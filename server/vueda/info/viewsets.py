@@ -2,7 +2,9 @@ import collections
 import operator
 
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import CharField
 from django.db.models import F
+from django.db.models.functions.comparison import Cast
 from django.utils.functional import cached_property
 from rest_framework import generics
 from rest_framework import mixins
@@ -251,14 +253,42 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
         if hasattr(self, "choices_must_raise"):
             raise ValidationError(f"Invalid field '{self.choices_field}'.")
 
-        choices = []
-        for value, label in sorted(fields[self.choices_field].choices.items(), key=lambda x: operator.itemgetter(1)(x)):
-            choices.append(
-                {
-                    "label": label,
-                    "value": str(value),  # Convert ints to strings.
-                }
+        field = fields[self.choices_field]
+
+        if hasattr(field, "child_relation"):
+            queryset = field.child_relation.queryset
+            choices = (
+                queryset.filter(pk__in=field.choices.keys())
+                .annotate(label=F("formatted_name"), value=Cast(F("pk"), output_field=CharField()))
+                .order_by("label")
+                .values("label", "value")
             )
+
+        elif hasattr(field, "queryset"):
+            queryset = field.queryset
+
+            formatted_name = getattr(queryset.model, "formatted_name_lookup_expression", None)
+            if isinstance(formatted_name, str) and "__" in formatted_name:
+                formatted_name_lookup_expression = formatted_name
+            else:
+                formatted_name_lookup_expression = "formatted_name"
+
+            choices = (
+                queryset.filter(pk__in=field.choices.keys())
+                .annotate(label=F(formatted_name_lookup_expression), value=Cast(F("pk"), output_field=CharField()))
+                .order_by("label")
+                .values("label", "value")
+            )
+
+        else:
+            choices = []
+            for value, label in sorted(field.choices.items(), key=operator.itemgetter(1)):
+                choices.append(
+                    {
+                        "label": label,
+                        "value": str(value),  # Convert ints to strings.
+                    }
+                )
 
         return ChoicesQueryset(choices, self.choices_queryset_model)
 
