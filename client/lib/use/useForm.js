@@ -409,6 +409,8 @@ const removeIgnore = (state, name) => {
  * @property {(name: string) => void} blur - Blur a field.
  * @property {(name: string) => void} ignore - Ignore a field.
  * @property {(name: string) => void} removeIgnore - remove ignoring a field.
+ * @property {(name: string) => void} setModified - mark a field as modified.
+ * @property {(name: string) => void} clearModified - clear modified mark of a field.
  */
 
 /**
@@ -539,6 +541,8 @@ export function useForm(props) {
         reset: reset.bind(null, state),
         ignore: ignore.bind(null, state),
         removeIgnore: removeIgnore.bind(null, state),
+        setModified: setModified.bind(null, state),
+        clearModified: clearModified.bind(null, state),
     };
     provide(FormContextSymbol, formContext);
     return formContext;

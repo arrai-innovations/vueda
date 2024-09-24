@@ -268,7 +268,7 @@ const theme = useTheme("ObjectsGrid", themeProps, (key, kwargs) => {
                         <template #value>
                             <slot
                                 :emit-selected="(e) => emit('update:selected', e)"
-                                name="field(selected_)"
+                                :name="`field(selected_)${rowIndex}`"
                                 :obj="obj"
                                 :pk="obj?.[pkKey]"
                                 :pk-key="pkKey"
@@ -303,7 +303,7 @@ const theme = useTheme("ObjectsGrid", themeProps, (key, kwargs) => {
                         <template #value>
                             <slot
                                 :emit-selected="(e) => emit('update:selected', e)"
-                                name="field(selected_)"
+                                :name="`field(selected_)${rowIndex}`"
                                 :obj="obj"
                                 :pk="obj?.[pkKey]"
                                 :pk-key="pkKey"

@@ -106,8 +106,10 @@ export function onBeforeFieldUnmount(fieldContext) {
  *  fields as touched automatically.
  * @property {() => void} focus - Focus on the field.
  * @property {() => void} blur - Blur the field.
- * @property {() => void} ignore - Ignore the field.
- * @property {() => void} removeIgnore - Remove ignoring the field.
+ * @property {(name:string|undefined) => void} ignore - Ignore the field.
+ * @property {(name:string|undefined) => void} removeIgnore - Remove ignoring the field.
+ * @property {() => void} setModified - mark a field as modified.
+ * @property {() => void} clearModified - clear modified mark of a field.
  */
 
 /**
@@ -263,9 +265,11 @@ export function useField(props, emit, functions) {
         clearTouched: ifFormContext(() => formContext.clearTouched(state.name)),
         focus: ifFormContext(() => formContext.focus(state.name)),
         blur: ifFormContext(() => formContext.blur(state.name)),
-        ignore: ifFormContext(() => formContext.ignore(state.name)),
-        removeIgnore: ifFormContext(() => formContext.removeIgnore(state.name)),
+        ignore: ifFormContext((name = state.name) => formContext.ignore(name)),
+        removeIgnore: ifFormContext((name = state.name) => formContext.removeIgnore(name)),
         deleteValue: ifFormContext(() => formContext.deleteValue(state.name)),
+        setModified: ifFormContext(() => formContext.setModified(state.name)),
+        clearModified: ifFormContext(() => formContext.clearModified(state.name)),
     };
     provide(FieldContextSymbol, returnObj);
     return returnObj;

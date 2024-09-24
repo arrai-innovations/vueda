@@ -47,7 +47,7 @@ export const getFieldInitialValue = (fieldDetail) => {
     if (fieldDetail.many) {
         return undefined;
     }
-    return builtInTypes[fieldDetail.type];
+    return builtInTypes[fieldDetail.typeModel];
 };
 /**
  * @typedef {import("vue").DeepReadonly<import("vue").Ref<{[key: string]: any}>>} InitialValues
