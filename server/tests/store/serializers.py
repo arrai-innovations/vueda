@@ -25,6 +25,7 @@ class CustomerSerializer(VuedaHistorySerializer):
     user = serializers.PrimaryKeyRelatedField(
         queryset=get_user_model().objects.filter(is_system=False),
     )
+    formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
 
     class Meta(VuedaHistorySerializer.Meta):
         model = Customer
@@ -193,6 +194,8 @@ class ProductOptionSerializer(VuedaHistorySerializer):
 
 
 class CartSerializer(VuedaSerializer):
+    formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
+
     class Meta(VuedaSerializer.Meta):
         model = Cart
         fields = [
@@ -226,6 +229,8 @@ class CartSerializer(VuedaSerializer):
 
 
 class CartItemSerializer(VuedaSerializer):
+    formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
+
     class Meta(VuedaSerializer.Meta):
         model = CartItem
         fields = [
@@ -309,6 +314,8 @@ class CustomerOrderSerializer(VuedaHistorySerializer):
 
 
 class OrderItemSerializer(VuedaSerializer):
+    formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
+
     class Meta(VuedaSerializer.Meta):
         model = OrderItem
         fields = [
@@ -361,6 +368,8 @@ class InventoryRecordReasonSerializer(VuedaSerializer):
 
 
 class InventoryRecordSerializer(VuedaSerializer):
+    formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
+
     class Meta(VuedaSerializer.Meta):
         model = InventoryRecord
         fields = [
