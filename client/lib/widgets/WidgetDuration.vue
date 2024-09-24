@@ -10,6 +10,18 @@ defineOptions({
 });
 const props = defineProps({
     ...WIDGET_PROPS,
+    showDays: {
+        type: Boolean,
+        default: false,
+    },
+    showHours: {
+        type: Boolean,
+        default: true,
+    },
+    showMinutes: {
+        type: Boolean,
+        default: false,
+    },
     showSeconds: {
         type: Boolean,
         default: false,
@@ -20,9 +32,13 @@ const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetDuration", widgetContext.state);
 
 const durationObject = reactive({
+    days: 0,
     hours: 0,
     minutes: 0,
     seconds: 0,
+});
+const valueDay = computed(() => {
+    return widgetContext.state.combinedValue?.days;
 });
 const valueHour = computed(() => {
     return widgetContext.state.combinedValue?.hours;
@@ -33,6 +49,11 @@ const valueMinute = computed(() => {
 const valueSecond = computed(() => {
     return widgetContext.state.combinedValue?.seconds;
 });
+const updateDay = (newValue) => {
+    durationObject.days = newValue;
+    widgetContext.state.combinedValue = durationObject;
+};
+
 const updateHour = (newValue) => {
     durationObject.hours = newValue;
     widgetContext.state.combinedValue = durationObject;
@@ -54,7 +75,18 @@ const updateSecond = (newValue) => {
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
-                <div :class="theme('innerItem')">
+                <div v-if="showDays" :class="theme('innerItem')">
+                    <InputNumber
+                        :max="365"
+                        :min="0"
+                        :model-value="valueDay"
+                        show-buttons
+                        suffix=" days"
+                        @update:model-value="(newValue) => updateDay(newValue)"
+                    >
+                    </InputNumber>
+                </div>
+                <div v-if="showHours" :class="theme('innerItem')">
                     <InputNumber
                         :max="60"
                         :min="0"
@@ -65,7 +97,7 @@ const updateSecond = (newValue) => {
                     >
                     </InputNumber>
                 </div>
-                <div :class="theme('innerItem')">
+                <div v-if="showMinutes" :class="theme('innerItem')">
                     <InputNumber
                         :max="60"
                         :min="0"

@@ -26,22 +26,25 @@ const props = defineProps({
 const emit = defineEmits([...FIELD_EMITS]);
 
 const parseDuration = (durationString) => {
-    const match = durationString.match(/^(\d{2}):(\d{2}):(\d{2})$/);
+    const match = durationString.match(/^(?:(\d+)\s+)?(\d{2}):(\d{2}):(\d{2})$/);
     if (match) {
         return {
-            hours: parseInt(match[1], 10),
-            minutes: parseInt(match[2], 10),
-            seconds: parseInt(match[3], 10),
+            days: parseInt(match[1] || "0", 10),
+            hours: parseInt(match[2], 10),
+            minutes: parseInt(match[3], 10),
+            seconds: parseInt(match[4], 10),
         };
     }
     return null;
 };
 
 const convertDurationToString = (durationObject) => {
-    const hours = String(durationObject.hours).padStart(2, "0");
-    const minutes = String(durationObject.minutes).padStart(2, "0");
-    const seconds = String(durationObject.seconds).padStart(2, "0");
-    return `${hours}:${minutes}:${seconds}`;
+    const padWithZero = (num) => String(num).padStart(2, "0");
+    const days = durationObject.days;
+    const hours = padWithZero(durationObject.hours);
+    const minutes = padWithZero(durationObject.minutes);
+    const seconds = padWithZero(durationObject.seconds);
+    return `${days} ${hours}:${minutes}:${seconds}`;
 };
 const preprocessGet = (value) => {
     if (isString(value)) {
