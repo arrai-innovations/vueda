@@ -195,6 +195,7 @@ class ProductOptionSerializer(VuedaHistorySerializer):
 
 class CartSerializer(VuedaSerializer):
     formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
+    cart_items = serializers.PrimaryKeyRelatedField(queryset=CartItem.objects.all(), many=True)
 
     class Meta(VuedaSerializer.Meta):
         model = Cart
@@ -217,6 +218,7 @@ class CartSerializer(VuedaSerializer):
             "cart_items": (
                 "tests.store.serializers.CartItemSerializer",
                 {
+                    "many": True,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
                         "id",
                         "product_option",
