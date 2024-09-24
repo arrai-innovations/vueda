@@ -10,7 +10,7 @@ import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
-import { computed, inject } from "vue";
+import { computed, inject, ref } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -71,20 +71,6 @@ const fieldObjects = computed(() => {
         : [];
 });
 
-const extraFieldObjects = computed(() => {
-    return [
-        {
-            name: `${fieldContext.state.name}__delete`,
-            label: "Delete?",
-            value: "Delete",
-        },
-    ];
-});
-
-const computedFieldObjects = computed(() => {
-    return [...fieldObjects.value, ...extraFieldObjects.value];
-});
-
 const emptyFieldObject = () => {
     const emptyObject = {};
     if (Array.isArray(fieldObjects.value)) {
@@ -97,15 +83,40 @@ const emptyFieldObject = () => {
     return emptyObject;
 };
 
+const selected = ref([]);
+const theme = useComputedClasses(vuedaTailwind.FieldSetTabularInline);
 const theme = useTheme("FieldSetTabularInline");
 const onAdd = () => {
     fieldContext.blur();
     fieldContext.state.value = [...fieldContext.state.value, emptyFieldObject()];
 };
-const onDelete = (index) => {
+
+const handleSelected = (selected_) => {
+    const added = selected_.filter((i) => !selected.value.includes(i));
+    const removed = selected.value.filter((i) => !selected_.includes(i));
+    added.forEach((i) => {
+        const index = fieldContext.state.value.findIndex((obj) => obj.id === i);
+        fieldContext.ignore(`${fieldContext.state.name}[${index}]`);
+    });
+    removed.forEach((i) => {
+        const index = fieldContext.state.value.findIndex((obj) => obj.id === i);
+        fieldContext.removeIgnore(`${fieldContext.state.name}[${index}]`);
+    });
+    selected.value = selected_;
+    if (selected_.length) {
+        fieldContext.setModified();
+    } else {
+        fieldContext.clearModified();
+    }
+};
+
+const removeObject = (index) => {
     fieldContext.blur();
     fieldContext.state.value = cloneDeep(fieldContext.state.value).filter((_, i) => i !== index);
 };
+const objectsInOrder = computed(() => {
+    return fieldContext.state.value;
+});
 </script>
 
 <template>
@@ -123,11 +134,19 @@ const onDelete = (index) => {
                 class="w-full"
                 data-qa="fieldset-tabular-inline-objects-grid"
                 :empty-text="null"
-                :fields="computedFieldObjects"
-                :objects-in-order="fieldContext.state.value"
+                :fields="fieldObjects"
+                :objects-in-order="objectsInOrder"
+                selectable
+                :selected="selected"
                 table-breakpoint="lg"
                 :variant="props.objectGridVariant"
+                @update:selected="handleSelected"
             >
+                <template #header(selected_)> Delete? </template>
+                <template v-for="(obj, rowIndex) in objectsInOrder" :key="obj.id" #[`field(selected_)${rowIndex}`]>
+                    <Button v-if="!obj.id" label="delete" text @click="removeObject(rowIndex)"></Button>
+                </template>
+
                 <template v-for="field in fieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
                     <slot
                         :field-class="theme('field')"
@@ -170,19 +189,6 @@ const onDelete = (index) => {
                                 <form-feedback type="message" />
                             </div>
                         </component>
-                    </slot>
-                </template>
-                <template v-for="field in extraFieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
-                    <slot
-                        :field-class="theme('field')"
-                        :label="field.label"
-                        :name="`field(${field.name})`"
-                        :theme="theme"
-                        :value="field.value"
-                        verb="delete"
-                        @click="onDelete(slotProps.rowIndex)"
-                    >
-                        <Button text @click="onDelete(slotProps.rowIndex)">{{ field.value }}</Button>
                     </slot>
                 </template>
             </objects-grid>
