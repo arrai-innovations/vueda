@@ -104,7 +104,6 @@ workflows:
                   name: flake8
                   context: arrai-global
                   executor: python311-base
-                  flake8_cmd: pflake8
                   filters:
                       branches:
                           only:
@@ -113,7 +112,6 @@ workflows:
             - flake8/flake8_pipenv:
                   name: flake8-no-badge
                   executor: python311-base
-                  flake8_cmd: pflake8
                   create_badges: false
                   filters:
                       branches:

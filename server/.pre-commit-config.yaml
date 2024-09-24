@@ -36,10 +36,11 @@ repos:
       hooks:
           - id: isort
 
-    - repo: https://github.com/csachs/pyproject-flake8
-      rev: v6.1.0 # sync with pipenv Pipfile
+    - repo: https://github.com/pycqa/flake8
+      rev: 6.1.0 # sync with pipenv Pipfile
       hooks:
-          - id: pyproject-flake8
+          - id: flake8
+            args: ["--toml-config", "pyproject.toml"]
             # sync with pipenv Pipfile
             additional_dependencies:
                 [
