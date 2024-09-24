@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers as drf_serializers
 
@@ -49,7 +50,7 @@ class WorkflowSerializer(
         match operation_id:
             case "vueda.workflow_workflows_list":
                 for index, existing_parameter in reversed(tuple(enumerate(parameters))):
-                    if existing_parameter["name"] in ("app_label", "model"):
+                    if existing_parameter["name"] in ("app_label", "model", settings.REST_FLEX_FIELDS["EXPAND_PARAM"]):
                         parameters.pop(index)
 
             case "vueda.workflow_workflows_retrieve":
@@ -60,7 +61,6 @@ class WorkflowSerializer(
                                 {
                                     "description": "The name of the application the model is part of.",
                                     "example": "store",
-                                    # 'schema': {'pattern': '^[a-zA-Z0-9_]+$'},
                                 }
                             )
 
@@ -71,5 +71,14 @@ class WorkflowSerializer(
                                     "example": "product",
                                 }
                             )
+
+            case (
+                "vueda.workflow_workflows_object_transitions"
+                | "vueda.workflow_workflows_object_state"
+                | "vueda.workflow_workflows_execute_transition"
+            ):
+                for index, existing_parameter in reversed(tuple(enumerate(parameters))):
+                    if existing_parameter["name"] in (settings.REST_FLEX_FIELDS["EXPAND_PARAM"],):
+                        parameters.pop(index)
 
         return parameters
