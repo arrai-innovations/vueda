@@ -27,7 +27,7 @@ repos:
             files: ^.circleci/config.yml$
 
     - repo: https://github.com/psf/black
-      rev: 24.4.2 # sync with pipenv Pipfile
+      rev: 24.8.0 # sync with pipenv Pipfile
       hooks:
           - id: black
 

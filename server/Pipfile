@@ -31,7 +31,7 @@ wheel = ">=0.42.0,<1"
 # sync with .pre-commit-config.yaml
 isort = "==5.13.2"
 # other
-black = "==24.4.2"
+black = "==24.8.0"
 django_extensions = "==3.2.3"
 django-view-manager = "1.0.4"
 coverage = ">=7.3.3"
