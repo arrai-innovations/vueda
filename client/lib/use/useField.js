@@ -68,7 +68,9 @@ export function onBeforeFieldUnmount(fieldContext) {
     return onBeforeUnmount(() => {
         fieldContext.deleteError(undefined);
         fieldContext.deleteMessage(undefined);
-        fieldContext.deleteValue();
+        //  this was here because the filter form was using the same field component for different filters.
+        // needed to clean up the values each time switch filter
+        // fieldContext.deleteValue();
     });
 }
 /**
@@ -165,6 +167,7 @@ export function useField(props, emit, functions) {
                       return functions?.preprocessGet ? functions.preprocessGet(value) : value;
                   },
                   set: (newValue) => {
+                      console.log("formContext: ", formContext);
                       if (functions?.preprocessSet) {
                           newValue = functions.preprocessSet(newValue);
                       }

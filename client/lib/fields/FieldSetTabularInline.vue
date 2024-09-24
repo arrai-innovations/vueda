@@ -84,11 +84,10 @@ const emptyFieldObject = () => {
 };
 
 const selected = ref([]);
-const theme = useComputedClasses(vuedaTailwind.FieldSetTabularInline);
 const theme = useTheme("FieldSetTabularInline");
 const onAdd = () => {
     fieldContext.blur();
-    fieldContext.state.value = [...fieldContext.state.value, emptyFieldObject()];
+    fieldContext.state.value = [...cloneDeep(fieldContext.state.value), emptyFieldObject()];
 };
 
 const handleSelected = (selected_) => {
