@@ -25,12 +25,12 @@ from vueda.workflow.serializers import WorkflowSerializer
 
 @conditional_extend_schema_view_decorator(
     list=conditional_extend_schema_func(
-        operation_id="workflowList",
+        operation_id="vueda.workflow_workflows_list",
         description="Get a list of the available workflows.",
         summary="List workflows",
     ),
     retrieve=conditional_extend_schema_func(
-        operation_id="workflowRetrieve",
+        operation_id="vueda.workflow_workflows_retrieve",
         description="Get details about an available workflow.  Currently this contains the same information as list.",
         summary="Get workflow",
     ),
@@ -63,7 +63,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         return super().check_permissions(request)
 
     @conditional_extend_schema_decorator(
-        operation_id="objectState",
+        operation_id="vueda.workflow_workflows_object_state",
         description="Get the current state for an object.",
         parameters=[conditional_open_api_parameter("object_id", conditional_open_api_types().STR, location="path")],
         summary="Get object state",
@@ -180,7 +180,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         return Response(response_data)
 
     @conditional_extend_schema_decorator(
-        operation_id="objectTransitions",
+        operation_id="vueda.workflow_workflows_object_transitions",
         description="Get the available transitions for an object.",
         parameters=[conditional_open_api_parameter("object_id", conditional_open_api_types().STR, location="path")],
         summary="List object transitions",
@@ -203,7 +203,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         return Response(list(instance.available_transitions(request.user).order_by("name").values("code", "name")))
 
     @conditional_extend_schema_decorator(
-        operation_id="executeTransition",
+        operation_id="vueda.workflow_workflows_execute_transition",
         description="Execute an available transition for an object.",
         parameters=[conditional_open_api_parameter("object_id", conditional_open_api_types().STR, location="path")],
         summary="Execute object transition",
