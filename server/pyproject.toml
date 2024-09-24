@@ -56,10 +56,6 @@ include = ["vueda*"]
 dependencies = { file = "requirements.txt" }
 version = { attr = "vueda.__version__" }
 
-# This might require revisiting when distutils is removed.
-[tool.distutils.bdist_wheel]
-universal = true
-
 [tool.flake8]
 enable-extensions='G' # Enables flake8-logging-format
 exclude = ".git,*/static/CACHE/*,docs,node_modules,*venv*"
