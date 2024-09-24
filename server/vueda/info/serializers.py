@@ -3,6 +3,7 @@ import inspect
 from collections.abc import Iterable
 
 import django_filters
+from django.conf import settings
 from django.contrib.admin.utils import get_fields_from_path
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -740,6 +741,36 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     filtering_data[filter_name].update(extra_data)
 
         return filtering_data
+
+    def get_schema_operation_parameters(self, operation_id, parameters=()):
+        parameters = super().get_schema_operation_parameters(operation_id, parameters)
+
+        match operation_id:
+            case "vueda.info_model_info_list":
+                for index, existing_parameter in reversed(tuple(enumerate(parameters))):
+                    if existing_parameter["name"] in ("app_label", "model", settings.REST_FLEX_FIELDS["EXPAND_PARAM"]):
+                        parameters.pop(index)
+
+            case "vueda.info_model_info_retrieve":
+                for existing_parameter in parameters:
+                    match existing_parameter["name"]:
+                        case "app_label":
+                            existing_parameter.update(
+                                {
+                                    "description": "The name of the application the model is part of.",
+                                    "example": "store",
+                                }
+                            )
+
+                        case "model":
+                            existing_parameter.update(
+                                {
+                                    "description": "The name of the model class.",
+                                    "example": "product",
+                                }
+                            )
+
+        return parameters
 
 
 class ModelInfoChoicesSerializer(

@@ -168,6 +168,85 @@ class VuedaExpandableFieldsSerializerMixin:
 
         return expands_data
 
+    def get_model_fields_data(self, serializer):
+        return {}
+
+    def get_schema_operation_parameters(self, operation_id, parameters):
+        expandable_fields = self.get_schema_expandable_fields()
+
+        enums = set()
+        for expandable_field in expandable_fields:
+            name = expandable_field["name"]
+            enums.add(name)
+
+        if enums:
+            parameters.append(
+                {
+                    "name": settings.REST_FLEX_FIELDS["EXPAND_PARAM"],
+                    "required": False,
+                    "in": "query",
+                    "description": "Expandable Fields: Replaces simple values with complex, nested serializations.",
+                    "schema": {
+                        "title": "Expandable Fields",
+                        "type": "array of strings",
+                        "enum": sorted(enums),
+                    },
+                }
+            )
+
+        return parameters
+
+    def get_schema_expandable_fields(self):
+        meta = self.Meta if hasattr(self, "Meta") else None
+        expandable_fields = meta.expandable_fields if hasattr(meta, "expandable_fields") else {}
+
+        expands_data = []
+
+        for field_name, field_data in expandable_fields.items():
+            expand_item = {
+                "name": field_name,
+            }
+
+            # noqa T101 - TODO: Do a system check for the expandable fields syntax.
+            if isinstance(field_data, tuple):  # flex fields only deals with tuples, not lists.
+                field_serializer, expand_options = field_data
+            else:
+                field_serializer = field_data
+                expand_options = {}
+
+            # Copied to deal with serializer strings.
+            # https://github.com/rsinger86/drf-flex-fields/blob/9dd6a9140fd6d2ffe1baf9ab1ffc728540dea84d/
+            #   rest_flex_fields/serializers.py#L127-L130
+            if type(field_serializer) == str:  # noqa E721
+                field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
+
+            if not inspect.isclass(field_serializer):
+                raise ValidationError(
+                    "This is not a valid `expandable_fields` definition. It must be a tuple of a Serializer/Field"
+                    " class and options, or simply a Serializer/Field Class.",
+                    {"name": field_name},
+                )
+
+            if hasattr(field_serializer, "Meta") and hasattr(field_serializer.Meta, "model"):
+                app_label = field_serializer.Meta.model._meta.app_label
+                model_name = field_serializer.Meta.model._meta.model_name
+                expand_item["app_label"] = app_label
+                expand_item["model"] = model_name
+                field_data = self.get_model_fields_data(field_serializer)
+
+            if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expand_options:
+                # We need to call tuple, as we are modifying the dictionary.
+                for field_name in tuple(field_data):
+                    if field_name == "pk":  # Always keep the pk.
+                        continue
+                    if field_name not in expand_options[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]:
+                        del field_data[field_name]
+            expand_item[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = field_data
+
+            expands_data.append(expand_item)
+
+        return expands_data
+
 
 class VuedaSerializer(
     NoExtraFieldsSerializerMixin,

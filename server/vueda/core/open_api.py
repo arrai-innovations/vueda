@@ -1,13 +1,18 @@
-from copy import deepcopy
+from typing import List
+from typing import Optional
 
-from rest_framework import serializers
-
-from vueda.info.registration import get_registered_content_types
-from vueda.info.serializers import METHOD_MAPPING
+from django.conf import settings
+from drf_spectacular.openapi import AutoSchema as SpectacularAutoSchema
+from drf_spectacular.plumbing import ComponentRegistry
+from drf_spectacular.plumbing import build_serializer_context
+from drf_spectacular.utils import _SchemaType
+from rest_framework.generics import GenericAPIView
+from rest_framework.views import APIView
 
 
 # These decorators and functions exist, so drf-spectacular can remain a
 # dev package, but we can still decorate things for open api generation.
+# But, if we can, we should do everything we can by using VuedaAutoSchema.
 
 
 # Decorators
@@ -193,167 +198,139 @@ def conditional_inline_serializer(*args, **kwargs):
     return inline_serializer(*args, **kwargs)
 
 
-class ModelBase:
-    def _get_instance(self, serializer):
-        content_types = get_registered_content_types()
-        return serializer.Meta.model.objects.get(pk=tuple(content_types)[0])
+class VuedaAutoSchema(SpectacularAutoSchema):
+    def _get_vueda_serializer(self):
+        """
+        Code taken from drf_spectacular/openapi.py _get_serializer, without the errors.
+        """
+        view = self.view
+        context = build_serializer_context(view)
+        try:
+            if isinstance(view, GenericAPIView):
+                # try to circumvent queryset issues with calling get_serializer. if view has NOT
+                # overridden get_serializer, its safe to use get_serializer_class.
+                if view.__class__.get_serializer == GenericAPIView.get_serializer:
+                    return view.get_serializer_class()(context=context)
+                return view.get_serializer(context=context)
+            elif isinstance(view, APIView):
+                # APIView does not implement the required interface, but be lenient and make
+                # good guesses before giving up and emitting a warning.
+                if callable(getattr(view, "get_serializer", None)):
+                    return view.get_serializer(context=context)
+                elif callable(getattr(view, "get_serializer_class", None)):
+                    return view.get_serializer_class()(context=context)
+                elif hasattr(view, "serializer_class"):
+                    return view.serializer_class
+        except Exception:
+            return
 
-    def _get_field_type(self, key, value):
-        value_type = type(value)
-        if value_type is str:
-            return serializers.CharField(read_only=True)
+    def get_operation(
+        self, path: str, path_regex: str, path_prefix: str, method: str, registry: ComponentRegistry
+    ) -> Optional[_SchemaType]:
+        operation = super().get_operation(path, path_regex, path_prefix, method, registry)
 
-        elif value_type is bool:
-            return serializers.BooleanField(read_only=True)
+        try:
+            serializer = self._get_vueda_serializer()
+        except Exception:
+            pass
+        else:
+            if hasattr(serializer, "get_schema_operation_parameters"):
+                operation["parameters"] = serializer.get_schema_operation_parameters(
+                    operation["operationId"], operation.get("parameters", [])
+                )
 
-        elif value_type in (list, tuple):
-            sub_value = value[0]
-            if type(sub_value) is dict:
-                from drf_spectacular.utils import inline_serializer
+        return operation
 
-                sub_value_fields = {}
-                for value_key, value_value in sub_value.items():
-                    sub_value_fields[value_key] = self._get_field_type(value_key, value_value)
+    def _get_parameters(self) -> List[_SchemaType]:
+        parameters = super()._get_parameters()
 
-                serializer = inline_serializer(key, fields=sub_value_fields)
-                return serializer
+        # Sort all parameters alphabetically, except path parameters.
+        parameters = sorted(parameters, key=lambda x: x["in"] if x["in"] == "path" else f"{x['in']}_{x['name']}")
 
-            else:
-                return serializers.ListField(child=self._get_field_type(key, sub_value))
+        return parameters
 
-    def _generate_fields(self, field_data):
-        field_data = deepcopy(field_data)
+    def _resolve_path_parameters(self, variables):
+        """
+        Add a description and example for each of the path parameters.
+        """
+        parameters = super()._resolve_path_parameters(variables)
 
-        for key, value in field_data.items():
-            field_data[key] = self._get_field_type(key, value)
+        if self.path.startswith(r"/routes/vueda.info/") or self.path.startswith(r"/routes/vueda.workflow/"):
+            for parameter in parameters:
+                match (parameter["name"], parameter["in"]):
+                    case ("app_label", "path"):
+                        parameter["schema"]["example"] = "store"
+                        parameter["description"] = "The name of the application the model is part of."
 
-        return field_data
+                    case ("model", "path"):
+                        parameter["schema"]["example"] = "product"
+                        parameter["description"] = "The name of the model class."
 
-    def get_serializer_function(self):
-        return None
+                    case ("field", "path"):
+                        parameter["schema"]["example"] = "product_type"
+                        if self.path.startswith(r"/routes/vueda.info/model_info_choices/"):
+                            parameter["description"] = "The name of the serializer field."
+                        elif self.path.startswith(r"/routes/vueda.info/model_info_filter_choices"):
+                            parameter["description"] = "The name of the filterset field."
 
-    def alter_fields(self, fields):
-        return fields
+        return parameters
 
-    def get_fields(self):
-        model_info_serializer = self.parent.parent
-        instance = self._get_instance(model_info_serializer)
-        model_info_serializer.instance = instance
-        func = self._get_serializer_function_name()
-        model_func = getattr(model_info_serializer, func)
-        data = model_func(instance)
-        model_info_serializer.instance = None
-        fields = self._generate_fields(data[0])
-        self.alter_fields(fields)
-        return fields
+    def _get_pagination_parameters(self):
+        """
+        Add a description, example, and default for each of the pagination parameters.
+        """
+        parameters = super()._get_pagination_parameters()
 
+        if self.path.startswith(r"/routes/vueda.info/") or self.path.startswith(r"/routes/vueda.workflow/"):
+            for parameter in parameters:
+                match parameter["name"]:
+                    case settings.PAGE_QUERY_PARAM:
+                        parameter["schema"]["default"] = 1
+                        parameter["schema"]["example"] = 2
+                        parameter["description"] = f'Page: {parameter["description"]}'
 
-class ModelActions(ModelBase, serializers.Serializer):
-    def _get_serializer_function_name(self):
-        return "get_model_actions"
+                    case settings.PAGE_SIZE_QUERY_PARAM:
+                        parameter["schema"]["default"] = settings.MAX_PAGE_SIZE
+                        parameter["schema"]["example"] = 50
+                        parameter["description"] = f'Page Size: {parameter["description"]}'
 
-    def alter_fields(self, fields):
-        # This field is defined in the function, so there is no dynamic way to know it is optional.
-        fields["parameters"] = serializers.ListField(
-            child=serializers.CharField(required=False),
-            required=False,
-            help_text="Additional parameters needed to call the action.",
-        )
+        return parameters
 
-        # This field is not optional, but we want to add help text.
-        help_text_list = ""
-        for key, value in METHOD_MAPPING.items():
-            match key:
-                case "list":
-                    help_text_list += f"<li>{value} -&gt; {key} - with detail = true</li>"
-                case "retrieve":
-                    help_text_list += f"<li>{value} -&gt; {key} - with detail = false</li>"
-                case _:
-                    help_text_list += f"<li>{value} -&gt; {key}</li>"
+    def _get_filter_parameters(self):
+        """
+        Add a description, example, and default for each of the filtering parameters.
+        """
+        parameters = super()._get_filter_parameters()
 
-        fields["method_names"] = serializers.ListField(
-            child=serializers.CharField(required=True),
-            required=True,
-            help_text=f"""Available methods are:
-        <ul>
-            {help_text_list}
-        </ul>""",
-        )
-        return fields
+        if self.path.startswith(r"/routes/vueda.info/") or self.path.startswith(r"/routes/vueda.workflow/"):
 
+            class MatchFilterParameters:
+                SEARCH_PARAM = settings.REST_FRAMEWORK["SEARCH_PARAM"]
+                ORDERING_PARAM = settings.REST_FRAMEWORK["ORDERING_PARAM"]
 
-class ModelExpands(ModelBase, serializers.Serializer):
-    def _get_serializer_function_name(self):
-        return "get_model_expands"
+            for parameter in parameters:
+                match parameter["name"]:
+                    case MatchFilterParameters.SEARCH_PARAM:
+                        parameter["schema"]["example"] = "Paint"
+                        parameter["description"] = f'Search: {parameter["description"]}'
 
-    # This field is defined in the function, so there is no dynamic way to know it is optional.
-    def alter_fields(self, fields):
-        fields["fields"] = serializers.ListField(
-            child=serializers.CharField(required=False), required=False, help_text="An array of field names."
-        )
-        return fields
+                    case MatchFilterParameters.ORDERING_PARAM:
+                        parameter["schema"]["example"] = "-quantity"
+                        parameter["description"] = f'Ordering: {parameter["description"]}'
 
+        return parameters
 
-class ModelFields(ModelBase, serializers.Serializer):
-    def _get_serializer_function_name(self):
-        return "get_model_fields"
+    def _process_override_parameters(self, direction="request"):
+        """
+        Add a description and example for the custom workflow actions.
+        """
+        parameters = super()._process_override_parameters(direction=direction)
 
-    # These fields are defined in the function, so there is no dynamic way to know they are optional.
-    def alter_fields(self, fields):
-        fields["choices"] = serializers.ListField(child=serializers.CharField(required=False), required=False)
-        fields["decimal_places"] = serializers.IntegerField(required=False)
-        fields["help_text"] = serializers.CharField(required=False)
-        fields["max_digits"] = serializers.IntegerField(required=False)
-        fields["max_length"] = serializers.IntegerField(required=False)
-        fields["min_length"] = serializers.IntegerField(required=False)
-        fields["max_value"] = serializers.IntegerField(required=False)
-        fields["min_value"] = serializers.IntegerField(required=False)
-        return fields
+        if self.path.startswith(r"/routes/vueda.workflow/"):
+            for parameter_key, parameter in parameters.items():
+                match parameter_key:
+                    case ("object_id", "path"):
+                        parameter["schema"]["example"] = "1234"
+                        parameter["description"] = "The pk of the object."
 
-
-class ModelFiltering(ModelBase, serializers.Serializer):
-    def _get_serializer_function_name(self):
-        return "get_model_filtering"
-
-    # These fields are defined in the function, so there is no dynamic way to know they are optional.
-    def alter_fields(self, fields):
-        fields["filters"].fields.update(
-            {
-                "label": serializers.CharField(required=False),
-                "lookup_exprs": serializers.ListField(
-                    child=serializers.CharField(read_only=False, required=False),
-                    read_only=False,
-                    required=False,
-                    help_text='<a href="https://docs.djangoproject.com/en/5.0/ref/models/querysets/#field-lookups" target="_blank">The list of field-lookups in django docs.</a>',
-                ),
-                "required": serializers.BooleanField(required=False),
-            }
-        )
-        return fields
-
-
-class ModelOrdering(ModelBase, serializers.Serializer):
-    def _get_serializer_function_name(self):
-        return "get_model_ordering"
-
-    # This field is not actually optional, but we want to add some help text.
-    def alter_fields(self, fields):
-        fields["type"] = serializers.CharField(
-            required=True,
-            help_text="""Available types are:
-        <ul>
-            <li>alpha</li>
-            <li>boolean</li>
-            <li>date</li>
-            <li>datetime</li>
-            <li>numeric</li>
-            <li>time</li>
-        </ul>""",
-        )
-
-        return fields
-
-
-class ModelPermissions(ModelBase, serializers.Serializer):
-    def _get_serializer_function_name(self):
-        return "get_model_permissions"
+        return parameters

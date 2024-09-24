@@ -42,3 +42,34 @@ class WorkflowSerializer(
             "states": ("vueda.workflow.serializers.StateSerializer", {"many": True, "read_only": True}),
             "transitions": ("vueda.workflow.serializers.TransitionSerializer", {"many": True, "read_only": True}),
         }
+
+    def get_schema_operation_parameters(self, operation_id, parameters=()):
+        parameters = super().get_schema_operation_parameters(operation_id, parameters)
+
+        match operation_id:
+            case "vueda.workflow_workflows_list":
+                for index, existing_parameter in reversed(tuple(enumerate(parameters))):
+                    if existing_parameter["name"] in ("app_label", "model"):
+                        parameters.pop(index)
+
+            case "vueda.workflow_workflows_retrieve":
+                for existing_parameter in parameters:
+                    match existing_parameter["name"]:
+                        case "app_label":
+                            existing_parameter.update(
+                                {
+                                    "description": "The name of the application the model is part of.",
+                                    "example": "store",
+                                    # 'schema': {'pattern': '^[a-zA-Z0-9_]+$'},
+                                }
+                            )
+
+                        case "model":
+                            existing_parameter.update(
+                                {
+                                    "description": "The name of the model class.",
+                                    "example": "product",
+                                }
+                            )
+
+        return parameters

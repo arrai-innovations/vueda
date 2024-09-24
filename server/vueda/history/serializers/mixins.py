@@ -219,6 +219,13 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
 
         return expandable_fields
 
+    def get_schema_expandable_fields(self):
+        expandable_fields = super().get_schema_expandable_fields()
+
+        # noqa T101 TODO: Add first_history_entry, history, and last_history_entry to the list of expandable fields.
+
+        return expandable_fields
+
     def get_first_history_entry(self, data):
         value_fields = filter_fields_for_flexlike_on_historical_records(self, "first_history_entry", data.__class__)
         if not value_fields:

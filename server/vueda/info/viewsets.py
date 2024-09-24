@@ -15,10 +15,6 @@ from rest_framework.utils.model_meta import get_field_info
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from vueda.core.open_api import conditional_extend_schema_func
-from vueda.core.open_api import conditional_extend_schema_view_decorator
-from vueda.core.open_api import conditional_open_api_parameter
-from vueda.core.open_api import conditional_open_api_types
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import FlexFieldsMixin
 from vueda.info.registration import get_registered_content_types
@@ -27,18 +23,6 @@ from vueda.info.serializers import ModelInfoChoicesSerializer
 from vueda.info.serializers import ModelInfoSerializer
 
 
-@conditional_extend_schema_view_decorator(
-    list=conditional_extend_schema_func(
-        operation_id="getModels",
-        description="Get a list of the models you can get model information for.",
-        summary="List models",
-    ),
-    retrieve=conditional_extend_schema_func(
-        operation_id="getModelInfo",
-        description="Gets information about a model, which can be used to render an add/edit form or readonly view.",
-        summary="Get model info",
-    ),
-)
 class ModelInfoViewSet(FlexFieldsMixin, ReadOnlyModelViewSet):
     """
     This viewset is for providing metadata about models, including fields, actions, and permissions
@@ -136,43 +120,11 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
         super().check_permissions(request)
 
 
-@conditional_extend_schema_view_decorator(
-    list=conditional_extend_schema_func(
-        operation_id="getFieldChoices",
-        description="Get a list of the choices available for a models field.",
-        parameters=[
-            conditional_open_api_parameter(
-                "app_label",
-                conditional_open_api_types().STR,
-                location="path",
-                description="The first parameter in the path.",
-            ),
-            conditional_open_api_parameter(
-                "model",
-                conditional_open_api_types().STR,
-                location="path",
-                description="The second parameter in the path, containing the model name.",
-            ),
-            conditional_open_api_parameter(
-                "field",
-                conditional_open_api_types().STR,
-                location="path",
-                description="The third parameter in the path, containing the field name.",
-            ),
-        ],
-        summary="List field choices",
-    ),
-)
 class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
     """
-    This viewset is for providing metadata about field and filtering choices to front-end clients. This is a read-only viewset.
+    This viewset is for providing metadata about field choices to front-end clients. This is a read-only viewset.
 
     Effectively, this is a custom model viewset for content types.
-
-    urls using this viewset should provide the app_label, model, and field as kwargs.
-    ie: ```py
-    path('model-info-choices/<str:app_label>/<str:model>/<str:field>/', ModelChoicesViewSet.as_view(), name='model-info-choices')
-    ```
     """
 
     def dispatch(self, request, app_label, model, field, *args, **kwargs):
@@ -317,6 +269,12 @@ class FilterChoicesQueryset(collections.abc.Sequence):
 
 
 class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
+    """
+    This viewset is for providing metadata about filtering choices to front-end clients. This is a read-only viewset.
+
+    Effectively, this is a custom model viewset for content types.
+    """
+
     @staticmethod
     def get_filter_mapping_with_field_name(filters):
         filter_mapping = {}
