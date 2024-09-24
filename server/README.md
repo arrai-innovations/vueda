@@ -232,7 +232,6 @@ Setup pre-commit hooks:
 ```console
 (vueda-server)[vueda-server]$ pre-commit install
 pre-commit installed at .git/hooks/pre-commit
-(vueda-server)[vueda-server]$ pre-commit install --hook-type commit-msg
 pre-commit installed at .git/hooks/commit-msg
 ```
 
