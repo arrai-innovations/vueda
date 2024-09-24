@@ -175,13 +175,26 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         if model_field is None:
             return
 
+        child_field = None
+        if hasattr(model_field, "model"):
+            model = model_field.model
+
+            lookup_expression = f"{field_name}_lookup_expression"
+            if hasattr(model, lookup_expression):
+                lookup_expression = getattr(model, lookup_expression)
+                fields = get_fields_from_path(model_field.model, lookup_expression)
+                child_field = fields[-1]
+
         if hasattr(model_field, "field"):
             model_field = model_field.field
 
-        child_field = model_field.base_field if many and hasattr(model_field, "base_field") else None
+        if child_field is None:
+            child_field = model_field.base_field if many and hasattr(model_field, "base_field") else None
 
         # Get the field type.
-        if child_field is None:
+        if hasattr(model_field, "related"):
+            field_type = model_field.related.get_internal_type()
+        elif child_field is None:
             field_type = model_field.get_internal_type()
         else:
             field_type = child_field.get_internal_type()
@@ -246,6 +259,14 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             effective_label = field.label or field_name.replace("_", " ").title()
 
             model_field = getattr(serializer.Meta.model, field_name, None)
+
+            lookup_expression = f"{field_name}_lookup_expression"
+            if hasattr(serializer.Meta.model, lookup_expression):
+                lookup_expression = getattr(serializer.Meta.model, lookup_expression)
+                related_descriptor = getattr(serializer.Meta.model, lookup_expression.split("__")[0], None)
+                if related_descriptor is not None:
+                    model_field = related_descriptor.related
+
             field_type_db = self.get_model_fields_db_field_type(field_name, model_field, many)
             field_type_model = self.get_model_fields_model_field_type(field_name, model_field, many)
             field_type_serializer = self.get_model_fields_serializer_field_type(field_name, field, many)

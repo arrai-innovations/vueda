@@ -20,6 +20,7 @@ class Customer(HasWorkflowModelMixin, VuedaHistoryBaseModel):
     user = models.OneToOneField(get_user_model(), on_delete=models.PROTECT)
 
     formatted_name = None
+    formatted_name_lookup_expression = "data__formatted_name"
 
     class Meta(BaseModelMeta):
         pass
@@ -109,6 +110,7 @@ class Cart(VuedaBaseModel):
     expected_delivery_time = models.DurationField(null=True)
 
     formatted_name = None
+    formatted_name_lookup_expression = "data__formatted_name"
 
     class Meta(VuedaBaseModel.Meta):
         pass
@@ -129,6 +131,7 @@ class CartItem(VuedaBaseModel):
     quantity = models.IntegerField(db_default=0)
 
     formatted_name = None
+    formatted_name_lookup_expression = "data__formatted_name"
 
     class Meta(VuedaBaseModel.Meta):
         default_related_name = "cart_items"
@@ -182,6 +185,7 @@ class OrderItem(VuedaBaseModel):
     )
 
     formatted_name = None
+    formatted_name_lookup_expression = "data__formatted_name"
 
     class Meta(VuedaBaseModel.Meta):
         verbose_name = "ORDER item"
@@ -242,6 +246,7 @@ class InventoryRecord(VuedaBaseModel):
     margin = models.DecimalField(max_digits=12, decimal_places=2, null=True)
 
     formatted_name = None
+    formatted_name_lookup_expression = "data__formatted_name"
 
     class Meta(VuedaBaseModel.Meta):
         verbose_name = "inventory entry"
