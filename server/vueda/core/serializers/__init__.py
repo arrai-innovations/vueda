@@ -75,6 +75,26 @@ class FlexFieldsWriteableNestedSerializerMixin(
     def update_or_create_direct_relations(self, attrs, relations):
         return super().update_or_create_direct_relations(attrs, relations)
 
+    def update(self, instance, validated_data):
+        relations, reverse_relations = self._extract_relations(validated_data)
+
+        # Create or update direct relations (foreign key, one-to-one)
+        self.update_or_create_direct_relations(
+            validated_data,
+            relations,
+        )
+
+        # Update instance
+        instance = super(drf_writable_nested.NestedUpdateMixin, self).update(
+            instance,
+            validated_data,
+        )
+        # should delete first then create, otherwise new created ones will be removed
+        self.delete_reverse_relations_if_need(instance, reverse_relations)
+        self.update_or_create_reverse_relations(instance, reverse_relations)
+        instance.refresh_from_db()
+        return instance
+
 
 class ExcludeFieldsSerializerMixin:
     """
