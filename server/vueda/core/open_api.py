@@ -2,10 +2,6 @@ from typing import List
 from typing import Optional
 
 from django.conf import settings
-from drf_spectacular.openapi import AutoSchema as SpectacularAutoSchema
-from drf_spectacular.plumbing import ComponentRegistry
-from drf_spectacular.plumbing import build_serializer_context
-from drf_spectacular.utils import _SchemaType
 from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
 
@@ -198,7 +194,7 @@ def conditional_inline_serializer(*args, **kwargs):
     return inline_serializer(*args, **kwargs)
 
 
-class VuedaAutoSchema(SpectacularAutoSchema):
+class VuedaBaseAutoSchema:
     def _get_vueda_serializer(self):
         """
         Code taken from drf_spectacular/openapi.py _get_serializer, without the errors.
@@ -223,31 +219,6 @@ class VuedaAutoSchema(SpectacularAutoSchema):
                     return view.serializer_class
         except Exception:
             return
-
-    def get_operation(
-        self, path: str, path_regex: str, path_prefix: str, method: str, registry: ComponentRegistry
-    ) -> Optional[_SchemaType]:
-        operation = super().get_operation(path, path_regex, path_prefix, method, registry)
-
-        try:
-            serializer = self._get_vueda_serializer()
-        except Exception:
-            pass
-        else:
-            if hasattr(serializer, "get_schema_operation_parameters"):
-                operation["parameters"] = serializer.get_schema_operation_parameters(
-                    operation["operationId"], operation.get("parameters", [])
-                )
-
-        return operation
-
-    def _get_parameters(self) -> List[_SchemaType]:
-        parameters = super()._get_parameters()
-
-        # Sort all parameters alphabetically, except path parameters.
-        parameters = sorted(parameters, key=lambda x: x["in"] if x["in"] == "path" else f"{x['in']}_{x['name']}")
-
-        return parameters
 
     def _resolve_path_parameters(self, variables):
         """
@@ -334,3 +305,39 @@ class VuedaAutoSchema(SpectacularAutoSchema):
                         parameter["description"] = "The pk of the object."
 
         return parameters
+
+
+try:
+    from drf_spectacular.openapi import AutoSchema as SpectacularAutoSchema
+    from drf_spectacular.plumbing import ComponentRegistry
+    from drf_spectacular.plumbing import build_serializer_context
+    from drf_spectacular.utils import _SchemaType
+except ImportError:
+    pass
+else:
+
+    class VuedaAutoSchema(VuedaBaseAutoSchema, SpectacularAutoSchema):
+        def get_operation(
+            self, path: str, path_regex: str, path_prefix: str, method: str, registry: ComponentRegistry
+        ) -> Optional[_SchemaType]:
+            operation = super().get_operation(path, path_regex, path_prefix, method, registry)
+
+            try:
+                serializer = self._get_vueda_serializer()
+            except Exception:
+                pass
+            else:
+                if hasattr(serializer, "get_schema_operation_parameters"):
+                    operation["parameters"] = serializer.get_schema_operation_parameters(
+                        operation["operationId"], operation.get("parameters", [])
+                    )
+
+            return operation
+
+        def _get_parameters(self) -> List[_SchemaType]:
+            parameters = super()._get_parameters()
+
+            # Sort all parameters alphabetically, except path parameters.
+            parameters = sorted(parameters, key=lambda x: x["in"] if x["in"] == "path" else f"{x['in']}_{x['name']}")
+
+            return parameters
