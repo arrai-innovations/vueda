@@ -629,6 +629,9 @@ export function useFormModel(props) {
                             );
                         }
                     }
+                    if (item.baseExpanded) {
+                        item.expandDetail = expandDetails[fieldName];
+                    }
                     if (!item.fieldDetail) {
                         throw new Error(`Unknown field ${fieldName} specified for ${props.app}.${props.model}`);
                     }
@@ -643,9 +646,7 @@ export function useFormModel(props) {
                             continue;
                         }
                         const baseItem = allFields[baseIndex];
-                        for (const [expandFieldName, expandFieldDetail] of Object.entries(
-                            expandDetails[expandName].f,
-                        )) {
+                        for (const [expandFieldName, expandFieldDetail] of Object.entries(baseItem.expandDetail.f)) {
                             const fieldName = `${expandName}__${expandFieldName}`;
                             const item = {
                                 fieldName,
