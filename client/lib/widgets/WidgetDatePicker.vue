@@ -2,7 +2,7 @@
 import { useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
-import Calendar from "primevue/calendar";
+import DatePicker from "primevue/datepicker";
 import { computed } from "vue";
 
 defineOptions({
@@ -28,6 +28,14 @@ const modelValue = computed(() => {
 const valueUpdated = (value) => {
     widgetContext.state.combinedValue = value;
 };
+const onTodayButtonClick = () => {
+    const currentDate = getCurrentDate();
+    widgetContext.state.combinedValue = currentDate;
+};
+
+const getCurrentDate = () => {
+    return new Date();
+};
 </script>
 <template>
     <div :class="theme('root')">
@@ -36,13 +44,25 @@ const valueUpdated = (value) => {
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
-                <Calendar
+                <DatePicker
+                    :clear-button-props="{
+                        label: `Clear`,
+                        outlined: true,
+                        text: true,
+                    }"
                     :model-value="modelValue"
                     :name="widgetContext.state.combinedName"
                     :selection-mode="computedSelectionMode"
                     v-bind="$attrs"
+                    show-button-bar
+                    :today-button-props="{
+                        label: `Now`,
+                        outlined: true,
+                        text: true,
+                    }"
                     @blur="widgetContext.blur"
                     @focus="widgetContext.focus"
+                    @today-click="onTodayButtonClick"
                     @update:model-value="(value) => valueUpdated(value)"
                 />
             </div>

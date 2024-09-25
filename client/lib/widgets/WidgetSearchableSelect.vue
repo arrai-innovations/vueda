@@ -4,7 +4,7 @@ import { useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
-import Dropdown from "primevue/dropdown";
+import Select from "primevue/select";
 import { computed, reactive, ref, toRef, watch } from "vue";
 
 defineOptions({
@@ -153,7 +153,7 @@ const onValueChange = () => {
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
-                <Dropdown
+                <Select
                     v-model="widgetContext.state.combinedValue"
                     v-bind="$attrs"
                     filter

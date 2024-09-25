@@ -1,7 +1,7 @@
 <script setup>
 import { useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
-import InputSwitch from "primevue/inputswitch";
+import ToggleSwitch from "primevue/toggleswitch";
 
 defineOptions({
     inheritAttrs: false,
@@ -16,7 +16,7 @@ const theme = useTheme("WidgetCheckbox", widgetContext.state);
 <template>
     <div :class="theme('root')">
         <div :class="theme('inner')">
-            <InputSwitch
+            <ToggleSwitch
                 v-model="widgetContext.state.combinedValue"
                 :name="widgetContext.state.combinedName"
                 type="checkbox"

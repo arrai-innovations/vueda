@@ -4,7 +4,7 @@ import { readonly, ref, watch } from "vue";
 
 const fieldInitialValueMappings = {
     BooleanField: {
-        BooleanField: null,
+        BooleanField: false,
     },
     CharField: {
         CharField: "",
@@ -92,7 +92,7 @@ export const getFieldInitialValue = (fieldDetail) => {
     if (fieldDetail.many) {
         return undefined;
     }
-    return fieldInitialValueMappings[fieldDetail.typeSerializer][fieldDetail.typeModel];
+    return fieldInitialValueMappings[fieldDetail.typeSerializer]?.[fieldDetail.typeModel];
 };
 /**
  * @typedef {import("vue").DeepReadonly<import("vue").Ref<{[key: string]: any}>>} InitialValues

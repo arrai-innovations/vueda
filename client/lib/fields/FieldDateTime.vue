@@ -21,7 +21,9 @@ const preprocessGet = (value) => {
 };
 const preprocessSet = (value) => {
     if (value instanceof Date) {
-        const isoString = value.toISOString();
+        const date = new Date(value);
+        date.setTime(date.getTime() - date.getTimezoneOffset() * 60000);
+        const isoString = date.toISOString();
         return isoString.split(".")[0];
     }
     return value;
