@@ -42,7 +42,7 @@ export default {
             },
         ],
     }),
-    toggler: ({ props }) => ({
+    toggleButton: ({ props }) => ({
         class: [
             // Alignments
             "flex items-center justify-center",
@@ -70,10 +70,10 @@ export default {
             },
         ],
     }),
-    togglerIcon: {
+    toggleIcon: {
         class: "mr-2 inline-block",
     },
-    legendTitle: {
+    legendLabel: {
         class: "flex items-center justify-center leading-none",
     },
     content: {

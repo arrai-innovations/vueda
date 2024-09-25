@@ -36,7 +36,7 @@ export default {
             { "opacity-60": props.disabled, "pointer-events-none": props.disabled, "cursor-default": props.disabled },
         ],
     }),
-    input: ({ props, parent }) => ({
+    label: ({ props, parent }) => ({
         class: [
             //Font
             "leading-[normal]",
@@ -80,7 +80,7 @@ export default {
             "appearance-none",
         ],
     }),
-    trigger: {
+    dropdown: {
         class: [
             // Flexbox
             "flex items-center justify-center",
@@ -98,7 +98,7 @@ export default {
             "rounded-br-md",
         ],
     },
-    panel: {
+    overlay: {
         class: [
             // Position
             "absolute top-0 left-0",
@@ -114,7 +114,7 @@ export default {
             "dark:border-surface-700",
         ],
     },
-    wrapper: {
+    listContainer: {
         class: [
             // Sizing
             "max-h-[200px]",
@@ -126,7 +126,7 @@ export default {
     list: {
         class: "py-3 list-none m-0",
     },
-    item: ({ context }) => ({
+    option: ({ context }) => ({
         class: [
             // Font
             "font-normal",
@@ -134,6 +134,7 @@ export default {
 
             // Position
             "relative",
+            "flex items-center",
 
             // Shape
             "border-0",
@@ -145,16 +146,15 @@ export default {
 
             // Colors
             {
-                "text-surface-700 dark:text-white/80": !context.selected,
+                "text-surface-700 dark:text-white/80": !context.focused && !context.selected,
                 "bg-surface-200 dark:bg-surface-600/60": context.focused && !context.selected,
-
-                "text-primary-highlight-inverse": context.selected,
-                "bg-primary-highlight": context.selected,
+                "text-surface-700 dark:text-white/80": context.focused && !context.selected,
+                "bg-highlight": context.selected,
             },
 
             //States
             { "hover:bg-surface-100 dark:hover:bg-surface-600/80": !context.focused && !context.selected },
-            { "hover:bg-primary-highlight-hover": context.selected },
+            { "hover:bg-highlight-emphasis": context.selected },
             "focus-visible:outline-none focus-visible:outline-offset-0 focus-visible:ring focus-visible:ring-inset focus-visible:ring-primary-400/50 dark:focus-visible:ring-primary-300/50",
 
             // Transitions
@@ -168,7 +168,7 @@ export default {
             "whitespace-nowrap",
         ],
     }),
-    itemgroup: {
+    optionGroup: {
         class: [
             //Font
             "font-bold",
@@ -185,7 +185,9 @@ export default {
             "cursor-auto",
         ],
     },
-    emptymessage: {
+    optionCheckIcon: "relative -ms-1.5 me-1.5 text-surface-700 dark:text-white/80 w-4 h-4",
+    optionBlankIcon: "w-4 h-4",
+    emptyMessage: {
         class: [
             // Font
             "leading-none",
@@ -215,46 +217,7 @@ export default {
             "border-surface-300 dark:border-surface-700",
         ],
     },
-    filtercontainer: {
-        class: "relative",
-    },
-    filterinput: {
-        class: [
-            // Font
-            "leading-[normal]",
-
-            // Sizing
-            "pr-7 py-3 px-3",
-            "-mr-7",
-            "w-full",
-
-            //Color
-            "text-surface-700 dark:text-white/80",
-            "bg-surface-0 dark:bg-surface-900",
-            "border-surface-200 dark:border-surface-700",
-
-            // Shape
-            "border",
-            "rounded-lg",
-            "appearance-none",
-
-            // Transitions
-            "transition",
-            "duration-200",
-
-            // States
-            "hover:border-primary",
-            "focus:ring focus:outline-none focus:outline-offset-0",
-            "focus:ring-primary-400/50 dark:focus:ring-primary-300/50",
-
-            // Misc
-            "appearance-none",
-        ],
-    },
-    filtericon: {
-        class: ["absolute", "top-1/2 right-3", "-mt-2"],
-    },
-    clearicon: {
+    clearIcon: {
         class: [
             // Color
             "text-surface-500",
@@ -268,7 +231,7 @@ export default {
             "-mt-2",
         ],
     },
-    loadingicon: {
+    loadingIcon: {
         class: "text-surface-400 dark:text-surface-500 animate-spin",
     },
     transition: {

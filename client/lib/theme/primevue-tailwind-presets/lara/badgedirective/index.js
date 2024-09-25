@@ -28,7 +28,7 @@ export default {
             },
 
             // Color
-            "text-primary-inverse",
+            "text-primary-contrast",
             {
                 "bg-primary":
                     !context.info &&

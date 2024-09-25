@@ -60,7 +60,4 @@ export const availableWidgets = {
     WidgetSelect: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetSelect.vue")).default),
     WidgetSlider: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetSlider.vue")).default),
     WidgetTextarea: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default),
-    WidgetTriStateCheckbox: defineAsyncComponent(
-        async () => (await import("@vueda/widgets/WidgetTriStateCheckbox.vue")).default,
-    ),
 };

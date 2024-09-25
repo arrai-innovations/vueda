@@ -106,7 +106,7 @@ const getFieldComponent = (filter_info) => {
 const defaultWidgets = {
     ChoiceField: availableWidgets.WidgetSelect,
     CharField: availableWidgets.WidgetInput,
-    NullBooleanField: availableWidgets.WidgetTriStateCheckbox,
+    NullBooleanField: availableWidgets.WidgetCheckbox,
     DateField: availableWidgets.WidgetDatePicker,
     DateTimeField: availableWidgets.WidgetDatePicker,
     TimeField: availableWidgets.WidgetDatePicker,
@@ -143,6 +143,9 @@ const defaultWidgetProps = {
         EmailField: { type: "email" },
         UUIDField: { type: "mask", mask: "****-****-****-****-************" },
         URLField: { type: "url" },
+    },
+    NullBooleanField: {
+        BooleanField: { indeterminate: true },
     },
     DateTimeField: {
         DateTimeField: { showTime: true },

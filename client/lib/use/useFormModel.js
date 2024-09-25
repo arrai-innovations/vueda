@@ -174,8 +174,9 @@ const defaultFieldMappings = {
     NullBooleanField: {
         NullBooleanField: {
             component: availableFields.FieldBoolean,
-            widget: availableWidgets.WidgetTriStateCheckbox,
+            widget: availableWidgets.WidgetCheckbox,
             fieldProps: { nullable: true },
+            widgetProps: { indeterminate: true },
         },
     },
     PrimaryKeyRelatedField: {
@@ -267,7 +268,10 @@ const choiceFieldMappings = {
         },
     },
     NullBooleanField: {
-        NullBooleanField: { widget: availableWidgets.WidgetTriStateCheckbox },
+        NullBooleanField: {
+            widget: availableWidgets.WidgetCheckbox,
+            widgetProps: { indeterminate: true },
+        },
     },
     PrimaryKeyRelatedField: {
         ForeignKey: { widget: availableWidgets.WidgetSearchableSelect },
@@ -390,7 +394,8 @@ const manyFieldMappings = {
     },
     NullBooleanField: {
         NullBooleanField: {
-            widget: availableWidgets.WidgetTriStateCheckbox,
+            widget: availableWidgets.WidgetCheckbox,
+            widgetProps: { indeterminate: true },
             fieldProps: { manyComponent: availableFields.FieldBoolean },
         },
     },

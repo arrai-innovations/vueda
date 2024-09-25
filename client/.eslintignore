@@ -1,2 +1,3 @@
 .prettierrc.cjs
 dist
+lib/theme/primevue-tailwind-presets

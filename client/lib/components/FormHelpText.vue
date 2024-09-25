@@ -15,6 +15,6 @@ const computedHelp = computed(() => (props.help?.length ? props.help : fieldCont
 </script>
 <template>
     <slot :help="computedHelp">
-        <Message v-if="computedHelp?.length" :closable="false" severity="info">{{ computedHelp }}</Message>
+        <Message v-if="computedHelp?.length" :closable="false" severity="help">{{ computedHelp }}</Message>
     </slot>
 </template>
