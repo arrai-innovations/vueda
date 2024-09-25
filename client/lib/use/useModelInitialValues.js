@@ -2,52 +2,97 @@ import { useModelInfo } from "@vueda/use/useModelInfo.js";
 import isEqual from "lodash-es/isEqual.js";
 import { readonly, ref, watch } from "vue";
 
-const builtInTypes = {
-    DateRangeField: null,
-    TextField: "",
-    CharField: "",
-    BooleanField: false,
-    DateField: null,
-    DateTimeField: null,
-    DecimalField: undefined,
-    FloatField: undefined,
-    IntegerField: undefined,
-    PositiveIntegerField: undefined,
-    PositiveSmallIntegerField: undefined,
-    SmallIntegerField: undefined,
-    TimeField: null,
-    EmailField: "",
-    URLField: "",
-    UUIDField: "",
-    ForeignKey: "",
-    ManyToManyField: "",
-    OneToOneField: "",
-    JSONField: null,
-    ArrayField: undefined,
-    BinaryField: "",
-    FilePathField: "",
-    IPAddressField: "",
-    GenericIPAddressField: "",
-    SlugField: "",
-    FileField: "",
-    ImageField: "",
-    AutoField: "",
-    BigAutoField: "",
-    BigIntegerField: undefined,
-    DurationSecondsField: "",
-    GenericRelation: null,
-    GenericForeignKey: null,
-    NullBooleanField: false,
-    PositiveBigIntegerField: null,
-    PositiveDecimalField: null,
-    ManyRelatedField: null,
+const fieldInitialValueMappings = {
+    BooleanField: {
+        BooleanField: null,
+    },
+    CharField: {
+        CharField: "",
+        TextField: "",
+    },
+    DateField: {
+        DateField: null,
+    },
+    DateTimeField: {
+        DateTimeField: null,
+    },
+    DecimalField: {
+        DecimalField: null,
+        PositiveDecimalField: null,
+    },
+    DurationSecondsField: {
+        DurationField: null,
+    },
+    DurationField: {
+        DurationField: null,
+    },
+    EmailField: {
+        EmailField: "",
+    },
+    FileField: {
+        FileField: null,
+    },
+    FloatField: {
+        FloatField: null,
+    },
+    ImageField: {
+        ImageField: null,
+    },
+    IntegerField: {
+        AutoField: null,
+        BigAutoField: null,
+        BigIntegerField: null,
+        IntegerField: null,
+        PositiveBigIntegerField: null,
+        PositiveIntegerField: null,
+        PositiveSmallIntegerField: null,
+        SmallIntegerField: null,
+    },
+    IPAddressField: {
+        IPAddressField: "",
+        GenericIPAddressField: null,
+    },
+    JSONField: {
+        JSONField: null,
+    },
+    ManyRelatedField: {
+        ManyToManyField: null,
+        ManyRelatedField: null,
+    },
+    NullBooleanField: {
+        NullBooleanField: null,
+    },
+    PrimaryKeyRelatedField: {
+        ForeignKey: null,
+        OneToOneField: null,
+        RelatedField: null,
+    },
+    SerializerField: {
+        BinaryField: null,
+    },
+    SerializerMethodField: {
+        GenericForeignKey: null,
+        GenericRelation: null,
+    },
+    SlugField: {
+        SlugField: null,
+    },
+    TimeField: {
+        TimeField: null,
+    },
+    URLField: {
+        URLField: null,
+    },
+    UUIDField: {
+        UUIDField: null,
+    },
 };
 
 export const getFieldInitialValue = (fieldDetail) => {
     if (fieldDetail.many) {
         return undefined;
     }
-    return builtInTypes[fieldDetail.typeModel];
+    return fieldInitialValueMappings[fieldDetail.typeSerializer][fieldDetail.typeModel];
 };
 /**
  * @typedef {import("vue").DeepReadonly<import("vue").Ref<{[key: string]: any}>>} InitialValues
