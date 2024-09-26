@@ -88,6 +88,10 @@ watch(
                 </slot>
             </template>
         </div>
-        <form-chores />
+        <form-chores>
+            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                <slot :name="slot" v-bind="slotProps" />
+            </template>
+        </form-chores>
     </div>
 </template>

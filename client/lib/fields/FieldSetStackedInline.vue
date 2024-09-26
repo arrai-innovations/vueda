@@ -45,7 +45,11 @@ const removeRow = (index) => {
                 </slot>
             </div>
         </div>
-        <form-chores />
+        <form-chores>
+            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                <slot :name="slot" v-bind="slotProps" />
+            </template>
+        </form-chores>
         <hr :class="theme('hr')" />
         <div v-if="!props.many">
             <InlineRow :field-name="fieldContext.state.name" />

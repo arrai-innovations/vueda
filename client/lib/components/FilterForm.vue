@@ -250,10 +250,7 @@ const theme = useTheme("FilterForm", props);
             while-text="adding a filter field"
         />
         <form :class="theme('form')" @submit.prevent="confirmAddField">
-            <form-chores :name="NON_FIELD_ERRORS_KEY">
-                <template v-if="!$slots['field-help']" #field-help>
-                    <p>Select a filter field & expression and set a filter value.</p>
-                </template>
+            <form-chores help="Select a filter field & expression and set a filter value." :name="NON_FIELD_ERRORS_KEY">
                 <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>
