@@ -264,3 +264,8 @@ class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):
         expandable_fields = VuedaSerializer.Meta.expandable_fields.copy()
         expandable_fields.update(SimpleHistorySerializerMixin.Meta.expandable_fields)
         fields = VuedaSerializer.Meta.fields + SimpleHistorySerializerMixin.Meta.fields
+
+
+class VuedaLookupSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        fields = ["code", "name", "formatted_name"] + VuedaSerializer.Meta.fields
