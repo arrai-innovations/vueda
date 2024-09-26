@@ -24,27 +24,27 @@ const computedName = computed(() => props.name ?? fieldContext?.name);
 </script>
 <template>
     <form-help-text v-if="help">
-        <template v-if="$slots[`field(${computedName})-help`]" #default>
-            <slot :name="`field(${computedName})-help`" />
+        <template v-if="$slots[`field(${computedName})help`]" #default="slotProps">
+            <slot :name="`field(${computedName})help`" v-bind="slotProps" />
         </template>
-        <template v-else-if="$slots[`field-help`]" #default>
-            <slot name="field-help" />
+        <template v-else-if="$slots[`field-help`]" #default="slotProps">
+            <slot name="field-help" v-bind="slotProps" />
         </template>
     </form-help-text>
     <form-feedback type="error">
-        <template v-if="$slots[`field(${computedName})-error`]" #default>
-            <slot :name="`field(${computedName})-error`" />
+        <template v-if="$slots[`field(${computedName})error`]" #default="slotProps">
+            <slot :name="`field(${computedName})error`" v-bind="slotProps" />
         </template>
-        <template v-else-if="$slots[`field-error`]" #error>
-            <slot name="field-error" />
+        <template v-else-if="$slots[`field-error`]" #error="slotProps">
+            <slot name="field-error" v-bind="slotProps" />
         </template>
     </form-feedback>
     <form-feedback type="message">
-        <template v-if="$slots[`field(${computedName})-message`]" #default>
-            <slot :name="`field(${computedName})-message`" />
+        <template v-if="$slots[`field(${computedName})message`]" #default="slotProps">
+            <slot :name="`field(${computedName})message`" v-bind="slotProps" />
         </template>
-        <template v-else-if="$slots[`field-message`]" #message>
-            <slot name="field-message" />
+        <template v-else-if="$slots[`field-message`]" #message="slotProps">
+            <slot name="field-message" v-bind="slotProps" />
         </template>
     </form-feedback>
 </template>
