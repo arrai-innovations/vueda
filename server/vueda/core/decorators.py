@@ -4,6 +4,9 @@ from rest_framework.decorators import action as rf_action
 
 
 def action(methods=None, detail=None, bulk=False, url_path=None, url_name=None, **kwargs):
+    """
+    Decorator that adds the ability to specify whether the action is a bulk action or not.
+    """
     rf_decorator = rf_action(methods=methods, detail=detail, url_path=url_path, url_name=url_name, **kwargs)
 
     def decorator(func):
