@@ -541,6 +541,9 @@ export function useFormModel(props) {
             fieldProps: shallowReactive({}),
             widgetComponents: shallowReactive({}),
             widgetProps: {},
+            baseFieldNames: [],
+            expansionFieldNames: [],
+            expandedFieldNames: [],
         },
     );
 
@@ -603,6 +606,9 @@ export function useFormModel(props) {
                 const widgetProps = {};
                 const allFields = [];
                 const unrefExpands = deepUnref(expands) || [];
+                const baseFieldNames = new Set();
+                const expansionFieldNames = new Set();
+                const expandedFieldNames = new Set();
                 let anySpecifiedExpands = false;
                 for (const fieldName of deepUnref(fields) || []) {
                     const item = {
@@ -615,7 +621,7 @@ export function useFormModel(props) {
                     if (item.isExpandedField) {
                         anySpecifiedExpands = true;
                         // we don't deal with nested expands. we might need to in the future
-                        [item.expandName, item.expandFieldName] = fieldName.split("__", 1);
+                        [item.expandName, item.expandFieldName] = fieldName.split("__", 2);
                         item.expandDetail = expandDetails[item.expandName];
                         if (!item.expandDetail) {
                             throw new Error(
@@ -663,6 +669,14 @@ export function useFormModel(props) {
 
                 for (const field of allFields) {
                     const { fieldName, fieldDetail, baseExpanded, isExpandedField } = field;
+                    if (!isExpandedField) {
+                        baseFieldNames.push(fieldName);
+                    } else {
+                        expansionFieldNames.push(fieldName);
+                    }
+                    if (baseExpanded) {
+                        expandedFieldNames.add(fieldName);
+                    }
                     es.run(() => {
                         fieldComponents[fieldName] = computed(() => {
                             const component =
@@ -739,6 +753,9 @@ export function useFormModel(props) {
                     fieldProps,
                     widgetComponents,
                     widgetProps,
+                    baseFieldNames,
+                    expansionFieldNames,
+                    expandedFieldNames,
                 });
             } else {
                 assignStateObjectsIfChanged({
@@ -746,6 +763,8 @@ export function useFormModel(props) {
                     fieldProps: {},
                     widgetComponents: {},
                     widgetProps: {},
+                    baseFieldNames: [],
+                    expansionFieldNames: [],
                 });
             }
         },

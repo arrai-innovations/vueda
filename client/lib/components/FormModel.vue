@@ -271,7 +271,7 @@ const getFormChoresSlotNames = (fieldName) => {
                     :theme="theme"
                     :widget-components="formModel.widgetComponents"
                 >
-                    <template v-for="fieldName in deepUnref(formModel.fields)" :key="fieldName">
+                    <template v-for="fieldName in deepUnref(formModel.baseFieldNames)" :key="fieldName">
                         <slot
                             :field-class="theme('field')"
                             :field-component="formModel.fieldComponents[fieldName]"
@@ -291,9 +291,9 @@ const getFormChoresSlotNames = (fieldName) => {
                             >
                                 <template
                                     v-for="[outsideSlotName, insideSlotName] in getSlotNamesFor('field', fieldName)"
-                                    #[insideSlotName]="slotProps"
+                                    #[insideSlotName]="fieldSlotProps"
                                 >
-                                    <slot :name="outsideSlotName" v-bind="slotProps" />
+                                    <slot :name="outsideSlotName" v-bind="fieldSlotProps" />
                                 </template>
                                 <template #default="slotProps">
                                     <div :class="theme('fieldInner')">
@@ -311,18 +311,18 @@ const getFormChoresSlotNames = (fieldName) => {
                                             >
                                                 <template
                                                     v-for="slot in getSlotNamesFor('widget', fieldName)"
-                                                    #[slot.slotName]="slotProps"
+                                                    #[slot.slotName]="widgetSlotProps"
                                                 >
-                                                    <slot :name="slot" v-bind="slotProps" />
+                                                    <slot :name="slot" v-bind="widgetSlotProps" />
                                                 </template>
                                             </component>
                                         </slot>
                                         <form-chores>
                                             <template
                                                 v-for="slot in getFormChoresSlotNames(fieldName)"
-                                                #[slot]="slotProps"
+                                                #[slot]="formChoresSlotProps"
                                             >
-                                                <slot :name="slot" v-bind="slotProps" />
+                                                <slot :name="slot" v-bind="formChoresSlotProps" />
                                             </template>
                                         </form-chores>
                                     </div>
