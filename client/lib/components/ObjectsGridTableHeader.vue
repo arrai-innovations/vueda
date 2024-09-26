@@ -38,7 +38,11 @@ const theme = useTheme("ObjectsGridTableHeader", props);
 </script>
 <template>
     <div :class="theme('root')">
-        <span :class="theme('label')">{{ field.label }}</span>
+        <span :class="theme('label')">
+            <slot :col-index="colIndex" :field="field" name="label" v-bind="fieldProps">
+                {{ field.label }}
+            </slot>
+        </span>
         <span v-if="sortable" :class="theme('sortIcon')">
             <slot
                 :ascending="ascending"

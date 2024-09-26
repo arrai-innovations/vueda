@@ -16,6 +16,7 @@ import { computedAsync } from "@vueuse/core";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
+import Checkbox from "primevue/checkbox";
 import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
 import { computed, onMounted, reactive, readonly, ref, toRaw, toRef, unref, watch } from "vue";
@@ -109,6 +110,15 @@ const props = defineProps({
     tableBreakpoint: {
         type: String,
         default: "lg",
+    },
+    extraFieldObjects: {
+        type: Array,
+        default: () => [
+            {
+                name: `selected_`,
+                extra: true,
+            },
+        ],
     },
 });
 const listSearch = ref(null);
@@ -290,6 +300,11 @@ const hasWorkFlow = computedAsync(
     },
     false, // initial state
 );
+
+const computedFieldObjects = computed(() => {
+    return [...props.extraFieldObjects, ...calculatedDisplayFields.value];
+});
+const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name})`);
 </script>
 <template>
     <div>
@@ -403,7 +418,6 @@ const hasWorkFlow = computedAsync(
         <slot name="before-list" />
         <objects-grid
             v-bind="$attrs"
-            v-model:selected="selectedObjects"
             :calculated-objects="instanceList.state.calculatedObjects"
             class="w-full"
             :data-qa="`view-list-${app}-${model}-objects-grid`"
@@ -412,23 +426,36 @@ const hasWorkFlow = computedAsync(
                 modelInfo: modelConfig.info,
                 modelConfig: modelConfig.config,
             }"
-            :fields="calculatedDisplayFields"
+            :fields="computedFieldObjects"
             :loading="loading"
             :objects-in-order="instanceList.state.objectsInOrder"
             :related-objects="instanceList.state.relatedObjects"
-            selectable
             :sortables="sorting.state.sortables"
             :sorted="sorting.state.sorted"
             :table-breakpoint="tableBreakpoint"
             :variant="objectGridVariant"
             @update:sorted="sorting.updateSorted"
         >
-            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-                <slot :name="slot" v-bind="slotProps || {}" />
+            <template
+                v-for="slot in Object.keys($slots).filter((slot) => !specialSlots.includes(slot))"
+                #[slot]="slotProps"
+            >
+                <slot :name="slot" v-bind="slotProps || {}"> </slot>
+            </template>
+            <template v-for="field in extraFieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
+                <slot :name="`field(${field.name})`" v-bind="slotProps">
+                    <Checkbox
+                        v-model="selectedObjects"
+                        :input-id="`selected-row-${slotProps.pk}`"
+                        name="selected"
+                        v-bind="slotProps"
+                        :value="slotProps.pk"
+                    />
+                </slot>
             </template>
         </objects-grid>
         <pagination-component
-            v-model:currentPage="listState.currentPage"
+            v-model:current-page="listState.currentPage"
             :rows="instanceList.state.perPage"
             :total-records="instanceList.state.totalRecords"
         ></pagination-component>

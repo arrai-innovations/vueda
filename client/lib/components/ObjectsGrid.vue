@@ -1,12 +1,10 @@
 <script setup>
-import EmptyComponent from "@vueda/components/EmptyComponent.vue";
 import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import ObjectsGridCardCell from "@vueda/components/ObjectsGridCardCell.vue";
 import ObjectsGridTableHeader from "@vueda/components/ObjectsGridTableHeader.vue";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsTailwind } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
-import Checkbox from "primevue/checkbox";
 import { computed, reactive, toRef } from "vue";
 
 const props = defineProps({
@@ -198,9 +196,6 @@ const theme = useTheme("ObjectsGrid", themeProps, (key, kwargs) => {
     <div :class="theme('root')" role="table">
         <div :class="theme('headerRowGroup')" role="rowgroup">
             <div :class="theme('headerRow')" role="row">
-                <div v-if="selectable" :class="[theme('headerCell'), headerClasses?.selected_]">
-                    <slot name="header(selected_)" v-bind="fieldProps" />
-                </div>
                 <template v-for="(field, colIndex) in fields" :key="field?.name">
                     <div
                         v-if="field?.name"
@@ -210,7 +205,13 @@ const theme = useTheme("ObjectsGrid", themeProps, (key, kwargs) => {
                         role="columnheader"
                         @click="sortClick($event, field?.name)"
                     >
+                        <objects-grid-table-header v-if="field.extra" :col-index="colIndex" :field="field">
+                            <template #label="slotProps">
+                                <slot :name="`header(${field?.name})`" v-bind="slotProps" />
+                            </template>
+                        </objects-grid-table-header>
                         <objects-grid-table-header
+                            v-else
                             :ascending="sorted.includes(field.name)"
                             :col-index="colIndex"
                             :descending="sorted.includes(`-${field.name}`)"
@@ -219,6 +220,9 @@ const theme = useTheme("ObjectsGrid", themeProps, (key, kwargs) => {
                             :multi-sort-index="sorted.length > 1 ? directionlessSorted.indexOf(field.name) : -1"
                             :sortable="sortables.includes(field.name)"
                         >
+                            <template #label="slotProps">
+                                <slot :name="`header(${field?.name})`" v-bind="slotProps" />
+                            </template>
                             <template v-if="$slots['sort-icon']" #sort-icon="slotProps">
                                 <slot name="sort-icon" v-bind="slotProps" />
                             </template>
@@ -246,82 +250,6 @@ const theme = useTheme("ObjectsGrid", themeProps, (key, kwargs) => {
                 data-qa="objects-grid-row"
                 role="row"
             >
-                <template v-if="selectable">
-                    <objects-grid-card-cell
-                        v-if="!isTable"
-                        :calculated-object="{}"
-                        :class="[fieldClasses?.selected_, cardFieldClasses?.selected_]"
-                        :col-index="-1"
-                        :field="{
-                            name: 'selected_',
-                            label: '',
-                        }"
-                        :obj="{ [pkKey]: obj?.[pkKey] }"
-                        :related-object="{}"
-                        :row-index="rowIndex"
-                    >
-                        <template #header>
-                            <slot name="header(selected_)" v-bind="fieldProps">
-                                <empty-component />
-                            </slot>
-                        </template>
-                        <template #value>
-                            <slot
-                                :emit-selected="(e) => emit('update:selected', e)"
-                                :name="`field(selected_)${rowIndex}`"
-                                :obj="obj"
-                                :pk="obj?.[pkKey]"
-                                :pk-key="pkKey"
-                                :row-index="rowIndex"
-                                :selected="selected"
-                                v-bind="fieldProps"
-                            >
-                                <Checkbox
-                                    :input-id="`selected-row-${obj?.[pkKey]}`"
-                                    :model-value="selected"
-                                    name="selected"
-                                    :value="obj?.[pkKey]"
-                                    @update:model-value="emit('update:selected', $event)"
-                                />
-                            </slot>
-                        </template>
-                    </objects-grid-card-cell>
-                    <objects-grid-body-cell
-                        v-else
-                        :calculated-object="{}"
-                        :class="[fieldClasses?.selected_, tableFieldClasses?.selected_]"
-                        :col-index="-1"
-                        :field="{
-                            name: 'selected_',
-                            label: '',
-                        }"
-                        :field-props="fieldProps"
-                        :obj="{ [pkKey]: obj?.[pkKey] }"
-                        :related-object="{}"
-                        :row-index="rowIndex"
-                    >
-                        <template #value>
-                            <slot
-                                :emit-selected="(e) => emit('update:selected', e)"
-                                :name="`field(selected_)${rowIndex}`"
-                                :obj="obj"
-                                :pk="obj?.[pkKey]"
-                                :pk-key="pkKey"
-                                :row-index="rowIndex"
-                                :selected="selected"
-                                v-bind="fieldProps"
-                            >
-                                <Checkbox
-                                    :input-id="`selected-row-${obj?.[pkKey]}`"
-                                    :model-value="selected"
-                                    name="selected"
-                                    :value="obj?.[pkKey]"
-                                    @update:model-value="emit('update:selected', $event)"
-                                />
-                            </slot>
-                        </template>
-                    </objects-grid-body-cell>
-                </template>
                 <template v-for="(field, colIndex) in fields" :key="field?.name">
                     <template v-if="field?.name">
                         <objects-grid-card-cell

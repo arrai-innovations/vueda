@@ -10,6 +10,7 @@ import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
+import Checkbox from "primevue/checkbox";
 import { computed, inject, ref } from "vue";
 
 const props = defineProps({
@@ -42,6 +43,16 @@ const props = defineProps({
     objectGridVariant: {
         type: String,
         default: "default",
+    },
+    extraFieldObjects: {
+        type: Array,
+        default: () => [
+            {
+                name: `delete_`,
+                extra: true,
+                label: "Delete?",
+            },
+        ],
     },
 });
 const emit = defineEmits([...FIELD_EMITS]);
@@ -107,6 +118,7 @@ const handleSelected = (selected_) => {
     } else {
         fieldContext.clearModified();
     }
+    selected.value = selected_;
 };
 
 const removeObject = (index) => {
@@ -115,6 +127,9 @@ const removeObject = (index) => {
 };
 const objectsInOrder = computed(() => {
     return fieldContext.state.value;
+});
+const computedFieldObjects = computed(() => {
+    return [...fieldObjects.value, ...props.extraFieldObjects];
 });
 </script>
 
@@ -140,28 +155,11 @@ const objectsInOrder = computed(() => {
                 :field-classes="{
                     selected_: 'text-center',
                 }"
-                :fields="fieldObjects"
+                :fields="computedFieldObjects"
                 :objects-in-order="objectsInOrder"
-                selectable
-                :selected="selected"
                 table-breakpoint="lg"
                 :variant="props.objectGridVariant"
-                @update:selected="handleSelected"
             >
-                <template #header(selected_)> Delete? </template>
-                <template v-for="(obj, rowIndex) in objectsInOrder" :key="obj.id" #[`field(selected_)${rowIndex}`]>
-                    <slot
-                        v-if="!obj.id"
-                        label="Delete"
-                        name="delete-button"
-                        text
-                        verb="delete"
-                        @click="removeObject(rowIndex)"
-                    >
-                        <Button label="delete" text @click="removeObject(rowIndex)" />
-                    </slot>
-                </template>
-
                 <template v-for="field in fieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
                     <slot
                         :field-class="theme('field')"
@@ -204,6 +202,33 @@ const objectsInOrder = computed(() => {
                                 <form-feedback type="message" />
                             </div>
                         </component>
+                    </slot>
+                </template>
+                <template v-for="field in extraFieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
+                    <slot
+                        :field-class="theme('field')"
+                        :label="field.label"
+                        :name="`field(${field.name})`"
+                        :theme="theme"
+                        :value="field.value"
+                        verb="delete"
+                        @delete="removeObject(slotProps.rowIndex)"
+                        @selected="handleSelected"
+                    >
+                        <Button
+                            v-if="!slotProps.pk"
+                            label="Delete"
+                            text
+                            @click="removeObject(slotProps.rowIndex)"
+                        ></Button>
+                        <Checkbox
+                            v-else
+                            :input-id="`selected-row-${slotProps.pk}`"
+                            :model-value="selected"
+                            name="selected"
+                            :value="slotProps.pk"
+                            @update:model-value="handleSelected"
+                        />
                     </slot>
                 </template>
             </objects-grid>

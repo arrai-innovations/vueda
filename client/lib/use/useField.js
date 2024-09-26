@@ -167,7 +167,6 @@ export function useField(props, emit, functions) {
                       return functions?.preprocessGet ? functions.preprocessGet(value) : value;
                   },
                   set: (newValue) => {
-                      console.log("formContext: ", formContext);
                       if (functions?.preprocessSet) {
                           newValue = functions.preprocessSet(newValue);
                       }
