@@ -48,12 +48,12 @@ export default {
             class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
         field: {
-            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"],
+            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2"],
         },
         fieldInner: {
             class: [],
         },
-        addButton: {
+        createButton: {
             class: "grow",
         },
     },
@@ -85,7 +85,7 @@ export default {
         fieldInner: {
             class: [],
         },
-        addButton: {
+        createButton: {
             class: "grow",
         },
     },
@@ -145,7 +145,7 @@ export default {
         component: {
             class: ["w-5/6"],
         },
-        addButton: {
+        createButton: {
             class: [],
         },
     },
@@ -168,7 +168,7 @@ export default {
         submitButton: {
             class: "whitespace-nowrap",
         },
-        addButtonContainer: {
+        createButtonContainer: {
             class: "flex justify-end mt-2",
         },
         filterListContainer: {

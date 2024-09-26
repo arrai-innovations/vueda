@@ -85,7 +85,7 @@ const emptyFieldObject = () => {
 
 const selected = ref([]);
 const theme = useTheme("FieldSetTabularInline");
-const onAdd = () => {
+const onCreate = () => {
     fieldContext.blur();
     fieldContext.state.value = [...cloneDeep(fieldContext.state.value), emptyFieldObject()];
 };
@@ -133,6 +133,9 @@ const objectsInOrder = computed(() => {
                 class="w-full"
                 data-qa="fieldset-tabular-inline-objects-grid"
                 :empty-text="null"
+                :field-classes="{
+                    selected_: 'text-center',
+                }"
                 :fields="fieldObjects"
                 :objects-in-order="objectsInOrder"
                 selectable
@@ -143,7 +146,16 @@ const objectsInOrder = computed(() => {
             >
                 <template #header(selected_)> Delete? </template>
                 <template v-for="(obj, rowIndex) in objectsInOrder" :key="obj.id" #[`field(selected_)${rowIndex}`]>
-                    <Button v-if="!obj.id" label="delete" text @click="removeObject(rowIndex)"></Button>
+                    <slot
+                        v-if="!obj.id"
+                        label="Delete"
+                        name="delete-button"
+                        text
+                        verb="delete"
+                        @click="removeObject(rowIndex)"
+                    >
+                        <Button label="delete" text @click="removeObject(rowIndex)" />
+                    </slot>
                 </template>
 
                 <template v-for="field in fieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
@@ -191,8 +203,14 @@ const objectsInOrder = computed(() => {
                     </slot>
                 </template>
             </objects-grid>
-            <slot :class="theme('addButton')" label="Add" name="add-button" verb="add" @click="onAdd">
-                <Button :class="theme('addButton')" label="Add" raised text @click="onAdd" />
+            <slot
+                :class="theme('createButton')"
+                label="Create"
+                name="create-button"
+                verb="createInline"
+                @click="onCreate"
+            >
+                <Button :class="theme('createButton')" label="Create" @click="onCreate" />
             </slot>
         </div>
     </div>

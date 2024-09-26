@@ -40,8 +40,8 @@ const removeRow = (index) => {
                 </div>
             </slot>
             <div v-if="props.many">
-                <slot label="Add" name="inline-add-row" size="small" verb="add" @click="addRow">
-                    <Button label="Add" size="small" @click="addRow" />
+                <slot label="Create" name="create-button" size="small" verb="createInline" @click="addRow">
+                    <Button label="Create" size="small" @click="addRow" />
                 </slot>
             </div>
         </div>

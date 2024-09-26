@@ -294,7 +294,7 @@ export default {
         filterRuleList: "flex flex-col gap-2",
         filterRule: "flex flex-col gap-2",
         filterButtonbar: "flex items-center justify-between p-0",
-        filterAddButtonContainer: "[&>[data-pc-name=pcfilteraddrulebutton]]:w-full",
+        filterCreateButtonContainer: "[&>[data-pc-name=pcfilteraddrulebutton]]:w-full",
         rowToggleButton: {
             class: [
                 "relative",

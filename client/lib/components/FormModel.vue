@@ -68,6 +68,7 @@ import FormHelpText from "@vueda/components/FormHelpText.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { useTheme } from "@vueda/use/useTheme.js";
+import { useSlots } from "vue";
 import { deepUnref } from "vue-deepunref";
 
 defineOptions({
@@ -152,6 +153,17 @@ const formModel = useFormModel(props);
 // todo: look into customizability re: overriding field / widget components with arbitrary slot content
 // todo: it would be nice to have a way to layout the fields into fieldsets / grids
 const theme = useTheme("FormModel");
+const slots = useSlots();
+const getSlotNamesFor = (type, fieldName) => {
+    const prefix = `${type}(${fieldName})`;
+    const slotNames = Object.keys(slots)
+        .filter((slotName) => slotName.startsWith(prefix))
+        .map((slotName) => {
+            return [slotName, slotName.slice(prefix.length) || "default"];
+        });
+    console.log("getSlotNamesFor", type, fieldName, slotNames);
+    return slotNames;
+};
 </script>
 
 <template>
@@ -185,28 +197,42 @@ const theme = useTheme("FormModel");
                             <component
                                 :is="formModel.fieldComponents[fieldName]"
                                 v-if="formModel.fieldComponents[fieldName]"
-                                v-slot="slotProps"
                                 :class="theme('field')"
                                 v-bind="formModel.fieldProps[fieldName]"
                             >
-                                <div :class="theme('fieldInner')">
-                                    <slot
-                                        :field-object="formModel.fieldDetails[fieldName]"
-                                        :name="`widget(${fieldName})`"
-                                        :theme="theme"
-                                        :widget-component="formModel.widgetComponents[fieldName]"
-                                        :widget-props="{ ...formModel.widgetProps[fieldName], ...slotProps }"
-                                    >
-                                        <component
-                                            :is="formModel.widgetComponents[fieldName]"
-                                            v-bind="{ ...formModel.widgetProps[fieldName], ...slotProps }"
-                                            v-if="formModel.widgetComponents[fieldName]"
-                                        />
-                                    </slot>
-                                    <form-help-text />
-                                    <form-feedback type="error" />
-                                    <form-feedback type="message" />
-                                </div>
+                                <template
+                                    v-for="[outsideSlotName, insideSlotName] in getSlotNamesFor('field', fieldName)"
+                                    #[insideSlotName]="slotProps"
+                                >
+                                    <slot :name="outsideSlotName" v-bind="slotProps" />
+                                </template>
+                                <template #default="slotProps">
+                                    <div :class="theme('fieldInner')">
+                                        <slot
+                                            :field-object="formModel.fieldDetails[fieldName]"
+                                            :name="`widget(${fieldName})`"
+                                            :theme="theme"
+                                            :widget-component="formModel.widgetComponents[fieldName]"
+                                            :widget-props="{ ...formModel.widgetProps[fieldName], ...slotProps }"
+                                        >
+                                            <component
+                                                :is="formModel.widgetComponents[fieldName]"
+                                                v-bind="{ ...formModel.widgetProps[fieldName], ...slotProps }"
+                                                v-if="formModel.widgetComponents[fieldName]"
+                                            >
+                                                <template
+                                                    v-for="slot in getSlotNamesFor('widget', fieldName)"
+                                                    #[slot.slotName]="slotProps"
+                                                >
+                                                    <slot :name="slot" v-bind="slotProps" />
+                                                </template>
+                                            </component>
+                                        </slot>
+                                        <form-help-text />
+                                        <form-feedback type="error" />
+                                        <form-feedback type="message" />
+                                    </div>
+                                </template>
                             </component>
                         </slot>
                     </template>

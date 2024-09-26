@@ -307,7 +307,7 @@ const theme = useTheme("FilterForm", props);
                     </form-chores>
                 </component>
             </div>
-            <div :class="theme('addButtonContainer')">
+            <div :class="theme('createButtonContainer')">
                 <slot label="Add Field" name="button" type="submit" verb="addFilter">
                     <Button :class="theme('submitButton')" label="Add Field" severity="secondary" type="submit" />
                 </slot>
