@@ -3,6 +3,7 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import isEqual from "lodash-es/isEqual.js";
+import isSet from "lodash-es/isSet.js";
 import omit from "lodash-es/omit.js";
 import { computed, effectScope, provide, reactive, readonly, shallowReactive, toRef, watch } from "vue";
 import { deepUnref } from "vue-deepunref";
@@ -498,6 +499,9 @@ const getDefaultFieldsProps = (field) => {
  * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps - The field props to use, either passed in or as a result of fieldObject or expandObject.
  * @property {{[fieldName:string]: import('vue').Component}} widgetComponents - The widget components to use, either passed in or as a result of fieldObject or expandObject.
  * @property {{[fieldName:string]: {[key:string]: any}}} widgetProps - The widget props to use, either passed in or as a result of fieldObject or expandObject.
+ * @property {Set<string>} baseFieldNames - The field names that are not expanded.
+ * @property {Set<string>} expansionFieldNames - The field names that are expanded.
+ * @property {Set<string>} expandedFieldNames - The field names that are expanded and base.
  */
 
 /**
@@ -538,7 +542,7 @@ export function useFormModel(props) {
             fieldDetails: {},
             expandDetails: {},
             fieldComponents: shallowReactive({}),
-            fieldProps: shallowReactive({}),
+            fieldProps: {},
             widgetComponents: shallowReactive({}),
             widgetProps: {},
             baseFieldNames: [],
@@ -550,7 +554,11 @@ export function useFormModel(props) {
     const assignStateObjectsIfChanged = (args) => {
         for (const key in args) {
             if (!isEqual(state[key], args[key])) {
-                assignReactiveObject(state[key], args[key]);
+                if (isSet(args[key])) {
+                    state[key] = new Set(args[key]);
+                } else {
+                    assignReactiveObject(state[key], args[key]);
+                }
             }
         }
     };
@@ -670,9 +678,9 @@ export function useFormModel(props) {
                 for (const field of allFields) {
                     const { fieldName, fieldDetail, baseExpanded, isExpandedField } = field;
                     if (!isExpandedField) {
-                        baseFieldNames.push(fieldName);
+                        baseFieldNames.add(fieldName);
                     } else {
-                        expansionFieldNames.push(fieldName);
+                        expansionFieldNames.add(fieldName);
                     }
                     if (baseExpanded) {
                         expandedFieldNames.add(fieldName);
@@ -763,8 +771,9 @@ export function useFormModel(props) {
                     fieldProps: {},
                     widgetComponents: {},
                     widgetProps: {},
-                    baseFieldNames: [],
-                    expansionFieldNames: [],
+                    baseFieldNames: new Set(),
+                    expansionFieldNames: new Set(),
+                    expandedFieldNames: new Set(),
                 });
             }
         },

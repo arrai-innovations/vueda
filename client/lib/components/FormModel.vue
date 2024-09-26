@@ -142,7 +142,6 @@ import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { useSlots } from "vue";
-import { deepUnref } from "vue-deepunref";
 
 defineOptions({
     inheritAttrs: false,
@@ -271,7 +270,7 @@ const getFormChoresSlotNames = (fieldName) => {
                     :theme="theme"
                     :widget-components="formModel.widgetComponents"
                 >
-                    <template v-for="fieldName in deepUnref(formModel.baseFieldNames)" :key="fieldName">
+                    <template v-for="fieldName in formModel.baseFieldNames" :key="fieldName">
                         <slot
                             :field-class="theme('field')"
                             :field-component="formModel.fieldComponents[fieldName]"
