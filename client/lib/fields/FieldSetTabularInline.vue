@@ -105,12 +105,10 @@ const handleSelected = (selected_) => {
     const added = selected_.filter((i) => !selected.value.includes(i));
     const removed = selected.value.filter((i) => !selected_.includes(i));
     added.forEach((i) => {
-        const index = fieldContext.state.value.findIndex((obj) => obj.id === i);
-        fieldContext.ignore(`${fieldContext.state.name}[${index}]`);
+        fieldContext.ignore(`${fieldContext.state.name}[${i}]`);
     });
     removed.forEach((i) => {
-        const index = fieldContext.state.value.findIndex((obj) => obj.id === i);
-        fieldContext.removeIgnore(`${fieldContext.state.name}[${index}]`);
+        fieldContext.removeIgnore(`${fieldContext.state.name}[${i}]`);
     });
     selected.value = selected_;
     if (selected_.length) {
@@ -206,6 +204,7 @@ const computedFieldObjects = computed(() => {
                 </template>
                 <template v-for="field in extraFieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
                     <slot
+                        v-if="!slotProps.pk"
                         :field-class="theme('field')"
                         :label="field.label"
                         :name="`field(${field.name})`"
@@ -215,18 +214,24 @@ const computedFieldObjects = computed(() => {
                         @delete="removeObject(slotProps.rowIndex)"
                         @selected="handleSelected"
                     >
-                        <Button
-                            v-if="!slotProps.pk"
-                            label="Delete"
-                            text
-                            @click="removeObject(slotProps.rowIndex)"
-                        ></Button>
+                        <Button label="Delete" text @click="removeObject(slotProps.rowIndex)"></Button>
+                    </slot>
+                    <slot
+                        v-else
+                        :field-class="theme('field')"
+                        :label="field.label"
+                        :name="`field(${field.name})`"
+                        :theme="theme"
+                        :value="field.value"
+                        verb="delete"
+                        @delete="removeObject(slotProps.rowIndex)"
+                        @selected="handleSelected"
+                    >
                         <Checkbox
-                            v-else
-                            :input-id="`selected-row-${slotProps.pk}`"
+                            :input-id="`selected-row-${slotProps.rowIndex}`"
                             :model-value="selected"
                             name="selected"
-                            :value="slotProps.pk"
+                            :value="slotProps.rowIndex"
                             @update:model-value="handleSelected"
                         />
                     </slot>

@@ -62,7 +62,7 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-col"],
+            class: ["divide-y divide-dashed hover:divide-solid"],
         },
         header: {
             class: ["flex items-baseline gap-2"],
@@ -124,6 +124,9 @@ export default {
         },
         field: {
             class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"],
+        },
+        deleteOuter: {
+            class: ["flex py-2"],
         },
     },
     FieldSetMany: {

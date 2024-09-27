@@ -24,7 +24,13 @@ const preprocessSet = (value) => {
         const date = new Date(value);
         date.setTime(date.getTime() - date.getTimezoneOffset() * 60000);
         const isoString = date.toISOString();
-        return isoString.split(".")[0];
+        const timezoneOffset = date.getTimezoneOffset();
+        const offsetSign = timezoneOffset > 0 ? "-" : "+";
+        const offsetHours = Math.floor(Math.abs(timezoneOffset) / 60)
+            .toString()
+            .padStart(2, "0");
+        const offsetMinutes = (Math.abs(timezoneOffset) % 60).toString().padStart(2, "0");
+        return `${isoString.split(".")[0]}${offsetSign}${offsetHours}:${offsetMinutes}`;
     }
     return value;
 };

@@ -4,12 +4,17 @@ import FormHelpText from "@vueda/components/FormHelpText.vue";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import Button from "primevue/button";
+import Checkbox from "primevue/checkbox";
 import { inject } from "vue";
 import { deepUnref } from "vue-deepunref";
 
 const props = defineProps({
     index: {
         type: Number,
+        default: undefined,
+    },
+    pk: {
+        type: [String, Number],
         default: undefined,
     },
     fieldName: {
@@ -40,11 +45,15 @@ const props = defineProps({
         default: undefined,
         description: "A map of field paths to props, as overrides.",
     },
+    selected: {
+        type: Array,
+        default: () => [],
+    },
 });
 const formModel = inject(FormModelSymbol, null);
 const theme = useTheme("FieldSetStackedInlineRow");
 
-const emit = defineEmits(["delete-row"]);
+const emit = defineEmits(["delete-row", "update:selected"]);
 const onDelete = () => emit("delete-row", props.index);
 
 const getFieldName = (fieldName) => {
@@ -120,10 +129,24 @@ const getFieldPath = (fieldName) => {
         <div v-if="$slots.afterFields" :class="theme('afterFields')">
             <slot name="afterFields" />
         </div>
-        <div v-if="props.index" class="card-header">
-            <slot label="Delete" name="inline-row-delete" size="small" verb="delete" @click="onDelete">
-                <Button label="Delete" size="small" @click="onDelete" />
-            </slot>
+        <div :class="theme('deleteOuter')">
+            <div v-if="pk" class="flex items-center">
+                <slot :input-id="`selected-inline-${pk}`" name="selected" :selected="selected" :value="index">
+                    <Checkbox
+                        :input-id="`selected-inline-${pk}`"
+                        :model-value="selected"
+                        name="selected"
+                        :value="index"
+                        @update:model-value="emit('update:selected', $event)"
+                    />
+                    <label class="ml-2" for="`selected-inline-${pk}`"> Delete? </label>
+                </slot>
+            </div>
+            <div v-else>
+                <slot label="Delete" name="inline-row-delete" size="small" verb="delete" @click="onDelete">
+                    <Button label="Delete" size="small" @click="onDelete" />
+                </slot>
+            </div>
         </div>
     </div>
 </template>

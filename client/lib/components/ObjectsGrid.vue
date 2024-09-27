@@ -124,20 +124,12 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    selectable: {
-        type: Boolean,
-        default: false,
-    },
-    selected: {
-        type: Array,
-        default: () => [],
-    },
     pkKey: {
         type: String,
         default: "id",
     },
 });
-const emit = defineEmits(["update:sorted", "update:selected"]);
+const emit = defineEmits(["update:sorted"]);
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isTable = breakpoints.greaterOrEqual(toRef(props, "tableBreakpoint"));

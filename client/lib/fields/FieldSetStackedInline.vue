@@ -5,6 +5,7 @@ import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import Button from "primevue/button";
+import { ref } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -16,7 +17,7 @@ const props = defineProps({
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
 const theme = useTheme("FieldSetStackedInline");
-
+const selected = ref([]);
 const addRow = () => {
     fieldContext.blur();
     if (fieldContext.state.value) {
@@ -28,6 +29,23 @@ const addRow = () => {
 const removeRow = (index) => {
     fieldContext.blur();
     fieldContext.state.value = cloneDeep(fieldContext.state.value).filter((_, i) => i !== index);
+};
+const handleSelected = (selected_) => {
+    const added = selected_.filter((i) => !selected.value.includes(i));
+    const removed = selected.value.filter((i) => !selected_.includes(i));
+    added.forEach((i) => {
+        fieldContext.ignore(`${fieldContext.state.name}[${i}]`);
+    });
+    removed.forEach((i) => {
+        fieldContext.removeIgnore(`${fieldContext.state.name}[${i}]`);
+    });
+    selected.value = selected_;
+    if (selected_.length) {
+        fieldContext.setModified();
+    } else {
+        fieldContext.clearModified();
+    }
+    selected.value = selected_;
 };
 </script>
 
@@ -51,15 +69,24 @@ const removeRow = (index) => {
             </template>
         </form-chores>
         <hr :class="theme('hr')" />
-        <div v-if="!props.many">
-            <InlineRow :field-name="fieldContext.state.name" />
-        </div>
-        <div v-else v-for="(_, index) in fieldContext.state.value" :key="index" :class="theme('inlineRows')">
-            <InlineRow :field-name="fieldContext.state.name" :index="index" @delete-row="removeRow">
-                <template #inline-row-delete="slotProps">
-                    <slot :index="index" name="inline-row-delete" v-bind="slotProps" />
-                </template>
-            </InlineRow>
+        <div :class="theme('inner')">
+            <div v-if="!props.many">
+                <InlineRow :field-name="fieldContext.state.name" />
+            </div>
+            <div v-else v-for="(value, index) in fieldContext.state.value" :key="index" :class="theme('inlineRows')">
+                <InlineRow
+                    :field-name="fieldContext.state.name"
+                    :index="index"
+                    :pk="value.id"
+                    :selected="selected"
+                    @delete-row="removeRow"
+                    @update:selected="handleSelected"
+                >
+                    <template #inline-row-delete="slotProps">
+                        <slot :index="index" name="inline-row-delete" v-bind="slotProps" />
+                    </template>
+                </InlineRow>
+            </div>
         </div>
     </div>
 </template>

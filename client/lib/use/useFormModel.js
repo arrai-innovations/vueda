@@ -690,7 +690,7 @@ export function useFormModel(props) {
                             const component =
                                 props.fieldComponents?.[fieldName] ||
                                 modelConfig?.config?.fieldComponents?.[fieldName] ||
-                                (baseExpanded && fieldDetail.many
+                                (baseExpanded
                                     ? availableFields.FieldSetStackedInline
                                     : djangoTypeToFieldComponent(fieldDetail));
                             if (typeof component === "string") {
