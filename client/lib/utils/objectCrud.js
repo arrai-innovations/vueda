@@ -54,7 +54,9 @@ const getFormData = (object) => {
                     }
                 });
             } else if (isObject(object[key]) && !(object[key] instanceof File)) {
-                formData.append(`${key}`, JSON.stringify(object[key]));
+                for (const name in object[key]) {
+                    formData.append(`${key}.${name}`, object[key][name]);
+                }
             } else {
                 formData.append(`${key}`, object[key]);
             }
