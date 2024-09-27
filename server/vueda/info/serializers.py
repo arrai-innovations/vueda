@@ -751,25 +751,6 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     if existing_parameter["name"] in ("app_label", "model", settings.REST_FLEX_FIELDS["EXPAND_PARAM"]):
                         parameters.pop(index)
 
-            case "vueda.info_model_info_retrieve":
-                for existing_parameter in parameters:
-                    match existing_parameter["name"]:
-                        case "app_label":
-                            existing_parameter.update(
-                                {
-                                    "description": "The name of the application the model is part of.",
-                                    "example": "store",
-                                }
-                            )
-
-                        case "model":
-                            existing_parameter.update(
-                                {
-                                    "description": "The name of the model class.",
-                                    "example": "product",
-                                }
-                            )
-
         return parameters
 
 

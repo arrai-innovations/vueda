@@ -1,7 +1,9 @@
+from http.client import responses
 from typing import List
 from typing import Optional
 
 from django.conf import settings
+from rest_framework import serializers
 from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
 
@@ -231,18 +233,22 @@ class VuedaBaseAutoSchema:
                 match (parameter["name"], parameter["in"]):
                     case ("app_label", "path"):
                         parameter["schema"]["example"] = "store"
-                        parameter["description"] = "The name of the application the model is part of."
+                        parameter["schema"]["maxLength"] = 100
+                        parameter["schema"]["pattern"] = "^[a-zA-Z0-9_]+$"
+                        parameter["schema"]["title"] = "django app name"
 
                     case ("model", "path"):
                         parameter["schema"]["example"] = "product"
-                        parameter["description"] = "The name of the model class."
+                        parameter["schema"]["maxLength"] = 100
+                        parameter["schema"]["pattern"] = "^[a-zA-Z0-9_]+$"
+                        parameter["schema"]["title"] = "model class name"
 
                     case ("field", "path"):
                         parameter["schema"]["example"] = "product_type"
-                        if self.path.startswith(r"/routes/vueda.info/model_info_choices/"):
-                            parameter["description"] = "The name of the serializer field."
-                        elif self.path.startswith(r"/routes/vueda.info/model_info_filter_choices"):
-                            parameter["description"] = "The name of the filterset field."
+                        if "model_info_choices" in self.path:
+                            parameter["schema"]["title"] = "serializer field name"
+                        elif "model_info_filter_choices" in self.path:
+                            parameter["schema"]["title"] = "filterset field name"
 
         return parameters
 
@@ -258,12 +264,12 @@ class VuedaBaseAutoSchema:
                     case settings.PAGE_QUERY_PARAM:
                         parameter["schema"]["default"] = 1
                         parameter["schema"]["example"] = 2
-                        parameter["description"] = f'Page: {parameter["description"]}'
+                        parameter["schema"]["title"] = "page"
 
                     case settings.PAGE_SIZE_QUERY_PARAM:
                         parameter["schema"]["default"] = settings.MAX_PAGE_SIZE
                         parameter["schema"]["example"] = 50
-                        parameter["description"] = f'Page Size: {parameter["description"]}'
+                        parameter["schema"]["title"] = "page size"
 
         return parameters
 
@@ -283,11 +289,11 @@ class VuedaBaseAutoSchema:
                 match parameter["name"]:
                     case MatchFilterParameters.SEARCH_PARAM:
                         parameter["schema"]["example"] = "Paint"
-                        parameter["description"] = f'Search: {parameter["description"]}'
+                        parameter["schema"]["title"] = "search term"
 
                     case MatchFilterParameters.ORDERING_PARAM:
                         parameter["schema"]["example"] = "-quantity"
-                        parameter["description"] = f'Ordering: {parameter["description"]}'
+                        parameter["schema"]["title"] = "ordering"
 
         return parameters
 
@@ -302,16 +308,46 @@ class VuedaBaseAutoSchema:
                 match parameter_key:
                     case ("object_id", "path"):
                         parameter["schema"]["example"] = "1234"
-                        parameter["description"] = "The pk of the object."
+                        parameter["schema"]["title"] = "object pk"
+                        parameter["schema"]["type"] = "string"
 
         return parameters
+
+    def _get_request_body(self, direction="request"):
+        body = super()._get_request_body(direction)
+
+        # This is unfinished.
+        # request_serializer = self.get_request_serializer()
+
+        return body
+
+    def _get_response_bodies(self, direction="response"):
+        bodies = super()._get_response_bodies(direction)
+
+        response_serializer = self.get_response_serializers()  # This returns a single serializer.
+        # If the response serializer is a serializer, allow the serializer to customize responses.
+
+        if isinstance(response_serializer, serializers.BaseSerializer) and hasattr(
+            response_serializer, "customize_schema_response_data"
+        ):
+            response_serializer.customize_schema_response_data(bodies)
+
+        # For consistency, add the status code description (from http.client.responses) on all responses.
+        for status_code, body in bodies.items():
+            body["description"] = responses[int(status_code)]
+
+        return bodies
 
 
 try:
     from drf_spectacular.openapi import AutoSchema as SpectacularAutoSchema
     from drf_spectacular.plumbing import ComponentRegistry
+    from drf_spectacular.plumbing import ResolvedComponent
     from drf_spectacular.plumbing import build_serializer_context
+    from drf_spectacular.utils import Direction
     from drf_spectacular.utils import _SchemaType
+    from drf_spectacular.utils import _SerializerType
+
 except ImportError:
     pass
 else:
@@ -341,3 +377,26 @@ else:
             parameters = sorted(parameters, key=lambda x: x["in"] if x["in"] == "path" else f"{x['in']}_{x['name']}")
 
             return parameters
+
+        def resolve_serializer(
+            self, serializer: _SerializerType, direction: Direction, bypass_extensions=False
+        ) -> ResolvedComponent:
+            resolved_serializer = super().resolve_serializer(serializer, direction, bypass_extensions=bypass_extensions)
+
+            # Make app_label and model consistent in all cases.  Some components display things differently than others.
+            if getattr(resolved_serializer, "schema", None) and "properties" in resolved_serializer.schema:
+                for name, prop in resolved_serializer.schema["properties"].items():
+                    match name:
+                        case "app_label":
+                            prop["example"] = "store"
+                            prop["maxLength"] = 100
+                            prop["pattern"] = "^[a-zA-Z0-9_]+$"
+                            prop["title"] = "django app name"
+
+                        case "model":
+                            prop["example"] = "product"
+                            prop["maxLength"] = 100
+                            prop["pattern"] = "^[a-zA-Z0-9_]+$"
+                            prop["title"] = "model class name"
+
+            return resolved_serializer
