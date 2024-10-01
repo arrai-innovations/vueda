@@ -263,45 +263,110 @@ class DeactivateActionViewSetMixin:
     A ViewSet mixin that allows you to deactivate a model inheriting from `ActivatableBaseModel`.
     """
 
-    @action(detail=True, methods=["patch"])
-    def deactivate(self, request):
-        instance = self.get_object()
-        if not isinstance(instance, ActivatableBaseModel):
+    @action(detail=True, bulk=True, methods=["patch"])
+    def deactivate(self, request, **kwargs):
+        pk = kwargs.get("pk")
+        if pk:
+            instance = self.get_object()
+            if not isinstance(instance, ActivatableBaseModel):
+                return Response(
+                    {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
+                    status=405,
+                )
+            if not instance.is_active:
+                return Response(
+                    {"detail": f"{instance.__class__.__name__} with id {instance.pk} is already deactivated."},
+                    status=400,
+                )
+            instance.is_active = False
+            instance.save()
             return Response(
-                {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
-                status=405,
+                {"detail": f"{instance.__class__.__name__} with id {instance.pk} has been deactivated."},
+                status=200,
             )
-        if not instance.is_active:
-            return Response(
-                {"detail": f"{instance.__class__.__name__} with id {instance.pk} is already deactivated."},
-                status=400,
-            )
-        instance.is_active = False
-        instance.save()
-        return Response(
-            {"detail": f"{instance.__class__.__name__} with id {instance.pk} has been deactivated."},
-            status=200,
-        )
 
-    @action(detail=True, methods=["patch"])
-    def activate(self, request):
-        instance = self.get_object()
-        if not isinstance(instance, ActivatableBaseModel):
+        pks = request.data.get("pks", [])
+        if not isinstance(pks, list):
+            return Response({"error": "pks must be a list of primary keys."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            pks = [int(pk) for pk in pks]
+        except ValueError:
+            return Response({"error": "All primary keys must be valid integers."}, status=status.HTTP_400_BAD_REQUEST)
+
+        queryset = self.queryset.filter(pk__in=pks)
+
+        already_deactivated = []
+        for instance in queryset:
+            if not isinstance(instance, ActivatableBaseModel):
+                return Response(
+                    {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
+                    status=405,
+                )
+            elif not instance.is_active:
+                already_deactivated.append(instance.pk)
+
+        if already_deactivated:
             return Response(
-                {"detail": f"Activate action is not supported for {instance.__class__}."},
-                status=405,
-            )
-        if instance.is_active:
-            return Response(
-                {"detail": f"{instance.__class__.__name__} with id {instance.pk} is already activated."},
+                {"detail": f"Instances with id {', '.join(map(str, already_deactivated))} are already deactivated."},
                 status=400,
             )
-        instance.is_active = True
-        instance.save()
-        return Response(
-            {"detail": f"{instance.__class__.__name__} with id {instance.pk} has been activated."},
-            status=200,
-        )
+
+        # Perform bulk deactivation in a single query
+        queryset.update(is_active=False)
+        return Response({"detail": f"Successfully deactivated {len(pks)} objects."}, status=200)
+
+    @action(detail=True, bulk=True, methods=["patch"])
+    def activate(self, request, **kwargs):
+        pk = kwargs.get("pk")
+        if pk:
+            instance = self.get_object()
+            if not isinstance(instance, ActivatableBaseModel):
+                return Response(
+                    {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
+                    status=405,
+                )
+            if instance.is_active:
+                return Response(
+                    {"detail": f"{instance.__class__.__name__} with id {instance.pk} is already activated."},
+                    status=400,
+                )
+            instance.is_active = True
+            instance.save()
+            return Response(
+                {"detail": f"{instance.__class__.__name__} with id {instance.pk} has been activated."},
+                status=200,
+            )
+
+        pks = request.data.get("pks", [])
+        if not isinstance(pks, list):
+            return Response({"error": "pks must be a list of primary keys."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            pks = [int(pk) for pk in pks]
+        except ValueError:
+            return Response({"error": "All primary keys must be valid integers."}, status=status.HTTP_400_BAD_REQUEST)
+
+        queryset = self.queryset.filter(pk__in=pks)
+
+        already_activated = []
+        for instance in queryset:
+            if not isinstance(instance, ActivatableBaseModel):
+                return Response(
+                    {"detail": f"Activate action is not supported for {instance.__class__.__name__}."},
+                    status=405,
+                )
+            elif instance.is_active:
+                already_activated.append(instance.pk)
+
+        if already_activated:
+            return Response(
+                {"detail": f"Instances with id {', '.join(map(str, already_activated))} are already activated."},
+                status=405,
+            )
+
+        # Perform bulk deactivation in a single query
+        queryset.update(is_active=True)
+
+        return Response({"detail": f"Successfully activated {len(pks)} objects."}, status=200)
 
 
 class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
