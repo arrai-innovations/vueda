@@ -36,4 +36,18 @@ export default {
             class: "w-full h-2 md:h-3 lg:h-4 bg-gradient-to-b from-surface-0 to-transparent dark:from-surface-950 dark:to-transparent",
         },
     },
+    ActionForm: {
+        root: {
+            class: [],
+        },
+        inner: {
+            class: ["gap-1 mt-1"],
+        },
+        bodyContainer: {
+            class: [],
+        },
+        buttonGroup: {
+            class: ["flex flex-row lg:flex-col mx-2 gap-2 mb-2 flex-wrap lg:flex-nowrap"],
+        },
+    },
 };

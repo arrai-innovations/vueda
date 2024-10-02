@@ -54,7 +54,7 @@ watch(
             if (!action) {
                 actionComponentRef.value = () => ViewActionNotFound;
             }
-            const actionName = toRaw(action).name === "bulk-delete" ? "delete" : toRaw(action).name;
+            const actionName = toRaw(action).name;
             if (Object.keys(crudComponents).includes(actionName)) {
                 actionComponentRef.value = async () => await crudComponents[actionName](props);
             } else {

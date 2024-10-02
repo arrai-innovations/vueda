@@ -197,6 +197,7 @@ export const storeWorkflow = defineStore({
                         return;
                     }
                     set(this.workflowTransitions, key, data.results[0]);
+                    return get(this.workflowTransitions, key);
                 }
             } finally {
                 this.loading = false;

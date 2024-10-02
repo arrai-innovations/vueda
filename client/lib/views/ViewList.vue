@@ -292,8 +292,8 @@ onMounted(() => {
 const hasWorkFlow = computedAsync(
     async () => {
         try {
-            await workflow.fetchWorkflowTransition(props.app, props.model);
-            return true;
+            const transitions = await workflow.fetchWorkflowTransition(props.app, props.model);
+            return transitions;
         } catch (WorkflowError) {
             return false;
         }

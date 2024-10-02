@@ -1,7 +1,9 @@
 <script setup>
+import PageTitle from "@vueda/components/PageTitle.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
-import { isArray } from "lodash-es";
+import { useTheme } from "@vueda/use/useTheme.js";
+import { capitalize } from "lodash-es";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 import { computed, toRef } from "vue";
@@ -15,12 +17,12 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    model: {
-        type: String,
+    objects: {
+        type: Array,
         required: true,
     },
-    pk: {
-        type: [String, Array],
+    model: {
+        type: String,
         required: true,
     },
     action: {
@@ -57,25 +59,19 @@ const router = useRouter();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 
 const actionTitleText = computed(() => {
-    if (Array.isArray(props.pk)) {
-        return `${props.model} ${props.action} ${props.pk.map((p) => `#${p}`).join(", ")}`;
-    }
-    return `${props.model} ${props.action} #${props.pk}`;
+    return `${capitalize(props.action)} ${capitalize(props.model)}`;
 });
 const actionSuccessSummary = computed(() => {
     if (props.actionSuccessSummary) {
         return props.actionSuccessSummary;
     }
-    if (Array.isArray(props.pk)) {
-        return `${props.model} ${props.action} ${props.pk.map((p) => `#${p}`).join(", ")} successful`;
-    }
-    return `${props.model} ${props.action} #${props.pk} successful`;
+    return `${props.model} ${props.action} successful`;
 });
 const actionErrorSummary = computed(() => {
     if (props.actionErrorSummary) {
         return props.actionErrorSummary;
     }
-    return `Fail to ${props.action} ${props.model} }`;
+    return `Fail to ${props.action} ${props.model} `;
 });
 
 const handleConfirm = async () => {
@@ -105,24 +101,44 @@ const handleConfirm = async () => {
 };
 
 const confirmMessage = computed(() => {
-    if (isArray(props.pk)) {
-        return `Are you sure you want to ${props.action} these ${modelConfig.info?.verbose_name_plural || props.model}?`;
-    }
-    return `Are you sure you want to ${props.action} this ${modelConfig.info?.verbose_name || props.model}?`;
+    return `Are you sure you want to ${capitalize(props.action)} the selected ${modelConfig.info?.verbose_name || props.model}?`;
 });
+
+const theme = useTheme("ActionForm", props);
 </script>
 
 <template>
-    <div>
+    <div :class="theme('root')">
         <slot name="action-title">
-            <h1>{{ props.title || actionTitleText }}</h1>
+            <PageTitle :title="actionTitleText">
+                <template #button>
+                    <Button outlined text @click="router.back()"> Back </Button>
+                </template>
+            </PageTitle>
         </slot>
-        <slot name="action-body">
-            <p>{{ props.confirmMessage || confirmMessage }}</p>
-            <!-- todo: show the item(s) somehow. -->
-            <Button @click="handleConfirm"> Yes, continue </Button>
-            <Button @click="router.back()"> Cancel </Button>
-        </slot>
+        <div :class="theme('inner')">
+            <div :class="theme('bodyContainer')">
+                <ul class="list-inside ...">
+                    you have selected the following item(s) for action:
+                    <li v-for="object in props.objects" :key="object.id">
+                        <p>{{ object.formatted_name || object.id }}</p>
+                    </li>
+                </ul>
+
+                <slot name="confirm-message">
+                    <p>{{ props.confirmMessage || confirmMessage }}</p>
+                </slot>
+            </div>
+            <div :class="theme('buttonGroup')">
+                <slot name="confirm" @click="handleConfirm">
+                    <Button @click="handleConfirm"> Yes, continue </Button>
+                </slot>
+                <slot name="cancel" @click="router.back()">
+                    <Button @click="router.back()"> Cancel </Button>
+                </slot>
+            </div>
+        </div>
+
         <slot name="action-footer"> </slot>
     </div>
 </template>
