@@ -191,7 +191,7 @@ const defaultWidgetProps = {
         TimeField: { selectionMode: "range", timeOnly: true },
     },
     ModelChoiceField: {
-        ForeignKey: { type: "select" },
+        ForeignKey: { type: "select", appendTo: "#maskId" },
     },
 };
 

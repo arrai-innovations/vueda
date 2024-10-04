@@ -55,7 +55,6 @@ const valueUpdated = (selected) => {
                     option-label="label"
                     option-value="value"
                     :options="props.options"
-                    :overlay-style="{ zIndex: 2000 }"
                     show-clear
                     v-bind="$attrs"
                     @blur="handleBlur"

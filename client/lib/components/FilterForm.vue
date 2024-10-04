@@ -246,7 +246,7 @@ const theme = useTheme("FilterForm", props);
 </script>
 
 <template>
-    <Dialog v-model:visible="showFilters" :class="theme('dialog')" header="Add Filter" modal>
+    <Dialog v-model:visible="showFilters" :class="theme('dialog')" header="Add Filter" modal pt:mask:id="maskId">
         <error-display
             :class="theme('errorDisplay')"
             :error="unref(loadingError.error)"
