@@ -109,7 +109,6 @@ watch(
 onBeforeFieldUnmount(fieldContext);
 </script>
 <template>
-    {{ props }}
     <div data-qa="field-string">
         <slot />
     </div>

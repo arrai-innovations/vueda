@@ -5,6 +5,7 @@ import FormChores from "@vueda/components/FormChores.vue";
 import FieldString from "@vueda/fields/FieldString.vue";
 import useFilterForm from "@vueda/use/useFilterForm.js";
 import { useForm } from "@vueda/use/useForm.js";
+import { useModelFilterInitialValues } from "@vueda/use/useModelInitialValues.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { filterExpressions } from "@vueda/utils/filterLookups.js";
@@ -15,7 +16,7 @@ import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import { useToast } from "primevue/usetoast";
-import { computed, nextTick, ref, toRaw, unref, watch } from "vue";
+import { computed, nextTick, ref, toRaw, toRef, unref, watch } from "vue";
 
 const listArgs = defineModel({
     type: Object,
@@ -54,11 +55,13 @@ const addFilters = () => {
 // we keep more information about the selected filter for ourselves.
 // We only mirror the added filter's key values into `listArgs`
 const addedFilters = ref([]);
+const modelInitialValues = useModelFilterInitialValues(toRef(props, "app"), toRef(props, "model"));
+
 const formContext = useForm({
     initialValues: {
         filterField: null,
         lookupExpression: null,
-        filterValue: null,
+        ...modelInitialValues,
     },
 });
 const loadingError = useLoadingError();
@@ -115,7 +118,8 @@ const confirmAddField = async () => {
             return;
         }
         // label is a nice version of the value.
-        let label = formContext.state.values.filterValue;
+        const key = `${formContext.state.values.filterField}__${formContext.state.values.lookupExpression}`;
+        let label = formContext.state.values[key];
         const fieldClass = filterForm.filterableDetails[formContext.state.values.filterField].typeFilter;
         const isDate = fieldClass.includes("Date");
         const isTime = fieldClass.includes("Time");
@@ -139,7 +143,7 @@ const confirmAddField = async () => {
             },
             expression: filterExpressions.find((e) => e.value === formContext.state.values.lookupExpression),
             param: selectedFilterableOption.value.lookupExpressionsToParams[formContext.state.values.lookupExpression],
-            value: formContext.state.values.filterValue,
+            value: formContext.state.values[key],
             label: `${filterForm.filterableDetails[formContext.state.values.filterField].label}:${
                 selectedFilterableOption.value?.lookupExpressionsToParams?.length > 1
                     ? filterExpressions.find((e) => e.value === formContext.state.values.lookupExpression).label + ":"

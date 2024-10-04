@@ -1,4 +1,5 @@
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
+import { filterExpressions } from "@vueda/utils/filterLookups.js";
 import isEqual from "lodash-es/isEqual.js";
 import { readonly, ref, watch } from "vue";
 
@@ -122,6 +123,56 @@ export function useModelInitialValues(app, model, fields) {
                 Object.entries(rawNewFieldDetails).forEach(([fieldKey, fieldDetail]) => {
                     if (rawNewFields.includes(fieldKey) && fieldKey !== "pk") {
                         newInitialValues[fieldKey] = getFieldInitialValue(fieldDetail);
+                    }
+                });
+                if (!isEqual(initialValues.value, newInitialValues)) {
+                    initialValues.value = newInitialValues;
+                }
+            } else {
+                if (!isEqual(initialValues.value, {})) {
+                    initialValues.value = {};
+                }
+            }
+        },
+        { immediate: true, deep: true },
+    );
+
+    return readonly(initialValues);
+}
+
+/**
+ * @typedef {import("vue").DeepReadonly<import("vue").Ref<{[key: string]: any}>>} InitialValues
+ */
+
+/**
+ * Returns the initial values for the filters of a model, so that a blank form can be created, without fields being mutated
+ *  immediately by coercion of values, causing a form to be dirty.
+ *
+ * @param {import('vue').Ref<string>} app - A ref containing the app name that is being watched.
+ * @param {import('vue').Ref<string>} model - A ref containing the model name that is being watched.
+ * @returns {InitialValues} An object containing the initial values for the model.
+ */
+export function useModelFilterInitialValues(app, model) {
+    const modelInfo = useModelInfo(app, model);
+    const initialValues = ref({});
+
+    watch(
+        [() => modelInfo.info.filtering],
+        ([newFilteringDetails]) => {
+            if (Object.keys(newFilteringDetails || {}).length) {
+                const newInitialValues = {};
+                Object.entries(newFilteringDetails).forEach(([filterableName, filterableDetail]) => {
+                    const lookupExpressions = [];
+                    for (const expression of filterExpressions) {
+                        if (filterableDetail.lookupExprs.includes(expression.value)) {
+                            lookupExpressions.push(expression);
+                        }
+                    }
+                    const filterFields = [];
+                    for (const expression of lookupExpressions) {
+                        const key = `${filterableName}__${expression.value}`;
+                        newInitialValues[key] = getFieldInitialValue(filterableDetail);
+                        filterFields.push(`${filterableName}__${expression.value}`);
                     }
                 });
                 if (!isEqual(initialValues.value, newInitialValues)) {
