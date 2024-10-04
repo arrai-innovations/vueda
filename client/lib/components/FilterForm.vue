@@ -288,7 +288,6 @@ const theme = useTheme("FilterForm", props);
                     v-bind="displayedFieldProps"
                     :class="theme('fieldLabel')"
                     label="Filter Value"
-                    name="filterValue"
                     required
                 >
                     <component
@@ -325,14 +324,14 @@ const theme = useTheme("FilterForm", props);
                 :title="`Remove filter for ${filter.field.label} by ${filter.expression.label} for ${filter.value}`"
                 verb="removeFilter"
                 v-bind="filter"
-                @click.prevent="() => removeFilter(filter)"
+                @click="() => removeFilter(filter)"
             >
                 <Button
                     :class="theme('filterButton')"
                     :label="filter.label"
                     severity="info"
                     :title="`Remove filter for ${filter.field.label} by ${filter.expression.label} for ${filter.value}`"
-                    @click.prevent="removeFilter(filter)"
+                    @click="removeFilter(filter)"
                 />
             </slot>
         </template>

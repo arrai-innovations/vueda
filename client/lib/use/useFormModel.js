@@ -1,11 +1,7 @@
-import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
-import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { buildForm } from "@vueda/utils/buildForm.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
-import isEqual from "lodash-es/isEqual.js";
-import isSet from "lodash-es/isSet.js";
-import omit from "lodash-es/omit.js";
-import { computed, effectScope, provide, reactive, readonly, shallowReactive, toRef, watch } from "vue";
+import { provide, reactive, readonly, shallowReactive, toRef, watch } from "vue";
 import { deepUnref } from "vue-deepunref";
 
 const defaultFieldMappings = {
@@ -430,7 +426,7 @@ const manyFieldMappings = {
  * @param {Object} field - The field detail object
  * @returns {import('@vueda/utils/filterLookups.js').FieldComponent} The field component.
  */
-const djangoTypeToFieldComponent = (field) => {
+const getFieldComponent = (field) => {
     let component;
     if (field.choices) {
         component = choiceFieldMappings[field.typeSerializer]?.[field.typeModel]?.component;
@@ -446,7 +442,7 @@ const djangoTypeToFieldComponent = (field) => {
  * @param {object} field - Object that contains detail of a field
  * @returns {import('@vueda/utils/filterLookups.js').WidgetComponent} The widget component.
  */
-const getDefaultWidget = (field) => {
+const getWidgetComponent = (field) => {
     // if (field.readOnly) {
     //     return availableWidgets.WidgetReadOnly;
     // }
@@ -466,7 +462,7 @@ const getDefaultWidget = (field) => {
  * @param {object} field - Object that contains detail of a field
  * @returns {{[fieldName:string]: {[key:string]: any}}|undefined} widgetProps - The default widget props
  */
-const getDefaultWidgetProps = (field) => {
+const getWidgetProps = (field) => {
     let baseProps;
     if (field.choices) {
         baseProps = field.many ? choiceFieldMappings[field.typeSerializer]?.[field.typeModel]?.manyWidgetProps : {};
@@ -482,7 +478,7 @@ const getDefaultWidgetProps = (field) => {
  * @param {object} field - Object that contains detail of a field
  * @returns {{[fieldName:string]: {[key:string]: any}}|undefined} fieldProps - The default field props
  */
-const getDefaultFieldsProps = (field) => {
+const getFieldProps = (field) => {
     let baseProps;
     if (field.many && !field.choices) {
         baseProps = manyFieldMappings[field.typeSerializer]?.[field.typeModel]?.fieldProps;
@@ -532,9 +528,6 @@ const isExpandedFieldName = (fieldName) => fieldName.includes("__");
  * @returns {UseFormModelState} The reactive state.
  */
 export function useFormModel(props) {
-    const es = effectScope();
-    const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
-
     const state = reactive(
         /** @type {UseFormModelRawState} */ {
             fields: [],
@@ -550,60 +543,11 @@ export function useFormModel(props) {
             expandedFieldNames: [],
         },
     );
+    const { setUpWatch, assignStateObjectsIfChanged, setComponent, setComponentProps, setWidget, setWidgetProps } =
+        buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps);
+    setUpWatch("displayFields", "fieldDetails", "fields", "fieldDetails");
+    setUpWatch("expands", "expandDetails");
 
-    const assignStateObjectsIfChanged = (args) => {
-        for (const key in args) {
-            if (!isEqual(state[key], args[key])) {
-                if (isSet(args[key])) {
-                    state[key] = new Set(args[key]);
-                } else {
-                    assignReactiveObject(state[key], args[key]);
-                }
-            }
-        }
-    };
-
-    watch(
-        [
-            () => modelConfig.config.displayFields,
-            () => modelConfig.config.expands,
-            () => modelConfig.config.fieldDetails,
-            () => modelConfig.config.expandDetails,
-            toRef(props, "fields"),
-            toRef(props, "expands"),
-            toRef(props, "fieldDetails"),
-            toRef(props, "expandDetails"),
-        ],
-        () => {
-            // props has priority over config
-            const desiredFields = props.fields || modelConfig.config?.displayFields || [];
-            const desiredExpands = props.expands || modelConfig.config?.expands || [];
-            // details fields merge at the field property level
-            const desiredFieldDetails = {};
-            const desiredExpandDetails = {};
-            for (const field of desiredFields) {
-                desiredFieldDetails[field] = {
-                    ...modelConfig.config?.fieldDetails?.[field],
-                    ...props.fieldDetails?.[field],
-                };
-            }
-            for (const expand of desiredExpands) {
-                desiredExpandDetails[expand] = {
-                    ...modelConfig.config?.expandDetails?.[expand],
-                    ...props.expandDetails?.[expand],
-                };
-            }
-            assignStateObjectsIfChanged({
-                fields: desiredFields,
-                expands: desiredExpands,
-                fieldDetails: desiredFieldDetails,
-                expandDetails: desiredExpandDetails,
-            });
-        },
-        { immediate: true, deep: true },
-    );
-
-    // resolve the field/widget components and props from the fields, expands, and details
     watch(
         [toRef(state, "expands"), toRef(state, "fields"), toRef(state, "fieldDetails"), toRef(state, "expandDetails")],
         ([expands, fields, fieldDetails, expandDetails]) => {
@@ -685,76 +629,16 @@ export function useFormModel(props) {
                     if (baseExpanded) {
                         expandedFieldNames.add(fieldName);
                     }
-                    es.run(() => {
-                        fieldComponents[fieldName] = computed(() => {
-                            const component =
-                                props.fieldComponents?.[fieldName] ||
-                                modelConfig?.config?.fieldComponents?.[fieldName] ||
-                                (baseExpanded
-                                    ? availableFields.FieldSetStackedInline
-                                    : djangoTypeToFieldComponent(fieldDetail));
-                            if (typeof component === "string") {
-                                // let props and modelConfig not pass actual components
-                                return availableFields[component];
-                            }
-                            return component;
-                        });
-                        fieldProps[fieldName] = computed(() => {
-                            return {
-                                // useFormModel resolves type, the fields don't care about the server type.
-                                ...omit(fieldDetail, ["type"]),
-                                ...(getDefaultFieldsProps(fieldDetail) || {}),
-                                ...(deepUnref(modelConfig.config?.fieldProps?.[fieldName]) || {}),
-                                ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
-                                name: fieldName,
-                            };
-                        });
-                        widgetComponents[fieldName] = computed(() => {
-                            if (baseExpanded) {
-                                return null;
-                            }
-                            const component =
-                                props.widgetComponents?.[fieldName] ||
-                                modelConfig?.config?.widgetComponents?.[fieldName] ||
-                                getDefaultWidget(fieldDetail);
-                            if (typeof component === "string") {
-                                // Allow props and modelConfig to pass component names
-                                return availableWidgets[component];
-                            }
-                            return component;
-                        });
-                        widgetProps[fieldName] = computed(() => {
-                            if (baseExpanded) {
-                                return {};
-                            }
-                            const baseProps = {
-                                ...(getDefaultWidgetProps(fieldDetail) || {}),
-                                ...(deepUnref(modelConfig.config?.widgetProps?.[fieldName]) || {}),
-                                ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
-                            };
-                            if (fieldDetail.choices) {
-                                if (Array.isArray(fieldDetail.choices)) {
-                                    baseProps.options = fieldDetail.choices;
-                                } else {
-                                    if (isExpandedField) {
-                                        const { expandDetail, expandFieldName } = field;
-                                        baseProps.fieldApp = expandDetail.app_label;
-                                        baseProps.fieldModel = expandDetail.model;
-                                        baseProps.app = fieldDetail.appLabel;
-                                        baseProps.model = fieldDetail.model;
-                                        baseProps.fieldName = expandFieldName;
-                                    } else {
-                                        baseProps.fieldApp = props.app;
-                                        baseProps.fieldModel = props.model;
-                                        baseProps.app = fieldDetail.appLabel;
-                                        baseProps.model = fieldDetail.model;
-                                        baseProps.fieldName = fieldName;
-                                    }
-                                }
-                            }
-                            return baseProps;
-                        });
-                    });
+                    fieldComponents[fieldName] = setComponent(fieldName, fieldDetail, baseExpanded);
+                    fieldProps[fieldName] = setComponentProps(fieldName, fieldDetail);
+                    widgetComponents[fieldName] = setWidget(fieldName, fieldDetail, baseExpanded);
+                    widgetProps[fieldName] = setWidgetProps(
+                        fieldName,
+                        fieldDetail,
+                        baseExpanded,
+                        isExpandedField,
+                        field,
+                    );
                 }
                 assignStateObjectsIfChanged({
                     fieldComponents,

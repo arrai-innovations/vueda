@@ -1,12 +1,10 @@
 /* eslint-disable vue/return-in-computed-property */
-import { assignReactiveObject, keyDiff } from "@arrai-innovations/reactive-helpers";
-import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { buildForm } from "@vueda/utils/buildForm.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import { filterExpressions } from "@vueda/utils/filterLookups.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
-import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
-import { computed, effectScope, reactive, readonly, ref, shallowReactive, shallowRef, toRef, watch } from "vue";
+import { reactive, readonly, ref, shallowReactive, shallowRef, watch } from "vue";
 import { deepUnref } from "vue-deepunref";
 
 const filterFieldClassAndModelTypeToFieldComponent = {
@@ -110,7 +108,7 @@ const defaultWidgets = {
     DateField: availableWidgets.WidgetDatePicker,
     DateTimeField: availableWidgets.WidgetDatePicker,
     TimeField: availableWidgets.WidgetDatePicker,
-    ModelChoiceField: availableWidgets.WidgetSelect,
+    ModelChoiceField: availableWidgets.WidgetModel,
     ModelMultipleChoiceField: availableWidgets.WidgetSelect,
     NumberField: availableWidgets.WidgetInput,
     NumberRangeField: availableWidgets.WidgetInput,
@@ -129,8 +127,12 @@ const defaultWidgets = {
  * @param {boolean|undefined} choices - If the field has choices.
  * @returns {import('@vueda/utils/filterLookups.js').WidgetComponent} The widget component.
  */
-const getWidgetComponent = (field_class) => {
-    return defaultWidgets[field_class] || availableWidgets.WidgetInput;
+const getWidgetComponent = (filterableDetail) => {
+    return defaultWidgets[filterableDetail.typeFilter] || availableWidgets.WidgetInput;
+};
+
+const getWidgetProps = (filterableDetail) => {
+    return defaultWidgetProps[filterableDetail.typeFilter]?.[filterableDetail.typeModel] || {};
 };
 
 const defaultWidgetProps = {
@@ -188,9 +190,12 @@ const defaultWidgetProps = {
     TimeRangeField: {
         TimeField: { selectionMode: "range", timeOnly: true },
     },
+    ModelChoiceField: {
+        ForeignKey: { type: "select" },
+    },
 };
 
-const getDefaultFieldProps = (filterableDetail) => {
+const getFieldProps = (filterableDetail) => {
     const defaultProps = defaultFieldProps[filterableDetail.typeFilter]?.[filterableDetail.typeModel] || {};
     const baseProps = {
         ...omit(filterableDetail, ["typeModel", "typeDB", "typeFilter", "suffixes"]),
@@ -264,8 +269,6 @@ const defaultFieldProps = {
  * @returns {UseFilterForm} The reactive state.
  */
 export default function useFilterForm(props) {
-    const es = effectScope();
-    const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
     const state = shallowReactive(
         /** @type {UseFilterFormRaw} */ {
             filterables: ref([]),
@@ -279,63 +282,10 @@ export default function useFilterForm(props) {
             widgetOptions: ref([]),
         },
     );
+    const { setUpWatch, assignStateObjectsIfChanged, setComponent, setComponentProps, setWidget, setWidgetProps } =
+        buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps);
 
-    const assignStateObjectsIfChanged = (args) => {
-        for (const key in args) {
-            if (!isEqual(state[key], args[key])) {
-                assignReactiveObject(state[key], args[key]);
-            }
-        }
-    };
-
-    // resolve the names and detail overrides from props over config
-    watch(
-        [
-            () => deepUnref(modelConfig.config.filterables),
-            () => deepUnref(modelConfig.config.filterableDetails),
-            () => deepUnref(props.filterables),
-            () => deepUnref(props.filterableDetails),
-        ],
-        (
-            [newConfigFilterables, newConfigFilterableDetails, newPropsFilterables, newPropsFilterableDetails],
-            [oldConfigFilterables, oldConfigFilterableDetails, oldPropsFilterables, oldPropsFilterableDetails],
-        ) => {
-            // performance ordering the equality checks, lists of strings before objects
-            if (
-                isEqual(newPropsFilterables, oldPropsFilterables) &&
-                isEqual(newConfigFilterables, oldConfigFilterables) &&
-                isEqual(newPropsFilterableDetails, oldPropsFilterableDetails) &&
-                isEqual(newConfigFilterableDetails, oldConfigFilterableDetails)
-            ) {
-                return;
-            }
-            // props has priority over config
-            const desiredFilterables = newPropsFilterables || newConfigFilterables;
-            // detail fields merge at the property level
-            const desiredFilterableDetails = {};
-            const {
-                addedKeys: overrideKeys,
-                sameKeys: bothKeys,
-                removedKeys: defaultKeys,
-            } = keyDiff(Object.keys(newPropsFilterableDetails || {}), Object.keys(newConfigFilterableDetails || {}));
-            for (const key of bothKeys) {
-                desiredFilterableDetails[key] = {
-                    ...(newConfigFilterableDetails?.[key] || {}),
-                    ...newPropsFilterableDetails?.[key],
-                };
-            }
-            for (const key of defaultKeys) {
-                desiredFilterableDetails[key] = newConfigFilterableDetails?.[key];
-            }
-            for (const key of overrideKeys) {
-                desiredFilterableDetails[key] = newPropsFilterableDetails?.[key];
-            }
-            assignStateObjectsIfChanged({
-                filterables: desiredFilterables,
-                filterableDetails: desiredFilterableDetails,
-            });
-        },
-    );
+    setUpWatch("filterables", "filterableDetails");
 
     // resolve the components and props from the filterables and filterableDetails
     watch(
@@ -361,43 +311,20 @@ export default function useFilterForm(props) {
                     }
                     const lookupExpressionsToParams = {};
                     for (const expression of lookupExpressions) {
-                        es.run(() => {
-                            const key = `${filterableName}__${expression.value}`;
-                            lookupExpressionsToParams[expression.value] =
-                                lookupExpressions.length > 1 ? key : filterableName;
-                            if (filterableDetail.suffixes?.length) {
-                                lookupExpressionsToParams[expression.value] = filterableDetail.suffixes.map(
-                                    (suffix) => {
-                                        return lookupExpressions.length > 1
-                                            ? `${filterableName}_${suffix}__${expression.value}`
-                                            : `${filterableName}_${suffix}`;
-                                    },
-                                );
-                            }
-                            fieldComponents[key] = computed(
-                                () => props.fieldComponents?.[filterableName] || getFieldComponent(filterableDetail),
-                            );
-                            fieldProps[key] = computed(() => getDefaultFieldProps(filterableDetail));
-                            widgetComponents[key] = computed(
-                                () =>
-                                    props.widgetComponents?.[filterableName] ||
-                                    getWidgetComponent(filterableDetail.typeFilter),
-                            );
-                            widgetProps[key] = computed(() => {
-                                const returnProps =
-                                    defaultWidgetProps[filterableDetail.typeFilter]?.[filterableDetail.typeModel] || {};
-                                if (filterableDetail.choices === true) {
-                                    returnProps.fieldApp = props.app;
-                                    returnProps.fieldModel = props.model;
-                                    returnProps.app = filterableDetails.appLabel;
-                                    returnProps.model = filterableDetails.model;
-                                    returnProps.fieldName = filterableName;
-                                } else if (filterableDetail.choices) {
-                                    returnProps.options = filterableDetail.choices;
-                                }
-                                return returnProps;
+                        const key = `${filterableName}__${expression.value}`;
+                        lookupExpressionsToParams[expression.value] =
+                            lookupExpressions.length > 1 ? key : filterableName;
+                        if (filterableDetail.suffixes?.length) {
+                            lookupExpressionsToParams[expression.value] = filterableDetail.suffixes.map((suffix) => {
+                                return lookupExpressions.length > 1
+                                    ? `${filterableName}_${suffix}__${expression.value}`
+                                    : `${filterableName}_${suffix}`;
                             });
-                        });
+                        }
+                        fieldComponents[key] = setComponent(key, filterableDetail, false, filterableName);
+                        fieldProps[key] = setComponentProps(key, filterableDetail, filterableName);
+                        widgetComponents[key] = setWidget(key, filterableDetail, false, filterableName);
+                        widgetProps[key] = setWidgetProps(key, filterableDetail, false, false, {}, filterableName);
                     }
                     options.push({
                         value: filterableName,
