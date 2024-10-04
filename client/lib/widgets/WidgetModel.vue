@@ -44,9 +44,9 @@ const intendToFetch = computed(() => {
     return widgetContext.state.combinedValue || hasBeenFocused.value;
 });
 const modelChoices = useModelChoices(
-    toRef(props.fieldApp),
-    toRef(props.fieldModel),
-    toRef(props.fieldName),
+    toRef(props, "fieldApp"),
+    toRef(props, "fieldModel"),
+    toRef(props, "fieldName"),
     isActive,
     intendToFetch,
 );

@@ -91,13 +91,14 @@ const confirmAddField = async () => {
     }
     try {
         // start 'submitting' right away, makes it useful for disabling the submit button.
+        const key = `${formContext.state.values.filterField}__${formContext.state.values.lookupExpression}`;
         loadingError.clearError();
         loadingError.setLoading();
         // set all fields as touched to show errors
         formContext.setAllTouched();
         // wait for validation watchers to run
         await nextTick();
-        if (!formContext.state.anyModified) {
+        if (!(key in formContext.state.modified)) {
             toast.add({
                 severity: "info",
                 summary: "No Changes Detected",
@@ -106,7 +107,7 @@ const confirmAddField = async () => {
             });
             return;
         }
-        if (formContext.state.anyError) {
+        if (key in formContext.state.errors) {
             // we don't submit to a server, so all errors must be cleared client-side
             const plural = Object.keys(formContext.state.errors).length > 1;
             toast.add({
@@ -118,7 +119,6 @@ const confirmAddField = async () => {
             return;
         }
         // label is a nice version of the value.
-        const key = `${formContext.state.values.filterField}__${formContext.state.values.lookupExpression}`;
         let label = formContext.state.values[key];
         const fieldClass = filterForm.filterableDetails[formContext.state.values.filterField].typeFilter;
         const isDate = fieldClass.includes("Date");
