@@ -87,6 +87,8 @@ const instanceList = useList({
     functions: {
         executeAction,
     },
+    keepOldPages: false,
+    clearListOnListIntentTriggered: false,
 });
 
 const handleActivate = async () => {

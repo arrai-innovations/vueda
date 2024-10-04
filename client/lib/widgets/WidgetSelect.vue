@@ -2,7 +2,7 @@
 import { useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
-import Dropdown from "primevue/dropdown";
+import Select from "primevue/select";
 import { computed, useAttrs } from "vue";
 
 defineOptions({
@@ -50,11 +50,12 @@ const valueUpdated = (selected) => {
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
-                <Dropdown
+                <Select
                     :model-value="modelItem"
                     option-label="label"
                     option-value="value"
                     :options="props.options"
+                    :overlay-style="{ zIndex: 2000 }"
                     show-clear
                     v-bind="$attrs"
                     @blur="handleBlur"

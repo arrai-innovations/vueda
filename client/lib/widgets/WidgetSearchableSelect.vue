@@ -99,6 +99,7 @@ const modelList = useList({
     props: modelListProps,
     paged: true,
     keepOldPages: true,
+    clearListOnListIntentTriggered: false,
 });
 watch(
     [toRef(props, "options")],

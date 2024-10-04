@@ -62,6 +62,9 @@ const modelListProps = reactive({
 });
 const modelListInstance = useList({
     props: modelListProps,
+    paged: true,
+    keepOldPages: false,
+    clearListOnListIntentTriggered: false,
 });
 const filteredOptions = computed(() => {
     if (modelListInstance.state.loading) {

@@ -57,6 +57,8 @@ const instanceListProps = reactive({
 const instanceList = useList({
     props: instanceListProps,
     paged: false,
+    keepOldPages: false,
+    clearListOnListIntentTriggered: false,
 });
 
 const handleDelete = async () => {

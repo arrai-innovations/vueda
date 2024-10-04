@@ -21,14 +21,14 @@ const theme = useTheme("WidgetAutoComplete", widgetContext.state);
 const attrs = useAttrs();
 const handleFocus = (e) => {
     widgetContext.focus();
-    if (attrs.onFocus) {
-        attrs.onFocus(e);
+    if (typeof attrs["on-focus"] === "function") {
+        attrs["on-focus"](e);
     }
 };
 const handleBlur = (e) => {
     widgetContext.blur();
-    if (attrs.onBlur) {
-        attrs.onBlur(e);
+    if (typeof attrs["on-blur"] === "function") {
+        attrs["on-blur"](e);
     }
 };
 </script>
@@ -43,7 +43,6 @@ const handleBlur = (e) => {
                 class="w-full md:w-80"
                 display="chip"
                 filter
-                loading
                 :max-selected-labels="3"
                 option-label="label"
                 :options="props.options"
