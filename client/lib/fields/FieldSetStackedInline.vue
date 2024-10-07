@@ -2,10 +2,13 @@
 import FormChores from "@vueda/components/FormChores.vue";
 import InlineRow from "@vueda/components/InlineRow.vue";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
 import { useTheme } from "@vueda/use/useTheme.js";
+import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
+import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
-import { ref } from "vue";
+import { computed, inject, ref } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -18,10 +21,44 @@ const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
 const theme = useTheme("FieldSetStackedInline");
 const selected = ref([]);
+const formModel = inject(FormModelSymbol, null);
+const fieldNames = computed(() => {
+    if (props.fields) {
+        return props.fields;
+    } else {
+        const fields = formModel?.expandDetails?.[fieldContext.state.name].f;
+        return fields ? Object.keys(omit(fields, "id")) : [];
+    }
+});
+
+const fieldObjects = computed(() => {
+    const fields = formModel?.expandDetails?.[fieldContext.state.name].f;
+    return fields
+        ? fieldNames.value?.map((name) => {
+              return {
+                  fieldName: name,
+                  name: `${fieldContext.state.name}__${name}`,
+                  ...fields[name],
+              };
+          })
+        : [];
+});
+
+const emptyFieldObject = () => {
+    const emptyObject = {};
+    if (Array.isArray(fieldObjects.value)) {
+        fieldObjects.value.forEach((field) => {
+            if (field.fieldName) {
+                emptyObject[field.fieldName] = getFieldInitialValue(field);
+            }
+        });
+    }
+    return emptyObject;
+};
 const addRow = () => {
     fieldContext.blur();
     if (fieldContext.state.value) {
-        fieldContext.state.value = [...cloneDeep(fieldContext.state.value), {}];
+        fieldContext.state.value = [...cloneDeep(fieldContext.state.value), emptyFieldObject()];
     } else {
         fieldContext.state.value = [{}];
     }
@@ -30,6 +67,17 @@ const removeRow = (index) => {
     fieldContext.blur();
     fieldContext.state.value = cloneDeep(fieldContext.state.value).filter((_, i) => i !== index);
 };
+
+const addInline = () => {
+    fieldContext.blur();
+    fieldContext.state.value = emptyFieldObject();
+};
+
+const clearField = () => {
+    fieldContext.blur();
+    fieldContext.state.value = null;
+};
+
 const handleSelected = (selected_) => {
     const added = selected_.filter((i) => !selected.value.includes(i));
     const removed = selected.value.filter((i) => !selected_.includes(i));
@@ -62,6 +110,11 @@ const handleSelected = (selected_) => {
                     <Button label="Create" size="small" @click="addRow" />
                 </slot>
             </div>
+            <div v-if="!props.many && !fieldContext.state.value">
+                <slot label="Create" name="create-button" size="small" verb="createSingularInline" @click="addInline">
+                    <Button label="Create" size="small" @click="addInline" />
+                </slot>
+            </div>
         </div>
         <form-chores>
             <template v-for="(_, slot) in $slots" #[slot]="slotProps">
@@ -70,8 +123,8 @@ const handleSelected = (selected_) => {
         </form-chores>
         <hr :class="theme('hr')" />
         <div :class="theme('inner')">
-            <div v-if="!props.many">
-                <InlineRow :field-name="fieldContext.state.name" />
+            <div v-if="!props.many && fieldContext.state.value">
+                <InlineRow :field-name="fieldContext.state.name" @delete-row="clearField" />
             </div>
             <div v-else v-for="(value, index) in fieldContext.state.value" :key="index" :class="theme('inlineRows')">
                 <InlineRow
