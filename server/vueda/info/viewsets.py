@@ -218,19 +218,29 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
         elif hasattr(field, "queryset"):
             queryset = field.queryset
+            if hasattr(field, "slug_field"):
+                choices = []
+                for key in field.choices.keys():
+                    choices.append(
+                        {
+                            "label": key,
+                            "value": key,
+                        }
+                    )
 
-            formatted_name = getattr(queryset.model, "formatted_name_lookup_expression", None)
-            if isinstance(formatted_name, str) and "__" in formatted_name:
-                formatted_name_lookup_expression = formatted_name
             else:
-                formatted_name_lookup_expression = "formatted_name"
+                formatted_name = getattr(queryset.model, "formatted_name_lookup_expression", None)
+                if isinstance(formatted_name, str) and "__" in formatted_name:
+                    formatted_name_lookup_expression = formatted_name
+                else:
+                    formatted_name_lookup_expression = "formatted_name"
 
-            choices = (
-                queryset.filter(pk__in=field.choices.keys())
-                .annotate(label=F(formatted_name_lookup_expression), value=Cast(F("pk"), output_field=CharField()))
-                .order_by("label")
-                .values("label", "value")
-            )
+                choices = (
+                    queryset.filter(pk__in=field.choices.keys())
+                    .annotate(label=F(formatted_name_lookup_expression), value=Cast(F("pk"), output_field=CharField()))
+                    .order_by("label")
+                    .values("label", "value")
+                )
 
         else:
             choices = []
