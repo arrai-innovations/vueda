@@ -28,7 +28,9 @@ import { provide, reactive, readonly, toRef, watch } from "vue";
  * @property {boolean} anyTouched - Whether any field has been blurred.
  * @property {string|undefined} focused - The field currently in focus.
  * @property {{[fieldName: string]: any}} initialValues - The form's initial values.
- * @property {{string[]}} ignores - The ignored fields on the form
+ * @property {{string[]}} ignored - The ignored fields on the form
+ * @property {boolean} anyIgnored - Whether any field has been ignored.
+ *
  */
 
 /**
@@ -217,7 +219,7 @@ const calculateModified = (state, name) => {
     validateName(name);
     const value = get(state.values, name);
     const initialValue = get(state.initialValues, name);
-    if (!isEqual(value, initialValue) && !state.ignores.includes(name)) {
+    if (!isEqual(value, initialValue) && !state.ignored[name]) {
         setModified(state, name);
     } else {
         clearModified(state, name);
@@ -364,8 +366,11 @@ const reset = (state) => {
  */
 const ignore = (state, name) => {
     validateName(name);
-    if (!state.ignores.includes(name)) {
-        state.ignores.push(name);
+    if (!state.ignored[name]) {
+        state.ignored[name] = true;
+    }
+    if (!state.anyIgnored) {
+        state.anyIgnored = true;
     }
 };
 
@@ -377,9 +382,11 @@ const ignore = (state, name) => {
  */
 const removeIgnore = (state, name) => {
     validateName(name);
-    const index = state.ignores.indexOf(name);
-    if (index > -1) {
-        state.ignores.splice(index, 1);
+    if (state.ignored[name]) {
+        delete state.ignored[name];
+    }
+    if (state.anyIgnored && Object.keys(state.ignored).length === 0) {
+        state.anyIgnored = false;
     }
 };
 
@@ -505,7 +512,8 @@ export function useForm(props) {
         anyTouched: false,
         initialValues: toRef(props, "initialValues"),
         focused: undefined,
-        ignores: [],
+        ignored: {},
+        anyIgnored: false,
     });
     watch(
         toRef(state, "initialValues"),

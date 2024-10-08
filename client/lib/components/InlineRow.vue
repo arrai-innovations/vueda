@@ -137,7 +137,7 @@ const getFieldPath = (fieldName) => {
                         :input-id="`selected-inline-${pk}`"
                         :model-value="selected"
                         name="selected"
-                        :value="index"
+                        :value="index !== undefined ? index : pk"
                         @update:model-value="emit('update:selected', $event)"
                     />
                     <label class="ml-2" for="`selected-inline-${pk}`"> Delete? </label>

@@ -93,6 +93,24 @@ const handleSelected = (selected_) => {
     } else {
         fieldContext.clearModified();
     }
+    fieldContext.blur();
+    selected.value = selected_;
+};
+
+const handleDeleteSingle = (selected_) => {
+    if (selected_.length) {
+        console.log("igrnoed");
+        fieldContext.ignore();
+    } else {
+        fieldContext.removeIgnore();
+    }
+    if (selected_.length) {
+        fieldContext.setModified();
+    } else {
+        fieldContext.clearModified();
+    }
+    console.log("set touched");
+    fieldContext.blur();
     selected.value = selected_;
 };
 </script>
@@ -124,7 +142,14 @@ const handleSelected = (selected_) => {
         <hr :class="theme('hr')" />
         <div :class="theme('inner')">
             <div v-if="!props.many && fieldContext.state.value">
-                <InlineRow :field-name="fieldContext.state.name" :fields="fieldNames" @delete-row="clearField" />
+                <InlineRow
+                    :field-name="fieldContext.state.name"
+                    :fields="fieldNames"
+                    :pk="fieldContext.state.value.id"
+                    :selected="selected"
+                    @delete-row="clearField"
+                    @update:selected="handleDeleteSingle"
+                />
             </div>
             <div v-else v-for="(value, index) in fieldContext.state.value" :key="index" :class="theme('inlineRows')">
                 <InlineRow

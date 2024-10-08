@@ -296,7 +296,7 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             }
             const isUpdate = !!instanceObject.state.object.id;
             const createOrUpdate = isUpdate ? instanceObject.update : instanceObject.create;
-            const formValues = formContext.state.ignores.length
+            const formValues = formContext.state.anyIgnored
                 ? omit(cloneDeep(formContext.state.values), formContext.state.ignores)
                 : formContext.state.values;
 

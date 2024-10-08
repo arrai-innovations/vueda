@@ -84,6 +84,7 @@ export function onBeforeFieldUnmount(fieldContext) {
  * @property {import('vue').ComputedRef<{[code: string]: string}>} errors - The errors for the field.
  * @property {import('vue').ComputedRef<boolean>} modified - Whether the field has been modified.
  * @property {import('vue').ComputedRef<boolean>} touched - Whether the field has been touched.
+ * @property {import('vue').ComputedRef<boolean>} ignored - Whether the field has been ignored.
  */
 
 /**
@@ -108,8 +109,8 @@ export function onBeforeFieldUnmount(fieldContext) {
  *  fields as touched automatically.
  * @property {() => void} focus - Focus on the field.
  * @property {() => void} blur - Blur the field.
- * @property {(name:string|undefined) => void} ignore - Ignore the field.
- * @property {(name:string|undefined) => void} removeIgnore - Remove ignoring the field.
+ * @property {([name:string|undefined]) => void} ignore - Ignore the field.
+ * @property {([]name:string|undefined]) => void} removeIgnore - Remove ignoring the field.
  * @property {() => void} setModified - mark a field as modified.
  * @property {() => void} clearModified - clear modified mark of a field.
  */
@@ -185,10 +186,11 @@ export function useField(props, emit, functions) {
         errors: formContext ? computed(() => get(formContext.state.errors, props.name)) : {},
         touched: formContext ? computed(() => formContext.state.touched[props.name]) : false,
         modified: formContext ? computed(() => formContext.state.modified[props.name]) : false,
+        ignored: formContext ? computed(() => formContext.state.ignored[props.name]) : false,
     });
     const checkRequired = () => {
         if (props.required && state.touched && formContext) {
-            if (!unref(requiredFn)(state.value)) {
+            if (!unref(requiredFn)(state.value) || state.ignored) {
                 formContext.updateError(props.name, "required", requiredMessage.value);
             } else {
                 formContext.deleteError(props.name, "required");
@@ -229,10 +231,11 @@ export function useField(props, emit, functions) {
             requiredFn,
             toRef(state, "touched"),
             toRef(state, "modified"),
+            toRef(state, "ignored"),
         ],
         (
-            [newRequired, newRequiredMessage, newValidate, newRequiredFn, newTouched, newModified],
-            [oldRequired, oldRequiredMessage, oldValidate, oldRequiredfn, oldTouched, oldModified],
+            [newRequired, newRequiredMessage, newValidate, newRequiredFn, newTouched, newModified, newIgnored],
+            [oldRequired, oldRequiredMessage, oldValidate, oldRequiredfn, oldTouched, oldModified, oldIgnored],
         ) => {
             const requiredChanged = newRequired !== oldRequired;
             const requiredMessageChanged = newRequiredMessage !== oldRequiredMessage;
@@ -240,7 +243,15 @@ export function useField(props, emit, functions) {
             const requiredFnChanged = newRequiredFn !== oldRequiredfn;
             const touchedChanged = newTouched !== oldTouched;
             const modifiedChanged = newModified !== oldModified;
-            if (requiredChanged || requiredMessageChanged || touchedChanged || modifiedChanged || requiredFnChanged) {
+            const ignoredChanged = newIgnored !== oldIgnored;
+            if (
+                requiredChanged ||
+                requiredMessageChanged ||
+                touchedChanged ||
+                modifiedChanged ||
+                requiredFnChanged ||
+                ignoredChanged
+            ) {
                 checkRequired();
             }
             if (validateChanged || touchedChanged || modifiedChanged) {

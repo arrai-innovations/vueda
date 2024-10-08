@@ -189,7 +189,7 @@ const defaultFieldMappings = {
         ForeignKey: {
             component: availableFields.FieldString,
             widget: availableWidgets.WidgetModel,
-            widgetProps: { type: "select" },
+            widgetProps: { type: "select", editable: true },
         },
     },
     SerializerField: {
