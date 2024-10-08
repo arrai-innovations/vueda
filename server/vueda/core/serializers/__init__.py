@@ -28,6 +28,11 @@ class NoExtraFieldsSerializerMixin:
                 # Handle data like cart_items[0]quantity.
                 if field_name.find("[") != -1:
                     field_name = field_name.split("[")[0]
+
+                # Handle data lik cart_items.quantity
+                if "." in field_name:
+                    field_name = field_name.split(".")[0]
+
                 initial_fields.add(field_name)
             extra_keys_fields = initial_fields - set(self.fields.keys())
             for extra_key in extra_keys_fields:
