@@ -52,8 +52,6 @@ const valueUpdated = (selected) => {
             <div :class="theme('inner')">
                 <Select
                     :model-value="modelItem"
-                    option-label="label"
-                    option-value="value"
                     :options="props.options"
                     show-clear
                     v-bind="$attrs"

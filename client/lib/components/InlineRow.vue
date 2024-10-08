@@ -6,7 +6,6 @@ import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import { inject } from "vue";
-import { deepUnref } from "vue-deepunref";
 
 const props = defineProps({
     index: {
@@ -24,6 +23,11 @@ const props = defineProps({
     variant: {
         type: String,
         default: "default",
+    },
+    fields: {
+        type: Array,
+        default: undefined,
+        description: "A list of the field names to display for each object.",
     },
     fieldComponents: {
         type: Object,
@@ -81,10 +85,7 @@ const getFieldPath = (fieldName) => {
                 :theme="theme"
                 :widget-components="formModel.widgetComponents"
             >
-                <template
-                    v-for="field in Object.keys(deepUnref(formModel.expandDetails)?.[props.fieldName]?.f)"
-                    :key="field"
-                >
+                <template v-for="field in props.fields" :key="field">
                     <slot
                         :field-class="theme('field')"
                         :field-component="formModel.fieldComponents[getFieldName(field)]"

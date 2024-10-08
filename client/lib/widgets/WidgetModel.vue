@@ -66,6 +66,8 @@ const widgetComponent = computed(() => widgetComponents[props.type]);
         v-bind="$attrs"
         :loading="modelChoices.loading"
         :on-focus="onFocus"
+        option-label="label"
+        option-value="value"
         :options="modelChoices.choices?.results || []"
     />
 </template>

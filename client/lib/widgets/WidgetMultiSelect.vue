@@ -44,8 +44,8 @@ const handleBlur = (e) => {
                 display="chip"
                 filter
                 :max-selected-labels="3"
-                option-label="label"
                 :options="props.options"
+                v-bind="$attrs"
                 @blur="handleBlur"
                 @focus="handleFocus"
             />

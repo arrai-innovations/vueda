@@ -30,7 +30,6 @@ const theme = useTheme("WidgetRadio", widgetContext.state);
 const computedOptions = computed(() => {
     return props.options.map((option) => {
         return {
-            ...option,
             label: option[props.optionLabel],
             value: option[props.optionValue],
         };

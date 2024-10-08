@@ -124,11 +124,12 @@ const handleSelected = (selected_) => {
         <hr :class="theme('hr')" />
         <div :class="theme('inner')">
             <div v-if="!props.many && fieldContext.state.value">
-                <InlineRow :field-name="fieldContext.state.name" @delete-row="clearField" />
+                <InlineRow :field-name="fieldContext.state.name" :fields="fieldNames" @delete-row="clearField" />
             </div>
             <div v-else v-for="(value, index) in fieldContext.state.value" :key="index" :class="theme('inlineRows')">
                 <InlineRow
                     :field-name="fieldContext.state.name"
+                    :fields="fieldNames"
                     :index="index"
                     :pk="value.id"
                     :selected="selected"

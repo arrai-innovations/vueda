@@ -185,6 +185,13 @@ const defaultFieldMappings = {
             widgetProps: { multiple: true },
         },
     },
+    SlugRelatedField: {
+        ForeignKey: {
+            component: availableFields.FieldString,
+            widget: availableWidgets.WidgetModel,
+            widgetProps: { type: "select" },
+        },
+    },
     SerializerField: {
         BinaryField: { component: null, widget: null, fieldProps: {} },
     },
@@ -551,6 +558,7 @@ export function useFormModel(props) {
     watch(
         [toRef(state, "expands"), toRef(state, "fields"), toRef(state, "fieldDetails"), toRef(state, "expandDetails")],
         ([expands, fields, fieldDetails, expandDetails]) => {
+            console.log("fieldDetails: ", fieldDetails);
             if (Object.keys(fieldDetails || {}).length && fields.length) {
                 const fieldComponents = {};
                 const fieldProps = {};
