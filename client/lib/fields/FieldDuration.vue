@@ -22,17 +22,39 @@ const props = defineProps({
         default: 60,
         description: "The step in seconds.",
     },
+    unit: {
+        type: String,
+        default: "minutes",
+        description: "The unit of the duration.",
+    },
 });
 const emit = defineEmits([...FIELD_EMITS]);
 
 const parseDuration = (durationString) => {
     const match = durationString.match(/^(?:(\d+)\s+)?(\d{2}):(\d{2}):(\d{2})$/);
+    let days = parseInt(match[1] || "0", 10);
+    let hours = parseInt(match[2], 10);
+    let minutes = parseInt(match[3], 10);
+    let seconds = parseInt(match[4], 10);
+    if (props.unit === "hours") {
+        hours = hours + days * 24;
+        days = 0;
+    } else if (props.unit === "minutes") {
+        minutes = minutes + hours * 60 + days * 24 * 60;
+        hours = 0;
+        days = 0;
+    } else if (props.unit === "seconds") {
+        seconds = seconds + minutes * 60 + hours * 60 * 60 + days * 24 * 60 * 60;
+        minutes = 0;
+        hours = 0;
+        days = 0;
+    }
     if (match) {
         return {
-            days: parseInt(match[1] || "0", 10),
-            hours: parseInt(match[2], 10),
-            minutes: parseInt(match[3], 10),
-            seconds: parseInt(match[4], 10),
+            days,
+            hours,
+            minutes,
+            seconds,
         };
     }
     return null;

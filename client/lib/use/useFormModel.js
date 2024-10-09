@@ -168,6 +168,12 @@ const defaultFieldMappings = {
             },
         },
     },
+    ModelField: {
+        GeneratedField: {
+            component: availableFields.FieldString,
+            widget: availableWidgets.WidgetReadOnly,
+        },
+    },
     NullBooleanField: {
         NullBooleanField: {
             component: availableFields.FieldBoolean,
@@ -558,7 +564,6 @@ export function useFormModel(props) {
     watch(
         [toRef(state, "expands"), toRef(state, "fields"), toRef(state, "fieldDetails"), toRef(state, "expandDetails")],
         ([expands, fields, fieldDetails, expandDetails]) => {
-            console.log("fieldDetails: ", fieldDetails);
             if (Object.keys(fieldDetails || {}).length && fields.length) {
                 const fieldComponents = {};
                 const fieldProps = {};
@@ -629,6 +634,7 @@ export function useFormModel(props) {
 
                 for (const field of allFields) {
                     const { fieldName, fieldDetail, baseExpanded, isExpandedField } = field;
+                    console.log("fieldDetail: ", fieldDetail);
                     if (!isExpandedField) {
                         baseFieldNames.add(fieldName);
                     } else {

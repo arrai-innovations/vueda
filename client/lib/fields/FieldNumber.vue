@@ -75,8 +75,8 @@ watch(
     fieldValueRef,
     (newValue) => {
         let coercedValue = +newValue;
-        if (isNaN(coercedValue)) {
-            coercedValue = undefined;
+        if (isNaN(coercedValue) || newValue === "" || newValue === null) {
+            coercedValue = "";
         }
         if (coercedValue !== newValue) {
             fieldContext.state.value = coercedValue;

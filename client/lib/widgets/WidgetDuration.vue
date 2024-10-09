@@ -16,11 +16,11 @@ const props = defineProps({
     },
     showHours: {
         type: Boolean,
-        default: true,
+        default: false,
     },
     showMinutes: {
         type: Boolean,
-        default: false,
+        default: true,
     },
     showSeconds: {
         type: Boolean,
@@ -31,12 +31,6 @@ const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetDuration", widgetContext.state);
 
-const durationObject = reactive({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-});
 const valueDay = computed(() => {
     return widgetContext.state.combinedValue?.days;
 });
@@ -49,6 +43,14 @@ const valueMinute = computed(() => {
 const valueSecond = computed(() => {
     return widgetContext.state.combinedValue?.seconds;
 });
+
+const durationObject = reactive({
+    days: valueDay.value,
+    hours: valueHour.value,
+    minutes: valueMinute.value,
+    seconds: valueSecond.value,
+});
+
 const updateDay = (newValue) => {
     durationObject.days = newValue;
     widgetContext.state.combinedValue = durationObject;
@@ -88,7 +90,6 @@ const updateSecond = (newValue) => {
                 </div>
                 <div v-if="showHours" :class="theme('innerItem')">
                     <InputNumber
-                        :max="60"
                         :min="0"
                         :model-value="valueHour"
                         show-buttons
@@ -99,7 +100,6 @@ const updateSecond = (newValue) => {
                 </div>
                 <div v-if="showMinutes" :class="theme('innerItem')">
                     <InputNumber
-                        :max="60"
                         :min="0"
                         :model-value="valueMinute"
                         show-buttons
@@ -110,7 +110,6 @@ const updateSecond = (newValue) => {
                 </div>
                 <div v-if="showSeconds" :class="theme('innerItem')">
                     <InputNumber
-                        :max="60"
                         :min="0"
                         :model-value="valueSecond"
                         show-buttons
