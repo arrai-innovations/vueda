@@ -18,7 +18,6 @@ def register(canonical_serializer, canonical_viewset=None):
     :param canonical_serializer: The serializer to use as a reference for the model.
     :param canonical_viewset: The viewset to use as a reference for the model.
     """
-    from django.contrib.contenttypes.models import ContentType
 
     if canonical_viewset is None:
 
@@ -40,26 +39,19 @@ def register(canonical_serializer, canonical_viewset=None):
             f"{canonical_viewset} and {canonical_serializer}.  Either a model needs to be "
             f"defined in the serializer Meta or a queryset needs to be defined on the viewset."
         )
-    try:
-        content_type = ContentType.objects.get_for_model(model)
-    except Exception as e:
-        print(f"Error: {e}")
-        return
+    key = f"{model._meta.app_label}.{model._meta.model_name}"
+    if key in _registry:
+        raise ValueError(f"{key} is already registered.")
 
-    if content_type.pk in _registry:
-        # Content_type doesn't have a method to return "app.model".
-        # Using content_type directly returns "app | model" (app_labeled_name).
-        raise ValueError(f"ContentType {content_type.app_label}.{content_type.model} is already registered.")
-
-    _registry[content_type.pk] = {
+    _registry[key] = {
         "viewset": canonical_viewset,
         "serializer": canonical_serializer,
     }
 
     logger.info(
         "Registered %s.%s with %s and %s.",
-        content_type.app_label,
-        content_type.model,
+        model._meta.app_label,
+        model._meta.model_name,
         canonical_viewset,
         canonical_serializer,
     )
@@ -72,8 +64,19 @@ def get_registration(content_type):
     :param content_type: The content type to get the registration for.
     :return: The registration for the content type.
     """
+    from django.contrib.contenttypes.models import ContentType
+
+    try:
+        # Fetch the ContentType object based on its PK
+        content_type = ContentType.objects.get(pk=content_type)
+    except ContentType.DoesNotExist:
+        raise ValueError(f"ContentType {content_type} does not exist.")
+
+        # Construct the key as "app_label.model"
+    key = f"{content_type.app_label}.{content_type.model}"
+
     # this deepcopy is defensive to prevent inadvertent modification of the registry
-    return deepcopy(_registry[content_type])
+    return deepcopy(_registry[key])
 
 
 def get_all_registrations():
@@ -92,7 +95,21 @@ def get_registered_content_types():
 
     :return: All the registered content types.
     """
-    return _registry.keys()
+    from django.contrib.contenttypes.models import ContentType
+
+    registered_keys = list(_registry.keys())
+    content_types = []
+
+    for key in registered_keys:
+        app_label, model = key.split(".")
+        try:
+            content_type = ContentType.objects.get(app_label=app_label, model=model)
+            content_types.append(content_type.pk)
+        except ContentType.DoesNotExist:
+            # Handle the case where the ContentType might not exist yet (e.g., before migrations)
+            pass
+
+    return content_types
 
 
 # Required for testing, so we can have separate registry dictionaries for each test.
