@@ -7,6 +7,21 @@ import omit from "lodash-es/omit.js";
 import { computed, effectScope, toRef, watch } from "vue";
 import { deepUnref } from "vue-deepunref";
 
+/*
+ * @param {string} fieldName - The name of the field.
+ * @returns {string[]} The slot names for the field's help, error, and message slots.
+ */
+export const getFormChoresSlotNames = (fieldName) => {
+    return [
+        "field-help",
+        "field-error",
+        "field-message",
+        `field(${fieldName})help`,
+        `field(${fieldName})error`,
+        `field(${fieldName})message`,
+    ];
+};
+
 export function buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps) {
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
     const es = effectScope();

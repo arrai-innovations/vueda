@@ -2,6 +2,7 @@
 import FormChores from "@vueda/components/FormChores.vue";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { useTheme } from "@vueda/use/useTheme.js";
+import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isArray from "lodash-es/isArray.js";
 import Button from "primevue/button";
@@ -89,8 +90,8 @@ watch(
             </template>
         </div>
         <form-chores>
-            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-                <slot :name="slot" v-bind="slotProps" />
+            <template v-for="slot in getFormChoresSlotNames(fieldContext.state.name)" #[slot]="formChoresSlotProps">
+                <slot :name="slot" v-bind="formChoresSlotProps" />
             </template>
         </form-chores>
     </div>

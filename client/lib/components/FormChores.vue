@@ -21,7 +21,7 @@ onMounted(() => {
     }
 });
 const computedName = computed(() => props.name || fieldContext?.state?.name);
-const computedHelp = computed(() => (props.help ? fieldContext?.state?.help : null));
+const computedHelp = computed(() => props.help || fieldContext?.state?.help);
 </script>
 <template>
     <form-help-text v-if="computedHelp">

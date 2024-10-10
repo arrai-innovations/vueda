@@ -27,7 +27,7 @@ export default {
     },
     FieldSetTabularInline: {
         root: {
-            class: [],
+            class: ["overflow-x-auto"],
         },
         inner: {
             class: ["flex flex-col"],
@@ -48,7 +48,7 @@ export default {
             class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
         field: {
-            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2"],
+            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "min-w-1"],
         },
         fieldInner: {
             class: [],

@@ -165,7 +165,6 @@ const onValueChange = () => {
                     reset-filter-on-clear
                     show-clear
                     :virtual-scroller-options="{
-                        class: '[&_ul]:w-full',
                         showSpacer: false,
                         lazy: true,
                         onLazyLoad: onLazyLoad,

@@ -141,6 +141,7 @@ import FormChores from "@vueda/components/FormChores.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { useTheme } from "@vueda/use/useTheme.js";
+import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { useSlots } from "vue";
 
 defineOptions({
@@ -240,17 +241,6 @@ const getSlotNamesFor = (type, fieldName) => {
             // exclude form-chores slots
             ([, insideSlotName]) => ["help", "error", "message"].includes(insideSlotName),
         );
-};
-const getFormChoresSlotNames = (fieldName) => {
-    // no inside slot mapping, as form-chores is aware of its field name
-    return [
-        "field-help",
-        "field-error",
-        "field-message",
-        `field(${fieldName})help`,
-        `field(${fieldName})error`,
-        `field(${fieldName})message`,
-    ];
 };
 </script>
 

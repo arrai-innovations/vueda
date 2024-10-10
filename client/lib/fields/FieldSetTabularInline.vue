@@ -6,6 +6,7 @@ import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
 import { useTheme } from "@vueda/use/useTheme.js";
+import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
@@ -139,12 +140,12 @@ const computedFieldObjects = computed(() => {
                     {{ fieldContext.state.label }}
                 </slot>
             </label>
+            <hr :class="theme('hr')" />
             <form-chores>
-                <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-                    <slot :name="slot" v-bind="slotProps" />
+                <template v-for="slot in getFormChoresSlotNames(fieldContext.state.name)" #[slot]="formChoresSlotProps">
+                    <slot :name="slot" v-bind="formChoresSlotProps" />
                 </template>
             </form-chores>
-            <hr :class="theme('hr')" />
             <objects-grid
                 v-bind="$attrs"
                 class="w-full"
