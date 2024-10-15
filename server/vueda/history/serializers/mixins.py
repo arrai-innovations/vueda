@@ -251,3 +251,33 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
     def update(self, instance, validated_data):
         updated_instance = super().update(instance, validated_data)
         return self.return_annotated_instance(updated_instance)
+
+
+class HistoricalModelSerializerMixin(drf_serializers.Serializer):
+    """
+    A mixin that adds historical fields to a serializer for models using django-simple-history.
+    """
+
+    history_id = drf_serializers.IntegerField(read_only=True)
+    history_date = drf_serializers.DateTimeField(read_only=True)
+    history_change_reason = drf_serializers.CharField(read_only=True)
+    history_user = drf_serializers.PrimaryKeyRelatedField(read_only=True)
+    history_type = drf_serializers.CharField(read_only=True)
+    history_relation = drf_serializers.PrimaryKeyRelatedField(read_only=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @classmethod
+    def get_historical_fields(cls):
+        """
+        Returns a list of historical fields added by the mixin.
+        """
+        return [
+            "history_id",
+            "history_date",
+            "history_change_reason",
+            "history_type",
+            "history_user",
+            "history_relation",
+        ]

@@ -63,6 +63,13 @@ EXPECTED_RESULTS = [
                     "method_names": ["get"],
                     "parameters": ["pk"],
                 },
+                {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.distributor",
+                    "detail": True,
+                    "method_names": ["get"],
+                },
             ],
             "expected_expands": [
                 {
@@ -649,6 +656,13 @@ EXPECTED_RESULTS = [
                     "detail": True,
                     "method_names": ["get"],
                     "parameters": ["pk"],
+                },
+                {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.customer",
+                    "detail": True,
+                    "method_names": ["get"],
                 },
             ],
             "expected_expands": [
@@ -1533,6 +1547,13 @@ EXPECTED_RESULTS = [
                     "method_names": ["get"],
                     "parameters": ["pk"],
                 },
+                {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.customerorder",
+                    "detail": True,
+                    "method_names": ["get"],
+                },
             ],
             "expected_expands": [
                 {
@@ -2408,6 +2429,13 @@ EXPECTED_RESULTS = [
                     "detail": True,
                     "method_names": ["get"],
                     "parameters": ["pk"],
+                },
+                {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.product",
+                    "detail": True,
+                    "method_names": ["get"],
                 },
             ],
             "expected_expands": [
@@ -3587,6 +3615,13 @@ EXPECTED_RESULTS = [
                     "detail": True,
                     "method_names": ["get"],
                     "parameters": ["pk"],
+                },
+                {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.productoption",
+                    "detail": True,
+                    "method_names": ["get"],
                 },
             ],
             "expected_expands": [
