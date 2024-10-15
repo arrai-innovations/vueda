@@ -1,5 +1,6 @@
 <script setup>
 import { useList } from "@arrai-innovations/reactive-helpers";
+import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
@@ -55,6 +56,10 @@ const props = defineProps({
     pkKey: {
         type: String,
         default: "id",
+    },
+    readonly: {
+        type: Boolean,
+        default: false,
     },
 });
 const fetchedPages = ref(1);
@@ -146,6 +151,11 @@ const onValueChange = () => {
     listSearch.value = "";
     fetchedPages.value = 1;
 };
+const computedLabel = computed(() => {
+    return modelList.state.objectsInOrder.find((obj) => obj[props.optionValue] === widgetContext.state.combinedValue)?.[
+        props.optionLabel
+    ];
+});
 </script>
 <template>
     <div :class="theme('root')">
@@ -154,7 +164,17 @@ const onValueChange = () => {
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
+                <LinkModelView
+                    v-if="props.readonly"
+                    :app="app"
+                    class="whitespace-nowrap grow shrink-0"
+                    :label="computedLabel"
+                    :model="model"
+                    :pk="widgetContext.state.combinedValue"
+                    view="update"
+                />
                 <Select
+                    v-else
                     v-model="widgetContext.state.combinedValue"
                     v-bind="$attrs"
                     filter

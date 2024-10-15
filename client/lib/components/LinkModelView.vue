@@ -28,6 +28,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    buttonClass: {
+        type: [String, Array, Object],
+        default: () => [],
+    },
 });
 
 const linkModelView = useLinkModelView(props);
@@ -39,6 +43,7 @@ const linkModelView = useLinkModelView(props);
         :href="button ? undefined : linkModelView.href.value"
         :label="label"
         :link="!button"
+        :pt="buttonClass"
         @click="linkModelView.navigate"
     >
         <template v-for="(_, slot) in $slots" #[slot]="slotProps">

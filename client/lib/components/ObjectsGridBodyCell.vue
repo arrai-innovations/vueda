@@ -47,7 +47,7 @@ const theme = useTheme("ObjectsGridBodyCell", props);
 const { formattedComputed, valueComputed } = useObjectGridCell(props);
 </script>
 <template>
-    <div :class="theme('root')">
+    <div :class="[theme('root'), $attrs.class]">
         <slot
             :calculated-obj="calculatedObject"
             :col-index="colIndex"

@@ -15,7 +15,10 @@ const getListUrl = (app, model, queryString) =>
     `${httpOrHttpsHostname}${getUrl("modelList").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model))}${queryString}`;
 
 export const getActionUrl = (app, model, actionName) =>
-    `${httpOrHttpsHostname}${getUrl("modelBulkAction").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model)).replace(":action_name", actionName)}`;
+    `${httpOrHttpsHostname}${getUrl("modelAction").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model)).replace(":action_name", actionName)}`;
+
+const getDetailActionUrl = (app, model, pk, actionName, queryString) =>
+    `${httpOrHttpsHostname}${getUrl("modelDetailAction").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model)).replace(":pk", pk).replace(":action_name", actionName)}${queryString}`;
 
 const makeSearchParamsString = (searchParams) => {
     const params = deepUnref(searchParams);
@@ -167,6 +170,33 @@ export async function defaultObjectsDelete({ crudArgs, ids }) {
     });
     returnedPromise.cancel = () => abortController.abort();
     return returnedPromise;
+}
+
+export function singlePagePaginatedHistoryListCrudAdaptor({ crudArgs, listArgs, pageCallback }) {
+    const query = makeSearchParamsString(listArgs);
+    const controller = new AbortController();
+    const url = getDetailActionUrl(crudArgs.app, crudArgs.model, crudArgs.pk, crudArgs.action, query);
+    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
+    const returnPromise = fetch(url, {
+        method: "GET",
+        credentials: "include",
+        signal: controller.signal,
+    }).then(async (response) => {
+        const responseData = await getJsonOrText(response);
+        if (!isObject(responseData)) {
+            throw new FetchError("Failed to single page list", response, responseData);
+        }
+        if (response.status === 200) {
+            return pageCallback(responseData[crudArgs.resultsKey], {
+                totalRecords: responseData.totalRecords,
+                totalPages: responseData.totalPages,
+                perPage: responseData.perPage,
+            });
+        }
+        throw new FetchError("Failed to single page list", response, responseData);
+    });
+    returnPromise.cancel = () => controller.abort();
+    return returnPromise;
 }
 
 export function setupDefaultListCrud() {

@@ -110,7 +110,6 @@ const handleDeleteSingle = (selected_) => {
     } else {
         fieldContext.clearModified();
     }
-    console.log("set touched");
     fieldContext.blur();
     selected.value = selected_;
 };

@@ -8,6 +8,7 @@ const defaultCrudComponents = {
     destroy: async () => (await import("@vueda/views/ViewDelete.vue")).default,
     activate: async () => (await import("@vueda/views/ViewActivate.vue")).default,
     deactivate: async () => (await import("@vueda/views/ViewDeactivate.vue")).default,
+    "history-list": async () => (await import("@vueda/views/ViewHistoryList.vue")).default,
 };
 
 export const crudComponents = reactive({ ...defaultCrudComponents });

@@ -50,4 +50,13 @@ export default {
             class: ["flex flex-row lg:flex-col mx-2 gap-2 mb-2 flex-wrap lg:flex-nowrap"],
         },
     },
+    ViewHistoryList: {
+        nestedRowGroup: {
+            class: ["divide-y divide-double px-0 lg:px-0"],
+        },
+        nestedRow: {
+            class: ["h-[2.5rem] content-center width: 100% px-1 lg:px-2"],
+        },
+        cardFieldClasses: {},
+    },
 };

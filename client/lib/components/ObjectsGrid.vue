@@ -5,7 +5,7 @@ import ObjectsGridTableHeader from "@vueda/components/ObjectsGridTableHeader.vue
 import { useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsTailwind } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
-import { computed, reactive, toRef } from "vue";
+import { computed, onMounted, reactive, toRef, watch } from "vue";
 
 const props = defineProps({
     titleFieldName: {
@@ -129,11 +129,17 @@ const props = defineProps({
         default: "id",
     },
 });
-const emit = defineEmits(["update:sorted"]);
+const emit = defineEmits(["update:sorted", "update:isTable"]);
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isTable = breakpoints.greaterOrEqual(toRef(props, "tableBreakpoint"));
 const twoColumns = breakpoints.between("sm", toRef(props, "tableBreakpoint"));
+watch(isTable, (newValue) => {
+    emit("update:isTable", newValue);
+});
+onMounted(() => {
+    emit("update:isTable", isTable.value);
+});
 const evenCard = (index) => {
     if (isTable.value || !twoColumns.value) {
         return index % 2 === 0;
