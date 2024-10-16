@@ -205,17 +205,20 @@ def get_defaults(env: Env):
         **{  # django-simple-history settings
             "SIMPLE_HISTORY_FILEFIELD_TO_CHARFIELD": True,
         },
-        **{  # anymail, used when "EMAIL_BACKEND" = "anymail.backends.mailgun.EmailBackend"
-            "MAILGUN_API_KEY": env("MAILGUN_API_KEY"),
-            "MAILGUN_SENDER_DOMAIN": env("MAILGUN_SENDER_DOMAIN"),
-            "MAILGUN_API_URL": env("MAILGUN_API_URL", default="https://api.mailgun.net/v3"),
-            "MAILGUN_WEBHOOK_SIGNING_KEY": env("MAILGUN_WEBHOOK_SIGNING_KEY"),
-            "WEBHOOK_SECRET": env("ANYMAIL_WEBHOOK_SECRET"),
-        },
         **{  # our own settings regarding to `vueda update` cli.
             "DATABASE_BACKUP_DIR": env("DATABASE_BACKUP_DIR"),
         },
     }
+    if return_dict["EMAIL_BACKEND"] == "anymail.backends.mailgun.EmailBackend":
+        return_dict.update(
+            {
+                "MAILGUN_API_KEY": env("MAILGUN_API_KEY"),
+                "MAILGUN_SENDER_DOMAIN": env("MAILGUN_SENDER_DOMAIN"),
+                "MAILGUN_API_URL": env("MAILGUN_API_URL", default="https://api.mailgun.net/v3"),
+                "MAILGUN_WEBHOOK_SIGNING_KEY": env("MAILGUN_WEBHOOK_SIGNING_KEY"),
+                "WEBHOOK_SECRET": env("ANYMAIL_WEBHOOK_SECRET"),
+            }
+        )
     if return_dict["DEBUG"]:
         return_dict["CORS_PREFLIGHT_MAX_AGE"] = 600  # 10 minutes
 
