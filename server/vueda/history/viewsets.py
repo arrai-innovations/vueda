@@ -43,7 +43,7 @@ class SimpleHistoryViewSetMixin:
         return different_fields
 
     @action(detail=True, methods=["get"])
-    def history_list(self):
+    def history_list(self, *args, **kwargs):
         # if it is slow then we should try making postgres do it.
         instance = self.get_object()
         history_queryset = instance.history.all().order_by("-history_date")
