@@ -6,9 +6,9 @@ import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { useTheme } from "@vueda/use/useTheme.js";
 import { singlePagePaginatedHistoryListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
+import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import { computed, reactive, ref, toRef } from "vue";
 import { useRouter } from "vue-router";
@@ -35,7 +35,7 @@ const props = defineProps({
     },
     tableBreakpoint: {
         type: String,
-        default: "md",
+        default: "lg",
     },
     fields: {
         type: Array,
@@ -72,6 +72,7 @@ const modelListProps = reactive({
     pkKey: "history_id",
     listArgs: {
         [props.pageKey]: currentPage,
+        f: ["history"],
     },
     intendToList: validAndActive,
 });
@@ -90,7 +91,6 @@ const titleStr = computed(() => {
 });
 const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
 
-// return it in the config?
 const extraFieldObjects = computed(() => {
     const objects = [
         {
@@ -113,32 +113,61 @@ const extraFieldObjects = computed(() => {
     }
     return objects;
 });
-const calculatedDisplayFields = computed(() => {
+const calculatedHistoryFieldsObjects = computed(() => {
     const history_fields = modelConfig.info?.expands?.filter((expand) => expand.name === "history")[0]?.f;
     return history_fields ? Object.entries(history_fields).map(([key, value]) => ({ name: key, ...value })) : [];
 });
 const computedFieldObjects = computed(() => {
     return props.fields.map((field) => {
         return (
-            calculatedDisplayFields.value.find((f) => f.name === field) ||
+            calculatedHistoryFieldsObjects.value.find((f) => f.name === field) ||
             extraFieldObjects.value.find((f) => f.name === field)
         );
     });
 });
-
-const get_changed_field = (obj) => {
-    return Object.keys(obj)
-        .filter((key) => key.endsWith("_new"))
-        .map((key) => key.replace("_new", ""));
-};
-const get_value = (obj, field_name) => {
-    return Object.entries(obj)
-        .filter(([key]) => key === field_name)
-        .map(([, value]) => value)[0];
-};
+const calculatedHistoryFields = computed(() => {
+    return calculatedHistoryFieldsObjects.value.map((field) => field.name);
+});
+const formFields = computed(() => {
+    return ["history", ...Object.keys(modelConfig.info?.fields ?? {})];
+});
+const formModelProps = reactive({
+    app: toRef(props, "app"),
+    model: toRef(props, "model"),
+    fields: formFields,
+});
 const router = useRouter();
-const theme = useTheme("ViewHistoryList");
-const formModel = useFormModel({ app: toRef(props, "app"), model: toRef(props, "model") });
+const formModel = useFormModel(formModelProps);
+const computedChangeObjects = computed(() => {
+    return instanceList.state.objectsInOrder.flatMap((item, parentIndex) => {
+        if (!item.num_changes) {
+            return { ...item, field: "(Created)", parent_row: parentIndex };
+        }
+        return item.changes.map((change, changeIndex) => {
+            let baseObject = {
+                parent_row: parentIndex,
+                field: change.field,
+                new: change.new,
+                old: change.old,
+            };
+            if (changeIndex === 0) {
+                baseObject = { ...baseObject, ...omit(item, "changes") };
+            }
+            return baseObject;
+        });
+    });
+});
+
+const computedCalculatedObjects = computed(() => {
+    if (isTable.value) {
+        return computedChangeObjects.value;
+    }
+    return instanceList.state.objectsInOrder;
+});
+
+const evenColumn = (obj) => {
+    return obj.parent_row % 2 === 0;
+};
 </script>
 <template>
     <div>
@@ -148,79 +177,116 @@ const formModel = useFormModel({ app: toRef(props, "app"), model: toRef(props, "
             </template>
         </page-title>
         <slot name="before-list" />
-        <objects-grid
-            v-bind="$attrs"
-            :calculated-objects="instanceList.state.calculatedObjects"
-            class="w-full"
-            :data-qa="`history-list-${app}-${model}-objects-grid`"
-            :field-props="{
-                pkKey: modelConfig.info?.pk,
-                modelInfo: modelConfig.info,
-                modelConfig: modelConfig.config,
-            }"
-            :fields="computedFieldObjects"
-            :loading="loading"
-            :objects-in-order="instanceList.state.objectsInOrder"
-            :related-objects="instanceList.state.relatedObjects"
-            :table-breakpoint="tableBreakpoint"
-            :table-field-classes="{
-                field: theme('nestedRowGroup'),
-                old: theme('nestedRowGroup'),
-                new: theme('nestedRowGroup'),
-            }"
-            @update:is-table="handleIsTableUpdate"
-        >
-            <template #field(field)="{ obj }">
-                <slot name="field(field)">
-                    <div v-if="obj.changes == 0" :class="theme('nestedRow')">(Created)</div>
-                    <div v-for="field in get_changed_field(obj)" :key="field" :class="theme('nestedRow')">
-                        {{ field }}
-                    </div>
-                </slot>
-            </template>
-            <template #field(new)="{ obj }">
-                <slot name="field(new)">
-                    <div v-for="field in get_changed_field(obj)" :key="field" :class="theme('nestedRow')">
+        <div class="flex flex-row">
+            <objects-grid
+                v-bind="$attrs"
+                :calculated-objects="instanceList.state.calculatedObjects"
+                class="w-full"
+                :data-qa="`history-list-${app}-${model}-objects-grid`"
+                :even-column="evenColumn"
+                :field-props="{
+                    pkKey: modelConfig.info?.pk,
+                    modelInfo: modelConfig.info,
+                    modelConfig: modelConfig.config,
+                }"
+                :fields="computedFieldObjects"
+                :loading="loading"
+                :objects-in-order="computedCalculatedObjects"
+                :related-objects="instanceList.state.relatedObjects"
+                :table-breakpoint="tableBreakpoint"
+                @update:is-table="handleIsTableUpdate"
+            >
+                <template v-for="field in calculatedHistoryFields" :key="field" #[`field(${field})`]="{ obj }">
+                    <slot :name="`field(${field})`" v-bind="{ obj }">
                         <component
-                            :is="formModel.fieldComponents[field]"
-                            v-if="formModel.fieldComponents[field]"
-                            v-bind="formModel.fieldProps[field]"
-                            :name="`${field}_new`"
+                            :is="formModel.fieldComponents[`history__${field}`]"
+                            v-if="formModel.fieldComponents[`history__${field}`]"
+                            v-bind="formModel.fieldProps[`history__${field}`]"
+                            :name="`${field}`"
                         >
                             <div>
                                 <WidgetReadOnly
-                                    v-bind="formModel.widgetProps[field]"
+                                    v-bind="formModel.widgetProps[`history__${field}`]"
                                     :hidden="isTable"
-                                    :model-value="get_value(obj, `${field}_new`)"
-                                    :name="`${field}_new`"
+                                    :model-value="obj[field]"
+                                    :name="`history__${field}`"
                                 />
                             </div>
                         </component>
-                    </div>
-                </slot>
-            </template>
-            <template #field(old)="{ obj }">
-                <slot name="field(old)">
-                    <div v-for="field in get_changed_field(obj)" :key="field" :class="theme('nestedRow')">
+                    </slot>
+                </template>
+                <template #field(new)="{ obj }">
+                    <slot name="field(new)">
+                        <div v-if="!isTable" v-for="changed in obj.changes" :key="changed.field">
+                            <component
+                                :is="formModel.fieldComponents[changed.field]"
+                                v-if="formModel.fieldComponents[changed.field]"
+                                v-bind="formModel.fieldProps[changed.field]"
+                                :name="`${changed.field}_new`"
+                            >
+                                <div>
+                                    <WidgetReadOnly
+                                        v-bind="formModel.widgetProps[changed.field]"
+                                        :model-value="changed.new"
+                                        :name="`${changed.field}_new`"
+                                    />
+                                </div>
+                            </component>
+                        </div>
                         <component
-                            :is="formModel.fieldComponents[field]"
-                            v-if="formModel.fieldComponents[field]"
-                            v-bind="formModel.fieldProps[field]"
-                            :name="`${field}_old`"
+                            :is="formModel.fieldComponents[obj.field]"
+                            v-else-if="formModel.fieldComponents[obj.field]"
+                            v-bind="formModel.fieldProps[obj.field]"
+                            :name="`${obj.field}_new`"
                         >
                             <div>
                                 <WidgetReadOnly
-                                    v-bind="formModel.widgetProps[field]"
-                                    :hidden="isTable"
-                                    :model-value="get_value(obj, `${field}_old`)"
-                                    :name="`${field}_old`"
+                                    v-bind="formModel.widgetProps[obj.field]"
+                                    hidden
+                                    :model-value="obj.new"
+                                    :name="`${obj.field}_new`"
                                 />
                             </div>
                         </component>
-                    </div>
-                </slot>
-            </template>
-        </objects-grid>
+                    </slot>
+                </template>
+                <template #field(old)="{ obj }">
+                    <slot name="field(old)">
+                        <div v-if="!isTable" v-for="changed in obj.changes" :key="changed.field">
+                            <component
+                                :is="formModel.fieldComponents[changed.field]"
+                                v-if="formModel.fieldComponents[changed.field]"
+                                v-bind="formModel.fieldProps[changed.field]"
+                                :name="`${changed.field}_old`"
+                            >
+                                <div>
+                                    <WidgetReadOnly
+                                        v-bind="formModel.widgetProps[changed.field]"
+                                        :model-value="changed.old"
+                                        :name="`${changed.field}_old`"
+                                    />
+                                </div>
+                            </component>
+                        </div>
+                        <component
+                            :is="formModel.fieldComponents[obj.field]"
+                            v-else-if="formModel.fieldComponents[obj.field]"
+                            v-bind="formModel.fieldProps[obj.field]"
+                            :name="`${obj.field}_old`"
+                        >
+                            <div>
+                                <WidgetReadOnly
+                                    v-bind="formModel.widgetProps[obj.field]"
+                                    hidden
+                                    :model-value="obj.old"
+                                    :name="`${obj.field}_old`"
+                                />
+                            </div>
+                        </component>
+                    </slot>
+                </template>
+            </objects-grid>
+        </div>
 
         <pagination-component
             v-model:current-page="currentPage"

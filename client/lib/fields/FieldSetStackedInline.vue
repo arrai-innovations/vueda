@@ -100,7 +100,6 @@ const handleSelected = (selected_) => {
 
 const handleDeleteSingle = (selected_) => {
     if (selected_.length) {
-        console.log("igrnoed");
         fieldContext.ignore();
     } else {
         fieldContext.removeIgnore();

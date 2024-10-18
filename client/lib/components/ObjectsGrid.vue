@@ -128,6 +128,10 @@ const props = defineProps({
         type: String,
         default: "id",
     },
+    evenColumn: {
+        type: Function,
+        default: () => null,
+    },
 });
 const emit = defineEmits(["update:sorted", "update:isTable"]);
 
@@ -140,9 +144,9 @@ watch(isTable, (newValue) => {
 onMounted(() => {
     emit("update:isTable", isTable.value);
 });
-const evenCard = (index) => {
+const evenCard = (obj, index) => {
     if (isTable.value || !twoColumns.value) {
-        return index % 2 === 0;
+        return props.evenColumn(obj) !== null ? props.evenColumn(obj) : index % 2 === 0;
     }
     // checkerboard pattern
     return index % 4 === 1 || index % 4 === 2;
@@ -242,7 +246,7 @@ const theme = useTheme("ObjectsGrid", themeProps, (key, kwargs) => {
                 :key="obj?.[pkKey]"
                 :class="[
                     theme('bodyRow', {
-                        evenCard: evenCard(rowIndex),
+                        evenCard: evenCard(obj, rowIndex),
                     }),
                 ]"
                 data-qa="objects-grid-row"
