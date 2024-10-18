@@ -82,6 +82,9 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
                             "type_model": "ForeignKey",
                             "type_serializer": "PrimaryKeyRelatedField",
                             "read_only": True,
+                            "model": "user",
+                            "app_label": "user",
+                            "choices": True,
                         },
                     }
                 case "first_history_entry":

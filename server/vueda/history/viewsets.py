@@ -68,8 +68,9 @@ class SimpleHistoryViewSetMixin:
                 model_serializer_class=serializer_class,
                 different_fields=different_fields,
             )
+            changes = []
             new_data = serializer.data
-            new_data["changes"] = len(different_fields)
+            new_data["num_changes"] = len(different_fields)
             if different_fields:
                 previous_serializer = DynamicHistoricalSerializer(
                     instance=previous_entry,
@@ -78,9 +79,15 @@ class SimpleHistoryViewSetMixin:
                 )
                 old_data = previous_serializer.data
                 for field in different_fields:
-                    new_data[field + "_new"] = new_data[field]
-                    new_data[field + "_old"] = old_data[field]
-                    new_data.pop(field)
+                    copy = {
+                        "new": new_data[field],
+                        "old": old_data[field],
+                        "field": field,
+                    }
+                    changes.append(copy)
+                new_data["changes"] = changes
+                new_data.pop(field)
+
             previous_entry = entry
             serialized_data.append(new_data)
 
