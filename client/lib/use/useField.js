@@ -13,6 +13,7 @@ import { computed, inject, onBeforeUnmount, provide, reactive, readonly, toRef, 
  * @property {string} [requiredMessage="This field is required."] - The message to display if the field is required and empty.
  * @property {string} [label] - The label for the field.
  * @property {string} [help] - The help text for the field.
+ * @property {any} [fieldValue] - The field value. This is used when the field is not part of a form.
  * @property {(value: any) => boolean} [validate] - A custom validation function for the field.
  */
 export const FIELD_PROPS = {
@@ -43,6 +44,10 @@ export const FIELD_PROPS = {
     requiredFn: {
         type: Function,
         default: null,
+    },
+    fieldValue: {
+        type: [String, Number, Boolean, Array, Object],
+        default: undefined,
     },
 };
 
@@ -161,26 +166,30 @@ export function useField(props, emit, functions) {
         label: computed(() => (props.label?.length ? props.label : props.name)),
         help: computed(() => props.help || ""),
         suffix: computed(() => props.rangeSuffix || ""),
-        value: formContext
-            ? computed({
-                  get: () => {
-                      const value = get(formContext.state.values, props.name);
-                      return functions?.preprocessGet ? functions.preprocessGet(value) : value;
-                  },
-                  set: (newValue) => {
-                      if (functions?.preprocessSet) {
-                          newValue = functions.preprocessSet(newValue);
-                      }
-                      if (newValue === undefined) {
-                          formContext.deleteValue(state.name);
-                          emit("update:modelValue", undefined);
-                      } else {
-                          formContext.updateValue(state.name, newValue);
-                          emit("update:modelValue", newValue);
-                      }
-                  },
-              })
-            : undefined,
+        value:
+            formContext || props.fieldValue
+                ? computed({
+                      get: () => {
+                          const value = props.fieldValue ?? get(formContext.state.values, props.name);
+                          return functions?.preprocessGet ? functions.preprocessGet(value) : value;
+                      },
+                      set: (newValue) => {
+                          if (!formContext) {
+                              return;
+                          }
+                          if (functions?.preprocessSet) {
+                              newValue = functions.preprocessSet(newValue);
+                          }
+                          if (newValue === undefined) {
+                              formContext.deleteValue(state.name);
+                              emit("update:modelValue", undefined);
+                          } else {
+                              formContext.updateValue(state.name, newValue);
+                              emit("update:modelValue", newValue);
+                          }
+                      },
+                  })
+                : undefined,
         initialValue: formContext ? computed(() => get(formContext.state.initialValues, props.name)) : undefined,
         messages: formContext ? computed(() => get(formContext.state.messages, props.name)) : {},
         errors: formContext ? computed(() => get(formContext.state.errors, props.name)) : {},

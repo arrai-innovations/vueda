@@ -16,6 +16,10 @@ const props = defineProps({
         type: Number,
         default: undefined,
     },
+    maxFractionDigits: {
+        type: Number,
+        default: undefined,
+    },
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
@@ -77,6 +81,11 @@ watch(
         let coercedValue = +newValue;
         if (isNaN(coercedValue) || newValue === "" || newValue === null) {
             coercedValue = "";
+        } else if (props.maxFractionDigits) {
+            const parts = coercedValue.toString().split(".");
+            if (parts[1] && parts[1].length > props.maxFractionDigits) {
+                coercedValue = parseFloat(coercedValue).toFixed(props.maxFractionDigits);
+            }
         }
         if (coercedValue !== newValue) {
             fieldContext.state.value = coercedValue;

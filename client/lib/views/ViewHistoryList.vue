@@ -202,13 +202,13 @@ const evenColumn = (obj) => {
                             :is="formModel.fieldComponents[`history__${field}`]"
                             v-if="formModel.fieldComponents[`history__${field}`]"
                             v-bind="formModel.fieldProps[`history__${field}`]"
+                            :field-value="obj[field]"
                             :name="`${field}`"
                         >
                             <div>
                                 <WidgetReadOnly
                                     v-bind="formModel.widgetProps[`history__${field}`]"
                                     :hidden="isTable"
-                                    :model-value="obj[field]"
                                     :name="`history__${field}`"
                                 />
                             </div>
@@ -222,12 +222,12 @@ const evenColumn = (obj) => {
                                 :is="formModel.fieldComponents[changed.field]"
                                 v-if="formModel.fieldComponents[changed.field]"
                                 v-bind="formModel.fieldProps[changed.field]"
+                                :field-value="changed.new"
                                 :name="`${changed.field}_new`"
                             >
                                 <div>
                                     <WidgetReadOnly
                                         v-bind="formModel.widgetProps[changed.field]"
-                                        :model-value="changed.new"
                                         :name="`${changed.field}_new`"
                                     />
                                 </div>
@@ -237,13 +237,13 @@ const evenColumn = (obj) => {
                             :is="formModel.fieldComponents[obj.field]"
                             v-else-if="formModel.fieldComponents[obj.field]"
                             v-bind="formModel.fieldProps[obj.field]"
+                            :field-value="obj.new"
                             :name="`${obj.field}_new`"
                         >
                             <div>
                                 <WidgetReadOnly
                                     v-bind="formModel.widgetProps[obj.field]"
                                     hidden
-                                    :model-value="obj.new"
                                     :name="`${obj.field}_new`"
                                 />
                             </div>
@@ -257,12 +257,12 @@ const evenColumn = (obj) => {
                                 :is="formModel.fieldComponents[changed.field]"
                                 v-if="formModel.fieldComponents[changed.field]"
                                 v-bind="formModel.fieldProps[changed.field]"
+                                :field-value="changed.old"
                                 :name="`${changed.field}_old`"
                             >
                                 <div>
                                     <WidgetReadOnly
                                         v-bind="formModel.widgetProps[changed.field]"
-                                        :model-value="changed.old"
                                         :name="`${changed.field}_old`"
                                     />
                                 </div>
@@ -272,13 +272,13 @@ const evenColumn = (obj) => {
                             :is="formModel.fieldComponents[obj.field]"
                             v-else-if="formModel.fieldComponents[obj.field]"
                             v-bind="formModel.fieldProps[obj.field]"
+                            :field-value="obj.old"
                             :name="`${obj.field}_old`"
                         >
                             <div>
                                 <WidgetReadOnly
                                     v-bind="formModel.widgetProps[obj.field]"
                                     hidden
-                                    :model-value="obj.old"
                                     :name="`${obj.field}_old`"
                                 />
                             </div>

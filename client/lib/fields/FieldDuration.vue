@@ -62,10 +62,10 @@ const parseDuration = (durationString) => {
 
 const convertDurationToString = (durationObject) => {
     const padWithZero = (num) => String(num).padStart(2, "0");
-    const days = durationObject.days;
-    const hours = padWithZero(durationObject.hours);
-    const minutes = padWithZero(durationObject.minutes);
-    const seconds = padWithZero(durationObject.seconds);
+    const days = padWithZero(durationObject.days || 0);
+    const hours = padWithZero(durationObject.hours || 0);
+    const minutes = padWithZero(durationObject.minutes || 0);
+    const seconds = padWithZero(durationObject.seconds || 0);
     return `${days} ${hours}:${minutes}:${seconds}`;
 };
 const preprocessGet = (value) => {

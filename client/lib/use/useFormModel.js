@@ -170,8 +170,12 @@ const defaultFieldMappings = {
     },
     ModelField: {
         GeneratedField: {
-            component: availableFields.FieldString,
-            widget: availableWidgets.WidgetReadOnly,
+            FloatField: {
+                component: availableFields.FieldNumber,
+                fieldProps: {
+                    maxFractionDigits: 2,
+                },
+            },
         },
     },
     NullBooleanField: {
@@ -441,6 +445,9 @@ const manyFieldMappings = {
  */
 const getFieldComponent = (field) => {
     let component;
+    if (field.typeModel === "GeneratedField" && field.typeSerializer === "ModelField") {
+        component = defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.[field.typeDb]?.component;
+    }
     if (field.choices) {
         component = choiceFieldMappings[field.typeSerializer]?.[field.typeModel]?.component;
     } else if (field.many) {
@@ -456,9 +463,9 @@ const getFieldComponent = (field) => {
  * @returns {import('@vueda/utils/filterLookups.js').WidgetComponent} The widget component.
  */
 const getWidgetComponent = (field) => {
-    // if (field.readOnly) {
-    //     return availableWidgets.WidgetReadOnly;
-    // }
+    if (field.readOnly) {
+        return availableWidgets.WidgetReadOnly;
+    }
     let widget;
     if (field.choices) {
         const fieldObject = choiceFieldMappings[field.typeSerializer]?.[field.typeModel];
@@ -477,6 +484,9 @@ const getWidgetComponent = (field) => {
  */
 const getWidgetProps = (field) => {
     let baseProps;
+    if (field.typeModel === "GeneratedField" && field.typeSerializer === "ModelField") {
+        baseProps = defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.[field.typeDb]?.widgetProps;
+    }
     if (field.choices) {
         baseProps = field.many ? choiceFieldMappings[field.typeSerializer]?.[field.typeModel]?.manyWidgetProps : {};
     } else if (field.many) {
@@ -493,6 +503,9 @@ const getWidgetProps = (field) => {
  */
 const getFieldProps = (field) => {
     let baseProps;
+    if (field.typeModel === "GeneratedField" && field.typeSerializer === "ModelField") {
+        baseProps = defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.[field.typeDb]?.fieldProps;
+    }
     if (field.many && !field.choices) {
         baseProps = manyFieldMappings[field.typeSerializer]?.[field.typeModel]?.fieldProps;
     }
