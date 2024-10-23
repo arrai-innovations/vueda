@@ -9,7 +9,6 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
 
 from vueda.core.models import BaseModelMeta
-from vueda.workflow.models import HasWorkflowModelMixin
 
 
 # These decorators and functions exist, so drf-spectacular can remain a
@@ -378,6 +377,8 @@ try:
     from drf_spectacular.utils import Direction
     from drf_spectacular.utils import _SchemaType
     from drf_spectacular.utils import _SerializerType
+
+    from vueda.workflow.models import HasWorkflowModelMixin
 
 except ImportError:
     pass
