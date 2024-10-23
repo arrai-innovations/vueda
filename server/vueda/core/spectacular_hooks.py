@@ -43,6 +43,7 @@ def postprocess_schema_components(result, generator, **kwargs):
                         schema["properties"]["password"][
                             "description"
                         ] = "The secret phrase or characters that must be used to log in."
+                        schema["properties"]["password"]["format"] = "password"
 
     for path in result["paths"].values():
         for method in path.values():
@@ -104,6 +105,7 @@ def postprocess_schema_components(result, generator, **kwargs):
                     indexes_to_delete = set()
                     for index, parameter in enumerate(method["parameters"]):
                         match parameter["name"]:
+                            # Add some additional information for object_id.
                             case "object_id":
                                 parameter["schema"]["example"] = "1234"
                                 parameter["schema"]["title"] = "object pk"
@@ -112,5 +114,51 @@ def postprocess_schema_components(result, generator, **kwargs):
 
                     for index_to_delete in sorted(indexes_to_delete, reverse=True):
                         del method["parameters"][index_to_delete]
+
+                case "vueda.workflow_workflows_object_transitions_retrieve":
+                    method["summary"] = "List object transitions"
+                    method["description"] = "List the current transitions for an object."
+
+                    # Remove the expand query param, as it doesn't make sense for this.
+                    indexes_to_delete = set()
+                    for index, parameter in enumerate(method["parameters"]):
+                        match parameter["name"]:
+                            # Add some additional information for object_id.
+                            case "object_id":
+                                parameter["schema"]["example"] = "1234"
+                                parameter["schema"]["title"] = "object pk"
+                            case ExpandParam.setting:
+                                indexes_to_delete.add(index)
+
+                    for index_to_delete in sorted(indexes_to_delete, reverse=True):
+                        del method["parameters"][index_to_delete]
+
+                case "vueda.workflow_workflows_execute_transition_partial_update":
+                    method["summary"] = "Execute object transition"
+                    method["description"] = "Execute an available transition for an object."
+
+                    # Remove the expand query param, as it doesn't make sense for this.
+                    indexes_to_delete = set()
+                    for index, parameter in enumerate(method["parameters"]):
+                        match parameter["name"]:
+                            # Add some additional information for object_id.
+                            case ExpandParam.setting:
+                                indexes_to_delete.add(index)
+
+                    for index_to_delete in sorted(indexes_to_delete, reverse=True):
+                        del method["parameters"][index_to_delete]
+
+                    method["parameters"].append(
+                        {
+                            "in": "path",
+                            "name": "object_id",
+                            "schema": {
+                                "type": "string",
+                                "example": "1234",
+                                "title": "object pk",
+                            },
+                            "required": False,
+                        }
+                    )
 
     return result

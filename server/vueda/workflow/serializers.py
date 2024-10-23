@@ -3,6 +3,7 @@ from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers as drf_serializers
 
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
+from vueda.workflow import open_api_tracebacks
 from vueda.workflow.models import State
 from vueda.workflow.models import Transition
 from vueda.workflow.models import Workflow
@@ -64,19 +65,67 @@ class WorkflowSerializer(
 
         return parameters
 
-    def customize_schema_response_data(self, response_data):
-        site_packages_path = 'File "/home/user/.local/share/virtualenvs/vueda-server/lib/python3.11/site-packages'
-        vueda_server_path = 'File "/home/user/projects/vueda-server'
+    def customize_schema_request_data(self, request_data):
+        match self.context["request"].path:
+            case "/routes/vueda.workflow/workflows/{app_label}/{model}/execute-transition/":
+                request_data["content"]["application/json"]["schema"] = {
+                    "type": "object",
+                    "description": "Test a",
+                    "properties": {
+                        "transition_code": {
+                            "description": "test b",
+                            "type": "string",
+                            "maxLength": 255,
+                        },
+                        "object_ids": {
+                            "description": "A list of the object pks to transition.",
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "title": "pks",
+                                "example": "1",
+                            },
+                        },
+                    },
+                }
 
+                request_data["content"]["application/json"]["examples"] = {
+                    "ExecuteTransitionBulkRequestExample": {
+                        "summary": "Bulk Execute Transition",
+                        "description": (
+                            "uri: "
+                            + "/routes/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/execute-transition/"
+                        ),
+                        "value": {
+                            "transition_code": "pack_order",
+                            "object_ids": ["1", "2"],
+                        },
+                    },
+                    "ExecuteTransitionRequestExample": {
+                        "summary": "Execute Transition",
+                        "description": (
+                            "uri: /routes"
+                            + "/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/execute-transition/1/"
+                        ),
+                        "value": {
+                            "transition_code": "pack_order",
+                        },
+                    },
+                }
+
+        return request_data
+
+    def customize_schema_response_data(self, response_data):
         request = self.context["request"]
 
-        # Things we want to modify.
-        for status_code, data in response_data.items():
+        for status_code, data in tuple(response_data.items()):  # tuple because we may add items.
             match (request.method, request.path, status_code):
-                case ("GET", "/routes/vueda.workflow/workflows/", "200"):  # List workflows
+                # List workflows
+                case ("GET", "/routes/vueda.workflow/workflows/", "200"):
                     data["content"]["application/json"]["examples"] = {
                         "ListWorkflowsExample": {
                             "summary": "Workflows exist",
+                            "description": "uri: /routes/vueda.workflow/workflows/",
                             "value": {
                                 "perPage": settings.MAX_PAGE_SIZE,
                                 "totalPages": 1,
@@ -99,6 +148,7 @@ class WorkflowSerializer(
                         },
                         "NoWorkflowsExample": {
                             "summary": "No workflows exist",
+                            "description": "uri: /routes/vueda.workflow/workflows/",
                             "value": {
                                 "perPage": settings.MAX_PAGE_SIZE,
                                 "totalPages": 0,
@@ -108,24 +158,156 @@ class WorkflowSerializer(
                         },
                     }
 
-                case ("GET", "/routes/vueda.workflow/workflows/{app_label}/{model}/", "200"):  # Get workflow
+                    response_data["403"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "ListWorkflowPermissionDeniedExample": {
+                                        "summary": "Permission denied",
+                                        "description": "uri: /routes/vueda.workflow/workflows/",
+                                        "value": {
+                                            "detail": "You do not have permission to perform this action.",
+                                            "serverStack": open_api_tracebacks.WORKFLOW_DENIED,
+                                        },
+                                    },
+                                },
+                            }
+                        }
+                    }
+
+                # Get workflow
+                case ("GET", "/routes/vueda.workflow/workflows/{app_label}/{model}/", "200"):
+                    expand_param = settings.REST_FLEX_FIELDS["EXPAND_PARAM"]
                     data["content"]["application/json"]["examples"] = {
                         "GetWorkflowExample": {
-                            "summary": "Valid Workflow",
+                            "summary": "Get Customer Order",
+                            "description": "uri: /routes/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/",
                             "value": {
-                                "code": "pack_order",
-                                "name": "Pack Order",
+                                "code": "order_fulfillment",
+                                "name": "Order Fulfillment",
                                 "app_label": "store",
                                 "model": "customerorder",
                             },
                         },
+                        "GetWorkflowWithExpandableStateAndTransitionExample": {
+                            "summary": "Get Customer Order (Expanded)",
+                            "description": f"uri: /routes/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/?&ZeroWidthSpace;{expand_param}=states&amp;{expand_param}=transitions",
+                            "value": {
+                                "code": "order_fulfillment",
+                                "name": "Order Fulfillment",
+                                "app_label": "store",
+                                "model": "customerorder",
+                                "states": [
+                                    {"code": "new", "name": "New"},
+                                    {"code": "packed", "name": "Packed"},
+                                    {"code": "returned", "name": "Returned"},
+                                    {"code": "shipped", "name": "Shipped"},
+                                    {"code": "on_hold", "name": "On Hold"},
+                                    {"code": "cancelled", "name": "Cancelled"},
+                                ],
+                                "transitions": [
+                                    {"code": "cancel_order", "name": "Cancel Order"},
+                                    {"code": "hold_order", "name": "Hold Order"},
+                                    {"code": "pack_order", "name": "Pack Order"},
+                                    {"code": "return_order", "name": "Return Order"},
+                                    {"code": "ship_order", "name": "Ship Order"},
+                                ],
+                            },
+                        },
                     }
 
+                    response_data["403"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "GetWorkflowPermissionDeniedExample": {
+                                        "summary": "Permission denied",
+                                        "description": (
+                                            "uri: /routes/vueda.workflow/workflows&ZeroWidthSpace;/store/customer/"
+                                        ),
+                                        "value": {
+                                            "detail": "You do not have permission to perform this action.",
+                                            "serverStack": open_api_tracebacks.WORKFLOW_DENIED,
+                                        },
+                                    },
+                                },
+                            }
+                        }
+                    }
+
+                    response_data["404"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "InvalidWorkflowExample": {
+                                        "summary": "Invalid workflow",
+                                        "description": (
+                                            "uri: /routes/vueda.workflow/workflows&ZeroWidthSpace;/store/invalidmodel/"
+                                        ),
+                                        "value": {
+                                            "detail": "No Workflow matches the given query.",
+                                            "serverStack": open_api_tracebacks.WORKFLOW_INVALID,
+                                        },
+                                    },
+                                },
+                            }
+                        }
+                    }
+
+                # Get object state
                 case (
                     "GET",
                     "/routes/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/",
                     "200",
-                ):  # Get object state
+                ):
                     data["content"]["application/json"]["schema"] = {
                         "type": "object",
                         "properties": {
@@ -163,9 +345,11 @@ class WorkflowSerializer(
                             "current_history_id",
                         ],
                     }
+
                     data["content"]["application/json"]["examples"] = {
                         "GetObjectStateHistoryExample": {
                             "summary": "Object With History",
+                            "description": "uri: /routes/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/",
                             "value": {
                                 "state": {
                                     "code": "order_packed",
@@ -176,6 +360,7 @@ class WorkflowSerializer(
                         },
                         "GetObjectStateExample": {
                             "summary": "Object Without History",
+                            "description": "uri: /routes/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/",
                             "value": {
                                 "state": {
                                     "code": "order_shipped",
@@ -185,248 +370,360 @@ class WorkflowSerializer(
                         },
                     }
 
-        # Things we need to add - error responses.
-        match (request.method, request.path):
-            case ("GET", "/routes/vueda.workflow/workflows/{app_label}/{model}/"):  # Get workflow
-                tb_denied = f"""Traceback (most recent call last):
-  {site_packages_path}/rest_framework/views.py", line 497, in dispatch
-    self.initial(request, *args, **kwargs)
-  {site_packages_path}/rest_framework/views.py", line 415, in initial
-    self.check_permissions(request)
-  {vueda_server_path}/vueda/workflow/viewsets.py", line 48, in check_permissions
-    raise PermissionDenied("You do not have permission to perform this action.")
-rest_framework.exceptions.PermissionDenied: You do not have permission to perform this action."""
-                response_data["403"] = {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "detail",
-                                    "serverStack",
-                                ],
-                                "properties": {
-                                    "detail": {
-                                        "type": "string",
+                    response_data["403"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
                                     },
-                                    "serverStack": {
-                                        "type": "string",
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "GetObjectStateInvalidExample": {
+                                        "summary": "Permission Denied",
+                                        "description": (
+                                            "uri: /routes"
+                                            + "/vueda.workflow/workflows&ZeroWidthSpace;/store/customer/object-state/1/"
+                                        ),
+                                        "value": {
+                                            "detail": "You do not have permission to perform this action.",
+                                            "serverStack": open_api_tracebacks.WORKFLOW_DENIED,
+                                        },
                                     },
                                 },
-                                "readOnly": True,
-                            },
-                            "examples": {
-                                "InvalidWorkflowExample": {
-                                    "summary": "Invalid workflow",
-                                    "value": {
-                                        "detail": "You do not have permission to perform this action.",
-                                        "serverStack": tb_denied,
-                                    },
-                                },
-                            },
+                            }
                         }
                     }
-                }
 
-                tb_invalid = f"""Traceback (most recent call last):
-  {site_packages_path}/django/shortcuts.py", line 86, in get_object_or_404
-    return queryset.get(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  {site_packages_path}/django/db/models/query.py", line 649, in get
-    raise self.model.DoesNotExist(
-vueda.workflow.models.Workflow.DoesNotExist: Workflow matching query does not exist.
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  {site_packages_path}/rest_framework/views.py", line 506, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  {site_packages_path}/rest_framework/mixins.py", line 54, in retrieve
-    instance = self.get_object()
-               ^^^^^^^^^^^^^^^^^
-  {vueda_server_path}/vueda/workflow/viewsets.py", line 39, in get_object
-    return self.get_workflow()
-           ^^^^^^^^^^^^^^^^^^^
-  {vueda_server_path}/vueda/workflow/viewsets.py", line 31, in get_workflow
-    return get_object_or_404(
-           ^^^^^^^^^^^^^^^^^^
-  {site_packages_path}/rest_framework/generics.py", line 19, in get_object_or_404
-    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  {site_packages_path}/django/shortcuts.py", line 88, in get_object_or_404
-    raise Http404(
-django.http.response.Http404: No Workflow matches the given query."""
-                response_data["404"] = {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "detail",
-                                    "serverStack",
-                                ],
-                                "properties": {
-                                    "detail": {
-                                        "type": "string",
+                    response_data["404"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
                                     },
-                                    "serverStack": {
-                                        "type": "string",
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "GetObjectStateInvalidWorkflowExample": {
+                                        "summary": "Invalid workflow",
+                                        "description": (
+                                            "uri: /routes/vueda.workflow"
+                                            + "/workflows&ZeroWidthSpace;/store/invalidmodel/object-state/1/"
+                                        ),
+                                        "value": {
+                                            "detail": "No Workflow matches the given query.",
+                                            "serverStack": open_api_tracebacks.WORKFLOW_INVALID,
+                                        },
+                                    },
+                                    "GetObjectStateInvalidCustomerOrderExample": {
+                                        "summary": "invalid object pk",
+                                        "description": (
+                                            "uri: /routes/vueda.workflow"
+                                            + "/workflows&ZeroWidthSpace;/store/customerorder/object-state/1/"
+                                        ),
+                                        "value": {
+                                            "detail": "No CustomerOrder matches the given query.",
+                                            "serverStack": open_api_tracebacks.CUSTOMER_ORDER_INVALID,
+                                        },
                                     },
                                 },
-                                "readOnly": True,
-                            },
-                            "examples": {
-                                "InvalidWorkflowExample": {
-                                    "summary": "Invalid workflow",
-                                    "value": {
-                                        "detail": "No Workflow matches the given query.",
-                                        "serverStack": tb_invalid,
-                                    },
-                                },
-                            },
+                            }
                         }
                     }
-                }
 
-            # Get object state
-            case "GET", "/routes/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/":
-                tb_denied = """Traceback (most recent call last):
-  {site_packages_path}/rest_framework/views.py", line 497, in dispatch
-    self.initial(request, *args, **kwargs)
-  {site_packages_path}/rest_framework/views.py", line 415, in initial
-    self.check_permissions(request)
-  {vueda_server_path}/vueda/workflow/viewsets.py", line 48, in check_permissions
-    raise PermissionDenied("You do not have permission to perform this action.")
-rest_framework.exceptions.PermissionDenied: You do not have permission to perform this action."""
-                response_data["403"] = {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "detail",
-                                    "serverStack",
+                # List object transitions
+                case (
+                    "GET",
+                    "/routes/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/",
+                    "200",
+                ):
+                    data["content"]["application/json"]["examples"] = {
+                        "ListObjectTransitionsExample": {
+                            "summary": "Object Transitions",
+                            "description": (
+                                "uri: /routes"
+                                + "/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/object-transitions/1/"
+                            ),
+                            "value": {
+                                "perPage": settings.MAX_PAGE_SIZE,
+                                "totalPages": 1,
+                                "totalRecords": 3,
+                                "results": [
+                                    {
+                                        "code": "cancel_order",
+                                        "name": "Cancel Order",
+                                    },
+                                    {
+                                        "code": "hold_order",
+                                        "name": "Hold Order",
+                                    },
+                                    {
+                                        "code": "pack_order",
+                                        "name": "Pack Order",
+                                    },
                                 ],
-                                "properties": {
-                                    "detail": {
-                                        "type": "string",
+                            },
+                        },
+                    }
+
+                    response_data["403"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
                                     },
-                                    "serverStack": {
-                                        "type": "string",
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "ListObjectTransitionsDeniedExample": {
+                                        "summary": "Permission denied",
+                                        "description": (
+                                            "uri: /routes/vueda.workflow/workflows&ZeroWidthSpace;/store/customer/"
+                                        ),
+                                        "value": {
+                                            "detail": "You do not have permission to perform this action.",
+                                            "serverStack": open_api_tracebacks.WORKFLOW_DENIED,
+                                        },
                                     },
                                 },
-                                "readOnly": True,
-                            },
-                            "examples": {
-                                "InvalidStateExample": {
-                                    "summary": "Invalid workflow",
-                                    "value": {
-                                        "detail": "You do not have permission to perform this action.",
-                                        "serverStack": tb_denied,
-                                    },
-                                },
-                            },
+                            }
                         }
                     }
-                }
 
-                tb_invalid_workflow = f"""Traceback (most recent call last):
-  {site_packages_path}/django/shortcuts.py", line 86, in get_object_or_404
-    return queryset.get(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  {site_packages_path}/django/db/models/query.py", line 649, in get
-    raise self.model.DoesNotExist(
-vueda.workflow.models.Workflow.DoesNotExist: Workflow matching query does not exist.
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  {site_packages_path}/rest_framework/views.py", line 506, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  {vueda_server_path}/vueda/core/decorators.py", line 12, in wrapped_func
-    return func(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^
-  {vueda_server_path}/vueda/workflow/viewsets.py", line 98, in object_state
-    instance = self.get_object()
-               ^^^^^^^^^^^^^^^^^
-  {vueda_server_path}/vueda/workflow/viewsets.py", line 37, in get_object
-    return get_object_or_404(self.get_workflow().content_type.model_class(), pk=self.kwargs["object_id"])
-                             ^^^^^^^^^^^^^^^^^^^
-  {vueda_server_path}/vueda/workflow/viewsets.py", line 31, in get_workflow
-    return get_object_or_404(
-           ^^^^^^^^^^^^^^^^^^
-  {site_packages_path}/rest_framework/generics.py", line 19, in get_object_or_404
-    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  {site_packages_path}/django/shortcuts.py", line 88, in get_object_or_404
-    raise Http404(
-django.http.response.Http404: No Workflow matches the given query."""
-                tb_invalid_customerorder = f"""Traceback (most recent call last):
-  {site_packages_path}/django/shortcuts.py", line 86, in get_object_or_404
-    return queryset.get(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  {site_packages_path}/django/db/models/query.py", line 649, in get
-    raise self.model.DoesNotExist(
-tests.store.models.CustomerOrder.DoesNotExist: CustomerOrder matching query does not exist.
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  {site_packages_path}/rest_framework/views.py", line 506, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  {vueda_server_path}/vueda/core/decorators.py", line 12, in wrapped_func
-    return func(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^
-  {vueda_server_path}/vueda/workflow/viewsets.py", line 98, in object_state
-    instance = self.get_object()
-               ^^^^^^^^^^^^^^^^^
-  {vueda_server_path}/vueda/workflow/viewsets.py", line 37, in get_object
-    return get_object_or_404(self.get_workflow().content_type.model_class(), pk=self.kwargs["object_id"])
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  {site_packages_path}/rest_framework/generics.py", line 19, in get_object_or_404
-    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  {site_packages_path}/django/shortcuts.py", line 88, in get_object_or_404
-    raise Http404(
-django.http.response.Http404: No CustomerOrder matches the given query."""
-                response_data["404"] = {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "detail",
-                                    "serverStack",
-                                ],
-                                "properties": {
-                                    "detail": {
-                                        "type": "string",
+                    response_data["404"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
                                     },
-                                    "serverStack": {
-                                        "type": "string",
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "ListObjectTransitionsInvalidWorkflowExample": {
+                                        "summary": "Invalid workflow",
+                                        "description": (
+                                            "uri: /routes/vueda.workflow"
+                                            + "/workflows&ZeroWidthSpace;/store/invalidmodel/object-transitions/1/"
+                                        ),
+                                        "value": {
+                                            "detail": "No Workflow matches the given query.",
+                                            "serverStack": open_api_tracebacks.WORKFLOW_INVALID,
+                                        },
+                                    },
+                                    "ListObjectTransitionsInvalidCustomerOrderExample": {
+                                        "summary": "Invalid object pk",
+                                        "description": (
+                                            "uri: /routes/vueda.workflow"
+                                            + "/workflows&ZeroWidthSpace;/store/customerorder/object-transitions/1/"
+                                        ),
+                                        "value": {
+                                            "detail": "No CustomerOrder matches the given query.",
+                                            "serverStack": open_api_tracebacks.CUSTOMER_ORDER_INVALID,
+                                        },
                                     },
                                 },
-                                "readOnly": True,
-                            },
-                            "examples": {
-                                "InvalidWorkflowExample": {
-                                    "summary": "Invalid workflow",
-                                    "value": {
-                                        "detail": "No Workflow matches the given query.",
-                                        "serverStack": tb_invalid_workflow,
-                                    },
-                                },
-                                "InvalidCustomerOrderExample": {
-                                    "summary": "Invalid customer order pk",
-                                    "value": {
-                                        "detail": "No CustomerOrder matches the given query.",
-                                        "serverStack": tb_invalid_customerorder,
-                                    },
-                                },
-                            },
+                            }
                         }
                     }
-                }
+
+                # Execute transition
+                case (
+                    "PATCH",
+                    "/routes/vueda.workflow/workflows/{app_label}/{model}/execute-transition/",
+                    "200",
+                ):
+                    data["content"]["application/json"]["examples"] = {
+                        "ExecuteTransitionResponseExample": {
+                            "summary": "Execute Transition",
+                            "description": (
+                                "uri: /routes"
+                                + "/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/execute-transition/1/"
+                            ),
+                            "value": {
+                                "new_state": {
+                                    "code": "packed",
+                                    "name": "Packed",
+                                    "current_history_id": 2,
+                                },
+                                "new_transitions": [
+                                    {
+                                        "code": "cancel_order",
+                                        "name": "Cancel Order",
+                                    },
+                                    {
+                                        "code": "ship_order",
+                                        "name": "Ship Order",
+                                    },
+                                ],
+                            },
+                        },
+                        "ExecuteTransitionBulkResponseExample": {
+                            "summary": "Execute Bulk Transition",
+                            "description": (
+                                "uri: /routes"
+                                + "/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/execute-transition/"
+                            ),
+                            "value": {
+                                "1": {
+                                    "new_state": {
+                                        "code": "packed",
+                                        "name": "Packed",
+                                        "current_history_id": 3,
+                                    },
+                                    "new_transitions": [
+                                        {
+                                            "code": "cancel_order",
+                                            "name": "Cancel Order",
+                                        },
+                                        {
+                                            "code": "ship_order",
+                                            "name": "Ship Order",
+                                        },
+                                    ],
+                                },
+                                "2": {
+                                    "new_state": {
+                                        "code": "packed",
+                                        "name": "Packed",
+                                        "current_history_id": 4,
+                                    },
+                                    "new_transitions": [
+                                        {
+                                            "code": "cancel_order",
+                                            "name": "Cancel Order",
+                                        },
+                                        {
+                                            "code": "ship_order",
+                                            "name": "Ship Order",
+                                        },
+                                    ],
+                                },
+                            },
+                        },
+                    }
+
+                    response_data["403"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "ExecuteTransitionWorkflowPermissionDeniedExample": {
+                                        "summary": "Permission denied",
+                                        "description": (
+                                            "uri: /routes/vueda.workflow/workflows&ZeroWidthSpace;/store/customer/"
+                                        ),
+                                        "value": {
+                                            "detail": "You do not have permission to perform this action.",
+                                            "serverStack": open_api_tracebacks.WORKFLOW_DENIED,
+                                        },
+                                    },
+                                },
+                            }
+                        }
+                    }
+
+                    response_data["404"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "ExecuteTransitionInvalidWorkflowExample": {
+                                        "summary": "Invalid workflow",
+                                        "description": (
+                                            "uri: /routes/vueda.workflow"
+                                            + "/workflows&ZeroWidthSpace;/store/invalidmodel/object-transitions/1/"
+                                        ),
+                                        "value": {
+                                            "detail": "No Workflow matches the given query.",
+                                            "serverStack": open_api_tracebacks.WORKFLOW_INVALID,
+                                        },
+                                    },
+                                    "ExecuteTransitionInvalidCustomerOrder#xample": {
+                                        "summary": "Invalid object pk",
+                                        "description": (
+                                            "uri: /routes/vueda.workflow"
+                                            + "/workflows&ZeroWidthSpace;/store/customerorder/object-transitions/1/"
+                                        ),
+                                        "value": {
+                                            "detail": "No CustomerOrder matches the given query.",
+                                            "serverStack": open_api_tracebacks.CUSTOMER_ORDER_INVALID,
+                                        },
+                                    },
+                                },
+                            }
+                        }
+                    }

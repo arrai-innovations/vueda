@@ -3,9 +3,13 @@ from typing import List
 from typing import Optional
 
 from django.conf import settings
+from django.db import models
 from rest_framework import serializers
 from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
+
+from vueda.core.models import BaseModelMeta
+from vueda.workflow.models import HasWorkflowModelMixin
 
 
 # These decorators and functions exist, so drf-spectacular can remain a
@@ -196,6 +200,9 @@ def conditional_inline_serializer(*args, **kwargs):
     return inline_serializer(*args, **kwargs)
 
 
+OpenApiDocsGenerationObjectIdModel = None  # For flake8.
+
+
 class VuedaBaseAutoSchema:
     def _get_vueda_serializer(self):
         """
@@ -226,6 +233,15 @@ class VuedaBaseAutoSchema:
         """
         Add a description and example for each of the path parameters.
         """
+        # Workflow doesn't have an 'object_id' field, so use a model during api docs generation that has it.
+        match self.path:
+            case (
+                "/routes/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/"
+                | "/routes/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/"
+                | "/routes/vueda.workflow/workflows/{app_label}/{model}/execute-transition/{object_id}/"
+            ):
+                self.view.queryset_model = OpenApiDocsGenerationObjectIdModel
+
         parameters = super()._resolve_path_parameters(variables)
 
         if self.path.startswith(r"/routes/vueda.info/") or self.path.startswith(r"/routes/vueda.workflow/"):
@@ -316,8 +332,22 @@ class VuedaBaseAutoSchema:
     def _get_request_body(self, direction="request"):
         body = super()._get_request_body(direction)
 
-        # This is unfinished.
-        # request_serializer = self.get_request_serializer()
+        # Body can be None, so we need to make it an empty dictionary, so you can make changes to it.
+        if body is None:
+            body = {}
+
+        request_serializer = self.get_request_serializer()
+
+        # There is a lot of testing if is_serializer() in drf_spectacular.
+        # So, make sure this is a serializer, before assuming we can customize the request.
+        if isinstance(request_serializer, serializers.BaseSerializer) and hasattr(
+            request_serializer, "customize_schema_request_data"
+        ):
+            request_serializer.customize_schema_request_data(body)
+
+        # If the body is an empty dictionary after customization, then return None, like body would have been.
+        if not body:
+            return None
 
         return body
 
@@ -325,8 +355,9 @@ class VuedaBaseAutoSchema:
         bodies = super()._get_response_bodies(direction)
 
         response_serializer = self.get_response_serializers()  # This returns a single serializer.
-        # If the response serializer is a serializer, allow the serializer to customize responses.
 
+        # There is a lot of testing if is_serializer() in drf_spectacular.
+        # So, make sure this is a serializer, before assuming we can customize the response.
         if isinstance(response_serializer, serializers.BaseSerializer) and hasattr(
             response_serializer, "customize_schema_response_data"
         ):
@@ -351,6 +382,15 @@ try:
 except ImportError:
     pass
 else:
+
+    class OpenApiDocsGenerationObjectIdModel(HasWorkflowModelMixin):
+        object_id = models.CharField()
+
+        formatted_name = None
+
+        class Meta(BaseModelMeta):
+            managed = False
+            verbose_name = "Object"
 
     class VuedaAutoSchema(VuedaBaseAutoSchema, SpectacularAutoSchema):
         def get_operation(

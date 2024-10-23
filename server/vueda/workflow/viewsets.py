@@ -1,6 +1,5 @@
 from django.db import transaction
 from rest_framework import mixins
-from rest_framework import serializers as drf_serializers
 from rest_framework import status as drf_status
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied
@@ -8,13 +7,6 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
 from vueda.core.decorators import action
-from vueda.core.open_api import conditional_extend_schema_decorator
-from vueda.core.open_api import conditional_inline_serializer
-from vueda.core.open_api import conditional_open_api_example
-from vueda.core.open_api import conditional_open_api_parameter
-from vueda.core.open_api import conditional_open_api_request
-from vueda.core.open_api import conditional_open_api_response
-from vueda.core.open_api import conditional_open_api_types
 from vueda.workflow.filtersets import WorkflowFilterSet
 from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import Workflow
@@ -22,10 +14,16 @@ from vueda.workflow.serializers import WorkflowSerializer
 
 
 class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
-    queryset = Workflow.objects.all()
     serializer_class = WorkflowSerializer
     filterset_class = WorkflowFilterSet
     permit_list_expands = ["states", "transitions"]
+
+    # Moved 'Workflow.objects.all()' to the function, so we can specify a model for workflow actions during open api docs generation.
+    def get_queryset(self):
+        if hasattr(self, "queryset_model"):
+            return self.queryset_model.objects.all()
+
+        return Workflow.objects.all()
 
     def get_workflow(self):
         return get_object_or_404(
@@ -77,82 +75,11 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             response_data["current_history_id"] = current_history_id
         return Response(response_data)
 
-    @conditional_extend_schema_decorator(
-        operation_id="vueda.workflow_workflows_object_transitions",
-        description="Get the available transitions for an object.",
-        parameters=[conditional_open_api_parameter("object_id", conditional_open_api_types().STR, location="path")],
-        summary="List object transitions",
-        responses={
-            "200": conditional_open_api_response(
-                response=conditional_inline_serializer(
-                    name="Transition",
-                    fields={
-                        "code": drf_serializers.CharField(read_only=True),
-                        "name": drf_serializers.CharField(read_only=True),
-                    },
-                ),
-                description="success",
-            ),
-        },
-    )
     @action(detail=True, methods=["get"], url_path=r"object-transitions/(?P<object_id>[^/.]+)")
     def object_transitions(self, request, *args, **kwargs):
         instance = self.get_object()
         return Response(list(instance.available_transitions(request.user).order_by("name").values("code", "name")))
 
-    @conditional_extend_schema_decorator(
-        operation_id="vueda.workflow_workflows_execute_transition",
-        description="Execute an available transition for an object.",
-        parameters=[conditional_open_api_parameter("object_id", conditional_open_api_types().STR, location="path")],
-        summary="Execute object transition",
-        request=conditional_open_api_request(
-            request=conditional_inline_serializer(
-                name="executeTransitionRequest",
-                fields={
-                    "transition_code": drf_serializers.CharField(required=True),
-                },
-            ),
-            encoding={"transition_code": "application/json"},
-            examples=[
-                conditional_open_api_example(
-                    media_type="application/json",
-                    name="executeTransitionRequestExample",
-                    request_only=True,
-                    value={
-                        "transition_code": "ship_order",
-                    },
-                )
-            ],
-        ),
-        responses={
-            "200": conditional_open_api_response(
-                response=conditional_inline_serializer(
-                    name="executeTransitionResponse",
-                    fields={
-                        "new_state": conditional_inline_serializer(
-                            read_only=True,  # read_only = True makes the API say it is required.
-                            name="new_state",
-                            fields={
-                                "code": drf_serializers.CharField(read_only=True),
-                                "name": drf_serializers.CharField(read_only=True),
-                                "current_history_id": drf_serializers.CharField(required=False),
-                            },
-                        ),
-                        "new_transitions": conditional_inline_serializer(
-                            read_only=True,  # read_only = True makes the API say it is required.
-                            many=True,
-                            name="new_transitions",
-                            fields={
-                                "code": drf_serializers.CharField(read_only=True),
-                                "name": drf_serializers.CharField(read_only=True),
-                            },
-                        ),
-                    },
-                ),
-                description="success",
-            ),
-        },
-    )
     @action(detail=True, bulk=True, methods=["patch"], url_path=r"execute-transition(?:/(?P<object_id>[0-9]+))?")
     def execute_transition(self, request, *args, **kwargs):
         transition_code = request.data.get("transition_code")
