@@ -80,7 +80,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         instance = self.get_object()
         return Response(list(instance.available_transitions(request.user).order_by("name").values("code", "name")))
 
-    @action(detail=True, bulk=True, methods=["patch"], url_path=r"execute-transition(?:/(?P<object_id>[0-9]+))?")
+    @action(detail=True, bulk=True, methods=["patch"], url_path=r"execute-transition(?:/(?P<object_id>[^/.]+))?")
     def execute_transition(self, request, *args, **kwargs):
         transition_code = request.data.get("transition_code")
         if "object_id" in self.request_kwargs:
@@ -104,10 +104,6 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             object_ids = request.data.get("object_ids", [])
             if not isinstance(object_ids, list):
                 return Response({"error": "object_ids must be a list of primary keys."}, status=400)
-            try:
-                object_ids = [int(object_id) for object_id in object_ids]
-            except ValueError:
-                return Response({"error": "All primary keys must be valid integers."}, status=400)
             response_data = {}
             with transaction.atomic():
                 for object_id in object_ids:
