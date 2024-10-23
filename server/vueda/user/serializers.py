@@ -16,6 +16,8 @@ User = get_user_model()
 class LoginSerializer(serializers.Serializer):
     """
     This is a custom login serializer that uses the email instead of the username.
+
+    These fields are required to authenticate a user.
     """
 
     email = serializers.EmailField()
@@ -38,6 +40,8 @@ class LoginSerializer(serializers.Serializer):
 class WhoIsSerializer(VuedaSerializer):
     """
     This is a serializer for the current user, it is simpler than the other user serializers.
+
+    These fields give the user information about themselves, after they login or when they return to the site.
     """
 
     groups = serializers.SlugRelatedField(many=True, queryset=Group.objects.all(), slug_field="name")
@@ -63,6 +67,8 @@ class WhoIsSerializer(VuedaSerializer):
 class UserSerializer(VuedaSerializer):
     """
     This is a public API, don't just change it without considering the impact.
+
+    This is used to list, create, update, and delete users.
     """
 
     password_confirm = serializers.CharField(write_only=True, required=False)
