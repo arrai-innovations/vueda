@@ -122,8 +122,7 @@ concurrency = ["multiprocessing"]
 source = ["./vueda"]
 omit = [
     "*/migrations/*",
-    "*/open_api.py",
-    "*/open_api_tracebacks.py",
+    "*/open_api*",
 ]
 
 [tool.coverage.report]
