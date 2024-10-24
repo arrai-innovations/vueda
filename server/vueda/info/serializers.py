@@ -90,9 +90,6 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             "model_filtering": serializers.SerializerMethodField,
         }
 
-    def get_model_class(self):
-        return self.instance.model_class()
-
     @cached_property
     def canonical(self):
         return get_registration(self.instance.pk)
