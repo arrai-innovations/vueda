@@ -119,6 +119,14 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
 
         super().check_permissions(request)
 
+    def get_formatted_name_lookup_expression(self, queryset):
+        formatted_name = getattr(queryset.model, "formatted_name_lookup_expression", None)
+
+        if isinstance(formatted_name, str):
+            return formatted_name
+
+        return "formatted_name"
+
 
 class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
     """
@@ -209,12 +217,25 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
         if hasattr(field, "child_relation"):
             queryset = field.child_relation.queryset
-            choices = (
-                queryset.filter(pk__in=field.choices.keys())
-                .annotate(label=F("formatted_name"), value=Cast(F("pk"), output_field=CharField()))
-                .order_by("label")
-                .values("label", "value")
-            )
+            if hasattr(queryset.model, "get_formatted_name"):
+                choices = []
+                for instance in queryset.filter(pk__in=field.choices.keys()):
+                    choices.append(
+                        {
+                            "label": instance.get_formatted_name(),
+                            "value": str(instance.pk),
+                        }
+                    )
+
+            else:
+                formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(queryset)
+
+                choices = (
+                    queryset.filter(pk__in=field.choices.keys())
+                    .annotate(label=F(formatted_name_lookup_expression), value=Cast(F("pk"), output_field=CharField()))
+                    .order_by("label")
+                    .values("label", "value")
+                )
 
         elif hasattr(field, "queryset"):
             queryset = field.queryset
@@ -229,18 +250,27 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                     )
 
             else:
-                formatted_name = getattr(queryset.model, "formatted_name_lookup_expression", None)
-                if isinstance(formatted_name, str) and "__" in formatted_name:
-                    formatted_name_lookup_expression = formatted_name
-                else:
-                    formatted_name_lookup_expression = "formatted_name"
+                if hasattr(queryset.model, "get_formatted_name"):
+                    choices = []
+                    for instance in queryset.filter(pk__in=field.choices.keys()):
+                        choices.append(
+                            {
+                                "label": instance.get_formatted_name(),
+                                "value": str(instance.pk),
+                            }
+                        )
 
-                choices = (
-                    queryset.filter(pk__in=field.choices.keys())
-                    .annotate(label=F(formatted_name_lookup_expression), value=Cast(F("pk"), output_field=CharField()))
-                    .order_by("label")
-                    .values("label", "value")
-                )
+                else:
+                    formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(queryset)
+
+                    choices = (
+                        queryset.filter(pk__in=field.choices.keys())
+                        .annotate(
+                            label=F(formatted_name_lookup_expression), value=Cast(F("pk"), output_field=CharField())
+                        )
+                        .order_by("label")
+                        .values("label", "value")
+                    )
 
         else:
             choices = []
@@ -348,6 +378,19 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         if hasattr(self, "choices"):
             return FilterChoicesQueryset(self.choices, self.choices_queryset_model)
 
-        return self.queryset.annotate(label=F("formatted_name"), value=F("id")).values_list(
+        if hasattr(self.queryset.model, "get_formatted_name"):
+            choices = []
+            for instance in self.queryset.all():
+                choices.append(
+                    {
+                        "label": instance.get_formatted_name(),
+                        "value": str(instance.pk),
+                    }
+                )
+            return sorted(choices, key=lambda choice: choice["label"])
+
+        formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(self.queryset)
+
+        return self.queryset.annotate(label=F(formatted_name_lookup_expression), value=F("id")).values_list(
             "label", "value", named=True
         )

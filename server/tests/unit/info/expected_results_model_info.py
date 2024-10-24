@@ -1305,8 +1305,8 @@ EXPECTED_RESULTS = [
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
-                    "type_db": "CharField",
-                    "type_model": "OneToOneField",
+                    "type_db": None,
+                    "type_model": None,
                     "type_serializer": "CharField",
                     "many": False,
                     "read_only": True,

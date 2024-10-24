@@ -51,11 +51,8 @@ class SpecialCare(VuedaBaseModel):
     code = models.CharField(max_length=255, unique=True, db_index=True)
     field_that_contains_the_name = models.CharField(max_length=255, blank=True)
 
-    formatted_name = models.GeneratedField(
-        expression=F("field_that_contains_the_name"),
-        output_field=models.CharField(),
-        db_persist=True,
-    )
+    formatted_name = None
+    formatted_name_lookup_expression = "field_that_contains_the_name"
 
     class Meta(VuedaBaseModel.Meta):
         pass
@@ -110,19 +107,13 @@ class Cart(VuedaBaseModel):
     expected_delivery_time = models.DurationField(null=True)
 
     formatted_name = None
-    formatted_name_lookup_expression = "data__formatted_name"
 
     class Meta(VuedaBaseModel.Meta):
         pass
 
-
-class CartData(models.Model):
-    cart = models.OneToOneField(Cart, on_delete=models.DO_NOTHING, related_name="data")
-    formatted_name = models.CharField()
-
-    class Meta:
-        managed = False
-        db_table = "cart_data"
+    def get_formatted_name(self):
+        if self.customer and self.customer.user:
+            return self.customer.user.email
 
 
 class CartItem(VuedaBaseModel):
