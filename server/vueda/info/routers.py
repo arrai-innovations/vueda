@@ -13,3 +13,5 @@ info_choices_router.register("model_info_choices", ModelInfoChoicesViewSet, base
 info_choices_router.register(
     "model_info_filter_choices", ModelInfoFilterSetChoicesViewSet, basename="info.model_info_filterset_choices"
 )
+
+urlpatterns = info_router.urls + info_choices_router.urls

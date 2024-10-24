@@ -3,11 +3,10 @@ from django.urls import include
 from django.urls import path
 
 from vueda.workflow import views
-from vueda.workflow.routers import workflow_router
 
 
 urlpatterns = [
-    path("", include(workflow_router.urls)),
+    path("", include("vueda.workflow.routers")),
 ]
 if settings.DEBUG:
     urlpatterns += [
