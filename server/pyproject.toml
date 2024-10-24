@@ -123,6 +123,7 @@ source = ["./vueda"]
 omit = [
     "*/migrations/*",
     "*/open_api*",
+    "*tests*",
 ]
 
 [tool.coverage.report]
