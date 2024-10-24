@@ -24,3 +24,5 @@ store_tests_router.register("option_types", OptionTypeViewSet)
 store_tests_router.register("order_items", OrderItemViewSet)
 store_tests_router.register("products", ProductViewSet)
 store_tests_router.register("product_options", ProductOptionViewSet)
+
+urlpatterns = store_tests_router.urls

@@ -6,3 +6,5 @@ from vueda.core.routers import VuedaRouter
 tests_router = VuedaRouter()
 tests_router.register("timesheets", TimesheetViewSet)
 tests_router.register("products", ProductViewSet)
+
+urlpatterns = tests_router.urls
