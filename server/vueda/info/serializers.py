@@ -261,9 +261,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             lookup_expression = f"{field_name}_lookup_expression"
             if hasattr(serializer.Meta.model, lookup_expression):
                 lookup_expression = getattr(serializer.Meta.model, lookup_expression)
-                related_descriptor = getattr(serializer.Meta.model, lookup_expression.split("__")[0], None)
-                if related_descriptor is not None:
-                    model_field = related_descriptor.related
+                lookup_field = getattr(serializer.Meta.model, lookup_expression.split("__")[0], None)
+                if lookup_field is not None:
+                    if hasattr(lookup_field, "related"):
+                        model_field = lookup_field.related
+
+                    else:
+                        model_field = lookup_field
 
             field_type_db = self.get_model_fields_db_field_type(field_name, model_field, many)
             field_type_model = self.get_model_fields_model_field_type(field_name, model_field, many)
