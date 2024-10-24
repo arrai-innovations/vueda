@@ -23,6 +23,7 @@ from django.db.models.functions import StrIndex
 from django.db.models.functions import Substr
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
+from django.utils.module_loading import import_string
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.debug import sensitive_variables
@@ -44,7 +45,6 @@ from vueda.user.mixins import LogoutMixin
 from vueda.user.models import GroupChange
 from vueda.user.serializers import ForgotPasswordSerializer
 from vueda.user.serializers import ResetPasswordSerializer
-from vueda.user.serializers import WhoIsSerializer
 
 
 User = get_user_model()
@@ -54,7 +54,9 @@ User = get_user_model()
     summary="Get logged in user info",
 )
 class WhoIsView(RetrieveAPIView):
-    serializer_class = WhoIsSerializer
+    serializer_class = import_string(
+        settings.REST_AUTH.get("USER_DETAILS_SERIALIZER", "vueda.user.serializers.WhoIsSerializer")
+    )
     permission_classes = []
 
     def retrieve(self, request, *args, **kwargs):
