@@ -1,5 +1,3 @@
-# pragma: no cover
-
 from http.client import responses
 from typing import List
 from typing import Optional
