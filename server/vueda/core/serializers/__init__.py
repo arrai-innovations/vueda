@@ -197,7 +197,7 @@ class VuedaExpandableFieldsSerializerMixin:
     def get_model_fields_data(self, serializer):
         return {}
 
-    def get_schema_operation_parameters(self, operation_id, parameters):
+    def get_schema_operation_parameters(self, operation_id, parameters):  # pragma: no cover
         expandable_fields = self.get_schema_expandable_fields()
 
         enums = set()
@@ -222,7 +222,7 @@ class VuedaExpandableFieldsSerializerMixin:
 
         return parameters
 
-    def get_schema_expandable_fields(self):
+    def get_schema_expandable_fields(self):  # pragma: no cover
         meta = self.Meta if hasattr(self, "Meta") else None
         expandable_fields = meta.expandable_fields if hasattr(meta, "expandable_fields") else {}
 

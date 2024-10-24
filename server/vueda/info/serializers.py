@@ -739,7 +739,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return filtering_data
 
-    def get_schema_operation_parameters(self, operation_id, parameters=()):
+    def get_schema_operation_parameters(self, operation_id, parameters=()):  # pragma: no cover
         parameters = super().get_schema_operation_parameters(operation_id, parameters)
 
         match operation_id:

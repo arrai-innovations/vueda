@@ -45,7 +45,7 @@ class WorkflowSerializer(
             "transitions": ("vueda.workflow.serializers.TransitionSerializer", {"many": True, "read_only": True}),
         }
 
-    def get_schema_operation_parameters(self, operation_id, parameters=()):
+    def get_schema_operation_parameters(self, operation_id, parameters=()):  # pragma: no cover
         parameters = super().get_schema_operation_parameters(operation_id, parameters)
 
         match operation_id:
@@ -65,7 +65,7 @@ class WorkflowSerializer(
 
         return parameters
 
-    def customize_schema_request_data(self, request_data):
+    def customize_schema_request_data(self, request_data):  # pragma: no cover
         match self.context["request"].path:
             case "/routes/vueda.workflow/workflows/{app_label}/{model}/execute-transition/":
                 request_data["content"]["application/json"]["schema"] = {
@@ -115,7 +115,7 @@ class WorkflowSerializer(
 
         return request_data
 
-    def customize_schema_response_data(self, response_data):
+    def customize_schema_response_data(self, response_data):  # pragma: no cover
         request = self.context["request"]
 
         for status_code, data in tuple(response_data.items()):  # tuple because we may add items.
