@@ -4,18 +4,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from tests.fields import RangeField
-from tests.store.models import Cart
-from tests.store.models import CartItem
-from tests.store.models import Customer
-from tests.store.models import CustomerOrder
-from tests.store.models import Distributor
-from tests.store.models import InventoryRecord
-from tests.store.models import InventoryRecordReason
-from tests.store.models import OptionType
-from tests.store.models import OrderItem
-from tests.store.models import OrderState
-from tests.store.models import Product
-from tests.store.models import ProductOption
+from tests.store import models
 from vueda.core.serializers import VuedaHistorySerializer
 from vueda.core.serializers import VuedaSerializer
 from vueda.user.serializers import UserSerializer
@@ -28,7 +17,7 @@ class CustomerSerializer(VuedaHistorySerializer):
     formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
 
     class Meta(VuedaHistorySerializer.Meta):
-        model = Customer
+        model = models.Customer
         fields = [
             "id",
             "user",
@@ -86,7 +75,7 @@ class CustomerSerializer(VuedaHistorySerializer):
 
 class DistributorSerializer(VuedaHistorySerializer):
     class Meta(VuedaHistorySerializer.Meta):
-        model = Distributor
+        model = models.Distributor
         fields = [
             "id",
             "name",
@@ -98,7 +87,7 @@ class ProductSerializer(VuedaHistorySerializer):
     current_sale_date = RangeField(required=False)  # This mimics the range field in integration, with no children.
 
     class Meta(VuedaHistorySerializer.Meta):
-        model = Product
+        model = models.Product
         fields = [
             "id",
             "distributor",
@@ -130,7 +119,7 @@ class ProductSerializer(VuedaHistorySerializer):
         option_type_id = data["option_type_id"]
         name = data["name"]
 
-        queryset = Product.object.filter(
+        queryset = models.Product.object.filter(
             product__distributor_id=distributor_id, option_type_id=option_type_id, name=name
         )
 
@@ -145,7 +134,7 @@ class ProductSerializer(VuedaHistorySerializer):
 
 class OptionTypeSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
-        model = OptionType
+        model = models.OptionType
         fields = [
             "id",
             "code",
@@ -155,7 +144,7 @@ class OptionTypeSerializer(VuedaSerializer):
 
 class ProductOptionSerializer(VuedaHistorySerializer):
     class Meta(VuedaHistorySerializer.Meta):
-        model = ProductOption
+        model = models.ProductOption
         fields = [
             "id",
             "product",
@@ -195,10 +184,10 @@ class ProductOptionSerializer(VuedaHistorySerializer):
 
 class CartSerializer(VuedaSerializer):
     formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
-    cart_items = serializers.PrimaryKeyRelatedField(queryset=CartItem.objects.all(), many=True)
+    cart_items = serializers.PrimaryKeyRelatedField(queryset=models.CartItem.objects.all(), many=True)
 
     class Meta(VuedaSerializer.Meta):
-        model = Cart
+        model = models.Cart
         fields = [
             "id",
             "customer",
@@ -234,7 +223,7 @@ class CartItemSerializer(VuedaSerializer):
     formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
 
     class Meta(VuedaSerializer.Meta):
-        model = CartItem
+        model = models.CartItem
         fields = [
             "id",
             "cart",
@@ -272,7 +261,7 @@ class CartItemSerializer(VuedaSerializer):
 
 class OrderStateSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
-        model = OrderState
+        model = models.OrderState
         fields = [
             "id",
             "code",
@@ -282,7 +271,7 @@ class OrderStateSerializer(VuedaSerializer):
 
 class CustomerOrderSerializer(VuedaHistorySerializer):
     class Meta(VuedaHistorySerializer.Meta):
-        model = CustomerOrder
+        model = models.CustomerOrder
         fields = [
             "id",
             "order_number",
@@ -319,7 +308,7 @@ class OrderItemSerializer(VuedaSerializer):
     formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
 
     class Meta(VuedaSerializer.Meta):
-        model = OrderItem
+        model = models.OrderItem
         fields = [
             "id",
             "customer_order",
@@ -360,7 +349,7 @@ class OrderItemSerializer(VuedaSerializer):
 
 class InventoryRecordReasonSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
-        model = InventoryRecordReason
+        model = models.InventoryRecordReason
         fields = [
             "id",
             "name",
@@ -373,7 +362,7 @@ class InventoryRecordSerializer(VuedaSerializer):
     formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
 
     class Meta(VuedaSerializer.Meta):
-        model = InventoryRecord
+        model = models.InventoryRecord
         fields = [
             "id",
             "product_option",
