@@ -77,6 +77,12 @@ def get_defaults(env: Env):
                 },
             },
         ],
+        # Convert permissions from key to value.  ie. 'view_object' looks in the db for 'read_object'.
+        "PERMISSION_NAMES_MAPPING": {
+            "add": "create",
+            "change": "update",
+            "view": "read",
+        },
         "PASSWORD_RESET_TIMEOUT": 60 * 60 * 24,  # 1 day in seconds
         "MIDDLEWARE": [
             "corsheaders.middleware.CorsMiddleware",

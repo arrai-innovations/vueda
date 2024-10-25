@@ -52,3 +52,7 @@ SECRET_KEY = "test_secret_key"
 DATABASES["default"]["TEST"] = {
     "NAME": "vueda_workflow_management_command_migration_testing_" + os.environ.get("workflow_test_type", ""),
 }
+
+# This needs to be imported after any customizations to the PERMISSION_NAMES_MAPPING, so
+# all permission names can be mapped to the correct names before django starts using them.
+from vueda.core import patch_django  # noqa F401

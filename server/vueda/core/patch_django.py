@@ -2,10 +2,13 @@
 
 # Patch get_permission_codename, so that it converts add, view, and change into create, read and update respectably.
 # This appears to be the only way we can change the history table permissions, without patching more things.
+from django.conf import settings
 from django.contrib import auth
 
 
 auth.django_get_permission_codename = auth.get_permission_codename
+
+permission_names_mapping = settings.PERMISSION_NAMES_MAPPING
 
 
 def get_permission_codename(action, opts):
@@ -17,13 +20,7 @@ def get_permission_codename(action, opts):
     delete doesn't change
     list is new
     """
-    match action:
-        case "add":
-            action = "create"
-        case "view":
-            action = "read"
-        case "change":
-            action = "update"
+    action = permission_names_mapping.get(action, action)
     return auth.django_get_permission_codename(action, opts)
 
 
@@ -33,9 +30,6 @@ auth.get_permission_codename = get_permission_codename
 # Patch get_builtin_permissions, so that it converts add, view, and change into create, read and update respectably.
 # This appears to be the only way we can change the history table permissions, without patching more things.
 from django.contrib.auth import management  # noqa E402
-
-
-management.django_get_builtin_permissions = management._get_builtin_permissions
 
 
 def get_builtin_permissions(opts):
@@ -52,13 +46,7 @@ def get_builtin_permissions(opts):
     """
     perms = []
     for action in opts.default_permissions:
-        match action:
-            case "add":
-                action = "create"
-            case "view":
-                action = "read"
-            case "change":
-                action = "update"
+        action = permission_names_mapping.get(action, action)
         perms.append(
             (
                 get_permission_codename(action, opts),

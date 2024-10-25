@@ -77,6 +77,11 @@ TEMPLATES = [
 ]
 
 
+# This needs to be imported after any customizations to the PERMISSION_NAMES_MAPPING, so
+# all permission names can be mapped to the correct names before django starts using them.
+from vueda.core import patch_django  # noqa F401
+
+
 # Some tests create migrations.  This is an issue for local development, because if these
 # migrations exist when you run tests, they will blow up, causing all the tests to fail.
 # So, we need to clean them up before migrations are imported.  The only place I know of
