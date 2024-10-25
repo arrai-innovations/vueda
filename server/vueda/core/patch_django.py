@@ -57,3 +57,31 @@ def get_builtin_permissions(opts):
 
 
 management._get_builtin_permissions = get_builtin_permissions
+
+# We also need to patch the perms_map in vueda\core\permissions.py and
+# vueda\workflow\permissions.py, if the permissions are not set to the default.
+if (
+    "add" not in permission_names_mapping
+    or "change" not in permission_names_mapping
+    or "view" not in permission_names_mapping
+):
+    from vueda.core.permissions import ObjectPermissions
+    from vueda.workflow.permissions import WorkflowObjectPermissions
+
+    reversed_permission_names_mapping = {v: k for k, v in permission_names_mapping.items()}
+
+    if "add" in reversed_permission_names_mapping:
+        name = reversed_permission_names_mapping["add"]
+        ObjectPermissions.perms_map["POST"] = [f"%(app_label)s.{name}_%(model_name)s"]
+        WorkflowObjectPermissions.perms_map["POST"] = [f"%(app_label)s.{name}_%(model_name)s"]
+
+    if "change" in reversed_permission_names_mapping:
+        name = reversed_permission_names_mapping["change"]
+        ObjectPermissions.perms_map["PUT"] = [f"%(app_label)s.{name}_%(model_name)s"]
+        ObjectPermissions.perms_map["PATCH"] = [f"%(app_label)s.{name}_%(model_name)s"]
+        WorkflowObjectPermissions.perms_map["PUT"] = [f"%(app_label)s.{name}_%(model_name)s"]
+        WorkflowObjectPermissions.perms_map["PATCH"] = [f"%(app_label)s.{name}_%(model_name)s"]
+
+    if "view" in reversed_permission_names_mapping:
+        ObjectPermissions.perms_map["GET"] = [f"%(app_label)s.{name}_%(model_name)s"]
+        WorkflowObjectPermissions.perms_map["GET"] = [f"%(app_label)s.{name}_%(model_name)s"]
