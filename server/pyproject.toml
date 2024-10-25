@@ -121,6 +121,9 @@ parallel = true
 concurrency = ["multiprocessing"]
 source = ["./vueda"]
 omit = [
+    "__main__.py",
+    "cli.py",
+    "update.py",
     "*/migrations/*",
     "*/open_api*",
     "*tests*",
