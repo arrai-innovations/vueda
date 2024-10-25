@@ -1,10 +1,7 @@
-from django.contrib.contenttypes.models import ContentType
 from rest_framework.generics import get_object_or_404
 
 from vueda.core.permissions import DjangoObjectPermissions
 from vueda.workflow.models import HasWorkflowModelMixin
-from vueda.workflow.models import StatePermission
-from vueda.workflow.models import Workflow
 
 
 class WorkflowObjectPermissions(DjangoObjectPermissions):
@@ -27,6 +24,9 @@ class WorkflowObjectPermissions(DjangoObjectPermissions):
         """
         Get a queryset for the model in question.
         """
+        # Local import, so we can modify the perms_map before the apps are ready.
+        from django.contrib.contenttypes.models import ContentType
+
         app_label = view.kwargs.get("app_label")
         model = view.kwargs.get("model")
         content_type = get_object_or_404(ContentType, app_label=app_label, model=model.replace("_", ""))
@@ -38,6 +38,10 @@ class WorkflowObjectPermissions(DjangoObjectPermissions):
         Bypasses model-level permissions check for models with workflow state permissions,
         delegating the decision to object-level permissions if applicable.
         """
+        # Local import, so we can modify the perms_map before the apps are ready.
+        from vueda.workflow.models import StatePermission
+        from vueda.workflow.models import Workflow
+
         model = self._queryset(view).model
 
         if issubclass(model, HasWorkflowModelMixin):
