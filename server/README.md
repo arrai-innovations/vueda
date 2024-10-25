@@ -11,10 +11,11 @@
 - [Usage](#usage)
   - [Install](#install)
   - [Setup](#setup)
+  - [Permissions](#permissions)
   - [Permission Names](#permission-names)
-    - [Permission Mapping (Important)](#permission-mapping-important)
-      - [Permission Mapping For New Projects (default)](#permission-mapping-for-new-projects-default)
-      - [Permission Mapping For Existing Django Projects](#permission-mapping-for-existing-django-projects)
+    - [Names Mapping (Important)](#names-mapping-important)
+      - [Names Mapping For New Projects (default)](#names-mapping-for-new-projects-default)
+      - [Names Mapping For Existing Django Projects](#names-mapping-for-existing-django-projects)
   - [Workflow Management](#workflow-management)
     - [Adding a workflow](#adding-a-workflow)
     - [Deleting a Workflow](#deleting-a-workflow)
@@ -132,6 +133,19 @@ extended in your application, ensuring both control and adaptability.
        )
     ```
 
+### Permissions
+
+In order for a logged in user to be able to hit the server and ask for model info, the user will need to have the following permissions (codenames):
+
+For new projects:
+
+-   `list_contenttype`
+-   `read_contenttype`
+
+For existing django projects:
+
+-   `view_contenttype`
+
 ### Permission Names
 
 Django uses permission names like `view`, `add`, and `change`.
@@ -143,7 +157,7 @@ When adding vueda to handle part or all of an existing django site, then we need
 
 In order to accomplish this, there is a setting that exists which needs to be created and possibly modified, before patching django. In order to patch django, so that it works the same when running tests, migrations, or the server, we need to add the import that patches django after the permission mapping has been imported into the settings, or after it has been modified.
 
-#### Permission Mapping (Important)
+#### Names Mapping (Important)
 
 Because we can only patch django when some code in the project runs, and we need to have the permission names mapping loaded and/or adjusted before django creates any permission names, we must add the following import into the settings file.
 This must be added after the default settings have been added into the settings (`locals().update(get_defaults(env))`), or after you have made changes to this permission. The bottom of the settings is fine.
@@ -152,7 +166,7 @@ This must be added after the default settings have been added into the settings 
 from vueda.core import patch_django  # noqa F401
 ```
 
-##### Permission Mapping For New Projects (default)
+##### Names Mapping For New Projects (default)
 
 ```python
 PERMISSION_NAMES_MAPPING = {
@@ -162,7 +176,7 @@ PERMISSION_NAMES_MAPPING = {
 },
 ```
 
-##### Permission Mapping For Existing Django Projects
+##### Names Mapping For Existing Django Projects
 
 ```python
 PERMISSION_NAMES_MAPPING = {
