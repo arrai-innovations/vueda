@@ -41,6 +41,7 @@ from vueda.core.db import Array
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
+from vueda.user.decorators import ensure_csrf_token
 from vueda.user.mixins import LogoutMixin
 from vueda.user.models import GroupChange
 from vueda.user.serializers import ForgotPasswordSerializer
@@ -53,6 +54,7 @@ User = get_user_model()
 @conditional_extend_schema_decorator(
     summary="Get logged in user info",
 )
+@ensure_csrf_token
 class WhoIsView(RetrieveAPIView):
     serializer_class = import_string(
         settings.REST_AUTH.get("USER_DETAILS_SERIALIZER", "vueda.user.serializers.WhoIsSerializer")
