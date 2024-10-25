@@ -45,6 +45,9 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "OrderItem", "read"),
             ("store", "OrderState", "list"),
             ("store", "OrderState", "read"),
+            ("store", "PackingBox", "list"),
+            ("store", "PackingBox", "read"),
+            ("store", "Product", "read"),
             ("store", "Product", "list"),
             ("store", "Product", "read"),
             ("store", "ProductOption", "list"),
@@ -79,6 +82,8 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "OrderItem", "read"),
             ("store", "OrderState", "list"),
             ("store", "OrderState", "read"),
+            ("store", "PackingBox", "list"),
+            ("store", "PackingBox", "read"),
             ("store", "Product", "list"),
             ("store", "Product", "read"),
             ("store", "ProductOption", "list"),
@@ -133,6 +138,7 @@ class TestModelInfoSerializer:
         info.register(store_serializers.OrderItemSerializer, store_viewsets.OrderItemViewSet)
         info.register(store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet)
         info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
+        info.register(store_serializers.PackingBoxSerializer, store_viewsets.PackingBoxViewSet)
 
     def check_model_actions_data(self, response_data, expected_data, app_label, model_name):
         data = response_data.data["model_actions"]
@@ -233,7 +239,7 @@ class TestModelInfoSerializer:
         response = api_client.get(reverse("info.model_info-list"), format="json")
 
         assert response.status_code == 200, str(response.data)
-        assert response.data["totalRecords"] == 11
+        assert response.data["totalRecords"] == 12
 
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",
