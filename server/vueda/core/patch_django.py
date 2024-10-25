@@ -62,31 +62,30 @@ management._get_builtin_permissions = get_builtin_permissions
 # vueda\workflow\permissions.py, if the permissions are not set to the default.
 if (
     "add" not in permission_names_mapping
+    and "add" in permission_names_mapping.values()
     or "change" not in permission_names_mapping
+    and "change" in permission_names_mapping.values()
     or "view" not in permission_names_mapping
+    and "view" in permission_names_mapping.values()
 ):
     from vueda.core.permissions import ObjectPermissions
 
     if "vueda.workflow" in settings.INSTALLED_APPS:
         from vueda.workflow.permissions import WorkflowObjectPermissions
 
-    reversed_permission_names_mapping = {v: k for k, v in permission_names_mapping.items()}
+if "add" not in permission_names_mapping and "add" in permission_names_mapping.values():
+    ObjectPermissions.perms_map["POST"] = ["%(app_label)s.add_%(model_name)s"]
+    if "vueda.workflow" in settings.INSTALLED_APPS:
+        WorkflowObjectPermissions.perms_map["POST"] = ["%(app_label)s.add_%(model_name)s"]
 
-    if "add" in reversed_permission_names_mapping:
-        name = reversed_permission_names_mapping["add"]
-        ObjectPermissions.perms_map["POST"] = [f"%(app_label)s.{name}_%(model_name)s"]
-        if "vueda.workflow" in settings.INSTALLED_APPS:
-            WorkflowObjectPermissions.perms_map["POST"] = [f"%(app_label)s.{name}_%(model_name)s"]
+if "change" not in permission_names_mapping and "change" in permission_names_mapping.values():
+    ObjectPermissions.perms_map["PUT"] = ["%(app_label)s.change_%(model_name)s"]
+    ObjectPermissions.perms_map["PATCH"] = ["%(app_label)s.change_%(model_name)s"]
+    if "vueda.workflow" in settings.INSTALLED_APPS:
+        WorkflowObjectPermissions.perms_map["PUT"] = ["%(app_label)s.change_%(model_name)s"]
+        WorkflowObjectPermissions.perms_map["PATCH"] = ["%(app_label)s.change_%(model_name)s"]
 
-    if "change" in reversed_permission_names_mapping:
-        name = reversed_permission_names_mapping["change"]
-        ObjectPermissions.perms_map["PUT"] = [f"%(app_label)s.{name}_%(model_name)s"]
-        ObjectPermissions.perms_map["PATCH"] = [f"%(app_label)s.{name}_%(model_name)s"]
-        if "vueda.workflow" in settings.INSTALLED_APPS:
-            WorkflowObjectPermissions.perms_map["PUT"] = [f"%(app_label)s.{name}_%(model_name)s"]
-            WorkflowObjectPermissions.perms_map["PATCH"] = [f"%(app_label)s.{name}_%(model_name)s"]
-
-    if "view" in reversed_permission_names_mapping:
-        ObjectPermissions.perms_map["GET"] = [f"%(app_label)s.{name}_%(model_name)s"]
-        if "vueda.workflow" in settings.INSTALLED_APPS:
-            WorkflowObjectPermissions.perms_map["GET"] = [f"%(app_label)s.{name}_%(model_name)s"]
+if "view" not in permission_names_mapping and "view" in permission_names_mapping.values():
+    ObjectPermissions.perms_map["GET"] = ["%(app_label)s.view_%(model_name)s"]
+    if "vueda.workflow" in settings.INSTALLED_APPS:
+        WorkflowObjectPermissions.perms_map["GET"] = ["%(app_label)s.view_%(model_name)s"]
