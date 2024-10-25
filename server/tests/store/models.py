@@ -251,3 +251,19 @@ class InventoryRecordData(models.Model):
     class Meta:
         managed = False
         db_table = "inventory_record_data"
+
+
+class PackingBox(VuedaBaseModel):
+    name = models.CharField(max_length=255)
+
+    depth = models.DecimalField(max_digits=12, decimal_places=4)
+    height = models.DecimalField(max_digits=12, decimal_places=4)
+    width = models.DecimalField(max_digits=12, decimal_places=4)
+    carrying_weight = models.DecimalField(max_digits=12, decimal_places=4)
+
+    formatted_name = None
+    formatted_name_lookup_expression = "name"
+
+    class Meta(VuedaBaseModel.Meta):
+        verbose_name = "Packing Box"
+        verbose_name_plural = "Packing Boxes"

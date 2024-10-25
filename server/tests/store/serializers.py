@@ -436,3 +436,16 @@ class InventoryRecordSerializer(VuedaSerializer):
             ),
         }
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class PackingBoxSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.PackingBox
+        fields = [
+            "id",
+            "name",
+            "depth",
+            "height",
+            "width",
+            "carrying_weight",
+        ] + VuedaSerializer.Meta.fields

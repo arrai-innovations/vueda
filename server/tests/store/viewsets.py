@@ -130,3 +130,10 @@ class InventoryRecordViewSet(VuedaViewSet):
     permission_classes = [ObjectPermissions]
     filterset_class = my_filtersets.InventoryRecordFilterSet
     ordering_fields = ["when", "reason", "quantity"]
+
+
+class PackingBoxViewSet(VuedaViewSet):
+    queryset = my_models.PackingBox.objects.all()
+    serializer_class = my_serializers.PackingBoxSerializer
+    permission_classes = [ObjectPermissions]
+    ordering_fields = ["name"]
