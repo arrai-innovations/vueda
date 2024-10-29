@@ -271,7 +271,15 @@ const detailActionOnClick = (actionName) => {
         );
     };
 };
-const emit = defineEmits(["selected", "sorted", "objects", "order", "loading"]);
+const emit = defineEmits([
+    "selected",
+    "sorted",
+    "objects",
+    "order",
+    "loading",
+    "related-objects",
+    "calculated-objects",
+]);
 onMounted(() => {
     emit(
         "objects",
@@ -287,6 +295,8 @@ onMounted(() => {
     );
     emit("selected", readonly(selectedObjects));
     emit("loading", loading);
+    emit("related-objects", readonly(instanceList.state.relatedObjects));
+    emit("calculated-objects", readonly(instanceList.state.calculatedObjects));
 });
 
 const hasWorkFlow = computedAsync(
