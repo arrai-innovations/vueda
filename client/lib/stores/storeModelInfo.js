@@ -298,7 +298,6 @@ export const storeModelInfo = defineStore({
                             }),
                         );
 
-                        // Find the pk field and add it to data.pk
                         Object.entries(data.fields).some(([k, v]) => {
                             if (v.pk) {
                                 data.pk = k;
@@ -309,7 +308,6 @@ export const storeModelInfo = defineStore({
                             throw new Error(`storeModelInfo.fetchModelInfo: no pk field found for ${key}`);
                         }
 
-                        // Now, assign the fully processed data to this.infos[key]
                         this.infos[key] = data;
 
                         return data;
