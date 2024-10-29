@@ -416,31 +416,84 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         return label
 
     @staticmethod
-    def get_choices_data(filter_obj, field, widget=None):
-        if hasattr(filter_obj, "choices"):
-            return filter_obj.choices
+    def get_choices_data(field, widget, filter_obj=None):
+        """
+        Get the choices data for a field, widget, or filter object.
+
+        We are careful to avoid evaluating querysets, as this can be expensive. Accessing .choices will evaluate the
+         queryset for certain fields and filter objects.
+
+        :param field: A rest_framework field.
+        :type field: rest_framework.fields.Field
+        :param widget: A django.forms widget.
+        :type widget: django.forms.widgets.Widget
+        :param filter_obj: A django_filters filter object.
+        :type filter_obj: django_filters.filters.Filter
+        :return: The literal choices, or True if the choices are queryset-based, or False if there are no choices.
+        :rtype: Union[List, Tuple, bool]
+        """
+        if filter_obj:
+            if (
+                hasattr(filter_obj, "queryset")
+                or hasattr(filter_obj, "child_relation")
+                and hasattr(filter_obj.child_relation, "queryset")
+            ):
+                return True
+            elif filter_obj and hasattr(filter_obj, "choices"):
+                return filter_obj.choices
+        if hasattr(field, "queryset") or hasattr(field, "child_relation") and hasattr(field.child_relation, "queryset"):
+            return True
         elif hasattr(field, "choices"):
             return field.choices
-        elif widget and hasattr(widget, "choices"):
+        elif hasattr(widget, "queryset"):
+            return True
+        elif hasattr(widget, "choices"):
             return widget.choices
-        else:
-            return False
+        return False
 
     @staticmethod
     def get_choices_meta(field, obj, choices):
+        """
+        Get the metadata for model-based choices.
+
+        :param field: The field that the choices are attached to.
+        :type field: Union[django_filters.filters.Filter, rest_framework.fields.Field]
+        :param obj: The serializer or filter object that the field is attached to.
+        :type obj: Union[django_filters.filters.Filter, rest_framework.serializers.Serializer]
+        :param choices: The choices data or True if the choices are queryset-based or False if there are no choices.
+        :type choices: Union[List, Tuple, bool]
+        :return: The metadata for the model-based choices, or None if the choices are not model-based.
+        :rtype: Optional[django.db.models.options.Options]
+        """
         meta = None
-        if hasattr(field, "choices") and choices:
-            if hasattr(field.choices, "queryset"):
-                meta = field.choices.queryset.model._meta
-            elif hasattr(field, "child_relation") and hasattr(field.child_relation, "queryset"):
-                meta = field.child_relation.queryset.model._meta
+        if choices is True:
+            # queryset based choices
+            if hasattr(obj, "model"):
+                meta = obj.model._meta
             elif hasattr(field, "queryset"):
                 meta = field.queryset.model._meta
-            elif hasattr(obj, "model"):  # AllValuesFilter, AllValuesMultipleFilter
+            elif hasattr(field, "child_relation") and hasattr(field.child_relation, "queryset"):
+                meta = field.child_relation.queryset.model._meta
+        elif hasattr(field, "choices") and choices:
+            # non queryset choices
+            if hasattr(obj, "model"):  # AllValuesFilter, AllValuesMultipleFilter
                 meta = obj.model._meta
         return meta
 
     def get_model_field_choices(self, field, widget, serializer):
+        """
+        Get the choices for a model field.
+
+        :param field: A rest_framework field.
+        :type field: rest_framework.fields.Field
+        :param widget: A django.forms widget.
+        :type widget: django.forms.widgets.Widget
+        :param serializer: A rest_framework serializer.
+        :type serializer: rest_framework.serializers.Serializer
+        :return: Returns a tuple, with the first value being the choices list or True if the choices are model-based,
+          or False if there are no choices. The second value is the metadata for the model-based choices.
+        :rtype: Tuple[Union[List, Tuple, bool], Optional[django.db.models.options.Options]]
+        """
         choices = self.get_choices_data(field, widget)
         meta = self.get_choices_meta(field, serializer, choices)
         if meta is not None:
@@ -448,6 +501,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 "app_label": meta.app_label,
                 "model": meta.model_name,
             }
+        if choices is True:
+            # This shouldn't have happened; if true was returned from `get_choices_data`,
+            #  then we should have been able to get the meta.
+            raise ValueError(
+                "Unexpected field configuration: Model-based choices expected but meta could not be retrieved."
+            )
 
         # Convert choices to be {"label": label, "value": value}.
         if choices:
@@ -465,7 +524,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         return choices, None
 
     def get_model_filtering_choices(self, filterset, filter_obj, field, widget):
-        choices = self.get_choices_data(filter_obj, field, widget)
+        choices = self.get_choices_data(field, widget, filter_obj=filter_obj)
         meta = self.get_choices_meta(field, filter_obj, choices)
         if meta is not None:
             return True, {
