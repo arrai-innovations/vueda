@@ -213,6 +213,7 @@ export const storeModelInfo = defineStore({
     state: () => ({
         infos: {},
         promises: {},
+        errors: {},
     }),
     actions: {
         async fetchModelInfo(args) {
@@ -221,8 +222,13 @@ export const storeModelInfo = defineStore({
             }
             const key = getAppModelDotName(args);
             const existing = this.infos[key];
+            const cachedError = this.errors[key];
             if (existing) {
                 return existing;
+            }
+            if (cachedError) {
+                // prevent us from self-ddosing the server
+                throw cachedError;
             }
             if (!this.promises[key]) {
                 const retrieveArgs = {
@@ -259,46 +265,40 @@ export const storeModelInfo = defineStore({
                 )
                     // server is serving all the expands as model_ to avoid server side conflicts
                     // that is just noise client side, so we'll clean it up here
-                    .then(
-                        (data) =>
-                            (this.infos[key] = Object.fromEntries(
-                                Object.entries(data).map(([k, v]) => {
-                                    let key = k;
-                                    if (key.startsWith("model_")) {
-                                        key = k.slice(6);
-                                    }
-                                    // don't mash up key names, skip a level
-                                    if (key === "fields" || key === "filtering") {
-                                        return [
-                                            key,
-                                            Object.fromEntries(
-                                                Object.entries(v).map(([k, v]) => [k, camelCaseObject(v)]),
-                                            ),
-                                        ];
-                                    }
-                                    if (key === "expands") {
-                                        // expands.f is also a mapping of field names to FieldInfo objects
-                                        return [
-                                            key,
-                                            v.map((expand) => ({
-                                                ...expand,
-                                                f: expand.f
-                                                    ? Object.fromEntries(
-                                                          Object.entries(expand.f).map(([k, v]) => [
-                                                              k,
-                                                              camelCaseObject(v),
-                                                          ]),
-                                                      )
-                                                    : undefined,
-                                            })),
-                                        ];
-                                    }
-                                    return [key, camelCaseObject(v)];
-                                }),
-                            )),
-                    )
                     .then((data) => {
-                        // another piece of cleanup, find the pk field and add its name to the top level
+                        // Process the data
+                        data = Object.fromEntries(
+                            Object.entries(data).map(([k, v]) => {
+                                let key = k;
+                                if (key.startsWith("model_")) {
+                                    key = k.slice(6);
+                                }
+                                // Only camelCase nested objects, leave root keys unchanged
+                                if (key === "fields" || key === "filtering") {
+                                    return [
+                                        key,
+                                        Object.fromEntries(Object.entries(v).map(([k, v]) => [k, camelCaseObject(v)])),
+                                    ];
+                                }
+                                if (key === "expands") {
+                                    // `expands.f` is also a mapping of field names to FieldInfo objects
+                                    return [
+                                        key,
+                                        v.map((expand) => ({
+                                            ...expand,
+                                            f: expand.f
+                                                ? Object.fromEntries(
+                                                      Object.entries(expand.f).map(([k, v]) => [k, camelCaseObject(v)]),
+                                                  )
+                                                : undefined,
+                                        })),
+                                    ];
+                                }
+                                return [key, camelCaseObject(v)];
+                            }),
+                        );
+
+                        // Find the pk field and add it to data.pk
                         Object.entries(data.fields).some(([k, v]) => {
                             if (v.pk) {
                                 data.pk = k;
@@ -308,11 +308,15 @@ export const storeModelInfo = defineStore({
                         if (!data.pk) {
                             throw new Error(`storeModelInfo.fetchModelInfo: no pk field found for ${key}`);
                         }
+
+                        // Now, assign the fully processed data to this.infos[key]
+                        this.infos[key] = data;
+
                         return data;
                     })
                     .catch((e) => {
-                        // we need to cache the error, otherwise we'll ddos the server
-                        this.infos[key] = e;
+                        this.errors[key] = e;
+                        throw e;
                     })
                     .finally(() => {
                         delete this.promises[key];
