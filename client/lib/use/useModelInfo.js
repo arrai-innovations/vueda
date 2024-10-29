@@ -4,7 +4,7 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
-import { reactive, readonly, ref, toRef, unref, watch } from "vue";
+import { isRef, reactive, readonly, ref, toRef, unref, watch } from "vue";
 
 /**
  * The raw instance of a useModelInfo object.
@@ -41,6 +41,14 @@ export function useModelInfo(app, model, isActive) {
     const loadingError = useLoadingError();
     if (!isActive) {
         isActive = useIsActive();
+    }
+    // makes the watch work for view in cases of hardcoded or falsy values
+    // work with hardcoded view values
+    if (!isRef(app)) {
+        app = ref(app);
+    }
+    if (!isRef(model)) {
+        model = ref(model);
     }
     const modelInfoStore = storeModelInfo();
     /** @tupe {import('vue').Ref<null|import('vue').Ref<object>>}>} */
@@ -89,7 +97,7 @@ export function useModelInfo(app, model, isActive) {
         () => unref(unref(originalInfo)),
         (theValue) => {
             if (!theValue) {
-                returnObject.info = {};
+                assignReactiveObject(returnObject.info, {});
             } else {
                 if (!isEqual(theValue, returnObject.info)) {
                     assignReactiveObject(returnObject.info, cloneDeep(theValue));
