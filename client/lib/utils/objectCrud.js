@@ -90,14 +90,20 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
     const url = getCreateUrl(crudArgs.app, crudArgs.model, query);
+    const hasFile = Object.values(object).some((value) => value instanceof File || value instanceof Blob);
+    const headers = {
+        "X-CSRFToken": getCSRFValue(),
+    };
+    if (hasFile) {
+        headers["Content-Type"] = "application/json";
+    }
+    const body = hasFile ? JSON.stringify(object) : getFormData(object);
     /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "POST",
-        headers: {
-            "X-CSRFToken": getCSRFValue(),
-        },
+        headers,
         credentials: "include",
-        body: getFormData(object),
+        body,
         signal: controller.signal,
     }).then(async (response) => {
         const responseData = await getJsonOrText(response);
@@ -117,14 +123,20 @@ export async function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
     const url = getDetailUrl(crudArgs.app, crudArgs.model, object.id, query);
+    const hasFile = Object.values(object).some((value) => value instanceof File || value instanceof Blob);
+    const headers = {
+        "X-CSRFToken": getCSRFValue(),
+    };
+    if (hasFile) {
+        headers["Content-Type"] = "application/json";
+    }
+    const body = hasFile ? JSON.stringify(object) : getFormData(object);
     /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "PUT",
-        headers: {
-            "X-CSRFToken": getCSRFValue(),
-        },
+        headers,
         credentials: "include",
-        body: getFormData(object),
+        body,
         signal: controller.signal,
     }).then(async (response) => {
         const responseData = await getJsonOrText(response);

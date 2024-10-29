@@ -172,7 +172,33 @@ export const storeModelConfig = defineStore({
                 const defaultSpecificConfig = defaultSpecificConfigs[view] || {};
                 // clone each to avoid mutation of original configs
                 const customGenericConfig = cloneDeep(this.genericConfigs[genericKey] || {});
+                if (
+                    (!customGenericConfig.displayFields || customGenericConfig.displayFields.length === 0) &&
+                    customGenericConfig.fields
+                ) {
+                    customGenericConfig.displayFields = customGenericConfig.fields;
+                }
+
+                if (
+                    (!customGenericConfig.fetchFields || customGenericConfig.fetchFields.length === 0) &&
+                    customGenericConfig.fields
+                ) {
+                    customGenericConfig.fetchFields = customGenericConfig.fields;
+                }
                 const customSpecificConfig = specificKey ? cloneDeep(this.specificConfigs[specificKey]) || {} : {};
+                if (
+                    (!customSpecificConfig.displayFields || customSpecificConfig.displayFields.length === 0) &&
+                    customSpecificConfig.fields
+                ) {
+                    customSpecificConfig.displayFields = customSpecificConfig.fields;
+                }
+
+                if (
+                    (!customSpecificConfig.fetchFields || customSpecificConfig.fetchFields.length === 0) &&
+                    customSpecificConfig.fields
+                ) {
+                    customSpecificConfig.fetchFields = customSpecificConfig.fields;
+                }
                 const builtConfig = {
                     ...defaultGenericConfig,
                     ...customGenericConfig,
