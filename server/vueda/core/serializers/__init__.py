@@ -56,6 +56,7 @@ class NoExtraFieldsSerializerMixin:
 
 
 class FlexFieldsWriteableNestedSerializerMixin(
+    drf_writable_nested.UniqueFieldsMixin,
     flex_serializers.FlexFieldsSerializerMixin,
     drf_writable_nested.NestedCreateMixin,
     drf_writable_nested.NestedUpdateMixin,
