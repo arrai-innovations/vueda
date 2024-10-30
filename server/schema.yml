@@ -1,0 +1,415 @@
+openapi: 3.0.3
+info:
+    title: Vueda API
+    version: 1.0.0
+    description:
+        Vueda is designed for projects that integrate Vue.js frontends with
+        Django REST Framework backends. This server library enhances Django's native authentication
+        and permissions systems with default DRF classes and optimizes integration with
+        django-filter, drf-flex-fields, and drf-writable-nested. It offers essential out-of-the-box
+        functionalities such as custom workflow management, audit trails (with DRF support
+        for django-simple-history), and row-level permissions. Additionally, vueda-server
+        provides DRF classes to expose Django model details to the frontend, filtered
+        by user permissions. It is built with customization in mind, offering most features
+        as base classes that can be extended in your application, ensuring both control
+        and adaptability.
+paths:
+    /routes/info/model_info/:
+        get:
+            operationId: info_model_info_list
+            description: |-
+                This viewset is for providing metadata about models, including fields, actions, and permissions
+                to front-end clients. This is a read-only viewset.
+
+                You should be able to list all models, and get information about a specific model.
+
+                Effectively, this is a custom model viewset for content types.
+
+                urls using this viewset should provide the app_label and model as kwargs.
+                ie: ```py
+                path('model-info/<str:app_label>/<str:model>/', ModelInfoViewSet.as_view(), name='model-info')
+                ```
+            parameters:
+                - name: o
+                  required: false
+                  in: query
+                  description: Which field to use when ordering the results.
+                  schema:
+                      type: string
+                - name: p
+                  required: false
+                  in: query
+                  description: A page number within the paginated result set.
+                  schema:
+                      type: integer
+                - name: ps
+                  required: false
+                  in: query
+                  description: Number of results to return per page.
+                  schema:
+                      type: integer
+                - name: s
+                  required: false
+                  in: query
+                  description: A search term.
+                  schema:
+                      type: string
+            tags:
+                - info
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PaginatedModelInfoList"
+                    description: ""
+    /routes/info/model_info/{app_label}/{model}/:
+        get:
+            operationId: info_model_info_retrieve
+            description: |-
+                This viewset is for providing metadata about models, including fields, actions, and permissions
+                to front-end clients. This is a read-only viewset.
+
+                You should be able to list all models, and get information about a specific model.
+
+                Effectively, this is a custom model viewset for content types.
+
+                urls using this viewset should provide the app_label and model as kwargs.
+                ie: ```py
+                path('model-info/<str:app_label>/<str:model>/', ModelInfoViewSet.as_view(), name='model-info')
+                ```
+            parameters:
+                - in: path
+                  name: app_label
+                  schema:
+                      type: string
+                      pattern: ^[a-zA-Z0-9_]+$
+                  required: true
+                - in: path
+                  name: model
+                  schema:
+                      type: string
+                      pattern: ^[a-zA-Z0-9_]+$
+                  required: true
+            tags:
+                - info
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ModelInfo"
+                    description: ""
+    /routes/workflow/workflows/:
+        get:
+            operationId: workflow_workflows_list
+            parameters:
+                - name: o
+                  required: false
+                  in: query
+                  description: Which field to use when ordering the results.
+                  schema:
+                      type: string
+                - name: p
+                  required: false
+                  in: query
+                  description: A page number within the paginated result set.
+                  schema:
+                      type: integer
+                - name: ps
+                  required: false
+                  in: query
+                  description: Number of results to return per page.
+                  schema:
+                      type: integer
+                - name: s
+                  required: false
+                  in: query
+                  description: A search term.
+                  schema:
+                      type: string
+            tags:
+                - workflow
+            security:
+                - cookieAuth: []
+                - {}
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PaginatedWorkflowList"
+                    description: ""
+    /routes/workflow/workflows/{app_label}/{model}/:
+        get:
+            operationId: workflow_workflows_retrieve
+            parameters:
+                - in: path
+                  name: app_label
+                  schema:
+                      type: string
+                      pattern: ^[a-zA-Z0-9_]+$
+                  required: true
+                - in: path
+                  name: model
+                  schema:
+                      type: string
+                      pattern: ^[a-zA-Z0-9_]+$
+                  required: true
+            tags:
+                - workflow
+            security:
+                - cookieAuth: []
+                - {}
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Workflow"
+                    description: ""
+    /routes/workflow/workflows/{app_label}/{model}/execute-transition/{object_id}/:
+        patch:
+            operationId: workflow_workflows_execute_transition_partial_update
+            parameters:
+                - in: path
+                  name: app_label
+                  schema:
+                      type: string
+                      pattern: ^[a-zA-Z0-9_]+$
+                  required: true
+                - in: path
+                  name: model
+                  schema:
+                      type: string
+                      pattern: ^[a-zA-Z0-9_]+$
+                  required: true
+                - in: path
+                  name: object_id
+                  schema:
+                      type: string
+                  required: true
+            tags:
+                - workflow
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PatchedWorkflow"
+                    application/x-www-form-urlencoded:
+                        schema:
+                            $ref: "#/components/schemas/PatchedWorkflow"
+                    multipart/form-data:
+                        schema:
+                            $ref: "#/components/schemas/PatchedWorkflow"
+            security:
+                - cookieAuth: []
+                - {}
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Workflow"
+                    description: ""
+    /routes/workflow/workflows/{app_label}/{model}/object-state/{object_id}/:
+        get:
+            operationId: workflow_workflows_object_state_retrieve
+            parameters:
+                - in: path
+                  name: app_label
+                  schema:
+                      type: string
+                      pattern: ^[a-zA-Z0-9_]+$
+                  required: true
+                - in: path
+                  name: model
+                  schema:
+                      type: string
+                      pattern: ^[a-zA-Z0-9_]+$
+                  required: true
+                - in: path
+                  name: object_id
+                  schema:
+                      type: string
+                  required: true
+            tags:
+                - workflow
+            security:
+                - cookieAuth: []
+                - {}
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Workflow"
+                    description: ""
+    /routes/workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/:
+        get:
+            operationId: workflow_workflows_object_transitions_retrieve
+            parameters:
+                - in: path
+                  name: app_label
+                  schema:
+                      type: string
+                      pattern: ^[a-zA-Z0-9_]+$
+                  required: true
+                - in: path
+                  name: model
+                  schema:
+                      type: string
+                      pattern: ^[a-zA-Z0-9_]+$
+                  required: true
+                - in: path
+                  name: object_id
+                  schema:
+                      type: string
+                  required: true
+            tags:
+                - workflow
+            security:
+                - cookieAuth: []
+                - {}
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Workflow"
+                    description: ""
+components:
+    schemas:
+        ModelInfo:
+            type: object
+            description: |-
+                A serializer for providing metadata about models, including fields, actions, and permissions.
+
+                This is a read-only serializer.
+
+                Effectively, this is a custom model serializer for content types.
+            properties:
+                id:
+                    type: integer
+                    readOnly: true
+                app_label:
+                    type: string
+                    maxLength: 100
+                model:
+                    type: string
+                    title: Python model class name
+                    maxLength: 100
+                verbose_name:
+                    type: string
+                    readOnly: true
+                verbose_name_plural:
+                    type: string
+                    readOnly: true
+            required:
+                - app_label
+                - id
+                - model
+                - verbose_name
+                - verbose_name_plural
+        PaginatedModelInfoList:
+            type: object
+            required:
+                - count
+                - results
+            properties:
+                count:
+                    type: integer
+                    example: 123
+                next:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?p=4
+                previous:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?p=2
+                results:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/ModelInfo"
+        PaginatedWorkflowList:
+            type: object
+            required:
+                - count
+                - results
+            properties:
+                count:
+                    type: integer
+                    example: 123
+                next:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?p=4
+                previous:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?p=2
+                results:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/Workflow"
+        PatchedWorkflow:
+            type: object
+            description: |-
+                Mixin for DRF ViewSets to add 'permitted_expands' in serializer context based on
+                the current action. It utilizes 'permit_{action}_expands' attributes of the ViewSet
+                to determine expandable fields for each action (e.g., list, retrieve).
+
+                This replaces `rest_flex_fields.FlexFieldsMixin` and `rest_flex_fields.FlexFieldsModelViewSet` usage.
+            properties:
+                code:
+                    type: string
+                    maxLength: 255
+                name:
+                    type: string
+                    maxLength: 255
+                app_label:
+                    type: string
+                    readOnly: true
+                model:
+                    type: string
+                    readOnly: true
+        Workflow:
+            type: object
+            description: |-
+                Mixin for DRF ViewSets to add 'permitted_expands' in serializer context based on
+                the current action. It utilizes 'permit_{action}_expands' attributes of the ViewSet
+                to determine expandable fields for each action (e.g., list, retrieve).
+
+                This replaces `rest_flex_fields.FlexFieldsMixin` and `rest_flex_fields.FlexFieldsModelViewSet` usage.
+            properties:
+                code:
+                    type: string
+                    maxLength: 255
+                name:
+                    type: string
+                    maxLength: 255
+                app_label:
+                    type: string
+                    readOnly: true
+                model:
+                    type: string
+                    readOnly: true
+            required:
+                - app_label
+                - code
+                - model
+                - name
+    securitySchemes:
+        cookieAuth:
+            type: apiKey
+            in: cookie
+            name: sessionid
