@@ -3,14 +3,14 @@ from pathlib import Path
 
 # the package name is django-environ
 # noinspection PyPackageRequirements
-from environ import environ  # noqa
+from environs import Env  # noqa
 
 from tests.utils import clean_migrations
 from vueda.core.default_settings import get_defaults
 
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent
-env = environ.Env()
+env = Env()
 
 # OS environment variables > .env.local > .env
 env.read_env(str(ROOT_DIR / ".env.local"))
@@ -21,7 +21,7 @@ locals().update(get_defaults(env))
 
 decimal.setcontext(decimal.Context(rounding=decimal.ROUND_HALF_UP))  # Sensible decimal rounding
 
-DATABASES = {"default": env.db("DATABASE_URL")}
+DATABASES = {"default": env.dj_db_url("DATABASE_URL")}
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
 TEST_POSTGRES_DB = env("TEST_POSTGRES_DB")
 
