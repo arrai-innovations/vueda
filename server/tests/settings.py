@@ -1,9 +1,7 @@
 import decimal
 from pathlib import Path
 
-# the package name is django-environ
-# noinspection PyPackageRequirements
-from environs import Env  # noqa
+from environs import Env
 
 from tests.utils import clean_migrations
 from vueda.core.default_settings import get_defaults

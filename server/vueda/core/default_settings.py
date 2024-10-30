@@ -96,7 +96,7 @@ def get_defaults(env: Env):
             "django.middleware.common.BrokenLinkEmailsMiddleware",
             "simple_history.middleware.HistoryRequestMiddleware",
         ],
-        "DJANGO_APPS": env.list(  # django-environ doesn't do multiline lists, and the values here would be a bit unwieldy
+        "DJANGO_APPS": env.list(  # environs doesn't do multiline lists, and the values here would be a bit unwieldy
             "DJANGO_APPS",
             default=[
                 "django.contrib.auth",
