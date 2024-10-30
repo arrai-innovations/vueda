@@ -439,14 +439,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 and hasattr(filter_obj.child_relation, "queryset")
             ):
                 return True
-            elif filter_obj and hasattr(filter_obj, "choices"):
+            elif hasattr(filter_obj, "choices"):
                 return filter_obj.choices
         if hasattr(field, "queryset") or hasattr(field, "child_relation") and hasattr(field.child_relation, "queryset"):
             return True
         elif hasattr(field, "choices"):
             return field.choices
-        elif hasattr(widget, "queryset"):
-            return True
         elif hasattr(widget, "choices"):
             return widget.choices
         return False
@@ -468,9 +466,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         meta = None
         if choices is True:
             # queryset based choices
-            if hasattr(obj, "model"):
-                meta = obj.model._meta
-            elif hasattr(field, "queryset"):
+            if hasattr(field, "queryset"):
                 meta = field.queryset.model._meta
             elif hasattr(field, "child_relation") and hasattr(field.child_relation, "queryset"):
                 meta = field.child_relation.queryset.model._meta
