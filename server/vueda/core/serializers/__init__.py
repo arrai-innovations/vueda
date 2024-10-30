@@ -56,7 +56,6 @@ class NoExtraFieldsSerializerMixin:
 
 
 class FlexFieldsWriteableNestedSerializerMixin(
-    drf_writable_nested.UniqueFieldsMixin,
     flex_serializers.FlexFieldsSerializerMixin,
     drf_writable_nested.NestedCreateMixin,
     drf_writable_nested.NestedUpdateMixin,
@@ -83,7 +82,6 @@ class FlexFieldsWriteableNestedSerializerMixin(
         return super().update_or_create_direct_relations(attrs, relations)
 
     def update(self, instance, validated_data):
-        # breakpoint()
         relations, reverse_relations = self._extract_relations(validated_data)
 
         # Create or update direct relations (foreign key, one-to-one)
