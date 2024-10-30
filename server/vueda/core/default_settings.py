@@ -1,7 +1,7 @@
 import logging
 
 from django.db.backends.postgresql.psycopg_any import IsolationLevel
-from environ import Env
+from environs import Env
 
 
 def get_defaults(env: Env):
@@ -11,7 +11,7 @@ def get_defaults(env: Env):
     You can put this in your settings modules like so:
 
     ```python
-    from environ import Env
+    from environs import Env
     from vueda.core.default_settings import get_defaults
     env = Env
     env.read_env(str(ROOT_DIR / ".env.local"))
@@ -36,7 +36,7 @@ def get_defaults(env: Env):
         "USE_I18N": True,
         "USE_TZ": True,
         "ALLOWED_HOSTS": env.list("ALLOWED_HOSTS"),  # like "host", not "host:port" or "http(s)://host"
-        "DATABASES": {"default": env.db("DATABASE_URL")},  # like "postgres://user:password@host:5432/dbname"
+        "DATABASES": {"default": env.dj_db_url("DATABASE_URL")},  # like "postgres://user:password@host:5432/dbname"
         "EMAIL_BACKEND": env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"),
         "EMAIL_TIMEOUT": 5,
         "SESSION_ENGINE": "django.contrib.sessions.backends.cache",
@@ -96,7 +96,7 @@ def get_defaults(env: Env):
             "django.middleware.common.BrokenLinkEmailsMiddleware",
             "simple_history.middleware.HistoryRequestMiddleware",
         ],
-        "DJANGO_APPS": env.list(  # django-environ doesn't do multiline lists, and the values here would be a bit unwieldy
+        "DJANGO_APPS": env.list(  # environs doesn't do multiline lists, and the values here would be a bit unwieldy
             "DJANGO_APPS",
             default=[
                 "django.contrib.auth",

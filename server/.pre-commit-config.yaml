@@ -1,6 +1,6 @@
 exclude: ".git|.tox"
 default_install_hook_types: [pre-commit, commit-msg]
-default_stages: [commit]
+default_stages: [pre-commit]
 fail_fast: true
 
 default_language_version:

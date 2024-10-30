@@ -24,10 +24,10 @@ def version_for_main(subparsers):
 
 def setup_django_settings_module():
     """
-    use environ to check .env.local then .env for DEBUG. If not set, default to False.
+    use environs to check .env.local then .env for DEBUG. If not set, default to False.
     if DEBUG is True, use config.settings.local, else use config.settings.production
     """
-    from environ import Env
+    from environs import Env
 
     # check that .env / .env.local are in the cwd.
     # there should aways be a .env
