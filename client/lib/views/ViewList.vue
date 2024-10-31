@@ -117,6 +117,7 @@ const props = defineProps({
             {
                 name: `selected_`,
                 extra: true,
+                label: "Selected",
             },
         ],
     },
@@ -451,6 +452,13 @@ const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name}
                 #[slot]="slotProps"
             >
                 <slot :name="slot" v-bind="slotProps || {}"> </slot>
+            </template>
+            <template v-for="field in extraFieldObjects" :key="field.name" #[`header(${field.name})`]="slotProps">
+                <slot :name="`field(${field.name})`" v-bind="slotProps">
+                    <div :class="slotProps.class" :data-card-header="field.name">
+                        {{ slotProps.girdType === "cell" ? field.label : "" }}
+                    </div>
+                </slot>
             </template>
             <template v-for="field in extraFieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
                 <slot :name="`field(${field.name})`" v-bind="slotProps">

@@ -48,7 +48,7 @@ const { formattedComputed, valueComputed } = useObjectGridCell(props);
 </script>
 <template>
     <div :class="[theme('root'), $attrs.class]" data-qa="objects-grid-card-cell" role="cell">
-        <slot :class="theme('header')" :col-index="colIndex" :field="field" name="header">
+        <slot :class="theme('header')" :col-index="colIndex" :field="field" gird-type="cell" name="header">
             <div :class="theme('header')" :data-card-header="field.name">
                 {{ field.label }}
             </div>

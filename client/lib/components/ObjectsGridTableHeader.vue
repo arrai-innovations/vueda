@@ -39,7 +39,7 @@ const theme = useTheme("ObjectsGridTableHeader", props);
 <template>
     <div :class="theme('root')">
         <span :class="theme('label')">
-            <slot :col-index="colIndex" :field="field" name="label" v-bind="fieldProps">
+            <slot :col-index="colIndex" :field="field" v-bind="fieldProps" gird-type="table-header" name="label">
                 {{ field.label }}
             </slot>
         </span>
