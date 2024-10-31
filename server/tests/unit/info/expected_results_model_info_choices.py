@@ -51,16 +51,6 @@ EXPECTED_RESULTS = [
     (
         "store",
         "product",
-        "distributor",
-        (
-            "T-Shirt Corp.",
-            "Tasty Treats Assoc.",
-            "Vibrant Looks Inc.",
-        ),
-    ),
-    (
-        "store",
-        "product",
         "special_care",
         (
             "Alcohol",

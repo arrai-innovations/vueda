@@ -66,6 +66,32 @@ class CustomerSerializer(VuedaHistorySerializer):
 
         return expandable_fields
 
+    def get_schema_expandable_fields(self):  # pragma: no cover
+        expandable_fields = super().get_schema_expandable_fields()
+
+        expandable_fields.extend(
+            (
+                {
+                    "name": "dict_data",
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                        "name": {
+                            "label": "Name",
+                            "type": "CharField",
+                            "many": False,
+                            "read_only": True,
+                            "required": False,
+                            "choices": False,
+                        },
+                    },
+                },
+                {
+                    "name": "single_value",
+                },
+            )
+        )
+
+        return expandable_fields
+
     def get_dict_data(self, instance):
         return {"name": "Test"}
 
