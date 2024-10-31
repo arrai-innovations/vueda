@@ -260,6 +260,8 @@ class PackingBox(VuedaBaseModel):
     height = models.DecimalField(max_digits=12, decimal_places=4)
     width = models.DecimalField(max_digits=12, decimal_places=4)
     carrying_weight = models.DecimalField(max_digits=12, decimal_places=4)
+    in_stock = models.BooleanField(db_default=False)
+    number_in_stock = models.IntegerField(db_default=0)
 
     formatted_name = None
     formatted_name_lookup_expression = "name"

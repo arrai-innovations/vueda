@@ -85,6 +85,7 @@ class DistributorSerializer(VuedaHistorySerializer):
 class ProductSerializer(VuedaHistorySerializer):
     internal_comments = serializers.ListField(child=serializers.CharField(), required=False)
     current_sale_date = RangeField(required=False)  # This mimics the range field in integration, with no children.
+    distributor = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta(VuedaHistorySerializer.Meta):
         model = models.Product
@@ -154,6 +155,7 @@ class ProductOptionSerializer(VuedaHistorySerializer):
             "gtin",
             "price",
             "disabled",
+            "quantity_available",
         ] + VuedaHistorySerializer.Meta.fields
         expandable_fields = {
             "option_type": (
@@ -439,6 +441,14 @@ class InventoryRecordSerializer(VuedaSerializer):
 
 
 class PackingBoxSerializer(VuedaSerializer):
+    name = serializers.CharField(read_only=True)
+    depth = serializers.DecimalField(12, 4, read_only=True)
+    height = serializers.DecimalField(12, 4, read_only=True)
+    width = serializers.DecimalField(12, 4, read_only=True)
+    carrying_weight = serializers.DecimalField(12, 4, read_only=True)
+    in_stock = serializers.BooleanField(read_only=True)
+    number_in_stock = serializers.IntegerField(read_only=True)
+
     class Meta(VuedaSerializer.Meta):
         model = models.PackingBox
         fields = [
@@ -448,4 +458,6 @@ class PackingBoxSerializer(VuedaSerializer):
             "height",
             "width",
             "carrying_weight",
+            "in_stock",
+            "number_in_stock",
         ] + VuedaSerializer.Meta.fields

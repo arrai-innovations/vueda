@@ -285,12 +285,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             }
             widget = getattr(field, "widget", None)
             obj = serializer
-            if hasattr(field, "queryset"):
-                obj = field.queryset.model
-            choices, extra_data = self.get_model_field_choices(field, widget, obj)
-            field_data["choices"] = choices
-            if extra_data:
-                field_data.update(extra_data)
+            if not field.read_only:
+                if hasattr(field, "queryset"):
+                    obj = field.queryset.model
+                choices, extra_data = self.get_model_field_choices(field, widget, obj)
+                field_data["choices"] = choices
+                if extra_data:
+                    field_data.update(extra_data)
             if field.help_text is not None:
                 field_data["help_text"] = field.help_text
             max_value = self.get_model_fields_max_data(field, model_field)
