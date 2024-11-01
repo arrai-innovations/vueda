@@ -168,7 +168,7 @@ export default {
     WidgetReadOnly: {
         root: { class: [] },
         inner: {
-            class: ["flex"],
+            class: ["flex flex-col"],
         },
         label: {
             class: ["ml-3", "text-surface-900/60 dark:text-white/60"],
