@@ -1,7 +1,10 @@
 import logging
+import os
 
 from django.db.backends.postgresql.psycopg_any import IsolationLevel
 from environs import Env
+
+from vueda.core.logging_formatters import ConditionalExcInfoFormatter
 
 
 def get_defaults(env: Env):
@@ -27,6 +30,41 @@ def get_defaults(env: Env):
     return_dict = {
         "DEBUG": env.bool("DEBUG", default=False),
         "SECRET_KEY": env("SECRET_KEY"),  # important to not have a default
+        "LOGGING": {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "verbose": {
+                    "()": ConditionalExcInfoFormatter,
+                    "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s",
+                },
+                "simple_verbose": {
+                    "()": ConditionalExcInfoFormatter,
+                    "format": "%(levelname)s %(module)s %(thread)d %(message)s",
+                },
+                "simple": {"format": "%(levelname)s %(message)s"},
+            },
+            "handlers": {
+                "console": {
+                    "level": "INFO",
+                    "class": "logging.StreamHandler",
+                    "formatter": "simple",
+                },
+                "file": {
+                    "level": "INFO",
+                    "class": "logging.handlers.RotatingFileHandler",
+                    "filename": os.path.join(env("LOGS_FOLDER", default="."), "django.log"),
+                    "maxBytes": 1024 * 1024 * 100,  # 100 MB
+                    "backupCount": 5,
+                    "formatter": "verbose",
+                    "delay": True,
+                },
+            },
+            "root": {
+                "level": "INFO",
+                "handlers": ["console"],
+            },
+        },
         "PASSWORD_HASHERS": [
             "django.contrib.auth.hashers.ScryptPasswordHasher",
         ],
