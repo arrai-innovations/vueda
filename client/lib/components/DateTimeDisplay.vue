@@ -5,7 +5,7 @@ import { computed, onMounted, onUnmounted, ref, toRef, watch } from "vue";
 
 const props = defineProps({
     value: {
-        type: [String, Object], // luxon DateTime object is fine too
+        type: [String, Object, Date], // ISO string, luxon DateTime object or js Date
         default: "",
     },
     format: {
@@ -25,7 +25,19 @@ const props = defineProps({
     },
 });
 
-const parsedValue = computed(() => DateTime.fromISO(props.value).setLocale("en-CA"));
+const parsedValue = computed(() => {
+    if (props.value instanceof DateTime) {
+        // Already a Luxon DateTime object
+        return props.value.setLocale("en-CA");
+    } else if (props.value instanceof Date) {
+        // Convert JavaScript Date to Luxon DateTime
+        return DateTime.fromJSDate(props.value).setLocale("en-CA");
+    } else if (typeof props.value === "string") {
+        // Assume ISO string
+        return DateTime.fromISO(props.value).setLocale("en-CA");
+    }
+    return DateTime.invalid("Invalid date format");
+});
 
 const relative = ref();
 let quickUpdateRelativeInterval;
