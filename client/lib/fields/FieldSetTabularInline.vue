@@ -65,7 +65,8 @@ const fieldNames = computed(() => {
     } else {
         //TODO: prob needs to ignore ID for display fields
         const fields = formModel?.expandDetails?.[fieldContext.state.name].f;
-        return fields ? Object.keys(omit(fields, "id")) : [];
+        const omitFields = formModel?.expandDetails?.[fieldContext.state.name].hidden;
+        return fields ? Object.keys(omit(fields, omitFields)) : [];
     }
 });
 
