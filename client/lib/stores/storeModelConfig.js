@@ -1,5 +1,6 @@
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/crudSupport.js";
+import { merge } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import identity from "lodash-es/identity.js";
 import { defineStore } from "pinia";
@@ -238,10 +239,10 @@ export const storeModelConfig = defineStore({
                         for (const overridingConfig of configsInPriorityOrder) {
                             for (const fieldName in overridingConfig) {
                                 if (fieldName in newDetailsObject) {
-                                    newDetailsObject[fieldName] = {
-                                        ...newDetailsObject[fieldName],
-                                        ...overridingConfig[fieldName],
-                                    };
+                                    newDetailsObject[fieldName] = merge(
+                                        overridingConfig[fieldName],
+                                        newDetailsObject[fieldName],
+                                    );
                                 } else {
                                     newDetailsObject[fieldName] = overridingConfig[fieldName];
                                 }

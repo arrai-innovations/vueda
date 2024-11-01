@@ -11,7 +11,7 @@ import { useObject404 } from "@vueda/use/useObject404.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import Button from "primevue/button";
-import { computed, reactive, ref, toRef, watch } from "vue";
+import { computed, onMounted, reactive, readonly, ref, toRef, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -97,6 +97,18 @@ const props = defineProps({
         default: undefined,
         description: "Any overriding widget props by field path.",
     },
+    relatedObjectRules: {
+        type: Object,
+        default: () => ({}),
+    },
+    calculatedObjectRules: {
+        type: Object,
+        default: () => ({
+            some_test_field: (timesheet) => {
+                return timesheet;
+            },
+        }),
+    },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
 
@@ -113,6 +125,8 @@ const validAndActive = computed(
             modelConfig.config?.fetchFields
         ),
 );
+
+const emit = defineEmits(["object", "loading", "related-object", "calculated-object"]);
 
 const viewName = "update";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
@@ -133,9 +147,24 @@ const instanceObjectProps = reactive({
         e: computed(() => modelConfig.config?.expands),
     },
     intendToRetrieve: validAndActive,
+    relatedObjectRules: toRef(props, "relatedObjectRules"),
+    calculatedObjectRules: toRef(props, "calculatedObjectRules"),
 });
 const instanceObject = useObject({
     props: instanceObjectProps,
+});
+
+onMounted(() => {
+    emit(
+        "object",
+        toRef(() => instanceObject.state.object),
+    );
+    emit(
+        "loading",
+        toRef(() => instanceObject.state.loading),
+    );
+    emit("related-object", readonly(instanceObject.state.relatedObjects));
+    emit("calculated-object", readonly(instanceObject.state.calculatedObjects));
 });
 const formContextProps = reactive({
     initialValues: {},
@@ -150,6 +179,13 @@ const objectForm = useObjectForm({
     props: objectFormProps,
     formContext,
     instanceObject,
+});
+const computedWidgetProps = computed(() => {
+    // TODO: a key for instanceObject?.state?.calculatedObject
+    return {
+        ...props.widgetProps,
+        ...instanceObject?.state?.calculatedObject,
+    };
 });
 watch(
     [validAndActive, toRef(instanceObject.state, "loading")],
@@ -277,7 +313,7 @@ const formId = computed(() => `${props.app}-${props.model}-${props.pk}-update`);
                     :variant="formModelVariant"
                     :view="viewName"
                     :widget-components="widgetComponents"
-                    :widget-props="widgetProps"
+                    :widget-props="computedWidgetProps"
                     v-bind="combinedFormProps"
                 >
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">

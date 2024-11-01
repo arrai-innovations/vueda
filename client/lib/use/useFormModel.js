@@ -557,6 +557,7 @@ export function useFormModel(props) {
     const state = reactive(
         /** @type {UseFormModelRawState} */ {
             fields: [],
+            computedFields: [],
             expands: [],
             fieldDetails: {},
             expandDetails: {},
@@ -573,6 +574,7 @@ export function useFormModel(props) {
         buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps);
     setUpWatch("displayFields", "fieldDetails", "fields", "fieldDetails");
     setUpWatch("expands", "expandDetails");
+    setUpWatch("computedFields");
 
     watch(
         [toRef(state, "expands"), toRef(state, "fields"), toRef(state, "fieldDetails"), toRef(state, "expandDetails")],
@@ -644,7 +646,6 @@ export function useFormModel(props) {
                         }
                     }
                 }
-
                 for (const field of allFields) {
                     const { fieldName, fieldDetail, baseExpanded, isExpandedField } = field;
                     if (!isExpandedField) {

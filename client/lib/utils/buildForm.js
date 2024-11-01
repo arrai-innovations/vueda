@@ -25,6 +25,7 @@ export const getFormChoresSlotNames = (fieldName) => {
 export function buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps) {
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
     const es = effectScope();
+    let computedFields = [];
 
     const assignStateObjectsIfChanged = (args) => {
         for (const key in args) {
@@ -38,9 +39,17 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         }
     };
 
+    watch(
+        toRef(state, "computedFields"),
+        () => {
+            computedFields = deepUnref(state.computedFields) || [];
+        },
+        { immediate: true, deep: true },
+    );
+
     function setUpWatch(
         configKey,
-        configDetailKey,
+        configDetailKey = undefined,
         propKey = configKey,
         propDetailKey = configDetailKey,
         stateKey = propKey,
@@ -49,7 +58,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         watch(
             [
                 () => modelConfig.config[configKey],
-                () => modelConfig.config[configDetailKey],
+                () => configDetailKey ?? modelConfig.config[configDetailKey],
                 toRef(props, propKey),
                 toRef(props, propDetailKey),
             ],
@@ -58,16 +67,22 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 const desired = props[propKey] || modelConfig.config?.[configKey] || [];
                 // details fields merge at the field property level
                 const desiredDetails = {};
-                for (const d of desired) {
-                    desiredDetails[d] = {
-                        ...modelConfig.config?.[configDetailKey]?.[d],
-                        ...props[propDetailKey]?.[d],
-                    };
+                if (configDetailKey) {
+                    for (const d of desired) {
+                        desiredDetails[d] = {
+                            ...modelConfig.config?.[configDetailKey]?.[d],
+                            ...props[propDetailKey]?.[d],
+                        };
+                    }
+                    assignStateObjectsIfChanged({
+                        [stateKey]: desired,
+                        [stateDetailKey]: desiredDetails,
+                    });
+                } else {
+                    assignStateObjectsIfChanged({
+                        [stateKey]: desired,
+                    });
                 }
-                assignStateObjectsIfChanged({
-                    [stateKey]: desired,
-                    [stateDetailKey]: desiredDetails,
-                });
             },
             { immediate: true, deep: true },
         );
@@ -77,6 +92,9 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         let component = undefined;
         es.run(() => {
             component = computed(() => {
+                if (computedFields.includes(fieldName)) {
+                    return availableFields.FieldString;
+                }
                 const component =
                     props.fieldComponents?.[fieldName] ||
                     modelConfig?.config?.fieldComponents?.[fieldName] ||
@@ -110,6 +128,9 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         let widget = undefined;
         es.run(() => {
             widget = computed(() => {
+                if (computedFields.includes(fieldName)) {
+                    return availableWidgets.WidgetTextarea;
+                }
                 if (baseExpanded) {
                     return null;
                 }

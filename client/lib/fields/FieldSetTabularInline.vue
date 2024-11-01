@@ -194,6 +194,7 @@ const computedFieldObjects = computed(() => {
                                         v-bind="formModel.widgetProps[field.name]"
                                         v-if="formModel.widgetComponents[field.name]"
                                         :hidden="true"
+                                        :model-value="field.value"
                                     />
                                 </slot>
                                 <form-help-text />
