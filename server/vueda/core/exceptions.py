@@ -1,3 +1,4 @@
+import logging
 from traceback import format_exception
 from traceback import format_exception_only
 
@@ -7,6 +8,10 @@ from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.views import exception_handler
+
+
+logger = logging.getLogger(__name__)
+django_requests_logger = logging.getLogger("django.request")
 
 
 def debug_stack_exception_handler(exc, context):
@@ -21,12 +26,15 @@ def debug_stack_exception_handler(exc, context):
             status=500,
         )
 
+    django_requests_logger.exception("Exception in DRF view", extra={"request": context["request"]})
+
     if not settings.DEBUG and not getattr(settings, "IN_TESTS", False):
         # Capture the exception with Sentry
         sentry_sdk.capture_exception(exc)
 
     if isinstance(response.data, list):
         response.data = {settings.REST_FRAMEWORK["NON_FIELD_ERRORS_KEY"] or "non_field_errors": response.data}
+
     if settings.DEBUG or getattr(settings, "IN_TESTS", False):
         response.data["serverStack"] = "".join(format_exception(type(exc), exc, exc.__traceback__))
     else:
