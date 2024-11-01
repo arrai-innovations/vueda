@@ -8,6 +8,8 @@ import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
+import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
+import { merge } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
@@ -52,6 +54,7 @@ const props = defineProps({
                 name: `delete_`,
                 extra: true,
                 label: "Delete?",
+                readOnly: false,
             },
         ],
     },
@@ -134,6 +137,9 @@ const computedFieldObjects = computed(() => {
 const calculatedObjects = computed(() => {
     return formModel.fieldProps[fieldContext.state.name]?.calculatedObjects;
 });
+const computedFieldProps = computed(() => {
+    return merge(formModel.fieldProps[fieldContext.state.name], props.fieldProps);
+});
 </script>
 
 <template>
@@ -197,10 +203,11 @@ const calculatedObjects = computed(() => {
                                     <component
                                         :is="formModel.widgetComponents[field.name]"
                                         v-bind="formModel.widgetProps[field.name]"
-                                        v-if="formModel.widgetComponents[field.name]"
+                                        v-if="formModel.widgetComponents[field.name] && !computedFieldProps.readOnly"
                                         :hidden="true"
                                         :model-value="slotProps.value"
                                     />
+                                    <WidgetReadOnly v-else v-bind="formModel.widgetProps[field.name]" :hidden="true" />
                                 </slot>
                                 <form-help-text />
                                 <form-feedback type="error" />
@@ -213,6 +220,7 @@ const calculatedObjects = computed(() => {
                     <slot
                         v-if="!slotProps.pk"
                         :field-class="theme('field')"
+                        :field-props="computedFieldProps"
                         :label="field.label"
                         :name="`field(${field.name})`"
                         :theme="theme"
@@ -226,6 +234,7 @@ const calculatedObjects = computed(() => {
                     <slot
                         v-else
                         :field-class="theme('field')"
+                        :field-props="computedFieldProps"
                         :label="field.label"
                         :name="`field(${field.name})`"
                         :theme="theme"
@@ -246,12 +255,18 @@ const calculatedObjects = computed(() => {
             </objects-grid>
             <slot
                 :class="theme('createButton')"
+                :field-props="computedFieldProps"
                 label="Create"
                 name="create-button"
                 verb="createInline"
                 @click="onCreate"
             >
-                <Button :class="theme('createButton')" label="Create" @click="onCreate" />
+                <Button
+                    v-if="!computedFieldProps.readOnly"
+                    :class="theme('createButton')"
+                    label="Create"
+                    @click="onCreate"
+                />
             </slot>
         </div>
     </div>
