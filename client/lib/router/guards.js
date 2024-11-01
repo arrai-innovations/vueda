@@ -2,13 +2,12 @@ import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { ModelInfoError, storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import isEmpty from "lodash-es/isEmpty.js";
-import { useRouter } from "vue-router";
 
 /**
- * Wait for the user to be initialized. This is useful if your making your own
- *  custom guards that need to know if the user is logged in or not.
+ * Wait for the user to be initialized. This is useful if you're making your own
+ * custom guards that need to know if the user is logged in or not.
  *
- * @returns {Promise<import('@vueda/stores/storeUser.js').UserStore>} The user object.
+ * @returns {Promise<import('@vueda/stores/storeUser.js').UserStore>} The user store.
  */
 export async function waitForInitialising() {
     const userStore = storeUser();
@@ -37,13 +36,13 @@ export async function waitForStoreInfoLoad(app, model) {
 }
 
 /**
- * Resolve a redirect object, either by returning the object or by resolving the
- * object with the router.
+ * Resolve a redirect object with the router.
+ *
  * @param {(import('vue-router').RouteLocationRaw|string)} redirectTo - The redirect object or path.
+ * @param {import('vue-router').Router} router - The router instance.
  * @returns {import('vue-router').RouteLocationNormalizedLoaded} The resolved redirect object.
  */
-function resolveRedirect(redirectTo) {
-    const router = useRouter();
+function resolveRedirect(redirectTo, router) {
     return router.resolve(redirectTo);
 }
 
@@ -53,28 +52,30 @@ function resolveRedirect(redirectTo) {
  * @example
  * ```js
  * import { requireAuth } from "@vueda/router/guards";
- * const routes = [
- *   ...,
- *    { // a route that requires authentication
- *      path: '/auth-required/',
- *      name: 'auth-required',
- *      component: () => import('@/views/ViewAuthRequired.vue'),
- *      beforeEnter: partial(requireAuth, { name: "log-in" }),
- *    },
- *   ...
- * ];
+ * import { createRouter, createWebHistory } from "vue-router";
+ *
  * const router = createRouter({
  *   history: createWebHistory(import.meta.env.BASE_URL),
- *   routes,
+ *   routes: [
+ *     {
+ *       path: '/auth-required/',
+ *       name: 'auth-required',
+ *       component: () => import('@/views/ViewAuthRequired.vue'),
+ *       beforeEnter: (to, from) => requireAuth({ name: "log-in" }, to, router),
+ *     },
+ *     // other routes
+ *   ],
  * });
+ *
  * export default router;
  * ```
- * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect the user if they are not authenticated.
- * @param {import('vue-router').RouteLocationNormalized} to - Where the user is trying to go.
- * @returns {Promise<import('vue-router').RouteLocationNormalizedLoaded|void>} The route object, if a redirect is needed.
+ * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if not authenticated.
+ * @param {import('vue-router').RouteLocationNormalized} to - The target route.
+ * @param {import('vue-router').Router} router - The router instance.
+ * @returns {Promise<import('vue-router').RouteLocationNormalizedLoaded|void>} The redirect route if needed.
  */
-export async function requireAuth(redirectTo, to) {
-    const resolvedRedirectTo = resolveRedirect(redirectTo);
+export async function requireAuth(redirectTo, to, router) {
+    const resolvedRedirectTo = resolveRedirect(redirectTo, router);
     const userStore = await waitForInitialising();
     if (!userStore.loggedIn) {
         return { ...resolvedRedirectTo, query: { ...resolvedRedirectTo.query, redirect: to.fullPath } };
@@ -87,55 +88,58 @@ export async function requireAuth(redirectTo, to) {
  * @example
  * ```js
  * import { requireUnauth } from "@vueda/router/guards";
- * const routes = [
- *   ...,
- *   { // a route that requires the user to be unauthenticated
- *     path: '/unauth-required/',
- *     name: 'unauth-required',
- *     component: () => import('@/views/ViewUnauthRequired.vue'),
- *     beforeEnter: partial(requireUnauth, { name: "welcome" }),
- *   },
- *   ...
- * ];
+ * import { createRouter, createWebHistory } from "vue-router";
+ *
  * const router = createRouter({
  *   history: createWebHistory(import.meta.env.BASE_URL),
- *   routes,
+ *   routes: [
+ *     {
+ *       path: '/unauth-required/',
+ *       name: 'unauth-required',
+ *       component: () => import('@/views/ViewUnauthRequired.vue'),
+ *       beforeEnter: (to, from) => requireUnauth({ name: "welcome" }, router),
+ *     },
+ *     // other routes
+ *   ],
  * });
+ *
  * export default router;
  * ```
- * @param {import('vue-router').RouteLocationNormalizedLoaded} redirectTo - Where to redirect the user if they are authenticated.
- * @returns {Promise<import('vue-router').RouteLocationNormalizedLoaded|void>} The route object, if a redirect is needed.
+ * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if authenticated.
+ * @param {import('vue-router').Router} router - The router instance.
+ * @returns {Promise<import('vue-router').RouteLocationNormalizedLoaded|void>} The redirect route if needed.
  */
-export async function requireUnauth(redirectTo) {
+export async function requireUnauth(redirectTo, router) {
     const userStore = await waitForInitialising();
     if (userStore.loggedIn) {
-        return redirectTo;
+        return resolveRedirect(redirectTo, router);
     }
 }
 
 /**
  * Require the user to be initialized, in order to optionally show or use the
- *  user object, but not requiring authentication.
+ * user object, but not requiring authentication.
  *
- * Usage:
- *   ```js
- *   import { requireInitialized } from "@vueda/router/guards";
- *   const routes = [
- *     ...,
- *     { // a route that requires the user to be initialized
+ * @example
+ * ```js
+ * import { requireInitialized } from "@vueda/router/guards";
+ * import { createRouter, createWebHistory } from "vue-router";
+ *
+ * const router = createRouter({
+ *   history: createWebHistory(import.meta.env.BASE_URL),
+ *   routes: [
+ *     {
  *       path: '/initialized-required/',
  *       name: 'initialized-required',
  *       component: () => import('@/views/ViewInitializedRequired.vue'),
- *       beforeEnter: requireInitialized,
+ *       beforeEnter: (to, from) => requireInitialized(),
  *     },
- *     ...
- *   ];
- *   const router = createRouter({
- *     history: createWebHistory(import.meta.env.BASE_URL),
- *     routes,
- *   });
- *   export default router;
- *   ```
+ *     // other routes
+ *   ],
+ * });
+ *
+ * export default router;
+ * ```
  * @returns {Promise<void>}
  */
 export async function requireInitialized() {
@@ -145,44 +149,42 @@ export async function requireInitialized() {
 /**
  * Require the user to have certain groups, or show a toast message for denial.
  *
- * Usage:
- *   ```js
- *   import partial from "lodash-es/partial.js";
- *   import { requirePerms } from "@vueda/router/guards";
- *   const myRequirePerms = partial(
- *       {
- *           title: "Permission Denied",
- *           message: "You do not have permission to access",
- *           variant: "error",
- *           autoDismiss: false,
- *       }
- *   );
- *   const routes = [
- *     ...,
- *     { // a route that requires certain permissions
+ * @example
+ * ```js
+ * import { requireGroups } from "@vueda/router/guards";
+ * import { createRouter, createWebHistory } from "vue-router";
+ *
+ * const toastArgs = {
+ *   summary: "Permission Denied",
+ *   detail: "You do not have permission to access",
+ *   severity: "error",
+ * };
+ *
+ * const router = createRouter({
+ *   history: createWebHistory(import.meta.env.BASE_URL),
+ *   routes: [
+ *     {
  *       path: '/groups-required/',
  *       name: 'groups-required',
- *       component: () => import('@/views/ViewPermsRequired.vue'),
- *       beforeEnter: partial(requirePerms, ["group1", "group2"]),
+ *       component: () => import('@/views/ViewGroupsRequired.vue'),
+ *       beforeEnter: (to, from) =>
+ *         requireGroups(app, toastArgs, ["group1", "group2"], { name: "access-denied" }, to, router),
  *     },
- *     ...
- *    ];
- *    const router = createRouter({
- *      history: createWebHistory(import.meta.env.BASE_URL),
- *      routes,
- *    });
- *    export default router;
- *    ```
+ *     // other routes
+ *   ],
+ * });
+ *
+ * export default router;
+ * ```
  * @param {import('vue').App} instance - The Vue app instance.
- * @param {import('primevue/toast').ToastMessageOptions} toastArgs - The arguments for the denial toast message, using
- *  the PrimeVue Toast API. `toastArgs.detail` will have the denied url appended.
- * @param {string[]} groups - The groups the user must have ONE of.
- * @param {import('vue-router').RouteLocationNormalizedLoaded} redirectTo - Where to redirect the user if they are not a group member.
- * @param {import('vue-router').RouteLocationNormalizedLoaded} to - Where the user is trying to go.
- * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} The route object, if a redirect is needed, or
- *  `true` if the user has the groups.
+ * @param {import('primevue/toast').ToastMessageOptions} toastArgs - Toast message options.
+ * @param {string[]} groups - The groups the user must belong to at least one.
+ * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if not authorized.
+ * @param {import('vue-router').RouteLocationNormalizedLoaded} to - The target route.
+ * @param {import('vue-router').Router} router - The router instance.
+ * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} True if authorized, or redirect route.
  */
-export async function requireGroups(instance, toastArgs, groups, redirectTo, to) {
+export async function requireGroups(instance, toastArgs, groups, redirectTo, to, router) {
     const userStore = await waitForInitialising();
     /** @type {import('primevue/toastservice').ToastServiceMethods} */
     const toast = instance.config.globalProperties.$toast;
@@ -199,38 +201,44 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to)
         ...toastArgs,
         detail: `${toastArgs.detail} ${to.fullPath}`,
     });
-    return redirectTo;
+    return resolveRedirect(redirectTo, router);
 }
 
-export async function requireModelInfo(instance, redirectTo, to) {
-    let configStore, infoStore;
+/**
+ * Require model info to be loaded before accessing the route.
+ *
+ * @param {import('vue').App} instance - The Vue app instance.
+ * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if model info not found.
+ * @param {import('vue-router').RouteLocationNormalizedLoaded} to - The target route.
+ * @param {import('vue-router').Router} router - The router instance.
+ * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} True if model info exists, or redirect route.
+ */
+export async function requireModelInfo(instance, redirectTo, to, router) {
     const toast = instance.config.globalProperties.$toast;
     /** @type {import('primevue/toastservice').ToastServiceMethods} */
     try {
-        [infoStore, configStore] = await waitForStoreInfoLoad(to.params.app, to.params.model);
+        const [infoStore, configStore] = await waitForStoreInfoLoad(to.params.app, to.params.model);
+        let actions = infoStore.actions.map((action) => action.name);
+        if (configStore.routerActions) {
+            actions = actions.filter((action) => configStore.routerActions.includes(action));
+        }
+        if (actions.length && actions.includes(to.params.action)) {
+            return true;
+        } else {
+            toast.add({
+                summary: "Action Not Found",
+                severity: "error",
+            });
+            return resolveRedirect(redirectTo, router);
+        }
     } catch (e) {
         if (e instanceof ModelInfoError) {
             toast.add({
                 summary: "Model Not Found",
                 severity: "error",
             });
-            return redirectTo;
+            return resolveRedirect(redirectTo, router);
         }
-
         throw e;
-    }
-    let actions = infoStore.actions.map((action) => action.name);
-    if (configStore.routerActions) {
-        // not ?.length because there could be no actions allowed
-        actions = actions.filter((action) => configStore.routerActions.includes(action));
-    }
-    if (actions.length && actions.includes(to.params.action)) {
-        return true;
-    } else {
-        toast.add({
-            summary: "Action Not Found",
-            severity: "error",
-        });
-        return redirectTo;
     }
 }
