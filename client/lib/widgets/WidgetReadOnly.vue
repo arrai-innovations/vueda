@@ -58,7 +58,7 @@ const readonlyValue = computed(() => {
                 }}</slot>
             </div>
             <div :class="theme('input')" v-bind="$attrs">
-                <slot :value="readonlyValue">
+                <slot :value="readonlyValue || widgetContext.state.combinedValue">
                     <link-model-view
                         v-if="readonlyValue"
                         :app="app"
