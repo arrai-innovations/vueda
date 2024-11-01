@@ -126,7 +126,7 @@ const validAndActive = computed(
         ),
 );
 
-const emit = defineEmits(["object", "loading", "related-object", "calculated-object"]);
+const emit = defineEmits(["object", "loading", "related-object", "calculated-object", "form-object"]);
 
 const viewName = "update";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
@@ -163,8 +163,12 @@ onMounted(() => {
         "loading",
         toRef(() => instanceObject.state.loading),
     );
-    emit("related-object", readonly(instanceObject.state.relatedObjects));
-    emit("calculated-object", readonly(instanceObject.state.calculatedObjects));
+    emit("related-object", readonly(instanceObject.state.relatedObjects || {}));
+    emit("calculated-object", readonly(instanceObject.state.calculatedObjects || {}));
+    emit(
+        "form-object",
+        toRef(() => formContext.state.values),
+    );
 });
 const formContextProps = reactive({
     initialValues: {},

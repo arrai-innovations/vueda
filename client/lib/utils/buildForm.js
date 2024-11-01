@@ -129,7 +129,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         es.run(() => {
             widget = computed(() => {
                 if (computedFields.includes(fieldName)) {
-                    return availableWidgets.WidgetTextarea;
+                    return availableWidgets.WidgetReadOnly;
                 }
                 if (baseExpanded) {
                     return null;

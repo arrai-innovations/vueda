@@ -240,8 +240,8 @@ export const storeModelConfig = defineStore({
                             for (const fieldName in overridingConfig) {
                                 if (fieldName in newDetailsObject) {
                                     newDetailsObject[fieldName] = merge(
-                                        overridingConfig[fieldName],
                                         newDetailsObject[fieldName],
+                                        overridingConfig[fieldName],
                                     );
                                 } else {
                                     newDetailsObject[fieldName] = overridingConfig[fieldName];

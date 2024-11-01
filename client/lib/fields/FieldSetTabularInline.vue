@@ -130,6 +130,9 @@ const objectsInOrder = computed(() => {
 const computedFieldObjects = computed(() => {
     return [...fieldObjects.value, ...props.extraFieldObjects];
 });
+const calculatedObjects = computed(() => {
+    return formModel.fieldProps[fieldContext.state.name]?.calculatedObjects;
+});
 </script>
 
 <template>
@@ -148,6 +151,7 @@ const computedFieldObjects = computed(() => {
             </form-chores>
             <objects-grid
                 v-bind="$attrs"
+                :calculated-objects="calculatedObjects"
                 class="w-full"
                 data-qa="fieldset-tabular-inline-objects-grid"
                 :empty-text="null"
@@ -194,7 +198,7 @@ const computedFieldObjects = computed(() => {
                                         v-bind="formModel.widgetProps[field.name]"
                                         v-if="formModel.widgetComponents[field.name]"
                                         :hidden="true"
-                                        :model-value="field.value"
+                                        :model-value="slotProps.value"
                                     />
                                 </slot>
                                 <form-help-text />

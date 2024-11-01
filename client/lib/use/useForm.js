@@ -3,6 +3,7 @@ import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
+import omit from "lodash-es/omit.js";
 import set from "lodash-es/set.js";
 import { provide, reactive, readonly, toRef, watch } from "vue";
 
@@ -208,6 +209,10 @@ const clearModified = (state, name) => {
     if (state.anyModified && Object.keys(state.modified).length === 0) {
         state.anyModified = false;
     }
+};
+
+const formValues = (state) => {
+    return state.anyIgnored ? omit(cloneDeep(state.values), state.ignores) : state.values;
 };
 
 /**
@@ -418,6 +423,7 @@ const removeIgnore = (state, name) => {
  * @property {(name: string) => void} removeIgnore - remove ignoring a field.
  * @property {(name: string) => void} setModified - mark a field as modified.
  * @property {(name: string) => void} clearModified - clear modified mark of a field.
+ * @property {() => FieldValues} formValues - returns the form values, excluding ignored fields.
  */
 
 /**
@@ -551,6 +557,7 @@ export function useForm(props) {
         removeIgnore: removeIgnore.bind(null, state),
         setModified: setModified.bind(null, state),
         clearModified: clearModified.bind(null, state),
+        formValues: formValues.bind(null, state),
     };
     provide(FormContextSymbol, formContext);
     return formContext;
