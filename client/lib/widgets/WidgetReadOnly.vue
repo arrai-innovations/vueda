@@ -1,6 +1,7 @@
 <script setup>
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
+import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { computed, reactive, toRef } from "vue";
@@ -23,14 +24,17 @@ const props = defineProps({
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetReadOnly", widgetContext.state);
-const validAndActive = computed(() => !!(props.app && props.model && widgetContext.state.combinedValue));
+const isActive = useIsActive();
+const validAndActive = computed(
+    () => !!(isActive.value && props.app && props.model && widgetContext.state.combinedValue),
+);
 const instanceObjectProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
     pkKey: toRef(props, "pkKey"),
-    pk: widgetContext.state.combinedValue,
+    pk: toRef(widgetContext.state, "combinedValue"),
     retrieveArgs: {
         f: [],
     },
