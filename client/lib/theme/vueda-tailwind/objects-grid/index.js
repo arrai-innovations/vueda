@@ -61,6 +61,13 @@ export default {
                     "bg-surface-100 dark:bg-surface-800": evenCard,
                     "!table-row": isTable,
                 },
+                [
+                    "max-lg:grid",
+                    "max-lg:gap-2",
+                    "max-lg:p-2",
+                    "max-lg:grid-flow-dense",
+                    "max-lg:[grid-template-columns:repeat(auto-fill,_minmax(180px,_1fr))]",
+                ],
             ],
         },
     },
@@ -91,16 +98,7 @@ export default {
     },
     ObjectsGridCardCell: {
         root: {
-            class: [
-                "gap-2",
-                "p-2",
-                "2xs:grid",
-                "2xs:gap-4",
-                "2xs:grid-cols-2",
-                "2xs:grid-flow-row",
-                "sm:flex",
-                "sm:flex-col",
-            ],
+            class: ["gap-2", "p-2"],
         },
         header: {
             class: [

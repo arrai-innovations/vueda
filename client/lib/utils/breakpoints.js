@@ -1,5 +1,5 @@
 export const breakpointsTailwind = {
-    "2sm": 480, // custom, see tailwind.config.js#theme[.extend].screens
+    "2xs": 480, // custom, see tailwind.config.js#theme[.extend].screens
     sm: 640,
     md: 768,
     lg: 1024,
