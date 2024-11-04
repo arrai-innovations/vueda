@@ -20,11 +20,11 @@ onMounted(() => {
         console.error("FormChores.vue must be used within a field context, or a field name must be provided.");
     }
 });
-const computedName = computed(() => props.name || fieldContext?.state?.name);
-const computedHelp = computed(() => props.help || fieldContext?.state?.help);
+const computedName = computed(() => (props.name?.length ? props.name : fieldContext?.state?.name));
+const computedHelp = computed(() => (props.help?.length ? props.help : fieldContext?.state?.help));
 </script>
 <template>
-    <form-help-text v-if="computedHelp">
+    <form-help-text v-if="computedHelp" :help="computedHelp">
         <template v-if="$slots[`field(${computedName})help`]" #default="slotProps">
             <slot :name="`field(${computedName})help`" v-bind="slotProps" />
         </template>
