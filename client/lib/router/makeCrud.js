@@ -12,6 +12,7 @@ import { requireAuth, requireGroups, requireModelInfo } from "@vueda/router/guar
  * @param {object} [params.actionRedirect=null] - The route to redirect if action not found.
  * @param {import('vue').App} params.vueApp - The Vue app instance.
  * @param {import('vue-router').Router} params.router - The Vue router instance.
+ * @param {import('pinia').Pinia} params.pinia - The Pinia instance.
  * @returns {import('vue-router').RouteLocationNormalized[]} The generated routes.
  */
 export function makeCRUDRoutes({
@@ -23,13 +24,14 @@ export function makeCRUDRoutes({
     pathPrefix = "",
     vueApp,
     router,
+    pinia,
 }) {
     const beforeEnter = [];
     if (authRedirect) {
-        beforeEnter.push((to) => requireAuth(authRedirect, to, router));
+        beforeEnter.push((to) => requireAuth(authRedirect, to, router, pinia));
     }
 
-    beforeEnter.push((to) => requireModelInfo(vueApp, actionRedirect, to, router));
+    beforeEnter.push((to) => requireModelInfo(vueApp, actionRedirect, to, router, pinia));
 
     if (groups) {
         beforeEnter.push((to) =>
@@ -44,6 +46,7 @@ export function makeCRUDRoutes({
                 groupsRedirect,
                 to,
                 router,
+                pinia,
             ),
         );
     }

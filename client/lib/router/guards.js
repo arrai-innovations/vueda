@@ -7,10 +7,11 @@ import isEmpty from "lodash-es/isEmpty.js";
  * Wait for the user to be initialized. This is useful if you're making your own
  * custom guards that need to know if the user is logged in or not.
  *
+ * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<import('@vueda/stores/storeUser.js').UserStore>} The user store.
  */
-export async function waitForInitialising() {
-    const userStore = storeUser();
+export async function waitForInitialising(pinia) {
+    const userStore = storeUser(pinia);
     if (!userStore.initialized) {
         await userStore.fetchCurrentUser();
     }
@@ -19,18 +20,19 @@ export async function waitForInitialising() {
 
 /**
  *  Wait for store model config to load
- * @param app
- * @param model
+ * @param app {string} The app name.
+ * @param model {string} The model name.
+ * @param pinia {import('pinia').Pinia} The Pinia instance.
  * @returns {Promise<[import('@vueda/stores/storeModelInfo.js').ModelInfo, import('@vueda/stores/storeModelConfig.js').ModelConfig]>}
  */
-export async function waitForStoreInfoLoad(app, model) {
+export async function waitForStoreInfoLoad(app, model, pinia) {
     // ##############################################################################################################
     // # don't use useModelInfo or useModelConfig here to avoid creating reactive effects outside a component scope #
     // ##############################################################################################################
     const args = { app, model };
-    const modelInfoStore = storeModelInfo();
+    const modelInfoStore = storeModelInfo(pinia);
     const infoStore = await modelInfoStore.fetchModelInfo(args);
-    const modelConfig = storeModelConfig();
+    const modelConfig = storeModelConfig(pinia);
     const configStore = await modelConfig.getConfig(args);
     return [infoStore, configStore];
 }
@@ -72,11 +74,12 @@ function resolveRedirect(redirectTo, router) {
  * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if not authenticated.
  * @param {import('vue-router').RouteLocationNormalized} to - The target route.
  * @param {import('vue-router').Router} router - The router instance.
+ * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<import('vue-router').RouteLocationNormalizedLoaded|void>} The redirect route if needed.
  */
-export async function requireAuth(redirectTo, to, router) {
+export async function requireAuth(redirectTo, to, router, pinia) {
     const resolvedRedirectTo = resolveRedirect(redirectTo, router);
-    const userStore = await waitForInitialising();
+    const userStore = await waitForInitialising(pinia);
     if (!userStore.loggedIn) {
         return { ...resolvedRedirectTo, query: { ...resolvedRedirectTo.query, redirect: to.fullPath } };
     }
@@ -107,10 +110,11 @@ export async function requireAuth(redirectTo, to, router) {
  * ```
  * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if authenticated.
  * @param {import('vue-router').Router} router - The router instance.
+ * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<import('vue-router').RouteLocationNormalizedLoaded|void>} The redirect route if needed.
  */
-export async function requireUnauth(redirectTo, router) {
-    const userStore = await waitForInitialising();
+export async function requireUnauth(redirectTo, router, pinia) {
+    const userStore = await waitForInitialising(pinia);
     if (userStore.loggedIn) {
         return resolveRedirect(redirectTo, router);
     }
@@ -140,10 +144,11 @@ export async function requireUnauth(redirectTo, router) {
  *
  * export default router;
  * ```
+ * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<void>}
  */
-export async function requireInitialized() {
-    await waitForInitialising();
+export async function requireInitialized(pinia) {
+    await waitForInitialising(pinia);
 }
 
 /**
@@ -182,10 +187,11 @@ export async function requireInitialized() {
  * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if not authorized.
  * @param {import('vue-router').RouteLocationNormalizedLoaded} to - The target route.
  * @param {import('vue-router').Router} router - The router instance.
+ * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} True if authorized, or redirect route.
  */
-export async function requireGroups(instance, toastArgs, groups, redirectTo, to, router) {
-    const userStore = await waitForInitialising();
+export async function requireGroups(instance, toastArgs, groups, redirectTo, to, router, pinia) {
+    const userStore = await waitForInitialising(pinia);
     /** @type {import('primevue/toastservice').ToastServiceMethods} */
     const toast = instance.config.globalProperties.$toast;
     if (isEmpty(groups)) {
@@ -211,13 +217,14 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to,
  * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if model info not found.
  * @param {import('vue-router').RouteLocationNormalizedLoaded} to - The target route.
  * @param {import('vue-router').Router} router - The router instance.
+ * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} True if model info exists, or redirect route.
  */
-export async function requireModelInfo(instance, redirectTo, to, router) {
+export async function requireModelInfo(instance, redirectTo, to, router, pinia) {
     const toast = instance.config.globalProperties.$toast;
     /** @type {import('primevue/toastservice').ToastServiceMethods} */
     try {
-        const [infoStore, configStore] = await waitForStoreInfoLoad(to.params.app, to.params.model);
+        const [infoStore, configStore] = await waitForStoreInfoLoad(to.params.app, to.params.model, pinia);
         let actions = infoStore.actions.map((action) => action.name);
         if (configStore.routerActions) {
             actions = actions.filter((action) => configStore.routerActions.includes(action));
