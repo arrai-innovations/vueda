@@ -1,6 +1,6 @@
 <script setup>
 import { crudComponents } from "@vueda/router/routerComponent.js";
-import { useModelInfo } from "@vueda/use/useModelInfo.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { getPascalCaseName } from "@vueda/utils/crudSupport.js";
 import ViewActionNotFound from "@vueda/views/ViewActionNotFound.vue";
 import ViewLoading from "@vueda/views/ViewLoading.vue";
@@ -26,7 +26,7 @@ const props = defineProps({
         required: true,
     },
 });
-const modelInfo = useModelInfo(toRef(props, "app"), toRef(props, "model"));
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const getExtraActionComponent = async (action) => {
     try {
         return (
@@ -41,7 +41,7 @@ const getExtraActionComponent = async (action) => {
 /** @type {import('vue').Ref<Promise<import('vue').Component>|()=>import('vue').Component>} */
 const actionComponentRef = ref(() => ViewLoading);
 watch(
-    [() => modelInfo.loading, () => props.action, () => modelInfo.info?.actions],
+    [() => modelConfig.loading, () => props.action, () => modelConfig.info?.actions],
     async ([loading, actionStr, actionsObj]) => {
         if (loading) {
             actionComponentRef.value = () => ViewLoading;
