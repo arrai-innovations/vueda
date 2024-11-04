@@ -103,7 +103,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     // let props and modelConfig not pass actual components
                     return availableFields[component];
                 }
-                return component;
+                return component || availableFields.FieldString;
             });
         });
         return component;
@@ -143,7 +143,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     // Allow props and modelConfig to pass component names
                     return availableWidgets[component];
                 }
-                return component;
+                return component || availableWidgets.WidgetInput;
             });
         });
 

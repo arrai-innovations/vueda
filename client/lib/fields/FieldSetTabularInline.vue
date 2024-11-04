@@ -54,9 +54,13 @@ const props = defineProps({
                 name: `delete_`,
                 extra: true,
                 label: "Delete?",
-                readOnly: false,
+                action: true,
             },
         ],
+    },
+    fieldObjects: {
+        type: Array,
+        default: undefined,
     },
 });
 const emit = defineEmits([...FIELD_EMITS]);
@@ -66,16 +70,17 @@ const fieldNames = computed(() => {
     if (props.fields) {
         return props.fields;
     } else {
-        //TODO: prob needs to ignore ID for display fields
-        const fields = formModel?.expandDetails?.[fieldContext.state.name].f;
+        const fields = formModel?.expandDetails?.[fieldContext.state.name]?.f;
         const omitFields = formModel?.expandDetails?.[fieldContext.state.name].hidden;
         return fields ? Object.keys(omit(fields, omitFields)) : [];
     }
 });
 
 const fieldObjects = computed(() => {
-    const fields = formModel?.expandDetails?.[fieldContext.state.name].f;
-
+    if (props.fieldObjects) {
+        return props.fieldObjects;
+    }
+    const fields = formModel?.expandDetails?.[fieldContext.state.name]?.f;
     return fields
         ? fieldNames.value?.map((name) => {
               return {
@@ -131,14 +136,18 @@ const removeObject = (index) => {
 const objectsInOrder = computed(() => {
     return fieldContext.state.value;
 });
+const computedFieldProps = computed(() => {
+    return merge(formModel.fieldProps[fieldContext.state.name], props.fieldProps);
+});
 const computedFieldObjects = computed(() => {
-    return [...fieldObjects.value, ...props.extraFieldObjects];
+    const objects = [...fieldObjects.value, ...props.extraFieldObjects];
+    if (computedFieldProps.value.readOnly) {
+        return objects?.filter((field) => !field.action);
+    }
+    return objects;
 });
 const calculatedObjects = computed(() => {
     return formModel.fieldProps[fieldContext.state.name]?.calculatedObjects;
-});
-const computedFieldProps = computed(() => {
-    return merge(formModel.fieldProps[fieldContext.state.name], props.fieldProps);
 });
 </script>
 
@@ -170,6 +179,9 @@ const computedFieldProps = computed(() => {
                 table-breakpoint="lg"
                 :variant="props.objectGridVariant"
             >
+                <template v-for="field in fieldObjects" :key="field.name" #[`header(${field.name})`]="slotProps">
+                    <slot :name="`header(${field.name})`" v-bind="slotProps"></slot>
+                </template>
                 <template v-for="field in fieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
                     <slot
                         :field-class="theme('field')"
