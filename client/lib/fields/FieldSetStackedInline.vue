@@ -116,9 +116,9 @@ const handleDeleteSingle = (selected_) => {
 
 <template>
     <div :class="theme('root')">
-        <div :class="theme('header')">
-            <slot :class="theme('title')" name="inline-title">
-                <div :class="theme('title')">
+        <div :class="theme('outer')">
+            <slot :class="theme('label')" name="label">
+                <div :class="theme('label')">
                     {{ fieldContext.state.label }}
                 </div>
             </slot>

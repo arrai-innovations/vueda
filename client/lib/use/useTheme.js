@@ -8,6 +8,10 @@ export function useTheme(componentName, props, keyFn) {
     return useComputedClasses(defaultTheme[componentName], props, keyFn);
 }
 
+export function getTheme() {
+    return cloneDeep(defaultTheme);
+}
+
 export function setTheme(newTheme) {
     defaultTheme = cloneDeep(newTheme);
 }
