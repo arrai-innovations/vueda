@@ -15,12 +15,14 @@ class CustomerSerializer(VuedaHistorySerializer):
         queryset=get_user_model().objects.filter(is_system=False),
     )
     formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
+    number_of_ordered_products = serializers.SerializerMethodField()
 
     class Meta(VuedaHistorySerializer.Meta):
         model = models.Customer
         fields = [
             "id",
             "user",
+            "number_of_ordered_products",
         ] + VuedaHistorySerializer.Meta.fields
         expandable_fields = {
             "user": (
@@ -38,6 +40,9 @@ class CustomerSerializer(VuedaHistorySerializer):
             "single_value": serializers.SerializerMethodField,
         }
         expandable_fields.update(VuedaHistorySerializer.Meta.expandable_fields)
+
+    def get_number_of_ordered_products(self, obj):
+        return 20
 
     def get_expandable_fields(self):
         expandable_fields = super().get_expandable_fields()
