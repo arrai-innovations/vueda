@@ -144,10 +144,11 @@ export async function requireUnauth(redirectTo, router, pinia) {
  *
  * export default router;
  * ```
+ * @param {import('vue-router').Router} _router - The router instance.
  * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<void>}
  */
-export async function requireInitialized(pinia) {
+export async function requireInitialized(_router, pinia) {
     await waitForInitialising(pinia);
 }
 
