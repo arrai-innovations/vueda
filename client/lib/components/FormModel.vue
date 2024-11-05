@@ -140,7 +140,7 @@
 import FormChores from "@vueda/components/FormChores.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { useSlots } from "vue";
 
@@ -221,6 +221,7 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const formModel = useFormModel(props);
 const theme = useTheme("FormModel");
@@ -248,7 +249,7 @@ const getSlotNamesFor = (type, fieldName) => {
     <div :class="theme('root')" data-qa="form-model">
         <template v-if="formModel.fields?.length">
             <div v-if="$slots.beforeFields" :class="theme('beforeFields')">
-                <slot name="beforeFields" />
+                <slot :form-attrs="$attrs" :form-props="$props" name="beforeFields" />
             </div>
             <div v-bind="$attrs">
                 <slot
@@ -256,6 +257,8 @@ const getSlotNamesFor = (type, fieldName) => {
                     :field-components="formModel.fieldComponents"
                     :field-details="formModel.fieldDetails"
                     :field-props="formModel.fieldProps"
+                    :form-attrs="$attrs"
+                    :form-props="$props"
                     name="fields"
                     :theme="theme"
                     :widget-components="formModel.widgetComponents"
@@ -267,6 +270,8 @@ const getSlotNamesFor = (type, fieldName) => {
                             :field-detail="formModel.fieldDetails[fieldName]"
                             :field-inner-class="theme('fieldInner')"
                             :field-props="formModel.fieldProps[fieldName]"
+                            :form-attrs="$attrs"
+                            :form-props="$props"
                             :name="`field(${fieldName})`"
                             :theme="theme"
                             :widget-component="formModel.widgetComponents[fieldName]"
@@ -288,6 +293,8 @@ const getSlotNamesFor = (type, fieldName) => {
                                     <div :class="theme('fieldInner')">
                                         <slot
                                             :field-object="formModel.fieldDetails[fieldName]"
+                                            :form-attrs="$attrs"
+                                            :form-props="$props"
                                             :name="`widget(${fieldName})`"
                                             :theme="theme"
                                             :widget-component="formModel.widgetComponents[fieldName]"
@@ -322,7 +329,7 @@ const getSlotNamesFor = (type, fieldName) => {
                 </slot>
             </div>
             <div v-if="$slots.afterFields" :class="theme('afterFields')">
-                <slot name="afterFields" />
+                <slot :form-attrs="$attrs" :form-props="$props" name="afterFields" />
             </div>
         </template>
         <template v-else>

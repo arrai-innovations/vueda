@@ -1,5 +1,5 @@
 <script setup>
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 const props = defineProps({
     field: {
@@ -32,6 +32,7 @@ const props = defineProps({
         default: () => ({}),
         description: "Props to pass to the field slots",
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 
 const theme = useTheme("ObjectsGridTableHeader", props);

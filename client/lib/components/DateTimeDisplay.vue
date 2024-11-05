@@ -1,5 +1,5 @@
 <script setup>
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { DateTime } from "luxon";
 import { computed, onMounted, onUnmounted, ref, toRef, watch } from "vue";
 
@@ -23,6 +23,7 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 
 const parsedValue = computed(() => {

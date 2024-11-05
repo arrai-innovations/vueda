@@ -1,6 +1,6 @@
 <script setup>
 import { useObjectGridCell } from "@vueda/use/useObjectGridCell.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 const props = defineProps({
     field: {
@@ -41,6 +41,7 @@ const props = defineProps({
         type: [String, Number],
         default: undefined,
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 
 const theme = useTheme("ObjectsGridCardCell", props);

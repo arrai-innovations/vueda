@@ -1,6 +1,6 @@
 <script setup>
 import EmptyComponent from "@vueda/components/EmptyComponent.vue";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import InputGroup from "primevue/inputgroup";
@@ -18,6 +18,7 @@ const props = defineProps({
         type: String,
         default: "text",
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);

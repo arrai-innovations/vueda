@@ -2,7 +2,7 @@
 import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import ObjectsGridCardCell from "@vueda/components/ObjectsGridCardCell.vue";
 import ObjectsGridTableHeader from "@vueda/components/ObjectsGridTableHeader.vue";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsTailwind } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
 import { computed, onMounted, reactive, toRef, watch } from "vue";
@@ -132,6 +132,7 @@ const props = defineProps({
         type: Function,
         default: () => null,
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits(["update:sorted", "update:isTable"]);
 

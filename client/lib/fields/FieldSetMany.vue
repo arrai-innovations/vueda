@@ -1,7 +1,7 @@
 <script setup>
 import FormChores from "@vueda/components/FormChores.vue";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isArray from "lodash-es/isArray.js";
@@ -15,6 +15,7 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const preprocessGet = (value) => {
     if (value === undefined || value === null) {

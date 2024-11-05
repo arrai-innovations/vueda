@@ -6,7 +6,7 @@ import FieldString from "@vueda/fields/FieldString.vue";
 import useFilterForm from "@vueda/use/useFilterForm.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useModelFilterInitialValues } from "@vueda/use/useModelInitialValues.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { filterExpressions } from "@vueda/utils/filterLookups.js";
 import WidgetRadio from "@vueda/widgets/WidgetRadio.vue";
@@ -45,6 +45,7 @@ const props = defineProps({
         default: undefined,
         description: "A dictionary of overriding filterable details.",
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const filterForm = useFilterForm(props);
 

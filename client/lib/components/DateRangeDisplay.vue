@@ -1,5 +1,5 @@
 <script setup>
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { DateTime } from "luxon";
 import { computed } from "vue";
 
@@ -20,6 +20,7 @@ const props = defineProps({
         type: String,
         default: "en-CA",
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 
 const theme = useTheme("DateRangeDisplay", props);

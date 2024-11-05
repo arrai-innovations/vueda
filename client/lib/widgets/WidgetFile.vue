@@ -1,5 +1,5 @@
 <script setup>
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Button from "primevue/button";
@@ -19,6 +19,7 @@ const props = defineProps({
         type: Number,
         default: 1000000,
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);

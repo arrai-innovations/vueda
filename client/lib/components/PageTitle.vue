@@ -1,6 +1,6 @@
 <script setup>
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 const props = defineProps({
     headerClass: {
@@ -23,6 +23,7 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const theme = useTheme("PageTitle", props);
 </script>

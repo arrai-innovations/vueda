@@ -1,5 +1,5 @@
 <script setup>
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 // don't shadow html element names
@@ -10,6 +10,7 @@ defineOptions({
 });
 const props = defineProps({
     ...WIDGET_PROPS,
+    ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);

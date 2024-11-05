@@ -3,7 +3,7 @@ import FormChores from "@vueda/components/FormChores.vue";
 import InlineRow from "@vueda/components/InlineRow.vue";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -17,6 +17,7 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);

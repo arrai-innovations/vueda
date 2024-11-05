@@ -1,5 +1,5 @@
 <script setup>
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import Paginator from "primevue/paginator";
 import { ref } from "vue";
 
@@ -18,6 +18,7 @@ const props = defineProps({
         type: Number,
         required: true,
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const offset = ref(0);
 const onPaginate = async (page) => {

@@ -5,7 +5,7 @@ import FormHelpText from "@vueda/components/FormHelpText.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
@@ -62,6 +62,7 @@ const props = defineProps({
         type: Array,
         default: undefined,
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);

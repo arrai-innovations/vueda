@@ -1,5 +1,5 @@
 <script setup>
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import { formatError } from "@vueda/utils/formatError.js";
 import isArray from "lodash-es/isArray.js";
@@ -43,6 +43,7 @@ const props = defineProps({
         default: "Click here to go back.",
         description: "The text to display as the link in the message.",
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits(["dismiss-error"]);
 

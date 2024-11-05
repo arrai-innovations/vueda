@@ -1,7 +1,7 @@
 <script setup>
 import { useList } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
@@ -30,6 +30,7 @@ const props = defineProps({
         type: String,
         default: "s",
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const emit = defineEmits([...WIDGET_EMITS]);

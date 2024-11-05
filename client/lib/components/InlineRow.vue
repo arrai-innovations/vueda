@@ -1,7 +1,7 @@
 <script setup>
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
@@ -53,6 +53,7 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const formModel = inject(FormModelSymbol, null);
 const theme = useTheme("FieldSetStackedInlineRow");

@@ -2,7 +2,7 @@
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { capitalize } from "lodash-es";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
@@ -53,6 +53,7 @@ const props = defineProps({
         type: Object,
         default: () => {},
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const toast = useToast();
 const router = useRouter();

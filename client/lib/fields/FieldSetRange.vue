@@ -1,7 +1,7 @@
 <script setup>
 import FormChores from "@vueda/components/FormChores.vue";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import omit from "lodash-es/omit.js";
 import { computed, toRef, useAttrs, watch } from "vue";
 
@@ -20,6 +20,7 @@ const props = defineProps({
         type: Array,
         default: () => ["lower", "upper"],
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const theme = useTheme("FieldSetRange");
 const emit = defineEmits([...FIELD_EMITS]);

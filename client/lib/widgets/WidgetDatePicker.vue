@@ -1,5 +1,5 @@
 <script setup>
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import DatePicker from "primevue/datepicker";
@@ -14,6 +14,7 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
@@ -29,8 +30,7 @@ const valueUpdated = (value) => {
     widgetContext.state.combinedValue = value;
 };
 const onTodayButtonClick = () => {
-    const currentDate = getCurrentDate();
-    widgetContext.state.combinedValue = currentDate;
+    widgetContext.state.combinedValue = getCurrentDate();
 };
 
 const getCurrentDate = () => {
