@@ -27,7 +27,7 @@ const fieldValueRef = toRef(fieldContext.state, "value");
 watch(
     [toRef(props, "maxValue"), fieldValueRef],
     ([maxValue, value]) => {
-        if (maxValue && value > maxValue) {
+        if (fieldValueRef.value !== "" && maxValue && value > maxValue) {
             fieldContext.updateError("maxValue", `Must be ${maxValue} or less.`);
         } else {
             fieldContext.deleteError("maxValue");
@@ -38,7 +38,7 @@ watch(
 watch(
     [toRef(props, "minValue"), fieldValueRef],
     ([minValue, value]) => {
-        if (minValue && value < minValue) {
+        if (fieldValueRef.value !== "" && minValue && value < minValue) {
             fieldContext.updateError("minValue", `Must be ${minValue} or more.`);
         } else {
             fieldContext.deleteError("minValue");
@@ -60,7 +60,7 @@ const stepScaleFactor = computed(() => {
 watch(
     [toRef(props, "step"), fieldValueRef],
     ([step, value]) => {
-        if (step) {
+        if (step && fieldValueRef.value !== "") {
             const factor = stepScaleFactor.value;
             const stepScaled = step * factor;
             const valueScaled = value * factor;
