@@ -95,3 +95,57 @@ class TestModelInfoErrs:
             "'formatted_name' into field. Choices are: id, "
             "relatedobjectsaremissingdata, the_name_field"
         ) in response.data["serverStack"]
+
+    def test_invalid_choices_model(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.setup_router_and_registry()
+
+        response = api_client.get(
+            "/routes/vueda.info/model_info_choices/store/pets/tangible_type/",
+            data={},
+        )
+        assert response.status_code == 404, pformat(response.data)
+        assert 'Unable to find the content type "store.pets".' == response.data["detail"]
+
+    def test_invalid_filter_choices_model(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.setup_router_and_registry()
+
+        response = api_client.get(
+            "/routes/vueda.info/model_info_filter_choices/store/pets/tangible_type/",
+            data={},
+        )
+        assert response.status_code == 404, pformat(response.data)
+        assert 'Unable to find the content type "store.pets".' == response.data["detail"]
+
+    def test_invalid_choices_field(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.setup_router_and_registry()
+
+        response = api_client.get(
+            "/routes/vueda.info/model_info_choices/erring/relatedobjectsaremissingdata/tangible_type/",
+            data={},
+        )
+        assert response.status_code == 400, pformat(response.data)
+        assert [
+            "Invalid field 'tangible_type'. No choice fields found on erring.RelatedObjectsAreMissingData."
+        ] == response.data["non_field_errors"]
+
+    def test_invalid_filter_choices_field(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.setup_router_and_registry()
+
+        response = api_client.get(
+            "/routes/vueda.info/model_info_filter_choices/erring/relatedobjectsaremissingdata/tangible_type/",
+            data={},
+        )
+        assert response.status_code == 400, pformat(response.data)
+        assert ["Invalid filter 'tangible_type'. Valid filters are id, no_name."] == response.data["non_field_errors"]
