@@ -43,9 +43,7 @@ export const THEME_OVERRIDE_PROPS = {
  *
  * @param {string} componentName - The name of the component.
  * @param {import('vue').UnwrapNestedRefs<{
- *     themeOverride: {
- *         [key: string]: CombinedClassesArgument|CombinedClassesArgument[]
- *     }
+ *     themeOverride: ThemeObject
  * }>} props - The reactive props to pass to the class function.
  * @param {(key: string, kwargs: object) => string} [keyFn] - A function to modify a key based on kwargs.
  * @returns {(key: string, kwargs?: import('vue').UnwrapNestedRefs<object>) => ThemeObject} A function that returns the classes for a given key and kwargs.
@@ -83,7 +81,8 @@ export function useTheme(componentName, props, keyFn) {
                 computeds[myKey] = computed(() => {
                     return combineClasses(
                         // kwargs doesn't affect themeOverride, so we use key not myKey
-                        unref(themeOverride)?.[key]?.class,
+                        // undefined is harmlessly filtered out by combineClasses
+                        unref(themeOverride)?.[componentName]?.[key] || undefined,
                         config[key].class({
                             ...(props || {}),
                             ...kwargs,

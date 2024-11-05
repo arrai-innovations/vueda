@@ -261,6 +261,7 @@ const getSlotNamesFor = (type, fieldName) => {
                     :form-props="$props"
                     name="fields"
                     :theme="theme"
+                    :theme-override="themeOverride"
                     :widget-components="formModel.widgetComponents"
                 >
                     <template v-for="fieldName in formModel.baseFieldNames" :key="fieldName">
@@ -274,6 +275,7 @@ const getSlotNamesFor = (type, fieldName) => {
                             :form-props="$props"
                             :name="`field(${fieldName})`"
                             :theme="theme"
+                            :theme-override="themeOverride"
                             :widget-component="formModel.widgetComponents[fieldName]"
                             :widget-props="formModel.widgetProps[fieldName]"
                         >
@@ -281,6 +283,7 @@ const getSlotNamesFor = (type, fieldName) => {
                                 :is="formModel.fieldComponents[fieldName]"
                                 v-if="formModel.fieldComponents[fieldName]"
                                 :class="theme('field')"
+                                :theme-override="themeOverride"
                                 v-bind="formModel.fieldProps[fieldName]"
                             >
                                 <template
@@ -297,13 +300,15 @@ const getSlotNamesFor = (type, fieldName) => {
                                             :form-props="$props"
                                             :name="`widget(${fieldName})`"
                                             :theme="theme"
+                                            :theme-override="themeOverride"
                                             :widget-component="formModel.widgetComponents[fieldName]"
                                             :widget-props="{ ...formModel.widgetProps[fieldName], ...slotProps }"
                                         >
                                             <component
                                                 :is="formModel.widgetComponents[fieldName]"
-                                                v-bind="{ ...formModel.widgetProps[fieldName], ...slotProps }"
                                                 v-if="formModel.widgetComponents[fieldName]"
+                                                :theme-override="themeOverride"
+                                                v-bind="{ ...formModel.widgetProps[fieldName], ...slotProps }"
                                             >
                                                 <template
                                                     v-for="slot in getSlotNamesFor('widget', fieldName)"
@@ -313,7 +318,7 @@ const getSlotNamesFor = (type, fieldName) => {
                                                 </template>
                                             </component>
                                         </slot>
-                                        <form-chores>
+                                        <form-chores :theme-override="themeOverride">
                                             <template
                                                 v-for="slot in getFormChoresSlotNames(fieldName)"
                                                 #[slot]="formChoresSlotProps"

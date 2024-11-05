@@ -77,7 +77,12 @@ watch(
                 <slot :name="`field(${fieldProp.name})`" v-bind="{ fieldProps, index }">
                     <div :class="theme('row')">
                         <div :class="theme('component')">
-                            <component :is="props.manyComponent" v-bind="fieldProp" :required="index > 0">
+                            <component
+                                :is="props.manyComponent"
+                                v-bind="fieldProp"
+                                :required="index > 0"
+                                :theme-override="themeOverride"
+                            >
                                 <slot :hidden="true" />
                             </component>
                         </div>

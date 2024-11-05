@@ -161,7 +161,7 @@ const calculatedObjects = computed(() => {
                 </slot>
             </label>
             <hr :class="theme('hr')" />
-            <form-chores>
+            <form-chores :theme-override="themeOverride">
                 <template v-for="slot in getFormChoresSlotNames(fieldContext.state.name)" #[slot]="formChoresSlotProps">
                     <slot :name="slot" v-bind="formChoresSlotProps" />
                 </template>
@@ -178,6 +178,7 @@ const calculatedObjects = computed(() => {
                 :fields="computedFieldObjects"
                 :objects-in-order="objectsInOrder"
                 table-breakpoint="lg"
+                :theme-override="themeOverride"
                 :variant="props.objectGridVariant"
             >
                 <template v-for="field in fieldObjects" :key="field.name" #[`header(${field.name})`]="slotProps">
@@ -195,6 +196,7 @@ const calculatedObjects = computed(() => {
                         }"
                         :name="`field(${field.name})`"
                         :theme="theme"
+                        :theme-override="themeOverride"
                         :widget-component="formModel.widgetComponents[field.name]"
                         :widget-props="{ ...formModel.widgetProps[field.name], hidden: true }"
                     >
@@ -204,12 +206,14 @@ const calculatedObjects = computed(() => {
                             :class="theme('field')"
                             v-bind="formModel.fieldProps[field.name]"
                             :name="`${fieldContext.state.name}[${slotProps.rowIndex}].${field.fieldName}`"
+                            :theme-override="themeOverride"
                         >
                             <div :class="theme('fieldInner')">
                                 <slot
                                     :field-object="formModel.fieldDetails[field.name]"
                                     :name="`widget(${field.name})`"
                                     :theme="theme"
+                                    :theme-override="themeOverride"
                                     :widget-component="formModel.widgetComponents[field.name]"
                                     :widget-props="{ ...formModel.widgetProps[field.name], hidden: true }"
                                 >
@@ -219,12 +223,18 @@ const calculatedObjects = computed(() => {
                                         v-if="formModel.widgetComponents[field.name] && !computedFieldProps.readOnly"
                                         :hidden="true"
                                         :model-value="slotProps.value"
+                                        :theme-override="themeOverride"
                                     />
-                                    <WidgetReadOnly v-else v-bind="formModel.widgetProps[field.name]" :hidden="true" />
+                                    <WidgetReadOnly
+                                        v-else
+                                        v-bind="formModel.widgetProps[field.name]"
+                                        :hidden="true"
+                                        :theme-override="themeOverride"
+                                    />
                                 </slot>
-                                <form-help-text />
-                                <form-feedback type="error" />
-                                <form-feedback type="message" />
+                                <form-help-text :theme-override="themeOverride" />
+                                <form-feedback :theme-override="themeOverride" type="error" />
+                                <form-feedback :theme-override="themeOverride" type="message" />
                             </div>
                         </component>
                     </slot>

@@ -208,7 +208,12 @@ const theme = useTheme("ObjectsGrid", themeProps, (key, kwargs) => {
                         role="columnheader"
                         @click="sortClick($event, field?.name)"
                     >
-                        <objects-grid-table-header v-if="field.extra" :col-index="colIndex" :field="field">
+                        <objects-grid-table-header
+                            v-if="field.extra"
+                            :col-index="colIndex"
+                            :field="field"
+                            :theme-override="themeOverride"
+                        >
                             <template #label="slotProps">
                                 <slot :name="`header(${field?.name})`" v-bind="slotProps" />
                             </template>
@@ -222,6 +227,7 @@ const theme = useTheme("ObjectsGrid", themeProps, (key, kwargs) => {
                             :field-props="fieldProps"
                             :multi-sort-index="sorted.length > 1 ? directionlessSorted.indexOf(field.name) : -1"
                             :sortable="sortables.includes(field.name)"
+                            :theme-override="themeOverride"
                         >
                             <template #label="slotProps">
                                 <slot :name="`header(${field?.name})`" v-bind="slotProps" />
@@ -270,6 +276,7 @@ const theme = useTheme("ObjectsGrid", themeProps, (key, kwargs) => {
                             :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
                             role="cell"
                             :row-index="rowIndex"
+                            :theme-override="themeOverride"
                         >
                             <template #header="slotProps">
                                 <slot :name="`header(${field?.name})`" v-bind="slotProps" />
@@ -293,6 +300,7 @@ const theme = useTheme("ObjectsGrid", themeProps, (key, kwargs) => {
                             :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
                             role="cell"
                             :row-index="rowIndex"
+                            :theme-override="themeOverride"
                         >
                             <template #value="slotProps">
                                 <slot :name="`field(${field?.name})`" v-bind="slotProps" />

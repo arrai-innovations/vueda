@@ -262,9 +262,19 @@ const theme = useTheme("FilterForm", props);
             </form-chores>
             <hr :class="theme('hr')" />
             <div :class="theme('fieldContainer')">
-                <field-string :class="theme('fieldLabel')" label="Filter Field" name="filterField" required>
-                    <widget-radio :class="theme('fieldInput')" :options="filterForm.filterableOptions" />
-                    <form-chores>
+                <field-string
+                    :class="theme('fieldLabel')"
+                    label="Filter Field"
+                    name="filterField"
+                    required
+                    :theme-override="themeOverride"
+                >
+                    <widget-radio
+                        :class="theme('fieldInput')"
+                        :options="filterForm.filterableOptions"
+                        :theme-override="themeOverride"
+                    />
+                    <form-chores :theme-override="themeOverride">
                         <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                             <slot :name="slot" v-bind="slotProps || {}" />
                         </template>
@@ -272,14 +282,21 @@ const theme = useTheme("FilterForm", props);
                 </field-string>
             </div>
             <div :class="theme('fieldContainer')">
-                <field-string :class="theme('fieldLabel')" label="Lookup Expression" name="lookupExpression" required>
+                <field-string
+                    :class="theme('fieldLabel')"
+                    label="Lookup Expression"
+                    name="lookupExpression"
+                    required
+                    :theme-override="themeOverride"
+                >
                     <widget-radio
                         :class="theme('fieldInput')"
                         option-label="label"
                         option-value="value"
                         :options="computedLookupExpressionOptions"
+                        :theme-override="themeOverride"
                     />
-                    <form-chores>
+                    <form-chores :theme-override="themeOverride">
                         <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                             <slot :name="slot" v-bind="slotProps || {}" />
                         </template>
@@ -294,14 +311,16 @@ const theme = useTheme("FilterForm", props);
                     :class="theme('fieldLabel')"
                     label="Filter Value"
                     required
+                    :theme-override="themeOverride"
                 >
                     <component
                         :is="displayedWidgetComponent"
                         v-if="displayedWidgetComponent"
                         :class="theme('fieldInput')"
                         v-bind="displayedWidgetProps"
+                        :theme-override="themeOverride"
                     />
-                    <form-chores>
+                    <form-chores :theme-override="themeOverride">
                         <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                             <slot :name="slot" v-bind="slotProps || {}" />
                         </template>
