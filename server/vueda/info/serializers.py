@@ -829,3 +829,7 @@ class ModelInfoChoicesSerializer(
     class Meta:
         fields = ["label", "value"]  # value is the pk
         expandable_fields = {}
+
+
+class ModelInfoFilterSetChoicesSerializer(ModelInfoChoicesSerializer):
+    pass

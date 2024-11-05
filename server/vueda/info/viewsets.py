@@ -21,6 +21,7 @@ from vueda.core.viewsets import FlexFieldsMixin
 from vueda.info.registration import get_registered_content_types
 from vueda.info.registration import get_registration
 from vueda.info.serializers import ModelInfoChoicesSerializer
+from vueda.info.serializers import ModelInfoFilterSetChoicesSerializer
 from vueda.info.serializers import ModelInfoSerializer
 
 
@@ -169,6 +170,8 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
     Effectively, this is a custom model viewset for content types.
     """
 
+    serializer_class = ModelInfoChoicesSerializer
+
     def validate_queryset(self, serializer, fields):
         if self.choices_field not in fields:
             valid_fieldnames = []
@@ -214,7 +217,6 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
         self.validate_queryset(serializer, fields)
 
         field = fields[self.choices_field]
-
         field_info = get_field_info(serializer.Meta.model)
 
         # If we add field level permissions at some point, then we will want to check them here.
@@ -335,6 +337,8 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
     Effectively, this is a custom model viewset for content types.
     """
+
+    serializer_class = ModelInfoFilterSetChoicesSerializer
 
     def validate_queryset(self, filterset, filter_mapping):
         if self.choices_field not in filter_mapping:
