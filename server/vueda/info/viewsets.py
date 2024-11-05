@@ -5,6 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db.models import CharField
 from django.db.models import F
 from django.db.models.functions.comparison import Cast
+from django.http import Http404
 from django.utils.functional import cached_property
 from rest_framework import generics
 from rest_framework import mixins
@@ -91,7 +92,7 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
 
     @cached_property
     def canonical(self):
-        return get_registration(self.choices_serializer_instance.pk)
+        return get_registration(self.content_type_instance.pk)
 
     def check_permissions(self, request):
         """
@@ -119,6 +120,29 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
 
         super().check_permissions(request)
 
+    def dispatch(self, request, app_label, model, field, *args, **kwargs):
+        self.choices_app_label = app_label
+        self.choices_model = model
+        self.choices_field = field
+
+        results = super().dispatch(request, *args, **kwargs)
+
+        if results.status_code != 200:
+            return results
+
+        content_types = ContentType.objects.all().filter(
+            pk__in=get_registered_content_types(), app_label=self.choices_app_label, model=self.choices_model
+        )
+
+        if not content_types.exists():
+            response = self.handle_exception(
+                Http404(f'Unable to find the content type "{self.choices_app_label}.{self.choices_model}".')
+            )
+            self.response = self.finalize_response(request, response, *args, **kwargs)
+            return self.response
+
+        return super().dispatch(request, *args, **kwargs)
+
     def get_formatted_name_lookup_expression(self, queryset):
         formatted_name = getattr(queryset.model, "formatted_name_lookup_expression", None)
 
@@ -126,6 +150,16 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
             return formatted_name
 
         return "formatted_name"
+
+    def get_content_type_instance(self):
+        content_types = ContentType.objects.all().filter(
+            pk__in=get_registered_content_types(), app_label=self.choices_app_label, model=self.choices_model
+        )
+        self.content_type_instance = content_type_instance = content_types.first()
+
+        # If we don't find the content type you are looking for, return the empty queryset.
+        if content_type_instance is None:
+            return content_types
 
 
 class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
@@ -135,51 +169,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
     Effectively, this is a custom model viewset for content types.
     """
 
-    def dispatch(self, request, app_label, model, field, *args, **kwargs):
-        self.choices_field = field
-        self.choices_serializer_instance = generics.get_object_or_404(
-            ContentType, app_label=app_label, model=model.replace("_", "")
-        )
-
-        serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
-
-        field_info = get_field_info(serializer.Meta.model)
-
-        # If we add field level permissions at some point, then we will want to check them here.
-        if self.choices_field in field_info.fields_and_pk:
-            model_class = serializer.Meta.model
-            meta = model_class._meta
-            self.choices_permissions = (f"{meta.app_label}.read_{meta.model_name}",)
-            self.choices_queryset_model = model_class
-
-        elif self.choices_field in field_info.relations:
-            related_field_info = field_info.relations[self.choices_field]
-            model_class = serializer.Meta.model
-            meta = model_class._meta
-            self.choices_permissions = (
-                f"{meta.app_label}.read_{meta.model_name}",
-                f"{related_field_info.related_model._meta.app_label}.list"
-                f"_{related_field_info.related_model._meta.model_name}",
-            )
-            self.choices_queryset_model = related_field_info.related_model._meta.model
-
-        else:
-            # This field does not exist.  In order to get the appropriate
-            #  invalid field message, we need to not blow up in check_permissions.
-            self.choices_permissions = ()
-            self.choices_must_raise = True
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_queryset(self):
-        """
-        Returns a queryset if the field is a relation.
-        Return a list if the field is not a relation.
-        """
-        serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
-
-        fields = serializer().get_fields()
-
+    def validate_queryset(self, serializer, fields):
         if self.choices_field not in fields:
             valid_fieldnames = []
             for field_name, field in fields.items():
@@ -209,11 +199,41 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                     f"Invalid field '{self.choices_field}'. No choice fields found on {serializer.Meta.model._meta.label}."
                 )
 
-        # If somehow we get here without raising, we must raise.
-        if hasattr(self, "choices_must_raise"):
-            raise ValidationError(f"Invalid field '{self.choices_field}'.")
+    def get_queryset(self):
+        """
+        Returns a queryset if the field is a relation.
+        Return a list if the field is not a relation.
+        """
+        content_types = self.get_content_type_instance()
+        if self.content_type_instance is None:
+            return content_types
+
+        serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
+        fields = serializer().get_fields()
+
+        self.validate_queryset(serializer, fields)
 
         field = fields[self.choices_field]
+
+        field_info = get_field_info(serializer.Meta.model)
+
+        # If we add field level permissions at some point, then we will want to check them here.
+        if self.choices_field in field_info.fields_and_pk:
+            model_class = serializer.Meta.model
+            meta = model_class._meta
+            self.choices_permissions = (f"{meta.app_label}.read_{meta.model_name}",)
+            self.choices_queryset_model = model_class
+
+        elif self.choices_field in field_info.relations:
+            related_field_info = field_info.relations[self.choices_field]
+            model_class = serializer.Meta.model
+            meta = model_class._meta
+            self.choices_permissions = (
+                f"{meta.app_label}.read_{meta.model_name}",
+                f"{related_field_info.related_model._meta.app_label}.list"
+                f"_{related_field_info.related_model._meta.model_name}",
+            )
+            self.choices_queryset_model = related_field_info.related_model._meta.model
 
         if hasattr(field, "child_relation"):
             queryset = field.child_relation.queryset
@@ -300,6 +320,7 @@ class FilterChoicesQueryset(collections.abc.Sequence):
 
     def __init__(self, choices, model):
         self.choices = [FilterChoice(*choice) for choice in choices]
+        self.model = model
 
     def __getitem__(self, index):
         return self.choices[index]
@@ -315,65 +336,52 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
     Effectively, this is a custom model viewset for content types.
     """
 
-    @staticmethod
-    def get_filter_mapping_with_field_name(filters):
-        filter_mapping = {}
-        for filter_name, filtr in filters.items():
-            filter_mapping[filter_name] = filtr
-        return filter_mapping
-
-    def dispatch(self, request, app_label, model, field, *args, **kwargs):
-        self.choices_field = field
-        self.choices_serializer_instance = generics.get_object_or_404(
-            ContentType, app_label=app_label, model=model.replace("_", "")
-        )
-        serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
-        model_class = serializer.Meta.model
-        meta = model_class._meta
-
-        viewset = self.canonical["viewset"]
-        filterset = viewset.filterset_class
-        filters = filterset.get_filters()
-
-        filter_mapping = self.get_filter_mapping_with_field_name(filters)
-        if field not in filter_mapping:
-            self.validation_error_message = (
-                f"Invalid filter {field}.  Valid filters are {', '.join(sorted(filter_mapping))}."
-            )
-            return super().dispatch(request, *args, **kwargs)
-
-        filtr = filter_mapping[field]
-
-        self.queryset = None
-        if hasattr(filtr, "queryset"):
-            self.queryset = filtr.queryset
-            related_model = filtr.queryset.model
-            related_meta = related_model._meta
-
-            self.choices_permissions = (
-                f"{meta.app_label}.read_{meta.model_name}",
-                f"{related_meta.app_label}.list_{related_meta.model_name}",
-            )
-
-            self.choices_queryset_model = related_model
-
-        else:
-            self.choices = filtr.field.widget._choices
-
-            self.choices_permissions = (f"{meta.app_label}.read_{meta.model_name}",)
-
-            self.choices_queryset_model = model_class
-
-        return super().dispatch(request, *args, **kwargs)
+    def validate_queryset(self, filterset, filter_mapping):
+        if self.choices_field not in filter_mapping:
+            valid_filter_names = tuple(filter_mapping)
+            if valid_filter_names:
+                raise ValidationError(
+                    f"Invalid filter '{self.choices_field}'. Valid filters are {', '.join(sorted(valid_filter_names))}."
+                )
+            else:
+                raise ValidationError(f"Invalid filter '{self.choices_field}'. No filters found on {filterset}.")
 
     def get_queryset(self):
         """
         Returns a queryset if the field is a relation.
         Return a list if the field is not a relation.
         """
-        # Need to raise this here, so the super dispatch can catch it and handle it correctly.
-        if hasattr(self, "validation_error_message"):
-            raise ValidationError(self.validation_error_message)
+        content_types = self.get_content_type_instance()
+        if self.content_type_instance is None:
+            return content_types
+
+        serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
+        model_class = serializer.Meta.model
+        meta = model_class._meta
+        viewset = self.canonical["viewset"]
+        filterset = viewset.filterset_class
+        filters = filterset.get_filters()
+        filter_mapping = dict(filters.items())
+
+        self.validate_queryset(filterset, filter_mapping)
+
+        filtr = filter_mapping[self.choices_field]
+
+        self.queryset = None
+        if hasattr(filtr, "queryset"):
+            self.queryset = filtr.queryset
+            related_model = filtr.queryset.model
+            related_meta = related_model._meta
+            self.choices_permissions = (
+                f"{meta.app_label}.read_{meta.model_name}",
+                f"{related_meta.app_label}.list_{related_meta.model_name}",
+            )
+            self.choices_queryset_model = related_model
+
+        else:
+            self.choices = filtr.field.widget._choices
+            self.choices_permissions = (f"{meta.app_label}.read_{meta.model_name}",)
+            self.choices_queryset_model = model_class
 
         if hasattr(self, "choices"):
             return FilterChoicesQueryset(self.choices, self.choices_queryset_model)
