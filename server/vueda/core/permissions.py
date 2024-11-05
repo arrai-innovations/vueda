@@ -36,7 +36,8 @@ class ObjectPermissions(DjangoObjectPermissions):
             from vueda.workflow.models import StatePermission
             from vueda.workflow.models import Workflow
 
-            model = view.queryset.model
+            queryset = view.get_queryset()
+            model = queryset.model
             if issubclass(model, HasWorkflowModelMixin):
                 workflow = Workflow.objects.filter(content_type=model.content_type()).first()
                 if (

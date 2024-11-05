@@ -64,7 +64,8 @@ class CartViewSet(VuedaViewSet):
 
     @action(detail=True, methods=["post"], permission_classes=(IsCartOrOrderCreator,))
     def create_order(self, request, pk):
-        cart = self.queryset.filter(pk=pk).first()
+        queryset = self.get_queryset()
+        cart = queryset.filter(pk=pk).first()
         if cart is None:
             raise Http404
 
@@ -90,7 +91,8 @@ class CartViewSet(VuedaViewSet):
         if not request.user.has_perm("store_customer_read"):
             raise PermissionDenied
 
-        abandoned_carts = self.queryset.filter(last_modified__gt=now() - relativedelta(days=7))
+        queryset = self.get_queryset()
+        abandoned_carts = queryset.filter(last_modified__gt=now() - relativedelta(days=7))
         return Response(abandoned_carts.count())
 
 

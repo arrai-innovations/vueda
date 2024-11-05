@@ -27,18 +27,24 @@ def register(canonical_serializer, canonical_viewset=None):
 
         return decorator
 
-    if hasattr(canonical_viewset.queryset, "model"):
+    model = None
+    if hasattr(canonical_viewset, "get_queryset") and canonical_viewset().get_queryset() is not None:
+        queryset = canonical_viewset().get_queryset()
+        model = queryset.model
+
+    if model is None and hasattr(canonical_viewset.queryset, "model"):
         model = canonical_viewset.queryset.model
 
     elif hasattr(canonical_serializer.Meta, "model"):
         model = canonical_serializer.Meta.model
 
-    else:
+    if model is None:
         raise ImproperlyConfigured(
             "Unable to determine the content type for while registering "
             f"{canonical_viewset} and {canonical_serializer}.  Either a model needs to be "
             f"defined in the serializer Meta or a queryset needs to be defined on the viewset."
         )
+
     key = f"{model._meta.app_label}.{model._meta.model_name}"
     if key in _registry:
         raise ValueError(f"{key} is already registered.")

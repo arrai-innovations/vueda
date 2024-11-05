@@ -11,7 +11,12 @@ class IncludeAppInRouteNameRouter(SimpleRouter):
     """
 
     def get_default_basename(self, viewset):
-        queryset = getattr(viewset, "queryset", None)
+        queryset = None
+        if hasattr(viewset, "get_queryset"):
+            queryset = viewset().get_queryset()
+
+        if queryset is None:
+            queryset = getattr(viewset, "queryset", None)
 
         assert queryset is not None, (
             "`basename` argument not specified, and could "

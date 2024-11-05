@@ -1,6 +1,7 @@
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 
+from tests.models import Timesheet
 from vueda import info
 from vueda.info import registration
 
@@ -16,7 +17,7 @@ class TestRegistration:
 
         @info.register(TimesheetSerializer)
         class TimesheetViewSet(VuedaViewSet):
-            pass
+            queryset = Timesheet.objects.all()
 
         assert len(_registry) == 1
         for registered_item in _registry.values():
@@ -55,7 +56,8 @@ class TestRegistration:
             pass
 
         class TestViewSet(VuedaHistoryViewSet):
-            pass
+            def get_queryset(self):
+                return None
 
         with pytest.raises(ImproperlyConfigured):
             info.register(TestSerializer, TestViewSet)

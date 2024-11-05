@@ -293,7 +293,8 @@ class DeactivateActionViewSetMixin:
         except ValueError:
             return Response({"error": "All primary keys must be valid integers."}, status=status.HTTP_400_BAD_REQUEST)
 
-        queryset = self.queryset.filter(pk__in=pks)
+        queryset = self.get_queryset()
+        queryset = queryset.filter(pk__in=pks)
 
         already_deactivated = []
         for instance in queryset:
@@ -345,7 +346,8 @@ class DeactivateActionViewSetMixin:
         except ValueError:
             return Response({"error": "All primary keys must be valid integers."}, status=status.HTTP_400_BAD_REQUEST)
 
-        queryset = self.queryset.filter(pk__in=pks)
+        queryset = self.get_queryset()
+        queryset = queryset.filter(pk__in=pks)
 
         already_activated = []
         for instance in queryset:
@@ -387,7 +389,8 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
         except ValueError:
             return Response({"error": "All primary keys must be valid integers."}, status=status.HTTP_400_BAD_REQUEST)
 
-        queryset = self.queryset.filter(pk__in=pks)
+        queryset = self.get_queryset()
+        queryset = queryset.filter(pk__in=pks)
 
         count, _ = queryset.delete()
 
