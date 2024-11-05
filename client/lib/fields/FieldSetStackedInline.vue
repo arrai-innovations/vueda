@@ -21,7 +21,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
-const theme = useTheme("FieldSetStackedInline");
+const theme = useTheme("FieldSetStackedInline", props);
 const selected = ref([]);
 const formModel = inject(FormModelSymbol, null);
 const fieldNames = computed(() => {

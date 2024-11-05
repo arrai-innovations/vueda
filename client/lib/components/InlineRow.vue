@@ -56,7 +56,7 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 const formModel = inject(FormModelSymbol, null);
-const theme = useTheme("FieldSetStackedInlineRow");
+const theme = useTheme("FieldSetStackedInlineRow", props);
 
 const emit = defineEmits(["delete-row", "update:selected"]);
 const onDelete = () => emit("delete-row", props.index);

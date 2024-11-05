@@ -59,8 +59,10 @@ watch(
 </script>
 <template>
     <template v-if="!isEmpty(feedbackItems)" v-for="message in Object.values(feedbackItems)" :key="message">
-        <slot :name="type" v-bind="{ message, type }">
-            <Message :closable="false" :severity="type === 'message' ? 'warn' : 'error'">{{ message }}</Message>
+        <slot :name="type" v-bind="{ message, type, attrs: $attrs }">
+            <Message v-bind="$attrs" :closable="false" :severity="type === 'message' ? 'warn' : 'error'">{{
+                message
+            }}</Message>
         </slot>
     </template>
 </template>

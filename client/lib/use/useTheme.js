@@ -2,7 +2,7 @@ import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isFunction from "lodash-es/isFunction.js";
-import { computed, effectScope, toRef, unref } from "vue";
+import { computed, effectScope, reactive, toRef, unref } from "vue";
 
 let defaultTheme = vuedaTailwind;
 
@@ -38,6 +38,15 @@ export const THEME_OVERRIDE_PROPS = {
  * })} ThemeObject
  */
 
+const getConfigValue = (configOrOverride, key, context) => {
+    const value = configOrOverride[key];
+    return isFunction(value) ? value(context) : value;
+};
+const getClassValue = (configOrOverride, key, context) => {
+    const classObj = getConfigValue(configOrOverride, key, context);
+    return isFunction(classObj?.class) ? classObj.class(context) : classObj?.class;
+};
+
 /**
  * A hook to get the classes for a given key and kwargs. Uses computeds for caching.
  *
@@ -45,10 +54,11 @@ export const THEME_OVERRIDE_PROPS = {
  * @param {import('vue').UnwrapNestedRefs<{
  *     themeOverride: ThemeObject
  * }>} props - The reactive props to pass to the class function.
+ * @param {import('vue').UnwrapNestedRefs<object>|import('vue').Ref<object>|object} [context] - The context to pass if the config or config.class is a function.
  * @param {(key: string, kwargs: object) => string} [keyFn] - A function to modify a key based on kwargs.
  * @returns {(key: string, kwargs?: import('vue').UnwrapNestedRefs<object>) => ThemeObject} A function that returns the classes for a given key and kwargs.
  */
-export function useTheme(componentName, props, keyFn) {
+export function useTheme(componentName, props, context, keyFn) {
     const computeds = {};
     const es = effectScope();
 
@@ -61,15 +71,16 @@ export function useTheme(componentName, props, keyFn) {
     }
     const themeOverride = toRef(props, "themeOverride");
 
+    let myContext = context;
+    if (!myContext) {
+        myContext = reactive({
+            props,
+        });
+    }
+
     return (key, kwargs = {}) => {
         if (!config[key]) {
             throw new Error(`No theme config key found for ${key} in ${componentName}`);
-        }
-        if (!config[key].class) {
-            return {};
-        }
-        if (!isFunction(config[key].class)) {
-            return config[key].class;
         }
         let myKey = key;
         if (keyFn) {
@@ -79,15 +90,15 @@ export function useTheme(componentName, props, keyFn) {
         if (!computeds[myKey]) {
             es.run(() => {
                 computeds[myKey] = computed(() => {
-                    return combineClasses(
-                        // kwargs doesn't affect themeOverride, so we use key not myKey
-                        // undefined is harmlessly filtered out by combineClasses
-                        unref(themeOverride)?.[componentName]?.[key] || undefined,
-                        config[key].class({
-                            ...(props || {}),
-                            ...kwargs,
-                        }),
-                    );
+                    const calcContext = { ...(unref(myContext) || {}), ...kwargs };
+                    const defaultClass = getClassValue(config, key, calcContext);
+                    const overrideClass = getClassValue(unref(themeOverride)?.[componentName] || {}, key, calcContext);
+                    const result = combineClasses(defaultClass, overrideClass);
+                    if (componentName === "ObjectsGrid") {
+                        // limit logging otherwise it's too much
+                        console.log("Classes for", componentName, key, result, !!overrideClass);
+                    }
+                    return combineClasses(defaultClass, overrideClass);
                 });
             });
         }

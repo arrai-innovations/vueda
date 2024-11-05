@@ -5,4 +5,5 @@ export const breakpointsTailwind = {
     lg: 1024,
     xl: 1280,
     "2xl": 1536,
+    "3xl": 999999, // custom, see tailwind.config.js#theme[.extend].screens
 };

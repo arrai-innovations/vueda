@@ -224,7 +224,7 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 const formModel = useFormModel(props);
-const theme = useTheme("FormModel");
+const theme = useTheme("FormModel", props);
 const slots = useSlots();
 const getSlotNamesFor = (type, fieldName) => {
     // widget(fieldName)default !== widget(fieldName)

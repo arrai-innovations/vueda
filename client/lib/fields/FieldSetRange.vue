@@ -22,7 +22,7 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const theme = useTheme("FieldSetRange");
+const theme = useTheme("FieldSetRange", props);
 const emit = defineEmits([...FIELD_EMITS]);
 
 const fieldContext = useField(props, emit);

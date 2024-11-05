@@ -27,7 +27,7 @@ export default {
     },
     FieldSetTabularInline: {
         root: {
-            class: ["overflow-x-auto"],
+            // class: ["overflow-x-auto"],
         },
         inner: {
             class: ["flex flex-col"],

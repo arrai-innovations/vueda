@@ -106,7 +106,7 @@ const emptyFieldObject = () => {
 };
 
 const selected = ref([]);
-const theme = useTheme("FieldSetTabularInline");
+const theme = useTheme("FieldSetTabularInline", props);
 const onCreate = () => {
     fieldContext.blur();
     fieldContext.state.value = [...cloneDeep(fieldContext.state.value), emptyFieldObject()];
@@ -177,7 +177,7 @@ const calculatedObjects = computed(() => {
                 }"
                 :fields="computedFieldObjects"
                 :objects-in-order="objectsInOrder"
-                table-breakpoint="lg"
+                :table-breakpoint="$attrs.tableBreakpoint || 'lg'"
                 :theme-override="themeOverride"
                 :variant="props.objectGridVariant"
             >

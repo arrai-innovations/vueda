@@ -187,7 +187,7 @@ const themeProps = reactive({
     isTable,
     tableBreakpoint: toRef(props, "tableBreakpoint"),
 });
-const theme = useTheme("ObjectsGrid", themeProps, (key, kwargs) => {
+const theme = useTheme("ObjectsGrid", props, themeProps, (key, kwargs) => {
     if ("evenCard" in kwargs) {
         return key + (kwargs.evenCard ? "Even" : "Odd");
     }

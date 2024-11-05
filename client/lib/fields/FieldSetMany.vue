@@ -45,7 +45,7 @@ const onAdd = () => {
 const onDelete = (index) => {
     fieldContext.state.value = cloneDeep(fieldContext.state.value).filter((_, i) => i !== index);
 };
-const theme = useTheme("FieldSetMany");
+const theme = useTheme("FieldSetMany", props);
 
 const isEmptyValue = (value) => {
     return value === "";
