@@ -235,7 +235,7 @@ class TestModelInfoChoices:
 
         assert response.status_code == 400, pformat(response.data)
         assert response.data["non_field_errors"] == [
-            "Invalid field 'name'. Valid fields with choices are tangible_type, special_care."
+            "Invalid field 'name'. Valid fields with choices are special_care, tangible_type."
         ]
 
     def test_info_choices_list_non_choice_field_on_model_with_no_choice_fields(self, test_data, api_client):
@@ -281,7 +281,7 @@ class TestModelInfoChoices:
 
         assert response.status_code == 400, pformat(response.data)
         assert response.data["non_field_errors"] == [
-            "Invalid field 'named'. Valid fields with choices are tangible_type, special_care."
+            "Invalid field 'named'. Valid fields with choices are special_care, tangible_type."
         ]
 
     def test_info_choices_list_invalid_field_on_model_with_no_choice_fields(self, test_data, api_client):

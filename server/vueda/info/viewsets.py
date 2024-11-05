@@ -187,7 +187,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                     valid_fieldnames.append(field_name)
             if valid_fieldnames:
                 raise ValidationError(
-                    f"Invalid field '{self.choices_field}'. Valid fields with choices are {', '.join(valid_fieldnames)}."
+                    f"Invalid field '{self.choices_field}'. Valid fields with choices are {', '.join(sorted(valid_fieldnames))}."
                 )
             else:
                 raise ValidationError(
@@ -202,7 +202,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
             if valid_fieldnames:
                 raise ValidationError(
-                    f"Invalid field '{self.choices_field}'. Valid fields with choices are {', '.join(valid_fieldnames)}."
+                    f"Invalid field '{self.choices_field}'. Valid fields with choices are {', '.join(sorted(valid_fieldnames))}."
                 )
             else:
                 raise ValidationError(
