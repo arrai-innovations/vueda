@@ -28,15 +28,15 @@ def register(canonical_serializer, canonical_viewset=None):
         return decorator
 
     model = None
-    if hasattr(canonical_viewset, "get_queryset") and canonical_viewset().get_queryset() is not None:
+    if hasattr(canonical_serializer.Meta, "model"):
+        model = canonical_serializer.Meta.model
+
+    elif hasattr(canonical_viewset, "get_queryset") and canonical_viewset().get_queryset() is not None:
         queryset = canonical_viewset().get_queryset()
         model = queryset.model
 
     if model is None and hasattr(canonical_viewset.queryset, "model"):
         model = canonical_viewset.queryset.model
-
-    elif hasattr(canonical_serializer.Meta, "model"):
-        model = canonical_serializer.Meta.model
 
     if model is None:
         raise ImproperlyConfigured(
