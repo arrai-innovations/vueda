@@ -226,22 +226,48 @@ const props = defineProps({
 const formModel = useFormModel(props);
 const theme = useTheme("FormModel", props);
 const slots = useSlots();
-const getSlotNamesFor = (type, fieldName) => {
-    // widget(fieldName)default !== widget(fieldName)
-    // first is for filling the default slot on the formModel's configured widget component
-    // the second is for replacing the widget component with a different one
-    // same for fields
-    const prefix = `${type}(${fieldName})`;
+/**
+ * Helper to get slot names with a specific prefix, excluding certain slots.
+ *
+ * @param prefix {string} - The prefix to filter slot names by.
+ * @param exclude {string[]} - List of slot names or suffixes to exclude.
+ * @returns {[string, string][]} - An array of slot names and the slot name without the prefix.
+ */
+const getPrefixedSlots = (prefix, exclude = []) => {
     return Object.keys(slots)
-        .filter((slotName) => slotName.startsWith(prefix))
-        .map((slotName) => {
-            return [slotName, slotName.slice(prefix.length)];
-        })
-        .filter(([, insideSlotName]) => insideSlotName?.length)
-        .filter(
-            // exclude form-chores slots
-            ([, insideSlotName]) => ["help", "error", "message"].includes(insideSlotName),
-        );
+        .filter((slotName) => slotName.startsWith(prefix) && !exclude.includes(slotName))
+        .map((slotName) => [slotName, slotName.slice(prefix.length)])
+        .filter(([, insideSlotName]) => insideSlotName?.length && !exclude.includes(insideSlotName));
+};
+
+/**
+ * Get the slot names for a field or widget.
+ *
+ * @param type {string} - 'field' or 'widget'
+ * @param fieldName {string} - The field name
+ * @returns {[string, string][]} - An array of slot names and the slot name without the prefix
+ */
+const getSlotNamesFor = (type, fieldName) => {
+    const prefix = `${type}(${fieldName})`;
+    const slotKeys = getPrefixedSlots(prefix, ["help", "error", "message"]);
+
+    if (type === "field") {
+        const widgetPrefix = `widget(${fieldName})`;
+        slotKeys.push(...getPrefixedSlots(widgetPrefix, ["label", `${widgetPrefix}default`]));
+    }
+
+    const expandedPrefix = `${type}(${fieldName}__`;
+    slotKeys.push(...getPrefixedSlots(expandedPrefix));
+
+    if (type === "field") {
+        const expandedWidgetPrefix = `widget(${fieldName}__`;
+        slotKeys.push(...getPrefixedSlots(expandedWidgetPrefix, [`${expandedWidgetPrefix}default`]));
+
+        const headerPrefix = `header(${fieldName}__`;
+        slotKeys.push(...getPrefixedSlots(headerPrefix));
+    }
+
+    return slotKeys;
 };
 </script>
 
