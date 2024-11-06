@@ -1,51 +1,45 @@
 export default {
-    FormModel: {
+    FieldSetMany: {
         root: {
             class: [],
         },
         inner: {
-            class: ["flex flex-col"],
+            class: ["flex flex-col [&_input]:w-full"],
         },
         label: {
             class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
-        beforeFields: {
-            class: [],
+        header: {
+            class: ["flex", "items-center", "justify-between"],
         },
-        afterFields: {
-            class: [],
+        row: {
+            class: ["flex", "flex-wrap", "gap-2", "flex-row"],
         },
-        fields: {
-            class: [],
+        component: {
+            class: ["w-5/6"],
         },
-        field: {
-            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"],
-        },
-        fieldInner: {
+        createButton: {
             class: [],
         },
     },
-    FieldSetTabularInline: {
+    FieldSetRange: {
         root: {
-            // class: ["overflow-x-auto"],
+            class: [],
         },
         inner: {
-            class: ["flex flex-col"],
+            class: ["flex flex-row flex-wrap gap-2"],
         },
-        hr: {
-            class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2 my-2",
+        header: {
+            class: ["flex items-baseline gap-2"],
+        },
+        title: {
+            class: "ml-3 leading-7 text-surface-900 dark:text-white text-lg",
         },
         label: {
             class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
         field: {
-            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "min-w-1"],
-        },
-        fieldInner: {
-            class: [],
-        },
-        createButton: {
-            class: "grow",
+            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"],
         },
     },
     FieldSetStackedInline: {
@@ -77,26 +71,6 @@ export default {
             class: "grow",
         },
     },
-    FieldSetRange: {
-        root: {
-            class: [],
-        },
-        inner: {
-            class: ["flex flex-row flex-wrap gap-2"],
-        },
-        header: {
-            class: ["flex items-baseline gap-2"],
-        },
-        title: {
-            class: "ml-3 leading-7 text-surface-900 dark:text-white text-lg",
-        },
-        label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
-        },
-        field: {
-            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"],
-        },
-    },
     FieldSetStackedInlineRow: {
         root: {
             class: [],
@@ -117,27 +91,27 @@ export default {
             class: ["flex py-2"],
         },
     },
-    FieldSetMany: {
+    FieldSetTabularInline: {
         root: {
-            class: [],
+            // class: ["overflow-x-auto"],
         },
         inner: {
-            class: ["flex flex-col [&_input]:w-full"],
+            class: ["flex flex-col"],
+        },
+        hr: {
+            class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2 my-2",
         },
         label: {
             class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
-        header: {
-            class: ["flex", "items-center", "justify-between"],
+        field: {
+            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "min-w-1"],
         },
-        row: {
-            class: ["flex", "flex-wrap", "gap-2", "flex-row"],
-        },
-        component: {
-            class: ["w-5/6"],
+        fieldInner: {
+            class: [],
         },
         createButton: {
-            class: [],
+            class: "grow",
         },
     },
     FilterForm: {
@@ -176,6 +150,32 @@ export default {
         },
         message: {
             class: "text-red-600 dark:text-red-400",
+        },
+    },
+    FormModel: {
+        root: {
+            class: [],
+        },
+        inner: {
+            class: ["flex flex-col"],
+        },
+        label: {
+            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+        },
+        beforeFields: {
+            class: [],
+        },
+        afterFields: {
+            class: [],
+        },
+        fields: {
+            class: [],
+        },
+        field: {
+            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"],
+        },
+        fieldInner: {
+            class: [],
         },
     },
 };
