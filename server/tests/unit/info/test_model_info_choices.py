@@ -233,10 +233,11 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == 400, pformat(response.data)
-        assert response.data["non_field_errors"] == [
-            "Invalid field 'name'. Valid fields with choices are special_care, tangible_type."
-        ]
+        assert response.status_code == 404, pformat(response.data)
+        assert (
+            response.data["detail"]
+            == "Invalid field 'name'. Valid fields with choices are special_care, tangible_type."
+        )
 
     def test_info_choices_list_non_choice_field_on_model_with_no_choice_fields(self, test_data, api_client):
         user = test_data.users["test_admin@example.com"]
@@ -256,10 +257,8 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == 400, pformat(response.data)
-        assert response.data["non_field_errors"] == [
-            "Invalid field 'name'. No choice fields found on store.Distributor."
-        ]
+        assert response.status_code == 404, pformat(response.data)
+        assert response.data["detail"] == "Invalid field 'name'. No choice fields found on store.Distributor."
 
     def test_info_choices_list_invalid_field_on_model_with_choice_fields(self, test_data, api_client):
         user = test_data.users["test_admin@example.com"]
@@ -279,10 +278,11 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == 400, pformat(response.data)
-        assert response.data["non_field_errors"] == [
-            "Invalid field 'named'. Valid fields with choices are special_care, tangible_type."
-        ]
+        assert response.status_code == 404, pformat(response.data)
+        assert (
+            response.data["detail"]
+            == "Invalid field 'named'. Valid fields with choices are special_care, tangible_type."
+        )
 
     def test_info_choices_list_invalid_field_on_model_with_no_choice_fields(self, test_data, api_client):
         user = test_data.users["test_admin@example.com"]
@@ -302,7 +302,5 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == 400, pformat(response.data)
-        assert response.data["non_field_errors"] == [
-            "Invalid field 'named'. No choice fields found on store.Distributor."
-        ]
+        assert response.status_code == 404, pformat(response.data)
+        assert response.data["detail"] == "Invalid field 'named'. No choice fields found on store.Distributor."

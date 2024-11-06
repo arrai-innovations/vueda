@@ -132,10 +132,11 @@ class TestModelInfoErrs:
             "/routes/vueda.info/model_info_choices/erring/relatedobjectsaremissingdata/tangible_type/",
             data={},
         )
-        assert response.status_code == 400, pformat(response.data)
-        assert [
+        assert response.status_code == 404, pformat(response.data)
+        assert (
             "Invalid field 'tangible_type'. No choice fields found on erring.RelatedObjectsAreMissingData."
-        ] == response.data["non_field_errors"]
+            == response.data["detail"]
+        )
 
     def test_invalid_filter_choices_field(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -147,5 +148,5 @@ class TestModelInfoErrs:
             "/routes/vueda.info/model_info_filter_choices/erring/relatedobjectsaremissingdata/tangible_type/",
             data={},
         )
-        assert response.status_code == 400, pformat(response.data)
-        assert ["Invalid filter 'tangible_type'. Valid filters are id, no_name."] == response.data["non_field_errors"]
+        assert response.status_code == 404, pformat(response.data)
+        assert "Invalid filter 'tangible_type'. Valid filters are id, no_name." == response.data["detail"]

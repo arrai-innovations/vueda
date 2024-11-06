@@ -326,8 +326,8 @@ class TestModelInfoFiltersetChoices:
             format="json",
         )
 
-        assert response.status_code == 400, pformat(response.data)
-        assert response.data["non_field_errors"] == [
+        assert response.status_code == 404, pformat(response.data)
+        assert response.data["detail"] == (
             "Invalid filter 'invalid_filterset_field'. Valid filters are disabled, "
             "distributor, id, last_ordered, name, quantity, special_care, tangible_type."
-        ]
+        )

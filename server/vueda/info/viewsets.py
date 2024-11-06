@@ -9,7 +9,6 @@ from django.http import Http404
 from django.utils.functional import cached_property
 from rest_framework import generics
 from rest_framework import mixins
-from rest_framework.exceptions import ValidationError
 from rest_framework.filters import OrderingFilter
 from rest_framework.filters import SearchFilter
 from rest_framework.utils.model_meta import get_field_info
@@ -189,11 +188,11 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                 if hasattr(field, "choices") and field.choices:
                     valid_fieldnames.append(field_name)
             if valid_fieldnames:
-                raise ValidationError(
+                raise Http404(
                     f"Invalid field '{self.choices_field}'. Valid fields with choices are {', '.join(sorted(valid_fieldnames))}."
                 )
             else:
-                raise ValidationError(
+                raise Http404(
                     f"Invalid field '{self.choices_field}'. No choice fields found on {serializer.Meta.model._meta.label}."
                 )
 
@@ -204,11 +203,11 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                     valid_fieldnames.append(field_name)
 
             if valid_fieldnames:
-                raise ValidationError(
+                raise Http404(
                     f"Invalid field '{self.choices_field}'. Valid fields with choices are {', '.join(sorted(valid_fieldnames))}."
                 )
             else:
-                raise ValidationError(
+                raise Http404(
                     f"Invalid field '{self.choices_field}'. No choice fields found on {serializer.Meta.model._meta.label}."
                 )
 
@@ -354,11 +353,11 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         if self.choices_field not in filter_mapping:
             valid_filter_names = tuple(filter_mapping)
             if valid_filter_names:
-                raise ValidationError(
+                raise Http404(
                     f"Invalid filter '{self.choices_field}'. Valid filters are {', '.join(sorted(valid_filter_names))}."
                 )
             else:
-                raise ValidationError(f"Invalid filter '{self.choices_field}'. No filters found on {filterset}.")
+                raise Http404(f"Invalid filter '{self.choices_field}'. No filters found on {filterset}.")
 
     def get_queryset(self):
         """
