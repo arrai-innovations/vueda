@@ -338,7 +338,7 @@ const toggleVisibility = () => {
                         :field-class="theme('field')"
                         :field-props="computedFieldProps"
                         :label="field.label"
-                        :name="`field(${field.name})`"
+                        name="delete-button"
                         :theme="theme"
                         :value="field.value"
                         verb="delete"
@@ -352,7 +352,7 @@ const toggleVisibility = () => {
                         :field-class="theme('field')"
                         :field-props="computedFieldProps"
                         :label="field.label"
-                        :name="`field(${field.name})`"
+                        name="delete-checkbox"
                         :theme="theme"
                         :value="field.value"
                         verb="delete"
@@ -362,7 +362,7 @@ const toggleVisibility = () => {
                         <Checkbox
                             :input-id="`selected-row-${slotProps.rowIndex}`"
                             :model-value="selected"
-                            name="selected"
+                            name="delete-checkbox"
                             :value="slotProps.rowIndex"
                             @update:model-value="handleSelected"
                         />
