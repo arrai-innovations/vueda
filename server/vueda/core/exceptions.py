@@ -4,9 +4,11 @@ from traceback import format_exception_only
 
 import sentry_sdk
 from django.conf import settings
+from django.http import JsonResponse
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
+from rest_framework.status import HTTP_404_NOT_FOUND
 from rest_framework.views import exception_handler
 
 
@@ -46,3 +48,7 @@ class BadRequestException(APIException):
     status_code = HTTP_400_BAD_REQUEST
     default_detail = "There was a problem with your request."
     default_code = "bad_request"
+
+
+def page_not_found(request, exception, *args, **kwargs):
+    return JsonResponse({"error": "Not Found (404)"}, status=HTTP_404_NOT_FOUND)

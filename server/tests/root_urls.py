@@ -22,6 +22,7 @@ urlpatterns = [
 
 handler500 = "rest_framework.exceptions.server_error"
 handler400 = "rest_framework.exceptions.bad_request"
+handler404 = "vueda.core.exceptions.page_not_found"
 
 if settings.DEBUG:
     # Static file serving when using Gunicorn + Uvicorn for local web socket development
