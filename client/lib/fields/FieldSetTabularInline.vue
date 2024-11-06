@@ -211,6 +211,8 @@ const calculatedObjects = computed(() => {
                             <div :class="theme('fieldInner')">
                                 <slot
                                     :field-object="formModel.fieldDetails[field.name]"
+                                    :fieldset-attrs="$attrs"
+                                    :fieldset-props="computedFieldProps"
                                     :name="`widget(${field.name})`"
                                     :theme="theme"
                                     :theme-override="themeOverride"
