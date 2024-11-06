@@ -332,6 +332,8 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         from vueda.core.viewsets import VuedaViewSet  # noqa F401
 
         viewset = self.canonical["viewset"]  # type: VuedaViewSet
+        if viewset is None:
+            return []
 
         queryset = viewset().get_queryset()
         meta = queryset.model._meta
@@ -392,6 +394,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         from vueda.core.viewsets import VuedaViewSet  # noqa F401
 
         viewset = self.canonical["viewset"]  # type: viewsets.VuedaViewSet
+        if viewset is None:
+            return []
+
         queryset = viewset().get_queryset()
         model = queryset.model
         ordering_data = []
@@ -676,6 +681,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         from vueda.core.viewsets import VuedaViewSet  # noqa F401
 
         viewset = self.canonical["viewset"]  # type: viewsets.VuedaViewSet
+        if viewset is None:
+            return {}
+
         queryset = viewset().get_queryset()
         model = queryset.model
         filtering_data = {}

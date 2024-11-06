@@ -130,7 +130,7 @@ class TestModelInfoSerializer:
         info.register(store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet)
         info.register(store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet)
         info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
-        info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
+        info.register_serializer(store_serializers.OptionTypeSerializer)
         info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
         info.register(store_serializers.CartSerializer, store_viewsets.CartViewSet)
         info.register(store_serializers.CartItemSerializer, store_viewsets.CartItemViewSet)

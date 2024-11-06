@@ -490,54 +490,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "option type",
             "verbose_name_plural": "option types",
-            "expected_actions": [
-                {
-                    "name": "list",
-                    "bulk": False,
-                    "description": "list store.optiontype",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
-                    "name": "retrieve",
-                    "bulk": False,
-                    "description": "retrieve store.optiontype",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "create",
-                    "bulk": False,
-                    "description": "create store.optiontype",
-                    "detail": False,
-                    "method_names": ["post"],
-                },
-                {
-                    "name": "update",
-                    "bulk": False,
-                    "description": "update store.optiontype",
-                    "detail": True,
-                    "method_names": ["put"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "partial_update",
-                    "bulk": False,
-                    "description": "partial_update store.optiontype",
-                    "detail": True,
-                    "method_names": ["patch"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "destroy",
-                    "bulk": True,
-                    "description": "destroy store.optiontype",
-                    "detail": True,
-                    "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-            ],
+            "expected_actions": [],
             "expected_expands": [],
             "expected_fields": {
                 "id": {
@@ -587,9 +540,7 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "name", "type": "alpha"},
-            ],
+            "expected_ordering": [],
             "expected_permissions": [
                 {"codename": "create_optiontype", "name": "Can create option type"},
                 {"codename": "delete_optiontype", "name": "Can delete option type"},
