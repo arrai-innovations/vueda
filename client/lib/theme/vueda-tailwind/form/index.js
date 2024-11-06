@@ -152,6 +152,11 @@ export default {
             class: "text-red-600 dark:text-red-400",
         },
     },
+    FormHelpText: {
+        root: {
+            class: ["my-2"],
+        },
+    },
     FormModel: {
         root: {
             class: [],
