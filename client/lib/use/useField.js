@@ -25,6 +25,10 @@ export const FIELD_PROPS = {
         type: Boolean,
         default: false,
     },
+    readOnly: {
+        type: Boolean,
+        default: false,
+    },
     requiredMessage: {
         type: String,
         default: "This field is required.",
@@ -86,6 +90,8 @@ export function onBeforeFieldUnmount(fieldContext) {
  * @typedef {object} FieldContextRawState
  * @property {import('vue').ComputedRef<string>} name - The name of the field.
  * @property {import('vue').ComputedRef<string>} label - The label for the field.
+ * @property {import('vue').ComputedRef<string>} dependents - The dependents for the field.
+ * @property {import('vue').ComputedRef<string>} readOnly - Whether the field is read only.
  * @property {import('vue').ComputedRef<string>} help - The help text for the field.
  * @property {import('vue').WritableComputedRef<any>} value - The current value of the field.
  * @property {import('vue').ComputedRef<any>} initialValue - The initial value of the field.
@@ -168,6 +174,7 @@ export function useField(props, emit, functions) {
     const state = reactive({
         name: readonly(toRef(props, "name")),
         dependents: readonly(toRef(props, "dependents")),
+        readOnly: readonly(toRef(props, "readOnly")),
         label: computed(() => (props.label?.length ? props.label : props.name)),
         help: computed(() => props.help || ""),
         suffix: computed(() => props.rangeSuffix || ""),
@@ -203,7 +210,7 @@ export function useField(props, emit, functions) {
         ignored: formContext ? computed(() => formContext.state.ignored[props.name]) : false,
     });
     const checkRequired = () => {
-        if (props.required && state.touched && formContext) {
+        if (props.required && state.touched && formContext && !state.readOnly) {
             if (!unref(requiredFn)(state.value, state.name) || state.ignored) {
                 formContext.updateError(props.name, "required", requiredMessage.value);
             } else {

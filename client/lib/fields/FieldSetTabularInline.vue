@@ -286,6 +286,7 @@ const toggleVisibility = () => {
                             name: `${fieldContext.state.name}[${slotProps.rowIndex}].${field.fieldName}`,
                         }"
                         :name="`field(${field.name})`"
+                        :read-only="computedFieldProps.readOnly"
                         :theme="theme"
                         :theme-override="themeOverride"
                         :widget-component="formModel.widgetComponents[field.name]"
@@ -297,6 +298,7 @@ const toggleVisibility = () => {
                             :class="theme('field')"
                             v-bind="formModel.fieldProps[field.name]"
                             :name="`${fieldContext.state.name}[${slotProps.rowIndex}].${field.fieldName}`"
+                            :read-only="computedFieldProps.readOnly"
                             :theme-override="themeOverride"
                         >
                             <div :class="theme('fieldInner')">
