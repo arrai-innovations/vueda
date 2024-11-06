@@ -93,11 +93,6 @@ export function useTheme(componentName, props, context, keyFn) {
                     const calcContext = { ...(unref(myContext) || {}), ...kwargs };
                     const defaultClass = getClassValue(config, key, calcContext);
                     const overrideClass = getClassValue(unref(themeOverride)?.[componentName] || {}, key, calcContext);
-                    const result = combineClasses(defaultClass, overrideClass);
-                    if (componentName === "ObjectsGrid") {
-                        // limit logging otherwise it's too much
-                        console.log("Classes for", componentName, key, result, !!overrideClass);
-                    }
                     return combineClasses(defaultClass, overrideClass);
                 });
             });
