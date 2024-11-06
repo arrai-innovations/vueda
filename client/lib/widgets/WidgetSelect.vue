@@ -18,7 +18,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetSelect", widgetContext.state);
+const theme = useTheme("WidgetSelect", props, widgetContext.state);
 const attrs = useAttrs();
 const handleFocus = (e) => {
     widgetContext.focus();

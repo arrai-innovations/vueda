@@ -18,7 +18,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetAutoComplete", widgetContext.state);
+const theme = useTheme("WidgetAutoComplete", props, widgetContext.state);
 const attrs = useAttrs();
 const handleFocus = (e) => {
     widgetContext.focus();

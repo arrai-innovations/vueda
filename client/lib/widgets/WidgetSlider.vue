@@ -21,7 +21,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetDatePicker", widgetContext.state);
+const theme = useTheme("WidgetDatePicker", props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">

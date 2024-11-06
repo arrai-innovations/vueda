@@ -27,7 +27,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetRadio", widgetContext.state);
+const theme = useTheme("WidgetRadio", props, widgetContext.state);
 const computedOptions = computed(() => {
     return props.options.map((option) => {
         return {

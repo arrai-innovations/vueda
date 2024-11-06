@@ -34,7 +34,7 @@ const props = defineProps({
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetAutoComplete", widgetContext.state);
+const theme = useTheme("WidgetAutoComplete", props, widgetContext.state);
 const listSearch = ref("");
 const selectedValue = ref(null);
 

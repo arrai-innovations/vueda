@@ -70,7 +70,7 @@ const intendToList = computed(() => {
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetSearchableSelect", widgetContext.state);
+const theme = useTheme("WidgetSearchableSelect", props, widgetContext.state);
 const listSearch = ref("");
 const modelListProps = reactive({
     crudArgs: {

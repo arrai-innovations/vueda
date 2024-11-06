@@ -73,7 +73,7 @@ const editor = useEditor({
         widgetContext.blur();
     },
 });
-const theme = useTheme("WidgetHtml", widgetContext.state);
+const theme = useTheme("WidgetHtml", props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('outer')">

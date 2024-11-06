@@ -30,7 +30,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetDuration", widgetContext.state);
+const theme = useTheme("WidgetDuration", props, widgetContext.state);
 
 const valueDay = computed(() => {
     return widgetContext.state.combinedValue?.days;

@@ -12,7 +12,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetCheckbox", widgetContext.state);
+const theme = useTheme("WidgetCheckbox", props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">

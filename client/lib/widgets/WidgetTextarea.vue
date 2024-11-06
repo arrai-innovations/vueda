@@ -14,7 +14,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetTextarea", widgetContext.state);
+const theme = useTheme("WidgetTextarea", props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">

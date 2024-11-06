@@ -1,4 +1,4 @@
-import { breakpointsTailwind } from "@vueda/utils/breakpoints.js";
+import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
 import { defineStore } from "pinia";
 
@@ -44,7 +44,7 @@ export const storeCollapseNav = defineStore({
     actions: {
         init() {
             const storedCollapseNav = localStorage.getItem(collapseNavLocalStorageKey);
-            const breakpoint = useBreakpoints(breakpointsTailwind);
+            const breakpoint = useBreakpoints(breakpointsVueda);
             this.isCollapsed =
                 storedCollapseNav !== null ? JSON.parse(storedCollapseNav) : breakpoint.isGreaterOrEqual("lg");
         },

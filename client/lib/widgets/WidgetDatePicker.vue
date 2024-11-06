@@ -18,7 +18,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetDatePicker", widgetContext.state);
+const theme = useTheme("WidgetDatePicker", props, widgetContext.state);
 const valueIsArray = computed(() => Array.isArray(widgetContext.state.combinedValue));
 const computedSelectionMode = computed(() =>
     props.selectionMode ? props.selectionMode : valueIsArray.value ? "range" : "single",

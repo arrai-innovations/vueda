@@ -3,7 +3,7 @@ import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import ObjectsGridCardCell from "@vueda/components/ObjectsGridCardCell.vue";
 import ObjectsGridTableHeader from "@vueda/components/ObjectsGridTableHeader.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { breakpointsTailwind } from "@vueda/utils/breakpoints.js";
+import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
 import { computed, onMounted, reactive, toRef, watch } from "vue";
 
@@ -136,7 +136,7 @@ const props = defineProps({
 });
 const emit = defineEmits(["update:sorted", "update:isTable"]);
 
-const breakpoints = useBreakpoints(breakpointsTailwind);
+const breakpoints = useBreakpoints(breakpointsVueda);
 const isTable = breakpoints.greaterOrEqual(toRef(props, "tableBreakpoint"));
 const twoColumns = breakpoints.between("sm", toRef(props, "tableBreakpoint"));
 watch(isTable, (newValue) => {

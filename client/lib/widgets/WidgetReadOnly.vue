@@ -24,7 +24,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetReadOnly", widgetContext.state);
+const theme = useTheme("WidgetReadOnly", props, widgetContext.state);
 const isActive = useIsActive();
 const validAndActive = computed(
     () => !!(isActive.value && props.app && props.model && widgetContext.state.combinedValue),

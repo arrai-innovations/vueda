@@ -1,4 +1,5 @@
-export const breakpointsTailwind = {
+// custom tailwind-based breakpoints
+export const breakpointsVueda = {
     "2xs": 480, // custom, see tailwind.config.js#theme[.extend].screens
     sm: 640,
     md: 768,

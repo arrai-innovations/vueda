@@ -23,7 +23,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetFile", widgetContext.state);
+const theme = useTheme("WidgetFile", props, widgetContext.state);
 
 const upload = (e) => {
     widgetContext.state.combinedValue = e.files[0];

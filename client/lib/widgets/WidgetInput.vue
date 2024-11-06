@@ -33,7 +33,7 @@ const inputComponent = computed(
         })[props.type] || InputText,
 );
 
-const theme = useTheme("WidgetInput", widgetContext.state);
+const theme = useTheme("WidgetInput", props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">

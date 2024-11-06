@@ -22,7 +22,7 @@ const upload = (e) => {
 const onRemove = () => {
     widgetContext.state.combinedValue = null;
 };
-const theme = useTheme("WidgetImage", widgetContext.state);
+const theme = useTheme("WidgetImage", props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">

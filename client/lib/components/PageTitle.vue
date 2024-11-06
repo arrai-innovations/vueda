@@ -1,7 +1,7 @@
 <script setup>
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { breakpointsTailwind } from "@vueda/utils/breakpoints.js";
+import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
 
 const props = defineProps({
@@ -30,7 +30,7 @@ const props = defineProps({
 const theme = useTheme("PageTitle", props);
 let breakpoints, breakpointsActive;
 if (import.meta.env.DEV) {
-    breakpoints = useBreakpoints(breakpointsTailwind);
+    breakpoints = useBreakpoints(breakpointsVueda);
     breakpointsActive = breakpoints.active();
 }
 </script>
