@@ -9,11 +9,13 @@ const props = defineProps({
         default: "",
     },
     format: {
-        type: String,
-        validator(value) {
-            return ["inline", "break", "relative", "absolute"].includes(value);
-        },
+        type: [String, Object],
         default: "inline",
+    },
+    tooltipFormat: {
+        type: [String, Object],
+        description: "When using a custom format, this format will be used for the tooltip.",
+        default: "default",
     },
     showTime: {
         type: Boolean,
@@ -54,14 +56,40 @@ const updateRelative = () => {
         updateRelativeInterval = null;
     }
 };
-const absolute = computed(() =>
-    parsedValue.value.isValid
-        ? parsedValue.value.toLocaleString(
-              props.showTime ? { ...DateTime.DATETIME_SHORT, timeZoneName: "short" } : DateTime.DATE_SHORT,
-          )
-        : "",
-);
+const absolute = computed(() => {
+    if (!parsedValue.value.isValid) {
+        return "";
+    }
+    if (["inline", "break", "relative", "absolute"].includes(props.format)) {
+        return parsedValue.value.toLocaleString(
+            props.showTime ? { ...DateTime.DATETIME_SHORT, timeZoneName: "short" } : DateTime.DATE_SHORT,
+        );
+    }
+    if (props.format === "default") {
+        const defaultFormat = props.showTime
+            ? { ...DateTime.DATETIME_SHORT, timeZoneName: "short" }
+            : DateTime.DATE_SHORT;
+        return parsedValue.value.toLocaleString(defaultFormat);
+    }
+    return toLocaleStringORToFormat(parsedValue.value, props.format);
+});
+
 updateRelative();
+
+/**
+ * @param value {DateTime}
+ * @param format {string|Object}
+ * @returns {string}
+ */
+const toLocaleStringORToFormat = (value, format) => {
+    if (format === "default") {
+        return value.toLocaleString(props.showTime ? DateTime.DATETIME_FULL : DateTime.DATE_FULL);
+    }
+    if (typeof format === "string") {
+        return value.toFormat(format);
+    }
+    return value.toLocaleString(format);
+};
 
 watch(parsedValue, updateRelative);
 
@@ -83,6 +111,9 @@ onUnmounted(() => {
 defineExpose({ parsedValue, relative, absolute });
 const theme = useTheme("DateTimeDisplay", props);
 const tooltipTheme = computed(() => toRef(props, "showTooltip") && theme("tooltip"));
+const tooltipContent = computed(() => {
+    return parsedValue.value.isValid ? toLocaleStringORToFormat(parsedValue.value, props.tooltipFormat) : "";
+});
 </script>
 
 <template>
@@ -102,9 +133,14 @@ const tooltipTheme = computed(() => toRef(props, "showTooltip") && theme("toolti
                     absolute
                 }}</span>
             </template>
-            <span v-else :class="[theme('relative'), tooltipTheme]" :title="showTooltip ? absolute : undefined">
+            <span
+                v-else-if="format === 'relative'"
+                :class="[theme('relative'), tooltipTheme]"
+                :title="showTooltip ? absolute : undefined"
+            >
                 {{ relative }}
             </span>
+            <span v-else :class="[tooltipTheme]" :title="showTooltip ? tooltipContent : undefined">{{ absolute }}</span>
         </template>
         <span v-else :class="theme('dash')">-</span>
     </div>
