@@ -79,6 +79,10 @@ const props = defineProps({
         validator: (value) => ["always", "never"].includes(value) || Object.keys(breakpointsVueda).includes(value),
         default: "lg",
     },
+    showCreateButton: {
+        type: Boolean,
+        default: true,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...FIELD_EMITS]);
@@ -234,7 +238,7 @@ const toggleVisibility = () => {
                         />
                     </slot>
                     <slot
-                        v-if="!computedFieldProps.readOnly"
+                        v-if="!computedFieldProps.readOnly && props.showCreateButton"
                         :class="theme('createButton')"
                         :field-props="computedFieldProps"
                         label="Create"
