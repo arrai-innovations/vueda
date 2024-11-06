@@ -45,6 +45,17 @@ class ModelInfoViewSet(FlexFieldsMixin, ReadOnlyModelViewSet):
     serializer_class = ModelInfoSerializer
     permission_classes = [ObjectPermissions]
 
+    def initial(self, request, *args, **kwargs):
+        if "app_label" in self.kwargs and "model" in self.kwargs:
+            content_types = ContentType.objects.all().filter(
+                pk__in=get_registered_content_types(), app_label=self.kwargs["app_label"], model=self.kwargs["model"]
+            )
+
+            if not content_types.exists():
+                raise Http404(f'Unable to find the content type "{self.kwargs["app_label"]}.{self.kwargs["model"]}".')
+
+        return super().initial(request, *args, **kwargs)
+
     def get_queryset(self):
         return ContentType.objects.all().filter(pk__in=get_registered_content_types())
 
@@ -131,18 +142,17 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
         if results.status_code != 200:
             return results
 
+        return super().dispatch(request, *args, **kwargs)
+
+    def initial(self, request, *args, **kwargs):
         content_types = ContentType.objects.all().filter(
             pk__in=get_registered_content_types(), app_label=self.choices_app_label, model=self.choices_model
         )
 
         if not content_types.exists():
-            response = self.handle_exception(
-                Http404(f'Unable to find the content type "{self.choices_app_label}.{self.choices_model}".')
-            )
-            self.response = self.finalize_response(request, response, *args, **kwargs)
-            return self.response
+            raise Http404(f'Unable to find the content type "{self.choices_app_label}.{self.choices_model}".')
 
-        return super().dispatch(request, *args, **kwargs)
+        return super().initial(request, *args, **kwargs)
 
     def get_formatted_name_lookup_expression(self, queryset):
         formatted_name = getattr(queryset.model, "formatted_name_lookup_expression", None)
