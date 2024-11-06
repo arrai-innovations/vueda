@@ -52,8 +52,11 @@ export default {
         outer: {
             class: ["flex items-baseline gap-2"],
         },
-        label: {
-            class: "ml-3 leading-7 text-surface-900 dark:text-white",
+        header: {
+            class: "ml-3 leading-7",
+        },
+        title: {
+            class: "text-surface-900 dark:text-white",
         },
         hr: {
             class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2 my-2",
@@ -93,7 +96,7 @@ export default {
     },
     FieldSetTabularInline: {
         root: {
-            // class: ["overflow-x-auto"],
+            class: [],
         },
         inner: {
             class: ["flex flex-col"],
@@ -101,8 +104,14 @@ export default {
         hr: {
             class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2 my-2",
         },
-        label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+        titleBar: {
+            class: "ml-3 leading-7 flex items-baseline gap-4 justify-between",
+        },
+        title: {
+            class: "text-surface-900 dark:text-white",
+        },
+        actionBar: {
+            class: "grow-0 flex gap-2",
         },
         field: {
             class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "min-w-1"],
@@ -111,7 +120,10 @@ export default {
             class: [],
         },
         createButton: {
-            class: "grow",
+            class: [],
+        },
+        toggleButton: {
+            class: [],
         },
     },
     FilterForm: {

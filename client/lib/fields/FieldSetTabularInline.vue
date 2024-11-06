@@ -6,15 +6,17 @@ import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
+import { useBreakpoints } from "@vueuse/core";
 import { merge } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
-import { computed, inject, ref } from "vue";
+import { computed, inject, ref, watch } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -61,6 +63,21 @@ const props = defineProps({
     fieldObjects: {
         type: Array,
         default: undefined,
+    },
+    visible: {
+        type: Boolean,
+        default: undefined,
+    },
+    hidable: {
+        type: Boolean,
+        default: true,
+    },
+    hiddenByDefault: {
+        type: String,
+        description:
+            "Should the fieldset be hidden by default? Can be 'always', 'never', or a VUEDA breakpoint threshold, at or above the fieldset is shown by default.",
+        validator: (value) => ["always", "never"].includes(value) || Object.keys(breakpointsVueda).includes(value),
+        default: "lg",
     },
     ...THEME_OVERRIDE_PROPS,
 });
@@ -150,16 +167,85 @@ const computedFieldObjects = computed(() => {
 const calculatedObjects = computed(() => {
     return formModel.fieldProps[fieldContext.state.name]?.calculatedObjects;
 });
+const breakpoints = useBreakpoints(breakpointsVueda);
+const isVisibleByDefault = computed(() => {
+    if (props.hiddenByDefault === "always") {
+        return false;
+    } else if (props.hiddenByDefault === "never") {
+        return true;
+    } else if (Object.keys(breakpointsVueda).includes(props.hiddenByDefault)) {
+        return breakpoints.greaterOrEqual(props.hiddenByDefault).value;
+    }
+    return true;
+});
+
+const userHasToggled = ref(false);
+const internalVisible = ref(props.visible ?? isVisibleByDefault.value);
+
+watch(
+    () => props.visible,
+    (newVal) => {
+        if (newVal !== undefined) {
+            internalVisible.value = newVal;
+        }
+    },
+    { immediate: true },
+);
+
+watch(isVisibleByDefault, (newVal) => {
+    if (!userHasToggled.value && props.visible === undefined) {
+        internalVisible.value = newVal;
+    }
+});
+
+const toggleVisibility = () => {
+    if (props.visible !== undefined) {
+        emit("update:visible", !internalVisible.value);
+    } else {
+        internalVisible.value = !internalVisible.value;
+    }
+    userHasToggled.value = true;
+};
 </script>
 
 <template>
     <div :class="theme('root')" data-qa="fieldset-tabular-inline">
         <div :class="theme('inner')">
-            <label :class="theme('label')" :for="fieldContext.state.name">
-                <slot name="label">
-                    {{ fieldContext.state.label }}
-                </slot>
-            </label>
+            <header :class="theme('titleBar')" :for="fieldContext.state.name">
+                <div :class="theme('title')">
+                    <slot name="title">
+                        {{ fieldContext.state.label }}
+                    </slot>
+                </div>
+                <div :class="theme('actionBar')">
+                    <slot
+                        v-if="hidable"
+                        :class="theme('toggleButton')"
+                        :field-props="computedFieldProps"
+                        :label="internalVisible ? 'Hide' : 'Show'"
+                        name="toggle-button"
+                        :verb="internalVisible ? 'toggleVisibilityHide' : 'toggleVisibilityShow'"
+                        @click="toggleVisibility"
+                    >
+                        <Button
+                            :class="theme('toggleButton')"
+                            :label="internalVisible ? 'Hide' : 'Show'"
+                            @click="toggleVisibility"
+                        />
+                    </slot>
+                    <slot
+                        v-if="!computedFieldProps.readOnly"
+                        :class="theme('createButton')"
+                        :field-props="computedFieldProps"
+                        label="Create"
+                        name="create-button"
+                        verb="createInline"
+                        @click="onCreate"
+                    >
+                        <Button :class="theme('createButton')" label="Create" @click="onCreate" />
+                    </slot>
+                </div>
+            </header>
             <hr :class="theme('hr')" />
             <form-chores :theme-override="themeOverride">
                 <template v-for="slot in getFormChoresSlotNames(fieldContext.state.name)" #[slot]="formChoresSlotProps">
@@ -167,6 +253,7 @@ const calculatedObjects = computed(() => {
                 </template>
             </form-chores>
             <objects-grid
+                v-if="internalVisible"
                 v-bind="$attrs"
                 :calculated-objects="calculatedObjects"
                 class="w-full"
@@ -278,21 +365,6 @@ const calculatedObjects = computed(() => {
                     </slot>
                 </template>
             </objects-grid>
-            <slot
-                :class="theme('createButton')"
-                :field-props="computedFieldProps"
-                label="Create"
-                name="create-button"
-                verb="createInline"
-                @click="onCreate"
-            >
-                <Button
-                    v-if="!computedFieldProps.readOnly"
-                    :class="theme('createButton')"
-                    label="Create"
-                    @click="onCreate"
-                />
-            </slot>
         </div>
     </div>
 </template>
