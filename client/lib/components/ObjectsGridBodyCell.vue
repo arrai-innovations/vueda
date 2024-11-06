@@ -1,6 +1,7 @@
 <script setup>
 import { useObjectGridCell } from "@vueda/use/useObjectGridCell.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { computed } from "vue";
 
 const props = defineProps({
     field: {
@@ -46,10 +47,16 @@ const props = defineProps({
 
 const theme = useTheme("ObjectsGridBodyCell", props);
 const { formattedComputed, valueComputed } = useObjectGridCell(props);
+const uniqueKeyForSlot = computed(() =>
+    props.field.name && props.obj?.[props.pkKey]
+        ? `${props.field.name}-${props.obj?.[props.pkKey]}`
+        : `col-${props.colIndex}-row-${props.rowIndex}`,
+);
 </script>
 <template>
     <div :class="[theme('root'), $attrs.class]">
         <slot
+            :key="uniqueKeyForSlot"
             :calculated-obj="calculatedObject"
             :col-index="colIndex"
             :field="field"

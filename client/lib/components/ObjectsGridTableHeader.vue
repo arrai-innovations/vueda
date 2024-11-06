@@ -1,5 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { computed } from "vue";
 
 const props = defineProps({
     field: {
@@ -36,16 +37,27 @@ const props = defineProps({
 });
 
 const theme = useTheme("ObjectsGridTableHeader", props);
+const uniqueKeyForSlot = computed(() =>
+    props.field.name ? `${props.field.name}-${props.colIndex}` : `col-${props.colIndex}`,
+);
 </script>
 <template>
     <div :class="theme('root')">
         <span :class="theme('label')">
-            <slot :col-index="colIndex" :field="field" v-bind="fieldProps" gird-type="table-header" name="label">
+            <slot
+                :key="uniqueKeyForSlot"
+                :col-index="colIndex"
+                :field="field"
+                v-bind="fieldProps"
+                gird-type="table-header"
+                name="label"
+            >
                 {{ field.label }}
             </slot>
         </span>
         <span v-if="sortable" :class="theme('sortIcon')">
             <slot
+                :key="uniqueKeyForSlot"
                 :ascending="ascending"
                 :col-index="colIndex"
                 :descending="descending"

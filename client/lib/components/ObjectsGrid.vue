@@ -199,7 +199,7 @@ const theme = useTheme("ObjectsGrid", props, themeProps, (key, kwargs) => {
     <div :class="theme('root')" role="table">
         <div :class="theme('headerRowGroup')" role="rowgroup">
             <div :class="theme('headerRow')" role="row">
-                <template v-for="(field, colIndex) in fields" :key="field?.name">
+                <template v-for="(field, colIndex) in fields" :key="field?.name || `col-index-${colIndex}`">
                     <div
                         v-if="field?.name"
                         :class="[theme('headerCell'), headerClasses?.[field?.name]]"
@@ -215,7 +215,11 @@ const theme = useTheme("ObjectsGrid", props, themeProps, (key, kwargs) => {
                             :theme-override="themeOverride"
                         >
                             <template #label="slotProps">
-                                <slot :name="`header(${field?.name})`" v-bind="slotProps" />
+                                <slot
+                                    :key="field?.name || `col-index-${colIndex}`"
+                                    :name="`header(${field?.name})`"
+                                    v-bind="slotProps"
+                                />
                             </template>
                         </objects-grid-table-header>
                         <objects-grid-table-header
@@ -250,7 +254,7 @@ const theme = useTheme("ObjectsGrid", props, themeProps, (key, kwargs) => {
         <div v-else :class="theme('bodyRowGroup')" role="rowgroup">
             <div
                 v-for="(obj, rowIndex) in objectsInOrder || []"
-                :key="obj?.[pkKey]"
+                :key="obj?.[pkKey] || `row-index-${rowIndex}`"
                 :class="[
                     theme('bodyRow', {
                         evenCard: evenCard(obj, rowIndex),
@@ -259,7 +263,7 @@ const theme = useTheme("ObjectsGrid", props, themeProps, (key, kwargs) => {
                 data-qa="objects-grid-row"
                 role="row"
             >
-                <template v-for="(field, colIndex) in fields" :key="field?.name">
+                <template v-for="(field, colIndex) in fields" :key="field?.name || `col-index-${colIndex}`">
                     <template v-if="field?.name">
                         <objects-grid-card-cell
                             v-if="!isTable"
