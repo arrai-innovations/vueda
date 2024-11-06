@@ -235,20 +235,10 @@ const slots = useSlots();
  * @returns {[string, string][]} - An array of slot names and the slot name without the prefix.
  */
 const getPrefixedSlots = (prefix, exclude = [], retainFullName = false) => {
-    const log = prefix.indexOf("timesheet_days") !== -1 ? console.log : () => {};
-    let slotNames = Object.keys(slots);
-    log("getPrefixedSlots", prefix, exclude, slotNames);
-
-    slotNames = slotNames.filter((slotName) => slotName.startsWith(prefix) && !exclude.includes(slotName));
-    log("step 1", slotNames);
-
-    slotNames = slotNames.map((slotName) => [slotName, retainFullName ? slotName : slotName.slice(prefix.length)]);
-    log("step 2", slotNames);
-
-    slotNames = slotNames.filter(([, insideSlotName]) => insideSlotName?.length && !exclude.includes(insideSlotName));
-    log("step 3", slotNames);
-
-    return slotNames;
+    return Object.keys(slots)
+        .filter((slotName) => slotName.startsWith(prefix) && !exclude.includes(slotName))
+        .map((slotName) => [slotName, retainFullName ? slotName : slotName.slice(prefix.length)])
+        .filter(([, insideSlotName]) => insideSlotName?.length && !exclude.includes(insideSlotName));
 };
 
 /**
