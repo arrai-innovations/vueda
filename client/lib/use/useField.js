@@ -49,6 +49,10 @@ export const FIELD_PROPS = {
         type: [String, Number, Boolean, Array, Object],
         default: undefined,
     },
+    dependents: {
+        type: Array,
+        default: () => [],
+    },
 };
 
 export const FIELD_EMITS = ["update:modelValue"];
@@ -138,7 +142,7 @@ export function onBeforeFieldUnmount(fieldContext) {
  *     label: string,
  *     help: string,
  *     validate: (value: any) => boolean,
- *     requiredFn: (value: any) => boolean,
+ *     requiredFn: (value: any, name: any) => boolean,
  * }>} FieldContextProps
  */
 
@@ -163,6 +167,7 @@ export function useField(props, emit, functions) {
     });
     const state = reactive({
         name: readonly(toRef(props, "name")),
+        dependents: readonly(toRef(props, "dependents")),
         label: computed(() => (props.label?.length ? props.label : props.name)),
         help: computed(() => props.help || ""),
         suffix: computed(() => props.rangeSuffix || ""),
@@ -199,7 +204,7 @@ export function useField(props, emit, functions) {
     });
     const checkRequired = () => {
         if (props.required && state.touched && formContext) {
-            if (!unref(requiredFn)(state.value) || state.ignored) {
+            if (!unref(requiredFn)(state.value, state.name) || state.ignored) {
                 formContext.updateError(props.name, "required", requiredMessage.value);
             } else {
                 formContext.deleteError(props.name, "required");
@@ -223,7 +228,7 @@ export function useField(props, emit, functions) {
         (newValue, oldValue) => {
             if (!isEqual(newValue, oldValue)) {
                 if (formContext) {
-                    formContext.calculateModified(props.name);
+                    formContext.calculateModified(props.name, props.dependents);
                 }
                 checkRequired();
                 checkCustomValidation();
@@ -286,7 +291,7 @@ export function useField(props, emit, functions) {
         setTouched: ifFormContext(() => formContext.setTouched(state.name)),
         clearTouched: ifFormContext(() => formContext.clearTouched(state.name)),
         focus: ifFormContext(() => formContext.focus(state.name)),
-        blur: ifFormContext(() => formContext.blur(state.name)),
+        blur: ifFormContext(() => formContext.blur(state.name, state.dependents)),
         ignore: ifFormContext((name = state.name) => formContext.ignore(name)),
         removeIgnore: ifFormContext((name = state.name) => formContext.removeIgnore(name)),
         deleteValue: ifFormContext(() => formContext.deleteValue(state.name)),

@@ -58,6 +58,7 @@ const fieldInitialValueMappings = {
     },
     ManyRelatedField: {
         ManyToManyField: null,
+        ForeignKey: null,
         ManyRelatedField: null,
     },
     NullBooleanField: {

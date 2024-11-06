@@ -215,17 +215,33 @@ const formValues = (state) => {
     return state.anyIgnored ? omit(cloneDeep(state.values), state.ignores) : state.values;
 };
 
+const isEmpty = (val) => val === undefined || val === null || val === "";
+
 /**
  * @param {FormContextState} state
  * @param {string} name
  * @private
  */
-const calculateModified = (state, name) => {
+const calculateModified = (state, name, dependents = []) => {
     validateName(name);
     const value = get(state.values, name);
     const initialValue = get(state.initialValues, name);
-    if (!isEqual(value, initialValue) && !state.ignored[name]) {
+    const valueEmpty = isEmpty(value);
+    const initialValueEmpty = isEmpty(initialValue);
+    const bothEmpty = valueEmpty && initialValueEmpty;
+    if (!isEqual(value, initialValue) && !state.ignored[name] && !bothEmpty) {
         setModified(state, name);
+        if (dependents.length) {
+            for (const dep of dependents) {
+                if (dep.includes("$parent") && name.includes(".")) {
+                    const parent = name.split(".")[0];
+                    const dependent = dep.replace("$parent", parent);
+                    setModified(state, dependent);
+                } else {
+                    setModified(state, dep);
+                }
+            }
+        }
     } else {
         clearModified(state, name);
     }
@@ -336,13 +352,24 @@ const clearServerError = (state, name) => {
  * @param {string} name
  * @private
  */
-const blur = (state, name) => {
+const blur = (state, name, dependents = []) => {
     validateName(name);
     state.focused = name;
     setTouched(state, name);
     calculateModified(state, name);
     if (state.modified[name]) {
         clearServerError(state, name);
+    }
+    if (dependents.length) {
+        for (const dep of dependents) {
+            if (dep.includes("$parent") && name.includes(".")) {
+                const parent = name.split(".")[0];
+                const d = dep.replace("$parent", parent);
+                blur(state, d);
+            } else {
+                blur(state, dep);
+            }
+        }
     }
 };
 
@@ -408,7 +435,7 @@ const removeIgnore = (state, name) => {
  * @property {(name: string, code?: string) => void} deleteError - Delete a field's error.
  * @property {(name: string, code: string, message: string) => void} updateMessage - Update a field's message.
  * @property {(name: string, code?: string) => void} deleteMessage - Delete a field's message.
- * @property {(name: string) => void} calculateModified - Calculate if a field has been modified.
+ * @property {(name: string, dependents: []) => void} calculateModified - Calculate if a field has been modified.
  * @property {() => void} calculateAllModified - Calculate if all fields have been modified.
  * @property {(name: string) => void} setTouched - Set a field as touched.
  * @property {() => void} setAllTouched - Set all fields as touched.
@@ -418,7 +445,7 @@ const removeIgnore = (state, name) => {
  * @property {(error: FormValidationError) => void} handleServerFormValidationError - Handle a server form validation
  *  error.
  * @property {(name: string) => void} focus - Focus on a field.
- * @property {(name: string) => void} blur - Blur a field.
+ * @property {(name: string, dependents: []) => void} blur - Blur a field.
  * @property {(name: string) => void} ignore - Ignore a field.
  * @property {(name: string) => void} removeIgnore - remove ignoring a field.
  * @property {(name: string) => void} setModified - mark a field as modified.

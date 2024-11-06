@@ -1,7 +1,8 @@
 <script setup>
 import { useList } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
@@ -15,11 +16,23 @@ const props = defineProps({
     ...WIDGET_PROPS,
     app: {
         type: String,
-        default: undefined,
+        required: true,
     },
     model: {
         type: String,
-        default: undefined,
+        required: true,
+    },
+    fieldApp: {
+        type: String,
+        required: true,
+    },
+    fieldModel: {
+        type: String,
+        required: true,
+    },
+    fieldName: {
+        type: String,
+        required: true,
     },
     modelFields: {
         type: Array,
@@ -107,6 +120,25 @@ const modelList = useList({
     keepOldPages: true,
     clearListOnListIntentTriggered: false,
 });
+const storeModelChoice = storeModelChoices();
+//watch on the returned list objects, and fieldApp, fieldModel, fieldName
+watch(
+    [
+        toRef(modelList.state, "objectsInOrder"),
+        toRef(props, "fieldApp"),
+        toRef(props, "fieldModel"),
+        toRef(props, "fieldName"),
+    ],
+    ([objectsInOrder, fieldApp, fieldModel, fieldName]) => {
+        if (objectsInOrder.length && fieldApp && fieldModel && fieldName) {
+            storeModelChoice.setChoices(fieldApp, fieldModel, fieldName, objectsInOrder);
+        }
+    },
+    {
+        immediate: true,
+    },
+);
+
 watch(
     [toRef(props, "options")],
     ([options]) => {

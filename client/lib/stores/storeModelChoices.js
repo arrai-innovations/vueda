@@ -54,6 +54,13 @@ export const storeModelChoices = defineStore({
         promises: {},
     }),
     actions: {
+        setChoices(app, model, field, choices) {
+            const key = getAppModelDotName({ app, model });
+            if (!this.choices[key]) {
+                this.choices[key] = {};
+            }
+            this.choices[key][field] = choices;
+        },
         async fetchChoices(app, model, field) {
             const key = getAppModelDotName({ app, model });
             // we don't return the choices if they are already being fetched.
