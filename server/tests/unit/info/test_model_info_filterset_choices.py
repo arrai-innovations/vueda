@@ -225,7 +225,7 @@ class TestModelInfoFiltersetChoices:
 
     @pytest.mark.parametrize(
         "app_label, model_name, field_name, expected_choices",
-        DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest likes to dump the whole def, so we move the parameterize details elsewhere
+        DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest dumps the whole def, so move the parameterize details elsewhere
         ids=idfn,
     )
     def test_info_choices_filter_customer(
@@ -271,7 +271,7 @@ class TestModelInfoFiltersetChoices:
 
     @pytest.mark.parametrize(
         "app_label, model_name, field_name, expected_choices",
-        DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest likes to dump the whole def, so we move the parameterize details elsewhere
+        DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest dumps the whole def, so move the parameterize details elsewhere
         ids=idfn,
     )
     def test_info_choices_filter_admin(
