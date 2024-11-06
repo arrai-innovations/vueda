@@ -231,13 +231,24 @@ const slots = useSlots();
  *
  * @param prefix {string} - The prefix to filter slot names by.
  * @param exclude {string[]} - List of slot names or suffixes to exclude.
+ * @param retainFullName {boolean} - If true, the full slot name is returned without slicing the prefix.
  * @returns {[string, string][]} - An array of slot names and the slot name without the prefix.
  */
-const getPrefixedSlots = (prefix, exclude = []) => {
-    return Object.keys(slots)
-        .filter((slotName) => slotName.startsWith(prefix) && !exclude.includes(slotName))
-        .map((slotName) => [slotName, slotName.slice(prefix.length)])
-        .filter(([, insideSlotName]) => insideSlotName?.length && !exclude.includes(insideSlotName));
+const getPrefixedSlots = (prefix, exclude = [], retainFullName = false) => {
+    const log = prefix.indexOf("timesheet_days") !== -1 ? console.log : () => {};
+    let slotNames = Object.keys(slots);
+    log("getPrefixedSlots", prefix, exclude, slotNames);
+
+    slotNames = slotNames.filter((slotName) => slotName.startsWith(prefix) && !exclude.includes(slotName));
+    log("step 1", slotNames);
+
+    slotNames = slotNames.map((slotName) => [slotName, retainFullName ? slotName : slotName.slice(prefix.length)]);
+    log("step 2", slotNames);
+
+    slotNames = slotNames.filter(([, insideSlotName]) => insideSlotName?.length && !exclude.includes(insideSlotName));
+    log("step 3", slotNames);
+
+    return slotNames;
 };
 
 /**
@@ -253,18 +264,18 @@ const getSlotNamesFor = (type, fieldName) => {
 
     if (type === "field") {
         const widgetPrefix = `widget(${fieldName})`;
-        slotKeys.push(...getPrefixedSlots(widgetPrefix, ["label", `${widgetPrefix}default`]));
+        slotKeys.push(...getPrefixedSlots(widgetPrefix, ["label"]));
     }
 
     const expandedPrefix = `${type}(${fieldName}__`;
-    slotKeys.push(...getPrefixedSlots(expandedPrefix));
+    slotKeys.push(...getPrefixedSlots(expandedPrefix, [], true));
 
     if (type === "field") {
         const expandedWidgetPrefix = `widget(${fieldName}__`;
-        slotKeys.push(...getPrefixedSlots(expandedWidgetPrefix, [`${expandedWidgetPrefix}default`]));
+        slotKeys.push(...getPrefixedSlots(expandedWidgetPrefix, [], true));
 
         const headerPrefix = `header(${fieldName}__`;
-        slotKeys.push(...getPrefixedSlots(headerPrefix));
+        slotKeys.push(...getPrefixedSlots(headerPrefix, [], true));
     }
 
     return slotKeys;
