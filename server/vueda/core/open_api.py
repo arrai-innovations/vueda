@@ -1,3 +1,4 @@
+import copy
 from http.client import responses
 from typing import List
 from typing import Optional
@@ -333,7 +334,11 @@ class VuedaBaseAutoSchema:
 
         # Body can be None, so we need to make it an empty dictionary, so you can make changes to it.
         if body is None:
-            body = {}
+            body = {
+                "content": {
+                    "application/json": {},
+                }
+            }
 
         request_serializer = self.get_request_serializer()
 
@@ -360,7 +365,7 @@ class VuedaBaseAutoSchema:
         if isinstance(response_serializer, serializers.BaseSerializer) and hasattr(
             response_serializer, "customize_schema_response_data"
         ):
-            response_serializer.customize_schema_response_data(bodies)
+            response_serializer.customize_schema_response_data(self, bodies)
 
         # For consistency, add the status code description (from http.client.responses) on all responses.
         for status_code, body in bodies.items():
@@ -441,3 +446,37 @@ else:
                             prop["title"] = "model class name"
 
             return resolved_serializer
+
+
+def get_components_by_ref(components, ref_strings):
+    results = {}
+
+    for ref_string in ref_strings:
+        _, ref_type, ref_name = ref_string.rsplit("/", 2)
+
+        for component in components.values():
+            if component.type == ref_type and component.name == ref_name:
+                results[ref_string] = copy.deepcopy(component.schema)
+
+    return results
+
+
+def recursive_replace_refs(data, refs_schema):
+    for key, value in tuple(data.items()):
+        if key == "$ref" and value in refs_schema:
+            schema = refs_schema[value]
+            data.update(schema)
+            data.pop(key)
+
+        if isinstance(value, dict):
+            # Make sure we pass the non tupled data value, so it replaces in the data.
+            recursive_replace_refs(data[key], refs_schema)
+
+
+def replace_refs_with_schema(components, data, component_ref_strings):
+    refs_schema = get_components_by_ref(components, component_ref_strings)
+
+    for item in refs_schema.values():
+        recursive_replace_refs(item, refs_schema)
+
+    recursive_replace_refs(data, refs_schema)

@@ -212,7 +212,7 @@ class VuedaExpandableFieldsSerializerMixin:
                     "name": settings.REST_FLEX_FIELDS["EXPAND_PARAM"],
                     "required": False,
                     "in": "query",
-                    "description": "Expandable Fields: Replaces simple values with complex, nested serializations.",
+                    "description": "Replaces simple values with complex, nested serializations.",
                     "schema": {
                         "title": "Expandable Fields",
                         "type": "array of strings",

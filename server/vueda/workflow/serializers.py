@@ -67,6 +67,9 @@ class WorkflowSerializer(
 
     def customize_schema_request_data(self, request_data):  # pragma: no cover
         match self.context["request"].path:
+            case "/routes/vueda.workflow/workflows/{app_label}/{model}/" | "/routes/vueda.workflow/workflows/":
+                request_data["content"] = {}  # This prevents a message of 'Schema not provided' for the body.
+
             case "/routes/vueda.workflow/workflows/{app_label}/{model}/execute-transition/":
                 request_data["content"]["application/json"]["schema"] = {
                     "type": "object",
@@ -115,7 +118,7 @@ class WorkflowSerializer(
 
         return request_data
 
-    def customize_schema_response_data(self, response_data):  # pragma: no cover
+    def customize_schema_response_data(self, auto_schema, response_data):  # pragma: no cover
         request = self.context["request"]
 
         for status_code, data in tuple(response_data.items()):  # tuple because we may add items.
@@ -129,7 +132,7 @@ class WorkflowSerializer(
                             "value": {
                                 "perPage": settings.MAX_PAGE_SIZE,
                                 "totalPages": 1,
-                                "totalRecords": 4,
+                                "totalRecords": 2,
                                 "results": [
                                     {
                                         "code": "pack_order",

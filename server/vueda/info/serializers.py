@@ -18,7 +18,9 @@ from rest_framework import serializers  # noqa F401
 from rest_framework import viewsets  # noqa F401
 from rest_framework.fields import _UnvalidatedField
 
+from vueda.core.open_api import replace_refs_with_schema
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
+from vueda.info import open_api_tracebacks
 from vueda.info.registration import get_registration
 
 
@@ -821,6 +823,2215 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return parameters
 
+    def customize_schema_request_data(self, request_data):  # pragma: no cover
+        match self.context["request"].path:
+            case "/routes/vueda.info/model_info/" | "/routes/vueda.info/model_info/{app_label}/{model}/":
+                request_data["content"] = {}  # This prevents a message of 'Schema not provided' for the body.
+
+        return request_data
+
+    def customize_schema_response_data(self, auto_schema, response_data):  # pragma: no cover
+        from vueda.info.schema import CHOICES_TRUE_SCHEMA_DESCRIPTION
+
+        request = self.context["request"]
+
+        for status_code, data in tuple(response_data.items()):  # tuple because we may add items.
+            match (request.method, request.path, status_code):
+                # List models
+                case ("GET", "/routes/vueda.info/model_info/", "200"):
+                    data["content"]["application/json"]["examples"] = {
+                        "ListModelInfoExample": {
+                            "summary": "With Results",
+                            "description": "uri: /routes/vueda.info/model_info/",
+                            "value": {
+                                "results": [
+                                    {
+                                        "id": 1,
+                                        "app_label": "store",
+                                        "model": "distributor",
+                                        "verbose_name": "distributor",
+                                        "verbose_name_plural": "distributors",
+                                    },
+                                    {
+                                        "id": 2,
+                                        "app_label": "store",
+                                        "model": "optiontype",
+                                        "verbose_name": "option type",
+                                        "verbose_name_plural": "option types",
+                                    },
+                                    {
+                                        "id": 6,
+                                        "app_label": "store",
+                                        "model": "customer",
+                                        "verbose_name": "customer",
+                                        "verbose_name_plural": "customers",
+                                    },
+                                    {
+                                        "id": 7,
+                                        "app_label": "store",
+                                        "model": "cart",
+                                        "verbose_name": "cart",
+                                        "verbose_name_plural": "carts",
+                                    },
+                                    {
+                                        "id": 8,
+                                        "app_label": "store",
+                                        "model": "customerorder",
+                                        "verbose_name": "customer order",
+                                        "verbose_name_plural": "customer orders",
+                                    },
+                                    {
+                                        "id": 11,
+                                        "app_label": "store",
+                                        "model": "inventoryrecordreason",
+                                        "verbose_name": "inventory entry reason",
+                                        "verbose_name_plural": "inventory entry reasons",
+                                    },
+                                    {
+                                        "id": 13,
+                                        "app_label": "store",
+                                        "model": "product",
+                                        "verbose_name": "product",
+                                        "verbose_name_plural": "products",
+                                    },
+                                    {
+                                        "id": 15,
+                                        "app_label": "store",
+                                        "model": "productoption",
+                                        "verbose_name": "product option",
+                                        "verbose_name_plural": "product options",
+                                    },
+                                    {
+                                        "id": 16,
+                                        "app_label": "store",
+                                        "model": "orderitem",
+                                        "verbose_name": "ORDER item",
+                                        "verbose_name_plural": "ORDER items",
+                                    },
+                                    {
+                                        "id": 17,
+                                        "app_label": "store",
+                                        "model": "inventoryrecord",
+                                        "verbose_name": "inventory entry",
+                                        "verbose_name_plural": "inventory entries",
+                                    },
+                                    {
+                                        "id": 19,
+                                        "app_label": "store",
+                                        "model": "cartitem",
+                                        "verbose_name": "cart item",
+                                        "verbose_name_plural": "cart items",
+                                    },
+                                    {
+                                        "id": 24,
+                                        "app_label": "store",
+                                        "model": "packingbox",
+                                        "verbose_name": "Packing Box",
+                                        "verbose_name_plural": "Packing Boxes",
+                                    },
+                                ],
+                                "perPage": settings.MAX_PAGE_SIZE,
+                                "totalPages": 1,
+                                "totalRecords": 12,
+                            },
+                        },
+                        "ListModelInfoNoResultsExample": {
+                            "summary": "No Results",
+                            "description": "uri: /routes/vueda.info/model_info/",
+                            "value": {
+                                "results": [],
+                                "perPage": settings.MAX_PAGE_SIZE,
+                                "totalPages": 1,
+                                "totalRecords": 0,
+                            },
+                        },
+                    }
+
+                    response_data["403"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "ListModelsPermissionDeniedExample": {
+                                        "summary": "Permission denied",
+                                        "description": "uri: /routes/vueda.info/model_info/",
+                                        "value": {
+                                            "detail": "You do not have permission to perform this action.",
+                                            "serverStack": open_api_tracebacks.INFO_DENIED,
+                                        },
+                                    },
+                                },
+                            }
+                        }
+                    }
+
+                # Get model
+                case ("GET", "/routes/vueda.info/model_info/{app_label}/{model}/", "200"):
+                    replace_refs_with_schema(
+                        auto_schema.registry._components, data, ("#/components/schemas/ModelInfo",)
+                    )
+
+                    # Model Actions
+                    data["content"]["application/json"]["schema"]["properties"]["model_actions"] = {
+                        "type": "array",
+                        "title": "Action Data",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "readonly": True,
+                                },
+                                "bulk": {
+                                    "type": "boolean",
+                                    "readonly": True,
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "readonly": True,
+                                },
+                                "detail": {
+                                    "type": "boolean",
+                                    "readonly": True,
+                                },
+                                "method_names": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                    },
+                                    "enum": [
+                                        "get",
+                                        "post",
+                                        "put",
+                                        "patch",
+                                        "delete",
+                                    ],
+                                    "description": "<ul><li>get -> list (detail true)</li>"
+                                    + "<li>get -> retrieve (detail false)</li>"
+                                    + "<li>post -> create</li>"
+                                    + "<li>put -> update</li>"
+                                    + "<li>patch -> partial_update</li>"
+                                    + "<li>delete -> destroy</li></ul>",
+                                },
+                                "parameters": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                    },
+                                    "example": "pk",
+                                    "description": "Additional parameters needed to call the action.",
+                                },
+                            },
+                            "required": [
+                                "name",
+                                "bulk",
+                                "description",
+                                "detail",
+                                "method_names",
+                            ],
+                        },
+                    }
+
+                    # Model Expands
+                    data["content"]["application/json"]["schema"]["properties"]["model_expands"] = {
+                        "type": "array",
+                        "title": "Expands Data",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "readonly": True,
+                                },
+                                "app_label": {
+                                    "title": "django app name",
+                                    "pattern": "^[a-zA-Z0-9_]+$",
+                                    "maxLength": 100,
+                                    "example": "store",
+                                },
+                                "model": {
+                                    "title": "model class name",
+                                    "pattern": "^[a-zA-Z0-9_]+$",
+                                    "maxLength": 100,
+                                    "example": "product",
+                                },
+                                "many": {
+                                    "type": "boolean",
+                                    "readonly": True,
+                                    "description": (
+                                        "Whether a single object will be returned, or an array containing many."
+                                    ),
+                                },
+                                "read_only": {
+                                    "type": "boolean",
+                                    "readonly": True,
+                                },
+                                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                                    "type": "object",
+                                    "title": "Field Names / Data",
+                                    "properties": {
+                                        "Field Name": {
+                                            "type": "object",
+                                            "readonly": True,
+                                            "title": "Data",
+                                            "properties": {
+                                                "label": {
+                                                    "type": "string",
+                                                    "readonly": True,
+                                                    "description": "Displayed name of the field.",
+                                                    "example": "Name",
+                                                },
+                                                "type_db": {
+                                                    "type": "string",
+                                                    "readonly": True,
+                                                    "description": "Database Field Type.",
+                                                    "example": "CharField",
+                                                },
+                                                "type_model": {
+                                                    "type": "string",
+                                                    "readonly": True,
+                                                    "description": "Django Model Field Type.",
+                                                    "example": "CharField",
+                                                },
+                                                "type_serializer": {
+                                                    "type": "string",
+                                                    "readonly": True,
+                                                    "description": "Rest Framework Serializer Field Type.",
+                                                    "example": "CharField",
+                                                },
+                                                "many": {
+                                                    "type": "boolean",
+                                                    "readonly": True,
+                                                    "description": "One or more objects?",
+                                                    "example": "False",
+                                                },
+                                                "read_only": {
+                                                    "type": "boolean",
+                                                    "readonly": True,
+                                                    "example": "True",
+                                                },
+                                                "required": {
+                                                    "type": "boolean",
+                                                    "readonly": True,
+                                                    "description": "A value is required when submitted.",
+                                                    "example": "False",
+                                                },
+                                                "app_label": {
+                                                    "type": "string",
+                                                    "readonly": True,
+                                                    "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
+                                                    "maxLength": 100,
+                                                    "pattern": "^[a-zA-Z0-9_]+$",
+                                                    "title": "django app name",
+                                                    "example": "store",
+                                                },
+                                                "model": {
+                                                    "type": "string",
+                                                    "readonly": True,
+                                                    "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
+                                                    "maxLength": 100,
+                                                    "pattern": "^[a-zA-Z0-9_]+$",
+                                                    "title": "model class name",
+                                                    "example": "cart",
+                                                },
+                                                "choices": {
+                                                    "oneOf": [
+                                                        {
+                                                            "type": "array",
+                                                            "readonly": True,
+                                                            "description": "The choices to choose from.",
+                                                            "title": "Choices",
+                                                            "example": "False",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "readonly": True,
+                                                                "properties": {
+                                                                    "label": {
+                                                                        "type": "string",
+                                                                        "readonly": True,
+                                                                        "description": "Displayed name for the choice.",
+                                                                        "example": "Express Shipping",
+                                                                    },
+                                                                    "value": {
+                                                                        "type": "string",
+                                                                        "readonly": True,
+                                                                        "description": "PK or code for the choice.",
+                                                                        "example": "express_shipping",
+                                                                    },
+                                                                },
+                                                                "required": [
+                                                                    "label",
+                                                                    "value",
+                                                                ],
+                                                            },
+                                                        },
+                                                        {
+                                                            "type": "boolean",
+                                                            "readonly": True,
+                                                            "description": (
+                                                                'If true, use <a href="#tag/vueda.info/operation'
+                                                                '/vueda.info_model_info_choices_list">'
+                                                                "List field choices</a> to get the choices."
+                                                                "<br>If false, there are no choices."
+                                                            ),
+                                                        },
+                                                    ],
+                                                },
+                                                "pk": {
+                                                    "type": "integer",
+                                                    "readonly": True,
+                                                    "description": "Exists if this field is the primary key.",
+                                                    "example": "1",
+                                                },
+                                                "help_text": {
+                                                    "type": "string",
+                                                    "readonly": True,
+                                                    "description": (
+                                                        "Helpful text about what data should exist in the field."
+                                                    ),
+                                                    "example": "Multiple values may be separated by commas.",
+                                                },
+                                                "max_length": {
+                                                    "type": "integer",
+                                                    "readonly": True,
+                                                    "description": "Maximum number of characters for the value.",
+                                                    "example": "32",
+                                                },
+                                                "min_length": {
+                                                    "type": "integer",
+                                                    "readonly": True,
+                                                    "description": "Minimum number of characters for the value.",
+                                                    "example": "2",
+                                                },
+                                                "max_value": {
+                                                    "type": "integer",
+                                                    "readonly": True,
+                                                    "description": "Maximum number allowed for the value.",
+                                                    "example": "2147483647",
+                                                },
+                                                "min_value": {
+                                                    "type": "integer",
+                                                    "readonly": True,
+                                                    "description": "Minimum number allowed for the value.",
+                                                    "example": "-2147483648",
+                                                },
+                                                "max_digits": {
+                                                    "type": "integer",
+                                                    "readonly": True,
+                                                    "description": (
+                                                        "Maximum number of digits including "
+                                                        "decimal places for the value."
+                                                    ),
+                                                    "example": "12",
+                                                },
+                                                "decimal_places": {
+                                                    "type": "integer",
+                                                    "readonly": True,
+                                                    "description": "Number of decimal places for the value.",
+                                                    "example": "2",
+                                                },
+                                            },
+                                            "required": [
+                                                "label",
+                                                "type_db",
+                                                "type_model",
+                                                "type_serializer",
+                                                "many",
+                                                "read_only",
+                                                "required",
+                                                "choices",
+                                            ],
+                                        }
+                                    },
+                                },
+                            },
+                            "required": [
+                                "name",
+                                "app_label",
+                                "model",
+                                "many",
+                                "read_only",
+                            ],
+                        },
+                    }
+
+                    # Model Fields
+                    data["content"]["application/json"]["schema"]["properties"]["model_fields"] = {
+                        "type": "object",
+                        "title": "Field Names / Data",
+                        "properties": {
+                            # Openapi can't do dynamic {Field Name: Data} objects,
+                            # so we display it as best as possible, and have an example.
+                            "Field Name": {
+                                "type": "object",
+                                "readonly": True,
+                                "description": "Example: <code>{&quot;product_name&quot;: {...</code>",
+                                "title": "Data",
+                                "properties": {
+                                    "label": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": "Displayed name of the field.",
+                                        "example": "Name",
+                                    },
+                                    "type_db": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": "Database Field Type.",
+                                        "example": "CharField",
+                                    },
+                                    "type_model": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": "Django Model Field Type.",
+                                        "example": "CharField",
+                                    },
+                                    "type_serializer": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": "Rest Framework Serializer Field Type",
+                                        "example": "CharField",
+                                    },
+                                    "many": {
+                                        "type": "boolean",
+                                        "readonly": True,
+                                        "description": "One or more objects?",
+                                        "example": "False",
+                                    },
+                                    "read_only": {
+                                        "type": "boolean",
+                                        "readonly": True,
+                                        "example": "True",
+                                    },
+                                    "required": {
+                                        "type": "boolean",
+                                        "readonly": True,
+                                        "description": "A value is required when submitted.",
+                                        "example": "False",
+                                    },
+                                    "app_label": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
+                                        "maxLength": 100,
+                                        "pattern": "^[a-zA-Z0-9_]+$",
+                                        "title": "django app name",
+                                        "example": "store",
+                                    },
+                                    "model": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
+                                        "maxLength": 100,
+                                        "pattern": "^[a-zA-Z0-9_]+$",
+                                        "title": "model class name",
+                                        "example": "cart",
+                                    },
+                                    "choices": {
+                                        "oneOf": [
+                                            {
+                                                "type": "array",
+                                                "readonly": True,
+                                                "description": "The choices to choose from.",
+                                                "title": "Choices",
+                                                "example": "False",
+                                                "items": {
+                                                    "type": "object",
+                                                    "readonly": True,
+                                                    "properties": {
+                                                        "label": {
+                                                            "type": "string",
+                                                            "readonly": True,
+                                                            "description": "Displayed name for the choice.",
+                                                            "example": "Express Shipping",
+                                                        },
+                                                        "value": {
+                                                            "type": "string",
+                                                            "readonly": True,
+                                                            "description": "PK or code for the choice.",
+                                                            "example": "express_shipping",
+                                                        },
+                                                    },
+                                                    "required": [
+                                                        "label",
+                                                        "value",
+                                                    ],
+                                                },
+                                            },
+                                            {
+                                                "type": "boolean",
+                                                "readonly": True,
+                                                "description": (
+                                                    'If true, use <a href="#tag/vueda.info/operation'
+                                                    '/vueda.info_model_info_choices_list">'
+                                                    "List field choices</a> to get the choices."
+                                                    "<br>If false, there are no choices."
+                                                ),
+                                            },
+                                        ],
+                                    },
+                                    "pk": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": "Exists if this field is the primary key.",
+                                        "example": "1",
+                                    },
+                                    "help_text": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": "Helpful text about what data should exist in the field.",
+                                        "example": "Multiple values may be separated by commas.",
+                                    },
+                                    "max_length": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": "Maximum number of characters for the value.",
+                                        "example": "32",
+                                    },
+                                    "min_length": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": "Minimum number of characters for the value.",
+                                        "example": "2",
+                                    },
+                                    "max_value": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": "Maximum number allowed for the value.",
+                                        "example": "2147483647",
+                                    },
+                                    "min_value": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": "Minimum number allowed for the value.",
+                                        "example": "-2147483648",
+                                    },
+                                    "max_digits": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": (
+                                            "Maximum number of digits including decimal places for the value."
+                                        ),
+                                        "example": "12",
+                                    },
+                                    "decimal_places": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": "Number of decimal places for the value.",
+                                        "example": "2",
+                                    },
+                                },
+                                "required": [
+                                    "label",
+                                    "type_db",
+                                    "type_model",
+                                    "type_serializer",
+                                    "many",
+                                    "read_only",
+                                    "required",
+                                    "choices",
+                                ],
+                            },
+                        },
+                    }
+
+                    # Model Filtering
+                    data["content"]["application/json"]["schema"]["properties"]["model_filtering"] = {
+                        "type": "object",
+                        "title": "Field Names / Data",
+                        "properties": {
+                            # Openapi can't do dynamic {Field Name: Data} objects,
+                            # so we display it as best as possible, and have an example.
+                            "Field Name": {
+                                "type": "object",
+                                "readonly": True,
+                                "description": "Example: <code>{&quot;order_number&quot;: {...</code>",
+                                "title": "Data",
+                                "properties": {
+                                    "label": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": "Displayed name of the filter",
+                                        "example": "Name",
+                                    },
+                                    "type_db": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": "Database Field Type",
+                                        "example": "CharField",
+                                    },
+                                    "type_model": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": "Django Model Field Type",
+                                        "example": "CharField",
+                                    },
+                                    "type_filter": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": (
+                                            "The django form field defined as the 'field_class' in a django "
+                                            "filters field.  This was used, so custom filters would work, as "
+                                            "long as they use a form field vueda already knows about."
+                                        ),
+                                        "example": "CharField",
+                                    },
+                                    "lookup_exprs": {
+                                        "type": "array",
+                                        "readonly": True,
+                                        "description": (
+                                            "The lookup expressions used by queries.  These may not be "
+                                            "useful, since the suffixes should be used to submit a filter."
+                                        ),
+                                        "title": "Lookup Expressions",
+                                        "items": {
+                                            "type": "string",
+                                            "readonly": True,
+                                            "example": "exact",
+                                        },
+                                    },
+                                    "required": {
+                                        "type": "boolean",
+                                        "readonly": True,
+                                        "description": "A value is required when filtering.",
+                                        "example": "False",
+                                    },
+                                    "app_label": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
+                                        "maxLength": 100,
+                                        "pattern": "^[a-zA-Z0-9_]+$",
+                                        "title": "django app name",
+                                        "example": "store",
+                                    },
+                                    "model": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
+                                        "maxLength": 100,
+                                        "pattern": "^[a-zA-Z0-9_]+$",
+                                        "title": "model class name",
+                                        "example": "cart",
+                                    },
+                                    "choices": {
+                                        "oneOf": [
+                                            {
+                                                "type": "array",
+                                                "readonly": True,
+                                                "description": "The choices to choose from.",
+                                                "title": "Choices",
+                                                "example": "False",
+                                                "items": {
+                                                    "type": "object",
+                                                    "readonly": True,
+                                                    "properties": {
+                                                        "label": {
+                                                            "type": "string",
+                                                            "readonly": True,
+                                                            "description": "Displayed name for the choice.",
+                                                            "example": "Express Shipping",
+                                                        },
+                                                        "value": {
+                                                            "type": "string",
+                                                            "readonly": True,
+                                                            "description": "PK or code for the choice.",
+                                                            "example": "express_shipping",
+                                                        },
+                                                    },
+                                                    "required": [
+                                                        "label",
+                                                        "value",
+                                                    ],
+                                                },
+                                            },
+                                            {
+                                                "type": "boolean",
+                                                "readonly": True,
+                                                "description": (
+                                                    'If true, use <a href="#tag/vueda.info/operation'
+                                                    '/vueda.info_model_info_filter_choices_list">'
+                                                    "List filterset field choices</a> to get the "
+                                                    "choices.<br>If false, there are no choices."
+                                                ),
+                                            },
+                                        ],
+                                    },
+                                    "help_text": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": "Helpful text about what data should exist in the field.",
+                                        "example": "Multiple values may be separated by commas.",
+                                    },
+                                    "max_length": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": "Maximum number of characters for the value.",
+                                        "example": "32",
+                                    },
+                                    "min_length": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": "Minimum number of characters for the value.",
+                                        "example": "2",
+                                    },
+                                    "max_value": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": "Maximum number allowed for the value.",
+                                        "example": "2147483647",
+                                    },
+                                    "min_value": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": "Minimum number allowed for the value.",
+                                        "example": "-2147483648",
+                                    },
+                                    "max_digits": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": (
+                                            "Maximum number of digits including decimal places for the value."
+                                        ),
+                                        "example": "12",
+                                    },
+                                    "decimal_places": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": "Number of decimal places for the value.",
+                                        "example": "2",
+                                    },
+                                    "empty_label": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": "Label for an empty choice.",
+                                        "example": "---------",
+                                    },
+                                    "empty_value": {
+                                        "type": "integer",
+                                        "readonly": True,
+                                        "description": "Value for an empty choice.",
+                                        "example": "&quot;&quot;",
+                                    },
+                                    # Openapi can't do dynamic {key: value} objects, so we
+                                    # display it as best as possible, and have an example.
+                                    "error_messages": {
+                                        "type": "object",
+                                        "readonly": True,
+                                        "title": "Code: Msg",
+                                        "properties": {
+                                            "code": {
+                                                "type": "string",
+                                                "readonly": True,
+                                                "title": "msg",
+                                                "description": (
+                                                    "Code and value of the possible error messages.  Some messages "
+                                                    "contain python string replacement keys.<br>Example: <code>"
+                                                    "{<br>&nbsp;&nbsp;&nbsp;&nbsp;&quot;invalid_choice&quot;: &quot;"
+                                                    "Select a valid choice. %(value)s is not one of the available "
+                                                    "choices.&quot;,<br>&nbsp;&nbsp;&nbsp;&nbsp;...<br>}</code>"
+                                                ),
+                                            }
+                                        },
+                                    },
+                                    "input_formats": {
+                                        "type": "array",
+                                        "readonly": True,
+                                        "description": "A list of the python input formats available.",
+                                        "items": {
+                                            "type": "string",
+                                            "readonly": True,
+                                            "example": "%H:%M:%S",
+                                        },
+                                    },
+                                    "input_type": {
+                                        "type": "string",
+                                        "readonly": True,
+                                        "description": "The html widget type used by the widget.",
+                                        "example": "select",
+                                    },
+                                    "suffixes": {
+                                        "type": "array",
+                                        "readonly": True,
+                                        "description": "A list of the suffixes to use with the filter name.",
+                                        "items": {
+                                            "type": "string",
+                                            "readonly": True,
+                                            "example": (
+                                                "after -> {&quot;last_modified_after&quot;: &quot;2024-08-01&quot;}"
+                                            ),
+                                        },
+                                    },
+                                },
+                                "required": [
+                                    "hidden",
+                                    "label",
+                                    "lookup_exprs",
+                                    "required",
+                                    "type_db",
+                                    "type_model",
+                                    "type_filter",
+                                ],
+                            },
+                        },
+                    }
+
+                    # Model Ordering
+                    data["content"]["application/json"]["schema"]["properties"]["model_ordering"] = {
+                        "type": "array",
+                        "title": "Ordering Data",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "readonly": True,
+                                    "description": "Field to order by.",
+                                    "example": "last_name",
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "readonly": True,
+                                    "description": "Type of Ordering.",
+                                    "enum": [
+                                        "alpha",
+                                        "boolean",
+                                        "date",
+                                        "datetime",
+                                        "numeric",
+                                        "time",
+                                    ],
+                                },
+                            },
+                            "required": [
+                                "name",
+                                "type",
+                            ],
+                        },
+                    }
+
+                    # Model Permissions
+                    data["content"]["application/json"]["schema"]["properties"]["model_permissions"] = {
+                        "type": "array",
+                        "title": "Permissions Data",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "codename": {
+                                    "type": "string",
+                                    "readonly": True,
+                                    "example": "create_customerorder",
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "readonly": True,
+                                    "example": "Can create customer order",
+                                },
+                            },
+                            "required": [
+                                "codename",
+                                "name",
+                            ],
+                        },
+                    }
+
+                    data["content"]["application/json"]["examples"] = {
+                        "GetModelInfoNotExpandedExample": {
+                            "summary": "Expanded - Nothing",
+                            "description": "uri: /routes/vueda.info/model_info/",
+                            "value": {
+                                "results": [
+                                    {
+                                        "id": 1,
+                                        "app_label": "store",
+                                        "model": "distributor",
+                                        "verbose_name": "distributor",
+                                        "verbose_name_plural": "distributors",
+                                    }
+                                ]
+                            },
+                        },
+                        "GetModelInfoActionsExpandedExample": {
+                            "summary": "Expanded - model_actions",
+                            "description": (
+                                "uri: /routes/vueda.info/model_info&ZeroWidthSpace;"
+                                "/store/customer/<br>data: e='model_actions'"
+                            ),
+                            "value": {
+                                "results": [
+                                    {
+                                        "id": 6,
+                                        "app_label": "store",
+                                        "model": "customer",
+                                        "verbose_name": "customer",
+                                        "verbose_name_plural": "customers",
+                                        "model_actions": [
+                                            {
+                                                "name": "list",
+                                                "description": "list store.customer",
+                                                "detail": False,
+                                                "bulk": False,
+                                                "method_names": ["get"],
+                                            },
+                                            {
+                                                "name": "retrieve",
+                                                "description": "retrieve store.customer",
+                                                "detail": True,
+                                                "bulk": False,
+                                                "method_names": ["get"],
+                                                "parameters": ["pk"],
+                                            },
+                                            {
+                                                "name": "create",
+                                                "description": "create store.customer",
+                                                "detail": False,
+                                                "bulk": False,
+                                                "method_names": ["post"],
+                                            },
+                                            {
+                                                "name": "update",
+                                                "description": "update store.customer",
+                                                "detail": True,
+                                                "bulk": False,
+                                                "method_names": ["put"],
+                                                "parameters": ["pk"],
+                                            },
+                                            {
+                                                "name": "partial_update",
+                                                "description": "partial_update store.customer",
+                                                "detail": True,
+                                                "bulk": False,
+                                                "method_names": ["patch"],
+                                                "parameters": ["pk"],
+                                            },
+                                            {
+                                                "name": "destroy",
+                                                "description": "destroy store.customer",
+                                                "detail": True,
+                                                "bulk": True,
+                                                "method_names": ["delete"],
+                                                "parameters": ["pk"],
+                                            },
+                                            {
+                                                "name": "current",
+                                                "description": "current store.customer",
+                                                "detail": True,
+                                                "bulk": False,
+                                                "method_names": ["get"],
+                                                "parameters": ["pk"],
+                                            },
+                                            {
+                                                "name": "history-list",
+                                                "description": "history-list store.customer",
+                                                "detail": True,
+                                                "bulk": False,
+                                                "method_names": ["get"],
+                                                "parameters": ["args", "kwargs"],
+                                            },
+                                        ],
+                                    }
+                                ]
+                            },
+                        },
+                        "GetModelInfoExpandsExpandedExample": {
+                            "summary": "Expanded - model_expands",
+                            "description": (
+                                "uri: /routes/vueda.info/model_info/store/product/<br>data: e='model_expands'"
+                            ),
+                            "value": {
+                                "results": [
+                                    {
+                                        "id": 13,
+                                        "app_label": "store",
+                                        "model": "product",
+                                        "verbose_name": "product",
+                                        "verbose_name_plural": "products",
+                                        "model_expands": [
+                                            {
+                                                "name": "distributor",
+                                                "read_only": False,
+                                                "many": False,
+                                                "app_label": "store",
+                                                "model": "distributor",
+                                                "f": {
+                                                    "id": {
+                                                        "choices": False,
+                                                        "label": "ID",
+                                                        "many": False,
+                                                        "read_only": True,
+                                                        "required": False,
+                                                        "type_db": "AutoField",
+                                                        "type_model": "AutoField",
+                                                        "type_serializer": "IntegerField",
+                                                        "max_value": 2147483647,
+                                                        "min_value": -2147483648,
+                                                        "pk": True,
+                                                    },
+                                                    "name": {
+                                                        "choices": False,
+                                                        "label": "Name",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "CharField",
+                                                        "type_model": "CharField",
+                                                        "type_serializer": "CharField",
+                                                        "max_length": 255,
+                                                    },
+                                                    "formatted_name": {
+                                                        "choices": False,
+                                                        "label": "Formatted Name",
+                                                        "many": False,
+                                                        "read_only": True,
+                                                        "required": False,
+                                                        "type_db": "CharField",
+                                                        "type_model": "GeneratedField",
+                                                        "type_serializer": "ModelField",
+                                                    },
+                                                    "current_history_id": {
+                                                        "choices": False,
+                                                        "label": "Current History ID",
+                                                        "many": False,
+                                                        "read_only": True,
+                                                        "required": False,
+                                                        "type_db": None,
+                                                        "type_model": None,
+                                                        "type_serializer": "IntegerField",
+                                                    },
+                                                },
+                                            },
+                                            {
+                                                "name": "history",
+                                                "read_only": True,
+                                                "many": True,
+                                                "f": {
+                                                    "id": {
+                                                        "choices": False,
+                                                        "label": "ID",
+                                                        "many": False,
+                                                        "read_only": True,
+                                                        "required": False,
+                                                        "type_db": "AutoField",
+                                                        "type_model": "AutoField",
+                                                        "type_serializer": "IntegerField",
+                                                        "max_value": 2147483647,
+                                                        "min_value": -2147483648,
+                                                    },
+                                                    "distributor": {
+                                                        "choices": True,
+                                                        "label": "Distributor",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "ForeignKey",
+                                                        "type_model": "ForeignKey",
+                                                        "type_serializer": "PrimaryKeyRelatedField",
+                                                        "app_label": "store",
+                                                        "model": "distributor",
+                                                    },
+                                                    "name": {
+                                                        "choices": False,
+                                                        "label": "Name",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "CharField",
+                                                        "type_model": "CharField",
+                                                        "type_serializer": "CharField",
+                                                        "max_length": 255,
+                                                    },
+                                                    "description": {
+                                                        "choices": False,
+                                                        "label": "Description",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "TextField",
+                                                        "type_model": "TextField",
+                                                        "type_serializer": "CharField",
+                                                    },
+                                                    "disabled": {
+                                                        "choices": False,
+                                                        "label": "Disabled",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "BooleanField",
+                                                        "type_model": "BooleanField",
+                                                        "type_serializer": "BooleanField",
+                                                    },
+                                                    "tangible_type": {
+                                                        "choices": True,
+                                                        "label": "Tangible Type",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "ForeignKey",
+                                                        "type_model": "ForeignKey",
+                                                        "type_serializer": "PrimaryKeyRelatedField",
+                                                        "app_label": "store",
+                                                        "model": "tangibletype",
+                                                    },
+                                                    "special_care": {
+                                                        "choices": True,
+                                                        "label": "Special Care",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "ManyToManyField",
+                                                        "type_model": "ManyToManyField",
+                                                        "type_serializer": "ManyRelatedField",
+                                                        "app_label": "store",
+                                                        "model": "specialcare",
+                                                    },
+                                                    "order_between": {
+                                                        "choices": False,
+                                                        "label": "Order Between",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "IntegerRangeField",
+                                                        "type_model": "IntegerRangeField",
+                                                        "type_serializer": "ModelField",
+                                                        "max_value": 2147483647,
+                                                        "min_value": -2147483648,
+                                                    },
+                                                    "last_ten_order_betweens": {
+                                                        "choices": False,
+                                                        "label": "Last Ten Order Betweens",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "IntegerRangeField",
+                                                        "type_model": "IntegerRangeField",
+                                                        "type_serializer": "ModelField",
+                                                        "max_value": 2147483647,
+                                                        "min_value": -2147483648,
+                                                    },
+                                                    "current_sale_date": {
+                                                        "choices": False,
+                                                        "label": "Current Sale Date",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "DateRangeField",
+                                                        "type_model": "DateRangeField",
+                                                        "type_serializer": "RangeField",
+                                                    },
+                                                    "future_sale_dates": {
+                                                        "choices": False,
+                                                        "label": "Future Sale Dates",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "DateRangeField",
+                                                        "type_model": "DateRangeField",
+                                                        "type_serializer": "ModelField",
+                                                    },
+                                                    "reviews": {
+                                                        "choices": False,
+                                                        "label": "Reviews",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "CharField",
+                                                        "type_model": "CharField",
+                                                        "type_serializer": "CharField",
+                                                    },
+                                                    "internal_comments": {
+                                                        "choices": False,
+                                                        "label": "Internal Comments",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "TextField",
+                                                        "type_model": "TextField",
+                                                        "type_serializer": "CharField",
+                                                    },
+                                                    "last_ordered": {
+                                                        "choices": False,
+                                                        "label": "Last Ordered",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "DateField",
+                                                        "type_model": "DateField",
+                                                        "type_serializer": "DateField",
+                                                    },
+                                                    "formatted_name": {
+                                                        "choices": False,
+                                                        "label": "Formatted Name",
+                                                        "many": False,
+                                                        "read_only": True,
+                                                        "required": False,
+                                                        "type_db": "CharField",
+                                                        "type_model": "GeneratedField",
+                                                        "type_serializer": "ModelField",
+                                                    },
+                                                    "history_id": {
+                                                        "label": "History ID",
+                                                        "type_db": "AutoField",
+                                                        "type_model": "AutoField",
+                                                        "type_serializer": "IntegerField",
+                                                        "read_only": True,
+                                                        "pk": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_date": {
+                                                        "label": "History Date",
+                                                        "type_db": "DateTimeField",
+                                                        "type_model": "DateTimeField",
+                                                        "type_serializer": "DateTimeField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_change_reason": {
+                                                        "label": "Change Reason",
+                                                        "type_db": "CharField",
+                                                        "type_model": "CharField",
+                                                        "type_serializer": "CharField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_type": {
+                                                        "label": "History Type",
+                                                        "type_db": "CharField",
+                                                        "type_model": "CharField",
+                                                        "type_serializer": "CharField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_relation": {
+                                                        "label": "In Relation To",
+                                                        "type_db": "ForeignKey",
+                                                        "type_model": "ForeignKey",
+                                                        "type_serializer": "PrimaryKeyRelatedField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_user": {
+                                                        "label": "History User",
+                                                        "type_db": "ForeignKey",
+                                                        "type_model": "ForeignKey",
+                                                        "type_serializer": "PrimaryKeyRelatedField",
+                                                        "read_only": True,
+                                                        "model": "user",
+                                                        "app_label": "user",
+                                                        "choices": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                    },
+                                                },
+                                                "app_label": "store",
+                                                "model": "historicalproduct",
+                                            },
+                                            {
+                                                "name": "first_history_entry",
+                                                "read_only": True,
+                                                "many": False,
+                                                "f": {
+                                                    "id": {
+                                                        "choices": False,
+                                                        "label": "ID",
+                                                        "many": False,
+                                                        "read_only": True,
+                                                        "required": False,
+                                                        "type_db": "AutoField",
+                                                        "type_model": "AutoField",
+                                                        "type_serializer": "IntegerField",
+                                                        "max_value": 2147483647,
+                                                        "min_value": -2147483648,
+                                                    },
+                                                    "distributor": {
+                                                        "choices": True,
+                                                        "label": "Distributor",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "ForeignKey",
+                                                        "type_model": "ForeignKey",
+                                                        "type_serializer": "PrimaryKeyRelatedField",
+                                                        "app_label": "store",
+                                                        "model": "distributor",
+                                                    },
+                                                    "name": {
+                                                        "choices": False,
+                                                        "label": "Name",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "CharField",
+                                                        "type_model": "CharField",
+                                                        "type_serializer": "CharField",
+                                                        "max_length": 255,
+                                                    },
+                                                    "description": {
+                                                        "choices": False,
+                                                        "label": "Description",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "TextField",
+                                                        "type_model": "TextField",
+                                                        "type_serializer": "CharField",
+                                                    },
+                                                    "disabled": {
+                                                        "choices": False,
+                                                        "label": "Disabled",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "BooleanField",
+                                                        "type_model": "BooleanField",
+                                                        "type_serializer": "BooleanField",
+                                                    },
+                                                    "tangible_type": {
+                                                        "choices": True,
+                                                        "label": "Tangible Type",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "ForeignKey",
+                                                        "type_model": "ForeignKey",
+                                                        "type_serializer": "PrimaryKeyRelatedField",
+                                                        "app_label": "store",
+                                                        "model": "tangibletype",
+                                                    },
+                                                    "special_care": {
+                                                        "choices": True,
+                                                        "label": "Special Care",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "ManyToManyField",
+                                                        "type_model": "ManyToManyField",
+                                                        "type_serializer": "ManyRelatedField",
+                                                        "app_label": "store",
+                                                        "model": "specialcare",
+                                                    },
+                                                    "order_between": {
+                                                        "choices": False,
+                                                        "label": "Order Between",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "IntegerRangeField",
+                                                        "type_model": "IntegerRangeField",
+                                                        "type_serializer": "ModelField",
+                                                        "max_value": 2147483647,
+                                                        "min_value": -2147483648,
+                                                    },
+                                                    "last_ten_order_betweens": {
+                                                        "choices": False,
+                                                        "label": "Last Ten Order Betweens",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "IntegerRangeField",
+                                                        "type_model": "IntegerRangeField",
+                                                        "type_serializer": "ModelField",
+                                                        "max_value": 2147483647,
+                                                        "min_value": -2147483648,
+                                                    },
+                                                    "current_sale_date": {
+                                                        "choices": False,
+                                                        "label": "Current Sale Date",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "DateRangeField",
+                                                        "type_model": "DateRangeField",
+                                                        "type_serializer": "RangeField",
+                                                    },
+                                                    "future_sale_dates": {
+                                                        "choices": False,
+                                                        "label": "Future Sale Dates",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "DateRangeField",
+                                                        "type_model": "DateRangeField",
+                                                        "type_serializer": "ModelField",
+                                                    },
+                                                    "reviews": {
+                                                        "choices": False,
+                                                        "label": "Reviews",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "CharField",
+                                                        "type_model": "CharField",
+                                                        "type_serializer": "CharField",
+                                                    },
+                                                    "internal_comments": {
+                                                        "choices": False,
+                                                        "label": "Internal Comments",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "TextField",
+                                                        "type_model": "TextField",
+                                                        "type_serializer": "CharField",
+                                                    },
+                                                    "last_ordered": {
+                                                        "choices": False,
+                                                        "label": "Last Ordered",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "DateField",
+                                                        "type_model": "DateField",
+                                                        "type_serializer": "DateField",
+                                                    },
+                                                    "formatted_name": {
+                                                        "choices": False,
+                                                        "label": "Formatted Name",
+                                                        "many": False,
+                                                        "read_only": True,
+                                                        "required": False,
+                                                        "type_db": "CharField",
+                                                        "type_model": "GeneratedField",
+                                                        "type_serializer": "ModelField",
+                                                    },
+                                                    "history_id": {
+                                                        "label": "History ID",
+                                                        "type_db": "AutoField",
+                                                        "type_model": "AutoField",
+                                                        "type_serializer": "IntegerField",
+                                                        "read_only": True,
+                                                        "pk": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_date": {
+                                                        "label": "History Date",
+                                                        "type_db": "DateTimeField",
+                                                        "type_model": "DateTimeField",
+                                                        "type_serializer": "DateTimeField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_change_reason": {
+                                                        "label": "Change Reason",
+                                                        "type_db": "CharField",
+                                                        "type_model": "CharField",
+                                                        "type_serializer": "CharField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_type": {
+                                                        "label": "History Type",
+                                                        "type_db": "CharField",
+                                                        "type_model": "CharField",
+                                                        "type_serializer": "CharField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_relation": {
+                                                        "label": "In Relation To",
+                                                        "type_db": "ForeignKey",
+                                                        "type_model": "ForeignKey",
+                                                        "type_serializer": "PrimaryKeyRelatedField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_user": {
+                                                        "label": "History User",
+                                                        "type_db": "ForeignKey",
+                                                        "type_model": "ForeignKey",
+                                                        "type_serializer": "PrimaryKeyRelatedField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                },
+                                                "app_label": "store",
+                                                "model": "historicalproduct",
+                                            },
+                                            {
+                                                "name": "last_history_entry",
+                                                "read_only": True,
+                                                "many": False,
+                                                "f": {
+                                                    "id": {
+                                                        "choices": False,
+                                                        "label": "ID",
+                                                        "many": False,
+                                                        "read_only": True,
+                                                        "required": False,
+                                                        "type_db": "AutoField",
+                                                        "type_model": "AutoField",
+                                                        "type_serializer": "IntegerField",
+                                                        "max_value": 2147483647,
+                                                        "min_value": -2147483648,
+                                                    },
+                                                    "distributor": {
+                                                        "choices": True,
+                                                        "label": "Distributor",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "ForeignKey",
+                                                        "type_model": "ForeignKey",
+                                                        "type_serializer": "PrimaryKeyRelatedField",
+                                                        "app_label": "store",
+                                                        "model": "distributor",
+                                                    },
+                                                    "name": {
+                                                        "choices": False,
+                                                        "label": "Name",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "CharField",
+                                                        "type_model": "CharField",
+                                                        "type_serializer": "CharField",
+                                                        "max_length": 255,
+                                                    },
+                                                    "description": {
+                                                        "choices": False,
+                                                        "label": "Description",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "TextField",
+                                                        "type_model": "TextField",
+                                                        "type_serializer": "CharField",
+                                                    },
+                                                    "disabled": {
+                                                        "choices": False,
+                                                        "label": "Disabled",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "BooleanField",
+                                                        "type_model": "BooleanField",
+                                                        "type_serializer": "BooleanField",
+                                                    },
+                                                    "tangible_type": {
+                                                        "choices": True,
+                                                        "label": "Tangible Type",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "ForeignKey",
+                                                        "type_model": "ForeignKey",
+                                                        "type_serializer": "PrimaryKeyRelatedField",
+                                                        "app_label": "store",
+                                                        "model": "tangibletype",
+                                                    },
+                                                    "special_care": {
+                                                        "choices": True,
+                                                        "label": "Special Care",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "ManyToManyField",
+                                                        "type_model": "ManyToManyField",
+                                                        "type_serializer": "ManyRelatedField",
+                                                        "app_label": "store",
+                                                        "model": "specialcare",
+                                                    },
+                                                    "order_between": {
+                                                        "choices": False,
+                                                        "label": "Order Between",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": True,
+                                                        "type_db": "IntegerRangeField",
+                                                        "type_model": "IntegerRangeField",
+                                                        "type_serializer": "ModelField",
+                                                        "max_value": 2147483647,
+                                                        "min_value": -2147483648,
+                                                    },
+                                                    "last_ten_order_betweens": {
+                                                        "choices": False,
+                                                        "label": "Last Ten Order Betweens",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "IntegerRangeField",
+                                                        "type_model": "IntegerRangeField",
+                                                        "type_serializer": "ModelField",
+                                                        "max_value": 2147483647,
+                                                        "min_value": -2147483648,
+                                                    },
+                                                    "current_sale_date": {
+                                                        "choices": False,
+                                                        "label": "Current Sale Date",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "DateRangeField",
+                                                        "type_model": "DateRangeField",
+                                                        "type_serializer": "RangeField",
+                                                    },
+                                                    "future_sale_dates": {
+                                                        "choices": False,
+                                                        "label": "Future Sale Dates",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "DateRangeField",
+                                                        "type_model": "DateRangeField",
+                                                        "type_serializer": "ModelField",
+                                                    },
+                                                    "reviews": {
+                                                        "choices": False,
+                                                        "label": "Reviews",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "CharField",
+                                                        "type_model": "CharField",
+                                                        "type_serializer": "CharField",
+                                                    },
+                                                    "internal_comments": {
+                                                        "choices": False,
+                                                        "label": "Internal Comments",
+                                                        "many": True,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "TextField",
+                                                        "type_model": "TextField",
+                                                        "type_serializer": "CharField",
+                                                    },
+                                                    "last_ordered": {
+                                                        "choices": False,
+                                                        "label": "Last Ordered",
+                                                        "many": False,
+                                                        "read_only": False,
+                                                        "required": False,
+                                                        "type_db": "DateField",
+                                                        "type_model": "DateField",
+                                                        "type_serializer": "DateField",
+                                                    },
+                                                    "formatted_name": {
+                                                        "choices": False,
+                                                        "label": "Formatted Name",
+                                                        "many": False,
+                                                        "read_only": True,
+                                                        "required": False,
+                                                        "type_db": "CharField",
+                                                        "type_model": "GeneratedField",
+                                                        "type_serializer": "ModelField",
+                                                    },
+                                                    "history_id": {
+                                                        "label": "History ID",
+                                                        "type_db": "AutoField",
+                                                        "type_model": "AutoField",
+                                                        "type_serializer": "IntegerField",
+                                                        "read_only": True,
+                                                        "pk": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_date": {
+                                                        "label": "History Date",
+                                                        "type_db": "DateTimeField",
+                                                        "type_model": "DateTimeField",
+                                                        "type_serializer": "DateTimeField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_change_reason": {
+                                                        "label": "Change Reason",
+                                                        "type_db": "CharField",
+                                                        "type_model": "CharField",
+                                                        "type_serializer": "CharField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_type": {
+                                                        "label": "History Type",
+                                                        "type_db": "CharField",
+                                                        "type_model": "CharField",
+                                                        "type_serializer": "CharField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_relation": {
+                                                        "label": "In Relation To",
+                                                        "type_db": "ForeignKey",
+                                                        "type_model": "ForeignKey",
+                                                        "type_serializer": "PrimaryKeyRelatedField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                    "history_user": {
+                                                        "label": "History User",
+                                                        "type_db": "ForeignKey",
+                                                        "type_model": "ForeignKey",
+                                                        "type_serializer": "PrimaryKeyRelatedField",
+                                                        "read_only": True,
+                                                        "many": False,
+                                                        "required": False,
+                                                        "choices": False,
+                                                    },
+                                                },
+                                                "app_label": "store",
+                                                "model": "historicalproduct",
+                                            },
+                                        ],
+                                    }
+                                ]
+                            },
+                        },
+                        "GetModelInfoFieldsExpandedExample": {
+                            "summary": "Expanded - model_fields",
+                            "description": (
+                                "uri: /routes/vueda.info/model_info/store/customerorder/<br>data: e='model_fields'"
+                            ),
+                            "value": {
+                                "results": [
+                                    {
+                                        "id": 8,
+                                        "app_label": "store",
+                                        "model": "customerorder",
+                                        "verbose_name": "customer order",
+                                        "verbose_name_plural": "customer orders",
+                                        "model_fields": {
+                                            "id": {
+                                                "choices": False,
+                                                "label": "ID",
+                                                "many": False,
+                                                "read_only": True,
+                                                "required": False,
+                                                "type_db": "AutoField",
+                                                "type_model": "AutoField",
+                                                "type_serializer": "IntegerField",
+                                                "max_value": 2147483647,
+                                                "min_value": -2147483648,
+                                                "pk": True,
+                                            },
+                                            "order_number": {
+                                                "choices": False,
+                                                "label": "Order Number",
+                                                "many": False,
+                                                "read_only": False,
+                                                "required": True,
+                                                "type_db": "DecimalField",
+                                                "type_model": "DecimalField",
+                                                "type_serializer": "DecimalField",
+                                                "max_digits": 7,
+                                                "decimal_places": 0,
+                                            },
+                                            "when": {
+                                                "choices": False,
+                                                "label": "Date / Time",
+                                                "many": False,
+                                                "read_only": True,
+                                                "required": False,
+                                                "type_db": "DateTimeField",
+                                                "type_model": "DateTimeField",
+                                                "type_serializer": "DateTimeField",
+                                            },
+                                            "customer": {
+                                                "choices": True,
+                                                "label": "Customer",
+                                                "many": False,
+                                                "read_only": False,
+                                                "required": True,
+                                                "type_db": "ForeignKey",
+                                                "type_model": "ForeignKey",
+                                                "type_serializer": "PrimaryKeyRelatedField",
+                                                "app_label": "store",
+                                                "model": "customer",
+                                            },
+                                            "order_state": {
+                                                "choices": True,
+                                                "label": "Order State",
+                                                "many": False,
+                                                "read_only": False,
+                                                "required": True,
+                                                "type_db": "ForeignKey",
+                                                "type_model": "ForeignKey",
+                                                "type_serializer": "PrimaryKeyRelatedField",
+                                                "app_label": "store",
+                                                "model": "orderstate",
+                                            },
+                                            "shipping_method": {
+                                                "choices": [
+                                                    {"label": "Free", "value": "free"},
+                                                    {"label": "Regular", "value": "regular"},
+                                                    {"label": "Express", "value": "express"},
+                                                ],
+                                                "label": "Shipping Method",
+                                                "many": False,
+                                                "read_only": False,
+                                                "required": False,
+                                                "type_db": "CharField",
+                                                "type_model": "CharField",
+                                                "type_serializer": "ChoiceField",
+                                            },
+                                            "formatted_name": {
+                                                "choices": False,
+                                                "label": "Formatted Name",
+                                                "many": False,
+                                                "read_only": True,
+                                                "required": False,
+                                                "type_db": "CharField",
+                                                "type_model": "GeneratedField",
+                                                "type_serializer": "ModelField",
+                                            },
+                                            "current_history_id": {
+                                                "choices": False,
+                                                "label": "Current History ID",
+                                                "many": False,
+                                                "read_only": True,
+                                                "required": False,
+                                                "type_db": None,
+                                                "type_model": None,
+                                                "type_serializer": "IntegerField",
+                                            },
+                                        },
+                                    }
+                                ]
+                            },
+                        },
+                        "GetModelInfoFilteringExpandedExample": {
+                            "summary": "Expanded - model_filtering",
+                            "description": (
+                                "uri: /routes/vueda.info/model_info/store/cart/<br>data: e='model_filtering'"
+                            ),
+                            "value": {
+                                "results": [
+                                    {
+                                        "id": 7,
+                                        "app_label": "store",
+                                        "model": "cart",
+                                        "verbose_name": "cart",
+                                        "verbose_name_plural": "carts",
+                                        "model_filtering": {
+                                            "last_modified": {
+                                                "hidden": False,
+                                                "label": "Last modified",
+                                                "lookup_exprs": [],
+                                                "required": False,
+                                                "type_db": "DateTimeField",
+                                                "type_model": "DateTimeField",
+                                                "type_filter": "DateTimeRangeField",
+                                                "choices": False,
+                                                "error_messages": {
+                                                    "invalid": "Enter a list of values.",
+                                                    "incomplete": "Enter a complete value.",
+                                                },
+                                                "input_type": "text",
+                                                "suffixes": ["after", "before"],
+                                            },
+                                            "id": {
+                                                "hidden": True,
+                                                "label": "Id Is In",
+                                                "lookup_exprs": ["in"],
+                                                "required": False,
+                                                "type_db": "AutoField",
+                                                "type_model": "AutoField",
+                                                "type_filter": "DecimalInField",
+                                                "choices": False,
+                                                "error_messages": {"invalid": "Enter a number."},
+                                                "help_text": "Multiple values may be separated by commas.",
+                                                "input_type": "hidden",
+                                                "max_value": 2147483647,
+                                                "min_value": -2147483648,
+                                            },
+                                            "reserved_delivery_time": {
+                                                "hidden": False,
+                                                "label": "Reserved Delivery Time",
+                                                "lookup_exprs": ["exact"],
+                                                "required": False,
+                                                "type_db": "DateTimeField",
+                                                "type_model": "DateTimeField",
+                                                "type_filter": "DateTimeField",
+                                                "choices": False,
+                                                "error_messages": {"invalid": "Enter a valid date/time."},
+                                                "input_formats": [
+                                                    "%Y-%m-%d %H:%M:%S",
+                                                    "%Y-%m-%d %H:%M:%S.%f",
+                                                    "%Y-%m-%d %H:%M",
+                                                    "%m/%d/%Y %H:%M:%S",
+                                                    "%m/%d/%Y %H:%M:%S.%f",
+                                                    "%m/%d/%Y %H:%M",
+                                                    "%m/%d/%y %H:%M:%S",
+                                                    "%m/%d/%y %H:%M:%S.%f",
+                                                    "%m/%d/%y %H:%M",
+                                                    "%Y-%m-%d",
+                                                    "%Y-%m-%d",
+                                                    "%m/%d/%Y",
+                                                    "%m/%d/%y",
+                                                    "%b %d %Y",
+                                                    "%b %d, %Y",
+                                                    "%d %b %Y",
+                                                    "%d %b, %Y",
+                                                    "%B %d %Y",
+                                                    "%B %d, %Y",
+                                                    "%d %B %Y",
+                                                    "%d %B, %Y",
+                                                ],
+                                                "input_type": "text",
+                                            },
+                                            "reserved_until": {
+                                                "hidden": False,
+                                                "label": "Reserved Until",
+                                                "lookup_exprs": ["exact"],
+                                                "required": False,
+                                                "type_db": "TimeField",
+                                                "type_model": "TimeField",
+                                                "type_filter": "TimeField",
+                                                "choices": False,
+                                                "error_messages": {"invalid": "Enter a valid time."},
+                                                "input_formats": ["%H:%M:%S", "%H:%M:%S.%f", "%H:%M"],
+                                                "input_type": "text",
+                                            },
+                                            "expected_delivery_time": {
+                                                "hidden": False,
+                                                "label": "Expected Delivery Time",
+                                                "lookup_exprs": ["exact"],
+                                                "required": False,
+                                                "type_db": "DurationField",
+                                                "type_model": "DurationField",
+                                                "type_filter": "DurationField",
+                                                "choices": False,
+                                                "error_messages": {
+                                                    "invalid": "Enter a valid duration.",
+                                                    "overflow": (
+                                                        "The number of days must be between -999999999 and 999999999."
+                                                    ),
+                                                },
+                                                "input_type": "text",
+                                            },
+                                            "product_name": {
+                                                "hidden": False,
+                                                "label": "Product name",
+                                                "lookup_exprs": ["exact"],
+                                                "required": False,
+                                                "type_db": "CharField",
+                                                "type_model": "CharField",
+                                                "type_filter": "MultipleChoiceField",
+                                                "choices": True,
+                                                "app_label": "store",
+                                                "model": "cart",
+                                                "filterset_name": "CartFilterSet",
+                                                "empty_label": None,
+                                                "error_messages": {
+                                                    "invalid_choice": (
+                                                        "Select a valid choice. %(value)s "
+                                                        "is not one of the available choices."
+                                                    ),
+                                                    "invalid_list": "Enter a list of values.",
+                                                },
+                                                "input_type": "select",
+                                                "null_label": None,
+                                                "null_value": "null",
+                                            },
+                                            "product_quantity": {
+                                                "hidden": False,
+                                                "label": "Product quantity",
+                                                "lookup_exprs": ["exact"],
+                                                "required": False,
+                                                "type_db": "IntegerField",
+                                                "type_model": "IntegerField",
+                                                "type_filter": "MultipleChoiceField",
+                                                "choices": True,
+                                                "app_label": "store",
+                                                "model": "cart",
+                                                "filterset_name": "CartFilterSet",
+                                                "empty_label": None,
+                                                "error_messages": {
+                                                    "invalid_choice": (
+                                                        "Select a valid choice. %(value)s "
+                                                        "is not one of the available choices."
+                                                    ),
+                                                    "invalid_list": "Enter a list of values.",
+                                                },
+                                                "input_type": "select",
+                                                "null_label": None,
+                                                "null_value": "null",
+                                            },
+                                        },
+                                    }
+                                ]
+                            },
+                        },
+                        "GetModelInfoOrderingExpandedExample": {
+                            "summary": "Expanded - model_ordering",
+                            "description": (
+                                "uri: /routes/vueda.info/model_info/store/customerorder/<br>data: e='model_ordering'"
+                            ),
+                            "value": {
+                                "results": [
+                                    {
+                                        "id": 8,
+                                        "app_label": "store",
+                                        "model": "customerorder",
+                                        "verbose_name": "customer order",
+                                        "verbose_name_plural": "customer orders",
+                                        "model_ordering": [
+                                            {"name": "order_number", "type": "numeric"},
+                                            {"name": "customer__user__email", "type": "alpha"},
+                                            {"name": "when", "type": "datetime"},
+                                            {"name": "order_state", "type": "alpha"},
+                                        ],
+                                    }
+                                ]
+                            },
+                        },
+                        "GetModelInfoPermissionsExpandedExample": {
+                            "summary": "Expanded - model_permissions",
+                            "description": (
+                                "uri: /routes/vueda.info/model_info/store/customerorder/<br>data: e='model_permissions'"
+                            ),
+                            "value": {
+                                "results": [
+                                    {
+                                        "id": 8,
+                                        "app_label": "store",
+                                        "model": "customerorder",
+                                        "verbose_name": "customer order",
+                                        "verbose_name_plural": "customer orders",
+                                        "model_permissions": [
+                                            {"codename": "create_customerorder", "name": "Can create customer order"},
+                                            {"codename": "delete_customerorder", "name": "Can delete customer order"},
+                                            {"codename": "fulfill_orders", "name": "Can fulfill orders"},
+                                            {"codename": "list_customerorder", "name": "Can list customer order"},
+                                            {"codename": "manage_customerorder", "name": "Can manage customer order"},
+                                            {"codename": "pack_order", "name": "Can pack order customer order"},
+                                            {"codename": "read_customerorder", "name": "Can read customer order"},
+                                            {"codename": "update_customerorder", "name": "Can update customer order"},
+                                        ],
+                                    }
+                                ]
+                            },
+                        },
+                    }
+
+                    response_data["403"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "GetModelPermissionDeniedExample": {
+                                        "summary": "Permission denied",
+                                        "description": (
+                                            "uri: /routes/vueda.info/model_info&ZeroWidthSpace;/store/customer/"
+                                        ),
+                                        "value": {
+                                            "detail": "You do not have permission to perform this action.",
+                                            "serverStack": open_api_tracebacks.INFO_DENIED,
+                                        },
+                                    },
+                                },
+                            }
+                        }
+                    }
+
+                    response_data["404"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "InvalidGetModelInfoContentTypeExample": {
+                                        "summary": "Invalid content type",
+                                        "description": (
+                                            "uri: /routes/vueda.info/model_info&ZeroWidthSpace;"
+                                            "/store/pets/tangible_type/"
+                                        ),
+                                        "value": {
+                                            "detail": 'Unable to find the content type "store.pets".',
+                                            "serverStack": open_api_tracebacks.INFO_INVALID_CONTENT_TYPE,
+                                        },
+                                    },
+                                    "InvalidGetModelInfoFieldExample": {
+                                        "summary": "Invalid field",
+                                        "description": (
+                                            "uri: /routes/vueda.info/model_info&ZeroWidthSpace;"
+                                            "/store/customer/tangible_type/"
+                                        ),
+                                        "value": {
+                                            "detail": [
+                                                "Invalid field 'tangible_type'. Valid fields with choices are user."
+                                            ],
+                                            "serverStack": open_api_tracebacks.INFO_CHOICES_INVALID_FIELD,
+                                        },
+                                    },
+                                },
+                            }
+                        }
+                    }
+
 
 class ModelInfoChoicesSerializer(
     VuedaExpandableFieldsSerializerMixin, FlexFieldsSerializerMixin, serializers.Serializer
@@ -838,6 +3049,266 @@ class ModelInfoChoicesSerializer(
         fields = ["label", "value"]  # value is the pk
         expandable_fields = {}
 
+    def customize_schema_request_data(self, request_data):  # pragma: no cover
+        match self.context["request"].path:
+            case "/routes/vueda.info/model_info_choices/{app_label}/{model}/{field}/":
+                request_data["content"] = {}  # This prevents a message of 'Schema not provided' for the body.
+
+        return request_data
+
+    def customize_schema_response_data(self, auto_schema, response_data):  # pragma: no cover
+        request = self.context["request"]
+
+        for status_code, data in tuple(response_data.items()):  # tuple because we may add items.
+            match (request.method, request.path, status_code):
+                # List field choices
+                case ("GET", "/routes/vueda.info/model_info_choices/{app_label}/{model}/{field}/", "200"):
+                    data["content"]["application/json"]["examples"] = {
+                        "ListModelInfoChoicesWithResultsExample": {
+                            "summary": "With Results",
+                            "description": (
+                                "uri: /routes/vueda.info/model_info_choices&ZeroWidthSpace;"
+                                "/store/product/tangible_type/"
+                            ),
+                            "value": {
+                                "results": [
+                                    {"label": "Digital", "value": "1"},
+                                    {"label": "Physical", "value": "2"},
+                                ],
+                                "perPage": settings.MAX_PAGE_SIZE,
+                                "totalPages": 1,
+                                "totalRecords": 2,
+                            },
+                        },
+                        "ListModelInfoChoicesNoResultsExample": {
+                            "summary": "No Results",
+                            "description": (
+                                "uri: /routes/vueda.info/model_info_choices&ZeroWidthSpace;"
+                                "/store/product/tangible_type/"
+                            ),
+                            "value": {
+                                "results": [],
+                                "perPage": settings.MAX_PAGE_SIZE,
+                                "totalPages": 1,
+                                "totalRecords": 0,
+                            },
+                        },
+                    }
+
+                    response_data["403"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "ListModelInfoChoicesPermissionDeniedExample": {
+                                        "summary": "Permission denied",
+                                        "description": (
+                                            "uri: /routes/vueda.info/model_info_choices&ZeroWidthSpace;"
+                                            "/store/product/tangible_type/"
+                                        ),
+                                        "value": {
+                                            "detail": "You do not have permission to perform this action.",
+                                            "serverStack": open_api_tracebacks.INFO_CHOICES_DENIED,
+                                        },
+                                    },
+                                },
+                            }
+                        }
+                    }
+
+                    response_data["404"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "InvalidListModelInfoChoicesContentTypeExample": {
+                                        "summary": "Invalid content type",
+                                        "description": (
+                                            "uri: /routes/vueda.info/model_info_choices&ZeroWidthSpace;"
+                                            "/store/pets/tangible_type/"
+                                        ),
+                                        "value": {
+                                            "detail": 'Unable to find the content type "store.pets".',
+                                            "serverStack": open_api_tracebacks.INFO_CHOICES_INVALID_CONTENT_TYPE,
+                                        },
+                                    },
+                                    "InvalidListModelInfoChoicesFieldExample": {
+                                        "summary": "Invalid field",
+                                        "description": (
+                                            "uri: /routes/vueda.info/model_info_choices&ZeroWidthSpace;"
+                                            "/store/customer/tangible_type/"
+                                        ),
+                                        "value": {
+                                            "detail": [
+                                                "Invalid field 'tangible_type'. Valid fields with choices are user."
+                                            ],
+                                            "serverStack": open_api_tracebacks.INFO_CHOICES_INVALID_FIELD,
+                                        },
+                                    },
+                                },
+                            }
+                        }
+                    }
+
 
 class ModelInfoFilterSetChoicesSerializer(ModelInfoChoicesSerializer):
-    pass
+    def customize_schema_request_data(self, request_data):  # pragma: no cover
+        match self.context["request"].path:
+            case "/routes/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/":
+                request_data["content"] = {}  # This prevents a message of 'Schema not provided' for the body.
+
+        return request_data
+
+    def customize_schema_response_data(self, auto_schema, response_data):  # pragma: no cover
+        request = self.context["request"]
+
+        for status_code, data in tuple(response_data.items()):  # tuple because we may add items.
+            match (request.method, request.path, status_code):
+                # List filterset field choices
+                case ("GET", "/routes/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/", "200"):
+                    data["content"]["application/json"]["examples"] = {
+                        "ListModelInfoFilterChoicesWithResultsExample": {
+                            "summary": "With Results",
+                            "description": (
+                                "uri: /routes/vueda.info/model_info_filter_choices&ZeroWidthSpace;"
+                                "/store/product/tangible_type/"
+                            ),
+                            "value": {
+                                "results": [
+                                    {"label": "Digital", "value": "1"},
+                                    {"label": "Physical", "value": "2"},
+                                ],
+                                "perPage": settings.MAX_PAGE_SIZE,
+                                "totalPages": 1,
+                                "totalRecords": 2,
+                            },
+                        },
+                        "ListModelInfoFilterChoicesNoResultsExample": {
+                            "summary": "No Results",
+                            "description": (
+                                "uri: /routes/vueda.info/model_info_filter_choices&ZeroWidthSpace;"
+                                "/store/product/tangible_type/"
+                            ),
+                            "value": {
+                                "results": [],
+                                "perPage": settings.MAX_PAGE_SIZE,
+                                "totalPages": 1,
+                                "totalRecords": 0,
+                            },
+                        },
+                    }
+
+                    response_data["403"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "ListModelInfoFilterChoicesPermissionDeniedExample": {
+                                        "summary": "Permission denied",
+                                        "description": (
+                                            "uri: /routes/vueda.info/model_info_filter_choices&ZeroWidthSpace;"
+                                            "/store/product/tangible_type/"
+                                        ),
+                                        "value": {
+                                            "detail": "You do not have permission to perform this action.",
+                                            "serverStack": open_api_tracebacks.INFO_CHOICES_DENIED,
+                                        },
+                                    },
+                                },
+                            }
+                        }
+                    }
+
+                    response_data["404"] = {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "detail",
+                                        "serverStack",
+                                    ],
+                                    "properties": {
+                                        "detail": {
+                                            "type": "string",
+                                        },
+                                        "serverStack": {
+                                            "type": "string",
+                                        },
+                                    },
+                                    "readOnly": True,
+                                },
+                                "examples": {
+                                    "InvalidListModelInfoFilterChoicesContentTypeExample": {
+                                        "summary": "Invalid content type",
+                                        "description": (
+                                            "uri: /routes/vueda.info/model_info_filter_choices&ZeroWidthSpace;"
+                                            "/store/pets/tangible_type/"
+                                        ),
+                                        "value": {
+                                            "detail": 'Unable to find the content type "store.pets".',
+                                            "serverStack": open_api_tracebacks.INFO_CHOICES_INVALID_CONTENT_TYPE,
+                                        },
+                                    },
+                                    "InvalidListModelInfoFilterChoicesFieldExample": {
+                                        "summary": "Invalid field",
+                                        "description": (
+                                            "uri: /routes/vueda.info/model_info_filter_choices&ZeroWidthSpace;"
+                                            "/store/customer/tangible_type/"
+                                        ),
+                                        "value": {
+                                            "detail": [
+                                                "Invalid field 'tangible_type'. Valid fields with choices are user."
+                                            ],
+                                            "serverStack": open_api_tracebacks.INFO_CHOICES_INVALID_FIELD,
+                                        },
+                                    },
+                                },
+                            }
+                        }
+                    }

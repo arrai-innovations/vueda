@@ -31,19 +31,29 @@ def register_cart_with_model_info(endpoints):
 
 def postprocess_schema_components(result, generator, **kwargs):
     for component_key, component in result["components"].items():
-        if component_key == "schemas":
-            for schema_key, schema in component.items():
-                match schema_key:
-                    case "Login":
-                        schema["properties"]["email"]["example"] = "user@example.com"
-                        schema["properties"]["email"][
-                            "description"
-                        ] = "The email address of a user, which is used to log in."
-                        schema["properties"]["password"]["example"] = "A long phrase that only you know!!!"
-                        schema["properties"]["password"][
-                            "description"
-                        ] = "The secret phrase or characters that must be used to log in."
-                        schema["properties"]["password"]["format"] = "password"
+        match component_key:
+            case "schemas":
+                for schema_key, schema in component.items():
+                    match schema_key:
+                        case "Login":
+                            schema["properties"]["email"]["example"] = "user@example.com"
+                            schema["properties"]["email"][
+                                "description"
+                            ] = "The email address of a user, which is used to log in."
+                            schema["properties"]["password"]["example"] = "A long phrase that only you know!!!"
+                            schema["properties"]["password"][
+                                "description"
+                            ] = "The secret phrase or characters that must be used to log in."
+                            schema["properties"]["password"]["format"] = "password"
+
+                        case (
+                            "PaginatedModelInfoList"
+                            | "PaginatedModelInfoChoicesList"
+                            | "PaginatedModelInfoFilterSetChoicesList"
+                            | "PaginatedWorkflowList"
+                        ):
+                            schema["properties"]["perPage"]["default"] = settings.MAX_PAGE_SIZE
+                            schema["properties"]["perPage"]["example"] = 100
 
     for path in result["paths"].values():
         for method in path.values():
