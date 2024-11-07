@@ -80,6 +80,7 @@ const updateSecond = (newValue) => {
             <div :class="theme('inner')">
                 <div v-if="showDays" :class="theme('innerItem')">
                     <InputNumber
+                        :disabled="widgetContext.state.disabled"
                         :max="365"
                         :min="0"
                         :model-value="valueDay"
@@ -91,6 +92,7 @@ const updateSecond = (newValue) => {
                 </div>
                 <div v-if="showHours" :class="theme('innerItem')">
                     <InputNumber
+                        :disabled="widgetContext.state.disabled"
                         :min="0"
                         :model-value="valueHour"
                         show-buttons
@@ -101,6 +103,7 @@ const updateSecond = (newValue) => {
                 </div>
                 <div v-if="showMinutes" :class="theme('innerItem')">
                     <InputNumber
+                        :disabled="widgetContext.state.disabled"
                         :min="0"
                         :model-value="valueMinute"
                         show-buttons
@@ -111,6 +114,7 @@ const updateSecond = (newValue) => {
                 </div>
                 <div v-if="showSeconds" :class="theme('innerItem')">
                     <InputNumber
+                        :disabled="widgetContext.state.disabled"
                         :min="0"
                         :model-value="valueSecond"
                         show-buttons

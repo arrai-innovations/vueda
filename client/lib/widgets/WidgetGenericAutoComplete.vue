@@ -186,8 +186,8 @@ const hintText = computed(() => {
                 </div>
                 <div :class="theme('autoCompleteOuter')">
                     <AutoComplete
-                        :disabled="!selectedType"
                         v-bind="$attrs"
+                        :disabled="widgetContext.state.disabled || !selectedType"
                         force-selection
                         :loading="modelListInstance.state.loading"
                         :model-value="contentObject"

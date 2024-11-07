@@ -50,10 +50,11 @@ const getCurrentDate = () => {
                         outlined: true,
                         text: true,
                     }"
+                    v-bind="$attrs"
+                    :disabled="widgetContext.state.disabled"
                     :model-value="modelValue"
                     :name="widgetContext.state.combinedName"
                     :selection-mode="computedSelectionMode"
-                    v-bind="$attrs"
                     show-button-bar
                     :today-button-props="{
                         label: `Now`,

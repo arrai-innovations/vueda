@@ -19,9 +19,10 @@ const theme = useTheme("WidgetCheckbox", props, widgetContext.state);
         <div :class="theme('inner')">
             <ToggleSwitch
                 v-model="widgetContext.state.combinedValue"
+                v-bind="$attrs"
+                :disabled="widgetContext.state.disabled"
                 :name="widgetContext.state.combinedName"
                 type="checkbox"
-                v-bind="$attrs"
                 @blur="widgetContext.blur"
                 @focus="widgetContext.focus"
             />

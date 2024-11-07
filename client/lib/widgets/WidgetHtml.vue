@@ -9,10 +9,6 @@ import { unref } from "vue";
 
 const props = defineProps({
     ...WIDGET_PROPS,
-    disabled: {
-        type: Boolean,
-        default: false,
-    },
     menuComponent: {
         type: Object,
         default: () => import("@tiptap/vue-3").then((m) => m.MenuBar),
@@ -86,8 +82,7 @@ const theme = useTheme("WidgetHtml", props, widgetContext.state);
                     :is="menuComponent"
                     v-if="menuComponent"
                     :class="theme('menu')"
-                    :disabled="disabled"
-                    :editor="editor"
+                    :disabled="widgetContext.state.disabled"
                 />
                 <editor-content :class="theme('editor')" v-bind="$attrs" :editor="editor" />
             </div>

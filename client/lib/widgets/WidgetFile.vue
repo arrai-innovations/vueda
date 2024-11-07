@@ -66,7 +66,15 @@ const fileURL = computed(() => {
                 </div>
                 <div v-else>
                     <slot name="file-uploader">
-                        <FileUpload auto custom-upload mode="basic" name="files[]" v-bind="$attrs" @uploader="upload">
+                        <FileUpload
+                            auto
+                            custom-upload
+                            v-bind="$attrs"
+                            :disabled="widgetContext.state.disabled"
+                            mode="basic"
+                            name="files[]"
+                            @uploader="upload"
+                        >
                         </FileUpload>
                     </slot>
                 </div>

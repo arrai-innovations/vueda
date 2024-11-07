@@ -111,6 +111,7 @@ const search = (event) => {
             <div :class="theme('inner')">
                 <AutoComplete
                     v-bind="$attrs"
+                    :disabled="widgetContext.state.disabled"
                     force-selection
                     :loading="modelListInstance.state.loading"
                     :model-value="modelItem"

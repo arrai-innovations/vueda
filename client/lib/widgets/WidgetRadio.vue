@@ -63,6 +63,7 @@ const handleFocus = () => {
                             <radio-button
                                 v-model="widgetContext.state.combinedValue"
                                 :class="theme('optionInput')"
+                                :disabled="widgetContext.state.disabled"
                                 :input-id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
                                 :name="widgetContext.state.combinedName"
                                 :value="option.value"

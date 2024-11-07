@@ -52,10 +52,11 @@ const valueUpdated = (selected) => {
             </template>
             <div :class="theme('inner')">
                 <Select
+                    v-bind="$attrs"
+                    :disabled="widgetContext.state.disabled"
                     :model-value="modelItem"
                     :options="props.options"
                     show-clear
-                    v-bind="$attrs"
                     @blur="handleBlur"
                     @focus="handleFocus"
                     @update:model-value="(selected) => valueUpdated(selected)"

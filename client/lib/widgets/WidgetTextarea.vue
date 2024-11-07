@@ -28,6 +28,7 @@ const theme = useTheme("WidgetTextarea", props, widgetContext.state);
                     v-model="widgetContext.state.combinedValue"
                     auto-resize
                     cols="30"
+                    :disabled="widgetContext.state.disabled"
                     :name="widgetContext.state.combinedName"
                     rows="5"
                     @blur="widgetContext.blur"

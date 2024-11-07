@@ -26,6 +26,14 @@ export const WIDGET_PROPS = {
         type: Boolean,
         default: false,
     },
+    disabled: {
+        type: Boolean,
+        default: false,
+    },
+    disabledFn: {
+        type: Function,
+        default: null,
+    },
 };
 
 export const WIDGET_EMITS = ["update:modelValue"];
@@ -100,6 +108,12 @@ export function useWidget(props, emit) {
             }),
             combinedLabel: computed(() => {
                 return props.label?.length ? props.label : fieldContext.state.label;
+            }),
+            disabled: computed(() => {
+                if (props.disabled) {
+                    return props.disabledFn ? props.disabledFn() : true;
+                }
+                return false;
             }),
         }),
         setTouched: () => {

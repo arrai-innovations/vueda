@@ -210,6 +210,7 @@ const computedLabel = computed(() => {
                     v-else
                     v-model="widgetContext.state.combinedValue"
                     v-bind="$attrs"
+                    :disabled="widgetContext.state.disabled"
                     filter
                     :option-label="props.optionLabel"
                     :option-value="pkKey"

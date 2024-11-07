@@ -42,11 +42,12 @@ const handleBlur = (e) => {
             <MultiSelect
                 v-model="widgetContext.state.combinedValue"
                 class="w-full md:w-80"
+                v-bind="$attrs"
+                :disabled="widgetContext.state.disabled"
                 display="chip"
                 filter
                 :max-selected-labels="3"
                 :options="props.options"
-                v-bind="$attrs"
                 @blur="handleBlur"
                 @focus="handleFocus"
             />

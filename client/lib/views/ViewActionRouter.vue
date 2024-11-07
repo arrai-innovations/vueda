@@ -64,6 +64,7 @@ watch(
     },
     { immediate: true, deep: true },
 );
+
 const actionComponent = computedAsync(async () => {
     return actionComponentRef.value();
 }, null);

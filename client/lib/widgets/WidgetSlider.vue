@@ -38,6 +38,7 @@ const theme = useTheme("WidgetDatePicker", props, widgetContext.state);
                             v-model="widgetContext.state.combinedValue"
                             v-bind="$attrs"
                             class="w-56"
+                            :disabled="widgetContext.state.disabled"
                             :max="props.maxValue"
                             :min="props.minValue"
                             :name="widgetContext.state.combinedName"

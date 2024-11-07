@@ -10,7 +10,7 @@ import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import Button from "primevue/button";
-import { computed, reactive, toRef } from "vue";
+import { computed, onMounted, reactive, toRef } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -114,6 +114,14 @@ const combinedFormProps = computed(() => {
     };
 });
 const formId = `form-${props.app}-${props.model}-${viewName}`;
+const emit = defineEmits(["form-object"]);
+
+onMounted(() => {
+    emit(
+        "form-object",
+        toRef(() => formContext.state.values),
+    );
+});
 </script>
 <template>
     <div :class="props.class">
@@ -171,6 +179,7 @@ const formId = `form-${props.app}-${props.model}-${viewName}`;
                     :variant="formModelVariant"
                     v-bind="combinedFormProps"
                     :view="viewName"
+                    :widget-props="props.widgetProps"
                 >
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />

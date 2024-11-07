@@ -40,6 +40,7 @@ const theme = useTheme("WidgetImage", props, widgetContext.state);
                         accept="image/*"
                         auto
                         custom-upload
+                        :disabled="widgetContext.state.disabled"
                         :max-file-size="1000000"
                         mode="basic"
                         name="demo[]"
