@@ -33,11 +33,22 @@ const makeSearchParamsString = (searchParams) => {
     return `?${usp.toString()}`;
 };
 
-const getDetailUrl = (app, model, pk, queryString) =>
+export const getDetailUrl = (app, model, pk, queryString) =>
     `${httpOrHttpsHostname}${getUrl("modelDetail").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model)).replace(":pk", pk)}${queryString}`;
-const getCreateUrl = (app, model, queryString) =>
+
+export const getCreateUrl = (app, model, queryString) =>
     `${httpOrHttpsHostname}${getUrl("modelList").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model))}${queryString}`;
 
+/**
+ * Converts an object into a `FormData` instance, handling nested arrays, objects, and files.
+ * - If a property is an array, it appends each element in the array.
+ * - If a property is an object (excluding `File` instances), it appends each nested property.
+ * - If a property is a `File`, it appends it directly.
+ * - If a property is empty or undefined, it appends an empty string.
+ *
+ * @param {object} object - The source object to convert into `FormData`.
+ * @returns {FormData} - A `FormData` instance containing key-value pairs from the object, formatted for multipart form submission.
+ */
 const getFormData = (object) => {
     const formData = new FormData();
     for (const key in object) {
@@ -66,11 +77,23 @@ const getFormData = (object) => {
     }
     return formData;
 };
-export async function defaultObjectRetrieve({ crudArgs, pk, retrieveArgs }) {
+
+/**
+ * The VUEDA specific implementation for reactive-helper's object retrieve crud function.
+ *
+ * @params args {object} - The arguments object.
+ * @params args.crudArgs {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
+ * @params args.pk {string} - The primary key of the object to retrieve.
+ * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
+ * @returns {Promise<void> & { cancel: () => Promise<void> }} - A cancellable promise.
+ */
+export function defaultObjectRetrieve({ crudArgs, pk, retrieveArgs }) {
+    // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
     const url = getDetailUrl(crudArgs.app, crudArgs.model, pk, query);
-    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
+
+    /** @type {Promise<void> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
         method: "GET",
         credentials: "include",
@@ -82,14 +105,29 @@ export async function defaultObjectRetrieve({ crudArgs, pk, retrieveArgs }) {
         }
         throw new FetchError("Failed to retrieve object", response, responseData);
     });
-    returnPromise.cancel = () => controller.abort();
+
+    returnPromise.cancel = async () => {
+        controller.abort();
+        await returnPromise.catch(() => {});
+    };
+
     return returnPromise;
 }
 
+/**
+ * The VUEDA specific implementation for reactive-helper's object create crud function.
+ *
+ * @params args {object} - The arguments object.
+ * @params args.crudArgs {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
+ * @params args.object {object} - The object to create.
+ * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
+ * @returns {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} - A cancellable promise.
+ */
 export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
     const url = getCreateUrl(crudArgs.app, crudArgs.model, query);
+
     const hasFile = Object.values(object).some((value) => value instanceof File || value instanceof Blob);
     const headers = {
         "X-CSRFToken": getCSRFValue(),
@@ -98,7 +136,8 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
         headers["Content-Type"] = "application/json";
     }
     const body = hasFile ? JSON.stringify(object) : getFormData(object);
-    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
+
+    /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
         method: "POST",
         headers,
@@ -115,14 +154,30 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
         }
         throw new FetchError("Failed to create object", response, responseData);
     });
-    returnPromise.cancel = () => controller.abort();
+
+    returnPromise.cancel = async () => {
+        controller.abort();
+        await returnPromise.catch(() => {});
+    };
+
     return returnPromise;
 }
 
-export async function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
+/**
+ * The VUEDA specific implementation for reactive-helper's object update crud function.
+ *
+ * @params args {object} - The arguments object.
+ * @params args.crudArgs {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
+ * @params args.object {import("@arrai-innovations/reactive-helpers").CrudObject} - The object to update.
+ * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
+ * @returns {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} - A cancellable promise.
+ */
+export function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
+    // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
     const url = getDetailUrl(crudArgs.app, crudArgs.model, object.id, query);
+
     const hasFile = Object.values(object).some((value) => value instanceof File || value instanceof Blob);
     const headers = {
         "X-CSRFToken": getCSRFValue(),
@@ -131,7 +186,8 @@ export async function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
         headers["Content-Type"] = "application/json";
     }
     const body = hasFile ? JSON.stringify(object) : getFormData(object);
-    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
+
+    /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
         method: "PUT",
         headers,
@@ -148,15 +204,32 @@ export async function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
         }
         throw new FetchError("Failed to update object", response, responseData);
     });
-    returnPromise.cancel = () => controller.abort();
+
+    returnPromise.cancel = async () => {
+        controller.abort();
+        await returnPromise.catch(() => {});
+    };
+
     return returnPromise;
 }
 
-export async function defaultObjectPatch({ crudArgs, pk, partialObject, retrieveArgs }) {
+/**
+ * The VUEDA specific implementation for reactive-helper's object patch crud function.
+ *
+ * @params args {object} - The arguments object.
+ * @params args.crudArgs {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
+ * @params args.pk {string} - The primary key of the object to patch.
+ * @params args.partialObject {object} - The partial object to patch.
+ * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
+ * @returns {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} - A cancellable promise.
+ */
+export function defaultObjectPatch({ crudArgs, pk, partialObject, retrieveArgs }) {
+    // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
     const url = getDetailUrl(crudArgs.app, crudArgs.model, pk, query);
-    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
+
+    /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
         method: "PATCH",
         headers: {
@@ -176,14 +249,30 @@ export async function defaultObjectPatch({ crudArgs, pk, partialObject, retrieve
         }
         throw new FetchError("Failed to patch object", response, responseData);
     });
-    returnPromise.cancel = () => controller.abort();
+
+    returnPromise.cancel = async () => {
+        controller.abort();
+        await returnPromise.catch(() => {});
+    };
+
     return returnPromise;
 }
 
-export async function defaultObjectDelete({ crudArgs, pk, deleteArgs }) {
-    const abortController = new AbortController();
+/**
+ * The VUEDA specific implementation for reactive-helper's object delete crud function.
+ *
+ * @params args {object} - The arguments object.
+ * @params args.crudArgs {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
+ * @params args.pk {string} - The primary key of the object to delete.
+ * @params args.deleteArgs {object} - The arguments to be passed to the delete function.
+ * @returns {Promise<void> & { cancel: () => Promise<void> }} - A cancellable promise.
+ */
+export function defaultObjectDelete({ crudArgs, pk, deleteArgs }) {
+    // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
+    const controller = new AbortController();
     const url = getDetailUrl(crudArgs.app, crudArgs.model, pk);
-    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
+
+    /** @type {Promise<void> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
         method: "DELETE",
         headers: {
@@ -191,14 +280,19 @@ export async function defaultObjectDelete({ crudArgs, pk, deleteArgs }) {
         },
         credentials: "include",
         ...deleteArgs,
-        signal: abortController.signal,
+        signal: controller.signal,
     }).then(async (response) => {
         if (response.status === 204) {
             return;
         }
         throw new FetchError("Failed to delete object", response, await getJsonOrText(response));
     });
-    returnPromise.cancel = () => abortController.abort();
+
+    returnPromise.cancel = async () => {
+        controller.abort();
+        await returnPromise.catch(() => {});
+    };
+
     return returnPromise;
 }
 

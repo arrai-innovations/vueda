@@ -6,7 +6,6 @@ import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { singlePagePaginatedHistoryListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
@@ -79,9 +78,6 @@ const modelListProps = reactive({
 
 const instanceList = useList({
     props: modelListProps,
-    functions: {
-        list: singlePagePaginatedHistoryListCrudAdaptor,
-    },
     paged: true,
     keepOldPages: false,
     clearListOnListIntentTriggered: true,
