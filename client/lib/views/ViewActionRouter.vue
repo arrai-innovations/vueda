@@ -31,7 +31,7 @@ const getExtraActionComponent = async (action) => {
     try {
         return (
             await import(
-                `@/views/View${getPascalCaseName(props.app)}${getPascalCaseName(props.model)}${getPascalCaseName(action)}Action.vue`
+                `@/views/ViewAction${getPascalCaseName(props.app)}${getPascalCaseName(props.model)}${getPascalCaseName(action)}.vue`
             )
         ).default;
     } catch (e) {
