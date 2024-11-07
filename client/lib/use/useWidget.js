@@ -48,6 +48,8 @@ export const WIDGET_EMITS = ["update:modelValue"];
  * @property {import('vue').ComputedRef<string>} combinedName - The combined name of the widget, either from the props
  * or the field context.
  * @property {import('vue').ComputedRef<string>} combinedLabel - The combined label of the widget, either from the props
+ * @property {import('vue').ComputedRef<boolean>} disabled - Whether the widget is disabled.
+
  * or the field context.
  */
 
@@ -104,9 +106,11 @@ export function useWidget(props, emit) {
                 },
             }),
             combinedName: computed(() => {
+                debugger;
                 return props.name?.length ? props.name : fieldContext.state.name;
             }),
             combinedLabel: computed(() => {
+                debugger;
                 return props.label?.length ? props.label : fieldContext.state.label;
             }),
             disabled: computed(() => {
