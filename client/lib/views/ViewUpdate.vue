@@ -264,7 +264,7 @@ const formId = computed(() => `${props.app}-${props.model}-${props.pk}-update`);
                     <template
                         v-for="actionName in modelConfig.config?.actions?.filter((n) => {
                             const a = modelConfig.config?.actionDetails?.[n];
-                            return a && viewName !== n && a.detail && !a.bulk;
+                            return a && viewName !== n && a.detail;
                         })"
                         :key="actionName"
                     >
