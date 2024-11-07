@@ -322,7 +322,7 @@ const getSlotNamesFor = (type, fieldName) => {
                                 <template #default="slotProps">
                                     <div :class="theme('fieldInner')">
                                         <slot
-                                            :field-object="formModel.fieldDetails[fieldName]"
+                                            :field-details="formModel.fieldDetails[fieldName]"
                                             :form-attrs="$attrs"
                                             :form-props="$props"
                                             :name="`widget(${fieldName})`"

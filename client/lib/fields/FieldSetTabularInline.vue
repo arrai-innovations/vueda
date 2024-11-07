@@ -303,7 +303,7 @@ const toggleVisibility = () => {
                         >
                             <div :class="theme('fieldInner')">
                                 <slot
-                                    :field-object="formModel.fieldDetails[field.name]"
+                                    :field-details="formModel.fieldDetails[field.name]"
                                     :fieldset-attrs="$attrs"
                                     :fieldset-props="computedFieldProps"
                                     :name="`widget(${field.name})`"

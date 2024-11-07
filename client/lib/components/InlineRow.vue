@@ -110,7 +110,7 @@ const getFieldPath = (fieldName) => {
                         >
                             <div :class="theme('fieldInner')">
                                 <slot
-                                    :field-object="formModel.fieldDetails[getFieldName(field)]"
+                                    :field-details="formModel.fieldDetails[getFieldName(field)]"
                                     :name="`widget(${getFieldPath(field)})`"
                                     :theme="theme"
                                     :theme-override="themeOverride"
