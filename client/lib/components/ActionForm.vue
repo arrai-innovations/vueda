@@ -1,4 +1,5 @@
 <script setup>
+import { loadingCombine } from "@arrai-innovations/reactive-helpers";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
@@ -6,7 +7,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { capitalize } from "lodash-es";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
-import { computed, toRef } from "vue";
+import { computed, reactive, toRef } from "vue";
 import { useRouter } from "vue-router";
 
 defineOptions({
@@ -15,10 +16,6 @@ defineOptions({
 const props = defineProps({
     app: {
         type: String,
-        required: true,
-    },
-    objects: {
-        type: Array,
         required: true,
     },
     model: {
@@ -49,9 +46,9 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
-    state: {
+    fetchState: {
         type: Object,
-        default: () => {},
+        default: () => ({ errored: false, error: null, loading: undefined }),
     },
     ...THEME_OVERRIDE_PROPS,
 });
@@ -59,6 +56,7 @@ const toast = useToast();
 const router = useRouter();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 
+const combinedLoading = computed(() => loadingCombine(props.fetchState.loading, props.actionState.loading));
 const actionTitleText = computed(() => {
     return `${capitalize(props.action)} ${capitalize(props.model)}`;
 });
@@ -75,17 +73,18 @@ const actionErrorSummary = computed(() => {
     return `Fail to ${props.action} ${props.model} `;
 });
 
+const actionState = reactive({
+    loading: false,
+    errored: false,
+    error: null,
+});
+
 const handleConfirm = async () => {
-    await props.runAction();
-    if (props.state.errored) {
-        toast.add({
-            severity: "error",
-            summary: actionErrorSummary,
-            detail: props.state.error,
-            life: 5000,
-        });
-        return;
-    } else {
+    actionState.loading = true;
+    actionState.errored = false;
+    actionState.error = null;
+    try {
+        await props.runAction();
         toast.add({
             severity: "success",
             summary: actionSuccessSummary,
@@ -98,10 +97,21 @@ const handleConfirm = async () => {
                 view: "list",
             }),
         );
+    } catch (error) {
+        actionState.errored = true;
+        actionState.error = error;
+        toast.add({
+            severity: "error",
+            summary: actionErrorSummary,
+            detail: actionState.error,
+            life: 5000,
+        });
+    } finally {
+        actionState.loading = false;
     }
 };
 
-const confirmMessage = computed(() => {
+const computedConfirmMessage = computed(() => {
     return `Are you sure you want to ${capitalize(props.action)} the selected ${modelConfig.info?.verbose_name || props.model}?`;
 });
 
@@ -119,23 +129,32 @@ const theme = useTheme("ActionForm", props);
         </slot>
         <div :class="theme('inner')">
             <div :class="theme('bodyContainer')">
-                <ul class="list-inside ...">
-                    you have selected the following item(s) for action:
-                    <li v-for="object in props.objects" :key="object.id">
+                <p>You have selected the following item(s) for action:</p>
+                <div v-if="combinedLoading">
+                    <p>Loading objects...</p>
+                </div>
+                <ul v-else class="list-inside">
+                    <li v-for="object in fetchState.objects" :key="object.id">
                         <p>{{ object.formatted_name || object.id }}</p>
                     </li>
                 </ul>
 
                 <slot name="confirm-message">
-                    <p>{{ props.confirmMessage || confirmMessage }}</p>
+                    <p>{{ confirmMessage || computedConfirmMessage }}</p>
                 </slot>
             </div>
             <div :class="theme('buttonGroup')">
-                <slot name="confirm" @click="handleConfirm">
-                    <Button @click="handleConfirm"> Yes, continue </Button>
+                <slot
+                    label="Yes, continue"
+                    :loading="combinedLoading"
+                    name="confirm-button"
+                    verb="confirm"
+                    @click="handleConfirm"
+                >
+                    <Button :loading="combinedLoading" @click="handleConfirm">Yes, continue</Button>
                 </slot>
-                <slot name="cancel" @click="router.back()">
-                    <Button @click="router.back()"> Cancel </Button>
+                <slot label="Cancel" :loading="actionState.loading" name="cancel" verb="cancel" @click="router.back()">
+                    <Button :loading="actionState.loading" @click="router.back()">Cancel</Button>
                 </slot>
             </div>
         </div>
