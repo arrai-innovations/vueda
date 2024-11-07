@@ -106,11 +106,9 @@ export function useWidget(props, emit) {
                 },
             }),
             combinedName: computed(() => {
-                debugger;
                 return props.name?.length ? props.name : fieldContext.state.name;
             }),
             combinedLabel: computed(() => {
-                debugger;
                 return props.label?.length ? props.label : fieldContext.state.label;
             }),
             disabled: computed(() => {
