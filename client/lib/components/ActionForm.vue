@@ -56,7 +56,13 @@ const toast = useToast();
 const router = useRouter();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 
-const combinedLoading = computed(() => loadingCombine(props.fetchState.loading, props.actionState.loading));
+const actionState = reactive({
+    loading: false,
+    errored: false,
+    error: null,
+});
+
+const combinedLoading = computed(() => loadingCombine(props.fetchState.loading, actionState.loading));
 const actionTitleText = computed(() => {
     return `${capitalize(props.action)} ${capitalize(props.model)}`;
 });
@@ -71,12 +77,6 @@ const actionErrorSummary = computed(() => {
         return props.actionErrorSummary;
     }
     return `Fail to ${props.action} ${props.model} `;
-});
-
-const actionState = reactive({
-    loading: false,
-    errored: false,
-    error: null,
 });
 
 const handleConfirm = async () => {
