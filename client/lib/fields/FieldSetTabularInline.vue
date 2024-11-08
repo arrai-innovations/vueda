@@ -16,7 +16,7 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
-import { computed, inject, ref, watch } from "vue";
+import { computed, inject, nextTick, ref, watch } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -85,6 +85,7 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
+const itemRefs = ref({});
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
 const formModel = inject(FormModelSymbol, null);
@@ -131,6 +132,12 @@ const theme = useTheme("FieldSetTabularInline", props);
 const onCreate = () => {
     fieldContext.blur();
     fieldContext.state.value = [...cloneDeep(fieldContext.state.value), emptyFieldObject()];
+    nextTick(() => {
+        const newItemIndex = fieldContext.state.value.length - 1;
+        if (itemRefs.value[newItemIndex]) {
+            itemRefs.value[newItemIndex].scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    });
 };
 
 const handleSelected = (selected_) => {
@@ -210,6 +217,12 @@ const toggleVisibility = () => {
     }
     userHasToggled.value = true;
 };
+const refFn = (slotProps, el) => {
+    if (!itemRefs.value) {
+        itemRefs.value = [];
+    }
+    itemRefs.value[slotProps.rowIndex] = el;
+};
 </script>
 
 <template>
@@ -276,6 +289,7 @@ const toggleVisibility = () => {
                     <slot :name="`header(${field.name})`" v-bind="slotProps"></slot>
                 </template>
                 <template v-for="field in fieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
+                    <div v-if="slotProps.colIndex === 0" :ref="(el) => refFn(slotProps, el)" />
                     <slot
                         :field-class="theme('field')"
                         :field-component="formModel.fieldComponents[field.name]"
