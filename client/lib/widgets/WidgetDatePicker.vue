@@ -14,6 +14,10 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
+    fluid: {
+        type: Boolean,
+        default: true,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
@@ -52,6 +56,7 @@ const getCurrentDate = () => {
                     }"
                     v-bind="$attrs"
                     :disabled="widgetContext.state.disabled"
+                    :fluid="fluid"
                     :model-value="modelValue"
                     :name="widgetContext.state.combinedName"
                     :selection-mode="computedSelectionMode"
