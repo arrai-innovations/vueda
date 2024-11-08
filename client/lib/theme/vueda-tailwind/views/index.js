@@ -41,13 +41,16 @@ export default {
             class: [],
         },
         inner: {
-            class: ["gap-1 mt-1"],
+            class: ["gap-1 mt-1 prose dark:prose-invert"],
         },
-        bodyContainer: {
+        selectedObjects: {
             class: [],
         },
-        buttonGroup: {
-            class: ["flex flex-row lg:flex-col mx-2 gap-2 mb-2 flex-wrap lg:flex-nowrap"],
+        message: {
+            class: [],
+        },
+        buttons: {
+            class: ["flex flex-col lg:flex-row mx-2 gap-2 mb-2 flex-wrap lg:flex-nowrap"],
         },
     },
 };

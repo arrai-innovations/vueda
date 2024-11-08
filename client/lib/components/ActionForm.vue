@@ -1,13 +1,17 @@
 <script setup>
 import { loadingCombine } from "@arrai-innovations/reactive-helpers";
-import PageTitle from "@vueda/components/PageTitle.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { capitalize } from "lodash-es";
+import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/crudSupport.js";
+import { getCSRFValue } from "@vueda/utils/csrf.js";
+import { FetchError } from "@vueda/utils/errors.js";
+import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
+import { isObject } from "lodash-es";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
-import { computed, reactive, toRef } from "vue";
+import { computed, onDeactivated, onUnmounted, reactive, toRef, unref } from "vue";
 import { useRouter } from "vue-router";
 
 defineOptions({
@@ -26,19 +30,19 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    actionVerboseName: {
+        type: String,
+        default: undefined,
+    },
     runAction: {
         type: Function,
-        required: true,
+        default: undefined,
     },
     actionSuccessSummary: {
         type: String,
         default: undefined,
     },
     actionErrorSummary: {
-        type: String,
-        default: undefined,
-    },
-    title: {
         type: String,
         default: undefined,
     },
@@ -61,11 +65,7 @@ const actionState = reactive({
     errored: false,
     error: null,
 });
-
 const combinedLoading = computed(() => loadingCombine(props.fetchState.loading, actionState.loading));
-const actionTitleText = computed(() => {
-    return `${capitalize(props.action)} ${capitalize(props.model)}`;
-});
 const actionSuccessSummary = computed(() => {
     if (props.actionSuccessSummary) {
         return props.actionSuccessSummary;
@@ -76,15 +76,62 @@ const actionErrorSummary = computed(() => {
     if (props.actionErrorSummary) {
         return props.actionErrorSummary;
     }
-    return `Fail to ${props.action} ${props.model} `;
+    return `Failed to ${props.action} ${props.model} `;
 });
 
+const pks = computed(() => props.fetchState?.objectsInOrder);
+const bulk = computed(() => unref(pks)?.length > 1);
+
+const defaultRunAction = (action) => {
+    // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
+    const controller = new AbortController();
+    const url = unref(bulk)
+        ? getListUrl({ app: props.app, model: props.model, action })
+        : getDetailUrl({
+              app: props.app,
+              model: props.model,
+              pk: pks.value[0],
+              action,
+          });
+
+    /** @type {Promise<void> & { cancel: () => Promise<void> }} */
+    const returnPromise = fetch(url, {
+        method: "PUT",
+        headers: {
+            "X-CSRFToken": getCSRFValue(),
+            "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: unref(bulk) ? JSON.stringify({ pks: unref(pks) }) : undefined,
+        signal: controller.signal,
+    }).then(async (response) => {
+        const responseData = await getJsonOrText(response);
+        if (!isObject(responseData)) {
+            throw new FetchError("Failed to execute action", response, responseData);
+        }
+        if (response.status === 200) {
+            return responseData;
+        }
+        throw new FetchError("Failed to execute action", response, responseData);
+    });
+
+    returnPromise.cancel = async () => {
+        controller.abort();
+        await returnPromise.catch(() => {});
+    };
+
+    return returnPromise;
+};
+const runAction = computed(() => props.runAction || defaultRunAction);
+
+let actionPromise = null;
 const handleConfirm = async () => {
     actionState.loading = true;
     actionState.errored = false;
     actionState.error = null;
     try {
-        await props.runAction();
+        actionPromise = unref(runAction)(props.action);
+        await actionPromise;
         toast.add({
             severity: "success",
             summary: actionSuccessSummary,
@@ -111,39 +158,57 @@ const handleConfirm = async () => {
     }
 };
 
-const computedConfirmMessage = computed(() => {
-    return `Are you sure you want to ${capitalize(props.action)} the selected ${modelConfig.info?.verbose_name || props.model}?`;
+const modelVerboseName = computed(() =>
+    unref(bulk)
+        ? modelConfig.info?.verbose_name_plural || getLowerTitle(getPluralizedTitle(props.model))
+        : modelConfig.info?.verbose_name || getLowerTitle(props.model),
+);
+
+const computedActionVerboseNameLowerCase = computed(() => {
+    return props.actionVerboseName?.length > 0 ? props.actionVerboseName : getLowerTitle(props.action);
 });
 
+const computedConfirmMessage = computed(
+    () =>
+        `Are you sure you want to ${unref(computedActionVerboseNameLowerCase)} the selected ${unref(modelVerboseName)}?`,
+);
+
 const theme = useTheme("ActionForm", props);
+
+onDeactivated(() => {
+    if (actionPromise) {
+        actionPromise.cancel();
+    }
+});
+onUnmounted(() => {
+    if (actionPromise) {
+        actionPromise.cancel();
+    }
+});
 </script>
 
 <template>
     <div :class="theme('root')">
-        <slot name="action-title">
-            <PageTitle :title="actionTitleText">
-                <template #button>
-                    <Button outlined text @click="router.back()"> Back </Button>
-                </template>
-            </PageTitle>
-        </slot>
         <div :class="theme('inner')">
-            <div :class="theme('bodyContainer')">
-                <p>You have selected the following item(s) for action:</p>
-                <div v-if="combinedLoading">
-                    <p>Loading objects...</p>
-                </div>
-                <ul v-else class="list-inside">
-                    <li v-for="object in fetchState.objects" :key="object.id">
-                        <p>{{ object.formatted_name || object.id }}</p>
-                    </li>
-                </ul>
-
-                <slot name="confirm-message">
-                    <p>{{ confirmMessage || computedConfirmMessage }}</p>
+            <div :class="theme('selectedObjects')">
+                <slot :loading="combinedLoading" name="selected-objects" :objects="fetchState.objects">
+                    <p>You have selected the following item(s):</p>
+                    <div v-if="combinedLoading">
+                        <p>Loading objects...</p>
+                    </div>
+                    <ul v-else class="list-inside">
+                        <li v-for="object in fetchState.objects" :key="object.id">
+                            {{ object.formatted_name || object.id }}
+                        </li>
+                    </ul>
                 </slot>
             </div>
-            <div :class="theme('buttonGroup')">
+            <div :class="theme('message')">
+                <slot name="confirm-message">
+                    <p>{{ computedConfirmMessage }}</p>
+                </slot>
+            </div>
+            <div :class="theme('buttons')">
                 <slot
                     label="Yes, continue"
                     :loading="combinedLoading"
@@ -153,12 +218,16 @@ const theme = useTheme("ActionForm", props);
                 >
                     <Button :loading="combinedLoading" @click="handleConfirm">Yes, continue</Button>
                 </slot>
-                <slot label="Cancel" :loading="actionState.loading" name="cancel" verb="cancel" @click="router.back()">
-                    <Button :loading="actionState.loading" @click="router.back()">Cancel</Button>
+                <slot
+                    label="Cancel"
+                    :loading="actionState.loading"
+                    name="cancel-button"
+                    verb="cancel"
+                    @click="router.back()"
+                >
+                    <Button label="Cancel" :loading="actionState.loading" @click="router.back()" />
                 </slot>
             </div>
         </div>
-
-        <slot name="action-footer"> </slot>
     </div>
 </template>
