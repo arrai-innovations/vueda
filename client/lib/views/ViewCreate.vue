@@ -175,9 +175,10 @@ onMounted(() => {
             <form v-bind="$attrs" :id="formId" @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"
+                    v-bind="combinedFormProps"
+                    :field-props="props.fieldProps"
                     :model="model"
                     :variant="formModelVariant"
-                    v-bind="combinedFormProps"
                     :view="viewName"
                     :widget-props="props.widgetProps"
                 >

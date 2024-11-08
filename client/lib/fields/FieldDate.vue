@@ -12,6 +12,10 @@ const props = defineProps({
         type: [Date, String],
         default: undefined,
     },
+    customDateConverter: {
+        type: Function,
+        default: undefined,
+    },
 });
 const preprocessGet = (value) => {
     if (typeof value === "string") {
@@ -53,6 +57,9 @@ watch(
     toRef(fieldContext.state, "value"),
     (newValue) => {
         if (newValue instanceof Date) {
+            if (props.customDateConverter) {
+                newValue = props.customDateConverter(newValue);
+            }
             fieldContext.state.value = preprocessSet(newValue);
         }
     },
