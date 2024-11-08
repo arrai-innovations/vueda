@@ -132,12 +132,11 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
     const headers = {
         "X-CSRFToken": getCSRFValue(),
     };
-    if (hasFile) {
+    if (!hasFile) {
         headers["Content-Type"] = "application/json";
     }
-    const body = hasFile ? JSON.stringify(object) : getFormData(object);
-
-    /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
+    const body = hasFile ? getFormData(object) : JSON.stringify(object);
+     /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
         method: "POST",
         headers,
@@ -182,12 +181,14 @@ export function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
     const headers = {
         "X-CSRFToken": getCSRFValue(),
     };
-    if (hasFile) {
+    if (!hasFile) {
         headers["Content-Type"] = "application/json";
     }
     const body = hasFile ? JSON.stringify(object) : getFormData(object);
 
     /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
+    const body = hasFile ? getFormData(object) : JSON.stringify(object);
+    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "PUT",
         headers,
@@ -230,14 +231,20 @@ export function defaultObjectPatch({ crudArgs, pk, partialObject, retrieveArgs }
     const url = getDetailUrl(crudArgs.app, crudArgs.model, pk, query);
 
     /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
+    const hasFile = Object.values(partialObject).some((value) => value instanceof File || value instanceof Blob);
+    const headers = {
+        "X-CSRFToken": getCSRFValue(),
+    };
+    if (!hasFile) {
+        headers["Content-Type"] = "application/json";
+    }
+    const body = hasFile ? getFormData(partialObject) : JSON.stringify(partialObject);
+    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "PATCH",
-        headers: {
-            "X-CSRFToken": getCSRFValue(),
-            "Content-Type": "application/json",
-        },
+        headers,
         credentials: "include",
-        body: JSON.stringify(partialObject),
+        body,
         signal: controller.signal,
     }).then(async (response) => {
         const responseData = await getJsonOrText(response);
