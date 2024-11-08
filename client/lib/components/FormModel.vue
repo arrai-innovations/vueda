@@ -138,6 +138,7 @@
  * ```
  */
 import FormChores from "@vueda/components/FormChores.vue";
+import FormFeedback from "@vueda/components/FormFeedback.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -279,6 +280,9 @@ const getSlotNamesFor = (type, fieldName) => {
                 <slot :form-attrs="$attrs" :form-props="$props" name="beforeFields" />
             </div>
             <div v-bind="$attrs">
+                <!-- form-level chores -->
+                <form-feedback type="error" />
+                <form-feedback type="message" />
                 <slot
                     :all-widget-props="formModel.widgetProps"
                     :field-components="formModel.fieldComponents"
