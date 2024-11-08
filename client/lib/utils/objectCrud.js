@@ -136,7 +136,7 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
         headers["Content-Type"] = "application/json";
     }
     const body = hasFile ? getFormData(object) : JSON.stringify(object);
-     /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
+    /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
         method: "POST",
         headers,
@@ -184,11 +184,9 @@ export function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
     if (!hasFile) {
         headers["Content-Type"] = "application/json";
     }
-    const body = hasFile ? JSON.stringify(object) : getFormData(object);
+    const body = hasFile ? getFormData(object) : JSON.stringify(object);
 
     /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
-    const body = hasFile ? getFormData(object) : JSON.stringify(object);
-    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
     const returnPromise = fetch(url, {
         method: "PUT",
         headers,
@@ -239,7 +237,7 @@ export function defaultObjectPatch({ crudArgs, pk, partialObject, retrieveArgs }
         headers["Content-Type"] = "application/json";
     }
     const body = hasFile ? getFormData(partialObject) : JSON.stringify(partialObject);
-    /** @type {import('@arrai-innovations/reactive-helpers').CancellablePromise} */
+    /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
         method: "PATCH",
         headers,
