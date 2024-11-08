@@ -37,7 +37,7 @@ export const useLinkModelView = (props) => {
             : undefined;
     });
     const actionDisabled = computed(
-        () => requiresPK.value && (!props.pk || (Array.isArray(props.pk) && props.pk.length === 0)),
+        () => props.disabled || (requiresPK.value && (!props.pk || (Array.isArray(props.pk) && props.pk.length === 0))),
     );
     const router = useRouter();
     const toRoute = computed(() =>

@@ -32,6 +32,10 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
+    disabled: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const linkModelView = useLinkModelView(props);

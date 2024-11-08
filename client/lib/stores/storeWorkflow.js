@@ -169,9 +169,9 @@ export const storeWorkflow = defineStore({
     id: "workflow",
     state: () => ({
         loading: false,
-        objectStates: [],
-        objectTransitions: [],
-        objectHistories: [],
+        objectStates: {},
+        objectTransitions: {},
+        objectHistories: {},
         modelStates: {},
         workflowTransitions: {},
     }),
@@ -229,6 +229,7 @@ export const storeWorkflow = defineStore({
         async fetchObjectState(app, model, objectPk) {
             this.loading = true;
             try {
+                const key = makeModelKey(app, model);
                 const result = makeResultObject(app, model, objectPk);
                 const data = await fetchHelper(
                     objectStatesUrl(result),
@@ -240,7 +241,7 @@ export const storeWorkflow = defineStore({
                 if (data === "Object does not have a workflow.") {
                     return result;
                 }
-                updateState(this.objectStates, { ...result, ...data });
+                set(this.objectStates, `${key}.${objectPk}`, data);
             } finally {
                 this.loading = false;
             }
@@ -248,6 +249,7 @@ export const storeWorkflow = defineStore({
         async fetchObjectTransitions(app, model, objectPk) {
             this.loading = true;
             try {
+                const key = makeModelKey(app, model);
                 const result = makeResultObject(app, model, objectPk);
                 const data = await fetchHelper(
                     objectTransitionsUrl(result),
@@ -260,7 +262,7 @@ export const storeWorkflow = defineStore({
                 if (data === "Object does not have a workflow.") {
                     return result;
                 }
-                updateState(this.objectTransitions, { ...result, transitions: data });
+                set(this.objectTransitions, `${key}.${objectPk}`, data);
             } finally {
                 this.loading = false;
             }
@@ -268,6 +270,7 @@ export const storeWorkflow = defineStore({
         async fetchObjectHistory(app, model, objectPk) {
             this.loading = true;
             try {
+                const key = makeModelKey(app, model);
                 const result = makeResultObject(app, model, objectPk);
                 const data = await fetchHelper(
                     objectHistoriesUrl(result),
@@ -280,7 +283,7 @@ export const storeWorkflow = defineStore({
                 if (data === "Object does not have a workflow.") {
                     return result;
                 }
-                updateState(this.objectHistories, { ...result, history: data });
+                set(this.objectHistories, `${key}.${objectPk}`, data);
             } finally {
                 this.loading = false;
             }

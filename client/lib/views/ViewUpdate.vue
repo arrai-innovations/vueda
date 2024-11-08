@@ -230,6 +230,22 @@ const combinedFormProps = computed(() => {
 });
 const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObject.state.loading));
 const formId = computed(() => `${props.app}-${props.model}-${props.pk}-update`);
+// const workflow = useWorkflow(toRef(props, "app"), toRef(props, "model"),toRef(props.pk),isActive,validAndActive);
+// const availableTransitions = computed(() => {
+//     const transitions = Object.keys(workflow.objectTransitions)
+//         .find(key => key === props.pk).flatMap(key => workflow.objectTransitions[key])
+//         return transitions;
+//     return []
+// })
+
+const detailedActions = computed(() => {
+    return modelConfig.config?.actions?.filter((n) => {
+        const a = modelConfig.config?.actionDetails?.[n];
+        // return a && viewName !== n && !a.detail && !a.bulk && availableTransitions?.includes(n);
+        //TODO: needs to have a way to know whether the action is workflow action
+        return a && viewName !== n && !a.detail && !a.bulk;
+    });
+});
 </script>
 <template>
     <div :class="props.class">
@@ -261,13 +277,7 @@ const formId = computed(() => `${props.app}-${props.model}-${props.pk}-update`);
             </template>
             <template #under-actions>
                 <div class="flex flex-col sm:flex-row gap-1 w-full justify-end">
-                    <template
-                        v-for="actionName in modelConfig.config?.actions?.filter((n) => {
-                            const a = modelConfig.config?.actionDetails?.[n];
-                            return a && viewName !== n && a.detail;
-                        })"
-                        :key="actionName"
-                    >
+                    <template v-for="actionName in detailedActions" :key="actionName">
                         <slot
                             :app="app"
                             :label="memoizedStartCase(actionName)"

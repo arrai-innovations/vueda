@@ -7,12 +7,11 @@ import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
-import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { useWorkflow } from "@vueda/use/useWorkflow.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
-import { computedAsync } from "@vueuse/core";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
@@ -258,7 +257,7 @@ const filterList = () => {
     listState.filterArgs = cloneDeep(formContext.state.values);
 };
 const selectedObjects = ref([]);
-const workflow = storeWorkflow();
+const workflow = useWorkflow(toRef(props, "app"), toRef(props, "model"), selectedObjects, isActive, validAndActive);
 const router = useRouter();
 const detailActionOnClick = (actionName) => {
     return async () => {
@@ -300,17 +299,15 @@ onMounted(() => {
     emit("calculated-objects", readonly(instanceList.state.calculatedObjects));
 });
 
-const hasWorkFlow = computedAsync(
-    async () => {
-        try {
-            const transitions = await workflow.fetchWorkflowTransition(props.app, props.model);
-            return transitions;
-        } catch (WorkflowError) {
-            return false;
-        }
-    },
-    false, // initial state
-);
+const availableTransitions = computed(() => {
+    if (selectedObjects.value.length) {
+        const transitions = Object.keys(workflow.objectTransitions)
+            .filter((key) => selectedObjects.value.includes(Number(key)))
+            .flatMap((key) => workflow.objectTransitions[key]);
+        return transitions;
+    }
+    return [];
+});
 
 const computedFieldObjects = computed(() => {
     return [...props.extraFieldObjects, ...calculatedDisplayFields.value];
@@ -363,29 +360,6 @@ const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name}
                 </slot>
             </InputGroup>
             <div class="flex flex-wrap gap-1 w-full justify-end">
-                <template v-if="hasWorkFlow">
-                    <slot
-                        name="bulk-action-button"
-                        v-bind="{
-                            model,
-                            app,
-                            click: detailActionOnClick(`transition`),
-                            selectedObjects,
-                            label: `Transition`,
-                            view: `transition`,
-                        }"
-                    >
-                        <link-model-view
-                            :app="app"
-                            button
-                            class="grow sm:grow-0"
-                            label="Transition"
-                            :model="model"
-                            :pk="selectedObjects"
-                            view="transition"
-                        />
-                    </slot>
-                </template>
                 <template
                     v-for="actionName in modelConfig.config?.actions?.filter(
                         (name) =>
@@ -402,12 +376,14 @@ const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name}
                             label: memoizedStartCase(actionName),
                             click: detailActionOnClick(actionName),
                             selectedObjects,
+                            disabled: !availableTransitions.includes(actionName),
                         }"
                     >
                         <link-model-view
                             :app="app"
                             button
                             class="grow sm:grow-0"
+                            :disabled="!availableTransitions.includes(actionName)"
                             :label="memoizedStartCase(actionName)"
                             :model="model"
                             :pk="selectedObjects"
