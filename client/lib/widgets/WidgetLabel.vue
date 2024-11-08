@@ -30,7 +30,7 @@ const computedId = computed(() => (!props.id ? widgetContext.state.widgetId : un
 </script>
 <template>
     <label :id="computedId" :class="labelClass" :for="computedFor" :hidden="hidden" v-bind="$attrs">
-        <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label">{{
+        <slot id="computedId" :for="computedFor" :label="widgetContext.state.combinedLabel" name="label">{{
             widgetContext.state.combinedLabel
         }}</slot>
     </label>
