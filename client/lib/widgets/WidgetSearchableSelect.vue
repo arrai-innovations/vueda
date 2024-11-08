@@ -1,5 +1,5 @@
 <script setup>
-import { useList } from "@arrai-innovations/reactive-helpers";
+import { useList, useObject } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -80,12 +80,32 @@ const selectRef = ref(null);
 const fetchedPages = ref(1);
 const hasBeenFocused = ref(false);
 const intendToList = computed(() => {
-    return widgetContext.state.combinedValue || hasBeenFocused.value;
+    return !widgetContext.state.combinedValue && hasBeenFocused.value;
+});
+const intendToRetrieve = computed(() => {
+    return widgetContext.state.combinedValue;
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetSearchableSelect", props, widgetContext.state);
 const listSearch = ref("");
+
+const instanceObjectProps = reactive({
+    crudArgs: {
+        app: toRef(props, "app"),
+        model: toRef(props, "model"),
+    },
+    pkKey: toRef(props, "pkKey"),
+    pk: computed(() => widgetContext.state.combinedValue),
+    retrieveArgs: {
+        f: toRef(props, "modelFields"),
+    },
+    intendToRetrieve,
+});
+const instanceObject = useObject({
+    props: instanceObjectProps,
+});
+
 const modelListProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
@@ -195,6 +215,15 @@ const handleLabelClick = (e) => {
         selectRef.value.onContainerClick(e);
     }
 };
+
+const computedOptions = computed(() => {
+    if (intendToRetrieve.value) {
+        return [instanceObject.state.object];
+    } else if (intendToList.value) {
+        return modelList.state.objectsInOrder;
+    }
+    return [];
+});
 </script>
 <template>
     <div :class="theme('root')">
@@ -227,7 +256,7 @@ const handleLabelClick = (e) => {
                     filter
                     :option-label="props.optionLabel"
                     :option-value="pkKey"
-                    :options="modelList.state.objectsInOrder"
+                    :options="computedOptions"
                     :placeholder="placeHolderText"
                     reset-filter-on-clear
                     show-clear

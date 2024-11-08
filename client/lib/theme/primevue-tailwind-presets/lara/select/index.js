@@ -116,9 +116,6 @@ export default {
     },
     listContainer: {
         class: [
-            // Sizing
-            "max-h-[200px]",
-
             // Misc
             "overflow-auto",
         ],
