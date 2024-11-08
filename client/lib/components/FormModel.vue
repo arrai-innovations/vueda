@@ -279,10 +279,10 @@ const getSlotNamesFor = (type, fieldName) => {
             <div v-if="$slots.beforeFields" :class="theme('beforeFields')">
                 <slot :form-attrs="$attrs" :form-props="$props" name="beforeFields" />
             </div>
+            <!-- form-level chores -->
+            <form-feedback type="error" />
+            <form-feedback type="message" />
             <div v-bind="$attrs">
-                <!-- form-level chores -->
-                <form-feedback type="error" />
-                <form-feedback type="message" />
                 <slot
                     :all-widget-props="formModel.widgetProps"
                     :field-components="formModel.fieldComponents"
