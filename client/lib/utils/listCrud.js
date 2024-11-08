@@ -1,50 +1,13 @@
 import { setListCrud } from "@arrai-innovations/reactive-helpers";
-import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
-import { getServerRoutePart } from "@vueda/utils/crudSupport.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
-import { getUrl } from "@vueda/utils/urls.js";
+import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import { isObject } from "lodash-es";
 import isArray from "lodash-es/isArray.js";
 import omit from "lodash-es/omit.js";
 import pLimit from "p-limit";
 import { deepUnref } from "vue-deepunref";
-
-/**
- * Get the URL for a list view.
- *
- * @param app {string} - The app name.
- * @param model {string} - The model name.
- * @param queryString {string} - The query string.
- * @returns {string} - The URL.
- */
-export const getListUrl = (app, model, queryString) =>
-    `${httpOrHttpsHostname}${getUrl("modelList").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model))}${queryString}`;
-
-/**
- * Get the URL for a detail view.
- *
- * @param app {string} - The app name.
- * @param model {string} - The model name.
- * @param actionName {string} - The action name.
- * @returns {string} - The URL.
- */
-export const getActionUrl = (app, model, actionName) =>
-    `${httpOrHttpsHostname}${getUrl("modelAction").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model)).replace(":action_name", actionName)}`;
-
-/**
- * Get the URL for a detail action.
- *
- * @param app {string} - The app name.
- * @param model {string} - The model name.
- * @param pk {string} - The primary key.
- * @param actionName {string} - The action name.
- * @param queryString {string} - The query string.
- * @returns {string} - The URL.
- */
-export const getDetailActionUrl = (app, model, pk, actionName, queryString) =>
-    `${httpOrHttpsHostname}${getUrl("modelDetailAction").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model)).replace(":pk", pk).replace(":action_name", actionName)}${queryString}`;
 
 /**
  * Make a search params string from the given search params object.
@@ -97,9 +60,8 @@ export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCal
     const { app, model, pk, action } = crudArgs;
     const query = makeSearchParamsString(listArgs);
     const controller = new AbortController();
-    const url = pk && action ? getDetailActionUrl(app, model, pk, action, query) : getListUrl(app, model, query);
+    const url = pk ? getDetailUrl({ app, model, pk, action, query }) : getListUrl({ app, model, action, query });
 
-    /** @type {Promise<void> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
         method: "GET",
         credentials: "include",
@@ -131,7 +93,12 @@ export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCal
  * The VUEDA specific implementation for reactive-helper's list crud function, for all pages.
  *
  * @param args {object} - The arguments object.
- * @param args.crudArgs {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
+ * @param args.crudArgs {{
+ *     app: string,
+ *     model: string,
+ *     pk?: string,
+ *     action?: string,
+ * }} - VUEDA specific arguments for the CRUD operation.
  * @param listArgs {{ [p]: number }} - The querystring parameters for the list operation.
  * @param pageCallback {{newObjects: import('@arrai-innovations/reactive-helpers').ListObject[], pageData: {
  *     totalRecords: number,
@@ -142,14 +109,16 @@ export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCal
  */
 export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallback }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the requests. ###
+    const { app, model, pk, action } = crudArgs;
     const ourListArgs = { p: listArgs?.page || 1, ...omit(listArgs || {}, "p") };
+    const query = makeSearchParamsString(ourListArgs);
     const controller = new AbortController();
-    const url = getListUrl(crudArgs.app, crudArgs.model, makeSearchParamsString(ourListArgs));
+    const url = pk ? getDetailUrl({ app, model, pk, action }) : getListUrl({ app, model, action });
     const limit = pLimit(4);
     const responses = [];
 
     const fetchPages = async () => {
-        const response = await fetch(url, {
+        const response = await fetch(`${url}?${query}`, {
             method: "GET",
             credentials: "include",
             signal: controller.signal,
@@ -169,10 +138,10 @@ export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallba
         if (responseData.totalPages > 1) {
             for (let i = 2; i <= responseData.totalPages; i++) {
                 ourListArgs.p = i;
-                const pageUrl = getListUrl(crudArgs.app, crudArgs.model, makeSearchParamsString(ourListArgs));
+                const nextQuery = makeSearchParamsString(ourListArgs);
                 responses.push(
                     limit(() =>
-                        fetch(pageUrl, {
+                        fetch(`${url}?${nextQuery}`, {
                             method: "GET",
                             credentials: "include",
                             signal: controller.signal,
@@ -194,7 +163,6 @@ export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallba
         }
     };
 
-    /** @type {Promise<void> & { cancel: () => Promise<void> }} */
     const returnPromise = fetchPages();
     returnPromise.cancel = async () => {
         controller.abort();
@@ -211,16 +179,17 @@ export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallba
  * @param {{
  *    app: string,
  *    model: string,
+ *    action?: string,
  * }} args.crudArgs - The arguments for the CRUD operation.
  * @param pks {string[]} - The PKs of the objects to delete.
  * @returns {Promise<void> & { cancel: () => Promise<void> }} - A cancellable promise.
  */
 export function defaultObjectsDelete({ crudArgs, pks }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
+    const { app, model, action } = crudArgs;
     const controller = new AbortController();
-    const url = getListUrl(crudArgs.app, crudArgs.model, "");
+    const url = getListUrl({ app, model, action });
 
-    /** @type {Promise<void> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
         method: "DELETE",
         headers: {

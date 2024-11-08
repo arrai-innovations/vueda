@@ -1,10 +1,8 @@
 import { setObjectCrud } from "@arrai-innovations/reactive-helpers";
-import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
-import { getServerRoutePart } from "@vueda/utils/crudSupport.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
-import { getUrl } from "@vueda/utils/urls.js";
+import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import { isObject } from "lodash-es";
 import isArray from "lodash-es/isArray.js";
 import { unref } from "vue";
@@ -32,12 +30,6 @@ const makeSearchParamsString = (searchParams) => {
     });
     return `?${usp.toString()}`;
 };
-
-export const getDetailUrl = (app, model, pk, queryString) =>
-    `${httpOrHttpsHostname}${getUrl("modelDetail").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model)).replace(":pk", pk)}${queryString}`;
-
-export const getCreateUrl = (app, model, queryString) =>
-    `${httpOrHttpsHostname}${getUrl("modelList").replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model))}${queryString}`;
 
 /**
  * Converts an object into a `FormData` instance, handling nested arrays, objects, and files.
@@ -82,18 +74,22 @@ const getFormData = (object) => {
  * The VUEDA specific implementation for reactive-helper's object retrieve crud function.
  *
  * @params args {object} - The arguments object.
- * @params args.crudArgs {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
+ * @params args.crudArgs {{
+ *     app:string,
+ *     model:string,
+ *     action?:string,
+ * }} - VUEDA specific arguments for the CRUD operation.
  * @params args.pk {string} - The primary key of the object to retrieve.
  * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {Promise<void> & { cancel: () => Promise<void> }} - A cancellable promise.
  */
 export function defaultObjectRetrieve({ crudArgs, pk, retrieveArgs }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
+    const { app, model, action } = crudArgs;
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
-    const url = getDetailUrl(crudArgs.app, crudArgs.model, pk, query);
+    const url = getDetailUrl({ app, model, pk, action, query });
 
-    /** @type {Promise<void> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
         method: "GET",
         credentials: "include",
@@ -118,15 +114,21 @@ export function defaultObjectRetrieve({ crudArgs, pk, retrieveArgs }) {
  * The VUEDA specific implementation for reactive-helper's object create crud function.
  *
  * @params args {object} - The arguments object.
- * @params args.crudArgs {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
+ * @params args.crudArgs {{
+ *     app: string,
+ *     model: string,
+ *     action?: string,
+ *     pk?: string,
+ * }} - VUEDA specific arguments for the CRUD operation.
  * @params args.object {object} - The object to create.
  * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} - A cancellable promise.
  */
 export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
+    const { app, model, action, pk } = crudArgs;
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
-    const url = getCreateUrl(crudArgs.app, crudArgs.model, query);
+    const url = pk ? getDetailUrl({ app, model, pk, action, query }) : getListUrl({ app, model, action, query });
 
     const hasFile = Object.values(object).some((value) => value instanceof File || value instanceof Blob);
     const headers = {
@@ -136,7 +138,7 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
         headers["Content-Type"] = "application/json";
     }
     const body = hasFile ? getFormData(object) : JSON.stringify(object);
-    /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
+
     const returnPromise = fetch(url, {
         method: "POST",
         headers,
@@ -166,16 +168,22 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
  * The VUEDA specific implementation for reactive-helper's object update crud function.
  *
  * @params args {object} - The arguments object.
- * @params args.crudArgs {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
+ * @params args.crudArgs {{
+ *     app: string,
+ *     model: string,
+ *     action?: string,
+ * }} - VUEDA specific arguments for the CRUD operation.
  * @params args.object {import("@arrai-innovations/reactive-helpers").CrudObject} - The object to update.
  * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} - A cancellable promise.
  */
 export function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
+    const { app, model, action } = crudArgs;
+    const pk = object.id;
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
-    const url = getDetailUrl(crudArgs.app, crudArgs.model, object.id, query);
+    const url = getDetailUrl({ app, model, pk, action, query });
 
     const hasFile = Object.values(object).some((value) => value instanceof File || value instanceof Blob);
     const headers = {
@@ -186,7 +194,6 @@ export function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
     }
     const body = hasFile ? getFormData(object) : JSON.stringify(object);
 
-    /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
         method: "PUT",
         headers,
@@ -216,7 +223,11 @@ export function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
  * The VUEDA specific implementation for reactive-helper's object patch crud function.
  *
  * @params args {object} - The arguments object.
- * @params args.crudArgs {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
+ * @params args.crudArgs {{
+ *     app: string,
+ *     model: string,
+ *     action?: string,
+ * }} - VUEDA specific arguments for the CRUD operation.
  * @params args.pk {string} - The primary key of the object to patch.
  * @params args.partialObject {object} - The partial object to patch.
  * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
@@ -224,11 +235,11 @@ export function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
  */
 export function defaultObjectPatch({ crudArgs, pk, partialObject, retrieveArgs }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
+    const { app, model, action } = crudArgs;
     const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
     const controller = new AbortController();
-    const url = getDetailUrl(crudArgs.app, crudArgs.model, pk, query);
+    const url = getDetailUrl({ app, model, pk, action, query });
 
-    /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
     const hasFile = Object.values(partialObject).some((value) => value instanceof File || value instanceof Blob);
     const headers = {
         "X-CSRFToken": getCSRFValue(),
@@ -237,7 +248,7 @@ export function defaultObjectPatch({ crudArgs, pk, partialObject, retrieveArgs }
         headers["Content-Type"] = "application/json";
     }
     const body = hasFile ? getFormData(partialObject) : JSON.stringify(partialObject);
-    /** @type {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} */
+
     const returnPromise = fetch(url, {
         method: "PATCH",
         headers,
@@ -274,8 +285,10 @@ export function defaultObjectPatch({ crudArgs, pk, partialObject, retrieveArgs }
  */
 export function defaultObjectDelete({ crudArgs, pk, deleteArgs }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
+    const { app, model, action } = crudArgs;
+    const query = deleteArgs ? makeSearchParamsString(deleteArgs) : "";
     const controller = new AbortController();
-    const url = getDetailUrl(crudArgs.app, crudArgs.model, pk);
+    const url = getDetailUrl({ app, model, pk, action, query });
 
     /** @type {Promise<void> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
@@ -284,7 +297,6 @@ export function defaultObjectDelete({ crudArgs, pk, deleteArgs }) {
             "X-CSRFToken": getCSRFValue(),
         },
         credentials: "include",
-        ...deleteArgs,
         signal: controller.signal,
     }).then(async (response) => {
         if (response.status === 204) {

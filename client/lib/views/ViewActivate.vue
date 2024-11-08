@@ -7,7 +7,7 @@ import { useModelConfig } from "@vueda/use/useModelConfig";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
-import { getActionUrl } from "@vueda/utils/listCrud.js";
+import { getDetailUrl } from "@vueda/utils/listCrud.js";
 import { isArray } from "lodash-es";
 import isEmpty from "lodash-es/isEmpty.js";
 import { computed, reactive, toRef } from "vue";
@@ -61,7 +61,7 @@ const instanceListProps = reactive({
 
 async function executeAction({ crudArgs, pks }) {
     const abortController = new AbortController();
-    const url = getActionUrl(crudArgs.app, crudArgs.model, "activate");
+    const url = getDetailUrl(crudArgs.app, crudArgs.model, "activate");
     const returnedPromise = fetch(url, {
         method: "PATCH",
         headers: {
