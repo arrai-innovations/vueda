@@ -140,22 +140,21 @@ const onCreate = () => {
     });
 };
 
-const handleSelected = (selected_) => {
-    const added = selected_.filter((i) => !selected.value.includes(i));
-    const removed = selected.value.filter((i) => !selected_.includes(i));
+const handleSelected = (newSelected) => {
+    const added = newSelected.filter((i) => !selected.value.includes(i));
+    const removed = selected.value.filter((i) => !newSelected.includes(i));
     added.forEach((i) => {
         fieldContext.ignore(`${fieldContext.state.name}[${i}]`);
     });
     removed.forEach((i) => {
         fieldContext.removeIgnore(`${fieldContext.state.name}[${i}]`);
     });
-    selected.value = selected_;
-    if (selected_.length) {
+    selected.value = newSelected;
+    if (newSelected.length) {
         fieldContext.setModified();
     } else {
         fieldContext.clearModified();
     }
-    selected.value = selected_;
 };
 
 const removeObject = (index) => {
@@ -358,7 +357,7 @@ const refFn = (slotProps, el) => {
                         :theme="theme"
                         :value="field.value"
                         verb="delete"
-                        @delete="removeObject(slotProps.rowIndex)"
+                        @click="removeObject(slotProps.rowIndex)"
                         @selected="handleSelected"
                     >
                         <Button label="Delete" text @click="removeObject(slotProps.rowIndex)"></Button>
@@ -372,7 +371,7 @@ const refFn = (slotProps, el) => {
                         :theme="theme"
                         :value="field.value"
                         verb="delete"
-                        @delete="removeObject(slotProps.rowIndex)"
+                        @click="removeObject(slotProps.rowIndex)"
                         @selected="handleSelected"
                     >
                         <Checkbox
