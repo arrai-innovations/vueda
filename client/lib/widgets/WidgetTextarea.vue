@@ -24,6 +24,7 @@ const theme = useTheme("WidgetTextarea", props, widgetContext.state);
             </template>
             <div :class="theme('inner')">
                 <primevue-textarea
+                    id="widgetContext.state.widgetId"
                     v-bind="$attrs"
                     v-model="widgetContext.state.combinedValue"
                     auto-resize

@@ -188,6 +188,17 @@ export default {
             class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
+    WidgetSlider: {
+        root: {
+            class: [],
+        },
+        inner: {
+            class: ["flex flex-col"],
+        },
+        label: {
+            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+        },
+    },
     WidgetTextarea: {
         root: {
             class: [],

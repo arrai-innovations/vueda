@@ -44,12 +44,12 @@ const handleFocus = () => {
 
 <template>
     <div :class="theme('root')">
-        <widget-label :label-class="theme('optionLabel')">
+        <widget-label :id="`${widgetContext.state.widgetId}-label`" :label-class="theme('optionLabel')">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
-                <ul :class="theme('options')">
+                <ul :aria-labelledby="`${widgetContext.state.widgetId}-label`" :class="theme('options')">
                     <li v-for="option in computedOptions" :key="option.value" :class="theme('option')">
                         <slot
                             :id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"

@@ -3,7 +3,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import InputNumber from "primevue/inputnumber";
-import { computed, reactive } from "vue";
+import { computed, reactive, ref } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -70,16 +70,40 @@ const updateSecond = (newValue) => {
     durationObject.seconds = newValue;
     widgetContext.state.combinedValue = durationObject;
 };
+const daysInput = ref(null);
+const hoursInput = ref(null);
+const minutesInput = ref(null);
+const secondsInput = ref(null);
+
+// todo: this is untested
+const focusFirstInput = () => {
+    if (props.showDays && daysInput.value) {
+        daysInput.value.onClick();
+    } else if (props.showHours && hoursInput.value) {
+        hoursInput.value.onClick();
+    } else if (props.showMinutes && minutesInput.value) {
+        minutesInput.value.onClick();
+    } else if (props.showSeconds && secondsInput.value) {
+        secondsInput.value.onClick();
+    }
+};
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :hidden="hidden" :label-class="theme('label')">
+        <widget-label
+            :id="`${widgetContext.state.widgetId}-label`"
+            :hidden="hidden"
+            :label-class="theme('label')"
+            @click="focusFirstInput"
+        >
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')">
+            <div :aria-labelledby="`${widgetContext.state.widgetId}-label`" :class="theme('inner')">
                 <div v-if="showDays" :class="theme('innerItem')">
                     <InputNumber
+                        ref="daysInput"
+                        aria-label="days"
                         :disabled="widgetContext.state.disabled"
                         :max="365"
                         :min="0"
@@ -92,6 +116,8 @@ const updateSecond = (newValue) => {
                 </div>
                 <div v-if="showHours" :class="theme('innerItem')">
                     <InputNumber
+                        ref="hoursInput"
+                        aria-label="hours"
                         :disabled="widgetContext.state.disabled"
                         :min="0"
                         :model-value="valueHour"
@@ -103,6 +129,8 @@ const updateSecond = (newValue) => {
                 </div>
                 <div v-if="showMinutes" :class="theme('innerItem')">
                     <InputNumber
+                        ref="minutesInput"
+                        aria-label="minutes"
                         :disabled="widgetContext.state.disabled"
                         :min="0"
                         :model-value="valueMinute"
@@ -114,6 +142,8 @@ const updateSecond = (newValue) => {
                 </div>
                 <div v-if="showSeconds" :class="theme('innerItem')">
                     <InputNumber
+                        ref="secondsInput"
+                        aria-label="seconds"
                         :disabled="widgetContext.state.disabled"
                         :min="0"
                         :model-value="valueSecond"

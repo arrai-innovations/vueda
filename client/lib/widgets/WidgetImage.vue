@@ -23,6 +23,8 @@ const onRemove = () => {
     widgetContext.state.combinedValue = null;
 };
 const theme = useTheme("WidgetImage", props, widgetContext.state);
+// todo: click handler for the widget-label to focus the image
+// todo: aria-labelledby? or use id to the hidden file input
 </script>
 <template>
     <div :class="theme('root')">

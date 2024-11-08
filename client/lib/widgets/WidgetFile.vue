@@ -48,6 +48,8 @@ const fileURL = computed(() => {
     }
     return null;
 });
+// todo: click handler for the widget-label to focus the image
+// todo: aria-labelledby? or use id to the hidden file input
 </script>
 
 <template>

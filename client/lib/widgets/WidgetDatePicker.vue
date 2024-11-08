@@ -57,6 +57,7 @@ const getCurrentDate = () => {
                     v-bind="$attrs"
                     :disabled="widgetContext.state.disabled"
                     :fluid="fluid"
+                    :input-id="widgetContext.state.widgetId"
                     :model-value="modelValue"
                     :name="widgetContext.state.combinedName"
                     :selection-mode="computedSelectionMode"

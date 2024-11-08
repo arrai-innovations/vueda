@@ -48,11 +48,14 @@ export const makeSearchParamsString = (searchParams) => {
  * }} args.crudArgs - The arguments for the CRUD operation. If `pk` and `action` are provided, the detail action url will be used.
  *  Otherwise, the non-detail list url will be used.
  * @param {object} args.listArgs - The arguments for the list operation.
- * @param {(newObjects: import('@arrai-innovations/reactive-helpers').ListObject[], pageData: {
- *     totalRecords: number,
- *     totalPages: number,
- *     perPage: number,
- * }) => void} args.pageCallback - The callback function to call with the page data.
+ * @param args.pageCallback {(
+ *     newObjects: import('@arrai-innovations/reactive-helpers').ListObject[],
+ *     pageData: {
+ *         totalRecords: number,
+ *         totalPages: number,
+ *         perPage: number,
+ *     }
+ * ) => void} - The callback function to call with the page data.
  * @returns {Promise<void> & { cancel: () => Promise<void> }} A cancellable promise.
  */
 export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallback }) {
@@ -99,12 +102,15 @@ export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCal
  *     pk?: string,
  *     action?: string,
  * }} - VUEDA specific arguments for the CRUD operation.
- * @param listArgs {{ [p]: number }} - The querystring parameters for the list operation.
- * @param pageCallback {{newObjects: import('@arrai-innovations/reactive-helpers').ListObject[], pageData: {
- *     totalRecords: number,
- *     totalPages: number,
- *     perPage: number,
- * }}} - The callback function to call with the page data.
+ * @param args.listArgs {{ [p]: number }} - The querystring parameters for the list operation.
+ * @param args.pageCallback {(
+ *     newObjects: import('@arrai-innovations/reactive-helpers').ListObject[],
+ *     pageData: {
+ *         totalRecords: number,
+ *         totalPages: number,
+ *         perPage: number,
+ *     }
+ * ) => void} - The callback function to call with the page data.
  * @returns {Promise<void> & { cancel: () => Promise<void> }} - A cancellable promise.
  */
 export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallback }) {

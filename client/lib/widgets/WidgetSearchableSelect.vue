@@ -76,6 +76,7 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
+const selectRef = ref(null);
 const fetchedPages = ref(1);
 const hasBeenFocused = ref(false);
 const intendToList = computed(() => {
@@ -189,10 +190,20 @@ const computedLabel = computed(() => {
         props.optionLabel
     ];
 });
+const handleLabelClick = (e) => {
+    if (selectRef.value) {
+        selectRef.value.onContainerClick(e);
+    }
+};
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :hidden="hidden" :label-class="theme('label')">
+        <widget-label
+            :id="widgetContext.state.widgetId"
+            :hidden="hidden"
+            :label-class="theme('label')"
+            @click="handleLabelClick"
+        >
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
@@ -208,8 +219,10 @@ const computedLabel = computed(() => {
                 />
                 <Select
                     v-else
-                    v-model="widgetContext.state.combinedValue"
                     v-bind="$attrs"
+                    ref="selectRef"
+                    v-model="widgetContext.state.combinedValue"
+                    :aria-labelledby="widgetContext.state.widgetId"
                     :disabled="widgetContext.state.disabled"
                     filter
                     :option-label="props.optionLabel"

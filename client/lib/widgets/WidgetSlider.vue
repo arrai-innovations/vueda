@@ -21,11 +21,12 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetDatePicker", props, widgetContext.state);
+const theme = useTheme("WidgetSlider", props, widgetContext.state);
+// todo: click handler for the widget-label to focus the slider
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :hidden="hidden" :label-class="theme('label')">
+        <widget-label :id="widgetContext.state.widgetId" :hidden="hidden" :label-class="theme('label')">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
@@ -37,6 +38,7 @@ const theme = useTheme("WidgetDatePicker", props, widgetContext.state);
                         <Slider
                             v-model="widgetContext.state.combinedValue"
                             v-bind="$attrs"
+                            :aria-labelledby="widgetContext.state.widgetId"
                             class="w-56"
                             :disabled="widgetContext.state.disabled"
                             :max="props.maxValue"

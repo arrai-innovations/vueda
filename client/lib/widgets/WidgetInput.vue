@@ -37,7 +37,7 @@ const theme = useTheme("WidgetInput", props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :hidden="hidden" :label-class="theme('label')">
+        <widget-label :for="widgetContext.state.widgetId" :hidden="hidden" :label-class="theme('label')">
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
@@ -47,8 +47,9 @@ const theme = useTheme("WidgetInput", props, widgetContext.state);
                     <component
                         :is="inputComponent"
                         v-if="inputComponent"
-                        v-model="widgetContext.state.combinedValue"
                         v-bind="$attrs"
+                        :id="widgetContext.state.widgetId"
+                        v-model="widgetContext.state.combinedValue"
                         :disabled="widgetContext.state.disabled"
                         :name="widgetContext.state.combinedName"
                         :type="type"

@@ -21,12 +21,13 @@ const theme = useTheme("WidgetCheckbox", props, widgetContext.state);
                 v-model="widgetContext.state.combinedValue"
                 v-bind="$attrs"
                 :disabled="widgetContext.state.disabled"
+                :input-id="widgetContext.state.widgetId"
                 :name="widgetContext.state.combinedName"
                 type="checkbox"
                 @blur="widgetContext.blur"
                 @focus="widgetContext.focus"
             />
-            <label v-if="!hidden" :class="theme('label')" :for="widgetContext.state.combinedName">
+            <label v-if="!hidden" :class="theme('label')" :for="widgetContext.state.widgetId">
                 <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label">{{
                     widgetContext.state.combinedLabel
                 }}</slot>

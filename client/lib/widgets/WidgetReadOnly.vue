@@ -53,12 +53,12 @@ const readonlyValue = computed(() => {
 <template>
     <div :class="theme('root')">
         <div :class="theme('inner')">
-            <div v-if="!hidden" :class="theme('label')">
+            <div v-if="!hidden" :id="widgetContext.state.widgetId" :class="theme('label')">
                 <slot :label="widgetContext.state.combinedLabel" name="label">{{
                     widgetContext.state.combinedLabel
                 }}</slot>
             </div>
-            <div :class="theme('input')" v-bind="$attrs">
+            <div v-bind="$attrs" :aria-labelledby="widgetContext.state.widgetId" :class="theme('input')">
                 <slot :value="readonlyValue || widgetContext.state.combinedValue">
                     <link-model-view
                         v-if="readonlyValue"

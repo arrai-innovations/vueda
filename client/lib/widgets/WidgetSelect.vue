@@ -3,7 +3,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Select from "primevue/select";
-import { computed, useAttrs } from "vue";
+import { computed, ref, useAttrs } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -43,16 +43,28 @@ const modelItem = computed(() => {
 const valueUpdated = (selected) => {
     widgetContext.state.combinedValue = selected;
 };
+const selectRef = ref(null);
+const handleLabelClick = (e) => {
+    if (selectRef.value) {
+        selectRef.value.onContainerClick(e);
+    }
+};
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :hidden="hidden" :label-class="theme('label')">
+        <widget-label
+            :id="widgetContext.state.widgetId"
+            :hidden="hidden"
+            :label-class="theme('label')"
+            @click="handleLabelClick"
+        >
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
                 <Select
                     v-bind="$attrs"
+                    :aria-labelledby="widgetContext.state.widgetId"
                     :disabled="widgetContext.state.disabled"
                     :model-value="modelItem"
                     :options="props.options"

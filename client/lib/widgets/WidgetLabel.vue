@@ -1,8 +1,12 @@
 <script setup>
 import { WidgetContextSymbol } from "@vueda/utils/symbols.js";
-import { inject } from "vue";
+import { computed, inject } from "vue";
 
-defineProps({
+defineOptions({
+    inheritAttrs: false,
+});
+
+const props = defineProps({
     labelClass: {
         type: [String, Array, Object],
         default: () => [],
@@ -11,13 +15,21 @@ defineProps({
         type: Boolean,
         default: false,
     },
+    id: {
+        type: String,
+        default: undefined,
+    },
 });
 
 /** @type {import('@vueda/use/useWidget.js').WidgetContext} */
 const widgetContext = inject(WidgetContextSymbol);
+// traditional id points to input
+const computedFor = computed(() => (props.id ? props.id : widgetContext.state.widgetId));
+// aria-labelledby points to label
+const computedId = computed(() => (!props.id ? widgetContext.state.widgetId : undefined));
 </script>
 <template>
-    <label :class="labelClass" :for="widgetContext.state.combinedName" :hidden="hidden">
+    <label :id="computedId" :class="labelClass" :for="computedFor" :hidden="hidden" v-bind="$attrs">
         <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label">{{
             widgetContext.state.combinedLabel
         }}</slot>

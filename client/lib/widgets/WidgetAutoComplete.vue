@@ -110,14 +110,15 @@ const search = (event) => {
             </template>
             <div :class="theme('inner')">
                 <AutoComplete
-                    v-bind="$attrs"
                     :disabled="widgetContext.state.disabled"
                     force-selection
+                    :input-id="widgetContext.state.widgetId"
                     :loading="modelListInstance.state.loading"
                     :model-value="modelItem"
                     :name="widgetContext.state.combinedName"
                     option-label="label"
                     :suggestions="filteredOptions"
+                    v-bind="$attrs"
                     @blur="widgetContext.blur"
                     @complete="search"
                     @focus="widgetContext.focus"
