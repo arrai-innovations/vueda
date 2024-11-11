@@ -352,5 +352,23 @@ class VuedaReadonlySerializer(VuedaSerializer, metaclass=MakeReadonly):
     class Meta(VuedaSerializer.Meta):
         list_serializer_class = VuedaReadonlyListSerializer
 
+    # Dynamically add all field names to read_only_fields.
+    # Tried a @property in class meta, but that doesn't work.
+    def get_field_names(self, declared_fields, info):
+        fields = super().get_field_names(declared_fields, info)
+
+        if not hasattr(self.Meta, 'read_only_fields'):
+            self.Meta.read_only_fields = fields
+
+        else:
+            if not isinstance(self.Meta.read_only_fields, list):
+                self.Meta.read_only_fields = list(self.Meta.read_only_fields)
+
+            for field_name in fields:
+                if field_name not in self.Meta.read_only_fields:
+                    self.Meta.read_only_fields.append(field_name)
+
+        return fields
+
     def validate_empty_values(self, data):
         return True, None
