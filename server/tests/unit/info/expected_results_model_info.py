@@ -1212,7 +1212,7 @@ EXPECTED_RESULTS = [
                 {
                     "name": "cart_items",
                     "app_label": "store",
-                    "many": False,
+                    "many": True,
                     "model": "cartitem",
                     "read_only": False,
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
