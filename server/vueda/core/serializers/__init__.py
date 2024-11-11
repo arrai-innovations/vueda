@@ -86,7 +86,7 @@ class FlexFieldsWriteableNestedSerializerMixin(
         relations, reverse_relations = super()._extract_relations(validated_data)
 
         # Tuple, so we can modify inline, as needed.
-        for field_name, (related_field, field, field_source) in tuple(reverse_relations.items()):
+        for field_name, (_related_field, field, _field_source) in tuple(reverse_relations.items()):
             # You cannot create or update a readonly serializer.
             if isinstance(field, (VuedaReadonlySerializer, VuedaReadonlyListSerializer)):
                 del reverse_relations[field_name]
@@ -174,13 +174,13 @@ class VuedaExpandableFieldsSerializerMixin:
                     {"name": field_name},
                 )
 
-            if 'many' in expand_options:
-                expand_item['many'] = expand_options['many']
+            if "many" in expand_options:
+                expand_item["many"] = expand_options["many"]
 
             if issubclass(field_serializer, VuedaReadonlySerializer):
-                expand_item['read_only'] = True
-            elif 'read_only' in expand_options:
-                expand_item['read_only'] = expand_options['read_only']
+                expand_item["read_only"] = True
+            elif "read_only" in expand_options:
+                expand_item["read_only"] = expand_options["read_only"]
 
             if hasattr(field_serializer, "Meta") and hasattr(field_serializer.Meta, "model"):
                 field_meta = field_serializer.Meta.model._meta
@@ -325,39 +325,41 @@ class MakeReadonly(serializers.SerializerMetaclass):
         cls_dict.setdefault("__excluded__", ())
         out_cls = super(MakeReadonly, cls).__new__(cls, cls_name, cls_bases, cls_dict)
 
-        def __getattribute__(self, name):
+        def __getattribute__(self, name):  # noqa N807
             if name in cls_dict["__excluded__"]:
                 raise AttributeError(name)
             else:
                 return super(out_cls, self).__getattribute__(name)
+
         out_cls.__getattribute__ = __getattribute__
 
         def __dir__(self):
             return sorted((set(dir(out_cls)) | set(self.__dict__.keys())) - set(cls_dict["__excluded__"]))
+
         out_cls.__dir__ = __dir__
 
         return out_cls
 
 
 class VuedaReadonlyListSerializer(serializers.ListSerializer, metaclass=MakeReadonly):
-    __excluded__ = ('create', 'update')
+    __excluded__ = ("create", "update")
 
     def validate_empty_values(self, data):
         return True, None
 
 
 class VuedaReadonlySerializer(VuedaSerializer, metaclass=MakeReadonly):
-    __excluded__ = ('create', 'update')
+    __excluded__ = ("create", "update")
 
     class Meta(VuedaSerializer.Meta):
         list_serializer_class = VuedaReadonlyListSerializer
 
-    # Dynamically add all field names to read_only_fields.
+    # Dynamically add all field names to read_only_fields. 2
     # Tried a @property in class meta, but that doesn't work.
     def get_field_names(self, declared_fields, info):
         fields = super().get_field_names(declared_fields, info)
 
-        if not hasattr(self.Meta, 'read_only_fields'):
+        if not hasattr(self.Meta, "read_only_fields"):
             self.Meta.read_only_fields = fields
 
         else:
