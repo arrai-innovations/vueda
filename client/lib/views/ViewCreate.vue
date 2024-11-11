@@ -65,7 +65,7 @@ const instanceObjectProps = reactive({
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     retrieveArgs: {
         f: computed(() => {
-            return [...(modelConfig.config?.fetchFields || [])];
+            return [...(modelConfig.config?.submitFields || [])];
         }),
         e: computed(() => modelConfig.config?.expands),
     },

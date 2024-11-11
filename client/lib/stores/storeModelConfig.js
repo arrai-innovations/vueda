@@ -13,6 +13,7 @@ import { defineStore } from "pinia";
  * @property {string} verboseNamePlural - the human-readable plural name of the model
  * @property {string[]} displayFields - field names to display by default
  * @property {string[]} fetchFields - field names to fetch by default
+ * @property {string[]} submitFields - field names to submit on create/update by default
  * @property {string[]} expands - field names to expand by default
  * @property {string[]} routeActions - actions to configure routes for
  * @property {string[]} actions - actions to display by default
@@ -38,6 +39,7 @@ import { defineStore } from "pinia";
  * @property {string} [verboseNamePlural] - the human-readable plural name of the model
  * @property {string[]} [displayFields] - field names to display by default
  * @property {string[]} [fetchFields] - field names to fetch by default
+ * @property {string[]} [submitFields] - field names to submit on create/update by default
  * @property {string[]} [expands] - field names to expand by default
  * @property {string[]} [routeActions] - actions to configure routes for
  * @property {string[]} [actions] - actions to display by default
@@ -76,6 +78,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
             verboseNamePlural: modelInfo.verbose_name_plural,
             displayFields: fields,
             fetchFields: fields,
+            submitFields: fields,
             expands: expandFields,
             routeActions: modelInfo.actions.map((a) => a.name),
             actions: modelInfo.actions.map((a) => a.name),
@@ -186,6 +189,12 @@ export const storeModelConfig = defineStore({
                 ) {
                     customGenericConfig.fetchFields = customGenericConfig.fields;
                 }
+                if (
+                    (!customGenericConfig.submitFields || customGenericConfig.submitFields.length === 0) &&
+                    customGenericConfig.fetchFields
+                ) {
+                    customGenericConfig.submitFields = customGenericConfig.fetchFields;
+                }
                 const customSpecificConfig = specificKey ? cloneDeep(this.specificConfigs[specificKey]) || {} : {};
                 if (
                     (!customSpecificConfig.displayFields || customSpecificConfig.displayFields.length === 0) &&
@@ -199,6 +208,12 @@ export const storeModelConfig = defineStore({
                     customSpecificConfig.fields
                 ) {
                     customSpecificConfig.fetchFields = customSpecificConfig.fields;
+                }
+                if (
+                    (!customSpecificConfig.submitFields || customSpecificConfig.submitFields.length === 0) &&
+                    customSpecificConfig.fetchFields
+                ) {
+                    customSpecificConfig.submitFields = customSpecificConfig.fetchFields;
                 }
                 const builtConfig = {
                     ...defaultGenericConfig,

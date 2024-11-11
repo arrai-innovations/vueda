@@ -133,38 +133,44 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), v
 const titleStr = computed(() => {
     return `Update ${memoizedStartCase(modelConfig.config?.verboseName)}` || "Update Item";
 });
-const instanceObjectProps = reactive({
-    crudArgs: {
-        app: toRef(props, "app"),
-        model: toRef(props, "model"),
-    },
-    pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-    pk: toRef(props, "pk"),
-    retrieveArgs: {
-        f: computed(() => {
-            return [modelConfig.info?.pk, ...(modelConfig.config?.fetchFields || [])];
-        }),
-        e: computed(() => modelConfig.config?.expands),
-    },
-    intendToRetrieve: validAndActive,
-    relatedObjectRules: toRef(props, "relatedObjectRules"),
-    calculatedObjectRules: toRef(props, "calculatedObjectRules"),
-});
-const instanceObject = useObject({
-    props: instanceObjectProps,
-});
+const fetchFields = computed(() => modelConfig.config?.fetchFields);
+const submitFields = computed(() => modelConfig.config?.submitFields);
+
+const createInstanceObjectProps = (fields, intendToRetrieve = true) => {
+    return reactive({
+        crudArgs: {
+            app: toRef(props, "app"),
+            model: toRef(props, "model"),
+        },
+        pkKey: computed(() => modelConfig.info?.pk ?? "id"),
+        pk: toRef(props, "pk"),
+        retrieveArgs: {
+            f: computed(() => [modelConfig.info?.pk, ...(fields.value || [])]),
+            e: computed(() => modelConfig.config?.expands),
+        },
+        intendToRetrieve: validAndActive.value && intendToRetrieve,
+        relatedObjectRules: toRef(props, "relatedObjectRules"),
+        calculatedObjectRules: toRef(props, "calculatedObjectRules"),
+    });
+};
+
+const instanceObjectPropsForRetrieve = createInstanceObjectProps(fetchFields);
+const instanceObjectForRetrieve = useObject({ props: instanceObjectPropsForRetrieve });
+
+const instanceObjectPropsForSubmit = createInstanceObjectProps(submitFields, false);
+const instanceObjectForSubmit = useObject({ props: instanceObjectPropsForSubmit });
 
 onMounted(() => {
     emit(
         "object",
-        toRef(() => instanceObject.state.object),
+        toRef(() => instanceObjectForRetrieve.state.object),
     );
     emit(
         "loading",
-        toRef(() => instanceObject.state.loading),
+        toRef(() => instanceObjectForRetrieve.state.loading),
     );
-    emit("related-object", readonly(instanceObject.state.relatedObjects || {}));
-    emit("calculated-object", readonly(instanceObject.state.calculatedObjects || {}));
+    emit("related-object", readonly(instanceObjectForRetrieve.state.relatedObjects || {}));
+    emit("calculated-object", readonly(instanceObjectForRetrieve.state.calculatedObjects || {}));
     emit(
         "form-object",
         toRef(() => formContext.state.values),
@@ -182,22 +188,22 @@ const objectFormProps = reactive({
 const objectForm = useObjectForm({
     props: objectFormProps,
     formContext,
-    instanceObject,
+    instanceObject: instanceObjectForSubmit,
 });
 const computedWidgetProps = computed(() => {
-    // TODO: a key for instanceObject?.state?.calculatedObject
+    // TODO: a key for instanceObjectForRetrieve?.state?.calculatedObject
     return {
         ...props.widgetProps,
-        ...instanceObject?.state?.calculatedObject,
+        ...instanceObjectForRetrieve?.state?.calculatedObject,
     };
 });
 watch(
-    [validAndActive, toRef(instanceObject.state, "loading")],
+    [validAndActive, toRef(instanceObjectForRetrieve.state, "loading")],
     ([vAA, loading]) => {
         // populate the form when the page loads and when we have the object back.
         // undefined on loading means not run yet.
         if (vAA && loading === false) {
-            assignReactiveObject(formContextProps.initialValues, instanceObject.state.object);
+            assignReactiveObject(formContextProps.initialValues, instanceObjectForRetrieve.state.object);
         }
     },
     {
@@ -206,9 +212,9 @@ watch(
 );
 /** @type {import('vue').Ref<Error|null>} */
 const myError = ref(null);
-useObject404(props, instanceObject, modelConfig, myError);
+useObject404(props, instanceObjectForRetrieve, modelConfig, myError);
 const combinedError = computed(() => {
-    return myError.value || modelConfig.error || instanceObject.state.error || objectForm.state.error;
+    return myError.value || modelConfig.error || instanceObjectForRetrieve.state.error || objectForm.state.error;
 });
 const combinedErrored = computed(() => !!combinedError.value);
 const combinedWhileText = computed(() =>
@@ -216,7 +222,7 @@ const combinedWhileText = computed(() =>
         ? "validating props"
         : modelConfig.error
           ? "getting model information"
-          : instanceObject.state.error
+          : instanceObjectForRetrieve.state.error
             ? "fetching object data"
             : objectForm.state.error
               ? "submitting form"
@@ -228,7 +234,7 @@ const combinedFormProps = computed(() => {
         ...(props.formProps || {}),
     };
 });
-const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObject.state.loading));
+const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObjectForRetrieve.state.loading));
 const formId = computed(() => `${props.app}-${props.model}-${props.pk}-update`);
 // const workflow = useWorkflow(toRef(props, "app"), toRef(props, "model"),toRef(props.pk),isActive,validAndActive);
 // const availableTransitions = computed(() => {
@@ -243,7 +249,7 @@ const detailedActions = computed(() => {
         const a = modelConfig.config?.actionDetails?.[n];
         // return a && viewName !== n && !a.detail && !a.bulk && availableTransitions?.includes(n);
         //TODO: needs to have a way to know whether the action is workflow action
-        return a && viewName !== n && !a.detail && !a.bulk;
+        return a && viewName !== n && a.detail;
     });
 });
 </script>
