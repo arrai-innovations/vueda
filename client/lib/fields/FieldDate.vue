@@ -25,7 +25,7 @@ const preprocessGet = (value) => {
 };
 const preprocessSet = (value) => {
     if (value instanceof Date) {
-        return value.toISOString().split("T")[0];
+        return new Date(value).toISOString().split("T")[0];
     }
     return value;
 };

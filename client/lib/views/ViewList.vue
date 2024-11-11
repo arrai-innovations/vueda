@@ -376,7 +376,6 @@ const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name}
                             label: memoizedStartCase(actionName),
                             click: detailActionOnClick(actionName),
                             selectedObjects,
-                            disabled: !availableTransitions.includes(actionName),
                         }"
                     >
                         <link-model-view
