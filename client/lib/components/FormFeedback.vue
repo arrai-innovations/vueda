@@ -1,5 +1,6 @@
 <script setup>
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import get from "lodash-es/get.js";
@@ -56,13 +57,19 @@ watch(
     //  deleted. this leaves empty feedback boxes on the form.
     { immediate: true, deep: true },
 );
+const theme = useTheme("FormFeedback", props, fieldContext?.state);
 </script>
 <template>
-    <template v-if="!isEmpty(feedbackItems)" v-for="message in Object.values(feedbackItems)" :key="message">
+    <div
+        v-if="!isEmpty(feedbackItems)"
+        v-for="message in Object.values(feedbackItems)"
+        :key="message"
+        :class="theme('root')"
+    >
         <slot :name="type" v-bind="{ message, type, attrs: $attrs }">
             <Message v-bind="$attrs" :closable="false" :severity="type === 'message' ? 'warn' : 'error'">{{
                 message
             }}</Message>
         </slot>
-    </template>
+    </div>
 </template>

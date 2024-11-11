@@ -169,6 +169,11 @@ export default {
             class: ["my-2"],
         },
     },
+    FormFeedback: {
+        root: {
+            class: ["my-2"],
+        },
+    },
     FormModel: {
         root: {
             class: [],
