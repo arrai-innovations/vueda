@@ -82,6 +82,17 @@ class FlexFieldsWriteableNestedSerializerMixin(
     def update_or_create_direct_relations(self, attrs, relations):
         return super().update_or_create_direct_relations(attrs, relations)
 
+    def _extract_relations(self, validated_data):
+        relations, reverse_relations = super()._extract_relations(validated_data)
+
+        # Tuple, so we can modify inline, as needed.
+        for field_name, (related_field, field, field_source) in tuple(reverse_relations.items()):
+            # You cannot create or update a readonly serializer.
+            if isinstance(field, (VuedaReadonlySerializer, VuedaReadonlyListSerializer)):
+                del reverse_relations[field_name]
+
+        return relations, reverse_relations
+
     def update(self, instance, validated_data):
         relations, reverse_relations = self._extract_relations(validated_data)
 
@@ -296,3 +307,42 @@ class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):
 class VuedaLookupSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         fields = ["code", "name", "formatted_name"] + VuedaSerializer.Meta.fields
+
+
+# noqa T101 - TODO: Create a test that uses the readonly serializers
+class MakeReadonly(serializers.SerializerMetaclass):
+    # __new__ is taken from https://stackoverflow.com
+    #   /questions/23181442/how-to-hide-remove-some-methods-in-inherited-class-in-python#answer-23182583
+    def __new__(cls, cls_name, cls_bases, cls_dict):
+        cls_dict.setdefault("__excluded__", ())
+        out_cls = super(MakeReadonly, cls).__new__(cls, cls_name, cls_bases, cls_dict)
+
+        def __getattribute__(self, name):
+            if name in cls_dict["__excluded__"]:
+                raise AttributeError(name)
+            else:
+                return super(out_cls, self).__getattribute__(name)
+        out_cls.__getattribute__ = __getattribute__
+
+        def __dir__(self):
+            return sorted((set(dir(out_cls)) | set(self.__dict__.keys())) - set(cls_dict["__excluded__"]))
+        out_cls.__dir__ = __dir__
+
+        return out_cls
+
+
+class VuedaReadonlyListSerializer(serializers.ListSerializer, metaclass=MakeReadonly):
+    __excluded__ = ('create', 'update')
+
+    def validate_empty_values(self, data):
+        return True, None
+
+
+class VuedaReadonlySerializer(VuedaSerializer, metaclass=MakeReadonly):
+    __excluded__ = ('create', 'update')
+
+    class Meta(VuedaSerializer.Meta):
+        list_serializer_class = VuedaReadonlyListSerializer
+
+    def validate_empty_values(self, data):
+        return True, None
