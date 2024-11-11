@@ -174,6 +174,14 @@ class VuedaExpandableFieldsSerializerMixin:
                     {"name": field_name},
                 )
 
+            if 'many' in expand_options:
+                expand_item['many'] = expand_options['many']
+
+            if issubclass(field_serializer, VuedaReadonlySerializer):
+                expand_item['read_only'] = True
+            elif 'read_only' in expand_options:
+                expand_item['read_only'] = expand_options['read_only']
+
             if hasattr(field_serializer, "Meta") and hasattr(field_serializer.Meta, "model"):
                 field_meta = field_serializer.Meta.model._meta
                 expand_item["app_label"] = field_meta.app_label
