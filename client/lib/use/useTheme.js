@@ -28,12 +28,14 @@ export const THEME_OVERRIDE_PROPS = {
  *
  * @typedef {({
  *     [componentName: string]: {
- *         [key: string]: any,
- *         ["class"]: (
- *             ((args: {props: object|import('vue').UnwrapNestedRefs<object>, [key:string]: any}) => CombinedClassesArgument|CombinedClassesArgument[]) |
- *             CombinedClassesArgument |
- *             CombinedClassesArgument[]
- *         ),
+ *         [slotName: string]: {
+ *             [key: string]: any,
+ *             ["class"]: (
+ *                 ((args: {props: object|import('vue').UnwrapNestedRefs<object>, [key:string]: any}) => CombinedClassesArgument|CombinedClassesArgument[]) |
+ *                 CombinedClassesArgument |
+ *                 CombinedClassesArgument[]
+ *             ),
+ *         }
  *     }
  * })} ThemeObject
  */

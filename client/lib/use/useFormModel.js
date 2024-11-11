@@ -543,6 +543,7 @@ const getFieldProps = (field) => {
  * @property {{[fieldName:string]: {[key:string]: any}}|undefined} fieldProps - The field props to use, if different from the default, by field path
  * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}|undefined} widgetComponents - The widget components to use, if different from the default, by field path
  * @property {{[fieldName:string]: {[key:string]: any}}|undefined} widgetProps - The widget props to use, if different from the default, by field path
+ * @property {import('@vueda/use/useTheme.js').ThemeObject|undefined} themeOverride - The form-level theme override rules. These are passed to each child component.
  */
 
 const isExpandedFieldName = (fieldName) => fieldName.includes("__");
@@ -570,8 +571,14 @@ export function useFormModel(props) {
             expandedFieldNames: [],
         },
     );
-    const { setUpWatch, assignStateObjectsIfChanged, setComponent, setComponentProps, setWidget, setWidgetProps } =
-        buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps);
+    const {
+        setUpWatch,
+        assignStateObjectsIfChanged,
+        setFieldComponent,
+        setFieldComponentProps,
+        setWidgetComponent,
+        setWidgetComponentProps,
+    } = buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps);
     setUpWatch("displayFields", "fieldDetails", "fields", "fieldDetails");
     setUpWatch("expands", "expandDetails");
     setUpWatch("computedFields");
@@ -656,10 +663,10 @@ export function useFormModel(props) {
                     if (baseExpanded) {
                         expandedFieldNames.add(fieldName);
                     }
-                    fieldComponents[fieldName] = setComponent(fieldName, fieldDetail, baseExpanded);
-                    fieldProps[fieldName] = setComponentProps(fieldName, fieldDetail);
-                    widgetComponents[fieldName] = setWidget(fieldName, fieldDetail, baseExpanded);
-                    widgetProps[fieldName] = setWidgetProps(
+                    fieldComponents[fieldName] = setFieldComponent(fieldName, fieldDetail, baseExpanded);
+                    fieldProps[fieldName] = setFieldComponentProps(fieldName, fieldDetail);
+                    widgetComponents[fieldName] = setWidgetComponent(fieldName, fieldDetail, baseExpanded);
+                    widgetProps[fieldName] = setWidgetComponentProps(
                         fieldName,
                         fieldDetail,
                         baseExpanded,

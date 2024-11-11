@@ -282,8 +282,14 @@ export default function useFilterForm(props) {
             widgetOptions: ref([]),
         },
     );
-    const { setUpWatch, assignStateObjectsIfChanged, setComponent, setComponentProps, setWidget, setWidgetProps } =
-        buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps);
+    const {
+        setUpWatch,
+        assignStateObjectsIfChanged,
+        setFieldComponent,
+        setFieldComponentProps,
+        setWidgetComponent,
+        setWidgetComponentProps,
+    } = buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps);
 
     setUpWatch("filterables", "filterableDetails");
 
@@ -321,10 +327,17 @@ export default function useFilterForm(props) {
                                     : `${filterableName}_${suffix}`;
                             });
                         }
-                        fieldComponents[key] = setComponent(key, filterableDetail, false, filterableName);
-                        fieldProps[key] = setComponentProps(key, filterableDetail, filterableName);
-                        widgetComponents[key] = setWidget(key, filterableDetail, false, filterableName);
-                        widgetProps[key] = setWidgetProps(key, filterableDetail, false, false, {}, filterableName);
+                        fieldComponents[key] = setFieldComponent(key, filterableDetail, false, filterableName);
+                        fieldProps[key] = setFieldComponentProps(key, filterableDetail, filterableName);
+                        widgetComponents[key] = setWidgetComponent(key, filterableDetail, false, filterableName);
+                        widgetProps[key] = setWidgetComponentProps(
+                            key,
+                            filterableDetail,
+                            false,
+                            false,
+                            {},
+                            filterableName,
+                        );
                     }
                     options.push({
                         value: filterableName,
