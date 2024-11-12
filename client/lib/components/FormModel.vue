@@ -276,8 +276,8 @@ const getSlotNamesFor = (type, fieldName) => {
 <template>
     <div :class="theme('root')" data-qa="form-model">
         <template v-if="formModel.fields?.length">
-            <div v-if="$slots.beforeFields" :class="theme('beforeFields')">
-                <slot :form-attrs="$attrs" :form-props="$props" name="beforeFields" />
+            <div v-if="$slots['before-fields']" :class="theme('beforeFields')">
+                <slot :form-attrs="$attrs" :form-props="$props" name="before-fields" />
             </div>
             <!-- form-level chores -->
             <form-feedback type="error" />
@@ -364,8 +364,8 @@ const getSlotNamesFor = (type, fieldName) => {
                     </template>
                 </slot>
             </div>
-            <div v-if="$slots.afterFields" :class="theme('afterFields')">
-                <slot :form-attrs="$attrs" :form-props="$props" name="afterFields" />
+            <div v-if="$slots['after-fields']" :class="theme('afterFields')">
+                <slot :form-attrs="$attrs" :form-props="$props" name="after-fields" />
             </div>
         </template>
         <template v-else>

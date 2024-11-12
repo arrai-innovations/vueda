@@ -73,8 +73,8 @@ const getFieldPath = (fieldName) => {
 </script>
 <template>
     <div v-if="formModel.expands?.length" :class="theme('root')">
-        <div v-if="$slots.beforeFields" :class="theme('beforeFields')">
-            <slot name="beforeFields" />
+        <div v-if="$slots['before-fields']" :class="theme('beforeFields')">
+            <slot name="before-fields" />
         </div>
         <div v-bind="$attrs">
             <slot
@@ -133,8 +133,8 @@ const getFieldPath = (fieldName) => {
                 </template>
             </slot>
         </div>
-        <div v-if="$slots.afterFields" :class="theme('afterFields')">
-            <slot name="afterFields" />
+        <div v-if="$slots['after-fields']" :class="theme('afterFields')">
+            <slot name="after-fields" />
         </div>
         <div :class="theme('deleteOuter')">
             <div v-if="pk" class="flex items-center">
