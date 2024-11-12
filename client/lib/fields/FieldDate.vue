@@ -1,6 +1,6 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import { computed, toRef, watch } from "vue";
+import { computed, watch } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -17,14 +17,25 @@ const props = defineProps({
         default: undefined,
     },
 });
+
+const parseLocalDateFromUTC = (dateString) => {
+    const [year, month, day] = dateString.split("-").map(Number);
+    const utcDate = new Date(Date.UTC(year, month - 1, day));
+    return new Date(utcDate.getTime() + utcDate.getTimezoneOffset() * 60000);
+};
+
 const preprocessGet = (value) => {
     if (typeof value === "string") {
-        return new Date(value);
+        return parseLocalDateFromUTC(value);
     }
     return value;
 };
+
 const preprocessSet = (value) => {
     if (value instanceof Date) {
+        if (props.customDateConverter) {
+            value = props.customDateConverter(value);
+        }
         return new Date(value).toISOString().split("T")[0];
     }
     return value;
@@ -53,18 +64,7 @@ const minValueAsDate = computed(() => {
     }
     return null;
 });
-watch(
-    toRef(fieldContext.state, "value"),
-    (newValue) => {
-        if (newValue instanceof Date) {
-            if (props.customDateConverter) {
-                newValue = props.customDateConverter(newValue);
-            }
-            fieldContext.state.value = preprocessSet(newValue);
-        }
-    },
-    { immediate: true },
-);
+
 watch(
     [maxValueAsDate, valueAsDate],
     ([maxValue, value]) => {
