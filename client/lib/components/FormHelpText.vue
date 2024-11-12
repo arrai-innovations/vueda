@@ -19,9 +19,15 @@ const theme = useTheme("FormHelpText", props, fieldContext?.state);
 <template>
     <div :class="theme('root')">
         <slot :attrs="$attrs" :help="computedHelp">
-            <Message v-if="computedHelp?.length" v-bind="$attrs" :closable="false" severity="help" variant="simple">{{
-                computedHelp
-            }}</Message>
+            <Message
+                v-if="computedHelp?.length"
+                v-bind="$attrs"
+                :closable="false"
+                severity="help"
+                size="small"
+                variant="simple"
+                >{{ computedHelp }}</Message
+            >
         </slot>
     </div>
 </template>

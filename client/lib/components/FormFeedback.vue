@@ -1,6 +1,6 @@
 <script setup>
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import get from "lodash-es/get.js";
@@ -20,6 +20,22 @@ const props = defineProps({
         default: null,
         description: "Messages to display, in code: message pairs",
     },
+    size: {
+        type: String,
+        default: "small",
+        validator: (value) => ["small", "large", null].includes(value),
+    },
+    variant: {
+        type: String,
+        default: "simple",
+        validator: (value) => ["simple", "outlined", null].includes(value),
+    },
+    severity: {
+        type: String,
+        default: null,
+        validator: (value) => ["error", "warn", "help", "success", "info", "contrast", null].includes(value),
+    },
+    ...THEME_OVERRIDE_PROPS,
 });
 /** @type {import("@vueda/use/useForm.js").FormContext|null} */
 const formContext = inject(FormContextSymbol, null);
@@ -70,8 +86,9 @@ const theme = useTheme("FormFeedback", props, fieldContext?.state);
             <Message
                 v-bind="$attrs"
                 :closable="false"
-                :severity="type === 'message' ? 'warn' : 'error'"
-                variant="simple"
+                :severity="(severity ?? type === 'message') ? 'warn' : 'error'"
+                :size="size"
+                :variant="variant"
                 >{{ message }}</Message
             >
         </slot>

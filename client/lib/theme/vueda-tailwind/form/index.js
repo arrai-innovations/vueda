@@ -166,12 +166,12 @@ export default {
     },
     FormHelpText: {
         root: {
-            class: ["my-2"],
+            class: ["my-2 ml-3"],
         },
     },
     FormFeedback: {
         root: {
-            class: ["my-2"],
+            class: ["my-2 ml-3"],
         },
     },
     FormModel: {
