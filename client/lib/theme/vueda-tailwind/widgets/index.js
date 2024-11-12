@@ -151,7 +151,16 @@ export default {
             class: [],
         },
         optionLabel: {
-            class: ["text-surface-900/60 dark:text-white/60"],
+            class: ({ props }) => {
+                return [
+                    {
+                        "text-surface-900/60 dark:text-white/60":
+                            !props.validationState.invalid && !props.validationState.warning,
+                        "text-red-500 dark:text-red-400": props.validationState.invalid,
+                        "text-warning-500 dark:text-warning-400": props.validationState.warning,
+                    },
+                ];
+            },
         },
     },
     WidgetReadOnly: {

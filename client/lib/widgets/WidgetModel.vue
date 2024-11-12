@@ -63,7 +63,13 @@ const widgetComponent = computed(() => widgetComponents[props.type]);
 <template>
     <component
         :is="widgetComponent"
-        v-bind="$attrs"
+        v-bind="{
+            invalid: widgetContext.state.validationState.invalid,
+            class: {
+                'p-warning': widgetContext.state.validationState.warning,
+            },
+            ...$attrs,
+        }"
         :loading="modelChoices.loading"
         :on-focus="onFocus"
         option-label="label"

@@ -3,7 +3,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Select from "primevue/select";
-import { computed, ref, useAttrs } from "vue";
+import { computed, ref, unref, useAttrs } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -56,6 +56,7 @@ const handleLabelClick = (e) => {
             :id="widgetContext.state.widgetId"
             :hidden="hidden"
             :label-class="theme('label')"
+            v-bind="unref(widgetContext.state.validationState)"
             @click="handleLabelClick"
         >
             <template v-if="$slots.label" #label="slotProps">
@@ -63,7 +64,13 @@ const handleLabelClick = (e) => {
             </template>
             <div :class="theme('inner')">
                 <Select
-                    v-bind="$attrs"
+                    v-bind="{
+                        invalid: widgetContext.state.validationState.invalid,
+                        class: {
+                            'p-warning': widgetContext.state.validationState.warning,
+                        },
+                        ...$attrs,
+                    }"
                     :aria-labelledby="widgetContext.state.widgetId"
                     :disabled="widgetContext.state.disabled"
                     :model-value="modelItem"

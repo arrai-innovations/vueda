@@ -3,7 +3,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import InputNumber from "primevue/inputnumber";
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, unref } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -94,6 +94,7 @@ const focusFirstInput = () => {
             :id="`${widgetContext.state.widgetId}-label`"
             :hidden="hidden"
             :label-class="theme('label')"
+            v-bind="unref(widgetContext.state.validationState)"
             @click="focusFirstInput"
         >
             <template v-if="$slots.label" #label="slotProps">
@@ -110,9 +111,15 @@ const focusFirstInput = () => {
                         :model-value="valueDay"
                         show-buttons
                         suffix=" days"
+                        v-bind="{
+                            invalid: widgetContext.state.validationState.invalid,
+                            class: {
+                                'p-warning': widgetContext.state.validationState.warning,
+                            },
+                            ...$attrs,
+                        }"
                         @update:model-value="(newValue) => updateDay(newValue)"
-                    >
-                    </InputNumber>
+                    />
                 </div>
                 <div v-if="showHours" :class="theme('innerItem')">
                     <InputNumber
@@ -123,9 +130,15 @@ const focusFirstInput = () => {
                         :model-value="valueHour"
                         show-buttons
                         suffix=" hours"
+                        v-bind="{
+                            invalid: widgetContext.state.validationState.invalid,
+                            class: {
+                                'p-warning': widgetContext.state.validationState.warning,
+                            },
+                            ...$attrs,
+                        }"
                         @update:model-value="(newValue) => updateHour(newValue)"
-                    >
-                    </InputNumber>
+                    />
                 </div>
                 <div v-if="showMinutes" :class="theme('innerItem')">
                     <InputNumber
@@ -136,9 +149,15 @@ const focusFirstInput = () => {
                         :model-value="valueMinute"
                         show-buttons
                         suffix=" minutes"
+                        v-bind="{
+                            invalid: widgetContext.state.validationState.invalid,
+                            class: {
+                                'p-warning': widgetContext.state.validationState.warning,
+                            },
+                            ...$attrs,
+                        }"
                         @update:model-value="(newValue) => updateMinute(newValue)"
-                    >
-                    </InputNumber>
+                    />
                 </div>
                 <div v-if="showSeconds" :class="theme('innerItem')">
                     <InputNumber
@@ -149,9 +168,15 @@ const focusFirstInput = () => {
                         :model-value="valueSecond"
                         show-buttons
                         suffix=" seconds"
+                        v-bind="{
+                            invalid: widgetContext.state.validationState.invalid,
+                            class: {
+                                'p-warning': widgetContext.state.validationState.warning,
+                            },
+                            ...$attrs,
+                        }"
                         @update:model-value="(newValue) => updateSecond(newValue)"
-                    >
-                    </InputNumber>
+                    />
                 </div>
             </div>
         </widget-label>

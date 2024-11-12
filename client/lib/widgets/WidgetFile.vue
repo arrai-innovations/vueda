@@ -4,7 +4,7 @@ import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Button from "primevue/button";
 import FileUpload from "primevue/fileupload";
-import { computed } from "vue";
+import { computed, unref } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -54,7 +54,11 @@ const fileURL = computed(() => {
 
 <template>
     <div :class="theme('root')">
-        <widget-label :hidden="hidden" :label-class="theme('label')">
+        <widget-label
+            :hidden="hidden"
+            :label-class="theme('label')"
+            v-bind="unref(widgetContext.state.validationState)"
+        >
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
@@ -71,7 +75,13 @@ const fileURL = computed(() => {
                         <FileUpload
                             auto
                             custom-upload
-                            v-bind="$attrs"
+                            v-bind="{
+                                invalid: widgetContext.state.validationState.invalid,
+                                class: {
+                                    'p-warning': widgetContext.state.validationState.warning,
+                                },
+                                ...$attrs,
+                            }"
                             :disabled="widgetContext.state.disabled"
                             mode="basic"
                             name="files[]"

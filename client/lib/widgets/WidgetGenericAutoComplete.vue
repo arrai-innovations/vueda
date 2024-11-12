@@ -7,7 +7,7 @@ import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import AutoComplete from "primevue/autocomplete";
 import Select from "primevue/select";
-import { computed, reactive, ref, toRef } from "vue";
+import { computed, reactive, ref, toRef, unref } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -177,6 +177,7 @@ const handleLabelClick = (e) => {
             :id="widgetContext.state.widgetId"
             :hidden="hidden"
             :label-class="theme('label')"
+            v-bind="unref(widgetContext.state.validationState)"
             @click="handleLabelClick"
         >
             <template v-if="$slots.label" #label="slotProps">
@@ -191,7 +192,13 @@ const handleLabelClick = (e) => {
                         option-label="label"
                         option-value="value"
                         :options="dropdownOptions"
-                        v-bind="$attrs"
+                        v-bind="{
+                            invalid: widgetContext.state.validationState.invalid,
+                            class: {
+                                'p-warning': widgetContext.state.validationState.warning,
+                            },
+                            ...$attrs,
+                        }"
                         placeholder="Select a model"
                         show-clear
                         @update:model-value="(selected) => typeUpdate(selected)"

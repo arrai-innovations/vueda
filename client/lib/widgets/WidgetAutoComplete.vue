@@ -6,7 +6,7 @@ import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import AutoComplete from "primevue/autocomplete";
-import { computed, reactive, ref, toRef } from "vue";
+import { computed, reactive, ref, toRef, unref } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -104,7 +104,11 @@ const search = (event) => {
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :hidden="hidden" :label-class="theme('label')">
+        <widget-label
+            :hidden="hidden"
+            :label-class="theme('label')"
+            v-bind="unref(widgetContext.state.validationState)"
+        >
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
@@ -118,7 +122,13 @@ const search = (event) => {
                     :name="widgetContext.state.combinedName"
                     option-label="label"
                     :suggestions="filteredOptions"
-                    v-bind="$attrs"
+                    v-bind="{
+                        invalid: widgetContext.state.validationState.invalid,
+                        class: {
+                            'p-warning': widgetContext.state.validationState.warning,
+                        },
+                        ...$attrs,
+                    }"
                     @blur="widgetContext.blur"
                     @complete="search"
                     @focus="widgetContext.focus"

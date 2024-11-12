@@ -49,8 +49,7 @@ export const WIDGET_EMITS = ["update:modelValue"];
  * or the field context.
  * @property {import('vue').ComputedRef<string>} combinedLabel - The combined label of the widget, either from the props
  * @property {import('vue').ComputedRef<boolean>} disabled - Whether the widget is disabled.
-
- * or the field context.
+ * @property {import('vue').ComputedRef<{invalid:boolean,warning:boolean}>} validationState - The validation state of the widget.
  */
 
 /**
@@ -116,6 +115,20 @@ export function useWidget(props, emit) {
                     return props.disabledFn ? props.disabledFn() : true;
                 }
                 return false;
+            }),
+            validationState: computed(() => {
+                if (fieldContext) {
+                    const hasErrors = Object.keys(fieldContext.state.errors || {}).length > 0;
+                    const hasMessages = Object.keys(fieldContext.state.messages || {}).length > 0;
+                    return {
+                        invalid: hasErrors,
+                        warning: hasMessages && !hasErrors,
+                    };
+                }
+                return {
+                    invalid: false,
+                    warning: false,
+                };
             }),
         }),
         setTouched: () => {

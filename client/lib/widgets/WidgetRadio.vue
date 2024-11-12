@@ -5,6 +5,9 @@ import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import RadioButton from "primevue/radiobutton";
 import { computed } from "vue";
 
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     ...WIDGET_PROPS,
     options: {
@@ -67,6 +70,13 @@ const handleFocus = () => {
                                 :input-id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
                                 :name="widgetContext.state.combinedName"
                                 :value="option.value"
+                                v-bind="{
+                                    invalid: widgetContext.state.validationState.invalid,
+                                    class: {
+                                        'p-warning': widgetContext.state.validationState.warning,
+                                    },
+                                    ...$attrs,
+                                }"
                                 @blur="widgetContext.blur"
                                 @focus="handleFocus"
                             />
@@ -78,7 +88,7 @@ const handleFocus = () => {
                             :name="$slots[`label(${option.value})`] ? `label(${option.value})` : 'label'"
                         >
                             <label
-                                :class="theme('optionLabel')"
+                                :class="[theme('optionLabel')]"
                                 :for="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
                                 >{{ option.label }}</label
                             >

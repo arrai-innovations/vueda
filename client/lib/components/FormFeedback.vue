@@ -18,7 +18,7 @@ const props = defineProps({
     messages: {
         type: Object,
         default: null,
-        description: "Messages to display, in code: message pairs",
+        description: "Messages to display, keyed by code.",
     },
     size: {
         type: String,

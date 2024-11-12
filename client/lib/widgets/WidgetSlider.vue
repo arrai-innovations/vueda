@@ -3,6 +3,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Slider from "primevue/slider";
+import { unref } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -26,7 +27,12 @@ const theme = useTheme("WidgetSlider", props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :id="widgetContext.state.widgetId" :hidden="hidden" :label-class="theme('label')">
+        <widget-label
+            :id="widgetContext.state.widgetId"
+            :hidden="hidden"
+            :label-class="theme('label')"
+            v-bind="unref(widgetContext.state.validationState)"
+        >
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
@@ -37,7 +43,13 @@ const theme = useTheme("WidgetSlider", props, widgetContext.state);
                         <span v-else>[{{ props.minValue }},{{ props.maxValue }}]</span>
                         <Slider
                             v-model="widgetContext.state.combinedValue"
-                            v-bind="$attrs"
+                            v-bind="{
+                                invalid: widgetContext.state.validationState.invalid,
+                                class: {
+                                    'p-warning': widgetContext.state.validationState.warning,
+                                },
+                                ...$attrs,
+                            }"
                             :aria-labelledby="widgetContext.state.widgetId"
                             class="w-56"
                             :disabled="widgetContext.state.disabled"

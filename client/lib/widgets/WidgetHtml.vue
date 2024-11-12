@@ -75,7 +75,11 @@ const theme = useTheme("WidgetHtml", props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('outer')">
-        <widget-label :hidden="hidden" :label-class="theme('label')">
+        <widget-label
+            :hidden="hidden"
+            :label-class="theme('label')"
+            v-bind="unref(widgetContext.state.validationState)"
+        >
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>

@@ -5,6 +5,7 @@ import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Button from "primevue/button";
 import FileUpload from "primevue/fileupload";
 import Image from "primevue/image";
+import { unref } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -28,7 +29,11 @@ const theme = useTheme("WidgetImage", props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :hidden="hidden" :label-class="theme('label')">
+        <widget-label
+            :hidden="hidden"
+            :label-class="theme('label')"
+            v-bind="unref(widgetContext.state.validationState)"
+        >
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>

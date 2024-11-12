@@ -28,9 +28,9 @@ const theme = useTheme("WidgetCheckbox", props, widgetContext.state);
                 @focus="widgetContext.focus"
             />
             <label v-if="!hidden" :class="theme('label')" :for="widgetContext.state.widgetId">
-                <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label">{{
-                    widgetContext.state.combinedLabel
-                }}</slot>
+                <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label"
+                    >{{ widgetContext.state.combinedLabel }}
+                </slot>
             </label>
         </div>
     </div>

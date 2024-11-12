@@ -3,7 +3,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import DatePicker from "primevue/datepicker";
-import { computed } from "vue";
+import { computed, unref } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -43,7 +43,11 @@ const getCurrentDate = () => {
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :hidden="hidden" :label-class="theme('label')">
+        <widget-label
+            :hidden="hidden"
+            :label-class="theme('label')"
+            v-bind="unref(widgetContext.state.validationState)"
+        >
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
@@ -54,7 +58,13 @@ const getCurrentDate = () => {
                         outlined: true,
                         text: true,
                     }"
-                    v-bind="$attrs"
+                    v-bind="{
+                        invalid: widgetContext.state.validationState.invalid,
+                        class: {
+                            'p-warning': widgetContext.state.validationState.warning,
+                        },
+                        ...$attrs,
+                    }"
                     :disabled="widgetContext.state.disabled"
                     :fluid="fluid"
                     :input-id="widgetContext.state.widgetId"

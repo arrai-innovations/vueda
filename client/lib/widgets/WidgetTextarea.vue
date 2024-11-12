@@ -4,6 +4,7 @@ import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 // don't shadow html element names
 import PrimevueTextarea from "primevue/textarea";
+import { unref } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -18,14 +19,24 @@ const theme = useTheme("WidgetTextarea", props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :hidden="hidden" :label-class="theme('label')">
+        <widget-label
+            :hidden="hidden"
+            :label-class="theme('label')"
+            v-bind="unref(widgetContext.state.validationState)"
+        >
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
                 <primevue-textarea
                     id="widgetContext.state.widgetId"
-                    v-bind="$attrs"
+                    v-bind="{
+                        invalid: widgetContext.state.validationState.invalid,
+                        class: {
+                            'p-warning': widgetContext.state.validationState.warning,
+                        },
+                        ...$attrs,
+                    }"
                     v-model="widgetContext.state.combinedValue"
                     auto-resize
                     cols="30"

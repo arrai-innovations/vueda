@@ -3,7 +3,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import MultiSelect from "primevue/multiselect";
-import { ref, useAttrs } from "vue";
+import { ref, unref, useAttrs } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -45,6 +45,7 @@ const handleLabelClick = (e) => {
             :id="widgetContext.state.widgetId"
             :hidden="hidden"
             :label-class="theme('label')"
+            v-bind="unref(widgetContext.state.validationState)"
             @click="handleLabelClick"
         >
             <template v-if="$slots.label" #label="slotProps">
@@ -55,7 +56,13 @@ const handleLabelClick = (e) => {
                 v-model="widgetContext.state.combinedValue"
                 :aria-labelledby="widgetContext.state.widgetId"
                 class="w-full md:w-80"
-                v-bind="$attrs"
+                v-bind="{
+                    invalid: widgetContext.state.validationState.invalid,
+                    class: {
+                        'p-warning': widgetContext.state.validationState.warning,
+                    },
+                    ...$attrs,
+                }"
                 :disabled="widgetContext.state.disabled"
                 display="chip"
                 filter

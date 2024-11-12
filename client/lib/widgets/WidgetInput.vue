@@ -7,7 +7,7 @@ import InputGroup from "primevue/inputgroup";
 import InputMask from "primevue/inputmask";
 import InputOtp from "primevue/inputotp";
 import InputText from "primevue/inputtext";
-import { computed } from "vue";
+import { computed, unref } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -37,7 +37,12 @@ const theme = useTheme("WidgetInput", props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label :for="widgetContext.state.widgetId" :hidden="hidden" :label-class="theme('label')">
+        <widget-label
+            :for="widgetContext.state.widgetId"
+            :hidden="hidden"
+            :label-class="theme('label')"
+            v-bind="unref(widgetContext.state.validationState)"
+        >
             <template v-if="$slots.label" #label="slotProps">
                 <slot name="label" v-bind="slotProps" />
             </template>
@@ -47,7 +52,13 @@ const theme = useTheme("WidgetInput", props, widgetContext.state);
                     <component
                         :is="inputComponent"
                         v-if="inputComponent"
-                        v-bind="$attrs"
+                        v-bind="{
+                            invalid: widgetContext.state.validationState.invalid,
+                            class: {
+                                'p-warning': widgetContext.state.validationState.warning,
+                            },
+                            ...$attrs,
+                        }"
                         :id="widgetContext.state.widgetId"
                         v-model="widgetContext.state.combinedValue"
                         :disabled="widgetContext.state.disabled"

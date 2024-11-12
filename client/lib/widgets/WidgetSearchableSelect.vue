@@ -7,7 +7,7 @@ import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Select from "primevue/select";
-import { computed, reactive, ref, toRef, watch } from "vue";
+import { computed, reactive, ref, toRef, unref, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -231,6 +231,7 @@ const computedOptions = computed(() => {
             :id="widgetContext.state.widgetId"
             :hidden="hidden"
             :label-class="theme('label')"
+            v-bind="unref(widgetContext.state.validationState)"
             @click="handleLabelClick"
         >
             <template v-if="$slots.label" #label="slotProps">
@@ -248,7 +249,13 @@ const computedOptions = computed(() => {
                 />
                 <Select
                     v-else
-                    v-bind="$attrs"
+                    v-bind="{
+                        invalid: widgetContext.state.validationState.invalid,
+                        class: {
+                            'p-warning': widgetContext.state.validationState.warning,
+                        },
+                        ...$attrs,
+                    }"
                     ref="selectRef"
                     v-model="widgetContext.state.combinedValue"
                     :aria-labelledby="widgetContext.state.widgetId"
@@ -258,10 +265,6 @@ const computedOptions = computed(() => {
                     :option-value="pkKey"
                     :options="computedOptions"
                     :placeholder="placeHolderText"
-                    :pt="{
-                        label: theme('inputLabel'),
-                        option: theme('option'),
-                    }"
                     reset-filter-on-clear
                     show-clear
                     :virtual-scroller-options="{

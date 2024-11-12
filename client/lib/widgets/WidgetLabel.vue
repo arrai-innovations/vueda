@@ -19,6 +19,22 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
+    invalid: {
+        type: Boolean,
+        default: false,
+    },
+    invalidClass: {
+        type: String,
+        default: "!text-red-500",
+    },
+    warning: {
+        type: Boolean,
+        default: false,
+    },
+    warningClass: {
+        type: String,
+        default: "!text-amber-600 dark:!text-amber-500",
+    },
 });
 
 /** @type {import('@vueda/use/useWidget.js').WidgetContext} */
@@ -27,9 +43,17 @@ const widgetContext = inject(WidgetContextSymbol);
 const computedFor = computed(() => (props.id ? props.id : widgetContext.state.widgetId));
 // aria-labelledby points to label
 const computedId = computed(() => (!props.id ? widgetContext.state.widgetId : undefined));
+const warningClass = computed(() => (props.warning && !props.invalid ? props.warningClass : ""));
+const invalidClass = computed(() => (props.invalid ? props.invalidClass : ""));
 </script>
 <template>
-    <label :id="computedId" :class="labelClass" :for="computedFor" :hidden="hidden" v-bind="$attrs">
+    <label
+        :id="computedId"
+        :class="[labelClass, warningClass, invalidClass]"
+        :for="computedFor"
+        :hidden="hidden"
+        v-bind="$attrs"
+    >
         <slot id="computedId" :for="computedFor" :label="widgetContext.state.combinedLabel" name="label">{{
             widgetContext.state.combinedLabel
         }}</slot>
