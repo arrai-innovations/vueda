@@ -9,31 +9,42 @@ export default {
             ],
         }),
         container: {
-            class: "bg-surface-0 dark:bg-surface-950 flex flex-col gap-1 mt-1",
+            class: ["bg-surface-0 dark:bg-surface-950", "flex flex-col gap-1 mt-1"],
         },
         titleContainer: {
-            class: "w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7",
+            class: [
+                "w-full flex",
+                "sm:flex-row sm:justify-between",
+                "items-baseline justify-between",
+                "gap-2 md:gap-4",
+            ],
         },
         titleWrapper: {
-            class: "w-full sm:w-auto flex items-baseline",
+            class: ["flex items-baseline flex-wrap", "min-w-min"],
         },
         title: {
-            class: "font-bold leading-relaxed text-3xl",
+            class: ["font-bold leading-relaxed text-3xl"],
+        },
+        spacer: {
+            class: ["flex-1 min-w-6", "hidden sm:block", "border-primary-300 dark:border-primary-600 border-t-2"],
         },
         divider: {
-            class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2",
+            class: ["block sm:hidden", "border-primary-300 dark:border-primary-600 border-t-2"],
         },
         buttons: {
-            class: "flex flex-col sm:flex-row gap-1 self-start w-full sm:w-auto",
+            class: ["flex gap-1 flex-wrap", "justify-end"],
         },
         subtitleContainer: {
-            class: "w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-2 md:gap-4 lg:gap-7",
+            class: ["w-full flex flex-wrap", "items-baseline justify-between", "gap-2 md:gap-4 lg:gap-7"],
         },
         footer: {
-            class: "pt-4 border-t border-surface-200 dark:border-surface-700",
+            class: [],
         },
         gradient: {
-            class: "w-full h-2 md:h-3 lg:h-4 bg-gradient-to-b from-surface-0 to-transparent dark:from-surface-950 dark:to-transparent",
+            class: [
+                "w-full h-2 md:h-3 lg:h-4",
+                "bg-gradient-to-b from-surface-0 to-transparent dark:from-surface-950 dark:to-transparent",
+            ],
         },
     },
     ActionForm: {

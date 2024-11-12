@@ -1,8 +1,6 @@
 <script setup>
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
-import { useBreakpoints } from "@vueuse/core";
 
 const props = defineProps({
     headerClass: {
@@ -28,11 +26,6 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 const theme = useTheme("PageTitle", props);
-let breakpoints, breakpointsActive;
-if (import.meta.env.DEV) {
-    breakpoints = useBreakpoints(breakpointsVueda);
-    breakpointsActive = breakpoints.active();
-}
 </script>
 <template>
     <div :class="theme('root')">
@@ -47,14 +40,12 @@ if (import.meta.env.DEV) {
                         </template>
                     </h1>
                 </div>
-                <code v-if="breakpoints">
-                    {{ breakpointsActive || "xs" }}
-                </code>
-                <hr :class="theme('divider')" />
                 <div :class="theme('buttons')">
                     <slot name="button" />
                 </div>
+                <hr :class="theme('spacer')" />
             </div>
+            <hr :class="theme('divider')" />
             <div v-if="$slots.subtitle || $slots['under-actions']" :class="theme('subtitleContainer')">
                 <slot name="subtitle" />
                 <slot name="under-actions" />
