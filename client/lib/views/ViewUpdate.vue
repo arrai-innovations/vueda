@@ -148,7 +148,7 @@ const createInstanceObjectProps = (fields, intendToRetrieve = true) => {
             f: computed(() => [modelConfig.info?.pk, ...(fields.value || [])]),
             e: computed(() => modelConfig.config?.expands),
         },
-        intendToRetrieve: validAndActive.value && intendToRetrieve,
+        intendToRetrieve: computed(() => validAndActive.value && intendToRetrieve),
         relatedObjectRules: toRef(props, "relatedObjectRules"),
         calculatedObjectRules: toRef(props, "calculatedObjectRules"),
     });
