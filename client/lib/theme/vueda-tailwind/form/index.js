@@ -105,10 +105,10 @@ export default {
             class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2 my-2",
         },
         titleBar: {
-            class: "ml-3 leading-7 flex items-baseline gap-4 justify-between",
+            class: "ml-3 leading-7 flex items-baseline gap-2 md:gap-4",
         },
         title: {
-            class: "text-surface-900 dark:text-white",
+            class: ["text-surface-900 dark:text-white"],
         },
         actionBar: {
             class: "grow-0 flex gap-2",
@@ -149,7 +149,7 @@ export default {
             class: "flex justify-end mt-2",
         },
         filterListContainer: {
-            class: "flex flex-wrap gap-1 w-full my-1",
+            class: "flex flex-wrap gap-1 my-1",
         },
         filterButton: {
             class: "grow sm:grow-0",

@@ -228,19 +228,13 @@ const refFn = (slotProps, el) => {
     <div :class="theme('root')" data-qa="fieldset-tabular-inline">
         <div :class="theme('inner')">
             <header :class="theme('titleBar')" :for="fieldContext.state.name">
-                <div :class="theme('title')">
-                    <slot name="title">
-                        {{ fieldContext.state.label }}
-                    </slot>
-                </div>
-                <div :class="theme('actionBar')">
+                <div v-if="hidable">
                     <slot
-                        v-if="hidable"
                         :class="theme('toggleButton')"
                         :field-props="computedFieldProps"
                         :label="internalVisible ? 'Hide' : 'Show'"
                         name="toggle-button"
-                        :verb="internalVisible ? 'toggleVisibilityHide' : 'toggleVisibilityShow'"
+                        :verb="internalVisible ? 'collapseDown' : 'collapseUp'"
                         @click="toggleVisibility"
                     >
                         <Button
@@ -249,6 +243,13 @@ const refFn = (slotProps, el) => {
                             @click="toggleVisibility"
                         />
                     </slot>
+                </div>
+                <div :class="theme('title')">
+                    <slot name="title">
+                        {{ fieldContext.state.label }}
+                    </slot>
+                </div>
+                <div :class="theme('actionBar')">
                     <slot
                         v-if="!computedFieldProps.readOnly && props.showCreateButton"
                         :class="theme('createButton')"

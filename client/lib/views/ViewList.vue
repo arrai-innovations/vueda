@@ -346,20 +346,7 @@ const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name}
             </template>
         </page-title>
         <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-1">
-            <InputGroup>
-                <InputText
-                    v-model="listSearch"
-                    class="lg:max-w-[30ch]"
-                    name="search"
-                    placeholder="Search"
-                    type="search"
-                    @search="filterList"
-                />
-                <slot label="Search" name="button" verb="search" @click="filterList">
-                    <Button label="Search" @click="filterList" />
-                </slot>
-            </InputGroup>
-            <div class="flex flex-wrap gap-1 w-full justify-end">
+            <div class="flex flex-wrap gap-1 w-full">
                 <template
                     v-for="actionName in modelConfig.config?.actions?.filter(
                         (name) =>
@@ -391,12 +378,27 @@ const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name}
                     </slot>
                 </template>
             </div>
+            <div class="flex flex-col items-end">
+                <InputGroup>
+                    <InputText
+                        v-model="listSearch"
+                        class="lg:max-w-[30ch]"
+                        name="search"
+                        placeholder="Search"
+                        type="search"
+                        @search="filterList"
+                    />
+                    <slot label="Search" name="button" verb="search" @click="filterList">
+                        <Button label="Search" @click="filterList" />
+                    </slot>
+                </InputGroup>
+                <filter-form v-model="listState.filterArgs" :app="app" :model="model" :view="viewName">
+                    <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                        <slot :name="slot" v-bind="slotProps || {}" />
+                    </template>
+                </filter-form>
+            </div>
         </div>
-        <filter-form v-model="listState.filterArgs" :app="app" :model="model" :view="viewName">
-            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-                <slot :name="slot" v-bind="slotProps || {}" />
-            </template>
-        </filter-form>
         <error-display :error="error" :errored="errored" @dismiss-error="dismissError" />
         <!-- todo: filters/search -->
         <!-- todo: hide/show columns -->

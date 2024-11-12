@@ -280,9 +280,19 @@ const detailedActions = computed(() => {
                         />
                     </slot>
                 </template>
+                <slot name="extra-buttons" />
             </template>
             <template #under-actions>
-                <div class="flex flex-col sm:flex-row gap-1 w-full justify-end">
+                <div class="flex flex-col sm:flex-row gap-1 w-full flex-wrap">
+                    <slot
+                        :form="formId"
+                        label="Submit"
+                        :loading="objectForm.state.loading"
+                        name="submit-button"
+                        type="submit"
+                    >
+                        <Button :form="formId" label="Submit" :loading="objectForm.state.loading" type="submit" />
+                    </slot>
                     <template v-for="actionName in detailedActions" :key="actionName">
                         <slot
                             :app="app"
@@ -303,16 +313,10 @@ const detailedActions = computed(() => {
                             />
                         </slot>
                     </template>
-                    <slot
-                        :form="formId"
-                        label="Submit"
-                        :loading="objectForm.state.loading"
-                        name="submit-button"
-                        type="submit"
-                    >
-                        <Button :form="formId" label="Submit" :loading="objectForm.state.loading" type="submit" />
-                    </slot>
                 </div>
+            </template>
+            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                <slot :name="slot" v-bind="slotProps || {}" />
             </template>
         </page-title>
         <div>
