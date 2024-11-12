@@ -18,13 +18,10 @@ const props = defineProps({
         description: "The step in seconds.",
     },
 });
-const convertUTCToLocalTime = (utcTimeString) => {
-    const [hours, minutes, seconds] = utcTimeString.split(":").map(Number);
+const getDateFromString = (timeString) => {
+    const [hours, minutes, seconds] = timeString.split(":").map(Number);
     const now = new Date();
-    const utcDate = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), hours, minutes, seconds),
-    );
-    return new Date(utcDate.toLocaleString("en-US", { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }));
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, seconds);
 };
 const preprocessSet = (value) => {
     if (value instanceof Date) {
@@ -36,14 +33,14 @@ const preprocessGet = (value) => {
     if (value === undefined || value === null) {
         return value;
     }
-    return value instanceof Date ? value : convertUTCToLocalTime(value);
+    return value instanceof Date ? value : getDateFromString(value);
 };
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit, { preprocessSet, preprocessGet });
 const formatTime = (date) => {
-    const hours = date.getUTCHours().toString().padStart(2, "0");
-    const minutes = date.getUTCMinutes().toString().padStart(2, "0");
-    const seconds = date.getUTCSeconds().toString().padStart(2, "0");
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const seconds = date.getSeconds().toString().padStart(2, "0");
     return `${hours}:${minutes}:${seconds}`;
 };
 /**
