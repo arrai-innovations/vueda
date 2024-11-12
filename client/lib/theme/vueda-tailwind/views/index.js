@@ -9,7 +9,7 @@ export default {
             ],
         }),
         container: {
-            class: ["bg-surface-0 dark:bg-surface-950", "flex flex-col gap-1 mt-1"],
+            class: ["flex flex-col gap-1 mt-1"],
         },
         titleContainer: {
             class: [
@@ -41,10 +41,7 @@ export default {
             class: [],
         },
         gradient: {
-            class: [
-                "w-full h-2 md:h-3 lg:h-4",
-                "bg-gradient-to-b from-surface-0 to-transparent dark:from-surface-950 dark:to-transparent",
-            ],
+            class: ["w-full h-2 md:h-3 lg:h-4"],
         },
     },
     ActionForm: {
