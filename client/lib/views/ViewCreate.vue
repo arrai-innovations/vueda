@@ -114,13 +114,14 @@ const combinedFormProps = computed(() => {
     };
 });
 const formId = `form-${props.app}-${props.model}-${viewName}`;
-const emit = defineEmits(["form-object"]);
+const emit = defineEmits(["form-object", "form-context"]);
 
 onMounted(() => {
     emit(
         "form-object",
         toRef(() => formContext.state.values),
     );
+    emit("form-context", formContext);
 });
 </script>
 <template>

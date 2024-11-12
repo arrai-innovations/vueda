@@ -175,6 +175,7 @@ onMounted(() => {
         "form-object",
         toRef(() => formContext.state.values),
     );
+    emit("form-context", formContext);
 });
 const formContextProps = reactive({
     initialValues: {},
