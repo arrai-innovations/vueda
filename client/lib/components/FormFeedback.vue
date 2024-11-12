@@ -67,9 +67,13 @@ const theme = useTheme("FormFeedback", props, fieldContext?.state);
         :class="theme('root')"
     >
         <slot :name="type" v-bind="{ message, type, attrs: $attrs }">
-            <Message v-bind="$attrs" :closable="false" :severity="type === 'message' ? 'warn' : 'error'">{{
-                message
-            }}</Message>
+            <Message
+                v-bind="$attrs"
+                :closable="false"
+                :severity="type === 'message' ? 'warn' : 'error'"
+                variant="simple"
+                >{{ message }}</Message
+            >
         </slot>
     </div>
 </template>
