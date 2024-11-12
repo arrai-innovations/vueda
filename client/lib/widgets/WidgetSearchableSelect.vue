@@ -258,6 +258,10 @@ const computedOptions = computed(() => {
                     :option-value="pkKey"
                     :options="computedOptions"
                     :placeholder="placeHolderText"
+                    :pt="{
+                        label: theme('inputLabel'),
+                        option: theme('option'),
+                    }"
                     reset-filter-on-clear
                     show-clear
                     :virtual-scroller-options="{
