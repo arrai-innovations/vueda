@@ -308,7 +308,7 @@ const refFn = (slotProps, el) => {
                 :fields="computedFieldObjects"
                 :objects-in-order="objectsInOrder"
                 :table-breakpoint="$attrs.tableBreakpoint || 'lg'"
-                :theme-override="themeOverride"
+                :theme-override="{ ...themeOverride, ObjectsGridBodyCell: { root: { class: 'min-w-36' } } }"
                 :variant="props.objectGridVariant"
             >
                 <template v-for="field in fieldObjects" :key="field.name" #[`header(${field.name})`]="slotProps">
