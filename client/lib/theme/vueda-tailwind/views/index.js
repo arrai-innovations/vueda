@@ -61,4 +61,11 @@ export default {
             class: ["flex flex-col lg:flex-row mx-2 gap-2 mb-2 flex-wrap lg:flex-nowrap"],
         },
     },
+    ViewList: {
+        selectedCheckbox: {
+            // match to ViewList's tableBreakpoint
+            // can't have dynamic tailwind classes, 'unused' classes are purged
+            class: ["lg:w-0"],
+        },
+    },
 };

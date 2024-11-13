@@ -193,7 +193,6 @@ const theme = useTheme("ObjectsGrid", props, themeProps, (key, kwargs) => {
     }
     return key;
 });
-// selected_ is the reserved name for the selected checkbox, the trailing _ is not allowed in django model field names
 </script>
 <template>
     <div :class="theme('root')" role="table">

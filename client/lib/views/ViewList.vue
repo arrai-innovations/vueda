@@ -10,6 +10,7 @@ import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useWorkflow } from "@vueda/use/useWorkflow.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -120,6 +121,7 @@ const props = defineProps({
             },
         ],
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 const listSearch = ref(null);
 const isActive = useIsActive();
@@ -313,6 +315,12 @@ const computedFieldObjects = computed(() => {
     return [...props.extraFieldObjects, ...calculatedDisplayFields.value];
 });
 const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name})`);
+const theme = useTheme("ViewList", props, {
+    props,
+    loading,
+    errored,
+    error,
+});
 </script>
 <template>
     <div>
@@ -379,19 +387,30 @@ const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name}
                 </template>
             </div>
             <div class="flex flex-col items-end">
-                <InputGroup>
-                    <InputText
-                        v-model="listSearch"
-                        class="lg:max-w-[30ch]"
-                        name="search"
-                        placeholder="Search"
-                        type="search"
-                        @search="filterList"
-                    />
-                    <slot label="Search" name="button" verb="search" @click="filterList">
+                <slot
+                    name="search"
+                    v-bind="{
+                        listSearch,
+                        filterList,
+                        model,
+                        app,
+                        viewName,
+                        verb: 'search',
+                        label: 'Search',
+                    }"
+                >
+                    <InputGroup>
+                        <InputText
+                            v-model="listSearch"
+                            class="lg:max-w-[30ch]"
+                            name="search"
+                            placeholder="Search"
+                            type="search"
+                            @search="filterList"
+                        />
                         <Button label="Search" @click="filterList" />
-                    </slot>
-                </InputGroup>
+                    </InputGroup>
+                </slot>
                 <filter-form v-model="listState.filterArgs" :app="app" :model="model" :view="viewName">
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />
@@ -409,6 +428,10 @@ const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name}
             :calculated-objects="instanceList.state.calculatedObjects"
             class="w-full"
             :data-qa="`view-list-${app}-${model}-objects-grid`"
+            :field-classes="{
+                ...($attrs.fieldClasses || {}),
+                selected_: theme('selectedCheckbox'),
+            }"
             :field-props="{
                 pkKey: modelConfig.info?.pk,
                 modelInfo: modelConfig.info,
@@ -421,6 +444,7 @@ const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name}
             :sortables="sorting.state.sortables"
             :sorted="sorting.state.sorted"
             :table-breakpoint="tableBreakpoint"
+            :theme-override="themeOverride"
             :variant="objectGridVariant"
             @update:sorted="sorting.updateSorted"
         >

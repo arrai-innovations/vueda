@@ -153,7 +153,7 @@ onMounted(() => {
                 </template>
             </template>
             <template #under-actions>
-                <div class="flex flex-col sm:flex-row gap-1 w-full justify-end">
+                <div class="flex flex-col sm:flex-row gap-1 w-full">
                     <slot
                         :form="formId"
                         label="Submit"
