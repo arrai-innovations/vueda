@@ -63,6 +63,9 @@ const theme = useTheme("WidgetInput", props, widgetContext.state);
                         v-model="widgetContext.state.combinedValue"
                         :disabled="widgetContext.state.disabled"
                         :name="widgetContext.state.combinedName"
+                        :pt="{
+                            root: theme('inputRoot'),
+                        }"
                         :type="type"
                         @blur="widgetContext.blur"
                         @focus="widgetContext.focus"

@@ -4,6 +4,7 @@ import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { useFormModel } from "@vueda/use/useFormModel.js";
 import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
@@ -16,7 +17,7 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
-import { computed, inject, nextTick, ref, watch } from "vue";
+import { computed, inject, nextTick, reactive, ref, shallowReactive, watch } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -44,6 +45,11 @@ const props = defineProps({
         type: Array,
         default: undefined,
         description: "A list of the field names to display for each object.",
+    },
+    expands: {
+        type: Array,
+        default: undefined,
+        description: "A list of the field names to expand.",
     },
     objectGridVariant: {
         type: String,
@@ -88,7 +94,27 @@ const props = defineProps({
 const itemRefs = ref({});
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
-const formModel = inject(FormModelSymbol, null);
+const parentFormModel = inject(FormModelSymbol, null);
+
+// merge the props from FieldSetTabularInline, and the props from the formModel
+const mergedFormModelProps = reactive({
+    name: props.name,
+    app: parentFormModel.app,
+    model: parentFormModel.model,
+    view: parentFormModel.view,
+    fields: computed(() => [...(parentFormModel.fields?.map((item) => item.value) || []), ...(props.fields || [])])
+        .value,
+    expands: computed(() => [...(parentFormModel.expands?.map((item) => item.value) || []), ...(props.expands || [])])
+        .value,
+    fieldDetails: shallowReactive(merge(cloneDeep(parentFormModel.fieldDetails), props.fieldDetails)),
+    fieldComponents: shallowReactive(merge(cloneDeep(parentFormModel.fieldComponents), props.fieldComponents)),
+    fieldProps: shallowReactive(merge(cloneDeep(parentFormModel.fieldProps), props.fieldProps)),
+    expandDetails: shallowReactive(merge(cloneDeep(parentFormModel.expandDetails), props.expandDetails)),
+    widgetComponents: shallowReactive(merge(cloneDeep(parentFormModel.widgetComponents), props.widgetComponents)),
+    widgetProps: shallowReactive(merge(cloneDeep(parentFormModel.widgetProps), props.widgetProps)),
+});
+
+const formModel = useFormModel(mergedFormModelProps);
 const fieldNames = computed(() => {
     if (props.fields) {
         return props.fields;

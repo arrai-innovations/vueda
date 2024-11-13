@@ -26,7 +26,7 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-col"],
+            class: ["flex flex-col gap-2 flex-wrap [&_input]:w-full"],
         },
         label: {
             class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
@@ -124,6 +124,7 @@ export default {
         label: {
             class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
+        inputRoot: {},
     },
     WidgetMultiSelect: {
         root: {

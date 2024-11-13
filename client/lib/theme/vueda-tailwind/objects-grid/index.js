@@ -127,6 +127,7 @@ export default {
                 "border-surface-200 dark:border-surface-700",
                 "px-1 lg:px-2",
                 "table-cell",
+                "min-w-36",
                 "h-[3.5rem]",
             ],
         },

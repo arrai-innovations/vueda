@@ -513,6 +513,9 @@ const getFieldProps = (field) => {
 };
 /**
  * @typedef {object} UseFormModelRawState
+ * @property {string} app - The app name to load form configuration for
+ * @property {string} model - The model name to load form configuration for
+ * @property {string|undefined} view - The view name if wanting to use view specific configuration.
  * @property {string[]} fields - The fields to display, either passed in or from config.
  * @property {string[]} expands - The fields to expand, either passed in or from config.
  * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - The merged fieldDetails, either passed in, from config or from server info.
@@ -557,6 +560,9 @@ const isExpandedFieldName = (fieldName) => fieldName.includes("__");
 export function useFormModel(props) {
     const state = reactive(
         /** @type {UseFormModelRawState} */ {
+            app: toRef(props, "app"),
+            model: toRef(props, "model"),
+            view: toRef(props, "view"),
             fields: [],
             computedFields: [],
             expands: [],
@@ -695,7 +701,7 @@ export function useFormModel(props) {
                 });
             }
         },
-        { deep: true },
+        { deep: true, immediate: true },
     );
     const returnObject = readonly(state);
     provide(FormModelSymbol, returnObject);
