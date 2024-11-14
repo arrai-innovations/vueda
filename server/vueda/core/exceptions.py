@@ -5,10 +5,15 @@ from traceback import format_exception_only
 import sentry_sdk
 from django.conf import settings
 from django.http import JsonResponse
+from django.utils.encoding import force_str
 from rest_framework.exceptions import APIException
+from rest_framework.exceptions import ErrorDetail
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.status import HTTP_404_NOT_FOUND
+from rest_framework.utils.serializer_helpers import ReturnDict
+from rest_framework.utils.serializer_helpers import ReturnList
 from rest_framework.views import exception_handler
 
 
@@ -52,3 +57,45 @@ class BadRequestException(APIException):
 
 def page_not_found(request, exception, *args, **kwargs):
     return JsonResponse({"error": "Not Found (404)"}, status=HTTP_404_NOT_FOUND)
+
+
+def _get_error_details(data, default_code=None):
+    """
+    Descend into a nested data structure, forcing any
+    lazy translation strings or strings into `ErrorDetail`.
+    """
+    if isinstance(data, (list, tuple)):
+        ret = [_get_error_details(item, default_code) for item in data]
+        if isinstance(data, ReturnList):
+            return ReturnList(ret, serializer=data.serializer)
+        return ret
+    elif isinstance(data, dict):
+        ret = {key: _get_error_details(value, default_code) for key, value in data.items()}
+        if isinstance(data, ReturnDict):
+            return ReturnDict(ret, serializer=data.serializer)
+        return ret
+
+    text = force_str(data)
+    code = getattr(data, "code", default_code)
+    return ErrorDetail(text, code)
+
+
+class VuedaValidationError(ValidationError):
+    default_type = "error"
+
+    def __init__(self, detail=None, code=None, is_warning=False):
+        if detail is None:
+            detail = self.default_detail
+        if code is None:
+            code = self.default_code
+
+        # For validation failures, we may collect many errors together,
+        # so the details should always be coerced to a list if not already.
+        if isinstance(detail, tuple):
+            detail = list(detail)
+        elif not isinstance(detail, dict) and not isinstance(detail, list):
+            detail = [detail]
+        if is_warning:
+            self.detail = [_get_error_details({"warnings": detail}, code)]
+        else:
+            self.detail = _get_error_details(detail, code)
