@@ -1,5 +1,6 @@
 <script setup>
 import EmptyComponent from "@vueda/components/EmptyComponent.vue";
+import { getPrimeVuePreset } from "@vueda/theme/register.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
@@ -7,7 +8,8 @@ import InputGroup from "primevue/inputgroup";
 import InputMask from "primevue/inputmask";
 import InputOtp from "primevue/inputotp";
 import InputText from "primevue/inputtext";
-import { computed, unref } from "vue";
+import { usePassThrough } from "primevue/passthrough";
+import { computed, ref, unref, useAttrs, watchEffect } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -34,6 +36,35 @@ const inputComponent = computed(
 );
 
 const theme = useTheme("WidgetInput", props, widgetContext.state);
+const widgetPt = usePassThrough(
+    getPrimeVuePreset(),
+    {
+        root: {
+            class: [
+                {
+                    "p-warning": computed(() => widgetContext.state.validationState.warning),
+                },
+                theme("inputRoot"),
+            ],
+        },
+    },
+    {
+        mergeSections: true,
+        mergeProps: true,
+    },
+);
+const attrs = useAttrs();
+const widgetEffectivePt = ref();
+watchEffect(() => {
+    if (attrs.pt) {
+        widgetEffectivePt.value = usePassThrough(widgetPt, attrs.pt, {
+            mergeSections: true,
+            mergeProps: true,
+        });
+    } else {
+        widgetEffectivePt.value = widgetPt;
+    }
+});
 </script>
 <template>
     <div :class="theme('root')">
@@ -52,20 +83,13 @@ const theme = useTheme("WidgetInput", props, widgetContext.state);
                     <component
                         :is="inputComponent"
                         v-if="inputComponent"
-                        v-bind="{
-                            invalid: widgetContext.state.validationState.invalid,
-                            class: {
-                                'p-warning': widgetContext.state.validationState.warning,
-                            },
-                            ...$attrs,
-                        }"
+                        v-bind="$attrs"
                         :id="widgetContext.state.widgetId"
                         v-model="widgetContext.state.combinedValue"
                         :disabled="widgetContext.state.disabled"
+                        :invalid="widgetContext.state.validationState.invalid"
                         :name="widgetContext.state.combinedName"
-                        :pt="{
-                            root: theme('inputRoot'),
-                        }"
+                        :pt="widgetEffectivePt"
                         :type="type"
                         @blur="widgetContext.blur"
                         @focus="widgetContext.focus"
