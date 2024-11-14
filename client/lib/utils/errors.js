@@ -107,14 +107,29 @@ export class FormValidationError extends Error {
             delete data.serverStack;
         }
         const paths = flattenPaths(data);
+        const warningsPattern = /\.warnings\[\d+\]$/;
+        const withWarnings = [];
+        const withoutWarnings = [];
+
+        paths.forEach((path) => {
+            if (warningsPattern.test(path)) {
+                withWarnings.push(path);
+            } else {
+                withoutWarnings.push(path);
+            }
+        });
         /**
          * The messages for the form validation errors.
          *
          * @type {{[path: string]: string}}
          */
         this.messages = zipObject(
-            paths.map((path) => path.split("[").slice(0, -1).join("[")),
-            paths.map((path) => get(data, path)),
+            withoutWarnings.map((path) => path.split("[").slice(0, -1).join("[")),
+            withoutWarnings.map((path) => get(data, path)),
+        );
+        this.warnings = zipObject(
+            withWarnings.map((path) => path.split("[").slice(0, -1).join("[")),
+            withWarnings.map((path) => get(data, path)),
         );
     }
 }
