@@ -319,8 +319,12 @@ const clearAllTouched = (state) => {
  */
 const handleServerFormValidationError = (state, error) => {
     const messages = error.messages;
+    const errors = error.errors;
     for (const [name, message] of Object.entries(messages)) {
-        updateError(state, name, "server", message);
+        updateMessage(state, name, "server", message);
+    }
+    for (const [name, error] of Object.entries(errors)) {
+        updateError(state, name, "server", error);
     }
 };
 

@@ -123,12 +123,24 @@ export class FormValidationError extends Error {
          *
          * @type {{[path: string]: string}}
          */
-        this.messages = zipObject(
+        this.errors = zipObject(
             withoutWarnings.map((path) => path.split("[").slice(0, -1).join("[")),
             withoutWarnings.map((path) => get(data, path)),
         );
-        this.warnings = zipObject(
-            withWarnings.map((path) => path.split("[").slice(0, -1).join("[")),
+
+        /**
+         * The messages for the form validation warnings.
+         *
+         * @type {{[path: string]: string}}
+         */
+        this.messages = zipObject(
+            withWarnings.map((path) =>
+                path
+                    .replace(/\.warnings\[\d+\]$/, "")
+                    .split("[")
+                    .slice(0, -1)
+                    .join("["),
+            ),
             withWarnings.map((path) => get(data, path)),
         );
     }
