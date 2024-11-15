@@ -124,7 +124,7 @@ export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallba
     const responses = [];
 
     const fetchPages = async () => {
-        const response = await fetch(`${url}?${query}`, {
+        const response = await fetch(`${url}${query}`, {
             method: "GET",
             credentials: "include",
             signal: controller.signal,
@@ -147,7 +147,7 @@ export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallba
                 const nextQuery = makeSearchParamsString(ourListArgs);
                 responses.push(
                     limit(() =>
-                        fetch(`${url}?${nextQuery}`, {
+                        fetch(`${url}${nextQuery}`, {
                             method: "GET",
                             credentials: "include",
                             signal: controller.signal,
