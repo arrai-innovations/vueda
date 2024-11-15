@@ -1,5 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Slider from "primevue/slider";
@@ -19,10 +20,12 @@ const props = defineProps({
         default: 100,
     },
     ...THEME_OVERRIDE_PROPS,
+    ...PASSTHROUGH_OPTION_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetSlider", props, widgetContext.state);
+const effectivePt = useWarningClass(props, widgetContext.state);
 // todo: click handler for the widget-label to focus the slider
 </script>
 <template>
@@ -43,19 +46,15 @@ const theme = useTheme("WidgetSlider", props, widgetContext.state);
                         <span v-else>[{{ props.minValue }},{{ props.maxValue }}]</span>
                         <Slider
                             v-model="widgetContext.state.combinedValue"
-                            v-bind="{
-                                invalid: widgetContext.state.validationState.invalid,
-                                class: {
-                                    'p-warning': widgetContext.state.validationState.warning,
-                                },
-                                ...$attrs,
-                            }"
+                            v-bind="$attrs"
                             :aria-labelledby="widgetContext.state.widgetId"
                             class="w-56"
                             :disabled="widgetContext.state.disabled"
+                            :invalid="widgetContext.state.validationState.invalid"
                             :max="props.maxValue"
                             :min="props.minValue"
                             :name="widgetContext.state.combinedName"
+                            :pt="effectivePt"
                             range
                             @change="widgetContext.focus"
                             @slideend="widgetContext.blur"

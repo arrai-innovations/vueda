@@ -1,5 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import RadioButton from "primevue/radiobutton";
@@ -27,10 +28,12 @@ const props = defineProps({
         default: () => {},
     },
     ...THEME_OVERRIDE_PROPS,
+    ...PASSTHROUGH_OPTION_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetRadio", props, widgetContext.state);
+const effectivePt = useWarningClass(props, widgetContext.state);
 const computedOptions = computed(() => {
     return props.options.map((option) => {
         return {
@@ -68,15 +71,11 @@ const handleFocus = () => {
                                 :class="theme('optionInput')"
                                 :disabled="widgetContext.state.disabled"
                                 :input-id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
+                                :invalid="widgetContext.state.validationState.invalid"
                                 :name="widgetContext.state.combinedName"
+                                :pt="effectivePt"
                                 :value="option.value"
-                                v-bind="{
-                                    invalid: widgetContext.state.validationState.invalid,
-                                    class: {
-                                        'p-warning': widgetContext.state.validationState.warning,
-                                    },
-                                    ...$attrs,
-                                }"
+                                v-bind="$attrs"
                                 @blur="widgetContext.blur"
                                 @focus="handleFocus"
                             />

@@ -1,5 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Button from "primevue/button";
@@ -20,10 +21,12 @@ const props = defineProps({
         default: 1000000,
     },
     ...THEME_OVERRIDE_PROPS,
+    ...PASSTHROUGH_OPTION_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetFile", props, widgetContext.state);
+const effectivePt = useWarningClass(props, widgetContext.state);
 
 const upload = (e) => {
     widgetContext.state.combinedValue = e.files[0];
@@ -75,16 +78,12 @@ const fileURL = computed(() => {
                         <FileUpload
                             auto
                             custom-upload
-                            v-bind="{
-                                invalid: widgetContext.state.validationState.invalid,
-                                class: {
-                                    'p-warning': widgetContext.state.validationState.warning,
-                                },
-                                ...$attrs,
-                            }"
+                            v-bind="$attrs"
                             :disabled="widgetContext.state.disabled"
+                            :invalid="widgetContext.state.validationState.invalid"
                             mode="basic"
                             name="files[]"
+                            :pt="effectivePt"
                             @uploader="upload"
                         >
                         </FileUpload>

@@ -1,5 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import Select from "primevue/select";
@@ -15,10 +16,12 @@ const props = defineProps({
         required: true,
     },
     ...THEME_OVERRIDE_PROPS,
+    ...PASSTHROUGH_OPTION_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetSelect", props, widgetContext.state);
+const effectivePt = useWarningClass(props, widgetContext.state);
 const attrs = useAttrs();
 const handleFocus = (e) => {
     widgetContext.focus();
@@ -64,17 +67,14 @@ const handleLabelClick = (e) => {
             </template>
             <div :class="theme('inner')">
                 <Select
-                    v-bind="{
-                        invalid: widgetContext.state.validationState.invalid,
-                        class: {
-                            'p-warning': widgetContext.state.validationState.warning,
-                        },
-                        ...$attrs,
-                    }"
+                    ref="selectRef"
+                    v-bind="$attrs"
                     :aria-labelledby="widgetContext.state.widgetId"
                     :disabled="widgetContext.state.disabled"
+                    :invalid="widgetContext.state.validationState.invalid"
                     :model-value="modelItem"
                     :options="props.options"
+                    :pt="effectivePt"
                     show-clear
                     @blur="handleBlur"
                     @focus="handleFocus"

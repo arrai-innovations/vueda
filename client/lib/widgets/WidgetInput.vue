@@ -1,15 +1,14 @@
 <script setup>
 import EmptyComponent from "@vueda/components/EmptyComponent.vue";
-import { getPrimeVuePreset } from "@vueda/theme/register.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import InputGroup from "primevue/inputgroup";
 import InputMask from "primevue/inputmask";
 import InputOtp from "primevue/inputotp";
 import InputText from "primevue/inputtext";
-import { usePassThrough } from "primevue/passthrough";
-import { computed, ref, unref, useAttrs, watchEffect } from "vue";
+import { computed, unref } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -21,6 +20,7 @@ const props = defineProps({
         default: "text",
     },
     ...THEME_OVERRIDE_PROPS,
+    ...PASSTHROUGH_OPTION_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
@@ -36,35 +36,7 @@ const inputComponent = computed(
 );
 
 const theme = useTheme("WidgetInput", props, widgetContext.state);
-const widgetPt = usePassThrough(
-    getPrimeVuePreset(),
-    {
-        root: {
-            class: [
-                {
-                    "p-warning": computed(() => widgetContext.state.validationState.warning),
-                },
-                theme("inputRoot"),
-            ],
-        },
-    },
-    {
-        mergeSections: true,
-        mergeProps: true,
-    },
-);
-const attrs = useAttrs();
-const widgetEffectivePt = ref();
-watchEffect(() => {
-    if (attrs.pt) {
-        widgetEffectivePt.value = usePassThrough(widgetPt, attrs.pt, {
-            mergeSections: true,
-            mergeProps: true,
-        });
-    } else {
-        widgetEffectivePt.value = widgetPt;
-    }
-});
+const effectivePt = useWarningClass(props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">
@@ -89,7 +61,7 @@ watchEffect(() => {
                         :disabled="widgetContext.state.disabled"
                         :invalid="widgetContext.state.validationState.invalid"
                         :name="widgetContext.state.combinedName"
-                        :pt="widgetEffectivePt"
+                        :pt="effectivePt"
                         :type="type"
                         @blur="widgetContext.blur"
                         @focus="widgetContext.focus"

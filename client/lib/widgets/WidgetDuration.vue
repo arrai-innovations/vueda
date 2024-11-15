@@ -1,5 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import InputNumber from "primevue/inputnumber";
@@ -27,10 +28,12 @@ const props = defineProps({
         default: false,
     },
     ...THEME_OVERRIDE_PROPS,
+    ...PASSTHROUGH_OPTION_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetDuration", props, widgetContext.state);
+const effectivePt = useWarningClass(props, widgetContext.state);
 
 const valueDay = computed(() => {
     return widgetContext.state.combinedValue?.days;
@@ -106,18 +109,14 @@ const focusFirstInput = () => {
                         ref="daysInput"
                         aria-label="days"
                         :disabled="widgetContext.state.disabled"
+                        :invalid="widgetContext.state.validationState.invalid"
                         :max="365"
                         :min="0"
                         :model-value="valueDay"
+                        :pt="effectivePt"
                         show-buttons
                         suffix=" days"
-                        v-bind="{
-                            invalid: widgetContext.state.validationState.invalid,
-                            class: {
-                                'p-warning': widgetContext.state.validationState.warning,
-                            },
-                            ...$attrs,
-                        }"
+                        v-bind="$attrs"
                         @update:model-value="(newValue) => updateDay(newValue)"
                     />
                 </div>
@@ -126,17 +125,13 @@ const focusFirstInput = () => {
                         ref="hoursInput"
                         aria-label="hours"
                         :disabled="widgetContext.state.disabled"
+                        :invalid="widgetContext.state.validationState.invalid"
                         :min="0"
                         :model-value="valueHour"
+                        :pt="effectivePt"
                         show-buttons
                         suffix=" hours"
-                        v-bind="{
-                            invalid: widgetContext.state.validationState.invalid,
-                            class: {
-                                'p-warning': widgetContext.state.validationState.warning,
-                            },
-                            ...$attrs,
-                        }"
+                        v-bind="$attrs"
                         @update:model-value="(newValue) => updateHour(newValue)"
                     />
                 </div>
@@ -145,17 +140,13 @@ const focusFirstInput = () => {
                         ref="minutesInput"
                         aria-label="minutes"
                         :disabled="widgetContext.state.disabled"
+                        :invalid="widgetContext.state.validationState.invalid"
                         :min="0"
                         :model-value="valueMinute"
+                        :pt="effectivePt"
                         show-buttons
                         suffix=" minutes"
-                        v-bind="{
-                            invalid: widgetContext.state.validationState.invalid,
-                            class: {
-                                'p-warning': widgetContext.state.validationState.warning,
-                            },
-                            ...$attrs,
-                        }"
+                        v-bind="$attrs"
                         @update:model-value="(newValue) => updateMinute(newValue)"
                     />
                 </div>
@@ -164,17 +155,13 @@ const focusFirstInput = () => {
                         ref="secondsInput"
                         aria-label="seconds"
                         :disabled="widgetContext.state.disabled"
+                        :invalid="widgetContext.state.validationState.invalid"
                         :min="0"
                         :model-value="valueSecond"
+                        :pt="effectivePt"
                         show-buttons
                         suffix=" seconds"
-                        v-bind="{
-                            invalid: widgetContext.state.validationState.invalid,
-                            class: {
-                                'p-warning': widgetContext.state.validationState.warning,
-                            },
-                            ...$attrs,
-                        }"
+                        v-bind="$attrs"
                         @update:model-value="(newValue) => updateSecond(newValue)"
                     />
                 </div>

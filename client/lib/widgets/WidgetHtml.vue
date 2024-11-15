@@ -72,6 +72,7 @@ const editor = useEditor({
 const theme = useTheme("WidgetHtml", props, widgetContext.state);
 // todo: label click should focus the editor
 // todo: aria attributes re: label / labbelledby
+// todo: warning / invalid states?
 </script>
 <template>
     <div :class="theme('outer')">

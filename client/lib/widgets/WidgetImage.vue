@@ -26,6 +26,7 @@ const onRemove = () => {
 const theme = useTheme("WidgetImage", props, widgetContext.state);
 // todo: click handler for the widget-label to focus the image
 // todo: aria-labelledby? or use id to the hidden file input
+// todo: warning/invalid states?
 </script>
 <template>
     <div :class="theme('root')">

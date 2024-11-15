@@ -2,6 +2,7 @@
 import { useList } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
@@ -31,11 +32,13 @@ const props = defineProps({
         default: "s",
     },
     ...THEME_OVERRIDE_PROPS,
+    ...PASSTHROUGH_OPTION_PROPS,
 });
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetGenericAutoComplete", props, widgetContext.state);
+const effectivePt = useWarningClass(props, widgetContext.state);
 const listSearch = ref("");
 const selectedValue = ref(null);
 
@@ -188,18 +191,14 @@ const handleLabelClick = (e) => {
                     <Select
                         ref="selectRef"
                         :aria-labelledby="widgetContext.state.widgetId"
+                        :invalid="widgetContext.state.validationState.invalid"
                         :model-value="selectedType"
                         option-label="label"
                         option-value="value"
                         :options="dropdownOptions"
-                        v-bind="{
-                            invalid: widgetContext.state.validationState.invalid,
-                            class: {
-                                'p-warning': widgetContext.state.validationState.warning,
-                            },
-                            ...$attrs,
-                        }"
+                        v-bind="$attrs"
                         placeholder="Select a model"
+                        :pt="effectivePt"
                         show-clear
                         @update:model-value="(selected) => typeUpdate(selected)"
                     />
@@ -209,11 +208,13 @@ const handleLabelClick = (e) => {
                         v-bind="$attrs"
                         :disabled="widgetContext.state.disabled || !selectedType"
                         force-selection
+                        :invalid="widgetContext.state.validationState.invalid"
                         :loading="modelListInstance.state.loading"
                         :model-value="contentObject"
                         :name="widgetContext.state.combinedName"
                         option-label="label"
                         :placeholder="hintText"
+                        :pt="effectivePt"
                         :suggestions="filteredOptions"
                         @blur="widgetContext.blur"
                         @complete="search"

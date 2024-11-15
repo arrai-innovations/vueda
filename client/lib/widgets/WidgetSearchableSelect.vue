@@ -3,6 +3,7 @@ import { useList, useObject } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
@@ -75,6 +76,7 @@ const props = defineProps({
         default: false,
     },
     ...THEME_OVERRIDE_PROPS,
+    ...PASSTHROUGH_OPTION_PROPS,
 });
 const selectRef = ref(null);
 const fetchedPages = ref(1);
@@ -88,6 +90,7 @@ const intendToRetrieve = computed(() => {
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetSearchableSelect", props, widgetContext.state);
+const effectivePt = useWarningClass(props, widgetContext.state);
 const listSearch = ref("");
 
 const instanceObjectProps = reactive({
@@ -249,22 +252,18 @@ const computedOptions = computed(() => {
                 />
                 <Select
                     v-else
-                    v-bind="{
-                        invalid: widgetContext.state.validationState.invalid,
-                        class: {
-                            'p-warning': widgetContext.state.validationState.warning,
-                        },
-                        ...$attrs,
-                    }"
+                    v-bind="$attrs"
                     ref="selectRef"
                     v-model="widgetContext.state.combinedValue"
                     :aria-labelledby="widgetContext.state.widgetId"
                     :disabled="widgetContext.state.disabled"
                     filter
+                    :invalid="widgetContext.state.validationState.invalid"
                     :option-label="props.optionLabel"
                     :option-value="pkKey"
                     :options="computedOptions"
                     :placeholder="placeHolderText"
+                    :pt="effectivePt"
                     reset-filter-on-clear
                     show-clear
                     :virtual-scroller-options="{

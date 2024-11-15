@@ -1,6 +1,8 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import ToggleSwitch from "primevue/toggleswitch";
 
 defineOptions({
@@ -9,10 +11,12 @@ defineOptions({
 const props = defineProps({
     ...WIDGET_PROPS,
     ...THEME_OVERRIDE_PROPS,
+    ...PASSTHROUGH_OPTION_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetCheckbox", props, widgetContext.state);
+const effectivePt = useWarningClass(props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">
@@ -22,16 +26,24 @@ const theme = useTheme("WidgetCheckbox", props, widgetContext.state);
                 v-bind="$attrs"
                 :disabled="widgetContext.state.disabled"
                 :input-id="widgetContext.state.widgetId"
+                :invalid="widgetContext.state.validationState.invalid"
                 :name="widgetContext.state.combinedName"
+                :pt="effectivePt"
                 type="checkbox"
                 @blur="widgetContext.blur"
                 @focus="widgetContext.focus"
             />
-            <label v-if="!hidden" :class="theme('label')" :for="widgetContext.state.widgetId">
-                <slot :for="widgetContext.state.combinedName" :label="widgetContext.state.combinedLabel" name="label"
-                    >{{ widgetContext.state.combinedLabel }}
-                </slot>
-            </label>
+            <widget-label
+                v-if="!hidden"
+                :for="widgetContext.state.widgetId"
+                :invalid="widgetContext.state.validationState.invalid"
+                :label-class="theme('label')"
+                :warning="widgetContext.state.validationState.warning"
+            >
+                <template #label="slotProps">
+                    <slot name="label" v-bind="slotProps" />
+                </template>
+            </widget-label>
         </div>
     </div>
 </template>

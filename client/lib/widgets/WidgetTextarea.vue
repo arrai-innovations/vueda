@@ -1,5 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 // don't shadow html element names
@@ -12,10 +13,12 @@ defineOptions({
 const props = defineProps({
     ...WIDGET_PROPS,
     ...THEME_OVERRIDE_PROPS,
+    ...PASSTHROUGH_OPTION_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetTextarea", props, widgetContext.state);
+const effectivePt = useWarningClass(props, widgetContext.state);
 </script>
 <template>
     <div :class="theme('root')">
@@ -30,18 +33,14 @@ const theme = useTheme("WidgetTextarea", props, widgetContext.state);
             <div :class="theme('inner')">
                 <primevue-textarea
                     id="widgetContext.state.widgetId"
-                    v-bind="{
-                        invalid: widgetContext.state.validationState.invalid,
-                        class: {
-                            'p-warning': widgetContext.state.validationState.warning,
-                        },
-                        ...$attrs,
-                    }"
+                    v-bind="$attrs"
                     v-model="widgetContext.state.combinedValue"
                     auto-resize
                     cols="30"
                     :disabled="widgetContext.state.disabled"
+                    :invalid="widgetContext.state.validationState.invalid"
                     :name="widgetContext.state.combinedName"
+                    :pt="effectivePt"
                     rows="5"
                     @blur="widgetContext.blur"
                     @focus="widgetContext.focus"

@@ -2,14 +2,11 @@
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelChoices } from "@vueda/use/useModelChoices.js";
 import { WIDGET_EMITS, useWidget } from "@vueda/use/useWidget.js";
-import widgetMultiSelect from "@vueda/widgets/WidgetMultiSelect.vue";
+import WidgetMultiSelect from "@vueda/widgets/WidgetMultiSelect.vue";
 import WidgetRadio from "@vueda/widgets/WidgetRadio.vue";
 import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
 import { computed, ref, toRef } from "vue";
 
-defineOptions({
-    inheritAttrs: false,
-});
 const props = defineProps({
     fieldApp: {
         type: String,
@@ -52,7 +49,7 @@ const modelChoices = useModelChoices(
 );
 const widgetComponents = {
     select: WidgetSelect,
-    multiSelect: widgetMultiSelect,
+    multiSelect: WidgetMultiSelect,
     radio: WidgetRadio,
 };
 const onFocus = () => {
@@ -63,13 +60,6 @@ const widgetComponent = computed(() => widgetComponents[props.type]);
 <template>
     <component
         :is="widgetComponent"
-        v-bind="{
-            invalid: widgetContext.state.validationState.invalid,
-            class: {
-                'p-warning': widgetContext.state.validationState.warning,
-            },
-            ...$attrs,
-        }"
         :loading="modelChoices.loading"
         :on-focus="onFocus"
         option-label="label"

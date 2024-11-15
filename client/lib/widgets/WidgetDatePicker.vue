@@ -1,5 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import DatePicker from "primevue/datepicker";
@@ -19,10 +20,12 @@ const props = defineProps({
         default: true,
     },
     ...THEME_OVERRIDE_PROPS,
+    ...PASSTHROUGH_OPTION_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetDatePicker", props, widgetContext.state);
+const effectivePt = useWarningClass(props, widgetContext.state);
 const valueIsArray = computed(() => Array.isArray(widgetContext.state.combinedValue));
 const computedSelectionMode = computed(() =>
     props.selectionMode ? props.selectionMode : valueIsArray.value ? "range" : "single",
@@ -58,18 +61,14 @@ const getCurrentDate = () => {
                         outlined: true,
                         text: true,
                     }"
-                    v-bind="{
-                        invalid: widgetContext.state.validationState.invalid,
-                        class: {
-                            'p-warning': widgetContext.state.validationState.warning,
-                        },
-                        ...$attrs,
-                    }"
+                    v-bind="$attrs"
                     :disabled="widgetContext.state.disabled"
                     :fluid="fluid"
                     :input-id="widgetContext.state.widgetId"
+                    :invalid="widgetContext.state.validationState.invalid"
                     :model-value="modelValue"
                     :name="widgetContext.state.combinedName"
+                    :pt="effectivePt"
                     :selection-mode="computedSelectionMode"
                     show-button-bar
                     :today-button-props="{
