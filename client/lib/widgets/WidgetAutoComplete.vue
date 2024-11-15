@@ -33,11 +33,18 @@ const props = defineProps({
     },
     optionLabel: {
         type: String,
+        description: "The field to use as the label for the options",
         default: "formatted_name",
     },
     optionValue: {
         type: String,
+        description: "The field to use as the value for the options, and the returned value",
         default: "USE_PK",
+    },
+    displayLabel: {
+        type: String,
+        description: "The field to use as the label for the selected value",
+        default: null,
     },
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
@@ -47,6 +54,7 @@ const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetAutoComplete", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
+
 const listSearch = ref("");
 const selectedValue = ref(null);
 
@@ -57,6 +65,37 @@ const computedOptionValue = computed(() => {
     }
     return props.optionValue;
 });
+const computedOptionLabel = computed(() => {
+    // if optionLabel and not displayLabel, use optionLabel
+    if (!props.displayLabel) {
+        return props.optionLabel;
+    } else {
+        return widgetContext.state.focused ? props.optionLabel : props.displayLabel;
+    }
+});
+
+const modelListArgs = computed(() => {
+    const f = [];
+    if (props.modelFields.length) {
+        f.concat(props.modelFields);
+    } else {
+        f.push(unref(computedOptionValue));
+        f.push(props.optionLabel);
+    }
+    const pkKey = unref(computedPkKey);
+    if (!f.includes(pkKey)) {
+        f.push(pkKey);
+    }
+    const listArgs = {
+        f,
+    };
+    if (listSearch.value) {
+        listArgs[props.searchKey] = listSearch.value;
+    } else if (widgetContext.state.combinedValue) {
+        listArgs[unref(computedOptionValue)] = widgetContext.state.combinedValue;
+    }
+    return listArgs;
+});
 
 const modelListProps = reactive({
     crudArgs: {
@@ -64,18 +103,11 @@ const modelListProps = reactive({
         model: toRef(props, "model"),
     },
     retrieveArgs: {},
-    pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-    listArgs: {
-        f: computed(() => props.modelFields ?? [unref(computedOptionValue), props.optionLabel]),
-        [props.searchKey]: listSearch,
-        id: computed(() => {
-            if (!listSearch.value) {
-                return selectedValue.value ?? undefined;
-            }
-            return undefined;
-        }),
-    },
-    intendToList: computed(() => !!listSearch.value || !!widgetContext.state.combinedValue),
+    pkKey: computedPkKey,
+    listArgs: modelListArgs,
+    intendToList: computed(
+        () => modelConfig.loading === false && (!!listSearch.value || !!widgetContext.state.combinedValue),
+    ),
 });
 const modelListInstance = useList({
     props: modelListProps,
@@ -84,32 +116,23 @@ const modelListInstance = useList({
     },
     paged: true,
     keepOldPages: true,
-    clearListOnListIntentTriggered: false,
-});
-const filteredOptions = computed(() => {
-    if (modelListInstance.state.loading) {
-        return [];
-    }
-    return Object.entries(modelListInstance.state.objects).map(([, obj]) => ({
-        value: get(obj, unref(computedOptionValue)),
-        label: get(obj, props.optionLabel),
-    }));
+    clearListOnListIntentTriggered: true,
 });
 const modelItem = computed(() => {
     let match = null;
-    if (filteredOptions.value && filteredOptions.value.length > 0) {
-        match = filteredOptions.value?.find((option) => option.value == widgetContext.state.combinedValue);
+    if (modelListInstance.state.objectsInOrder?.length > 0) {
+        // noinspection EqualityComparisonWithCoercionJS
+        match = modelListInstance.state.objectsInOrder?.find(
+            (option) => get(option, unref(computedOptionValue)) == widgetContext.state.combinedValue,
+        );
     }
     return match ?? widgetContext.state.combinedValue;
 });
 const valueUpdated = (selected) => {
     if (selected && typeof selected === "object" && "value" in selected) {
-        widgetContext.state.combinedValue = selected.value;
-        selectedValue.value = selected.value;
-    } else if (props.multiple && selected && selected.length) {
-        const selectedIds = selected.flatMap((i) => i.value);
-        widgetContext.state.combinedValue = selectedIds;
-        selectedValue.value = null;
+        const value = get(selected, unref(computedOptionValue));
+        widgetContext.state.combinedValue = value;
+        selectedValue.value = value;
     } else {
         widgetContext.state.combinedValue = selected;
         selectedValue.value = null;
@@ -125,7 +148,6 @@ const search = (event) => {
 </script>
 <template>
     <div :class="theme('root')">
-        {{ modelListProps }}
         <widget-label
             :hidden="hidden"
             :label-class="theme('label')"
@@ -135,9 +157,6 @@ const search = (event) => {
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
-                {{ modelListInstance.state.loading }}
-                {{ modelListInstance.state.objectInOrder }}
-                {{ filteredOptions }}
                 <AutoComplete
                     :disabled="widgetContext.state.disabled"
                     force-selection
@@ -146,10 +165,10 @@ const search = (event) => {
                     :loading="modelListInstance.state.loading"
                     :model-value="modelItem"
                     :name="widgetContext.state.combinedName"
-                    :option-label="optionLabel"
+                    :option-label="computedOptionLabel"
                     :option-value="computedOptionValue"
                     :pt="effectivePt"
-                    :suggestions="filteredOptions"
+                    :suggestions="modelListInstance.state.objectsInOrder"
                     v-bind="$attrs"
                     @blur="widgetContext.blur"
                     @complete="search"
