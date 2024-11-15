@@ -2,6 +2,7 @@
 import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FilterForm from "@vueda/components/FilterForm.vue";
+import FormFeedback from "@vueda/components/FormFeedback.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
@@ -11,6 +12,7 @@ import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { useWarnings } from "@vueda/use/useWarnings.js";
 import { useWorkflow } from "@vueda/use/useWorkflow.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -321,6 +323,7 @@ const theme = useTheme("ViewList", props, {
     errored,
     error,
 });
+useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName);
 </script>
 <template>
     <div>
@@ -422,7 +425,12 @@ const theme = useTheme("ViewList", props, {
         <!-- todo: filters/search -->
         <!-- todo: hide/show columns -->
         <!-- todo: filters return here? @submit=filterList -->
-        <slot name="before-list" />
+        <slot name="before-list">
+            <div class="max-w-full overflow-x-auto p-1 flex flex-col gap-2">
+                <form-feedback type="error" />
+                <form-feedback type="message" />
+            </div>
+        </slot>
         <objects-grid
             v-bind="$attrs"
             :calculated-objects="instanceList.state.calculatedObjects"

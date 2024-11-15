@@ -9,6 +9,7 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
+import { useWarnings } from "@vueda/use/useWarnings.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import Button from "primevue/button";
 import { computed, onMounted, reactive, readonly, ref, toRef, watch } from "vue";
@@ -253,6 +254,7 @@ const detailedActions = computed(() => {
         return a && viewName !== n && a.detail;
     });
 });
+useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, toRef(props, "pk"));
 </script>
 <template>
     <div :class="props.class">
