@@ -28,8 +28,10 @@ const props = defineProps({
 });
 const fieldContext = inject(FieldContextSymbol, null);
 onMounted(() => {
-    if (!fieldContext && !props.name) {
-        console.error("FormChores.vue must be used within a field context, or a field name must be provided.");
+    if (!fieldContext && !props.name && (!props.errors || !props.warnings)) {
+        console.warn(
+            "FormChores.vue must be used within a field context, a field name must be provided, or [help]/errors/warnings must be provided.",
+        );
     }
 });
 const computedName = computed(() => (props.name?.length ? props.name : fieldContext?.state?.name));
