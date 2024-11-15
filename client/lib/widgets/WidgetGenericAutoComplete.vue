@@ -47,7 +47,6 @@ const modelListProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
-        list: allPagePaginatedListCrudAdaptor,
     },
     retrieveArgs: {
         f: toRef(props, "modelFields"),
@@ -66,6 +65,9 @@ const modelListProps = reactive({
 });
 const modelListInstance = useList({
     props: modelListProps,
+    functions: {
+        list: allPagePaginatedListCrudAdaptor,
+    },
     paged: true,
     keepOldPages: false,
     clearListOnListIntentTriggered: false,

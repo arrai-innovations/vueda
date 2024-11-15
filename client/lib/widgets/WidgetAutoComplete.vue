@@ -6,6 +6,7 @@ import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarning
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
+import get from "lodash-es/get.js";
 import AutoComplete from "primevue/autocomplete";
 import { computed, reactive, ref, toRef, unref } from "vue";
 
@@ -30,6 +31,14 @@ const props = defineProps({
         type: String,
         default: "s",
     },
+    optionLabel: {
+        type: String,
+        default: "formatted_name",
+    },
+    optionValue: {
+        type: String,
+        default: "USE_PK",
+    },
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
 });
@@ -41,17 +50,23 @@ const effectivePt = useWarningClass(props, widgetContext.state);
 const listSearch = ref("");
 const selectedValue = ref(null);
 
+const computedPkKey = computed(() => modelConfig.info?.pk ?? "id");
+const computedOptionValue = computed(() => {
+    if (props.optionValue === "USE_PK") {
+        return computedPkKey.value;
+    }
+    return props.optionValue;
+});
+
 const modelListProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
-        list: allPagePaginatedListCrudAdaptor,
     },
-    retrieveArgs: {
-        f: toRef(props, "modelFields"),
-    },
+    retrieveArgs: {},
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     listArgs: {
+        f: computed(() => props.modelFields ?? [unref(computedOptionValue), props.optionLabel]),
         [props.searchKey]: listSearch,
         id: computed(() => {
             if (!listSearch.value) {
@@ -60,21 +75,24 @@ const modelListProps = reactive({
             return undefined;
         }),
     },
-    intendToList: computed(() => listSearch.value || widgetContext.state.combinedValue),
+    intendToList: computed(() => !!listSearch.value || !!widgetContext.state.combinedValue),
 });
 const modelListInstance = useList({
     props: modelListProps,
+    functions: {
+        list: allPagePaginatedListCrudAdaptor,
+    },
     paged: true,
-    keepOldPages: false,
+    keepOldPages: true,
     clearListOnListIntentTriggered: false,
 });
 const filteredOptions = computed(() => {
     if (modelListInstance.state.loading) {
         return [];
     }
-    return Object.entries(modelListInstance.state.objects).map(([id, obj]) => ({
-        value: id,
-        label: obj.formatted_name,
+    return Object.entries(modelListInstance.state.objects).map(([, obj]) => ({
+        value: get(obj, unref(computedOptionValue)),
+        label: get(obj, props.optionLabel),
     }));
 });
 const modelItem = computed(() => {
@@ -107,6 +125,7 @@ const search = (event) => {
 </script>
 <template>
     <div :class="theme('root')">
+        {{ modelListProps }}
         <widget-label
             :hidden="hidden"
             :label-class="theme('label')"
@@ -116,6 +135,9 @@ const search = (event) => {
                 <slot name="label" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
+                {{ modelListInstance.state.loading }}
+                {{ modelListInstance.state.objectInOrder }}
+                {{ filteredOptions }}
                 <AutoComplete
                     :disabled="widgetContext.state.disabled"
                     force-selection
@@ -124,7 +146,8 @@ const search = (event) => {
                     :loading="modelListInstance.state.loading"
                     :model-value="modelItem"
                     :name="widgetContext.state.combinedName"
-                    option-label="label"
+                    :option-label="optionLabel"
+                    :option-value="computedOptionValue"
                     :pt="effectivePt"
                     :suggestions="filteredOptions"
                     v-bind="$attrs"
