@@ -3,6 +3,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
+import get from "lodash-es/get.js";
 import Select from "primevue/select";
 import { computed, ref, unref, useAttrs } from "vue";
 
@@ -14,6 +15,14 @@ const props = defineProps({
     options: {
         type: Array,
         required: true,
+    },
+    optionLabel: {
+        type: String,
+        default: "label",
+    },
+    optionValue: {
+        type: String,
+        default: "value",
     },
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
@@ -39,9 +48,11 @@ const modelItem = computed(() => {
     let match = null;
     if (props.options && props.options.length > 0) {
         // noinspection EqualityComparisonWithCoercionJS
-        match = props.options.find((option) => option.value == widgetContext.state.combinedValue);
+        match = props.options.find((option) => get(option, props.optionValue) == widgetContext.state.combinedValue);
     }
-    return match?.value ?? widgetContext.state.combinedValue;
+    return (
+        (match ? get(match, props.optionValue) : widgetContext.state.combinedValue) ?? widgetContext.state.combinedValue
+    );
 });
 const valueUpdated = (selected) => {
     widgetContext.state.combinedValue = selected;
@@ -73,6 +84,8 @@ const handleLabelClick = (e) => {
                     :disabled="widgetContext.state.disabled"
                     :invalid="widgetContext.state.validationState.invalid"
                     :model-value="modelItem"
+                    :option-label="props.optionLabel"
+                    :option-value="props.optionValue"
                     :options="props.options"
                     :pt="effectivePt"
                     show-clear

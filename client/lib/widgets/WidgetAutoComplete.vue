@@ -8,7 +8,7 @@ import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
 import get from "lodash-es/get.js";
 import AutoComplete from "primevue/autocomplete";
-import { computed, reactive, ref, toRef, unref } from "vue";
+import { computed, reactive, ref, toRef, unref, useAttrs } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -146,21 +146,28 @@ const search = (event) => {
     }, 250);
 };
 
+const attrs = useAttrs();
 let blurTimeout = null;
-const delayedBlur = () => {
+const delayedBlur = (e) => {
     if (blurTimeout) {
         clearTimeout(blurTimeout);
     }
     blurTimeout = setTimeout(() => {
         widgetContext.blur();
+        if (typeof attrs["on-focus"] === "function") {
+            attrs["on-focus"](e);
+        }
     }, 250);
 };
-const cancelBlurIfFocused = () => {
+const cancelBlurIfFocused = (e) => {
     if (blurTimeout) {
         clearTimeout(blurTimeout);
         blurTimeout = null;
     }
     widgetContext.focus();
+    if (typeof attrs["on-blur"] === "function") {
+        attrs["on-blur"](e);
+    }
 };
 </script>
 <template>
