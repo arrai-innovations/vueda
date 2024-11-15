@@ -145,6 +145,23 @@ const search = (event) => {
         }
     }, 250);
 };
+
+let blurTimeout = null;
+const delayedBlur = () => {
+    if (blurTimeout) {
+        clearTimeout(blurTimeout);
+    }
+    blurTimeout = setTimeout(() => {
+        widgetContext.blur();
+    }, 250);
+};
+const cancelBlurIfFocused = () => {
+    if (blurTimeout) {
+        clearTimeout(blurTimeout);
+        blurTimeout = null;
+    }
+    widgetContext.focus();
+};
 </script>
 <template>
     <div :class="theme('root')">
@@ -170,9 +187,9 @@ const search = (event) => {
                     :pt="effectivePt"
                     :suggestions="modelListInstance.state.objectsInOrder"
                     v-bind="$attrs"
-                    @blur="widgetContext.blur"
+                    @blur="delayedBlur"
                     @complete="search"
-                    @focus="widgetContext.focus"
+                    @focus="cancelBlurIfFocused"
                     @update:model-value="(selected) => valueUpdated(selected)"
                 />
             </div>
