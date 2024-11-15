@@ -100,6 +100,7 @@ export function onBeforeFieldUnmount(fieldContext) {
  * @property {import('vue').ComputedRef<boolean>} modified - Whether the field has been modified.
  * @property {import('vue').ComputedRef<boolean>} touched - Whether the field has been touched.
  * @property {import('vue').ComputedRef<boolean>} ignored - Whether the field has been ignored.
+ * @property {import('vue').ComputedRef<boolean>} focused - Whether the field is focused.
  */
 
 /**
@@ -208,6 +209,7 @@ export function useField(props, emit, functions) {
         touched: formContext ? computed(() => formContext.state.touched[props.name]) : false,
         modified: formContext ? computed(() => formContext.state.modified[props.name]) : false,
         ignored: formContext ? computed(() => formContext.state.ignored[props.name]) : false,
+        focused: formContext ? computed(() => formContext.state.focused === props.name) : false,
     });
     const checkRequired = () => {
         if (props.required && state.touched && formContext && !state.readOnly) {

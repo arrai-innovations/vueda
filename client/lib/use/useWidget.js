@@ -50,6 +50,7 @@ export const WIDGET_EMITS = ["update:modelValue"];
  * @property {import('vue').ComputedRef<string>} combinedLabel - The combined label of the widget, either from the props
  * @property {import('vue').ComputedRef<boolean>} disabled - Whether the widget is disabled.
  * @property {import('vue').ComputedRef<{invalid:boolean,warning:boolean}>} validationState - The validation state of the widget.
+ * @property {import('vue').ComputedRef<boolean>} focused - Whether the widget is focused.
  */
 
 /**
@@ -129,6 +130,12 @@ export function useWidget(props, emit) {
                     invalid: false,
                     warning: false,
                 };
+            }),
+            focused: computed(() => {
+                if (fieldContext) {
+                    return fieldContext.state.focused;
+                }
+                return false;
             }),
         }),
         setTouched: () => {

@@ -352,13 +352,16 @@ const clearServerError = (state, name) => {
 
 /**
  *
- * @param {FormContextState} state
- * @param {string} name
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to blur.
+ * @param {string[]} dependents - The names of fields that should also be blurred.
  * @private
  */
 const blur = (state, name, dependents = []) => {
     validateName(name);
-    state.focused = name;
+    if (state.focused === name) {
+        state.focused = undefined;
+    }
     setTouched(state, name);
     calculateModified(state, name);
     if (state.modified[name]) {
