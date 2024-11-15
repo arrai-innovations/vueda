@@ -2,6 +2,7 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
+import { containsHtml, sanitizeMessages } from "@vueda/utils/html.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import get from "lodash-es/get.js";
 import isEmpty from "lodash-es/isEmpty.js";
@@ -35,6 +36,11 @@ const props = defineProps({
         default: null,
         validator: (value) => ["error", "warn", "help", "success", "info", "contrast", null].includes(value),
     },
+    allowHtml: {
+        type: Boolean,
+        default: true,
+        description: "Allows rendering of messages as HTML if true.",
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 /** @type {import("@vueda/use/useForm.js").FormContext|null} */
@@ -55,17 +61,22 @@ watch(
     ],
     ([errors, messages, formErrors, formMessages, propsType, propsMessages]) => {
         if (propsMessages) {
-            assignReactiveObject(feedbackItems, propsMessages);
+            const sanitizedPropsMessages = sanitizeMessages(propsMessages);
+            if (!isEqual(sanitizedPropsMessages, feedbackItems)) {
+                assignReactiveObject(feedbackItems, sanitizeMessages(sanitizedPropsMessages));
+            }
         } else if (!fieldContext && formContext) {
             // if we are in a form but not in a field, we should show the form's errors
             const formErrorsOrMessages = (propsType === "error" ? formErrors : formMessages) || {};
-            if (!isEqual(formErrorsOrMessages, feedbackItems)) {
-                assignReactiveObject(feedbackItems, formErrorsOrMessages);
+            const sanitizedFormErrorsOrMessages = sanitizeMessages(formErrorsOrMessages);
+            if (!isEqual(sanitizedFormErrorsOrMessages, feedbackItems)) {
+                assignReactiveObject(feedbackItems, sanitizedFormErrorsOrMessages);
             }
         } else if (fieldContext) {
             const fieldErrorsOrMessages = (propsType === "error" ? errors : messages) || {};
-            if (!isEqual(fieldErrorsOrMessages, feedbackItems)) {
-                assignReactiveObject(feedbackItems, fieldErrorsOrMessages);
+            const sanitizedFieldErrorsOrMessages = sanitizeMessages(fieldErrorsOrMessages);
+            if (!isEqual(sanitizedFieldErrorsOrMessages, feedbackItems)) {
+                assignReactiveObject(feedbackItems, sanitizedFieldErrorsOrMessages);
             }
         }
     },
@@ -89,8 +100,14 @@ const theme = useTheme("FormFeedback", props, fieldContext?.state);
                 :severity="(severity ?? type === 'message') ? 'warn' : 'error'"
                 :size="size"
                 :variant="variant"
-                >{{ message }}</Message
             >
+                <template v-if="allowHtml && containsHtml(message)">
+                    <div v-html="message" />
+                </template>
+                <template v-else>
+                    {{ message }}
+                </template>
+            </Message>
         </slot>
     </div>
 </template>

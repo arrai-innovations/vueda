@@ -14,6 +14,16 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
+    errors: {
+        type: Object,
+        default: null,
+        description: "Errors to display, keyed by code.",
+    },
+    warnings: {
+        type: Object,
+        default: null,
+        description: "Warnings to display, keyed by code.",
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const fieldContext = inject(FieldContextSymbol, null);
@@ -26,7 +36,7 @@ const computedName = computed(() => (props.name?.length ? props.name : fieldCont
 const computedHelp = computed(() => (props.help?.length ? props.help : fieldContext?.state?.help));
 </script>
 <template>
-    <form-help-text v-if="computedHelp" :help="computedHelp" :theme-override="themeOverride">
+    <form-help-text v-if="computedHelp" :help="computedHelp" :theme-override="themeOverride" v-bind="$attrs">
         <template v-if="$slots[`field(${computedName})help`]" #default="slotProps">
             <slot :name="`field(${computedName})help`" v-bind="slotProps" />
         </template>
@@ -34,7 +44,7 @@ const computedHelp = computed(() => (props.help?.length ? props.help : fieldCont
             <slot name="field-help" v-bind="slotProps" />
         </template>
     </form-help-text>
-    <form-feedback :theme-override="themeOverride" type="error">
+    <form-feedback :messages="props.errors" :theme-override="themeOverride" type="error" v-bind="$attrs">
         <template v-if="$slots[`field(${computedName})error`]" #default="slotProps">
             <slot :name="`field(${computedName})error`" v-bind="slotProps" />
         </template>
@@ -42,7 +52,7 @@ const computedHelp = computed(() => (props.help?.length ? props.help : fieldCont
             <slot name="field-error" v-bind="slotProps" />
         </template>
     </form-feedback>
-    <form-feedback :theme-override="themeOverride" type="message">
+    <form-feedback :messages="props.warnings" :theme-override="themeOverride" type="message" v-bind="$attrs">
         <template v-if="$slots[`field(${computedName})message`]" #default="slotProps">
             <slot :name="`field(${computedName})message`" v-bind="slotProps" />
         </template>
