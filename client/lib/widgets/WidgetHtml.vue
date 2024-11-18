@@ -75,7 +75,7 @@ const theme = useTheme("WidgetHtml", props, widgetContext.state);
 // todo: warning / invalid states?
 </script>
 <template>
-    <div :class="theme('outer')">
+    <div :class="theme('root')">
         <widget-label
             :hidden="hidden"
             :label-class="theme('label')"
