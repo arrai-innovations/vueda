@@ -10,6 +10,21 @@ const props = defineProps({
         type: String,
         default: "",
     },
+    size: {
+        type: String,
+        default: "small",
+        validator: (value) => ["small", "large", null].includes(value),
+    },
+    variant: {
+        type: String,
+        default: null,
+        validator: (value) => ["simple", "outlined", null].includes(value),
+    },
+    severity: {
+        type: String,
+        default: "help",
+        validator: (value) => ["error", "warn", "help", "success", "info", "contrast", null].includes(value),
+    },
     allowHtml: {
         type: Boolean,
         default: true,
@@ -29,9 +44,9 @@ const theme = useTheme("FormHelpText", props, fieldContext?.state);
                 v-if="computedHelp?.length"
                 v-bind="$attrs"
                 :closable="false"
-                severity="help"
-                size="small"
-                variant="simple"
+                :severity="severity"
+                :size="size"
+                :variant="variant"
             >
                 <template v-if="allowHtml && containsHtml(computedHelp)">
                     <div v-html="computedHelp" />

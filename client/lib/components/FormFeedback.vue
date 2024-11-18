@@ -28,7 +28,7 @@ const props = defineProps({
     },
     variant: {
         type: String,
-        default: "simple",
+        default: null,
         validator: (value) => ["simple", "outlined", null].includes(value),
     },
     severity: {
