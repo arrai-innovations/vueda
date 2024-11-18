@@ -7,18 +7,18 @@ export default {
             class: ["flex flex-col [&_input]:w-full"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
     WidgetCheckbox: {
         root: {
-            class: ["ml-3"],
+            class: ["ml-2"],
         },
         inner: {
             class: ["flex"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
     WidgetDatePicker: {
@@ -29,7 +29,7 @@ export default {
             class: ["flex flex-col gap-2 flex-wrap [&_input]:w-full"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
     WidgetDuration: {
@@ -40,7 +40,7 @@ export default {
             class: ["flex flex-row gap-2 flex-wrap [&_input]:w-full"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
         innerItem: {
             class: ["flex flex-col flex-grow"],
@@ -57,7 +57,7 @@ export default {
             class: ["flex flex-wrap justify-between"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
         link: {
             class: ["font-semibold text-ellipsis max-w-60 whitespace-nowrap overflow-hidden"],
@@ -80,7 +80,7 @@ export default {
             class: ["flex flex-col flex-grow"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
     WidgetHtml: {
@@ -91,7 +91,7 @@ export default {
             class: ["flex flex-col"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
         menu: {
             class: [],
@@ -111,7 +111,7 @@ export default {
             class: ["flex flex-wrap justify-between"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
     WidgetInput: {
@@ -122,7 +122,7 @@ export default {
             class: ["flex flex-col gap-2 flex-wrap [&_input]:w-full"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
         inputRoot: {},
     },
@@ -134,7 +134,7 @@ export default {
             class: ["flex flex-col"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
     WidgetRadio: {
@@ -170,10 +170,10 @@ export default {
             class: ["flex flex-col"],
         },
         label: {
-            class: ["ml-3", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2", "text-surface-900/60 dark:text-white/60"],
         },
         input: {
-            class: ["ml-3"],
+            class: ["ml-2"],
         },
     },
     WidgetSearchableSelect: {
@@ -184,7 +184,7 @@ export default {
             class: ["flex flex-col gap-2 [&_input]:w-full"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
         inputLabel: {
             class: ["whitespace-nowrap overflow-hidden text-ellipsis"],
@@ -201,7 +201,7 @@ export default {
             class: [["flex flex-col gap-2 flex-wrap [&_input]:w-full"]],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
     WidgetSlider: {
@@ -212,7 +212,7 @@ export default {
             class: ["flex flex-col"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
     WidgetTextarea: {
@@ -223,7 +223,7 @@ export default {
             class: [["flex flex-col gap-2 flex-wrap [&_input]:w-full"]],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
 };

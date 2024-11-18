@@ -7,7 +7,7 @@ export default {
             class: ["flex flex-col [&_input]:w-full"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
         header: {
             class: ["flex", "items-center", "justify-between"],
@@ -33,10 +33,10 @@ export default {
             class: ["flex items-baseline gap-2"],
         },
         title: {
-            class: "ml-3 leading-7 text-surface-900 dark:text-white text-lg",
+            class: "ml-2 leading-7 text-surface-900 dark:text-white text-lg",
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
         field: {
             class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"],
@@ -53,7 +53,7 @@ export default {
             class: ["flex items-baseline gap-2"],
         },
         header: {
-            class: "ml-3 leading-7",
+            class: "ml-2 leading-7",
         },
         title: {
             class: "text-surface-900 dark:text-white",
@@ -105,7 +105,7 @@ export default {
             class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2 my-2",
         },
         titleBar: {
-            class: "ml-3 leading-7 flex items-baseline gap-2 md:gap-4",
+            class: "ml-2 leading-7 flex items-baseline gap-2 md:gap-4",
         },
         title: {
             class: ["text-surface-900 dark:text-white"],
@@ -166,12 +166,12 @@ export default {
     },
     FormHelpText: {
         root: {
-            class: ["my-2 ml-3"],
+            class: ["my-2"],
         },
     },
     FormFeedback: {
         root: {
-            class: ["my-2 ml-3"],
+            class: ["my-2"],
         },
     },
     FormModel: {
@@ -182,7 +182,7 @@ export default {
             class: ["flex flex-col"],
         },
         label: {
-            class: ["ml-3 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
         beforeFields: {
             class: [],
