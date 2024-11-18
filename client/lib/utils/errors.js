@@ -1,7 +1,6 @@
 import { flattenPaths } from "@arrai-innovations/reactive-helpers";
 import get from "lodash-es/get.js";
 import isArray from "lodash-es/isArray.js";
-import zipObject from "lodash-es/zipObject.js";
 
 /**
  * Combine errors into a single array of errors.
@@ -123,25 +122,32 @@ export class FormValidationError extends Error {
          *
          * @type {{[path: string]: string}}
          */
-        this.errors = zipObject(
-            withoutWarnings.map((path) => path.split("[").slice(0, -1).join("[")),
-            withoutWarnings.map((path) => get(data, path)),
-        );
+        this.errors = withoutWarnings.reduce((acc, path) => {
+            const normalizedPath = path.split("[").slice(0, -1).join("[");
+            if (!acc[normalizedPath]) {
+                acc[normalizedPath] = [];
+            }
+            acc[normalizedPath].push(get(data, path));
+            return acc;
+        }, {});
 
         /**
          * The messages for the form validation warnings.
          *
          * @type {{[path: string]: string}}
          */
-        this.messages = zipObject(
-            withWarnings.map((path) =>
-                path
-                    .replace(/\.warnings\[\d+\]$/, "")
-                    .split("[")
-                    .slice(0, -1)
-                    .join("["),
-            ),
-            withWarnings.map((path) => get(data, path)),
-        );
+        this.messages = withWarnings.reduce((acc, path) => {
+            const normalizedPath = path
+                .replace(/\.warnings\[\d+\]$/, "")
+                .split("[")
+                .slice(0, -1)
+                .join("[");
+
+            if (!acc[normalizedPath]) {
+                acc[normalizedPath] = [];
+            }
+            acc[normalizedPath].push(get(data, path));
+            return acc;
+        }, {});
     }
 }
