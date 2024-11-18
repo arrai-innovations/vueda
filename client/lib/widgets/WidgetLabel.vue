@@ -7,6 +7,11 @@ defineOptions({
 });
 
 const props = defineProps({
+    label: {
+        type: String,
+        description: "The label when not in context of a widget",
+        default: undefined,
+    },
     labelClass: {
         type: [String, Array, Object],
         default: () => [],
@@ -42,9 +47,10 @@ const widgetContext = inject(WidgetContextSymbol);
 // traditional id points to input
 const computedFor = computed(() => (props.id ? props.id : widgetContext.state.widgetId));
 // aria-labelledby points to label
-const computedId = computed(() => (!props.id ? widgetContext.state.widgetId : undefined));
+const computedId = computed(() => (!props.id ? widgetContext?.state?.widgetId : undefined));
 const warningClass = computed(() => (props.warning && !props.invalid ? props.warningClass : ""));
 const invalidClass = computed(() => (props.invalid ? props.invalidClass : ""));
+const combinedLabel = computed(() => props.label ?? widgetContext?.state?.combinedLabel);
 </script>
 <template>
     <label
@@ -54,9 +60,7 @@ const invalidClass = computed(() => (props.invalid ? props.invalidClass : ""));
         :hidden="hidden"
         v-bind="$attrs"
     >
-        <slot id="computedId" :for="computedFor" :label="widgetContext.state.combinedLabel" name="label">{{
-            widgetContext.state.combinedLabel
-        }}</slot>
+        <slot :id="computedId" :for="computedFor" :label="combinedLabel" name="label">{{ combinedLabel }}</slot>
     </label>
     <slot></slot>
 </template>
