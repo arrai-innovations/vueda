@@ -3,7 +3,8 @@ import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, inject, onMounted } from "vue";
+import omit from "lodash-es/omit.js";
+import { computed, inject, onMounted, useAttrs } from "vue";
 
 const props = defineProps({
     name: {
@@ -36,9 +37,16 @@ onMounted(() => {
 });
 const computedName = computed(() => (props.name?.length ? props.name : fieldContext?.state?.name));
 const computedHelp = computed(() => (props.help?.length ? props.help : fieldContext?.state?.help));
+const attrs = useAttrs();
+const computedAttrsSansClass = computed(() => omit(attrs, ["class"]));
 </script>
 <template>
-    <form-help-text v-if="computedHelp" :help="computedHelp" :theme-override="themeOverride" v-bind="$attrs">
+    <form-help-text
+        v-if="computedHelp"
+        :help="computedHelp"
+        :theme-override="themeOverride"
+        v-bind="computedAttrsSansClass"
+    >
         <template v-if="$slots[`field(${computedName})help`]" #default="slotProps">
             <slot :name="`field(${computedName})help`" v-bind="slotProps" />
         </template>
@@ -46,7 +54,12 @@ const computedHelp = computed(() => (props.help?.length ? props.help : fieldCont
             <slot name="field-help" v-bind="slotProps" />
         </template>
     </form-help-text>
-    <form-feedback :messages="props.errors" :theme-override="themeOverride" type="error" v-bind="$attrs">
+    <form-feedback
+        :messages="props.errors"
+        :theme-override="themeOverride"
+        type="error"
+        v-bind="computedAttrsSansClass"
+    >
         <template v-if="$slots[`field(${computedName})error`]" #default="slotProps">
             <slot :name="`field(${computedName})error`" v-bind="slotProps" />
         </template>
@@ -54,7 +67,12 @@ const computedHelp = computed(() => (props.help?.length ? props.help : fieldCont
             <slot name="field-error" v-bind="slotProps" />
         </template>
     </form-feedback>
-    <form-feedback :messages="props.warnings" :theme-override="themeOverride" type="message" v-bind="$attrs">
+    <form-feedback
+        :messages="props.warnings"
+        :theme-override="themeOverride"
+        type="message"
+        v-bind="computedAttrsSansClass"
+    >
         <template v-if="$slots[`field(${computedName})message`]" #default="slotProps">
             <slot :name="`field(${computedName})message`" v-bind="slotProps" />
         </template>
