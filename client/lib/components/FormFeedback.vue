@@ -5,10 +5,9 @@ import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { containsHtml, sanitizeMessages } from "@vueda/utils/html.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import get from "lodash-es/get.js";
-import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import Message from "primevue/message";
-import { inject, reactive, watch } from "vue";
+import { computed, inject, reactive, watch } from "vue";
 
 const props = defineProps({
     type: {
@@ -28,7 +27,7 @@ const props = defineProps({
     },
     variant: {
         type: String,
-        default: null,
+        default: "simple",
         validator: (value) => ["simple", "outlined", null].includes(value),
     },
     severity: {
@@ -84,30 +83,31 @@ watch(
     //  deleted. this leaves empty feedback boxes on the form.
     { immediate: true, deep: true },
 );
-const theme = useTheme("FormFeedback", props, fieldContext?.state);
+const themeProps = computed(() => ({
+    props,
+    ...fieldContext?.state,
+}));
+const theme = useTheme("FormFeedback", props, themeProps);
 </script>
 <template>
-    <div
-        v-if="!isEmpty(feedbackItems)"
-        v-for="message in Object.values(feedbackItems)"
-        :key="message"
-        :class="theme('root')"
-    >
-        <slot :name="type" v-bind="{ message, type, attrs: $attrs }">
-            <Message
-                v-bind="$attrs"
-                :closable="false"
-                :severity="(severity ?? type === 'message') ? 'warn' : 'error'"
-                :size="size"
-                :variant="variant"
-            >
-                <template v-if="allowHtml && containsHtml(message)">
-                    <div v-html="message" />
-                </template>
-                <template v-else>
-                    {{ message }}
-                </template>
-            </Message>
-        </slot>
+    <div :class="theme('root')">
+        <div v-for="message in Object.values(feedbackItems || {})" :key="message" :class="theme('message')">
+            <slot :name="type" v-bind="{ message, type, attrs: $attrs }">
+                <Message
+                    v-bind="$attrs"
+                    :closable="false"
+                    :severity="(severity ?? type === 'message') ? 'warn' : 'error'"
+                    :size="size"
+                    :variant="variant"
+                >
+                    <template v-if="allowHtml && containsHtml(message)">
+                        <div v-html="message" />
+                    </template>
+                    <template v-else>
+                        {{ message }}
+                    </template>
+                </Message>
+            </slot>
+        </div>
     </div>
 </template>

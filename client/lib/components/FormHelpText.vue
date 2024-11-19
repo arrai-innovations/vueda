@@ -17,7 +17,7 @@ const props = defineProps({
     },
     variant: {
         type: String,
-        default: null,
+        default: "simple",
         validator: (value) => ["simple", "outlined", null].includes(value),
     },
     severity: {
@@ -35,7 +35,11 @@ const props = defineProps({
 /** @type {import("@vueda/use/useField.js").FieldContext|null} */
 const fieldContext = inject(FieldContextSymbol, null);
 const computedHelp = computed(() => sanitizeMessage(props.help?.length ? props.help : fieldContext?.state?.help));
-const theme = useTheme("FormHelpText", props, fieldContext?.state);
+const themeProps = computed(() => ({
+    props,
+    ...fieldContext?.state,
+}));
+const theme = useTheme("FormHelpText", props, themeProps);
 </script>
 <template>
     <div :class="theme('root')">

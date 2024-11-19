@@ -39,7 +39,9 @@ export default {
             class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
         field: {
-            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"],
+            class: [
+                // "rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"
+            ],
         },
     },
     FieldSetStackedInline: {
@@ -65,7 +67,9 @@ export default {
             class: [],
         },
         field: {
-            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"],
+            class: [
+                // "rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"
+            ],
         },
         fieldInner: {
             class: [],
@@ -88,7 +92,9 @@ export default {
             class: [],
         },
         field: {
-            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"],
+            class: [
+                // "rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"
+            ],
         },
         deleteOuter: {
             class: ["flex py-2"],
@@ -114,7 +120,10 @@ export default {
             class: "grow-0 flex gap-2",
         },
         field: {
-            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "min-w-1"],
+            class: [
+                // "rounded", "px-1 lg:px-2 py-1 lg:py-2",
+                "min-w-1",
+            ],
         },
         fieldInner: {
             class: [],
@@ -164,14 +173,25 @@ export default {
             class: "text-red-600 dark:text-red-400",
         },
     },
-    FormHelpText: {
+    FormChores: {
         root: {
-            class: ["my-2"],
+            class: [""],
+        },
+        item: {
+            class: ["grow"],
         },
     },
+    FormHelpText: {
+        root: ({ props }) => ({
+            class: [props?.variant === "simple" ? "mx-2" : "", "my-2"],
+        }),
+    },
     FormFeedback: {
-        root: {
-            class: ["my-2"],
+        root: ({ props }) => ({
+            class: [props?.variant === "simple" ? "mx-2" : "", "my-2"],
+        }),
+        message: {
+            class: [],
         },
     },
     FormModel: {
@@ -194,7 +214,9 @@ export default {
             class: [],
         },
         field: {
-            class: ["rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"],
+            class: [
+                // "rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"
+            ],
         },
         fieldInner: {
             class: [],
