@@ -206,6 +206,8 @@ class NoExtraFieldsForViewSetMixin:
                         fields.add(f"{filter_name}_{suffix}")
                 else:
                     fields.add(filter_name)
+                if hasattr(filter_obj, "lookup_expr"):
+                    fields.add(f"{filter_name}__{filter_obj.lookup_expr}")
             # pagination and expanding are allowed
             fields.update(self.get_extra_allowed_fields())
             for key in request.query_params.keys():
@@ -382,6 +384,8 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         pks = request.data.get("pks", [])
+        if not len(pks):
+            return Response({"error": "no pks provided"}, status=status.HTTP_400_BAD_REQUEST)
         if not isinstance(pks, list):
             return Response({"error": "pks must be a list of primary keys."}, status=status.HTTP_400_BAD_REQUEST)
         try:
