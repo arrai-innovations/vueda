@@ -52,7 +52,7 @@ useField(props, emit, { preprocessGet, preprocessSet });
 </script>
 <template>
     <div data-qa="field-date">
-        <slot />
+        <slot :field-attrs="$attrs" :field-props="props" />
     </div>
 </template>
 <!--# the value submitted right now is like due_Date [{date},{date}],-->

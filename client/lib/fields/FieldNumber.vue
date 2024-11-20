@@ -97,6 +97,6 @@ onBeforeFieldUnmount(fieldContext);
 </script>
 <template>
     <div data-qa="field-number">
-        <slot />
+        <slot :field-attrs="$attrs" :field-props="props" />
     </div>
 </template>

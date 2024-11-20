@@ -24,6 +24,6 @@ onBeforeFieldUnmount(fieldContext);
 </script>
 <template>
     <div data-qa="field-array">
-        <slot />
+        <slot :field-attrs="$attrs" :field-props="props" />
     </div>
 </template>

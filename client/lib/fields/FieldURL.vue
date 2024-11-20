@@ -11,6 +11,6 @@ onBeforeFieldUnmount(fieldContext);
 </script>
 <template>
     <div data-qa="field-url">
-        <slot />
+        <slot :field-attrs="$attrs" :field-props="props" />
     </div>
 </template>

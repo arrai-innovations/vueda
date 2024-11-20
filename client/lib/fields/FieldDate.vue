@@ -94,6 +94,6 @@ watch(
 </script>
 <template>
     <div data-qa="field-date">
-        <slot />
+        <slot :field-attrs="$attrs" :field-props="props" />
     </div>
 </template>
