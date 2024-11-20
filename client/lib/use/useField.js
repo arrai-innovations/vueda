@@ -89,10 +89,13 @@ export function onBeforeFieldUnmount(fieldContext) {
 /**
  * @typedef {object} FieldContextRawState
  * @property {import('vue').ComputedRef<string>} name - The name of the field.
- * @property {import('vue').ComputedRef<string>} label - The label for the field.
  * @property {import('vue').ComputedRef<string>} dependents - The dependents for the field.
  * @property {import('vue').ComputedRef<string>} readOnly - Whether the field is read only.
+ * @property {import('vue').ComputedRef<string>} label - The label for the field.
+ * @property {import('vue').ComputedRef<boolean|undefined>} required - Whether the field is required.
+ * @property {import('vue').ComputedRef<boolean|undefined>} hidden - Whether the field is hidden.
  * @property {import('vue').ComputedRef<string>} help - The help text for the field.
+ * @property {import('vue').ComputedRef<string>} suffix - The suffix for the field.
  * @property {import('vue').WritableComputedRef<any>} value - The current value of the field.
  * @property {import('vue').ComputedRef<any>} initialValue - The initial value of the field.
  * @property {import('vue').ComputedRef<{[code: string]: string}>} messages - The messages for the field.
@@ -146,6 +149,7 @@ export function onBeforeFieldUnmount(fieldContext) {
  *     name: string,
  *     required: boolean,
  *     requiredMessage: string,
+ *     hidden: boolean,
  *     label: string,
  *     help: string,
  *     validate: (value: any) => boolean,
@@ -177,6 +181,8 @@ export function useField(props, emit, functions) {
         dependents: readonly(toRef(props, "dependents")),
         readOnly: readonly(toRef(props, "readOnly")),
         label: computed(() => (props.label?.length ? props.label : props.name)),
+        required: computed(() => props.required ?? false),
+        hidden: computed(() => props.hidden ?? false),
         help: computed(() => props.help || ""),
         suffix: computed(() => props.rangeSuffix || ""),
         value:
