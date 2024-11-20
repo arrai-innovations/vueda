@@ -21,6 +21,7 @@ export default {
             class: {
                 grow: true,
                 "mb-1": false,
+                "gap-1 md:gap-2 2xl:gap-4": true,
             },
         },
         labelLabel: {

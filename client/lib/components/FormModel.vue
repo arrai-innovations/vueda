@@ -233,6 +233,7 @@ const slots = useSlots();
  * @param exclude {string[]} - List of slot names or suffixes to exclude.
  * @param retainFullName {boolean} - If true, the full slot name is returned without slicing the prefix.
  * @returns {[string, string][]} - An array of slot names and the slot name without the prefix.
+ *  i.e. (outerName, innerName)
  */
 const getPrefixedSlots = (prefix, exclude = [], retainFullName = false) => {
     return Object.keys(slots)
@@ -266,9 +267,21 @@ const getSlotNamesFor = (type, fieldName) => {
 
         const headerPrefix = `header(${fieldName}__`;
         slotKeys.push(...getPrefixedSlots(headerPrefix, [], true));
+
+        // only add these if the more specific slots are not present
+        if (!slots[`widget(${fieldName})toggle-button`]) {
+            slotKeys.push(["fieldset-toggle-button", "toggle-button"]);
+        }
+        if (!slots[`widget(${fieldName})create-button`]) {
+            slotKeys.push(["fieldset-create-button", "create-button"]);
+        }
+        if (!slots[`widget(${fieldName})delete-button`]) {
+            slotKeys.push(["fieldset-delete-button", "delete-button"]);
+        }
     }
 
-    return slotKeys;
+    // only return slots that have content based on outer slot name
+    return slotKeys.filter(([slotName]) => slots[slotName]);
 };
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
