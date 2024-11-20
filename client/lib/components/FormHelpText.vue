@@ -52,6 +52,9 @@ const theme = useTheme("FormHelpText", props, themeProps);
                 :size="size"
                 :variant="variant"
             >
+                <template #icon="slotProps">
+                    <slot name="icon" v-bind="slotProps" />
+                </template>
                 <template v-if="allowHtml && containsHtml(computedHelp)">
                     <div v-html="computedHelp" />
                 </template>

@@ -100,6 +100,9 @@ const theme = useTheme("FormFeedback", props, themeProps);
                     :size="size"
                     :variant="variant"
                 >
+                    <template #icon="slotProps">
+                        <slot name="icon" v-bind="slotProps" />
+                    </template>
                     <template v-if="allowHtml && containsHtml(message)">
                         <div v-html="message" />
                     </template>
