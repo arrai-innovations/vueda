@@ -138,11 +138,10 @@
  * ```
  */
 import FormChores from "@vueda/components/FormChores.vue";
-import FormFeedback from "@vueda/components/FormFeedback.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
+import { getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import { useSlots } from "vue";
 
 defineOptions({
@@ -271,6 +270,7 @@ const getSlotNamesFor = (type, fieldName) => {
 
     return slotKeys;
 };
+const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 
 <template>
@@ -280,8 +280,9 @@ const getSlotNamesFor = (type, fieldName) => {
                 <slot :form-attrs="$attrs" :form-props="$props" name="before-fields" />
             </div>
             <!-- form-level chores -->
-            <form-feedback type="error" />
-            <form-feedback type="message" />
+            <slot name="form-level-chores" :theme-override="themeOverride">
+                <form-chores :theme-override="themeOverride" :variant="null" />
+            </slot>
             <div v-bind="$attrs">
                 <slot
                     :all-widget-props="formModel.widgetProps"
@@ -304,6 +305,9 @@ const getSlotNamesFor = (type, fieldName) => {
                             :field-props="formModel.fieldProps[fieldName]"
                             :form-attrs="$attrs"
                             :form-props="$props"
+                            :label-slots="
+                                availableLabelSlotNames.map((slot) => ({ slotName: slot, slotContent: $slots[slot] }))
+                            "
                             :name="`field(${fieldName})`"
                             :theme="theme"
                             :theme-override="themeOverride"
@@ -323,24 +327,39 @@ const getSlotNamesFor = (type, fieldName) => {
                                 >
                                     <slot :name="outsideSlotName" v-bind="fieldSlotProps" />
                                 </template>
-                                <template #default="slotProps">
+                                <template v-for="slot in availableLabelSlotNames" #[slot]="widgetSlotProps">
+                                    <slot :name="slot" v-bind="widgetSlotProps" />
+                                </template>
+                                <template #default="fieldSlotProps">
                                     <div :class="theme('fieldInner')">
                                         <slot
                                             :field-details="formModel.fieldDetails[fieldName]"
                                             :form-attrs="$attrs"
                                             :form-props="$props"
+                                            :label-slots="
+                                                availableLabelSlotNames.map((slot) => ({
+                                                    slotName: slot,
+                                                    slotContent: $slots[slot],
+                                                }))
+                                            "
                                             :name="`widget(${fieldName})`"
                                             :theme="theme"
                                             :theme-override="themeOverride"
                                             :widget-component="formModel.widgetComponents[fieldName]"
-                                            :widget-props="{ ...formModel.widgetProps[fieldName], ...slotProps }"
+                                            :widget-props="{ ...fieldSlotProps, ...formModel.widgetProps[fieldName] }"
                                         >
                                             <component
                                                 :is="formModel.widgetComponents[fieldName]"
                                                 v-if="formModel.widgetComponents[fieldName]"
                                                 :theme-override="themeOverride"
-                                                v-bind="{ ...formModel.widgetProps[fieldName], ...slotProps }"
+                                                v-bind="{ ...fieldSlotProps, ...formModel.widgetProps[fieldName] }"
                                             >
+                                                <template
+                                                    v-for="slot in availableLabelSlotNames"
+                                                    #[slot]="widgetSlotProps"
+                                                >
+                                                    <slot :name="slot" v-bind="widgetSlotProps" />
+                                                </template>
                                                 <template
                                                     v-for="slot in getSlotNamesFor('widget', fieldName)"
                                                     #[slot.slotName]="widgetSlotProps"
@@ -349,14 +368,6 @@ const getSlotNamesFor = (type, fieldName) => {
                                                 </template>
                                             </component>
                                         </slot>
-                                        <form-chores :theme-override="themeOverride">
-                                            <template
-                                                v-for="slot in getFormChoresSlotNames(fieldName)"
-                                                #[slot]="formChoresSlotProps"
-                                            >
-                                                <slot :name="slot" v-bind="formChoresSlotProps" />
-                                            </template>
-                                        </form-chores>
                                     </div>
                                 </template>
                             </component>

@@ -1,7 +1,5 @@
 <script setup>
 import FormChores from "@vueda/components/FormChores.vue";
-import FormFeedback from "@vueda/components/FormFeedback.vue";
-import FormHelpText from "@vueda/components/FormHelpText.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
@@ -9,15 +7,16 @@ import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
+import { availableWidgets } from "@vueda/utils/formLookups.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
-import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
+import { getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import { useBreakpoints } from "@vueuse/core";
 import { merge } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
-import { computed, inject, nextTick, reactive, ref, shallowReactive, watch } from "vue";
+import { computed, inject, nextTick, reactive, ref, shallowReactive, useSlots, watch } from "vue";
 
 const props = defineProps({
     ...FIELD_PROPS,
@@ -248,6 +247,8 @@ const refFn = (slotProps, el) => {
     }
     itemRefs.value[slotProps.rowIndex] = el;
 };
+const slots = useSlots();
+const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 
 <template>
@@ -290,11 +291,16 @@ const refFn = (slotProps, el) => {
                 </div>
             </header>
             <hr :class="theme('hr')" />
-            <form-chores :theme-override="themeOverride">
-                <template v-for="slot in getFormChoresSlotNames(fieldContext.state.name)" #[slot]="formChoresSlotProps">
-                    <slot :name="slot" v-bind="formChoresSlotProps" />
-                </template>
-            </form-chores>
+            <slot name="field-set-level-chores" :theme-override="themeOverride">
+                <form-chores :theme-override="themeOverride" :variant="null">
+                    <template
+                        v-for="slot in getFormChoresSlotNames(fieldContext.state.name)"
+                        #[slot]="formChoresSlotProps"
+                    >
+                        <slot :name="slot" v-bind="formChoresSlotProps" />
+                    </template>
+                </form-chores>
+            </slot>
             <objects-grid
                 v-if="internalVisible"
                 v-bind="$attrs"
@@ -311,20 +317,31 @@ const refFn = (slotProps, el) => {
                 :theme-override="{ ...themeOverride, ObjectsGridBodyCell: { root: { class: 'min-w-36' } } }"
                 :variant="props.objectGridVariant"
             >
-                <template v-for="field in fieldObjects" :key="field.name" #[`header(${field.name})`]="slotProps">
-                    <slot :name="`header(${field.name})`" v-bind="slotProps"></slot>
+                <template v-for="field in fieldObjects" :key="field.name" #[`header(${field.name})`]="headerSlotProps">
+                    <slot :name="`header(${field.name})`" v-bind="headerSlotProps"></slot>
                 </template>
-                <template v-for="field in fieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
-                    <div v-if="slotProps.colIndex === 0" :ref="(el) => refFn(slotProps, el)" />
+                <template
+                    v-for="field in fieldObjects"
+                    :key="field.name"
+                    #[`field(${field.name})`]="objectGridFieldSlotProps"
+                >
+                    <div
+                        v-if="objectGridFieldSlotProps.colIndex === 0"
+                        :ref="(el) => refFn(objectGridFieldSlotProps, el)"
+                    />
                     <slot
                         :field-class="theme('field')"
                         :field-component="formModel.fieldComponents[field.name]"
                         :field-detail="formModel.fieldDetails[field.name]"
                         :field-inner-class="theme('fieldInner')"
                         :field-props="{
+                            ...objectGridFieldSlotProps,
                             ...formModel.fieldProps[field.name],
-                            name: `${fieldContext.state.name}[${slotProps.rowIndex}].${field.fieldName}`,
+                            name: `${fieldContext.state.name}[${objectGridFieldSlotProps.rowIndex}].${field.fieldName}`,
                         }"
+                        :label-slots="
+                            availableLabelSlotNames.map((slot) => ({ slotName: slot, slotContent: $slots[slot] }))
+                        "
                         :name="`field(${field.name})`"
                         :read-only="computedFieldProps.readOnly"
                         :theme="theme"
@@ -336,41 +353,59 @@ const refFn = (slotProps, el) => {
                             :is="formModel.fieldComponents[field.name]"
                             v-if="formModel.fieldComponents[field.name]"
                             :class="theme('field')"
-                            v-bind="formModel.fieldProps[field.name]"
-                            :name="`${fieldContext.state.name}[${slotProps.rowIndex}].${field.fieldName}`"
+                            v-bind="{
+                                ...objectGridFieldSlotProps,
+                                ...formModel.fieldProps[field.name],
+                                name: `${fieldContext.state.name}[${objectGridFieldSlotProps.rowIndex}].${field.fieldName}`,
+                            }"
                             :read-only="computedFieldProps.readOnly"
                             :theme-override="themeOverride"
                         >
-                            <div :class="theme('fieldInner')">
-                                <slot
-                                    :field-details="formModel.fieldDetails[field.name]"
-                                    :fieldset-attrs="$attrs"
-                                    :fieldset-props="computedFieldProps"
-                                    :name="`widget(${field.name})`"
-                                    :theme="theme"
-                                    :theme-override="themeOverride"
-                                    :widget-component="formModel.widgetComponents[field.name]"
-                                    :widget-props="{ ...formModel.widgetProps[field.name], hidden: true }"
-                                >
-                                    <component
-                                        :is="formModel.widgetComponents[field.name]"
-                                        v-bind="formModel.widgetProps[field.name]"
-                                        v-if="formModel.widgetComponents[field.name] && !computedFieldProps.readOnly"
-                                        :hidden="true"
-                                        :model-value="slotProps.value"
+                            <template v-for="slot in availableLabelSlotNames" #[slot]="labelSlotProps">
+                                <slot :name="slot" v-bind="labelSlotProps" />
+                            </template>
+                            <template #default="fieldSlotProps">
+                                <div :class="theme('fieldInner')">
+                                    <slot
+                                        :field-details="formModel.fieldDetails[field.name]"
+                                        :fieldset-attrs="$attrs"
+                                        :fieldset-props="computedFieldProps"
+                                        :label-slots="
+                                            availableLabelSlotNames.map((slot) => ({
+                                                slotName: slot,
+                                                slotContent: $slots[slot],
+                                            }))
+                                        "
+                                        :name="`widget(${field.name})`"
+                                        :theme="theme"
                                         :theme-override="themeOverride"
-                                    />
-                                    <WidgetReadOnly
-                                        v-else
-                                        v-bind="formModel.widgetProps[field.name]"
-                                        :hidden="true"
-                                        :theme-override="themeOverride"
-                                    />
-                                </slot>
-                                <form-help-text :theme-override="themeOverride" />
-                                <form-feedback :theme-override="themeOverride" type="error" />
-                                <form-feedback :theme-override="themeOverride" type="message" />
-                            </div>
+                                        :widget-component="formModel.widgetComponents[field.name]"
+                                        :widget-props="{
+                                            ...fieldSlotProps,
+                                            ...formModel.widgetProps[field.name],
+                                            hidden: true,
+                                        }"
+                                    >
+                                        <component
+                                            :is="
+                                                formModel.widgetComponents[field.name] ??
+                                                availableWidgets.WidgetReadOnly
+                                            "
+                                            v-bind="{
+                                                ...fieldSlotProps,
+                                                ...formModel.widgetProps[field.name],
+                                                hidden: true,
+                                            }"
+                                            :model-value="fieldSlotProps.value"
+                                            :theme-override="themeOverride"
+                                        >
+                                            <template v-for="slot in availableLabelSlotNames" #[slot]="labelSlotProps">
+                                                <slot :name="slot" v-bind="labelSlotProps" />
+                                            </template>
+                                        </component>
+                                    </slot>
+                                </div>
+                            </template>
                         </component>
                     </slot>
                 </template>
