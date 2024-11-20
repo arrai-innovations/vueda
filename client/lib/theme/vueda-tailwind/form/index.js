@@ -222,4 +222,33 @@ export default {
             class: [],
         },
     },
+    FormHiddenFeedback: {
+        root: {
+            class: ["min-h-10 min-w-min"],
+        },
+        popoverBody: {
+            class: "flex flex-col gap-1 md:gap-2 2xl:gap-4",
+        },
+        popoverItem: {
+            class: [],
+        },
+        button: {
+            class: [],
+        },
+        icon: {
+            class: [],
+        },
+        required: {
+            class: [],
+        },
+        errors: {
+            class: [],
+        },
+        warnings: {
+            class: [],
+        },
+        help: {
+            class: [],
+        },
+    },
 };
