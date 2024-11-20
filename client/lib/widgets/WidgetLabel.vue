@@ -1,20 +1,19 @@
-<script setup>
-import { WidgetContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, inject } from "vue";
+<script>
+import { FORM_HIDDEN_FEEDBACK_PROPS, FORM_HIDDEN_FEEDBACK_SLOTS } from "@vueda/components/FormHiddenFeedback.vue";
+import { computed } from "vue";
 
-defineOptions({
-    inheritAttrs: false,
-});
-
-const props = defineProps({
+export const WIDGET_LABEL_SLOTS = ["label", "feedback", ...FORM_HIDDEN_FEEDBACK_SLOTS];
+export const getWidgetSlotsComputed = (slots) => {
+    return computed(() => {
+        return WIDGET_LABEL_SLOTS.filter((slotName) => slots[slotName]);
+    });
+};
+export const WIDGET_LABEL_PROPS = {
+    ...FORM_HIDDEN_FEEDBACK_PROPS,
     label: {
         type: String,
         description: "The label when not in context of a widget",
         default: undefined,
-    },
-    labelClass: {
-        type: [String, Array, Object],
-        default: () => [],
     },
     hidden: {
         type: Boolean,
@@ -24,22 +23,24 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
-    invalid: {
-        type: Boolean,
-        default: false,
-    },
-    invalidClass: {
-        type: String,
-        default: "!text-red-500",
-    },
-    warning: {
-        type: Boolean,
-        default: false,
-    },
-    warningClass: {
-        type: String,
-        default: "!text-amber-600 dark:!text-amber-500",
-    },
+};
+</script>
+<script setup>
+import FormHiddenFeedback from "@vueda/components/FormHiddenFeedback.vue";
+import { getFormHiddenFeedbackSlotsComputed } from "@vueda/components/FormHiddenFeedback.vue";
+import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
+import { WidgetContextSymbol } from "@vueda/utils/symbols.js";
+import pick from "lodash-es/pick.js";
+import { inject, useSlots } from "vue";
+
+defineOptions({
+    inheritAttrs: false,
+});
+
+const props = defineProps({
+    ...WIDGET_LABEL_PROPS,
+    ...THEME_OVERRIDE_PROPS,
 });
 
 /** @type {import('@vueda/use/useWidget.js').WidgetContext} */
@@ -48,19 +49,36 @@ const widgetContext = inject(WidgetContextSymbol);
 const computedFor = computed(() => (props.id ? props.id : widgetContext.state.widgetId));
 // aria-labelledby points to label
 const computedId = computed(() => (!props.id ? widgetContext?.state?.widgetId : undefined));
-const warningClass = computed(() => (props.warning && !props.invalid ? props.warningClass : ""));
-const invalidClass = computed(() => (props.invalid ? props.invalidClass : ""));
 const combinedLabel = computed(() => props.label ?? widgetContext?.state?.combinedLabel);
+const themeProps = computed(() => ({
+    props,
+    ...(widgetContext?.state || {}),
+}));
+const theme = useTheme("WidgetLabel", props, themeProps);
+const slots = useSlots();
+const availableFeedbackSlotNames = getFormHiddenFeedbackSlotsComputed(slots);
+const effectiveShown = computed(() => !(props.hidden ?? widgetContext?.state?.hidden ?? false));
 </script>
 <template>
-    <label
-        :id="computedId"
-        :class="[labelClass, warningClass, invalidClass]"
-        :for="computedFor"
-        :hidden="hidden"
-        v-bind="$attrs"
-    >
-        <slot :id="computedId" :for="computedFor" :label="combinedLabel" name="label">{{ combinedLabel }}</slot>
-    </label>
+    <div :class="theme('root')" data-qa="widget-label-root">
+        <label
+            v-if="effectiveShown"
+            :id="computedId"
+            :class="theme('label')"
+            data-qa="widget-label-label"
+            :for="computedFor"
+            :hidden="hidden"
+            v-bind="$attrs"
+        >
+            <slot :id="computedId" :for="computedFor" :label="combinedLabel" name="label">{{ combinedLabel }}</slot>
+        </label>
+        <slot name="feedback">
+            <form-hidden-feedback v-bind="pick(props, Object.keys(FORM_HIDDEN_FEEDBACK_PROPS))">
+                <template v-for="slotName in availableFeedbackSlotNames" :key="slotName" #[slotName]="slotProps">
+                    <slot :name="slotName" v-bind="slotProps" />
+                </template>
+            </form-hidden-feedback>
+        </slot>
+    </div>
     <slot></slot>
 </template>

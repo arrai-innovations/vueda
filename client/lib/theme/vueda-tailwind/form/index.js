@@ -4,7 +4,7 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-col [&_input]:w-full"],
+            class: ["flex flex-col"],
         },
         label: {
             class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
@@ -149,7 +149,7 @@ export default {
             class: [],
         },
         fieldInput: {
-            class: "w-full rounded border border-surface-300 dark:border-surface-600 p-2",
+            class: "rounded border border-surface-300 dark:border-surface-600 p-2",
         },
         submitButton: {
             class: "whitespace-nowrap",
@@ -167,7 +167,7 @@ export default {
             class: "mb-2",
         },
         hr: {
-            class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t",
+            class: "flex-1 border-primary-300 dark:border-primary-600 border-t",
         },
         message: {
             class: "text-red-600 dark:text-red-400",

@@ -4,21 +4,29 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-col [&_input]:w-full"],
-        },
-        label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["flex flex-col"],
         },
     },
     WidgetCheckbox: {
         root: {
-            class: ["ml-2"],
+            class: ["ml-2 flex flex-row grow"],
         },
         inner: {
-            class: ["flex"],
+            class: ["flex flex-row grow items-center"],
         },
-        label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
+        input: {
+            class: ["min-w-min grow-0 shrink-0"],
+        },
+        labelRoot: {
+            class: {
+                grow: true,
+                "mb-1": false,
+            },
+        },
+        labelLabel: {
+            class: {
+                "leading-7": false,
+            },
         },
     },
     WidgetDatePicker: {
@@ -26,10 +34,7 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-col gap-2 flex-wrap [&_input]:w-full"],
-        },
-        label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["flex flex-col gap-2 flex-wrap"],
         },
     },
     WidgetDuration: {
@@ -37,10 +42,7 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-row gap-2 flex-wrap [&_input]:w-full"],
-        },
-        label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["flex flex-row gap-2 flex-wrap"],
         },
         innerItem: {
             class: ["flex flex-col flex-grow"],
@@ -56,9 +58,6 @@ export default {
         file: {
             class: ["flex flex-wrap justify-between"],
         },
-        label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
-        },
         link: {
             class: ["font-semibold text-ellipsis max-w-60 whitespace-nowrap overflow-hidden"],
         },
@@ -71,16 +70,13 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-row gap-2 flex-wrap [&_input]:w-full"],
+            class: ["flex flex-row gap-2 flex-wrap"],
         },
         dropdownOuter: {
             class: ["flex flex-col flex-shrink"],
         },
         autoCompleteOuter: {
             class: ["flex flex-col flex-grow"],
-        },
-        label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
     WidgetHtml: {
@@ -89,9 +85,6 @@ export default {
         },
         inner: {
             class: ["flex flex-col"],
-        },
-        label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
         menu: {
             class: [],
@@ -110,19 +103,13 @@ export default {
         image: {
             class: ["flex flex-wrap justify-between"],
         },
-        label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
-        },
     },
     WidgetInput: {
         root: {
             class: [],
         },
         inner: {
-            class: ["flex flex-col gap-2 flex-wrap [&_input]:w-full"],
-        },
-        label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["flex flex-col gap-2 flex-wrap"],
         },
         inputRoot: {},
     },
@@ -132,9 +119,6 @@ export default {
         },
         inner: {
             class: ["flex flex-col"],
-        },
-        label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
         },
     },
     WidgetRadio: {
@@ -169,9 +153,6 @@ export default {
         inner: {
             class: ["flex flex-col"],
         },
-        label: {
-            class: ["ml-2", "text-surface-900/60 dark:text-white/60"],
-        },
         input: {
             class: ["ml-2"],
         },
@@ -181,10 +162,7 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-col gap-2 [&_input]:w-full"],
-        },
-        label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ["flex flex-col gap-2"],
         },
         inputLabel: {
             class: ["whitespace-nowrap overflow-hidden text-ellipsis"],
@@ -198,10 +176,7 @@ export default {
             class: [],
         },
         inner: {
-            class: [["flex flex-col gap-2 flex-wrap [&_input]:w-full"]],
-        },
-        label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: [["flex flex-col gap-2 flex-wrap"]],
         },
     },
     WidgetSlider: {
@@ -211,19 +186,30 @@ export default {
         inner: {
             class: ["flex flex-col"],
         },
-        label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
-        },
     },
     WidgetTextarea: {
         root: {
             class: [],
         },
         inner: {
-            class: [["flex flex-col gap-2 flex-wrap [&_input]:w-full"]],
+            class: [["flex flex-col gap-2 flex-wrap"]],
+        },
+    },
+    WidgetLabel: {
+        root: {
+            class: [
+                "ml-2 mb-1",
+                "flex flex-row items-center justify-between",
+                // not items-baseline, checkboxes and buttons don't play well with it
+            ],
         },
         label: {
-            class: ["ml-2 leading-7", "text-surface-900/60 dark:text-white/60"],
+            class: ({ validationState }) => ({
+                "leading-7": true,
+                "text-surface-900/60 dark:text-white/60": true,
+                "!text-amber-600 dark:!text-amber-500": validationState.warning,
+                "!text-maroon-600 dark:!text-maroon-500": validationState.invalid,
+            }),
         },
     },
 };

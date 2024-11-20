@@ -2,15 +2,17 @@
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
-import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
+import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import pick from "lodash-es/pick.js";
 import Slider from "primevue/slider";
-import { unref } from "vue";
+import { useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
+    ...WIDGET_LABEL_PROPS,
     minValue: {
         type: Number,
         default: 0,
@@ -27,17 +29,14 @@ const widgetContext = useWidget(props, emit);
 const theme = useTheme("WidgetSlider", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
 // todo: click handler for the widget-label to focus the slider
+const slots = useSlots();
+const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label
-            :id="widgetContext.state.widgetId"
-            :hidden="hidden"
-            :label-class="theme('label')"
-            v-bind="unref(widgetContext.state.validationState)"
-        >
-            <template v-if="$slots.label" #label="slotProps">
-                <slot name="label" v-bind="slotProps" />
+        <widget-label :id="widgetContext.state.widgetId" v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
+            <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
+                <slot :name="slotName" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
                 <div class="card flex justify-center">

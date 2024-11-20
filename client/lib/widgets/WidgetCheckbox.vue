@@ -2,27 +2,37 @@
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
-import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
+import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import pick from "lodash-es/pick.js";
 import ToggleSwitch from "primevue/toggleswitch";
+import { computed, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
+    ...WIDGET_LABEL_PROPS,
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetCheckbox", props, widgetContext.state);
+const themeProps = computed(() => ({
+    props,
+    ...(widgetContext?.state || {}),
+}));
+const theme = useTheme("WidgetCheckbox", props, themeProps);
 const effectivePt = useWarningClass(props, widgetContext.state);
+const slots = useSlots();
+const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
-    <div :class="theme('root')">
-        <div :class="theme('inner')">
+    <div :class="theme('root')" data-qa="widget-checkbox-root">
+        <div :class="theme('inner')" data-qa="widget-checkbox-inner">
             <ToggleSwitch
                 v-model="widgetContext.state.combinedValue"
+                :class="theme('input')"
                 v-bind="$attrs"
                 :disabled="widgetContext.state.disabled"
                 :input-id="widgetContext.state.widgetId"
@@ -34,14 +44,21 @@ const effectivePt = useWarningClass(props, widgetContext.state);
                 @focus="widgetContext.focus"
             />
             <widget-label
-                v-if="!hidden"
                 :for="widgetContext.state.widgetId"
-                :invalid="widgetContext.state.validationState.invalid"
-                :label-class="theme('label')"
-                :warning="widgetContext.state.validationState.warning"
+                :theme-override="{
+                    WidgetLabel: {
+                        root: {
+                            class: [theme('labelRoot')],
+                        },
+                        label: {
+                            class: [theme('labelLabel')],
+                        },
+                    },
+                }"
+                v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
             >
-                <template #label="slotProps">
-                    <slot name="label" v-bind="slotProps" />
+                <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
+                    <slot :name="slotName" v-bind="slotProps" />
                 </template>
             </widget-label>
         </div>

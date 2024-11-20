@@ -2,15 +2,17 @@
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
-import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
+import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import pick from "lodash-es/pick.js";
 import InputNumber from "primevue/inputnumber";
-import { computed, reactive, ref, unref } from "vue";
+import { computed, reactive, ref, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
+    ...WIDGET_LABEL_PROPS,
     showDays: {
         type: Boolean,
         default: false,
@@ -90,18 +92,18 @@ const focusFirstInput = () => {
         secondsInput.value.onClick();
     }
 };
+const slots = useSlots();
+const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')">
         <widget-label
             :id="`${widgetContext.state.widgetId}-label`"
-            :hidden="hidden"
-            :label-class="theme('label')"
-            v-bind="unref(widgetContext.state.validationState)"
+            v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
             @click="focusFirstInput"
         >
-            <template v-if="$slots.label" #label="slotProps">
-                <slot name="label" v-bind="slotProps" />
+            <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
+                <slot :name="slotName" v-bind="slotProps" />
             </template>
             <div :aria-labelledby="`${widgetContext.state.widgetId}-label`" :class="theme('inner')">
                 <div v-if="showDays" :class="theme('innerItem')">

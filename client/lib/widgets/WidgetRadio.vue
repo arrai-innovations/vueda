@@ -2,15 +2,18 @@
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
-import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
+import WidgetLabel, { WIDGET_LABEL_PROPS } from "@vueda/widgets/WidgetLabel.vue";
+import { getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import pick from "lodash-es/pick.js";
 import RadioButton from "primevue/radiobutton";
-import { computed } from "vue";
+import { computed, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
+    ...WIDGET_LABEL_PROPS,
     options: {
         type: Array,
         required: true,
@@ -46,13 +49,19 @@ const handleFocus = () => {
     widgetContext.focus();
     props.onFocus();
 };
+const slots = useSlots();
+const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 
 <template>
     <div :class="theme('root')">
-        <widget-label :id="`${widgetContext.state.widgetId}-label`" :label-class="theme('optionLabel')">
-            <template v-if="$slots.label" #label="slotProps">
-                <slot name="label" v-bind="slotProps" />
+        <widget-label
+            :id="`${widgetContext.state.widgetId}-label`"
+            :label-class="theme('optionLabel')"
+            v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
+        >
+            <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
+                <slot :name="slotName" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
                 <ul :aria-labelledby="`${widgetContext.state.widgetId}-label`" :class="theme('options')">

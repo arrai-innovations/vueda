@@ -3,18 +3,20 @@ import EmptyComponent from "@vueda/components/EmptyComponent.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
-import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
+import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import pick from "lodash-es/pick.js";
 import InputGroup from "primevue/inputgroup";
 import InputMask from "primevue/inputmask";
 import InputOtp from "primevue/inputotp";
 import InputText from "primevue/inputtext";
-import { computed, unref } from "vue";
+import { computed, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
+    ...WIDGET_LABEL_PROPS,
     type: {
         type: String,
         default: "text",
@@ -37,17 +39,14 @@ const inputComponent = computed(
 
 const theme = useTheme("WidgetInput", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
+const slots = useSlots();
+const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label
-            :for="widgetContext.state.widgetId"
-            :hidden="hidden"
-            :label-class="theme('label')"
-            v-bind="unref(widgetContext.state.validationState)"
-        >
-            <template v-if="$slots.label" #label="slotProps">
-                <slot name="label" v-bind="slotProps" />
+        <widget-label :for="widgetContext.state.widgetId" v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
+            <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
+                <slot :name="slotName" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
                 <component :is="$slots.prefix || $slots.suffix ? InputGroup : EmptyComponent">

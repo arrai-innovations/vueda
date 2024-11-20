@@ -1,17 +1,19 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
-import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
+import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import pick from "lodash-es/pick.js";
 import Button from "primevue/button";
 import FileUpload from "primevue/fileupload";
 import Image from "primevue/image";
-import { unref } from "vue";
+import { useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
+    ...WIDGET_LABEL_PROPS,
     ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
@@ -27,16 +29,14 @@ const theme = useTheme("WidgetImage", props, widgetContext.state);
 // todo: click handler for the widget-label to focus the image
 // todo: aria-labelledby? or use id to the hidden file input
 // todo: warning/invalid states?
+const slots = useSlots();
+const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label
-            :hidden="hidden"
-            :label-class="theme('label')"
-            v-bind="unref(widgetContext.state.validationState)"
-        >
-            <template v-if="$slots.label" #label="slotProps">
-                <slot name="label" v-bind="slotProps" />
+        <widget-label v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
+            <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
+                <slot :name="slotName" v-bind="slotProps" />
             </template>
             <div :class="theme('inner')">
                 <div v-if="widgetContext.state.combinedValue" :class="theme('image')">
