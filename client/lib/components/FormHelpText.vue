@@ -22,8 +22,8 @@ const props = defineProps({
     },
     severity: {
         type: String,
-        default: "help",
-        validator: (value) => ["error", "warn", "help", "success", "info", "contrast", null].includes(value),
+        default: "info",
+        validator: (value) => ["error", "warn", "primary", "success", "info", "contrast", null].includes(value),
     },
     allowHtml: {
         type: Boolean,
