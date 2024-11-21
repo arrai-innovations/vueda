@@ -33,7 +33,7 @@ import { useTheme } from "@vueda/use/useTheme.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import pick from "lodash-es/pick.js";
-import { inject, useSlots } from "vue";
+import { inject, unref, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -59,14 +59,14 @@ const theme = useTheme("WidgetLabel", props, themeProps);
 const slots = useSlots();
 const availableFeedbackSlotNames = getFormHiddenFeedbackSlotsComputed(slots);
 const effectiveHidden = computed(() => props.hidden ?? widgetContext?.state?.hidden ?? false);
-const labelClass = computed(() => combineClasses(theme("label"), { "sr-only": effectiveHidden }));
+const labelClass = computed(() => combineClasses(theme("label"), { "sr-only": unref(effectiveHidden) }));
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-label-root">
         <label :id="computedId" :class="labelClass" data-qa="widget-label-label" :for="computedFor" v-bind="$attrs">
             <slot :id="computedId" :for="computedFor" :label="combinedLabel" name="label">{{ combinedLabel }}</slot>
         </label>
-        <slot name="feedback">
+        <slot v-if="!effectiveHidden" name="feedback">
             <form-hidden-feedback v-bind="pick(props, Object.keys(FORM_HIDDEN_FEEDBACK_PROPS))">
                 <template v-for="slotName in availableFeedbackSlotNames" :key="slotName" #[slotName]="slotProps">
                     <slot :name="slotName" v-bind="slotProps" />
@@ -75,4 +75,11 @@ const labelClass = computed(() => combineClasses(theme("label"), { "sr-only": ef
         </slot>
     </div>
     <slot></slot>
+    <slot v-if="effectiveHidden" name="feedback">
+        <form-hidden-feedback v-bind="pick(props, Object.keys(FORM_HIDDEN_FEEDBACK_PROPS))">
+            <template v-for="slotName in availableFeedbackSlotNames" :key="slotName" #[slotName]="slotProps">
+                <slot :name="slotName" v-bind="slotProps" />
+            </template>
+        </form-hidden-feedback>
+    </slot>
 </template>
