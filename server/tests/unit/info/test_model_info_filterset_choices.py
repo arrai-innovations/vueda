@@ -31,13 +31,12 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
         "cart",
         "product_name",
         (
-            {"label": "None"},
             {"label": "Men's White T-Shirt", "value": "Men's White T-Shirt"},
             {"label": "Shaped Cookies For Drapes", "value": "Shaped Cookies For Drapes"},
             {"label": "Square Cookies For Squares", "value": "Square Cookies For Squares"},
             {"label": "Women's White T-Shirt", "value": "Women's White T-Shirt"},
         ),
-        "",
+        None,
     ),
     (
         "store",

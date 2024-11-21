@@ -68,7 +68,11 @@ class CartFilterSet(VuedaFilterSet):
     product_name = rest_framework.AllValuesMultipleFilter(
         field_name="cart_items__product_option__product__name", label="Product name"
     )
+    # This can't be done in the init, because they were not designed to do that, even though they need the model.
     product_name.model = my_models.Cart
+    # These are our own additional fields.  With empty_label of None, we won't return the empty choice.
+    product_name.empty_label = None
+
     product_quantity = rest_framework.AllValuesMultipleFilter(
         field_name="cart_items__product_option__quantity_available", label="Product quantity"
     )
