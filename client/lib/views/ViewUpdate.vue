@@ -127,7 +127,7 @@ const validAndActive = computed(
         ),
 );
 
-const emit = defineEmits(["object", "loading", "related-object", "calculated-object", "form-object"]);
+const emit = defineEmits(["object", "loading", "related-object", "calculated-object", "form-object", "form-context"]);
 
 const viewName = "update";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
@@ -257,7 +257,7 @@ const detailedActions = computed(() => {
 useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, toRef(props, "pk"));
 </script>
 <template>
-    <div :class="props.class">
+    <div :class="props.class" data-qa="update-view">
         <page-title :loading="pageLoading" :title="titleStr">
             <template #button>
                 <template
@@ -286,7 +286,7 @@ useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, t
                 <slot name="extra-buttons" />
             </template>
             <template #under-actions>
-                <div class="flex flex-col sm:flex-row gap-1 w-full flex-wrap">
+                <div class="flex flex-row gap-1 w-full flex-wrap" data-qa="update-action-buttons">
                     <slot
                         :form="formId"
                         label="Submit"
@@ -322,7 +322,7 @@ useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, t
                 <slot :name="slot" v-bind="slotProps || {}" />
             </template>
         </page-title>
-        <div>
+        <div :class="props.outerClass" data-qa="update-form">
             <error-display
                 :error="combinedError"
                 :errored="combinedErrored"

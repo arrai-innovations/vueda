@@ -2,7 +2,8 @@
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { FieldContextSymbol } from "@vueda/utils/symbols.js";
+import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
+import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
 import { computed, inject, onMounted, useAttrs } from "vue";
 
@@ -27,15 +28,18 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
+const formContext = inject(FormContextSymbol, null);
 const fieldContext = inject(FieldContextSymbol, null);
 onMounted(() => {
-    if (!fieldContext && !props.name && (!props.errors || !props.warnings)) {
+    if (!formContext && !fieldContext && (!props.name || !props.errors || !props.warnings)) {
         console.warn(
-            "FormChores.vue must be used within a field context, a field name must be provided, or [help]/errors/warnings must be provided.",
+            "FormChores.vue must be used within a form context, a field context, a field name must be provided with [help]/errors/warnings.",
         );
     }
 });
-const computedName = computed(() => (props.name?.length ? props.name : fieldContext?.state?.name));
+const computedName = computed(() =>
+    props.name?.length ? props.name : (fieldContext?.state?.name ?? NON_FIELD_ERRORS_KEY),
+);
 const computedHelp = computed(() => (props.help?.length ? props.help : fieldContext?.state?.help));
 const attrs = useAttrs();
 const computedAttrsSansClass = computed(() => omit(attrs, ["class"]));

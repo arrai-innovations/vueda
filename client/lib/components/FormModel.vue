@@ -342,7 +342,10 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                                     <slot :name="slot" v-bind="widgetSlotProps" />
                                 </template>
                                 <template #default="fieldSlotProps">
-                                    <div :class="formModel.fieldLevelTheme('fieldInner')">
+                                    <div
+                                        :class="formModel?.fieldLevelTheme[fieldName]?.('fieldInner')"
+                                        data-qa="form-model-field-inner"
+                                    >
                                         <slot
                                             :field-details="formModel.fieldDetails[fieldName]"
                                             :form-attrs="$attrs"

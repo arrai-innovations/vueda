@@ -249,12 +249,7 @@ export function useFormModel(props) {
                         isExpandedField,
                         field,
                     );
-                    if (fieldProps[fieldName].themeOverride) {
-                        fieldLevelTheme[fieldName] = makeFormModelTheme(
-                            fieldProps[fieldName].themeOverride,
-                            fieldProps[fieldName],
-                        );
-                    }
+                    fieldLevelTheme[fieldName] = makeFormModelTheme(fieldProps[fieldName]);
                 }
                 assignStateObjectsIfChanged({
                     fieldComponents,

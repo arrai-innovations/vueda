@@ -16,6 +16,7 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
+import Divider from "primevue/divider";
 import { computed, inject, nextTick, reactive, ref, shallowReactive, useSlots, watch } from "vue";
 
 const props = defineProps({
@@ -254,7 +255,15 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 <template>
     <div :class="theme('root')" data-qa="fieldset-tabular-inline">
         <div :class="theme('inner')">
-            <header :class="theme('titleBar')" :for="fieldContext.state.name">
+            <!--            <header :class="theme('titleBar')" :for="fieldContext.state.name">-->
+            <Divider
+                align="left"
+                :pt="{
+                    content: {
+                        class: 'flex flex-row items-baseline justify-between gap-1 md:gap-2 2xl:gap-4 !bg-zinc-100 dark:!bg-zinc-800',
+                    },
+                }"
+            >
                 <div v-if="hidable">
                     <slot
                         :class="theme('toggleButton')"
@@ -289,8 +298,9 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         <Button :class="theme('createButton')" label="Create" @click="onCreate" />
                     </slot>
                 </div>
-            </header>
-            <hr :class="theme('hr')" />
+            </Divider>
+            <!--            </header>-->
+            <!--            <hr :class="theme('hr')" />-->
             <slot name="field-set-level-chores" :theme-override="themeOverride">
                 <form-chores :theme-override="themeOverride" :variant="null">
                     <template

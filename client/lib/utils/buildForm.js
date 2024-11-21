@@ -81,8 +81,7 @@ export const getFormChoresSlotNames = (fieldName) => {
  *     fieldName?: string
  * ) => import('vue').ComputedRef<object>} setWidgetComponentProps - Set the widget props for a field.
  * @property {(
- *     themeOverride: import('vue').Ref<string | object | object[] | undefined>,
- *     props: import('vue').UnwrapNestedRefs<object>
+ *     props: import('vue').UnwrapNestedRefs<{[key: string]: any, themeOverride: import('@vueda/use/useTheme.js').ThemeObject|undefined}>
  * ) => import('vue').ComputedRef<import('vue').UnwrapNestedRefs<object>>} makeFormModelTheme - Make the field-specific form model theme.
  */
 
@@ -325,13 +324,14 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 return undefined;
             },
         );
+        console.log("themeOverride for", fieldName, "is", deepUnref(themeOverride));
         return isEmpty(themeOverride) ? undefined : themeOverride;
     }
 
-    function makeFormModelTheme(themeOverride, props) {
+    function makeFormModelTheme(props) {
         let theme = undefined;
         es.run(() => {
-            theme = useTheme("FormModel", props, themeOverride);
+            theme = useTheme("FormModel", props);
         });
         return theme;
     }

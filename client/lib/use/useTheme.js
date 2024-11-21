@@ -3,7 +3,7 @@ import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isFunction from "lodash-es/isFunction.js";
 import merge from "lodash-es/merge.js";
-import { computed, effectScope, reactive, toRef, unref } from "vue";
+import { computed, effectScope, unref } from "vue";
 
 let defaultTheme = vuedaTailwind;
 
@@ -74,14 +74,13 @@ const getClassValue = (configOrOverride, key, context) => {
  * The function returned by useTheme.
  * @typedef {(key: string, kwargs?: import('vue').UnwrapNestedRefs<object>) => ThemeObject} UseThemeReturnFunction
  */
-
 /**
  * A hook to get the classes for a given key and kwargs. Uses computeds for caching.
  *
  * @param {string} componentName - The name of the component.
  * @param {import('vue').UnwrapNestedRefs<{
  *     themeOverride: ThemeObject
- * }>} props - The reactive props to pass to the class function.
+ * }>|import('vue').ComputedRef<object>} props - The reactive or computed props to pass to the class function.
  * @param {import('vue').UnwrapNestedRefs<object>|import('vue').Ref<object>|object} [context] - The context to pass if the config or config.class is a function.
  * @param {(key: string, kwargs: object) => string} [keyFn] - A function to modify a key based on kwargs.
  * @returns {UseThemeReturnFunction} A function that returns the classes for a given key and kwargs.
@@ -97,13 +96,11 @@ export function useTheme(componentName, props, context, keyFn) {
     if (!config) {
         throw new Error(`No theme config found for ${componentName}`);
     }
-    const themeOverride = toRef(props, "themeOverride");
+    const themeOverride = computed(() => unref(props)?.themeOverride);
 
     let myContext = context;
     if (!myContext) {
-        myContext = reactive({
-            props,
-        });
+        myContext = computed(() => ({ props: unref(props) }));
     }
 
     return (key, kwargs = {}) => {
