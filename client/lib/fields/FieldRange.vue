@@ -3,6 +3,9 @@ import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { isObject } from "lodash-es";
 import isArray from "lodash-es/isArray.js";
 
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     ...FIELD_PROPS,
     type: {

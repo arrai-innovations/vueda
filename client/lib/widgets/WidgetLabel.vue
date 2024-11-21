@@ -26,6 +26,7 @@ export const WIDGET_LABEL_PROPS = {
 };
 </script>
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FormHiddenFeedback from "@vueda/components/FormHiddenFeedback.vue";
 import { getFormHiddenFeedbackSlotsComputed } from "@vueda/components/FormHiddenFeedback.vue";
 import { useTheme } from "@vueda/use/useTheme.js";
@@ -57,19 +58,12 @@ const themeProps = computed(() => ({
 const theme = useTheme("WidgetLabel", props, themeProps);
 const slots = useSlots();
 const availableFeedbackSlotNames = getFormHiddenFeedbackSlotsComputed(slots);
-const effectiveShown = computed(() => !(props.hidden ?? widgetContext?.state?.hidden ?? false));
+const effectiveHidden = computed(() => props.hidden ?? widgetContext?.state?.hidden ?? false);
+const labelClass = computed(() => combineClasses(theme("label"), { "sr-only": effectiveHidden }));
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-label-root">
-        <label
-            v-if="effectiveShown"
-            :id="computedId"
-            :class="theme('label')"
-            data-qa="widget-label-label"
-            :for="computedFor"
-            :hidden="hidden"
-            v-bind="$attrs"
-        >
+        <label :id="computedId" :class="labelClass" data-qa="widget-label-label" :for="computedFor" v-bind="$attrs">
             <slot :id="computedId" :for="computedFor" :label="combinedLabel" name="label">{{ combinedLabel }}</slot>
         </label>
         <slot name="feedback">

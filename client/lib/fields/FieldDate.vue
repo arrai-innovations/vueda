@@ -2,6 +2,9 @@
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { computed, watch } from "vue";
 
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     ...FIELD_PROPS,
     maxValue: {

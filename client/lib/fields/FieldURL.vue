@@ -1,6 +1,9 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, onBeforeFieldUnmount, useField } from "@vueda/use/useField.js";
 
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     ...FIELD_PROPS,
 });

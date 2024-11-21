@@ -3,6 +3,9 @@ import { FIELD_EMITS, FIELD_PROPS, onBeforeFieldUnmount, useField } from "@vueda
 import { isObject } from "lodash-es";
 import { toRef, watch } from "vue";
 
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     ...FIELD_PROPS,
 });

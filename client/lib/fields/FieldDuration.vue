@@ -3,6 +3,9 @@ import { FIELD_EMITS, FIELD_PROPS, onBeforeFieldUnmount, useField } from "@vueda
 import { isObject } from "lodash-es";
 import isString from "lodash-es/isString.js";
 
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     ...FIELD_PROPS,
     trim: {
