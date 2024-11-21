@@ -72,7 +72,11 @@ class CartFilterSet(VuedaFilterSet):
     product_quantity = rest_framework.AllValuesMultipleFilter(
         field_name="cart_items__product_option__quantity_available", label="Product quantity"
     )
+    # This can't be done in the init, because they were not designed to do that, even though they need the model.
     product_quantity.model = my_models.Cart
+    # These are our own additional fields, so we can modify the empty label and value that are returned.
+    product_quantity.empty_label = "Nothing"
+    product_quantity.empty_value = "test"
 
     class Meta:
         model = my_models.Cart

@@ -18,103 +18,123 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
         "cart",
         "product_quantity",
         (
+            {"label": "Nothing"},
             {"label": "0", "value": "0"},
             {"label": "10", "value": "10"},
             {"label": "4", "value": "4"},
             {"label": "6", "value": "6"},
         ),
+        "test",
     ),
     (
         "store",
         "cart",
         "product_name",
         (
+            {"label": "None"},
             {"label": "Men's White T-Shirt", "value": "Men's White T-Shirt"},
             {"label": "Shaped Cookies For Drapes", "value": "Shaped Cookies For Drapes"},
             {"label": "Square Cookies For Squares", "value": "Square Cookies For Squares"},
             {"label": "Women's White T-Shirt", "value": "Women's White T-Shirt"},
         ),
+        "",
     ),
     (
         "store",
         "product",
         "disabled",
         (
+            {"label": "None"},
             {"label": "Unknown", "value": ""},
             {"label": "Yes", "value": "true"},
             {"label": "No", "value": "false"},
         ),
+        "",
     ),
     (
         "store",
         "product",
         "distributor",
         (
+            {"label": "None"},
             {"label": "Tasty Treats Assoc.", "value": "Tasty Treats Assoc."},
             {"label": "T-Shirt Corp.", "value": "T-Shirt Corp."},
             {"label": "Vibrant Looks Inc.", "value": "Vibrant Looks Inc."},
         ),
+        "",
     ),
     (
         "store",
         "product",
         "special_care",
         (
+            {"label": "None"},
             {"label": "Dangerous", "value": None},
             {"label": "Fragile", "value": None},
             {"label": "Oversized", "value": None},
             {"label": "Perishable", "value": None},
             {"label": "Temperature Controlled", "value": None},
         ),
+        "",
     ),
     (
         "store",
         "product",
         "tangible_type",
         (
+            {"label": "None"},
             {"label": "Digital", "value": None},
             {"label": "Physical", "value": None},
         ),
+        "",
     ),
     (
         "store",
         "productoption",
         "disabled",
         (
+            {"label": "None"},
             {"label": "True", "value": None},
             {"label": "False", "value": None},
         ),
+        "",
     ),
     (
         "store",
         "inventoryrecord",
         "is_added",
         (
+            {"label": "None"},
             {"label": "Unknown", "value": None},
             {"label": "No", "value": None},
             {"label": "Yes", "value": None},
         ),
+        "",
     ),
     (
         "store",
         "inventoryrecord",
         "reason",
         (
+            {"label": "None"},
             {"label": "Damaged Inventory", "value": None},
             {"label": "Order Fulfillment", "value": None},
             {"label": "Received Inventory", "value": None},
             {"label": "Returned Inventory", "value": None},
         ),
+        "",
     ),
     (
         "store",
         "customerorder",
         "shipping_method",
         (
+            {"label": "None"},
             {"label": "---------", "value": None},
             {"label": "Regular", "value": None},
             {"label": "Express", "value": None},
         ),
+        "",
     ),
 ]
 
@@ -224,7 +244,7 @@ class TestModelInfoFiltersetChoices:
         info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
 
     @pytest.mark.parametrize(
-        "app_label, model_name, field_name, expected_choices",
+        "app_label, model_name, field_name, expected_choices, expected_empty_value",
         DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest dumps the whole def, so move the parameterize details elsewhere
         ids=idfn,
     )
@@ -236,6 +256,7 @@ class TestModelInfoFiltersetChoices:
         model_name,
         field_name,
         expected_choices,
+        expected_empty_value,
     ):
         user = test_data.users["test_customer_1@example.com"]
         api_client.force_authenticate(user=user)
@@ -268,9 +289,12 @@ class TestModelInfoFiltersetChoices:
                 assert frozenset(result["label"] for result in response.data["results"]) == frozenset(
                     result["label"] for result in expected_choices
                 ), msg
+                if expected_empty_value is not None:
+                    msg = f"DETAIL_CHOICES_FILTERING_PARAMETRIZE -> {(app_label, model_name, field_name)} -> expected_empty_value"
+                    assert response.data["results"][0]["value"] == expected_empty_value, msg
 
     @pytest.mark.parametrize(
-        "app_label, model_name, field_name, expected_choices",
+        "app_label, model_name, field_name, expected_choices, expected_empty_value",
         DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest dumps the whole def, so move the parameterize details elsewhere
         ids=idfn,
     )
@@ -282,6 +306,7 @@ class TestModelInfoFiltersetChoices:
         model_name,
         field_name,
         expected_choices,
+        expected_empty_value,
     ):
         user = test_data.users["test_admin@example.com"]
         api_client.force_authenticate(user=user)
