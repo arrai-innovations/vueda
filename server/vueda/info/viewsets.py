@@ -1,6 +1,7 @@
 import collections
 import operator
 
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import CharField
 from django.db.models import F
@@ -349,6 +350,12 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
     serializer_class = ModelInfoFilterSetChoicesSerializer
 
+    def paginate_queryset(self, queryset):
+        # Must add the None choice here, so it runs after filter_queryset,
+        # in case we have a queryset that gets changed in filter_queryset.
+        queryset = (FilterChoice(self.empty_value, self.empty_label),) + tuple(queryset)
+        return super().paginate_queryset(queryset)
+
     def validate_queryset(self, filterset, filter_mapping):
         if self.choices_field not in filter_mapping:
             valid_filter_names = tuple(filter_mapping)
@@ -379,6 +386,9 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         self.validate_queryset(filterset, filter_mapping)
 
         filtr = filter_mapping[self.choices_field]
+
+        self.empty_label = getattr(filtr, "empty_label", settings.EMPTY_CHOICE_LABEL)
+        self.empty_value = getattr(filtr, "empty_value", settings.EMPTY_CHOICE_VALUE)
 
         self.queryset = None
         if hasattr(filtr, "queryset"):
