@@ -2,6 +2,7 @@ import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isFunction from "lodash-es/isFunction.js";
+import merge from "lodash-es/merge.js";
 import { computed, effectScope, reactive, toRef, unref } from "vue";
 
 let defaultTheme = vuedaTailwind;
@@ -24,30 +25,55 @@ export const THEME_OVERRIDE_PROPS = {
  */
 
 /**
- * A theme object.
+ * A theme object for a particular component.
  *
  * @typedef {({
- *     [componentName: string]: {
- *         [slotName: string]: {
- *             [key: string]: any,
- *             ["class"]: (
- *                 ((args: {props: object|import('vue').UnwrapNestedRefs<object>, [key:string]: any}) => CombinedClassesArgument|CombinedClassesArgument[]) |
- *                 CombinedClassesArgument |
- *                 CombinedClassesArgument[]
- *             ),
- *         }
+ *     [slotName: string]: {
+ *         [key: string]: any,
+ *         ["class"]: (
+ *             ((args: {props: object|import('vue').UnwrapNestedRefs<object>, [key:string]: any}) => CombinedClassesArgument|CombinedClassesArgument[]) |
+ *             CombinedClassesArgument |
+ *             CombinedClassesArgument[]
+ *         ),
  *     }
+ * })} ComponentTheme
+ */
+
+/**
+ * A theme object or a partial theme object.
+ *
+ * @typedef {({
+ *     [componentName: string]: ComponentTheme
  * })} ThemeObject
  */
 
+/*
+ * Get the config value from a config or override.
+ *
+ * @param {ThemeObject} configOrOverride - The theme config or override.
+ * @param {string} key - The key to get the value for.
+ * @param {object|import('vue').UnwrapNestedRefs<object>} [context] - The context to pass if the config or config.class is a function.
+ */
 const getConfigValue = (configOrOverride, key, context) => {
     const value = configOrOverride[key];
     return isFunction(value) ? value(context) : value;
 };
+/**
+ * Get the class for a config value from a config or override.
+ *
+ * @param {ThemeObject} configOrOverride - The theme config or override.
+ * @param {string} key - The key to get the class value for.
+ * @param {object|import('vue').UnwrapNestedRefs<object>} [context] - The context to pass if the config or config.class is a function.
+ */
 const getClassValue = (configOrOverride, key, context) => {
     const classObj = getConfigValue(configOrOverride, key, context);
     return isFunction(classObj?.class) ? classObj.class(context) : classObj?.class;
 };
+
+/**
+ * The function returned by useTheme.
+ * @typedef {(key: string, kwargs?: import('vue').UnwrapNestedRefs<object>) => ThemeObject} UseThemeReturnFunction
+ */
 
 /**
  * A hook to get the classes for a given key and kwargs. Uses computeds for caching.
@@ -58,7 +84,7 @@ const getClassValue = (configOrOverride, key, context) => {
  * }>} props - The reactive props to pass to the class function.
  * @param {import('vue').UnwrapNestedRefs<object>|import('vue').Ref<object>|object} [context] - The context to pass if the config or config.class is a function.
  * @param {(key: string, kwargs: object) => string} [keyFn] - A function to modify a key based on kwargs.
- * @returns {(key: string, kwargs?: import('vue').UnwrapNestedRefs<object>) => ThemeObject} A function that returns the classes for a given key and kwargs.
+ * @returns {UseThemeReturnFunction} A function that returns the classes for a given key and kwargs.
  */
 export function useTheme(componentName, props, context, keyFn) {
     const computeds = {};
@@ -134,4 +160,14 @@ export function patchTheme(partialTheme) {
             ...partialTheme[componentName],
         };
     }
+}
+
+/**
+ * Merge multiple ThemeObjects into a single ThemeObject.
+ *
+ * @param {...ThemeObject} themes - List of ThemeObjects to merge.
+ * @returns {ThemeObject} - The merged ThemeObject.
+ */
+export function mergeTheme(...themes) {
+    return themes.reduce((acc, theme) => merge(acc, theme || {}), {});
 }

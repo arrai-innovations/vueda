@@ -89,9 +89,9 @@ const getFieldProps = (field) => {
  * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - The merged fieldDetails, either passed in, from config or from server info.
  * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - The merged expandDetails, either passed in, from config or from server info.
  * @property {{[fieldName:string]:import('vue').Component}} fieldComponents - The field components to use, either passed in or as a result of fieldObject or expandObject.
- * @property {{[fieldName:string]: {[key:string]: any}}} fieldProps - The field props to use, either passed in or as a result of fieldObject or expandObject.
+ * @property {{[fieldName:string]: {[key:string]: any, themeOverride: import('@vueda/use/useTheme.js').ThemeObject|undefined}}} fieldProps - The field props to use, either passed in or as a result of fieldObject or expandObject.
  * @property {{[fieldName:string]: import('vue').Component}} widgetComponents - The widget components to use, either passed in or as a result of fieldObject or expandObject.
- * @property {{[fieldName:string]: {[key:string]: any}}} widgetProps - The widget props to use, either passed in or as a result of fieldObject or expandObject.
+ * @property {{[fieldName:string]: {[key:string]: any, themeOverride: import('@vueda/use/useTheme.js').ThemeObject|undefined}}} widgetProps - The widget props to use, either passed in or as a result of fieldObject or expandObject.
  * @property {Set<string>} baseFieldNames - The field names that are not expanded.
  * @property {Set<string>} expansionFieldNames - The field names that are expanded.
  * @property {Set<string>} expandedFieldNames - The field names that are expanded and base.
@@ -112,6 +112,7 @@ const getFieldProps = (field) => {
  * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').ExpandInfo}|undefined} expandDetails - The expand details to use, if different from the default
  * @property {{[fieldName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}|undefined} fieldComponents - The field components to use, if different from the default, by field path
  * @property {{[fieldName:string]: {[key:string]: any}}|undefined} fieldProps - The field props to use, if different from the default, by field path
+ * @property {import('@vueda/use/useTheme.js').UseThemeReturnFunction|undefined} fieldLevelTheme - The form-level theme override rules. These are used to render each field's FormModel theme needs.
  * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}|undefined} widgetComponents - The widget components to use, if different from the default, by field path
  * @property {{[fieldName:string]: {[key:string]: any}}|undefined} widgetProps - The widget props to use, if different from the default, by field path
  * @property {import('@vueda/use/useTheme.js').ThemeObject|undefined} themeOverride - The form-level theme override rules. These are passed to each child component.
@@ -136,6 +137,7 @@ export function useFormModel(props) {
             expandDetails: {},
             fieldComponents: shallowReactive({}),
             fieldProps: {},
+            fieldLevelTheme: {},
             widgetComponents: shallowReactive({}),
             widgetProps: {},
             baseFieldNames: [],
@@ -150,6 +152,7 @@ export function useFormModel(props) {
         setFieldComponentProps,
         setWidgetComponent,
         setWidgetComponentProps,
+        makeFormModelTheme,
     } = buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps);
     setUpWatch("displayFields", "fieldDetails", "fields", "fieldDetails");
     setUpWatch("expands", "expandDetails");
@@ -161,6 +164,7 @@ export function useFormModel(props) {
             if (Object.keys(fieldDetails || {}).length && fields.length) {
                 const fieldComponents = {};
                 const fieldProps = {};
+                const fieldLevelTheme = {};
                 const widgetComponents = {};
                 const widgetProps = {};
                 const allFields = [];
@@ -245,10 +249,17 @@ export function useFormModel(props) {
                         isExpandedField,
                         field,
                     );
+                    if (fieldProps[fieldName].themeOverride) {
+                        fieldLevelTheme[fieldName] = makeFormModelTheme(
+                            fieldProps[fieldName].themeOverride,
+                            fieldProps[fieldName],
+                        );
+                    }
                 }
                 assignStateObjectsIfChanged({
                     fieldComponents,
                     fieldProps,
+                    fieldLevelTheme,
                     widgetComponents,
                     widgetProps,
                     baseFieldNames,
@@ -259,6 +270,7 @@ export function useFormModel(props) {
                 assignStateObjectsIfChanged({
                     fieldComponents: {},
                     fieldProps: {},
+                    fieldLevelTheme: {},
                     widgetComponents: {},
                     widgetProps: {},
                     baseFieldNames: new Set(),

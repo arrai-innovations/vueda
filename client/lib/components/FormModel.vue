@@ -323,7 +323,6 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             "
                             :name="`field(${fieldName})`"
                             :theme="theme"
-                            :theme-override="themeOverride"
                             :widget-component="formModel.widgetComponents[fieldName]"
                             :widget-props="formModel.widgetProps[fieldName]"
                         >
@@ -331,7 +330,6 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                                 :is="formModel.fieldComponents[fieldName]"
                                 v-if="formModel.fieldComponents[fieldName]"
                                 :class="theme('field')"
-                                :theme-override="themeOverride"
                                 v-bind="formModel.fieldProps[fieldName]"
                             >
                                 <template
@@ -344,7 +342,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                                     <slot :name="slot" v-bind="widgetSlotProps" />
                                 </template>
                                 <template #default="fieldSlotProps">
-                                    <div :class="theme('fieldInner')">
+                                    <div :class="formModel.fieldLevelTheme('fieldInner')">
                                         <slot
                                             :field-details="formModel.fieldDetails[fieldName]"
                                             :form-attrs="$attrs"
@@ -357,14 +355,12 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                                             "
                                             :name="`widget(${fieldName})`"
                                             :theme="theme"
-                                            :theme-override="themeOverride"
                                             :widget-component="formModel.widgetComponents[fieldName]"
                                             :widget-props="{ ...fieldSlotProps, ...formModel.widgetProps[fieldName] }"
                                         >
                                             <component
                                                 :is="formModel.widgetComponents[fieldName]"
                                                 v-if="formModel.widgetComponents[fieldName]"
-                                                :theme-override="themeOverride"
                                                 v-bind="{ ...fieldSlotProps, ...formModel.widgetProps[fieldName] }"
                                             >
                                                 <template

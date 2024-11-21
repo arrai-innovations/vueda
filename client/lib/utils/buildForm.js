@@ -1,5 +1,6 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import isArray from "lodash-es/isArray.js";
 import isEmpty from "lodash-es/isEmpty.js";
@@ -54,31 +55,35 @@ export const getFormChoresSlotNames = (fieldName) => {
  *     stateDetailKey?: string
  * ) => void)} setUpWatch - Set up a watch for a configuration key.
  * @property {(args: {
- *    [key: string]: any
+ *     [key: string]: any
  * }) => void} assignStateObjectsIfChanged - Assign state objects if they have changed.
  * @property {(
  *    (key: string, detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo, baseExpanded?: boolean, fieldName?: string) =>
  *        import('vue').ComputedRef<import('vue').Component>
  * )} setFieldComponent - Set the component for a field.
  * @property {(
- *   key: string,
- *   detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo,
- *   fieldName?: string
+ *     key: string,
+ *     detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo,
+ *     fieldName?: string
  * ) => import('vue').ComputedRef<object>} setFieldComponentProps - Set the component props for a field.
  * @property {(
- *  key: string,
- *  detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo,
- *  baseExpanded?: boolean,
- *  fieldName?: string
- *  ) => import('vue').ComputedRef<import('vue').Component>} setWidgetComponent - Set the widget for a field.
+ *     key: string,
+ *     detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo,
+ *     baseExpanded?: boolean,
+ *     fieldName?: string
+ * ) => import('vue').ComputedRef<import('vue').Component>} setWidgetComponent - Set the widget for a field.
  * @property {(
- * key: string,
- * detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo,
- * baseExpanded?: boolean,
- * isExpandedField?: boolean,
- * field?: object,
- * fieldName?: string
+ *     key: string,
+ *     detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo,
+ *     baseExpanded?: boolean,
+ *     isExpandedField?: boolean,
+ *     field?: object,
+ *     fieldName?: string
  * ) => import('vue').ComputedRef<object>} setWidgetComponentProps - Set the widget props for a field.
+ * @property {(
+ *     themeOverride: import('vue').Ref<string | object | object[] | undefined>,
+ *     props: import('vue').UnwrapNestedRefs<object>
+ * ) => import('vue').ComputedRef<import('vue').UnwrapNestedRefs<object>>} makeFormModelTheme - Make the field-specific form model theme.
  */
 
 /**
@@ -323,6 +328,14 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         return isEmpty(themeOverride) ? undefined : themeOverride;
     }
 
+    function makeFormModelTheme(themeOverride, props) {
+        let theme = undefined;
+        es.run(() => {
+            theme = useTheme("FormModel", props, themeOverride);
+        });
+        return theme;
+    }
+
     return {
         assignStateObjectsIfChanged,
         setFieldComponent,
@@ -330,5 +343,6 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         setUpWatch,
         setWidgetComponent,
         setWidgetComponentProps,
+        makeFormModelTheme,
     };
 }
