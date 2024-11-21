@@ -42,7 +42,6 @@ class NoExtraFieldsSerializerMixin:
                 else:
                     errors[extra_key] = [msg]
 
-            # breakpoint()
             extra_keys_expand = set(self._flex_options_rep_only["expand"]) - set(self._expandable_fields)
             for extra_key in extra_keys_expand:
                 msg = f"Invalid expands. Valid expands are {', '.join(sorted(self._expandable_fields))}."

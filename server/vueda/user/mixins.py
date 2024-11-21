@@ -22,7 +22,6 @@ class VUEDAPermissionsMixin(PermissionsMixin):
         #  deal with it ourselves
         if self.is_superuser:
             return True
-        # breakpoint()
         super_value = super().has_perm(perm, obj=None)
 
         # workflow row level permissions
