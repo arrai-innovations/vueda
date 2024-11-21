@@ -353,7 +353,8 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
     def paginate_queryset(self, queryset):
         # Must add the None choice here, so it runs after filter_queryset,
         # in case we have a queryset that gets changed in filter_queryset.
-        queryset = (FilterChoice(self.empty_value, self.empty_label),) + tuple(queryset)
+        if self.empty_label is not None:
+            queryset = (FilterChoice(self.empty_value, self.empty_label),) + tuple(queryset)
         return super().paginate_queryset(queryset)
 
     def validate_queryset(self, filterset, filter_mapping):
