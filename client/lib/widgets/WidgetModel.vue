@@ -32,6 +32,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    modelValue: {
+        type: [String, Number, Array],
+        default: undefined,
+    },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
@@ -61,9 +65,11 @@ const widgetComponent = computed(() => widgetComponents[props.type]);
     <component
         :is="widgetComponent"
         :loading="modelChoices.loading"
+        :model-value="modelValue"
         :on-focus="onFocus"
         option-label="label"
         option-value="value"
         :options="modelChoices.choices?.results || []"
+        @update:model-value="emit('update:modelValue', $event)"
     />
 </template>

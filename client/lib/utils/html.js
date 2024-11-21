@@ -1,13 +1,32 @@
 import DOMPurify from "dompurify";
 
 /**
+ * Escape HTML characters in a message.
+ *
+ * @param {string} message - The message to escape.
+ * @returns {string} - The escaped message.
+ */
+const escapeHtml = (message) => {
+    const map = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+    };
+    return message.replace(/[&<>"']/g, (m) => map[m]);
+};
+
+/**
  * Sanitize a message to prevent XSS attacks.
  *
  * @param {string} message - The message to sanitize.
  * @returns {string} - The sanitized message.
  */
 export const sanitizeMessage = (message) => {
-    return DOMPurify.sanitize(message, {
+    const escapedMessage = escapeHtml(message);
+
+    return DOMPurify.sanitize(escapedMessage, {
         ALLOWED_TAGS: ["b", "strong", "i", "em", "p", "a", "ul", "ol", "li"],
         ALLOWED_ATTR: ["href", "target", "rel"],
     });

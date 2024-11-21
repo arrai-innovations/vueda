@@ -1,7 +1,7 @@
 <script setup>
 import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
-import FilterForm from "@vueda/components/FilterForm.vue";
+import FilterGroup from "@vueda/components/FilterGroup.vue";
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
@@ -283,6 +283,8 @@ const emit = defineEmits([
     "loading",
     "related-objects",
     "calculated-objects",
+    "clear-filters",
+    "remove-filter",
 ]);
 onMounted(() => {
     emit(
@@ -355,72 +357,81 @@ useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName);
                     </slot>
                 </template>
             </template>
-        </page-title>
-        <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-1">
-            <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="bulk-action-bar">
-                <template
+            <template #under-actions>
+                <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-1">
+                    <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="bulk-action-bar">
+                        <template
                     v-for="actionName in modelConfig.config?.actions?.filter(
                         (name) =>
                             modelConfig.config?.actionDetails?.[name] && modelConfig.config?.actionDetails?.[name].bulk,
                     )"
                     :key="actionName"
                 >
-                    <slot
-                        name="bulk-action-button"
-                        v-bind="{
-                            model,
-                            app,
-                            view: actionName,
-                            label: memoizedStartCase(actionName),
-                            click: detailActionOnClick(actionName),
-                            selectedObjects,
-                        }"
-                    >
-                        <link-model-view
-                            :app="app"
-                            button
-                            class="grow sm:grow-0"
-                            :disabled="!availableTransitions.includes(actionName)"
-                            :label="memoizedStartCase(actionName)"
-                            :model="model"
-                            :pk="selectedObjects"
-                            :view="actionName"
-                        />
-                    </slot>
-                </template>
-            </div>
-            <div class="flex flex-col items-end">
-                <slot
-                    name="search"
-                    v-bind="{
-                        listSearch,
-                        filterList,
-                        model,
-                        app,
-                        viewName,
-                        verb: 'search',
-                        label: 'Search',
-                    }"
-                >
-                    <InputGroup>
-                        <InputText
-                            v-model="listSearch"
-                            class="lg:max-w-[30ch]"
+                            <slot
+                                name="bulk-action-button"
+                                v-bind="{
+                                    model,
+                                    app,
+                                    view: actionName,
+                                    label: memoizedStartCase(actionName),
+                                    click: detailActionOnClick(actionName),
+                                    selectedObjects,
+                                }"
+                            >
+                                <link-model-view
+                                    :app="app"
+                                    button
+                                    class="grow sm:grow-0"
+                                    :disabled="!availableTransitions.includes(actionName)"
+                                    :label="memoizedStartCase(actionName)"
+                                    :model="model"
+                                    :pk="selectedObjects"
+                                    :view="actionName"
+                                />
+                            </slot>
+                        </template>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <slot
                             name="search"
-                            placeholder="Search"
-                            type="search"
-                            @search="filterList"
-                        />
-                        <Button label="Search" @click="filterList" />
-                    </InputGroup>
-                </slot>
-                <filter-form v-model="listState.filterArgs" :app="app" :model="model" :view="viewName">
+                            v-bind="{
+                                listSearch,
+                                filterList,
+                                model,
+                                app,
+                                viewName,
+                                verb: 'search',
+                                label: 'Search',
+                            }"
+                        >
+                            <InputGroup>
+                                <InputText
+                                    v-model="listSearch"
+                                    class="lg:max-w-[30ch]"
+                                    name="search"
+                                    placeholder="Search"
+                                    type="search"
+                                    @search="filterList"
+                                />
+                                <Button label="Search" @click="filterList" />
+                            </InputGroup>
+                        </slot>
+                    </div>
+                </div>
+                <filter-group
+                    v-model="listState.filterArgs"
+                    :filterable-details="modelConfig.config?.filterableDetails || {}"
+                    :filterables="modelConfig.config?.filterables || []"
+                    @clear-filters="emit('clear-filters')"
+                    @remove-filter="emit('remove-filter', $event)"
+                >
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />
                     </template>
-                </filter-form>
-            </div>
-        </div>
+                </filter-group>
+            </template>
+        </page-title>
+
         <error-display :error="error" :errored="errored" @dismiss-error="dismissError" />
         <!-- todo: filters/search -->
         <!-- todo: hide/show columns -->
