@@ -357,7 +357,7 @@ useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName);
             </template>
         </page-title>
         <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-1">
-            <div class="flex flex-wrap gap-1 w-full">
+            <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="bulk-action-bar">
                 <template
                     v-for="actionName in modelConfig.config?.actions?.filter(
                         (name) =>

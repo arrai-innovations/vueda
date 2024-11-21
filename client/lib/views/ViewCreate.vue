@@ -153,7 +153,10 @@ onMounted(() => {
                 </template>
             </template>
             <template #under-actions>
-                <div class="flex flex-col sm:flex-row gap-1 w-full">
+                <div
+                    class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"
+                    data-qa="update-action-buttons"
+                >
                     <slot
                         :form="formId"
                         label="Submit"
