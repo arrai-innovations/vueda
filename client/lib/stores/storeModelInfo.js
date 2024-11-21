@@ -62,19 +62,34 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @typedef {object} FieldInfo
  * @property {string} name - The name of the field.
  * @property {string} label - The label of the field.
- * @property {string} type - The type of the field.
- * @property {boolean} many - A boolean indicating whether the field is a `ListField`.
+ * @property {string} typeDb - The database type of the field.
+ * @property {string} typeModel - The model type of the field.
+ * @property {string} typeSerializer - The serializer type of the field.
+ * @property {boolean} many - A boolean indicating whether the field is a `ListField` or relation with multiple entries.
  * @property {boolean} readOnly - A boolean indicating whether the field is read-only.
  * @property {boolean} required - A boolean indicating whether the field is required.
- * @property {string} helpText - The help text for the field.
- * @property {number} [maxValue] - The maximum value for the field.
- * @property {number} [minValue] - The minimum value for the field.
- * @property {number} [maxLength] - The maximum length for the field.
- * @property {number} [minLength] - The minimum length for the field.
- * @property {number} [maxDigits] - The maximum number of digits for the field.
- * @property {number} [decimalPlaces] - The number of decimal places for the field.
+ * @property {string} [helpText] - The help text for the field.
+ * @property {number} [maxValue] - The maximum value allowed for the field.
+ * @property {number} [minValue] - The minimum value allowed for the field.
+ * @property {number} [maxLength] - The maximum length allowed for the field (for strings).
+ * @property {number} [minLength] - The minimum length allowed for the field (for strings).
+ * @property {number} [maxDigits] - The maximum number of digits allowed for the field (for decimals).
+ * @property {number} [decimalPlaces] - The number of decimal places allowed for the field (for decimals).
  * @property {boolean|LabelValuePair[]} [choices] - Indicates whether the field has choices. If it does, it's an array of label/value pairs.
  * @property {boolean} [pk] - Indicates whether the field is a primary key.
+ * @property {boolean} [hidden] - Indicates whether the field is hidden in the UI.
+ * @property {string[]} [lookupExprs] - Array of lookup expressions for filtering.
+ * @property {string} [inputType] - The input type for the field (e.g., "text", "number").
+ * @property {string[]} [inputFormats] - List of acceptable input formats for the field (e.g., date formats).
+ * @property {string} [emptyLabel] - Label for an empty choice, if applicable.
+ * @property {string|number} [emptyValue] - Value representing an empty selection, if applicable.
+ * @property {string} [nullLabel] - Label for a null value, if applicable.
+ * @property {string|number} [nullValue] - Value representing null, if applicable.
+ * @property {string[]} [suffixes] - Suffixes for query parameters, if applicable.
+ * @property {Array<{code: string, message: string}>} [validators] - Array of validators applied to the field.
+ * @property {string} [appLabel] - The application label for model-based choices.
+ * @property {string} [model] - The model name for model-based choices.
+ * @property {string} [description] - A description of the field (useful for actions).
  */
 
 /**
@@ -82,11 +97,14 @@ const camelCaseObject = (obj, skipKeys = []) => {
  *
  * @typedef {object} ActionInfo
  * @property {string} name - The name of the action.
- * @property {string} description - The description of the action.
- * @property {boolean} detail - A boolean indicating whether the action is a detail view.
- * @property {boolean} bulk - A boolean indicating whether the action is a bulk action.
- * @property {string[]} methodNames - An array of HTTP methods (e.g., GET, POST) for the action.
- * @property {string[]} [parameters] - An optional array of string parameters required for the action, typically primary keys.
+ * @property {string} description - A detailed description of the action.
+ * @property {boolean} detail - A boolean indicating whether the action applies to a detail view.
+ * @property {boolean} bulk - A boolean indicating whether the action can be applied in bulk.
+ * @property {string[]} methodNames - An array of HTTP methods (e.g., GET, POST) supported by the action.
+ * @property {Array<{name: string, type: string, required: boolean, description?: string}>} [parameters] - A list of parameter objects for the action, including type and optional descriptions.
+ * @property {string} [appLabel] - The app label associated with the action, if relevant.
+ * @property {string} [model] - The model name the action applies to, if relevant.
+ * @property {boolean} [confirm] - A boolean indicating if user confirmation is required before performing the action.
  */
 
 /**
@@ -94,8 +112,10 @@ const camelCaseObject = (obj, skipKeys = []) => {
  *
  * @typedef {object} ExpandInfo
  * @property {string} name - The name of the expand field.
- * @property {string[]} [fields] - An optional array of fields that can be expanded.
- * @property {{[fieldName: string]: FieldInfo}} [f] - A mapping of field names to FieldInfo objects for the expanded model.
+ * @property {string[]} [fields] - An array of field names that can be expanded.
+ * @property {{[fieldName: string]: FieldInfo}} [f] - A mapping of field names to their respective `FieldInfo` objects for the expanded model.
+ * @property {boolean} [requiresPermission] - Indicates whether expanding this field requires special permissions.
+ * @property {string} [description] - A brief description of what the expanded field represents.
  */
 
 /**
@@ -104,6 +124,9 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @typedef {object} OrderInfo
  * @property {string} name - The name of the ordering field.
  * @property {string} type - The type of the ordering field (e.g., "alpha", "numeric", "boolean", "date").
+ * @property {boolean} [nullable] - Indicates whether the field can have null values.
+ * @property {string} [direction] - The default sorting direction, either "asc" or "desc".
+ * @property {string} [description] - A brief description of the ordering field.
  */
 
 /**
@@ -155,10 +178,15 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {string} [filtersetName] - The Django filter set name for the filter.
  *
  * Labels and special values.
- * @property {boolean} [emptyValue] - Indicates whether the filter has an empty value.
+ * @property {string|number} [emptyValue] - Indicates whether the filter has an empty value.
  * @property {string} [emptyLabel] - The empty label for the filter.
  * @property {string} [nullLabel] - The null label for the filter.
  * @property {string} [nullValue] - The null value for the filter.
+ *
+ * Additional metadata.
+ * @property {string} [description] - A brief description of the filter's functionality.
+ * @property {string[]} [tags] - Optional tags for categorizing or grouping filters.
+ * @property {boolean} [nullable] - Indicates whether the filter accepts `null` values.
  */
 
 /**
@@ -166,24 +194,34 @@ const camelCaseObject = (obj, skipKeys = []) => {
  *
  * @typedef {object} PermissionInfo
  * @property {string} codename - The codename of the permission.
- * @property {string} name - The name of the permission.
+ * @property {string} name - The human-readable name of the permission.
+ * @property {string} [appLabel] - The app label associated with the permission (e.g., "auth").
+ * @property {string} [model] - The model associated with the permission, if applicable.
+ * @property {string} [description] - A brief description of what the permission allows.
+ * @property {boolean} [global] - Indicates whether the permission applies globally or is scoped to specific objects.
  */
 
 /**
- * The information provided on a django model, including fields, actions, expands, ordering, filtering, and permissions.
+ * The information provided on a Django model, including fields, actions, expands, ordering, filtering, and permissions.
  *
  * @typedef {object} ModelInfo
- * @property {string} app_label - The app label of the model.
- * @property {string} model - The python model class name (lower case).
- * @property {string} verboseName - The verbose name of the model.
- * @property {string} verboseNamePlural - The verbose name plural of the model.
+ * @property {string} appLabel - The app label of the model (e.g., "auth").
+ * @property {string} model - The Python model class name in lowercase (e.g., "user").
+ * @property {string} verboseName - The human-readable, singular name of the model.
+ * @property {string} verboseNamePlural - The human-readable, plural name of the model.
  * @property {string} pk - The primary key field of the model.
- * @property {{[fieldName:string]: FieldInfo}} fields - The fields of the model, with the field name as the key.
- * @property {ActionInfo[]} actions - The actions of the model.
- * @property {ExpandInfo[]} expands - The expands of the model.
- * @property {OrderInfo[]} ordering - The ordering of the model.
- * @property {{[filterName: string]: FilterInfo}} filtering - The filtering of the model.
- * @property {PermissionInfo[]} permissions - The permissions of the model.
+ * @property {{[fieldName: string]: FieldInfo}} fields - A mapping of field names to their respective `FieldInfo` objects.
+ * @property {ActionInfo[]} actions - The actions that can be performed on the model.
+ * @property {ExpandInfo[]} expands - The expandable fields of the model.
+ * @property {OrderInfo[]} ordering - The fields available for ordering the model.
+ * @property {{[filterName: string]: FilterInfo}} filtering - The fields available for filtering the model.
+ * @property {PermissionInfo[]} permissions - The permissions available for the model.
+ * @property {string[]} [methods] - The HTTP methods supported by the model (e.g., ["GET", "POST"]).
+ * @property {string[]} [requiredFields] - A list of field names that are required for creating or updating the model.
+ * @property {string} [description] - A brief description of the model's purpose.
+ * @property {boolean} [readOnly] - Indicates if the model is read-only.
+ * @property {boolean} [abstract] - Indicates if the model is abstract and not directly instantiable.
+ * @property {string} [defaultOrdering] - The default ordering for the model (e.g., "name ASC").
  */
 
 /**

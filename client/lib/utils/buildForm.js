@@ -27,17 +27,10 @@ export const getFormChoresSlotNames = (fieldName) => {
 };
 
 /**
- * @typedef {object} FieldDetail
- * @property {boolean} choices - Whether the field has multiple choices.
- * @property {string} appLabel - The app label associated with the field.
- * @property {string} model - The model name associated with the field.
- */
-
-/**
  * @typedef {object} StateRaw
  * @property {string[]} fields - The list of field names.
  * @property {({
- *     [fieldName: string]: FieldDetail
+ *     [fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo
  * })} fieldDetails - Details of each field by name.
  */
 
@@ -64,23 +57,23 @@ export const getFormChoresSlotNames = (fieldName) => {
  *    [key: string]: any
  * }) => void} assignStateObjectsIfChanged - Assign state objects if they have changed.
  * @property {(
- *    (key: string, detailObject: FieldDetail, baseExpanded?: boolean, fieldName?: string) =>
+ *    (key: string, detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo, baseExpanded?: boolean, fieldName?: string) =>
  *        import('vue').ComputedRef<import('vue').Component>
  * )} setFieldComponent - Set the component for a field.
  * @property {(
  *   key: string,
- *   detailObject: FieldDetail,
+ *   detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo,
  *   fieldName?: string
  * ) => import('vue').ComputedRef<object>} setFieldComponentProps - Set the component props for a field.
  * @property {(
  *  key: string,
- *  detailObject: FieldDetail,
+ *  detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo,
  *  baseExpanded?: boolean,
  *  fieldName?: string
  *  ) => import('vue').ComputedRef<import('vue').Component>} setWidgetComponent - Set the widget for a field.
  * @property {(
  * key: string,
- * detailObject: FieldDetail,
+ * detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo,
  * baseExpanded?: boolean,
  * isExpandedField?: boolean,
  * field?: object,
@@ -93,10 +86,10 @@ export const getFormChoresSlotNames = (fieldName) => {
  *
  * @param {import('vue').UnwrapNestedRefs<PropsRaw>} props - The reactive props object containing form metadata.
  * @param {import('vue').UnwrapNestedRefs<StateRaw>} state - The target reactive object to manage for form state.
- * @param {(field: FieldDetail) => import('vue').Component} getFieldComponent - Function to retrieve the component for a given field.
- * @param {(field: FieldDetail) => object} getFieldProps - Function to retrieve field-specific properties.
- * @param {(field: FieldDetail) => import('vue').Component} getWidgetComponent - Function to retrieve the widget for a given field.
- * @param {(field: FieldDetail) => object} getWidgetProps - Function to retrieve widget-specific properties.
+ * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => import('vue').Component} getFieldComponent - Function to retrieve the component for a given field.
+ * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => object} getFieldProps - Function to retrieve field-specific properties.
+ * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => import('vue').Component} getWidgetComponent - Function to retrieve the widget for a given field.
+ * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => object} getWidgetProps - Function to retrieve widget-specific properties.
  * @returns {BuildForm} Functions for managing form configuration and updating reactive state.
  */
 export function buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps) {
