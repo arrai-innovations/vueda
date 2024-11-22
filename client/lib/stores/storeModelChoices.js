@@ -26,11 +26,21 @@ export class ModelChoicesError extends FetchError {
 const modelChoicesUrl = (app, model, field) =>
     `${httpOrHttpsHostname}${getUrl("infoModelInfoChoices")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/${memoizedSnakeCase(field)}`;
 
+const modelFilterChoicesUrl = (app, model, field) =>
+    `${httpOrHttpsHostname}${getUrl("infoModelInfoFilterChoices")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/${field}`;
+
 /**
  * A store for lookup choices for a particular model field.
  *
  * @typedef {import('pinia').store<{
  *     choices: {
+ *        [appModelDotName: string]: {
+ *            [fieldPath: string]: {
+ *
+ *            },
+ *        },
+ *     },
+ *     filterChoices: {
  *        [appModelDotName: string]: {
  *            [fieldPath: string]: {
  *
@@ -44,6 +54,13 @@ const modelChoicesUrl = (app, model, field) =>
  *             },
  *         },
  *     }
+ *         filterPromises: {
+ *         [appModelDotName: string]: {
+ *             [fieldPath: string]: {
+ *
+ *             },
+ *         },
+ *     }
  *
  * }>}
  */
@@ -51,7 +68,9 @@ export const storeModelChoices = defineStore({
     id: "modelChoices",
     state: () => ({
         choices: {},
+        filterChoices: {},
         promises: {},
+        filterPromises: {},
     }),
     actions: {
         setChoices(app, model, field, choices) {
@@ -60,6 +79,40 @@ export const storeModelChoices = defineStore({
                 this.choices[key] = {};
             }
             this.choices[key][field] = choices;
+        },
+        setFilterChoices(app, model, field, choices) {
+            const key = getAppModelDotName({ app, model });
+            if (!this.filterChoices[key]) {
+                this.filterChoices[key] = {};
+            }
+            this.filterChoices[key][field] = choices;
+        },
+        async fetchFilterChoices(app, model, field) {
+            const key = getAppModelDotName({ app, model });
+            if (!this.filterPromises[key]) {
+                this.filterPromises[key] = {};
+            }
+            if (!this.filterChoices[key]) {
+                this.filterChoices[key] = {};
+            }
+            if (!this.filterChoices[key][field]) {
+                this.filterChoices[key][field] = {};
+            }
+            if (this.filterPromises[key][field]) {
+                return this.filterPromises[key][field];
+            }
+            try {
+                return (this.filterChoices[key][field] = await (this.filterPromises[key][field] = fetchHelper(
+                    modelFilterChoicesUrl(app, model, field),
+                    {
+                        method: "GET",
+                    },
+                    `Failed to fetch choices for ${key}.${field}`,
+                    ModelChoicesError,
+                )));
+            } finally {
+                delete this.filterPromises[key][field];
+            }
         },
         async fetchChoices(app, model, field) {
             const key = getAppModelDotName({ app, model });
@@ -91,10 +144,13 @@ export const storeModelChoices = defineStore({
                 delete this.promises[key][field];
             }
         },
-        initializeChoice(app, model) {
+        initializeChoice(app, model, isFilter = false) {
             const key = getAppModelDotName({ app, model });
-            if (!this.choices[key]) {
+            if (!this.choices[key] && !isFilter) {
                 this.choices[key] = {};
+            }
+            if (!this.filterChoices[key] && isFilter) {
+                this.filterChoices[key] = {};
             }
         },
     },

@@ -35,15 +35,16 @@ import { reactive, readonly, ref, toRef, unref, watch } from "vue";
  * @param {import('vue').Ref<string>} field - A ref containing the field name that is being watched.
  * @param {import('@vueda/use/useIsActive.js').IsActive|undefined} [isActive] - An IsActive instance, if one can be reused.
  * @param {import('vue').Ref<boolean>} intendToFetch - A ref containing the indicator whether the model choices should be fetched.
+ * @param {import('vue').Ref<boolean>} isFilter - A ref containing the indicator whether we are fetching filter choices.
  * @returns {UseModelChoices} An object containing reactive fields and actions for model choices.
  */
-export function useModelChoices(app, model, field, isActive, intendToFetch) {
+export function useModelChoices(app, model, field, isActive, intendToFetch, isFilter = false) {
     const loadingError = useLoadingError();
     if (!isActive) {
         isActive = useIsActive();
     }
     const modelChoicesStore = storeModelChoices();
-    modelChoicesStore.initializeChoice(app.value, model.value);
+    modelChoicesStore.initializeChoice(app.value, model.value, isFilter.value);
     /** @type {import('vue').Ref<null|import('vue').Ref<object>>} */
     const originalChoices = ref(null);
     const returnObject = reactive(
@@ -58,10 +59,10 @@ export function useModelChoices(app, model, field, isActive, intendToFetch) {
 
     // update originalChoices when app, model, field, or isActive changes
     watch(
-        [isActive, app, model, field, intendToFetch],
+        [isActive, app, model, field, intendToFetch, isFilter],
         async (
-            [active, app, model, field, intendToFetch],
-            [oldActive, oldApp, oldModel, oldField, oldIntendToFetch],
+            [active, app, model, field, intendToFetch, isFilter],
+            [oldActive, oldApp, oldModel, oldField, oldIntendToFetch, oldIsFilter],
         ) => {
             if (!active) {
                 return; // we'll pick up again when the component is active
@@ -71,7 +72,8 @@ export function useModelChoices(app, model, field, isActive, intendToFetch) {
                 app === oldApp &&
                 model === oldModel &&
                 field === oldField &&
-                intendToFetch === oldIntendToFetch
+                intendToFetch === oldIntendToFetch &&
+                isFilter === oldIsFilter
             ) {
                 return; // no change, no need to update
             }
@@ -80,8 +82,19 @@ export function useModelChoices(app, model, field, isActive, intendToFetch) {
                 loadingError.clearError();
                 loadingError.setLoading();
                 try {
-                    originalChoices.value = toRef(modelChoicesStore.choices[getAppModelDotName({ app, model })], field);
-                    await modelChoicesStore.fetchChoices(app, model, field);
+                    if (isFilter) {
+                        originalChoices.value = toRef(
+                            modelChoicesStore.filterChoices[getAppModelDotName({ app, model })],
+                            field,
+                        );
+                        await modelChoicesStore.fetchFilterChoices(app, model, field);
+                    } else {
+                        originalChoices.value = toRef(
+                            modelChoicesStore.choices[getAppModelDotName({ app, model })],
+                            field,
+                        );
+                        await modelChoicesStore.fetchChoices(app, model, field);
+                    }
                 } catch (e) {
                     loadingError.setError(e);
                 } finally {
