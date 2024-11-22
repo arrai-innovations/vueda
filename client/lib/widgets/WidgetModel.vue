@@ -36,6 +36,10 @@ const props = defineProps({
         type: [String, Number, Array],
         default: undefined,
     },
+    isFilter: {
+        type: Boolean,
+        default: false,
+    },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
@@ -50,6 +54,7 @@ const modelChoices = useModelChoices(
     toRef(props, "fieldName"),
     isActive,
     intendToFetch,
+    toRef(props, "isFilter"),
 );
 const widgetComponents = {
     select: WidgetSelect,
