@@ -22,7 +22,7 @@ const props = defineProps({
     },
 });
 // TODO: this is built assuming each filter field has only one lookup expression
-const emit = defineEmits(["remove-filter"]);
+const emit = defineEmits(["hide-filter-form"]);
 const op = ref();
 
 const addedFilters = defineModel({
@@ -37,20 +37,26 @@ const displayFilterValue = computed(() => {
     const filters = addedFilters.value.filter((filter) => filter.field === props.filterName);
     return filters
         .map((filter) => {
-            if (isArray(filter.value)) {
-                return filter.value.join(",");
-            } else if (isObject(filter.value)) {
+            const values = filter.labelValue ?? filter.value;
+            if (isArray(values)) {
+                return values.join(",");
+            } else if (isObject(values)) {
                 if (filter.is_range) {
-                    const keys = Object.keys(filter.value);
-                    return `${filter.value[keys[0]] ?? ""} - ${filter.value[keys[1]] ?? ""}`;
+                    const keys = Object.keys(values);
+                    if (keys.length === 2) {
+                        return `${values[keys[0]] ?? ""} - ${values[keys[1]] ?? ""}`;
+                    } else if (keys.length === 1) {
+                        return `${keys[0]}: ${values[keys[0]] ?? ""}`;
+                    }
+                    return "";
                 }
-                return Object.keys(filter.value)
+                return Object.keys(values)
                     .map((key) => {
-                        return `${key}: ${filter.value[key]}`;
+                        return `${key}: ${values[key]}`;
                     })
                     .join(", ");
             } else {
-                return `${filter.value}`;
+                return `${values}`;
             }
         })
         .join(", ");
@@ -61,9 +67,9 @@ const computedFilterLabel = computed(() => {
     if (addedFilters.value.some((filter) => filter.field === props.filterName)) {
         const label = `${filterLabel} | ${displayFilterValue.value}`;
         if (op.value && op.value.visible) {
-            return `${label} ▼`;
+            return `${label}  ▼`;
         }
-        return `${label} ▲`;
+        return `${label}  ▲`;
     }
     return filterLabel;
 });
@@ -72,7 +78,6 @@ const onFilter = (filter) => {
     const lookupExpressionsToParams = [];
     // TODO: this now handle handles with single lookup expression
     const lookupExpression = filter.lookupExpression === false ? undefined : props.filterDetails.lookupExprs?.[0];
-    console.log("lookupExpression", lookupExpression);
     const key = lookupExpression ? `${filter.name}__${lookupExpression}` : filter.name;
     if (props.filterDetails.suffixes?.length) {
         props.filterDetails.suffixes.forEach((suffix) => {
@@ -81,32 +86,37 @@ const onFilter = (filter) => {
             lookupExpressionsToParams.push(p);
         });
     }
-    //TODO: This is kinda hard coded
-    let filterValue = filter.value;
+    //TODO: This is kinda hard coded for dates only
+    const filterValue = filter.value;
+    let labelValue = filter.labelValue;
     if (filter.range && lookupExpressionsToParams.length) {
-        filterValue = {};
-        filter.value.forEach((value, index) => {
-            if (value === null) {
-                return;
+        const keys = Object.keys(filterValue);
+        if (!filter.labelValue) {
+            labelValue = {};
+            for (const key of keys) {
+                const value = filterValue[key];
+                if (!value) {
+                    continue;
+                }
+                labelValue[key] = new Date(value).toISOString().split("T")[0];
             }
-            const key = lookupExpressionsToParams[index];
-            filterValue[key] = new Date(value).toISOString().split("T")[0];
-        });
+        }
     }
-    console.log("filterValue", filterValue);
+    const filterObject = {
+        field: filter.name,
+        key,
+        isValueRawObject: filter.isValueRawObject,
+        expression: lookupExpression,
+        param: lookupExpressionsToParams.length ? lookupExpressionsToParams : key,
+        value: filterValue,
+        labelValue: labelValue,
+        is_range: filter.range,
+    };
     if (!addedFilters.value.some((filter) => filter.key === key)) {
         if (isEmpty(filterValue)) {
             return;
         }
-        addedFilters.value.push({
-            field: filter.name,
-            key,
-            expression: lookupExpression,
-            param: lookupExpressionsToParams.length ? lookupExpressionsToParams : key,
-            value: filterValue,
-            label: ``,
-            is_range: filter.range,
-        });
+        addedFilters.value.push(filterObject);
     } else {
         if (isEmpty(filterValue)) {
             removeFilter();
@@ -115,10 +125,7 @@ const onFilter = (filter) => {
             addedFilters,
             addedFilters.value.map((f) => {
                 if (f.field === filter.name) {
-                    return {
-                        ...f,
-                        value: filterValue,
-                    };
+                    return filterObject;
                 }
                 return f;
             }),
@@ -133,7 +140,6 @@ const removeFilter = () => {
             return !(f.field === props.filterName);
         }),
     );
-    emit("remove-filter", props.filterName);
 };
 
 const hasFilterValue = computed(() => {
@@ -155,12 +161,14 @@ const buttonClass = computed(() => {
             @click="toggle"
         >
             <template #icon>
-                <span v-if="hasFilterValue" @click.prevent="removeFilter"> ✖️ </span>
-                <span v-else> ➕ </span>
+                <slot :has-filter-value="hasFilterValue" name="filter-button-icon" :remove-filter="removeFilter">
+                    <span v-if="hasFilterValue" @click.prevent="removeFilter"> ✖️ </span>
+                    <span v-else> ➕ </span>
+                </slot>
             </template>
         </Button>
     </slot>
-    <Popover ref="op" @filter.prevent="onFilter">
+    <Popover ref="op" @filter.prevent="onFilter" @show="emit('hide-filter-form', filterName)">
         <slot
             :filter-details="filterDetails"
             :has-filter="hasFilterValue"

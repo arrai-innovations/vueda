@@ -283,8 +283,8 @@ const emit = defineEmits([
     "loading",
     "related-objects",
     "calculated-objects",
-    "clear-filters",
-    "remove-filter",
+    "filter-change",
+    "hide-filter-form",
 ]);
 onMounted(() => {
     emit(
@@ -361,12 +361,13 @@ useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName);
                 <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-1">
                     <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="bulk-action-bar">
                         <template
-                    v-for="actionName in modelConfig.config?.actions?.filter(
-                        (name) =>
-                            modelConfig.config?.actionDetails?.[name] && modelConfig.config?.actionDetails?.[name].bulk,
-                    )"
-                    :key="actionName"
-                >
+                            v-for="actionName in modelConfig.config?.actions?.filter(
+                                (name) =>
+                                    modelConfig.config?.actionDetails?.[name] &&
+                                    modelConfig.config?.actionDetails?.[name].bulk,
+                            )"
+                            :key="actionName"
+                        >
                             <slot
                                 name="bulk-action-button"
                                 v-bind="{
@@ -422,8 +423,8 @@ useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName);
                     v-model="listState.filterArgs"
                     :filterable-details="modelConfig.config?.filterableDetails || {}"
                     :filterables="modelConfig.config?.filterables || []"
-                    @clear-filters="emit('clear-filters')"
-                    @remove-filter="emit('remove-filter', $event)"
+                    @filter-change="emit('filter-change', $event)"
+                    @hide-filter-form="emit('hide-filter-form', $event)"
                 >
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />

@@ -190,7 +190,11 @@ export function useField(props, emit, functions) {
                 ? computed({
                       get: () => {
                           const value = props.fieldValue ?? get(formContext.state.values, props.name);
-                          return functions?.preprocessGet ? functions.preprocessGet(value) : value;
+                          const returningValue = functions?.preprocessGet ? functions.preprocessGet(value) : value;
+                          if (props.fieldValue && functions?.preprocessGet) {
+                              emit("update:modelValue", returningValue);
+                          }
+                          return returningValue;
                       },
                       set: (newValue) => {
                           if (!formContext) {
