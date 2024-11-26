@@ -66,7 +66,6 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                 display="chip"
                 filter
                 :invalid="widgetContext.state.validationState.invalid"
-                :max-selected-labels="3"
                 :options="props.options"
                 :pt="effectivePt"
                 @blur="handleBlur"

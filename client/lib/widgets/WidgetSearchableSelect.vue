@@ -203,7 +203,16 @@ const placeHolderText = computed(() => {
 const perPage = computed(() => {
     return modelList.state?.perPage ?? 100;
 });
+const lastScrollerPageTracks = reactive({
+    first: 0,
+    last: 0,
+});
 const onLazyLoad = (event) => {
+    if (event.first == lastScrollerPageTracks.first && event.last == lastScrollerPageTracks.last) {
+        return;
+    }
+    lastScrollerPageTracks.first = event.first;
+    lastScrollerPageTracks.last = event.last;
     if (event.last >= fetchedPages.value * perPage.value && event.last < modelList.state.totalRecords) {
         fetchedPages.value += 1;
     }
