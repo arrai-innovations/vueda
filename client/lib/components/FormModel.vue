@@ -140,9 +140,10 @@
 import FormChores from "@vueda/components/FormChores.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
-import { useSlots } from "vue";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
+import FieldRenderer from "@vueda/components/FieldRenderer.vue";
+import { FormContextSymbol } from "@vueda/utils/symbols.js";
+import { computed, inject, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -223,73 +224,17 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const formModel = useFormModel(props);
-const theme = useTheme("FormModel", props);
+const formModel = useFormModel("FormModel", props);
+const formContext = inject(FormContextSymbol);
 const slots = useSlots();
-/**
- * Helper to get slot names with a specific prefix, excluding certain slots.
- *
- * @param prefix {string} - The prefix to filter slot names by.
- * @param exclude {string[]} - List of slot names or suffixes to exclude.
- * @param retainFullName {boolean} - If true, the full slot name is returned without slicing the prefix.
- * @returns {[string, string][]} - An array of slot names and the slot name without the prefix.
- *  i.e. (outerName, innerName)
- */
-const getPrefixedSlots = (prefix, exclude = [], retainFullName = false) => {
-    return Object.keys(slots)
-        .filter((slotName) => slotName.startsWith(prefix) && !exclude.includes(slotName))
-        .map((slotName) => [slotName, retainFullName ? slotName : slotName.slice(prefix.length)])
-        .filter(([, insideSlotName]) => insideSlotName?.length && !exclude.includes(insideSlotName));
-};
-
-/**
- * Get the slot names for a field or widget.
- *
- * @param type {string} - 'field' or 'widget'
- * @param fieldName {string} - The field name
- * @returns {[string, string][]} - An array of slot names and the slot name without the prefix
- */
-const getSlotNamesFor = (type, fieldName) => {
-    const prefix = `${type}(${fieldName})`;
-    const slotKeys = getPrefixedSlots(prefix, ["help", "error", "message"]);
-
-    if (type === "field") {
-        const widgetPrefix = `widget(${fieldName})`;
-        slotKeys.push(...getPrefixedSlots(widgetPrefix, ["label"]));
-    }
-
-    const expandedPrefix = `${type}(${fieldName}__`;
-    slotKeys.push(...getPrefixedSlots(expandedPrefix, [], true));
-
-    if (type === "field") {
-        const expandedWidgetPrefix = `widget(${fieldName}__`;
-        slotKeys.push(...getPrefixedSlots(expandedWidgetPrefix, [], true));
-
-        const headerPrefix = `header(${fieldName}__`;
-        slotKeys.push(...getPrefixedSlots(headerPrefix, [], true));
-
-        // only add these if the more specific slots are not present
-        if (!slots[`widget(${fieldName})toggle-button`]) {
-            slotKeys.push(["fieldset-toggle-button", "toggle-button"]);
-        }
-        if (!slots[`widget(${fieldName})create-button`]) {
-            slotKeys.push(["fieldset-create-button", "create-button"]);
-        }
-        if (!slots[`widget(${fieldName})delete-button`]) {
-            slotKeys.push(["fieldset-delete-button", "delete-button"]);
-        }
-    }
-
-    // only return slots that have content based on outer slot name
-    return slotKeys.filter(([slotName]) => slots[slotName]);
-};
-const availableLabelSlotNames = getWidgetSlotsComputed(slots);
+const mySlotNames = ["before-fields", "after-fields", "form-level-chores", "default"];
+const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlotNames.includes(slotName)));
 </script>
 
 <template>
-    <div :class="theme('root')" data-qa="form-model">
+    <div :class="formModel.theme('root')" data-qa="form-model">
         <template v-if="formModel.fields?.length">
-            <div v-if="$slots['before-fields']" :class="theme('beforeFields')">
+            <div v-if="$slots['before-fields']" :class="formModel.theme('beforeFields')">
                 <slot :form-attrs="$attrs" :form-props="$props" name="before-fields" />
             </div>
             <!-- form-level chores -->
@@ -305,89 +250,24 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                     :form-attrs="$attrs"
                     :form-props="$props"
                     name="fields"
-                    :theme="theme"
+                    :theme="formModel.theme"
                     :theme-override="themeOverride"
                     :widget-components="formModel.widgetComponents"
                 >
                     <template v-for="fieldName in formModel.baseFieldNames" :key="fieldName">
-                        <slot
-                            :field-class="theme('field')"
-                            :field-component="formModel.fieldComponents[fieldName]"
-                            :field-detail="formModel.fieldDetails[fieldName]"
-                            :field-inner-class="theme('fieldInner')"
-                            :field-props="formModel.fieldProps[fieldName]"
-                            :form-attrs="$attrs"
-                            :form-props="$props"
-                            :label-slots="
-                                availableLabelSlotNames.map((slot) => ({ slotName: slot, slotContent: $slots[slot] }))
-                            "
-                            :name="`field(${fieldName})`"
-                            :theme="theme"
-                            :widget-component="formModel.widgetComponents[fieldName]"
-                            :widget-props="formModel.widgetProps[fieldName]"
+                        <field-renderer
+                            :form-model-name="fieldName"
+                            :field-props="fieldProps?.[fieldName]"
+                            :form-model="formModel"
                         >
-                            <component
-                                :is="formModel.fieldComponents[fieldName]"
-                                v-if="formModel.fieldComponents[fieldName]"
-                                :class="theme('field')"
-                                v-bind="formModel.fieldProps[fieldName]"
-                            >
-                                <template
-                                    v-for="[outsideSlotName, insideSlotName] in getSlotNamesFor('field', fieldName)"
-                                    #[insideSlotName]="fieldSlotProps"
-                                >
-                                    <slot :name="outsideSlotName" v-bind="fieldSlotProps" />
-                                </template>
-                                <template v-for="slot in availableLabelSlotNames" #[slot]="widgetSlotProps">
-                                    <slot :name="slot" v-bind="widgetSlotProps" />
-                                </template>
-                                <template #default="fieldSlotProps">
-                                    <div
-                                        :class="formModel?.fieldLevelTheme[fieldName]?.('fieldInner')"
-                                        data-qa="form-model-field-inner"
-                                    >
-                                        <slot
-                                            :field-details="formModel.fieldDetails[fieldName]"
-                                            :form-attrs="$attrs"
-                                            :form-props="$props"
-                                            :label-slots="
-                                                availableLabelSlotNames.map((slot) => ({
-                                                    slotName: slot,
-                                                    slotContent: $slots[slot],
-                                                }))
-                                            "
-                                            :name="`widget(${fieldName})`"
-                                            :theme="theme"
-                                            :widget-component="formModel.widgetComponents[fieldName]"
-                                            :widget-props="{ ...fieldSlotProps, ...formModel.widgetProps[fieldName] }"
-                                        >
-                                            <component
-                                                :is="formModel.widgetComponents[fieldName]"
-                                                v-if="formModel.widgetComponents[fieldName]"
-                                                v-bind="{ ...fieldSlotProps, ...formModel.widgetProps[fieldName] }"
-                                            >
-                                                <template
-                                                    v-for="slot in availableLabelSlotNames"
-                                                    #[slot]="widgetSlotProps"
-                                                >
-                                                    <slot :name="slot" v-bind="widgetSlotProps" />
-                                                </template>
-                                                <template
-                                                    v-for="slot in getSlotNamesFor('widget', fieldName)"
-                                                    #[slot.slotName]="widgetSlotProps"
-                                                >
-                                                    <slot :name="slot" v-bind="widgetSlotProps" />
-                                                </template>
-                                            </component>
-                                        </slot>
-                                    </div>
-                                </template>
-                            </component>
-                        </slot>
+                            <template v-for="slotName in slotNames" #[slotName]="slotProps">
+                                <slot :name="slotName" v-bind="slotProps" />
+                            </template>
+                        </field-renderer>
                     </template>
                 </slot>
             </div>
-            <div v-if="$slots['after-fields']" :class="theme('afterFields')">
+            <div v-if="$slots['after-fields']" :class="formModel.theme('afterFields')">
                 <slot :form-attrs="$attrs" :form-props="$props" name="after-fields" />
             </div>
         </template>

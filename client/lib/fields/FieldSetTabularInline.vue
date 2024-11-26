@@ -7,7 +7,6 @@ import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
-import { availableWidgets } from "@vueda/utils/formLookups.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import { getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import { useBreakpoints } from "@vueuse/core";
@@ -17,8 +16,13 @@ import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import Divider from "primevue/divider";
-import { computed, inject, nextTick, reactive, ref, shallowReactive, useSlots, watch } from "vue";
+import { computed, inject, nextTick, reactive, ref, shallowReactive, unref, useSlots, watch } from "vue";
+import FieldRenderer from "@vueda/components/FieldRenderer.vue";
+import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     ...FIELD_PROPS,
     fieldComponents: {
@@ -93,7 +97,7 @@ const props = defineProps({
 });
 const itemRefs = ref({});
 const emit = defineEmits([...FIELD_EMITS]);
-const fieldContext = useField(props, emit);
+const fieldSetContext = useField(props, emit);
 const parentFormModel = inject(FormModelSymbol, null);
 
 // merge the props from FieldSetTabularInline, and the props from the formModel
@@ -114,13 +118,14 @@ const mergedFormModelProps = reactive({
     widgetProps: shallowReactive(merge(cloneDeep(parentFormModel.widgetProps), props.widgetProps)),
 });
 
-const formModel = useFormModel(mergedFormModelProps);
+const formModel = useFormModel("FieldSetTabularInline", mergedFormModelProps);
 const fieldNames = computed(() => {
     if (props.fields) {
         return props.fields;
     } else {
-        const fields = formModel?.expandDetails?.[fieldContext.state.name]?.f;
-        const omitFields = formModel?.expandDetails?.[fieldContext.state.name].hidden;
+        const fields = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.f;
+        const omitFields = formModel?.expandDetails?.[fieldSetContext.state.formModelName].hidden;
+        // return the fields keys, omitting the hidden fields keys
         return fields ? Object.keys(omit(fields, omitFields)) : [];
     }
 });
@@ -129,15 +134,15 @@ const fieldObjects = computed(() => {
     if (props.fieldObjects) {
         return props.fieldObjects;
     }
-    const fields = formModel?.expandDetails?.[fieldContext.state.name]?.f;
+    const fields = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.f;
     return fields
         ? fieldNames.value?.map((name) => {
-              return {
-                  fieldName: name,
-                  name: `${fieldContext.state.name}__${name}`,
-                  ...fields[name],
-              };
-          })
+            return {
+                fieldName: name,
+                name: `${fieldSetContext.state.formModelName}__${name}`,
+                ...fields[name],
+            };
+        })
         : [];
 });
 
@@ -154,14 +159,13 @@ const emptyFieldObject = () => {
 };
 
 const selected = ref([]);
-const theme = useTheme("FieldSetTabularInline", props);
 const onCreate = () => {
-    fieldContext.blur();
-    fieldContext.state.value = [...cloneDeep(fieldContext.state.value), emptyFieldObject()];
+    fieldSetContext.blur();
+    fieldSetContext.state.value = [...cloneDeep(fieldSetContext.state.value), emptyFieldObject()];
     nextTick(() => {
-        const newItemIndex = fieldContext.state.value.length - 1;
+        const newItemIndex = fieldSetContext.state.value.length - 1;
         if (itemRefs.value[newItemIndex]) {
-            itemRefs.value[newItemIndex].scrollIntoView({ behavior: "smooth", block: "center" });
+            itemRefs.value[newItemIndex].scrollIntoView({behavior: "smooth", block: "center"});
         }
     });
 };
@@ -170,29 +174,25 @@ const handleSelected = (newSelected) => {
     const added = newSelected.filter((i) => !selected.value.includes(i));
     const removed = selected.value.filter((i) => !newSelected.includes(i));
     added.forEach((i) => {
-        fieldContext.ignore(`${fieldContext.state.name}[${i}]`);
+        fieldSetContext.ignore(`${fieldSetContext.state.name}[${i}]`);
     });
     removed.forEach((i) => {
-        fieldContext.removeIgnore(`${fieldContext.state.name}[${i}]`);
+        fieldSetContext.removeIgnore(`${fieldSetContext.state.name}[${i}]`);
     });
     selected.value = newSelected;
     if (newSelected.length) {
-        fieldContext.setModified();
+        fieldSetContext.setModified();
     } else {
-        fieldContext.clearModified();
+        fieldSetContext.clearModified();
     }
 };
 
 const removeObject = (index) => {
-    fieldContext.blur();
-    fieldContext.state.value = cloneDeep(fieldContext.state.value).filter((_, i) => i !== index);
+    fieldSetContext.blur();
+    fieldSetContext.state.value = cloneDeep(fieldSetContext.state.value).filter((_, i) => i !== index);
 };
-const objectsInOrder = computed(() => {
-    return fieldContext.state.value;
-});
-const computedFieldProps = computed(() => {
-    return merge(formModel.fieldProps[fieldContext.state.name], props.fieldProps);
-});
+const objectsInOrder = computed(() => fieldSetContext.state.value);
+const computedFieldProps = computed(() => merge(formModel.fieldProps[fieldSetContext.state.formModelName], props.fieldProps));
 const computedFieldObjects = computed(() => {
     const objects = [...fieldObjects.value, ...props.extraFieldObjects];
     if (computedFieldProps.value.readOnly) {
@@ -200,9 +200,7 @@ const computedFieldObjects = computed(() => {
     }
     return objects;
 });
-const calculatedObjects = computed(() => {
-    return formModel.fieldProps[fieldContext.state.name]?.calculatedObjects;
-});
+const calculatedObjects = computed(() => formModel.fieldProps[fieldSetContext.state.formModelName]?.calculatedObjects);
 const breakpoints = useBreakpoints(breakpointsVueda);
 const isVisibleByDefault = computed(() => {
     if (props.hiddenByDefault === "always") {
@@ -225,7 +223,7 @@ watch(
             internalVisible.value = newVal;
         }
     },
-    { immediate: true },
+    {immediate: true},
 );
 
 watch(isVisibleByDefault, (newVal) => {
@@ -250,12 +248,31 @@ const refFn = (slotProps, el) => {
 };
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
+const theme = useTheme("FieldSetTabularInline", props);
+const slotNames = ['toggle-button', 'create-button', 'delete-button', 'delete-checkbox'];
+const resolvedSlotNames = slotNames.reduce((acc, name) => {
+    acc[name] = useSlotNameResolver(computed(() => [
+        `field(${fieldSetContext.state.formModelName})${name}`,
+        `field(${fieldSetContext.state.formModelName})`,
+        `fieldset-${name}`,
+        name
+    ]));
+    return acc;
+}, {});
+const remainingSlotNames = computed(() => {
+    const slotNames = Object.keys(slots);
+    const knownSlotNames = [
+        "default",
+        ...slotNames.flatMap(name => unref(resolvedSlotNames?.[name]?.possibleNames)),
+        ...getFormChoresSlotNames(fieldSetContext.state.formModelName),
+    ]
+    return slotNames.filter((slotName) => !knownSlotNames.includes(slotName))
+});
 </script>
 
 <template>
-    <div :class="theme('root')" data-qa="fieldset-tabular-inline">
-        <div :class="theme('inner')">
-            <!--            <header :class="theme('titleBar')" :for="fieldContext.state.name">-->
+    <div :class="[theme('root'), $attrs.class]" data-qa="fieldset-tabular-inline-root">
+        <div :class="theme('inner')" data-qa="fieldset-tabular-inline-inner">
             <Divider
                 align="left"
                 :pt="{
@@ -264,12 +281,12 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                     },
                 }"
             >
-                <div v-if="hidable">
+                <div v-if="hidable" data-qa="fieldset-tabular-inline-header-toggle">
                     <slot
                         :class="theme('toggleButton')"
                         :field-props="computedFieldProps"
                         :label="internalVisible ? 'Hide' : 'Show'"
-                        name="toggle-button"
+                        :name="resolvedSlotNames['toggle-button'].name"
                         :verb="internalVisible ? 'collapseDown' : 'collapseUp'"
                         @click="toggleVisibility"
                     >
@@ -280,42 +297,39 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         />
                     </slot>
                 </div>
-                <div :class="theme('title')">
+                <div :class="theme('title')" data-qa="fieldset-tabular-inline-title">
                     <slot name="title">
-                        {{ fieldContext.state.label }}
+                        {{ fieldSetContext.state.label }}
                     </slot>
                 </div>
-                <div :class="theme('actionBar')">
+                <div :class="theme('actionBar')" data-qa="fieldset-tabular-inline-action-bar">
                     <slot
                         v-if="!computedFieldProps.readOnly && props.showCreateButton"
                         :class="theme('createButton')"
                         :field-props="computedFieldProps"
                         label="Create"
-                        name="create-button"
+                        :name="resolvedSlotNames['create-button'].name"
                         verb="createInline"
                         @click="onCreate"
                     >
-                        <Button :class="theme('createButton')" label="Create" @click="onCreate" />
+                        <Button :class="theme('createButton')" label="Create" @click="onCreate"/>
                     </slot>
                 </div>
             </Divider>
-            <!--            </header>-->
-            <!--            <hr :class="theme('hr')" />-->
             <slot name="field-set-level-chores" :theme-override="themeOverride">
                 <form-chores :theme-override="themeOverride" :variant="null">
                     <template
-                        v-for="slot in getFormChoresSlotNames(fieldContext.state.name)"
+                        v-for="slot in getFormChoresSlotNames(fieldSetContext.state.formModelName)"
                         #[slot]="formChoresSlotProps"
                     >
-                        <slot :name="slot" v-bind="formChoresSlotProps" />
+                        <slot :name="slot" v-bind="formChoresSlotProps"/>
                     </template>
                 </form-chores>
             </slot>
             <objects-grid
                 v-if="internalVisible"
-                v-bind="$attrs"
                 :calculated-objects="calculatedObjects"
-                class="w-full"
+                :class="[theme('objectsGrid'), $attrs.class]"
                 data-qa="fieldset-tabular-inline-objects-grid"
                 :empty-text="null"
                 :field-classes="{
@@ -327,97 +341,32 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                 :theme-override="{ ...themeOverride, ObjectsGridBodyCell: { root: { class: 'min-w-36' } } }"
                 :variant="props.objectGridVariant"
             >
-                <template v-for="field in fieldObjects" :key="field.name" #[`header(${field.name})`]="headerSlotProps">
-                    <slot :name="`header(${field.name})`" v-bind="headerSlotProps"></slot>
+                <template v-for="fieldObj in fieldObjects" :key="fieldObj.name"
+                          #[`header(${fieldObj.name})`]="headerSlotProps">
+                    <slot :name="`header(${fieldObj.name})`" v-bind="headerSlotProps"></slot>
                 </template>
                 <template
-                    v-for="field in fieldObjects"
-                    :key="field.name"
-                    #[`field(${field.name})`]="objectGridFieldSlotProps"
+                    v-for="fieldObj in fieldObjects"
+                    :key="`${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}-${objectGridFieldSlotProps.colIndex}`"
+                    #[`field(${fieldObj.name})`]="objectGridFieldSlotProps"
                 >
-                    <div
+                    <a
+                        data-qa="fieldset-tabular-inline-anchor"
                         v-if="objectGridFieldSlotProps.colIndex === 0"
                         :ref="(el) => refFn(objectGridFieldSlotProps, el)"
+                        :id="`fieldset-tabular-inline-anchor-${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}`"
                     />
-                    <slot
-                        :field-class="theme('field')"
-                        :field-component="formModel.fieldComponents[field.name]"
-                        :field-detail="formModel.fieldDetails[field.name]"
-                        :field-inner-class="theme('fieldInner')"
-                        :field-props="{
-                            ...objectGridFieldSlotProps,
-                            ...formModel.fieldProps[field.name],
-                            name: `${fieldContext.state.name}[${objectGridFieldSlotProps.rowIndex}].${field.fieldName}`,
-                        }"
-                        :label-slots="
-                            availableLabelSlotNames.map((slot) => ({ slotName: slot, slotContent: $slots[slot] }))
-                        "
-                        :name="`field(${field.name})`"
-                        :read-only="computedFieldProps.readOnly"
-                        :theme="theme"
-                        :theme-override="themeOverride"
-                        :widget-component="formModel.widgetComponents[field.name]"
-                        :widget-props="{ ...formModel.widgetProps[field.name], hidden: true }"
+                    <field-renderer
+                        :form-model-name="fieldObj.name"
+                        :field-props="computedFieldProps"
+                        :form-model="formModel"
+                        :field-set-context="fieldSetContext"
+                        :object-grid-field-slot-props="objectGridFieldSlotProps"
                     >
-                        <component
-                            :is="formModel.fieldComponents[field.name]"
-                            v-if="formModel.fieldComponents[field.name]"
-                            :class="theme('field')"
-                            v-bind="{
-                                ...objectGridFieldSlotProps,
-                                ...formModel.fieldProps[field.name],
-                                name: `${fieldContext.state.name}[${objectGridFieldSlotProps.rowIndex}].${field.fieldName}`,
-                            }"
-                            :read-only="computedFieldProps.readOnly"
-                            :theme-override="themeOverride"
-                        >
-                            <template v-for="slot in availableLabelSlotNames" #[slot]="labelSlotProps">
-                                <slot :name="slot" v-bind="labelSlotProps" />
-                            </template>
-                            <template #default="fieldSlotProps">
-                                <div :class="theme('fieldInner')">
-                                    <slot
-                                        :field-details="formModel.fieldDetails[field.name]"
-                                        :fieldset-attrs="$attrs"
-                                        :fieldset-props="computedFieldProps"
-                                        :label-slots="
-                                            availableLabelSlotNames.map((slot) => ({
-                                                slotName: slot,
-                                                slotContent: $slots[slot],
-                                            }))
-                                        "
-                                        :name="`widget(${field.name})`"
-                                        :theme="theme"
-                                        :theme-override="themeOverride"
-                                        :widget-component="formModel.widgetComponents[field.name]"
-                                        :widget-props="{
-                                            ...fieldSlotProps,
-                                            ...formModel.widgetProps[field.name],
-                                            hidden: true,
-                                        }"
-                                    >
-                                        <component
-                                            :is="
-                                                formModel.widgetComponents[field.name] ??
-                                                availableWidgets.WidgetReadOnly
-                                            "
-                                            v-bind="{
-                                                ...fieldSlotProps,
-                                                ...formModel.widgetProps[field.name],
-                                                hidden: true,
-                                            }"
-                                            :model-value="fieldSlotProps.value"
-                                            :theme-override="themeOverride"
-                                        >
-                                            <template v-for="slot in availableLabelSlotNames" #[slot]="labelSlotProps">
-                                                <slot :name="slot" v-bind="labelSlotProps" />
-                                            </template>
-                                        </component>
-                                    </slot>
-                                </div>
-                            </template>
-                        </component>
-                    </slot>
+                        <template v-for="slotName in remainingSlotNames" #[slotName]="slotProps">
+                            <slot :name="slotName" v-bind="slotProps"/>
+                        </template>
+                    </field-renderer>
                 </template>
                 <template v-for="field in extraFieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
                     <slot
@@ -425,7 +374,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :field-class="theme('field')"
                         :field-props="computedFieldProps"
                         :label="field.label"
-                        name="delete-button"
+                        :name="resolvedSlotNames['delete-button'].name"
                         :theme="theme"
                         :value="field.value"
                         verb="delete"
@@ -439,7 +388,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :field-class="theme('field')"
                         :field-props="computedFieldProps"
                         :label="field.label"
-                        name="delete-checkbox"
+                        :name="resolvedSlotNames['delete-checkbox'].name"
                         :theme="theme"
                         :value="field.value"
                         verb="delete"
