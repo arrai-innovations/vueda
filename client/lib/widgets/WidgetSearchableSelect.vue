@@ -2,6 +2,7 @@
 import { useList, useObject } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
@@ -80,6 +81,7 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
 });
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), ref("list"));
 const selectRef = ref(null);
 const fetchedPages = ref(1);
 const hasBeenFocused = ref(false);
@@ -129,6 +131,7 @@ const modelListProps = reactive({
             }
             return undefined;
         }),
+        f: [computed(() => modelConfig.info?.pk), "formatted_name"],
     },
     intendToList,
 });
