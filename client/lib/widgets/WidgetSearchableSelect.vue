@@ -87,7 +87,7 @@ const selectRef = ref(null);
 const fetchedPages = ref(1);
 const hasBeenFocused = ref(false);
 const intendToList = computed(() => {
-    return !widgetContext.state.combinedValue && hasBeenFocused.value;
+    return (!widgetContext.state.combinedValue || listSearch.value?.length) && hasBeenFocused.value;
 });
 const intendToRetrieve = computed(() => {
     return widgetContext.state.combinedValue;
@@ -124,8 +124,6 @@ const modelListProps = reactive({
     },
     pkKey: toRef(props, "pkKey"),
     listArgs: {
-        [props.pageKey]: fetchedPages,
-        [props.searchKey]: listSearch,
         [props.pkKey]: computed(() => {
             if (!listSearch.value?.length) {
                 return widgetContext.state.combinedValue ?? undefined;
@@ -204,26 +202,9 @@ const handleFilter = (event) => {
 const placeHolderText = computed(() => {
     return props.placeholder || `Select a ${props.model}`;
 });
-const perPage = computed(() => {
-    return modelList.state?.perPage ?? 100;
-});
-const lastScrollerPageTracks = reactive({
-    first: 0,
-    last: 0,
-});
-const onLazyLoad = (event) => {
-    if (event.first == lastScrollerPageTracks.first && event.last == lastScrollerPageTracks.last) {
-        return;
-    }
-    lastScrollerPageTracks.first = event.first;
-    lastScrollerPageTracks.last = event.last;
-    if (event.last >= fetchedPages.value * perPage.value && event.last < modelList.state.totalRecords) {
-        fetchedPages.value += 1;
-    }
-};
+
 const onValueChange = () => {
     listSearch.value = "";
-    fetchedPages.value = 1;
 };
 const computedLabel = computed(() => {
     return modelList.state.objectsInOrder.find((obj) => obj[props.optionValue] === widgetContext.state.combinedValue)?.[
@@ -237,13 +218,20 @@ const handleLabelClick = (e) => {
 };
 
 const computedOptions = computed(() => {
-    if (intendToRetrieve.value) {
+    if (intendToRetrieve.value && listSearch.value?.length < 1) {
         return [instanceObject.state.object];
     } else if (intendToList.value) {
         return modelList.state.objectsInOrder;
     }
     return [];
 });
+
+const handleHide = () => {
+    if (intendToRetrieve.value) {
+        selectRef.value.filterValue = "";
+        listSearch.value = "";
+    }
+};
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
@@ -283,18 +271,11 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                     :pt="effectivePt"
                     reset-filter-on-clear
                     show-clear
-                    :virtual-scroller-options="{
-                        showSpacer: false,
-                        lazy: true,
-                        onLazyLoad: onLazyLoad,
-                        itemSize: 38,
-                        showLoader: true,
-                        loading: modelList.state.loading,
-                    }"
                     @blur="widgetContext.blur"
                     @change="onValueChange"
                     @filter="handleFilter"
                     @focus="handleFocus"
+                    @hide="handleHide"
                 />
             </div>
         </widget-label>
