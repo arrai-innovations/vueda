@@ -61,6 +61,7 @@ const uniqueKeyForSlot = computed(() =>
             :col-index="colIndex"
             :field="field"
             :formatted="formattedComputed"
+            :is-card-layout="false"
             name="value"
             :obj="obj"
             :pk="obj?.[pkKey]"

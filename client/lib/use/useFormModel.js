@@ -1,3 +1,4 @@
+import { useTheme } from "@vueda/use/useTheme.js";
 import { buildForm } from "@vueda/utils/buildForm.js";
 import { choiceFieldMappings, defaultFieldMappings, manyFieldMappings } from "@vueda/utils/fieldMappings.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
@@ -121,10 +122,11 @@ const getFieldProps = (field) => {
 /**
  * Using server model info and client model config, this hook provides the necessary reactive state for a form model.
  *
+ * @param {string} componentName - The name of the component using the form model.
  * @param {import('vue').Reactive<UseFormModelRawProps>} props - The reactive arguments.
  * @returns {UseFormModelState} The reactive state.
  */
-export function useFormModel(props) {
+export function useFormModel(componentName, props) {
     const state = reactive(
         /** @type {UseFormModelRawState} */ {
             app: toRef(props, "app"),
@@ -143,6 +145,7 @@ export function useFormModel(props) {
             baseFieldNames: [],
             expansionFieldNames: [],
             expandedFieldNames: [],
+            theme: useTheme(componentName, props),
         },
     );
     const {

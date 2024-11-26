@@ -50,6 +50,7 @@ const uniqueKeyForSlot = computed(() =>
                 :field="field"
                 v-bind="fieldProps"
                 gird-type="table-header"
+                :is-card-layout="false"
                 name="label"
             >
                 {{ field.label }}
@@ -62,6 +63,7 @@ const uniqueKeyForSlot = computed(() =>
                 :col-index="colIndex"
                 :descending="descending"
                 :field="field"
+                :is-card-layout="false"
                 name="sort-icon"
                 v-bind="fieldProps"
             >

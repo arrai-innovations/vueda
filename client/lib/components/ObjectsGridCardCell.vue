@@ -61,6 +61,7 @@ const uniqueKeyForSlot = computed(() =>
             :col-index="colIndex"
             :field="field"
             gird-type="cell"
+            :is-card-layout="true"
             name="header"
         >
             <div :class="theme('header')" :data-card-header="field.name">
@@ -74,6 +75,7 @@ const uniqueKeyForSlot = computed(() =>
                 :col-index="colIndex"
                 :field="field"
                 :formatted="formattedComputed"
+                :is-card-layout="true"
                 name="value"
                 :obj="obj"
                 :pk="obj?.[pkKey]"

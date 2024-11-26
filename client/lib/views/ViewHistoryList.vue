@@ -133,7 +133,7 @@ const formModelProps = reactive({
     fields: formFields,
 });
 const router = useRouter();
-const formModel = useFormModel(formModelProps);
+const formModel = useFormModel("ViewHistoryList", formModelProps);
 const computedChangeObjects = computed(() => {
     return instanceList.state.objectsInOrder.flatMap((item, parentIndex) => {
         if (!item.num_changes) {
@@ -166,7 +166,7 @@ const evenColumn = (obj) => {
 };
 </script>
 <template>
-    <div>
+    <div :class="formModel.theme('root')">
         <page-title :loading="instanceList.state.loading" :title="titleStr">
             <template #button>
                 <Button outlined text @click="router.back()"> Back </Button>
@@ -239,7 +239,7 @@ const evenColumn = (obj) => {
                             <div>
                                 <WidgetReadOnly
                                     v-bind="formModel.widgetProps[obj.field]"
-                                    hidden
+                                    :hidden="true"
                                     :name="`${obj.field}_new`"
                                 />
                             </div>
@@ -274,7 +274,7 @@ const evenColumn = (obj) => {
                             <div>
                                 <WidgetReadOnly
                                     v-bind="formModel.widgetProps[obj.field]"
-                                    hidden
+                                    :hidden="true"
                                     :name="`${obj.field}_old`"
                                 />
                             </div>

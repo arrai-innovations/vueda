@@ -68,4 +68,9 @@ export default {
             class: ["lg:w-0"],
         },
     },
+    ViewHistoryList: {
+        root: {
+            class: [],
+        },
+    },
 };
