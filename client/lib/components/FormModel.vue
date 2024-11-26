@@ -137,11 +137,11 @@
  * **Note:** The same principles apply to `field(fieldName)` slots when customizing field components.
  * ```
  */
+import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
-import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, useSlots } from "vue";
 

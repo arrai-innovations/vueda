@@ -1,9 +1,9 @@
 <script setup>
-import { computed, inject, reactive, unref, useAttrs, useSlots } from 'vue';
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
-import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import omit from "lodash-es/omit.js";
+import { computed, inject, reactive, unref, useAttrs, useSlots } from "vue";
 
 const props = defineProps({
     objectGridFieldSlotProps: {
@@ -27,7 +27,7 @@ const props = defineProps({
     fieldSetContext: {
         type: Object,
         default: null,
-    }
+    },
 });
 
 const attrs = useAttrs();
@@ -37,15 +37,23 @@ const attrs = useAttrs();
  */
 const fieldSetContext = inject(FieldContextSymbol, null);
 const slots = useSlots();
-const relativeFieldName = computed(() => !fieldSetContext ? props.formModelName : props.formModelName.replace(`${fieldSetContext.state.name}__`, ''));
-const fieldValuePath = computed(() => !fieldSetContext ? props.formModelName : `${fieldSetContext.state.name}[${props.objectGridFieldSlotProps.rowIndex}].${unref(relativeFieldName)}`);
+const relativeFieldName = computed(() =>
+    !fieldSetContext ? props.formModelName : props.formModelName.replace(`${fieldSetContext.state.name}__`, ""),
+);
+const fieldValuePath = computed(() =>
+    !fieldSetContext
+        ? props.formModelName
+        : `${fieldSetContext.state.name}[${props.objectGridFieldSlotProps.rowIndex}].${unref(relativeFieldName)}`,
+);
 const slotProps = reactive({
-    fieldClass: computed(() => combineClasses(
-        unref(slotProps.theme('field')),
-        // v-bind of fieldProps to class will deal with this
-        // slotProps.fieldProps?.class,
-        attrs.class,
-    )),
+    fieldClass: computed(() =>
+        combineClasses(
+            unref(slotProps.theme("field")),
+            // v-bind of fieldProps to class will deal with this
+            // slotProps.fieldProps?.class,
+            attrs.class,
+        ),
+    ),
     fieldComponent: computed(() => props.formModel.fieldComponents[props.formModelName]),
     fieldDetail: computed(() => props.formModel.fieldDetails[props.formModelName]),
     fieldProps: computed(() => ({
@@ -56,14 +64,16 @@ const slotProps = reactive({
     })),
     theme: computed(() => props.formModel.fieldLevelTheme[props.formModelName] ?? props.formModel.theme),
     themeOverride: computed(() => props.themeOverride),
-    widgetComponent: computed(() => props.formModel.widgetComponents[props.formModelName] ?? availableWidgets.WidgetUnmapped),
+    widgetComponent: computed(
+        () => props.formModel.widgetComponents[props.formModelName] ?? availableWidgets.WidgetUnmapped,
+    ),
     widgetProps: computed(() => ({
         ...props.objectGridFieldSlotProps,
         ...props.formModel.widgetProps[props.formModelName],
-        hidden: !!props.fieldSetContext
+        hidden: !!props.fieldSetContext,
     })),
 });
-slotProps.fieldInnerClass = slotProps.theme('fieldInner');
+slotProps.fieldInnerClass = slotProps.theme("fieldInner");
 const fieldSlotName = computed(() => `field(${props.formModelName})`);
 const fieldDefaultSlotName = computed(() => `${unref(fieldSlotName)}default`);
 const widgetSlotName = computed(() => `widget(${props.formModelName})`);
@@ -73,9 +83,9 @@ const knownSlots = computed(() => [
     unref(fieldDefaultSlotName),
     unref(widgetSlotName),
     unref(widgetDefaultSlotName),
-    'default',
+    "default",
 ]);
-const remainingSlots = computed(() => Object.keys(slots).filter(slotName => !unref(knownSlots).includes(slotName)));
+const remainingSlots = computed(() => Object.keys(slots).filter((slotName) => !unref(knownSlots).includes(slotName)));
 </script>
 
 <template>
@@ -87,21 +97,18 @@ const remainingSlots = computed(() => Object.keys(slots).filter(slotName => !unr
             v-bind="slotProps.fieldProps"
         >
             <template v-for="slotName in remainingSlots" #[slotName]="slotProps">
-                <slot :name="slotName" v-bind="slotProps || {}"/>
+                <slot :name="slotName" v-bind="slotProps || {}" />
             </template>
             <template #default="fieldDefaultSlotProps">
                 <slot :name="fieldDefaultSlotName" v-bind="slotProps">
                     <div :class="slotProps.fieldInnerClass">
                         <slot :name="widgetSlotName" v-bind="slotProps">
-                            <component
-                                :is="slotProps.widgetComponent"
-                                v-bind="slotProps.widgetProps"
-                            >
+                            <component :is="slotProps.widgetComponent" v-bind="slotProps.widgetProps">
                                 <template v-for="slotName in remainingSlots" #[slotName]="slotProps">
-                                    <slot :name="slotName" v-bind="slotProps || {}"/>
+                                    <slot :name="slotName" v-bind="slotProps || {}" />
                                 </template>
                                 <template #default="slotProps" v-if="$slots[widgetDefaultSlotName]">
-                                    <slot :name="widgetDefaultSlotName" v-bind="slotProps"/>
+                                    <slot :name="widgetDefaultSlotName" v-bind="slotProps" />
                                 </template>
                             </component>
                         </slot>

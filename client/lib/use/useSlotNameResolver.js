@@ -1,4 +1,4 @@
-import { computed, reactive } from 'vue';
+import { computed, reactive } from "vue";
 import { useSlots } from "vue";
 import { deepUnref } from "vue-deepunref";
 
@@ -50,7 +50,7 @@ export function useSlotNameResolver(slotNamesInOrderOfPrecedence) {
     const slots = useSlots();
 
     const possibleNames = computed(() => deepUnref(slotNamesInOrderOfPrecedence));
-    const exists = computed(() => possibleNames.value.some(slotName => !!slots[slotName]));
-    const name = computed(() => possibleNames.value.find(slotName => slots[slotName]));
+    const exists = computed(() => possibleNames.value.some((slotName) => !!slots[slotName]));
+    const name = computed(() => possibleNames.value.find((slotName) => slots[slotName]));
     return reactive({ exists, name, possibleNames });
 }

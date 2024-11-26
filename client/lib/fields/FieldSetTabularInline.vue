@@ -1,9 +1,11 @@
 <script setup>
+import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
+import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
@@ -17,8 +19,6 @@ import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import Divider from "primevue/divider";
 import { computed, inject, nextTick, reactive, ref, shallowReactive, unref, useSlots, watch } from "vue";
-import FieldRenderer from "@vueda/components/FieldRenderer.vue";
-import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 
 defineOptions({
     inheritAttrs: false,
@@ -137,12 +137,12 @@ const fieldObjects = computed(() => {
     const fields = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.f;
     return fields
         ? fieldNames.value?.map((name) => {
-            return {
-                fieldName: name,
-                name: `${fieldSetContext.state.formModelName}__${name}`,
-                ...fields[name],
-            };
-        })
+              return {
+                  fieldName: name,
+                  name: `${fieldSetContext.state.formModelName}__${name}`,
+                  ...fields[name],
+              };
+          })
         : [];
 });
 
@@ -165,7 +165,7 @@ const onCreate = () => {
     nextTick(() => {
         const newItemIndex = fieldSetContext.state.value.length - 1;
         if (itemRefs.value[newItemIndex]) {
-            itemRefs.value[newItemIndex].scrollIntoView({behavior: "smooth", block: "center"});
+            itemRefs.value[newItemIndex].scrollIntoView({ behavior: "smooth", block: "center" });
         }
     });
 };
@@ -192,7 +192,9 @@ const removeObject = (index) => {
     fieldSetContext.state.value = cloneDeep(fieldSetContext.state.value).filter((_, i) => i !== index);
 };
 const objectsInOrder = computed(() => fieldSetContext.state.value);
-const computedFieldProps = computed(() => merge(formModel.fieldProps[fieldSetContext.state.formModelName], props.fieldProps));
+const computedFieldProps = computed(() =>
+    merge(formModel.fieldProps[fieldSetContext.state.formModelName], props.fieldProps),
+);
 const computedFieldObjects = computed(() => {
     const objects = [...fieldObjects.value, ...props.extraFieldObjects];
     if (computedFieldProps.value.readOnly) {
@@ -223,7 +225,7 @@ watch(
             internalVisible.value = newVal;
         }
     },
-    {immediate: true},
+    { immediate: true },
 );
 
 watch(isVisibleByDefault, (newVal) => {
@@ -249,24 +251,26 @@ const refFn = (slotProps, el) => {
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 const theme = useTheme("FieldSetTabularInline", props);
-const slotNames = ['toggle-button', 'create-button', 'delete-button', 'delete-checkbox'];
+const slotNames = ["toggle-button", "create-button", "delete-button", "delete-checkbox"];
 const resolvedSlotNames = slotNames.reduce((acc, name) => {
-    acc[name] = useSlotNameResolver(computed(() => [
-        `field(${fieldSetContext.state.formModelName})${name}`,
-        `field(${fieldSetContext.state.formModelName})`,
-        `fieldset-${name}`,
-        name
-    ]));
+    acc[name] = useSlotNameResolver(
+        computed(() => [
+            `field(${fieldSetContext.state.formModelName})${name}`,
+            `field(${fieldSetContext.state.formModelName})`,
+            `fieldset-${name}`,
+            name,
+        ]),
+    );
     return acc;
 }, {});
 const remainingSlotNames = computed(() => {
     const slotNames = Object.keys(slots);
     const knownSlotNames = [
         "default",
-        ...slotNames.flatMap(name => unref(resolvedSlotNames?.[name]?.possibleNames)),
+        ...slotNames.flatMap((name) => unref(resolvedSlotNames?.[name]?.possibleNames)),
         ...getFormChoresSlotNames(fieldSetContext.state.formModelName),
-    ]
-    return slotNames.filter((slotName) => !knownSlotNames.includes(slotName))
+    ];
+    return slotNames.filter((slotName) => !knownSlotNames.includes(slotName));
 });
 </script>
 
@@ -312,7 +316,7 @@ const remainingSlotNames = computed(() => {
                         verb="createInline"
                         @click="onCreate"
                     >
-                        <Button :class="theme('createButton')" label="Create" @click="onCreate"/>
+                        <Button :class="theme('createButton')" label="Create" @click="onCreate" />
                     </slot>
                 </div>
             </Divider>
@@ -322,7 +326,7 @@ const remainingSlotNames = computed(() => {
                         v-for="slot in getFormChoresSlotNames(fieldSetContext.state.formModelName)"
                         #[slot]="formChoresSlotProps"
                     >
-                        <slot :name="slot" v-bind="formChoresSlotProps"/>
+                        <slot :name="slot" v-bind="formChoresSlotProps" />
                     </template>
                 </form-chores>
             </slot>
@@ -341,8 +345,11 @@ const remainingSlotNames = computed(() => {
                 :theme-override="{ ...themeOverride, ObjectsGridBodyCell: { root: { class: 'min-w-36' } } }"
                 :variant="props.objectGridVariant"
             >
-                <template v-for="fieldObj in fieldObjects" :key="fieldObj.name"
-                          #[`header(${fieldObj.name})`]="headerSlotProps">
+                <template
+                    v-for="fieldObj in fieldObjects"
+                    :key="fieldObj.name"
+                    #[`header(${fieldObj.name})`]="headerSlotProps"
+                >
                     <slot :name="`header(${fieldObj.name})`" v-bind="headerSlotProps"></slot>
                 </template>
                 <template
@@ -364,7 +371,7 @@ const remainingSlotNames = computed(() => {
                         :object-grid-field-slot-props="objectGridFieldSlotProps"
                     >
                         <template v-for="slotName in remainingSlotNames" #[slotName]="slotProps">
-                            <slot :name="slotName" v-bind="slotProps"/>
+                            <slot :name="slotName" v-bind="slotProps" />
                         </template>
                     </field-renderer>
                 </template>
