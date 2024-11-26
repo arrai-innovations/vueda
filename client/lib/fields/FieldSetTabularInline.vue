@@ -10,7 +10,6 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
-import { getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import { useBreakpoints } from "@vueuse/core";
 import { merge } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -249,7 +248,6 @@ const refFn = (slotProps, el) => {
     itemRefs.value[slotProps.rowIndex] = el;
 };
 const slots = useSlots();
-const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 const theme = useTheme("FieldSetTabularInline", props);
 const slotNames = ["toggle-button", "create-button", "delete-button", "delete-checkbox"];
 const resolvedSlotNames = slotNames.reduce((acc, name) => {
@@ -358,16 +356,15 @@ const remainingSlotNames = computed(() => {
                     #[`field(${fieldObj.name})`]="objectGridFieldSlotProps"
                 >
                     <a
-                        data-qa="fieldset-tabular-inline-anchor"
                         v-if="objectGridFieldSlotProps.colIndex === 0"
-                        :ref="(el) => refFn(objectGridFieldSlotProps, el)"
                         :id="`fieldset-tabular-inline-anchor-${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}`"
+                        :ref="(el) => refFn(objectGridFieldSlotProps, el)"
+                        data-qa="fieldset-tabular-inline-anchor"
                     />
                     <field-renderer
-                        :form-model-name="fieldObj.name"
                         :field-props="computedFieldProps"
                         :form-model="formModel"
-                        :field-set-context="fieldSetContext"
+                        :form-model-name="fieldObj.name"
                         :object-grid-field-slot-props="objectGridFieldSlotProps"
                     >
                         <template v-for="slotName in remainingSlotNames" #[slotName]="slotProps">

@@ -142,8 +142,7 @@ import FormChores from "@vueda/components/FormChores.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
-import { FormContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, inject, useSlots } from "vue";
+import { computed, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -225,7 +224,6 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 const formModel = useFormModel("FormModel", props);
-const formContext = inject(FormContextSymbol);
 const slots = useSlots();
 const mySlotNames = ["before-fields", "after-fields", "form-level-chores", "default"];
 const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlotNames.includes(slotName)));
@@ -256,9 +254,9 @@ const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlot
                 >
                     <template v-for="fieldName in formModel.baseFieldNames" :key="fieldName">
                         <field-renderer
-                            :form-model-name="fieldName"
                             :field-props="fieldProps?.[fieldName]"
                             :form-model="formModel"
+                            :form-model-name="fieldName"
                         >
                             <template v-for="slotName in slotNames" #[slotName]="slotProps">
                                 <slot :name="slotName" v-bind="slotProps" />

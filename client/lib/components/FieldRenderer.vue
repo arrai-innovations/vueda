@@ -1,8 +1,7 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
-import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
-import omit from "lodash-es/omit.js";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, reactive, unref, useAttrs, useSlots } from "vue";
 
 const props = defineProps({
@@ -23,10 +22,7 @@ const props = defineProps({
     /** @type {import("@vueda/use/useFormModel.js").UseFormModelState} */
     formModel: {
         type: Object,
-    },
-    fieldSetContext: {
-        type: Object,
-        default: null,
+        required: true,
     },
 });
 
@@ -70,7 +66,7 @@ const slotProps = reactive({
     widgetProps: computed(() => ({
         ...props.objectGridFieldSlotProps,
         ...props.formModel.widgetProps[props.formModelName],
-        hidden: !!props.fieldSetContext,
+        hidden: !!fieldSetContext,
     })),
 });
 slotProps.fieldInnerClass = slotProps.theme("fieldInner");
@@ -96,19 +92,19 @@ const remainingSlots = computed(() => Object.keys(slots).filter((slotName) => !u
             :class="slotProps.fieldClass"
             v-bind="slotProps.fieldProps"
         >
-            <template v-for="slotName in remainingSlots" #[slotName]="slotProps">
-                <slot :name="slotName" v-bind="slotProps || {}" />
+            <template v-for="slotName in remainingSlots" #[slotName]="fieldSlotProps">
+                <slot :name="slotName" v-bind="fieldSlotProps || {}" />
             </template>
-            <template #default="fieldDefaultSlotProps">
+            <template #default>
                 <slot :name="fieldDefaultSlotName" v-bind="slotProps">
                     <div :class="slotProps.fieldInnerClass">
                         <slot :name="widgetSlotName" v-bind="slotProps">
                             <component :is="slotProps.widgetComponent" v-bind="slotProps.widgetProps">
-                                <template v-for="slotName in remainingSlots" #[slotName]="slotProps">
-                                    <slot :name="slotName" v-bind="slotProps || {}" />
+                                <template v-for="slotName in remainingSlots" #[slotName]="widgetSlotProps">
+                                    <slot :name="slotName" v-bind="widgetSlotProps || {}" />
                                 </template>
-                                <template #default="slotProps" v-if="$slots[widgetDefaultSlotName]">
-                                    <slot :name="widgetDefaultSlotName" v-bind="slotProps" />
+                                <template v-if="$slots[widgetDefaultSlotName]" #default="widgetSlotProps">
+                                    <slot :name="widgetDefaultSlotName" v-bind="widgetSlotProps" />
                                 </template>
                             </component>
                         </slot>
