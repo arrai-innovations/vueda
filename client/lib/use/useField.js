@@ -57,6 +57,10 @@ export const FIELD_PROPS = {
         type: Array,
         default: () => [],
     },
+    formModelName: {
+        type: String,
+        default: undefined,
+    },
 };
 
 export const FIELD_EMITS = ["update:modelValue"];
@@ -88,12 +92,14 @@ export function onBeforeFieldUnmount(fieldContext) {
 }
 /**
  * @typedef {object} FieldContextRawState
- * @property {import('vue').ComputedRef<string>} name - The name of the field.
+ * @property {import('vue').ComputedRef<string>} name - The name of the field. This is the path to look up the value of
+ *  the field in the form context.
+ * @property {import('vue').ComputedRef<string>} formModelName - The name of the form model. This is the lookup name
+ *  for configuration in a FormModel configuration object related to the field.
  * @property {import('vue').ComputedRef<string>} dependents - The dependents for the field.
  * @property {import('vue').ComputedRef<string>} readOnly - Whether the field is read only.
  * @property {import('vue').ComputedRef<string>} label - The label for the field.
  * @property {import('vue').ComputedRef<boolean|undefined>} required - Whether the field is required.
- * @property {import('vue').ComputedRef<boolean|undefined>} hidden - Whether the field is hidden.
  * @property {import('vue').ComputedRef<string>} help - The help text for the field.
  * @property {import('vue').ComputedRef<string>} suffix - The suffix for the field.
  * @property {import('vue').WritableComputedRef<any>} value - The current value of the field.
@@ -149,7 +155,6 @@ export function onBeforeFieldUnmount(fieldContext) {
  *     name: string,
  *     required: boolean,
  *     requiredMessage: string,
- *     hidden: boolean,
  *     label: string,
  *     help: string,
  *     validate: (value: any) => boolean,
@@ -178,11 +183,11 @@ export function useField(props, emit, functions) {
     });
     const state = reactive({
         name: readonly(toRef(props, "name")),
+        formModelName: readonly(toRef(props, "formModelName")),
         dependents: readonly(toRef(props, "dependents")),
         readOnly: readonly(toRef(props, "readOnly")),
         label: computed(() => (props.label?.length ? props.label : props.name)),
         required: computed(() => props.required ?? false),
-        hidden: computed(() => props.hidden ?? false),
         help: computed(() => props.help || ""),
         suffix: computed(() => props.rangeSuffix || ""),
         value:

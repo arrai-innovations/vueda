@@ -9,7 +9,7 @@ export default {
     },
     WidgetCheckbox: {
         root: {
-            class: ["ml-2 flex flex-row grow"],
+            class: ["ml-2 flex flex-row grow items-center"],
         },
         inner: {
             class: ["flex flex-row grow items-center"],
@@ -17,16 +17,21 @@ export default {
         input: {
             class: ["min-w-min grow-0 shrink-0"],
         },
-        labelRoot: {
-            class: {
-                grow: true,
-                "mb-1": false,
-                "gap-1 md:gap-2 2xl:gap-4": true,
-            },
-        },
-        labelLabel: {
-            class: {
-                "leading-7": false,
+        themeOverride: {
+            WidgetLabel: {
+                root: {
+                    class: {
+                        // grid: false,
+                        // grow: true,
+                        "ml-2 mb-1": false,
+                        // "gap-1 md:gap-2 2xl:gap-4": true,
+                    },
+                },
+                label: {
+                    class: {
+                        "leading-7": false,
+                    },
+                },
             },
         },
     },
@@ -197,20 +202,38 @@ export default {
         },
     },
     WidgetLabel: {
-        root: {
-            class: [
-                "ml-2 mb-1",
-                "flex flex-row items-center justify-between",
-                // not items-baseline, checkboxes and buttons don't play well with it
-            ],
+        root: ({ props }) => {
+            return {
+                class: {
+                    "ml-2 mb-1": !props.isCardLayout,
+                    "gap-1": true,
+                    // "flex flex-row items-stretch gap-1",
+                    // not items-baseline, checkboxes and buttons don't play well with it
+                    "grid grid-cols-2 justify-between items-baseline": !props.hidden,
+                    "flex flex-row-reverse items-baseline": props.hidden,
+                },
+            };
         },
         label: {
-            class: ({ validationState }) => ({
+            class: ({ widgetContextState }) => ({
                 "leading-7": true,
                 "text-surface-900/60 dark:text-white/60": true,
-                "!text-amber-600 dark:!text-amber-500": validationState.warning,
-                "!text-maroon-600 dark:!text-maroon-500": validationState.invalid,
+                "!text-amber-600 dark:!text-amber-500": widgetContextState?.validationState?.warning,
+                "!text-maroon-600 dark:!text-maroon-500": widgetContextState?.validationState?.invalid,
             }),
+        },
+        feedback: ({ props }) => ({
+            class: {
+                "justify-self-end": !props.hidden,
+            },
+        }),
+        control: ({ props }) => {
+            return {
+                class: {
+                    "col-span-2": !props.hidden,
+                    grow: props.hidden,
+                },
+            };
         },
     },
 };

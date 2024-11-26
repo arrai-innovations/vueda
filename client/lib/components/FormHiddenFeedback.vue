@@ -30,6 +30,14 @@ export const FORM_HIDDEN_FEEDBACK_PROPS = {
         description: "Manually set the warning state, defaults to if there are warnings.",
         default: undefined,
     },
+    hidden: {
+        type: Boolean,
+        default: false,
+    },
+    isCardLayout: {
+        type: Boolean,
+        default: false,
+    },
 };
 export const FORM_HIDDEN_FEEDBACK_SLOTS = [
     "feedback-required-icon",
@@ -54,6 +62,9 @@ import Button from "primevue/button";
 import Popover from "primevue/popover";
 import { inject, onMounted, ref, unref, useAttrs } from "vue";
 
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     ...FORM_HIDDEN_FEEDBACK_PROPS,
     name: {
@@ -162,7 +173,11 @@ const togglePopover = (e) => {
             </form-help-text>
         </div>
     </popover>
-    <div :class="theme('root')">
+    <div
+        v-if="effectiveRequired || showHelpIcon || showErrorIcon || showWarnIcon"
+        :class="theme('root')"
+        v-bind="attrs"
+    >
         <slot
             :has-errors="hasErrors"
             :has-help="showHelpIcon"
@@ -172,7 +187,6 @@ const togglePopover = (e) => {
             @click="togglePopover"
         >
             <Button
-                v-if="effectiveRequired || showHelpIcon || showErrorIcon || showWarnIcon"
                 :class="theme('button')"
                 :rounded="true"
                 :severity="hasErrors ? 'danger' : hasWarnings ? 'warn' : 'help'"

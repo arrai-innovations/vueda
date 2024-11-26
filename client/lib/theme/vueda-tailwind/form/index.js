@@ -119,6 +119,9 @@ export default {
         actionBar: {
             class: "grow-0 flex gap-2",
         },
+        objectsGrid: {
+            class: "w-full",
+        },
         field: {
             class: [
                 // "rounded", "px-1 lg:px-2 py-1 lg:py-2",
@@ -223,8 +226,14 @@ export default {
         },
     },
     FormHiddenFeedback: {
-        root: {
-            class: ["min-h-10 min-w-min"],
+        root: ({ props }) => {
+            console.log(props);
+            return {
+                class: {
+                    "min-h-10 min-w-min": true,
+                    // "self-baseline": props.hidden,
+                },
+            };
         },
         popoverBody: {
             class: "flex flex-col gap-1 md:gap-2 2xl:gap-4",

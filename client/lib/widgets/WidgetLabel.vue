@@ -2,7 +2,8 @@
 import { FORM_HIDDEN_FEEDBACK_PROPS, FORM_HIDDEN_FEEDBACK_SLOTS } from "@vueda/components/FormHiddenFeedback.vue";
 import { computed } from "vue";
 
-export const WIDGET_LABEL_SLOTS = ["label", "feedback", ...FORM_HIDDEN_FEEDBACK_SLOTS];
+export const ONLY_WIDGET_LABEL_SLOTS = ["label", "feedback"];
+export const WIDGET_LABEL_SLOTS = [...ONLY_WIDGET_LABEL_SLOTS, ...FORM_HIDDEN_FEEDBACK_SLOTS];
 export const getWidgetSlotsComputed = (slots) => {
     return computed(() => {
         return WIDGET_LABEL_SLOTS.filter((slotName) => slots[slotName]);
@@ -23,17 +24,21 @@ export const WIDGET_LABEL_PROPS = {
         type: String,
         default: undefined,
     },
+    isCardLayout: {
+        type: Boolean,
+        default: false,
+    },
 };
 </script>
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FormHiddenFeedback from "@vueda/components/FormHiddenFeedback.vue";
 import { getFormHiddenFeedbackSlotsComputed } from "@vueda/components/FormHiddenFeedback.vue";
-import { useTheme } from "@vueda/use/useTheme.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import pick from "lodash-es/pick.js";
-import { inject, unref, useSlots } from "vue";
+import { inject, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -51,35 +56,28 @@ const computedFor = computed(() => (props.id ? props.id : widgetContext.state.wi
 // aria-labelledby points to label
 const computedId = computed(() => (!props.id ? widgetContext?.state?.widgetId : undefined));
 const combinedLabel = computed(() => props.label ?? widgetContext?.state?.combinedLabel);
-const themeProps = computed(() => ({
-    props,
-    ...(widgetContext?.state || {}),
-}));
-const theme = useTheme("WidgetLabel", props, themeProps);
+const theme = useWidgetTheme("WidgetLabel", props, widgetContext.state);
 const slots = useSlots();
 const availableFeedbackSlotNames = getFormHiddenFeedbackSlotsComputed(slots);
-const effectiveHidden = computed(() => props.hidden ?? widgetContext?.state?.hidden ?? false);
-const labelClass = computed(() => combineClasses(theme("label"), { "sr-only": unref(effectiveHidden) }));
+const labelClass = computed(() => combineClasses(theme("label"), { "sr-only": props.hidden }));
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-label-root">
         <label :id="computedId" :class="labelClass" data-qa="widget-label-label" :for="computedFor" v-bind="$attrs">
             <slot :id="computedId" :for="computedFor" :label="combinedLabel" name="label">{{ combinedLabel }}</slot>
         </label>
-        <slot v-if="!effectiveHidden" name="feedback">
-            <form-hidden-feedback v-bind="pick(props, Object.keys(FORM_HIDDEN_FEEDBACK_PROPS))">
+        <slot :class="theme('feedback')" name="feedback" v-bind="pick(props, Object.keys(FORM_HIDDEN_FEEDBACK_PROPS))">
+            <form-hidden-feedback
+                :class="theme('feedback')"
+                v-bind="pick(props, Object.keys(FORM_HIDDEN_FEEDBACK_PROPS))"
+            >
                 <template v-for="slotName in availableFeedbackSlotNames" :key="slotName" #[slotName]="slotProps">
                     <slot :name="slotName" v-bind="slotProps" />
                 </template>
             </form-hidden-feedback>
         </slot>
+        <div :class="theme('control')" data-qa="widget-label-control">
+            <slot></slot>
+        </div>
     </div>
-    <slot></slot>
-    <slot v-if="effectiveHidden" name="feedback">
-        <form-hidden-feedback v-bind="pick(props, Object.keys(FORM_HIDDEN_FEEDBACK_PROPS))">
-            <template v-for="slotName in availableFeedbackSlotNames" :key="slotName" #[slotName]="slotProps">
-                <slot :name="slotName" v-bind="slotProps" />
-            </template>
-        </form-hidden-feedback>
-    </slot>
 </template>
