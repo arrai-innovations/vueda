@@ -2,6 +2,7 @@
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { isObject } from "lodash-es";
 import isArray from "lodash-es/isArray.js";
+import omit from "lodash-es/omit.js";
 
 defineOptions({
     inheritAttrs: false,
@@ -54,8 +55,8 @@ const emit = defineEmits([...FIELD_EMITS]);
 useField(props, emit, { preprocessGet, preprocessSet });
 </script>
 <template>
-    <div data-qa="field-date">
-        <slot :field-attrs="$attrs" :field-props="props" />
+    <div :class="$attrs.class" data-qa="field-date">
+        <slot :field-attrs="omit($attrs, ['class'])" :field-props="props" />
     </div>
 </template>
 <!--# the value submitted right now is like due_Date [{date},{date}],-->

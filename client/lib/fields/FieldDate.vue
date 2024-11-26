@@ -1,5 +1,6 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import omit from "lodash-es/omit.js";
 import { computed, watch } from "vue";
 
 defineOptions({
@@ -96,7 +97,7 @@ watch(
 );
 </script>
 <template>
-    <div data-qa="field-date">
-        <slot :field-attrs="$attrs" :field-props="props" />
+    <div :class="$attrs.class" data-qa="field-date">
+        <slot :field-attrs="omit($attrs, ['class'])" :field-props="props" />
     </div>
 </template>

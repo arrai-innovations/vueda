@@ -1,5 +1,6 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, onBeforeFieldUnmount, useField } from "@vueda/use/useField.js";
+import omit from "lodash-es/omit.js";
 import { toRef, watch } from "vue";
 
 defineOptions({
@@ -28,7 +29,7 @@ watch(
 onBeforeFieldUnmount(fieldContext);
 </script>
 <template>
-    <div data-qa="field-string">
-        <slot :field-attrs="$attrs" :field-props="props" />
+    <div :class="$attrs.class" data-qa="field-string">
+        <slot :field-attrs="omit($attrs, ['class'])" :field-props="props" />
     </div>
 </template>
