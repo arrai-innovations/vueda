@@ -276,10 +276,9 @@ const remainingSlotNames = computed(() => {
     <div :class="[theme('root'), $attrs.class]" data-qa="fieldset-tabular-inline-root">
         <div :class="theme('inner')" data-qa="fieldset-tabular-inline-inner">
             <Divider
-                align="left"
                 :pt="{
                     content: {
-                        class: 'flex flex-row items-baseline justify-between gap-1 md:gap-2 2xl:gap-4 !bg-zinc-100 dark:!bg-zinc-800',
+                        class: theme('dividerContent'),
                     },
                 }"
             >

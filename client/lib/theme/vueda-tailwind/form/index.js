@@ -107,6 +107,9 @@ export default {
         inner: {
             class: ["flex flex-col"],
         },
+        dividerContent: {
+            class: ["flex flex-row items-baseline justify-between gap-1 md:gap-2 2xl:gap-4"],
+        },
         hr: {
             class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2 my-2",
         },
