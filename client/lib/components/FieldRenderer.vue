@@ -2,6 +2,7 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
+import omit from "lodash-es/omit.js";
 import { computed, inject, reactive, unref, useAttrs, useSlots } from "vue";
 
 const props = defineProps({
@@ -53,10 +54,11 @@ const slotProps = reactive({
     fieldComponent: computed(() => props.formModel.fieldComponents[props.formModelName]),
     fieldDetail: computed(() => props.formModel.fieldDetails[props.formModelName]),
     fieldProps: computed(() => ({
-        ...props.objectGridFieldSlotProps,
+        ...omit(props.objectGridFieldSlotProps, ["value"]),
         ...props.formModel.fieldProps[props.formModelName],
         name: unref(fieldValuePath),
         formModelName: props.formModelName,
+        fieldValue: props.objectGridFieldSlotProps?.value,
     })),
     theme: computed(() => props.formModel.fieldLevelTheme[props.formModelName] ?? props.formModel.theme),
     themeOverride: computed(() => props.themeOverride),
