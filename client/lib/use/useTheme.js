@@ -2,10 +2,13 @@ import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isFunction from "lodash-es/isFunction.js";
-import merge from "lodash-es/merge.js";
-import { computed, effectScope, unref } from "vue";
+import mergeWith from "lodash-es/mergeWith.js";
+import { computed, effectScope, getCurrentInstance, inject, provide, unref } from "vue";
+import { deepUnref } from "vue-deepunref";
 
 let defaultTheme = vuedaTailwind;
+
+export const ThemeOverrideSymbol = Symbol("ThemeOverride");
 
 export const THEME_OVERRIDE_PROPS = {
     themeOverride: {
@@ -96,14 +99,24 @@ export function useTheme(componentName, props, context, keyFn) {
     if (!config) {
         throw new Error(`No theme config found for ${componentName}`);
     }
-    const themeOverride = computed(() => unref(props)?.themeOverride);
+    const currentInstance = getCurrentInstance();
+    const injectedThemeOverride = currentInstance ? inject(ThemeOverrideSymbol, null) : null;
+    const themeOverride = computed(() => {
+        const iTO = deepUnref(injectedThemeOverride);
+        const pTO = deepUnref(unref(props)?.themeOverride);
+        return iTO ? mergeTheme(iTO, pTO) : pTO;
+    });
 
     let myContext = context;
     if (!myContext) {
         myContext = computed(() => ({ props: unref(props) }));
     }
 
-    return (key, kwargs = {}) => {
+    if (currentInstance) {
+        provide(ThemeOverrideSymbol, themeOverride);
+    }
+
+    const returnFn = (key, kwargs = {}) => {
         if (!config[key]) {
             throw new Error(`No theme config key found for ${key} in ${componentName}`);
         }
@@ -124,6 +137,9 @@ export function useTheme(componentName, props, context, keyFn) {
         }
         return computeds[myKey].value;
     };
+    returnFn.componentName = componentName;
+    returnFn.es = es;
+    return returnFn;
 }
 
 /**
@@ -160,11 +176,21 @@ export function patchTheme(partialTheme) {
 }
 
 /**
- * Merge multiple ThemeObjects into a single ThemeObject.
+ * Custom merge function for merging theme objects, ensuring classes are combined.
  *
  * @param {...ThemeObject} themes - List of ThemeObjects to merge.
  * @returns {ThemeObject} - The merged ThemeObject.
  */
 export function mergeTheme(...themes) {
-    return themes.reduce((acc, theme) => merge(acc, theme || {}), {});
+    return themes.reduce((acc, theme) => {
+        if (!theme) {
+            return acc;
+        }
+        return mergeWith(acc, theme, (objValue, srcValue, key) => {
+            if (key === "class") {
+                return combineClasses(objValue, srcValue);
+            }
+            return undefined;
+        });
+    }, {});
 }

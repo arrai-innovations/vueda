@@ -1,6 +1,7 @@
 <script setup>
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import pick from "lodash-es/pick.js";
 import Button from "primevue/button";
@@ -25,7 +26,7 @@ const upload = (e) => {
 const onRemove = () => {
     widgetContext.state.combinedValue = null;
 };
-const theme = useTheme("WidgetImage", props, widgetContext.state);
+const theme = useWidgetTheme("WidgetImage", props, widgetContext.state);
 // todo: click handler for the widget-label to focus the image
 // todo: aria-labelledby? or use id to the hidden file input
 // todo: warning/invalid states?

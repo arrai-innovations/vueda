@@ -2,10 +2,12 @@
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { useIsActive } from "@vueda/use/useIsActive.js";
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
-import { computed, reactive, toRef, useSlots } from "vue";
+import pick from "lodash-es/pick.js";
+import { computed, reactive, toRef, unref, useSlots } from "vue";
 
 const props = defineProps({
     ...WIDGET_PROPS,
@@ -26,7 +28,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetReadOnly", props, widgetContext.state);
+const theme = useWidgetTheme("WidgetReadOnly", props, widgetContext.state);
 const isActive = useIsActive();
 const validAndActive = computed(
     () => !!(isActive.value && props.app && props.model && widgetContext.state.combinedValue),
@@ -52,15 +54,19 @@ const readonlyValue = computed(() => {
 });
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
+const slotsWithoutFeedback = computed(() =>
+    unref(availableLabelSlotNames).filter((slotName) => slotName !== "feedback-button"),
+);
 </script>
 
 <template>
     <div :class="theme('root')">
         <div :class="theme('inner')">
-            <widget-label :id="widgetContext.state.widgetId">
-                <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
+            <widget-label :id="widgetContext.state.widgetId" v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
+                <template v-for="slotName in slotsWithoutFeedback" :key="slotName" #[slotName]="slotProps">
                     <slot :name="slotName" v-bind="slotProps" />
                 </template>
+                <template #feedback-button>&#8203;</template>
                 <div v-bind="$attrs" :aria-labelledby="widgetContext.state.widgetId" :class="theme('input')">
                     <slot :value="readonlyValue || widgetContext.state.combinedValue">
                         <link-model-view

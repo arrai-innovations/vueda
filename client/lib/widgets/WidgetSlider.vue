@@ -1,7 +1,8 @@
 <script setup>
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import pick from "lodash-es/pick.js";
 import Slider from "primevue/slider";
@@ -26,7 +27,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetSlider", props, widgetContext.state);
+const theme = useWidgetTheme("WidgetSlider", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
 // todo: click handler for the widget-label to focus the slider
 const slots = useSlots();

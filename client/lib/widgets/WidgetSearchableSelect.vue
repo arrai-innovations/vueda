@@ -3,9 +3,10 @@ import { useList, useObject } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import pick from "lodash-es/pick.js";
@@ -93,7 +94,7 @@ const intendToRetrieve = computed(() => {
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetSearchableSelect", props, widgetContext.state);
+const theme = useWidgetTheme("WidgetSearchableSelect", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
 const listSearch = ref("");
 

@@ -1,9 +1,10 @@
 <script setup>
 import { useList } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import pick from "lodash-es/pick.js";
@@ -39,7 +40,7 @@ const props = defineProps({
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetGenericAutoComplete", props, widgetContext.state);
+const theme = useWidgetTheme("WidgetGenericAutoComplete", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
 const listSearch = ref("");
 const selectedValue = ref(null);

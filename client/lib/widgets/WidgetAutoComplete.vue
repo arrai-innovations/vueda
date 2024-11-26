@@ -1,12 +1,14 @@
 <script setup>
 import { useList } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import get from "lodash-es/get.js";
+import pick from "lodash-es/pick.js";
 import AutoComplete from "primevue/autocomplete";
 import { computed, reactive, ref, toRef, unref, useAttrs, useSlots } from "vue";
 
@@ -53,7 +55,7 @@ const props = defineProps({
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetAutoComplete", props, widgetContext.state);
+const theme = useWidgetTheme("WidgetAutoComplete", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
 
 const listSearch = ref("");
@@ -175,7 +177,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label>
+        <widget-label v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>

@@ -2,8 +2,9 @@
 import TextAlign from "@tiptap/extension-text-align";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/vue-3";
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import pick from "lodash-es/pick.js";
 import { unref, useSlots } from "vue";
@@ -71,7 +72,7 @@ const editor = useEditor({
         widgetContext.blur();
     },
 });
-const theme = useTheme("WidgetHtml", props, widgetContext.state);
+const theme = useWidgetTheme("WidgetHtml", props, widgetContext.state);
 // todo: label click should focus the editor
 // todo: aria attributes re: label / labbelledby
 // todo: warning / invalid states?

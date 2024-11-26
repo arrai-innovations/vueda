@@ -1,29 +1,28 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { mergeTheme, useTheme } from "@vueda/use/useTheme.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import isArray from "lodash-es/isArray.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
 import isSet from "lodash-es/isSet.js";
-import mergeWith from "lodash-es/mergeWith.js";
 import omit from "lodash-es/omit.js";
 import { computed, effectScope, toRef, watch } from "vue";
 import { deepUnref } from "vue-deepunref";
 
 /*
- * @param {string} fieldName - The name of the field.
+ * @param {string} formModelName - The name of the field's configuration in FormModel configuration.
  * @returns {string[]} The slot names for the field's help, error, and message slots.
  */
-export const getFormChoresSlotNames = (fieldName) => {
+export const getFormChoresSlotNames = (formModelName) => {
     return [
         "field-help",
         "field-error",
         "field-message",
-        `field(${fieldName})help`,
-        `field(${fieldName})error`,
-        `field(${fieldName})message`,
+        `field(${formModelName})help`,
+        `field(${formModelName})error`,
+        `field(${formModelName})message`,
     ];
 };
 
@@ -299,7 +298,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
             propWidgetThemeOverride = deepUnref(propWidgetProps.themeOverride) || {};
         }
 
-        const themeOverride = mergeWith(
+        const themeOverride = mergeTheme(
             {},
             formThemeOverride,
             modelFieldThemeOverride,
@@ -324,7 +323,6 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 return undefined;
             },
         );
-        console.log("themeOverride for", fieldName, "is", deepUnref(themeOverride));
         return isEmpty(themeOverride) ? undefined : themeOverride;
     }
 

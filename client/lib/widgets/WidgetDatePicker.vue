@@ -1,7 +1,8 @@
 <script setup>
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import pick from "lodash-es/pick.js";
 import DatePicker from "primevue/datepicker";
@@ -22,7 +23,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetDatePicker", props, widgetContext.state);
+const theme = useWidgetTheme("WidgetDatePicker", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
 const valueIsArray = computed(() => Array.isArray(widgetContext.state.combinedValue));
 const computedSelectionMode = computed(() =>
@@ -45,12 +46,12 @@ const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
-    <div :class="theme('root')">
+    <div :class="theme('root')" data-qa="widget-date-picker-root">
         <widget-label v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')">
+            <div :class="theme('inner')" data-qa="widget-date-picker-inner">
                 <DatePicker
                     :clear-button-props="{
                         label: `Clear`,

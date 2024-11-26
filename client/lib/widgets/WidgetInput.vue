@@ -1,8 +1,9 @@
 <script setup>
 import EmptyComponent from "@vueda/components/EmptyComponent.vue";
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import pick from "lodash-es/pick.js";
 import InputGroup from "primevue/inputgroup";
@@ -37,7 +38,7 @@ const inputComponent = computed(
         })[props.type] || InputText,
 );
 
-const theme = useTheme("WidgetInput", props, widgetContext.state);
+const theme = useWidgetTheme("WidgetInput", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);

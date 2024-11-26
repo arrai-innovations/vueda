@@ -1,9 +1,9 @@
 <script setup>
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
-import WidgetLabel, { WIDGET_LABEL_PROPS } from "@vueda/widgets/WidgetLabel.vue";
-import { getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import pick from "lodash-es/pick.js";
 import RadioButton from "primevue/radiobutton";
 import { computed, useSlots } from "vue";
@@ -35,7 +35,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useTheme("WidgetRadio", props, widgetContext.state);
+const theme = useWidgetTheme("WidgetRadio", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
 const computedOptions = computed(() => {
     return props.options.map((option) => {

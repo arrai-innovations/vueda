@@ -1,11 +1,12 @@
 <script setup>
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import pick from "lodash-es/pick.js";
 import ToggleSwitch from "primevue/toggleswitch";
-import { computed, useSlots } from "vue";
+import { useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -18,11 +19,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const themeProps = computed(() => ({
-    props,
-    ...(widgetContext?.state || {}),
-}));
-const theme = useTheme("WidgetCheckbox", props, themeProps);
+const theme = useWidgetTheme("WidgetCheckbox", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
@@ -43,20 +40,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                 @blur="widgetContext.blur"
                 @focus="widgetContext.focus"
             />
-            <widget-label
-                :for="widgetContext.state.widgetId"
-                :theme-override="{
-                    WidgetLabel: {
-                        root: {
-                            class: [theme('labelRoot')],
-                        },
-                        label: {
-                            class: [theme('labelLabel')],
-                        },
-                    },
-                }"
-                v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
-            >
+            <widget-label :for="widgetContext.state.widgetId" v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
                 <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                     <slot :name="slotName" v-bind="slotProps" />
                 </template>
