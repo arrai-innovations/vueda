@@ -93,6 +93,10 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    calculatedObjects: {
+        type: Array,
+        default: undefined,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const itemRefs = ref([]);
@@ -228,7 +232,6 @@ const computedFieldObjects = computed(() => {
     }
     return objects;
 });
-const calculatedObjects = computed(() => formModel.fieldProps[fieldSetContext.state.formModelName]?.calculatedObjects);
 const breakpoints = useBreakpoints(breakpointsVueda);
 const isVisibleByDefault = computed(() => {
     if (props.hiddenByDefault === "always") {
