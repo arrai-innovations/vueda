@@ -12,7 +12,6 @@ import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { useWarnings } from "@vueda/use/useWarnings.js";
 import { useWorkflow } from "@vueda/use/useWorkflow.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -325,7 +324,6 @@ const theme = useTheme("ViewList", props, {
     errored,
     error,
 });
-useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName);
 </script>
 <template>
     <div>
