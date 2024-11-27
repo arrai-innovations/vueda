@@ -187,7 +187,6 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         es.run(() => {
             componentProps = computed(() => {
                 const fieldLevelThemeOverride = getFieldLevelThemeOverride(fieldName);
-
                 return {
                     // useFormModel resolves type, the fields don't care about the server type.
                     ...omit(detailObject, ["type"]),

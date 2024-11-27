@@ -84,7 +84,6 @@ const getFieldPath = (fieldName) => {
                 :field-props="formModel.fieldProps"
                 name="fields"
                 :theme="theme"
-                :theme-override="themeOverride"
                 :widget-components="formModel.widgetComponents"
             >
                 <template v-for="field in props.fields" :key="field">
@@ -96,7 +95,6 @@ const getFieldPath = (fieldName) => {
                         :field-props="formModel.fieldProps[getFieldName(field)]"
                         :name="`field(${getFieldPath(field)})`"
                         :theme="theme"
-                        :theme-override="themeOverride"
                         :widget-component="formModel.widgetComponents[getFieldName(field)]"
                         :widget-props="formModel.widgetProps[getFieldName(field)]"
                     >
@@ -106,21 +104,18 @@ const getFieldPath = (fieldName) => {
                             :class="theme('field')"
                             v-bind="formModel.fieldProps[getFieldName(field)]"
                             :name="getFieldPath(field)"
-                            :theme-override="themeOverride"
                         >
                             <div :class="theme('fieldInner')">
                                 <slot
                                     :field-details="formModel.fieldDetails[getFieldName(field)]"
                                     :name="`widget(${getFieldPath(field)})`"
                                     :theme="theme"
-                                    :theme-override="themeOverride"
                                     :widget-component="formModel.widgetComponents[getFieldName(field)]"
                                     :widget-props="formModel.widgetProps[getFieldName(field)]"
                                 >
                                     <component
                                         :is="formModel.widgetComponents[getFieldName(field)]"
                                         v-if="formModel.widgetComponents[getFieldName(field)]"
-                                        :theme-override="themeOverride"
                                         v-bind="formModel.widgetProps[getFieldName(field)]"
                                     />
                                 </slot>

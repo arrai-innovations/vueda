@@ -1,4 +1,3 @@
-import { useTheme } from "@vueda/use/useTheme.js";
 import { buildForm } from "@vueda/utils/buildForm.js";
 import { choiceFieldMappings, defaultFieldMappings, manyFieldMappings } from "@vueda/utils/fieldMappings.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
@@ -113,7 +112,6 @@ const getFieldProps = (field) => {
  * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').ExpandInfo}|undefined} expandDetails - The expand details to use, if different from the default
  * @property {{[fieldName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}|undefined} fieldComponents - The field components to use, if different from the default, by field path
  * @property {{[fieldName:string]: {[key:string]: any}}|undefined} fieldProps - The field props to use, if different from the default, by field path
- * @property {import('@vueda/use/useTheme.js').UseThemeReturnFunction|undefined} fieldLevelTheme - The form-level theme override rules. These are used to render each field's FormModel theme needs.
  * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}|undefined} widgetComponents - The widget components to use, if different from the default, by field path
  * @property {{[fieldName:string]: {[key:string]: any}}|undefined} widgetProps - The widget props to use, if different from the default, by field path
  * @property {import('@vueda/use/useTheme.js').ThemeObject|undefined} themeOverride - The form-level theme override rules. These are passed to each child component.
@@ -122,11 +120,10 @@ const getFieldProps = (field) => {
 /**
  * Using server model info and client model config, this hook provides the necessary reactive state for a form model.
  *
- * @param {string} componentName - The name of the component using the form model.
  * @param {import('vue').Reactive<UseFormModelRawProps>} props - The reactive arguments.
  * @returns {UseFormModelState} The reactive state.
  */
-export function useFormModel(componentName, props) {
+export function useFormModel(props) {
     const state = reactive(
         /** @type {UseFormModelRawState} */ {
             app: toRef(props, "app"),
@@ -139,13 +136,11 @@ export function useFormModel(componentName, props) {
             expandDetails: {},
             fieldComponents: shallowReactive({}),
             fieldProps: {},
-            fieldLevelTheme: {},
             widgetComponents: shallowReactive({}),
             widgetProps: {},
             baseFieldNames: [],
             expansionFieldNames: [],
             expandedFieldNames: [],
-            theme: useTheme(componentName, props),
         },
     );
     const {
@@ -155,7 +150,6 @@ export function useFormModel(componentName, props) {
         setFieldComponentProps,
         setWidgetComponent,
         setWidgetComponentProps,
-        makeFormModelTheme,
     } = buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps);
     setUpWatch("displayFields", "fieldDetails", "fields", "fieldDetails");
     setUpWatch("expands", "expandDetails");
@@ -167,7 +161,6 @@ export function useFormModel(componentName, props) {
             if (Object.keys(fieldDetails || {}).length && fields.length) {
                 const fieldComponents = {};
                 const fieldProps = {};
-                const fieldLevelTheme = {};
                 const widgetComponents = {};
                 const widgetProps = {};
                 const allFields = [];
@@ -252,12 +245,10 @@ export function useFormModel(componentName, props) {
                         isExpandedField,
                         field,
                     );
-                    fieldLevelTheme[fieldName] = makeFormModelTheme(fieldProps[fieldName]);
                 }
                 assignStateObjectsIfChanged({
                     fieldComponents,
                     fieldProps,
-                    fieldLevelTheme,
                     widgetComponents,
                     widgetProps,
                     baseFieldNames,
@@ -268,7 +259,6 @@ export function useFormModel(componentName, props) {
                 assignStateObjectsIfChanged({
                     fieldComponents: {},
                     fieldProps: {},
-                    fieldLevelTheme: {},
                     widgetComponents: {},
                     widgetProps: {},
                     baseFieldNames: new Set(),

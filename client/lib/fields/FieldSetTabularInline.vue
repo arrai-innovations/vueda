@@ -1,4 +1,5 @@
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
@@ -117,7 +118,8 @@ const mergedFormModelProps = reactive({
     widgetProps: shallowReactive(merge(cloneDeep(parentFormModel.widgetProps), props.widgetProps)),
 });
 
-const formModel = useFormModel("FieldSetTabularInline", mergedFormModelProps);
+const theme = useTheme("FieldSetTabularInline", props);
+const formModel = useFormModel(mergedFormModelProps);
 const fieldNames = computed(() => {
     if (props.fields) {
         return props.fields;
@@ -248,7 +250,6 @@ const refFn = (slotProps, el) => {
     itemRefs.value[slotProps.rowIndex] = el;
 };
 const slots = useSlots();
-const theme = useTheme("FieldSetTabularInline", props);
 const slotNames = ["toggle-button", "create-button", "delete-button", "delete-checkbox"];
 const resolvedSlotNames = slotNames.reduce((acc, name) => {
     acc[name] = useSlotNameResolver(
@@ -273,7 +274,7 @@ const remainingSlotNames = computed(() => {
 </script>
 
 <template>
-    <div :class="[theme('root'), $attrs.class]" data-qa="fieldset-tabular-inline-root">
+    <div :class="combineClasses(theme('root'), $attrs.class)" data-qa="fieldset-tabular-inline-root">
         <div :class="theme('inner')" data-qa="fieldset-tabular-inline-inner">
             <Divider
                 :pt="{
@@ -317,8 +318,8 @@ const remainingSlotNames = computed(() => {
                     </slot>
                 </div>
             </Divider>
-            <slot name="field-set-level-chores" :theme-override="themeOverride">
-                <form-chores :theme-override="themeOverride" :variant="null">
+            <slot name="field-set-level-chores">
+                <form-chores :variant="null">
                     <template
                         v-for="slot in getFormChoresSlotNames(fieldSetContext.state.formModelName)"
                         #[slot]="formChoresSlotProps"
@@ -330,7 +331,7 @@ const remainingSlotNames = computed(() => {
             <objects-grid
                 v-if="internalVisible"
                 :calculated-objects="calculatedObjects"
-                :class="[theme('objectsGrid'), $attrs.class]"
+                :class="theme('objectsGrid')"
                 data-qa="fieldset-tabular-inline-objects-grid"
                 :empty-text="null"
                 :field-classes="{
@@ -339,7 +340,7 @@ const remainingSlotNames = computed(() => {
                 :fields="computedFieldObjects"
                 :objects-in-order="objectsInOrder"
                 :table-breakpoint="$attrs.tableBreakpoint || 'lg'"
-                :theme-override="{ ...themeOverride, ObjectsGridBodyCell: { root: { class: 'min-w-36' } } }"
+                :theme-override="{ ObjectsGridBodyCell: { root: { class: 'min-w-36' } } }"
                 :variant="props.objectGridVariant"
             >
                 <template

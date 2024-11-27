@@ -1,5 +1,6 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
+import { mergeTheme, useTheme } from "@vueda/use/useTheme.js";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
@@ -43,35 +44,38 @@ const fieldValuePath = computed(() =>
         : `${fieldSetContext.state.name}[${props.objectGridFieldSlotProps.rowIndex}].${unref(relativeFieldName)}`,
 );
 const slotProps = reactive({
-    fieldClass: computed(() =>
-        combineClasses(
-            unref(slotProps.theme("field")),
-            // v-bind of fieldProps to class will deal with this
-            // slotProps.fieldProps?.class,
-            attrs.class,
-        ),
-    ),
     fieldComponent: computed(() => props.formModel.fieldComponents[props.formModelName]),
     fieldDetail: computed(() => props.formModel.fieldDetails[props.formModelName]),
     fieldProps: computed(() => ({
         ...omit(props.objectGridFieldSlotProps, ["value"]),
-        ...props.formModel.fieldProps[props.formModelName],
+        ...omit(props.formModel.fieldProps[props.formModelName], ["themeOverride"]),
         name: unref(fieldValuePath),
         formModelName: props.formModelName,
         fieldValue: props.objectGridFieldSlotProps?.value,
+        themeOverride: mergeTheme(props.formModel.fieldProps[props.formModelName].themeOverride, props.themeOverride),
     })),
-    theme: computed(() => props.formModel.fieldLevelTheme[props.formModelName] ?? props.formModel.theme),
-    themeOverride: computed(() => props.themeOverride),
     widgetComponent: computed(
         () => props.formModel.widgetComponents[props.formModelName] ?? availableWidgets.WidgetUnmapped,
     ),
     widgetProps: computed(() => ({
         ...props.objectGridFieldSlotProps,
-        ...props.formModel.widgetProps[props.formModelName],
+        ...omit(props.formModel.widgetProps[props.formModelName], ["themeOverride"]),
         hidden: !!fieldSetContext,
+        themeOverride: mergeTheme(
+            props.formModel.fieldProps[props.formModelName].themeOverride,
+            props.formModel.widgetProps[props.formModelName].themeOverride,
+            props.themeOverride,
+        ),
     })),
 });
-slotProps.fieldInnerClass = slotProps.theme("fieldInner");
+const theme = useTheme(
+    "FormModel",
+    reactive({
+        themeOverride: computed(() => mergeTheme(props.formModel.theme, props.themeOverride)),
+    }),
+);
+slotProps.fieldClass = computed(() => combineClasses(unref(theme("field")), slotProps.fieldProps?.class, attrs.class));
+slotProps.fieldInnerClass = theme("fieldInner");
 const fieldSlotName = computed(() => `field(${props.formModelName})`);
 const fieldDefaultSlotName = computed(() => `${unref(fieldSlotName)}default`);
 const widgetSlotName = computed(() => `widget(${props.formModelName})`);
@@ -92,14 +96,14 @@ const remainingSlots = computed(() => Object.keys(slots).filter((slotName) => !u
             :is="slotProps.fieldComponent"
             v-if="slotProps.fieldComponent"
             :class="slotProps.fieldClass"
-            v-bind="slotProps.fieldProps"
+            v-bind="omit(slotProps.fieldProps, ['class'])"
         >
             <template v-for="slotName in remainingSlots" #[slotName]="fieldSlotProps">
                 <slot :name="slotName" v-bind="fieldSlotProps || {}" />
             </template>
             <template #default>
                 <slot :name="fieldDefaultSlotName" v-bind="slotProps">
-                    <div :class="slotProps.fieldInnerClass">
+                    <div :class="slotProps.fieldInnerClass" data-qa="field-renderer-field-inner">
                         <slot :name="widgetSlotName" v-bind="slotProps">
                             <component :is="slotProps.widgetComponent" v-bind="slotProps.widgetProps">
                                 <template v-for="slotName in remainingSlots" #[slotName]="widgetSlotProps">

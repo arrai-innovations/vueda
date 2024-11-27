@@ -69,7 +69,6 @@ watch(
                     v-bind="fieldProp"
                     class="flex-grow flex-row"
                     :label="getLabel(i)"
-                    :theme-override="themeOverride"
                 >
                     <slot />
                 </component>

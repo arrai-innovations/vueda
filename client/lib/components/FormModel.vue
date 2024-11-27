@@ -141,7 +141,7 @@ import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
-import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, useSlots } from "vue";
 
 defineOptions({
@@ -223,21 +223,22 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const formModel = useFormModel("FormModel", props);
+const theme = useTheme("FormModel", props);
+const formModel = useFormModel(props);
 const slots = useSlots();
 const mySlotNames = ["before-fields", "after-fields", "form-level-chores", "default"];
 const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlotNames.includes(slotName)));
 </script>
 
 <template>
-    <div :class="formModel.theme('root')" data-qa="form-model">
+    <div :class="theme('root')" data-qa="form-model">
         <template v-if="formModel.fields?.length">
-            <div v-if="$slots['before-fields']" :class="formModel.theme('beforeFields')">
+            <div v-if="$slots['before-fields']" :class="theme('beforeFields')">
                 <slot :form-attrs="$attrs" :form-props="$props" name="before-fields" />
             </div>
             <!-- form-level chores -->
-            <slot name="form-level-chores" :theme-override="themeOverride">
-                <form-chores :theme-override="themeOverride" :variant="null" />
+            <slot name="form-level-chores">
+                <form-chores :variant="null" />
             </slot>
             <div v-bind="$attrs">
                 <slot
@@ -248,8 +249,7 @@ const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlot
                     :form-attrs="$attrs"
                     :form-props="$props"
                     name="fields"
-                    :theme="formModel.theme"
-                    :theme-override="themeOverride"
+                    :theme="theme"
                     :widget-components="formModel.widgetComponents"
                 >
                     <template v-for="fieldName in formModel.baseFieldNames" :key="fieldName">
@@ -265,7 +265,7 @@ const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlot
                     </template>
                 </slot>
             </div>
-            <div v-if="$slots['after-fields']" :class="formModel.theme('afterFields')">
+            <div v-if="$slots['after-fields']" :class="theme('afterFields')">
                 <slot :form-attrs="$attrs" :form-props="$props" name="after-fields" />
             </div>
         </template>

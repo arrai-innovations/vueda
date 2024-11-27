@@ -229,14 +229,8 @@ export default {
         },
     },
     FormHiddenFeedback: {
-        root: ({ props }) => {
-            console.log(props);
-            return {
-                class: {
-                    "min-h-10 min-w-min": true,
-                    // "self-baseline": props.hidden,
-                },
-            };
+        root: {
+            class: "min-w-min",
         },
         popoverBody: {
             class: "flex flex-col gap-1 md:gap-2 2xl:gap-4",

@@ -464,7 +464,6 @@ useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName);
             :sortables="sorting.state.sortables"
             :sorted="sorting.state.sorted"
             :table-breakpoint="tableBreakpoint"
-            :theme-override="themeOverride"
             :variant="objectGridVariant"
             @update:sorted="sorting.updateSorted"
         >

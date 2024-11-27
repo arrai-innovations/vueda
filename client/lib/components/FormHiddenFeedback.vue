@@ -56,7 +56,8 @@ export const getFormHiddenFeedbackSlotsComputed = (slots) => {
 <script setup>
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import Button from "primevue/button";
 import Popover from "primevue/popover";
@@ -103,7 +104,8 @@ const showWarnIcon = computed(() => props.warning ?? widgetContext?.state?.valid
 const hasErrors = computed(() => Object.keys(unref(effectiveErrors)).length > 0);
 const hasWarnings = computed(() => Object.keys(unref(effectiveWarnings)).length > 0);
 const attrs = useAttrs();
-const theme = useTheme("FormHiddenFeedback", props);
+// const theme = useTheme("FormHiddenFeedback", props);
+const theme = useWidgetTheme("FormHiddenFeedback", props, widgetContext?.state);
 const thePopover = ref(null);
 const togglePopover = (e) => {
     const popover = unref(thePopover);
@@ -120,7 +122,6 @@ const togglePopover = (e) => {
                 v-if="hasErrors"
                 :class="theme('popoverItem')"
                 :messages="effectiveErrors"
-                :theme-override="themeOverride"
                 type="error"
                 v-bind="attrs"
             >
@@ -134,7 +135,6 @@ const togglePopover = (e) => {
                 v-if="hasWarnings"
                 :class="theme('popoverItem')"
                 :messages="effectiveWarnings"
-                :theme-override="themeOverride"
                 type="message"
                 v-bind="attrs"
             >
@@ -149,7 +149,6 @@ const togglePopover = (e) => {
                 :class="theme('popoverItem')"
                 help="This field is required."
                 severity="error"
-                :theme-override="themeOverride"
                 v-bind="attrs"
             >
                 <template #icon="slotProps">
@@ -158,13 +157,7 @@ const togglePopover = (e) => {
                     </slot>
                 </template>
             </form-help-text>
-            <form-help-text
-                v-if="showHelpIcon"
-                :class="theme('popoverItem')"
-                :help="effectiveHelp"
-                :theme-override="themeOverride"
-                v-bind="attrs"
-            >
+            <form-help-text v-if="showHelpIcon" :class="theme('popoverItem')" :help="effectiveHelp" v-bind="attrs">
                 <template #icon="slotProps">
                     <slot name="feedback-help-icon" v-bind="slotProps">
                         <span :class="[theme('icon'), slotProps.class]">ℹ️</span>

@@ -47,13 +47,7 @@ const theme = useTheme("FormChores", props);
 </script>
 <template>
     <div :class="theme('root')">
-        <form-help-text
-            v-if="computedHelp"
-            :class="theme('item')"
-            :help="computedHelp"
-            :theme-override="themeOverride"
-            v-bind="computedAttrsSansClass"
-        >
+        <form-help-text v-if="computedHelp" :class="theme('item')" :help="computedHelp" v-bind="computedAttrsSansClass">
             <template v-if="$slots[`field(${computedName})help`]" #default="slotProps">
                 <slot :name="`field(${computedName})help`" v-bind="slotProps" />
             </template>
@@ -61,13 +55,7 @@ const theme = useTheme("FormChores", props);
                 <slot name="field-help" v-bind="slotProps" />
             </template>
         </form-help-text>
-        <form-feedback
-            :class="theme('item')"
-            :messages="props.errors"
-            :theme-override="themeOverride"
-            type="error"
-            v-bind="computedAttrsSansClass"
-        >
+        <form-feedback :class="theme('item')" :messages="props.errors" type="error" v-bind="computedAttrsSansClass">
             <template v-if="$slots[`field(${computedName})error`]" #default="slotProps">
                 <slot :name="`field(${computedName})error`" v-bind="slotProps" />
             </template>
@@ -75,13 +63,7 @@ const theme = useTheme("FormChores", props);
                 <slot name="field-error" v-bind="slotProps" />
             </template>
         </form-feedback>
-        <form-feedback
-            :class="theme('item')"
-            :messages="props.warnings"
-            :theme-override="themeOverride"
-            type="message"
-            v-bind="computedAttrsSansClass"
-        >
+        <form-feedback :class="theme('item')" :messages="props.warnings" type="message" v-bind="computedAttrsSansClass">
             <template v-if="$slots[`field(${computedName})message`]" #default="slotProps">
                 <slot :name="`field(${computedName})message`" v-bind="slotProps" />
             </template>

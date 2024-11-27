@@ -147,7 +147,6 @@ const handleDeleteSingle = (selected_) => {
                     :fields="fieldNames"
                     :pk="fieldContext.state.value.id"
                     :selected="selected"
-                    :theme-override="themeOverride"
                     @delete-row="clearField"
                     @update:selected="handleDeleteSingle"
                 />
@@ -159,7 +158,6 @@ const handleDeleteSingle = (selected_) => {
                     :index="index"
                     :pk="value.id"
                     :selected="selected"
-                    :theme-override="themeOverride"
                     @delete-row="removeRow"
                     @update:selected="handleSelected"
                 >
