@@ -8,13 +8,14 @@ import DOMPurify from "dompurify";
  */
 const escapeHtml = (message) => {
     const map = {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;",
+        "&amp;": "&",
+        "&lt;": "<",
+        "&gt;": ">",
+        "&quot;": '"',
+        "&#039;": "'",
+        "&nbsp;": " ",
     };
-    return message.replace(/[&<>"']/g, (m) => map[m]);
+    return message.replace(/&amp;|&lt;|&gt;|&quot;|&#039;|&nbsp;/g, (m) => map[m]);
 };
 
 /**
@@ -40,7 +41,13 @@ export const sanitizeMessage = (message) => {
 export const sanitizeMessages = (messages) => {
     return Object.fromEntries(
         Object.entries(messages).map(([key, value]) => {
-            return [key, sanitizeMessage(value)];
+            let sanitizedMessage;
+            if (Array.isArray(value)) {
+                sanitizedMessage = value.map((message) => sanitizeMessage(message));
+            } else {
+                sanitizedMessage = sanitizeMessage(value);
+            }
+            return [key, sanitizedMessage];
         }),
     );
 };
