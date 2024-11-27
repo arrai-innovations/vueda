@@ -13,7 +13,7 @@ import { computed, inject, onBeforeUnmount, provide, reactive, readonly, toRef, 
  * @property {string} [requiredMessage="This field is required."] - The message to display if the field is required and empty.
  * @property {string} [label] - The label for the field.
  * @property {string} [help] - The help text for the field.
- * @property {any} [fieldValue] - The field value. This is used when the field is not part of a form.
+ * @property {any} [modelValue] - The field value. This is used when the field is not part of a form.
  * @property {(value: any) => boolean} [validate] - A custom validation function for the field.
  */
 export const FIELD_PROPS = {
@@ -49,7 +49,7 @@ export const FIELD_PROPS = {
         type: Function,
         default: null,
     },
-    fieldValue: {
+    modelValue: {
         type: [String, Number, Boolean, Array, Object],
         default: undefined,
     },
@@ -191,12 +191,12 @@ export function useField(props, emit, functions) {
         help: computed(() => props.help || ""),
         suffix: computed(() => props.rangeSuffix || ""),
         value:
-            formContext || props.fieldValue
+            formContext || props.modelValue
                 ? computed({
                       get: () => {
-                          const value = props.fieldValue ?? get(formContext.state.values, props.name);
+                          const value = props.modelValue ?? get(formContext.state.values, props.name);
                           const returningValue = functions?.preprocessGet ? functions.preprocessGet(value) : value;
-                          if (props.fieldValue && functions?.preprocessGet) {
+                          if (props.modelValue && functions?.preprocessGet) {
                               emit("update:modelValue", returningValue);
                           }
                           return returningValue;

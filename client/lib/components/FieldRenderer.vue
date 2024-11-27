@@ -51,7 +51,7 @@ const slotProps = reactive({
         ...omit(props.formModel.fieldProps[props.formModelName], ["themeOverride"]),
         name: unref(fieldValuePath),
         formModelName: props.formModelName,
-        fieldValue: props.objectGridFieldSlotProps?.value,
+        modelValue: props.objectGridFieldSlotProps?.value,
         themeOverride: mergeTheme(props.formModel.fieldProps[props.formModelName].themeOverride, props.themeOverride),
     })),
     widgetComponent: computed(
