@@ -38,12 +38,10 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                     v-bind="omit($attrs, 'value')"
                     v-model="widgetContext.state.combinedValue"
                     auto-resize
-                    cols="30"
                     :disabled="widgetContext.state.disabled"
                     :invalid="widgetContext.state.validationState.invalid"
                     :name="widgetContext.state.combinedName"
                     :pt="effectivePt"
-                    rows="5"
                     @blur="widgetContext.blur"
                     @focus="widgetContext.focus"
                 />
