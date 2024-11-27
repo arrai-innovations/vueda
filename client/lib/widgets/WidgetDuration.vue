@@ -4,6 +4,7 @@ import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarning
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import InputNumber from "primevue/inputnumber";
 import { computed, reactive, ref, useSlots } from "vue";
@@ -119,7 +120,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :pt="effectivePt"
                         show-buttons
                         suffix=" days"
-                        v-bind="$attrs"
+                        v-bind="omit($attrs, 'value')"
                         @update:model-value="(newValue) => updateDay(newValue)"
                     />
                 </div>
@@ -134,7 +135,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :pt="effectivePt"
                         show-buttons
                         suffix=" hours"
-                        v-bind="$attrs"
+                        v-bind="omit($attrs, 'value')"
                         @update:model-value="(newValue) => updateHour(newValue)"
                     />
                 </div>
@@ -149,7 +150,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :pt="effectivePt"
                         show-buttons
                         suffix=" minutes"
-                        v-bind="$attrs"
+                        v-bind="omit($attrs, 'value')"
                         @update:model-value="(newValue) => updateMinute(newValue)"
                     />
                 </div>
@@ -164,7 +165,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :pt="effectivePt"
                         show-buttons
                         suffix=" seconds"
-                        v-bind="$attrs"
+                        v-bind="omit($attrs, 'value')"
                         @update:model-value="(newValue) => updateSecond(newValue)"
                     />
                 </div>

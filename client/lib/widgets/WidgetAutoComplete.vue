@@ -8,6 +8,7 @@ import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import get from "lodash-es/get.js";
+import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import AutoComplete from "primevue/autocomplete";
 import { computed, reactive, ref, toRef, unref, useAttrs, useSlots } from "vue";
@@ -194,7 +195,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                     :option-value="computedOptionValue"
                     :pt="effectivePt"
                     :suggestions="modelListInstance.state.objectsInOrder"
-                    v-bind="$attrs"
+                    v-bind="omit($attrs, 'value')"
                     @blur="delayedBlur"
                     @complete="search"
                     @focus="cancelBlurIfFocused"

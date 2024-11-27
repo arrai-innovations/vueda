@@ -5,6 +5,7 @@ import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import get from "lodash-es/get.js";
+import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import Select from "primevue/select";
 import { computed, ref, useAttrs, useSlots } from "vue";
@@ -82,7 +83,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <div :class="theme('inner')">
                 <Select
                     ref="selectRef"
-                    v-bind="$attrs"
+                    v-bind="omit($attrs, 'value')"
                     :aria-labelledby="widgetContext.state.widgetId"
                     :disabled="widgetContext.state.disabled"
                     :invalid="widgetContext.state.validationState.invalid"

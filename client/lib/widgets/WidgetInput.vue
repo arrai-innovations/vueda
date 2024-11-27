@@ -5,6 +5,7 @@ import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarning
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import InputGroup from "primevue/inputgroup";
 import InputMask from "primevue/inputmask";
@@ -55,7 +56,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                     <component
                         :is="inputComponent"
                         v-if="inputComponent"
-                        v-bind="$attrs"
+                        v-bind="omit($attrs, 'value')"
                         :id="widgetContext.state.widgetId"
                         v-model="widgetContext.state.combinedValue"
                         :disabled="widgetContext.state.disabled"

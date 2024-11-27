@@ -7,6 +7,7 @@ import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import AutoComplete from "primevue/autocomplete";
 import Select from "primevue/select";
@@ -201,7 +202,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         option-label="label"
                         option-value="value"
                         :options="dropdownOptions"
-                        v-bind="$attrs"
+                        v-bind="omit($attrs, 'value')"
                         placeholder="Select a model"
                         :pt="effectivePt"
                         show-clear
@@ -210,7 +211,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                 </div>
                 <div :class="theme('autoCompleteOuter')">
                     <AutoComplete
-                        v-bind="$attrs"
+                        v-bind="omit($attrs, 'value')"
                         :disabled="widgetContext.state.disabled || !selectedType"
                         force-selection
                         :invalid="widgetContext.state.validationState.invalid"

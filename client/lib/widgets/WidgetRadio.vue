@@ -4,6 +4,7 @@ import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarning
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import RadioButton from "primevue/radiobutton";
 import { computed, useSlots } from "vue";
@@ -84,7 +85,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                                 :name="widgetContext.state.combinedName"
                                 :pt="effectivePt"
                                 :value="option.value"
-                                v-bind="$attrs"
+                                v-bind="omit($attrs, 'value')"
                                 @blur="widgetContext.blur"
                                 @focus="handleFocus"
                             />

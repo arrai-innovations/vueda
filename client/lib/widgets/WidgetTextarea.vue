@@ -4,6 +4,7 @@ import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarning
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import PrimevueTextarea from "primevue/textarea";
 // don't shadow html element names
@@ -34,7 +35,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <div :class="theme('inner')">
                 <primevue-textarea
                     id="widgetContext.state.widgetId"
-                    v-bind="$attrs"
+                    v-bind="omit($attrs, 'value')"
                     v-model="widgetContext.state.combinedValue"
                     auto-resize
                     cols="30"

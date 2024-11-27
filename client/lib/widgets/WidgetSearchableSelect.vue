@@ -9,6 +9,7 @@ import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import Select from "primevue/select";
 import { computed, reactive, ref, toRef, useSlots, watch } from "vue";
@@ -257,7 +258,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                 />
                 <Select
                     v-else
-                    v-bind="$attrs"
+                    v-bind="omit($attrs, 'value')"
                     ref="selectRef"
                     v-model="widgetContext.state.combinedValue"
                     :aria-labelledby="widgetContext.state.widgetId"

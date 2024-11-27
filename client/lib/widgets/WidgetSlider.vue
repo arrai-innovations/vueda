@@ -4,6 +4,7 @@ import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarning
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import Slider from "primevue/slider";
 import { useSlots } from "vue";
@@ -46,7 +47,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         <span v-else>[{{ props.minValue }},{{ props.maxValue }}]</span>
                         <Slider
                             v-model="widgetContext.state.combinedValue"
-                            v-bind="$attrs"
+                            v-bind="omit($attrs, 'value')"
                             :aria-labelledby="widgetContext.state.widgetId"
                             class="w-56"
                             :disabled="widgetContext.state.disabled"

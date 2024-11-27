@@ -4,6 +4,7 @@ import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarning
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import MultiSelect from "primevue/multiselect";
 import { ref, useAttrs, useSlots } from "vue";
@@ -62,7 +63,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                 v-model="widgetContext.state.combinedValue"
                 :aria-labelledby="widgetContext.state.widgetId"
                 class="w-full md:w-80"
-                v-bind="$attrs"
+                v-bind="omit($attrs, 'value')"
                 :disabled="widgetContext.state.disabled"
                 display="chip"
                 filter

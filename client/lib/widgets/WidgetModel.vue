@@ -5,8 +5,12 @@ import { WIDGET_EMITS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetMultiSelect from "@vueda/widgets/WidgetMultiSelect.vue";
 import WidgetRadio from "@vueda/widgets/WidgetRadio.vue";
 import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
+import omit from "lodash-es/omit.js";
 import { computed, ref, toRef } from "vue";
 
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     fieldApp: {
         type: String,
@@ -75,6 +79,7 @@ const widgetComponent = computed(() => widgetComponents[props.type]);
         option-label="label"
         option-value="value"
         :options="modelChoices.choices?.results || []"
+        v-bind="omit($attrs, 'value')"
         @update:model-value="emit('update:modelValue', $event)"
     />
 </template>
