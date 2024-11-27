@@ -133,7 +133,7 @@ const formModelProps = reactive({
     fields: formFields,
 });
 const router = useRouter();
-const formModel = useFormModel("ViewHistoryList", formModelProps);
+const formModel = useFormModel(formModelProps);
 const computedChangeObjects = computed(() => {
     return instanceList.state.objectsInOrder.flatMap((item, parentIndex) => {
         if (!item.num_changes) {
