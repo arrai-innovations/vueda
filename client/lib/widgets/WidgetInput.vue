@@ -45,12 +45,12 @@ const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
-    <div :class="theme('root')">
+    <div :class="theme('root')" data-qa="widget-input-root">
         <widget-label :for="widgetContext.state.widgetId" v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')">
+            <div :class="theme('inner')" data-qa="widget-input-inner">
                 <component :is="$slots.prefix || $slots.suffix ? InputGroup : EmptyComponent">
                     <slot v-if="$slots.prefix" name="prefix" />
                     <component
