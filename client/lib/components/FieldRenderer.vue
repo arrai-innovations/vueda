@@ -6,6 +6,9 @@ import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
 import { computed, inject, reactive, unref, useAttrs, useSlots } from "vue";
 
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     objectGridFieldSlotProps: {
         type: Object,
@@ -49,6 +52,7 @@ const slotProps = reactive({
     fieldProps: computed(() => ({
         ...omit(props.objectGridFieldSlotProps, ["value"]),
         ...omit(props.formModel.fieldProps[props.formModelName], ["themeOverride"]),
+        ...omit(attrs, ["class"]),
         name: unref(fieldValuePath),
         formModelName: props.formModelName,
         modelValue: props.objectGridFieldSlotProps?.value,
@@ -60,6 +64,7 @@ const slotProps = reactive({
     widgetProps: computed(() => ({
         ...props.objectGridFieldSlotProps,
         ...omit(props.formModel.widgetProps[props.formModelName], ["themeOverride"]),
+        ...omit(attrs, ["class"]),
         hidden: !!fieldSetContext,
         themeOverride: mergeTheme(
             props.formModel.fieldProps[props.formModelName].themeOverride,
