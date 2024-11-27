@@ -1,4 +1,5 @@
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
+import isEqual from "lodash-es/isEqual.js";
 import { computed, inject, provide, reactive, readonly, ref } from "vue";
 
 /**
@@ -102,6 +103,9 @@ export function useWidget(props, emit) {
                         emit("update:modelValue", value);
                     }
                     if (fieldContext) {
+                        if (isEqual(value, fieldContext.state.value)) {
+                            return;
+                        }
                         fieldContext.state.value = value;
                     }
                 },

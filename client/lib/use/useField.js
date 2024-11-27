@@ -205,6 +205,9 @@ export function useField(props, emit, functions) {
                           if (!formContext) {
                               return;
                           }
+                          if (isEqual(newValue, state.value)) {
+                              return;
+                          }
                           if (functions?.preprocessSet) {
                               newValue = functions.preprocessSet(newValue);
                           }
