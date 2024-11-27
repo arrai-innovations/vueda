@@ -95,7 +95,7 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const itemRefs = ref({});
+const itemRefs = ref([]);
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldSetContext = useField(props, emit);
 const parentFormModel = inject(FormModelSymbol, null);
@@ -160,15 +160,40 @@ const emptyFieldObject = () => {
 };
 
 const selected = ref([]);
-const onCreate = () => {
+function focusFirstTabbableElement(element) {
+    if (!element) {
+        return;
+    }
+    const tabbableSelector =
+        "a[href], " +
+        // + "button:not([disabled]), "
+        'input:not([disabled]):not([type="hidden"]), ' +
+        "select:not([disabled]), " +
+        "textarea:not([disabled]), " +
+        '[tabindex]:not([tabindex="-1"])';
+    console.log("element", element);
+    console.log("innerHtml", element.innerHTML);
+    const firstTabbable = element.querySelector(tabbableSelector);
+    console.log("firstTabbable", firstTabbable);
+    if (firstTabbable) {
+        firstTabbable.focus();
+    }
+}
+const doCreate = async (e, values) => {
+    if (!values) {
+        values = emptyFieldObject();
+    }
     fieldSetContext.blur();
-    fieldSetContext.state.value = [...cloneDeep(fieldSetContext.state.value), emptyFieldObject()];
-    nextTick(() => {
-        const newItemIndex = fieldSetContext.state.value.length - 1;
-        if (itemRefs.value[newItemIndex]) {
-            itemRefs.value[newItemIndex].scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-    });
+    fieldSetContext.state.value = [...cloneDeep(fieldSetContext.state.value), values];
+    await nextTick();
+    const newItemIndex = fieldSetContext.state.value.length - 1;
+    const newItem = itemRefs.value[newItemIndex];
+    if (newItem) {
+        newItem.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    await nextTick();
+    focusFirstTabbableElement(newItem.parentNode);
+    return itemRefs.value[newItemIndex];
 };
 
 const handleSelected = (newSelected) => {
@@ -312,9 +337,9 @@ const remainingSlotNames = computed(() => {
                         label="Create"
                         :name="resolvedSlotNames['create-button'].name"
                         verb="createInline"
-                        @click="onCreate"
+                        @click="doCreate"
                     >
-                        <Button :class="theme('createButton')" label="Create" @click="onCreate" />
+                        <Button :class="theme('createButton')" label="Create" @click="doCreate" />
                     </slot>
                 </div>
             </Divider>
@@ -366,6 +391,7 @@ const remainingSlotNames = computed(() => {
                         :form-model="formModel"
                         :form-model-name="fieldObj.name"
                         :object-grid-field-slot-props="objectGridFieldSlotProps"
+                        v-bind="{ doCreate }"
                     >
                         <template v-for="slotName in remainingSlotNames" #[slotName]="slotProps">
                             <slot :name="slotName" v-bind="slotProps" />
