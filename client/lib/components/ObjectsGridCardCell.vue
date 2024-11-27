@@ -1,4 +1,5 @@
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { useObjectGridCell } from "@vueda/use/useObjectGridCell.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed } from "vue";
@@ -54,7 +55,7 @@ const uniqueKeyForSlot = computed(() =>
 );
 </script>
 <template>
-    <div :class="[theme('root'), $attrs.class]" data-qa="objects-grid-card-cell" role="cell">
+    <div :class="combineClasses(theme('root'), $attrs.class)" data-qa="objects-grid-card-cell" role="cell">
         <slot
             :key="uniqueKeyForSlot"
             :class="theme('header')"

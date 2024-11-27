@@ -1,7 +1,15 @@
 export default {
     ObjectsGrid: {
         root: {
-            class: ({ isTable }) => ["mb-2 md:mb-4 lg:mb-7", { "!table": isTable }],
+            class: ["max-w-full overflow-x-auto"],
+        },
+        table: {
+            class: ({ isTable }) => [
+                "mb-2 md:mb-4 lg:mb-7",
+                {
+                    "!table overflow-x-auto max-w-full": isTable,
+                },
+            ],
         },
         headerRowGroup: {
             class: ({ isTable }) => [

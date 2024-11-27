@@ -195,114 +195,116 @@ const theme = useTheme("ObjectsGrid", props, themeProps, (key, kwargs) => {
 });
 </script>
 <template>
-    <div :class="theme('root')" role="table">
-        <div :class="theme('headerRowGroup')" role="rowgroup">
-            <div :class="theme('headerRow')" role="row">
-                <template v-for="(field, colIndex) in fields" :key="field?.name || `col-index-${colIndex}`">
-                    <div
-                        v-if="field?.name"
-                        :class="[theme('headerCell'), headerClasses?.[field?.name]]"
-                        :data-header="field?.name"
-                        data-qa="objects-grid-header"
-                        role="columnheader"
-                        @click="sortClick($event, field?.name)"
-                    >
-                        <objects-grid-table-header v-if="field.extra" :col-index="colIndex" :field="field">
-                            <template #label="slotProps">
-                                <slot
-                                    :key="field?.name || `col-index-${colIndex}`"
-                                    :name="`header(${field?.name})`"
-                                    v-bind="slotProps"
-                                />
-                            </template>
-                        </objects-grid-table-header>
-                        <objects-grid-table-header
-                            v-else
-                            :ascending="sorted.includes(field.name)"
-                            :col-index="colIndex"
-                            :descending="sorted.includes(`-${field.name}`)"
-                            :field="field"
-                            :field-props="fieldProps"
-                            :multi-sort-index="sorted.length > 1 ? directionlessSorted.indexOf(field.name) : -1"
-                            :sortable="sortables.includes(field.name)"
+    <div :class="theme('root')">
+        <div :class="theme('table')" role="table">
+            <div :class="theme('headerRowGroup')" role="rowgroup">
+                <div :class="theme('headerRow')" role="row">
+                    <template v-for="(field, colIndex) in fields" :key="field?.name || `col-index-${colIndex}`">
+                        <div
+                            v-if="field?.name"
+                            :class="[theme('headerCell'), headerClasses?.[field?.name]]"
+                            :data-header="field?.name"
+                            data-qa="objects-grid-header"
+                            role="columnheader"
+                            @click="sortClick($event, field?.name)"
                         >
-                            <template #label="slotProps">
-                                <slot :name="`header(${field?.name})`" v-bind="slotProps" />
-                            </template>
-                            <template v-if="$slots['sort-icon']" #sort-icon="slotProps">
-                                <slot name="sort-icon" v-bind="slotProps" />
-                            </template>
-                        </objects-grid-table-header>
-                    </div>
-                </template>
-            </div>
-        </div>
-        <div v-if="!objectsInOrder?.length && !loading && emptyText" :class="theme('bodyRowGroup')" role="rowgroup">
-            <div :class="theme('bodyRow')" role="row">
-                <div :class="theme('emptyText')" role="cell">
-                    {{ emptyText }}
+                            <objects-grid-table-header v-if="field.extra" :col-index="colIndex" :field="field">
+                                <template #label="slotProps">
+                                    <slot
+                                        :key="field?.name || `col-index-${colIndex}`"
+                                        :name="`header(${field?.name})`"
+                                        v-bind="slotProps"
+                                    />
+                                </template>
+                            </objects-grid-table-header>
+                            <objects-grid-table-header
+                                v-else
+                                :ascending="sorted.includes(field.name)"
+                                :col-index="colIndex"
+                                :descending="sorted.includes(`-${field.name}`)"
+                                :field="field"
+                                :field-props="fieldProps"
+                                :multi-sort-index="sorted.length > 1 ? directionlessSorted.indexOf(field.name) : -1"
+                                :sortable="sortables.includes(field.name)"
+                            >
+                                <template #label="slotProps">
+                                    <slot :name="`header(${field?.name})`" v-bind="slotProps" />
+                                </template>
+                                <template v-if="$slots['sort-icon']" #sort-icon="slotProps">
+                                    <slot name="sort-icon" v-bind="slotProps" />
+                                </template>
+                            </objects-grid-table-header>
+                        </div>
+                    </template>
                 </div>
             </div>
-        </div>
-        <div v-else :class="theme('bodyRowGroup')" role="rowgroup">
-            <div
-                v-for="(obj, rowIndex) in objectsInOrder || []"
-                :key="obj?.[pkKey] || `row-index-${rowIndex}`"
-                :class="[
-                    theme('bodyRow', {
-                        evenCard: evenCard(obj, rowIndex),
-                    }),
-                ]"
-                data-qa="objects-grid-row"
-                role="row"
-            >
-                <template v-for="(field, colIndex) in fields" :key="field?.name || `col-index-${colIndex}`">
-                    <template v-if="field?.name">
-                        <objects-grid-card-cell
-                            v-if="!isTable"
-                            :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
-                            :class="[fieldClasses?.[field?.name], cardFieldClasses?.[field?.name]]"
-                            :col-index="colIndex"
-                            :data-field="field?.name"
-                            data-qa="objects-grid-card-cell"
-                            :field="field"
-                            :field-props="fieldProps"
-                            :obj="obj"
-                            :pk="obj?.[pkKey]"
-                            :pk-key="pkKey"
-                            :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
-                            role="cell"
-                            :row-index="rowIndex"
-                        >
-                            <template #header="slotProps">
-                                <slot :name="`header(${field?.name})`" v-bind="slotProps" />
-                            </template>
-                            <template #value="slotProps">
-                                <slot :name="`field(${field?.name})`" v-bind="slotProps" />
-                            </template>
-                        </objects-grid-card-cell>
-                        <objects-grid-body-cell
-                            v-else
-                            :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
-                            :class="[fieldClasses?.[field?.name], tableFieldClasses?.[field?.name]]"
-                            :col-index="colIndex"
-                            :data-field="field?.name"
-                            data-qa="objects-grid-table-cell"
-                            :field="field"
-                            :field-props="fieldProps"
-                            :obj="obj"
-                            :pk="obj?.[pkKey]"
-                            :pk-key="pkKey"
-                            :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
-                            role="cell"
-                            :row-index="rowIndex"
-                        >
-                            <template #value="slotProps">
-                                <slot :name="`field(${field?.name})`" v-bind="slotProps" />
-                            </template>
-                        </objects-grid-body-cell>
+            <div v-if="!objectsInOrder?.length && !loading && emptyText" :class="theme('bodyRowGroup')" role="rowgroup">
+                <div :class="theme('bodyRow')" role="row">
+                    <div :class="theme('emptyText')" role="cell">
+                        {{ emptyText }}
+                    </div>
+                </div>
+            </div>
+            <div v-else :class="theme('bodyRowGroup')" role="rowgroup">
+                <div
+                    v-for="(obj, rowIndex) in objectsInOrder || []"
+                    :key="obj?.[pkKey] || `row-index-${rowIndex}`"
+                    :class="[
+                        theme('bodyRow', {
+                            evenCard: evenCard(obj, rowIndex),
+                        }),
+                    ]"
+                    data-qa="objects-grid-row"
+                    role="row"
+                >
+                    <template v-for="(field, colIndex) in fields" :key="field?.name || `col-index-${colIndex}`">
+                        <template v-if="field?.name">
+                            <objects-grid-card-cell
+                                v-if="!isTable"
+                                :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
+                                :class="[fieldClasses?.[field?.name], cardFieldClasses?.[field?.name]]"
+                                :col-index="colIndex"
+                                :data-field="field?.name"
+                                data-qa="objects-grid-card-cell"
+                                :field="field"
+                                :field-props="fieldProps"
+                                :obj="obj"
+                                :pk="obj?.[pkKey]"
+                                :pk-key="pkKey"
+                                :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
+                                role="cell"
+                                :row-index="rowIndex"
+                            >
+                                <template #header="slotProps">
+                                    <slot :name="`header(${field?.name})`" v-bind="slotProps" />
+                                </template>
+                                <template #value="slotProps">
+                                    <slot :name="`field(${field?.name})`" v-bind="slotProps" />
+                                </template>
+                            </objects-grid-card-cell>
+                            <objects-grid-body-cell
+                                v-else
+                                :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
+                                :class="[fieldClasses?.[field?.name], tableFieldClasses?.[field?.name]]"
+                                :col-index="colIndex"
+                                :data-field="field?.name"
+                                data-qa="objects-grid-table-cell"
+                                :field="field"
+                                :field-props="fieldProps"
+                                :obj="obj"
+                                :pk="obj?.[pkKey]"
+                                :pk-key="pkKey"
+                                :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
+                                role="cell"
+                                :row-index="rowIndex"
+                            >
+                                <template #value="slotProps">
+                                    <slot :name="`field(${field?.name})`" v-bind="slotProps" />
+                                </template>
+                            </objects-grid-body-cell>
+                        </template>
                     </template>
-                </template>
+                </div>
             </div>
         </div>
     </div>
