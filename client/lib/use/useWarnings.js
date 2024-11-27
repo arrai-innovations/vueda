@@ -2,6 +2,7 @@ import { ObjectError, assignReactiveObject, useLoadingError } from "@arrai-innov
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { makeSearchParamsString } from "@vueda/utils/listCrud.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import { isRef, reactive, ref, toRef, watch } from "vue";
 
@@ -43,7 +44,10 @@ function warningsFetch(app, model, pk, detailed) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const controller = new AbortController();
     const action = "warnings";
-    const url = detailed ? getDetailUrl({ app, model, pk, action }) : getListUrl({ app, model, action });
+    const queryString = detailed ? "" : makeSearchParamsString({ pks: pk, action: action });
+    const url = detailed
+        ? getDetailUrl({ app, model, pk, action })
+        : getListUrl({ app, model, action, query: queryString });
     const returnPromise = fetch(url, {
         method: "GET",
         credentials: "include",
@@ -75,7 +79,7 @@ function warningsFetch(app, model, pk, detailed) {
  * @param {import('vue').Ref<string>|string} model - The model name
  * @param {import('./useForm.js').FormContext} options.formContext - The form context object.
  * @param {import('vue').Ref<string>|string} [view] - What you are doing with the model
- * @param {import('vue').Ref<string>|string} [pk] - The primary key of the object
+ * @param {import('vue').Ref<string>|string | string[]} [pk] - The primary key of the object
  */
 export function useWarnings(app, model, formContext, view, pk) {
     if (!view) {
@@ -136,8 +140,9 @@ export function useWarnings(app, model, formContext, view, pk) {
                 return;
             }
             if (newApp && newModel && newView) {
-                if ((newView === "update" && newPk) || newView === "list") {
-                    const detailed = newView == "update";
+                // not detailed meaning it is bulk. we don't deal with list/target less yet.
+                const detailed = newView == "update";
+                if (newPk) {
                     const args = { app: newApp, model: newModel, pk: newPk, detailed: detailed };
                     await retrieveFn(args);
                     if (state.errored) {
