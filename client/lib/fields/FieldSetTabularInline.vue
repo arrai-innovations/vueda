@@ -93,10 +93,6 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
-    calculatedObjects: {
-        type: Array,
-        default: undefined,
-    },
     ...THEME_OVERRIDE_PROPS,
 });
 const itemRefs = ref([]);
@@ -358,7 +354,7 @@ const remainingSlotNames = computed(() => {
             </slot>
             <objects-grid
                 v-if="internalVisible"
-                :calculated-objects="calculatedObjects"
+                :calculated-objects="$attrs.calculatedObjects || {}"
                 :class="theme('objectsGrid')"
                 data-qa="fieldset-tabular-inline-objects-grid"
                 :empty-text="null"
