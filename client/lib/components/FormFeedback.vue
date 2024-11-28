@@ -4,6 +4,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { containsHtml, sanitizeMessages } from "@vueda/utils/html.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
+import { isArray } from "lodash-es";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
 import Message from "primevue/message";
@@ -94,6 +95,8 @@ const theme = useTheme("FormFeedback", props, themeProps);
         <div v-for="message in Object.values(feedbackItems || {})" :key="message" :class="theme('message')">
             <slot :name="type" v-bind="{ message, type, attrs: $attrs }">
                 <Message
+                    v-for="line in isArray(message) ? message : [message]"
+                    :key="line"
                     v-bind="$attrs"
                     :closable="false"
                     :severity="(severity ?? type === 'message') ? 'warn' : 'error'"
@@ -103,11 +106,11 @@ const theme = useTheme("FormFeedback", props, themeProps);
                     <template #icon="slotProps">
                         <slot name="icon" v-bind="slotProps" />
                     </template>
-                    <template v-if="allowHtml && containsHtml(message)">
-                        <div v-html="message" />
+                    <template v-if="allowHtml && containsHtml(line)">
+                        <div v-html="line" />
                     </template>
                     <template v-else>
-                        {{ message }}
+                        {{ line }}
                     </template>
                 </Message>
             </slot>

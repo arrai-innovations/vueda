@@ -2,16 +2,18 @@
 import { loadingCombine } from "@arrai-innovations/reactive-helpers";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
+import { defaultOnSubmissionError } from "@vueda/use/useObjectForm.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/crudSupport.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FetchError } from "@vueda/utils/errors.js";
+import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import { isObject } from "lodash-es";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
-import { computed, onDeactivated, onUnmounted, reactive, toRef, unref } from "vue";
+import { computed, inject, onDeactivated, onUnmounted, reactive, toRef, unref } from "vue";
 import { useRouter } from "vue-router";
 
 defineOptions({
@@ -79,7 +81,7 @@ const actionErrorSummary = computed(() => {
     return `Failed to ${props.action} ${props.model} `;
 });
 
-const pks = computed(() => props.fetchState?.objectsInOrder);
+const pks = computed(() => props.fetchState?.objectsInOrder?.map((obj) => obj.id));
 const bulk = computed(() => unref(pks)?.length > 1);
 
 const defaultRunAction = (action) => {
@@ -93,7 +95,6 @@ const defaultRunAction = (action) => {
               pk: pks.value[0],
               action,
           });
-
     /** @type {Promise<void> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
         method: "PUT",
@@ -112,7 +113,10 @@ const defaultRunAction = (action) => {
         if (response.status === 200) {
             return responseData;
         }
-        throw new FetchError("Failed to execute action", response, responseData);
+        if (response.status === 400) {
+            throw new FormValidationError(responseData, response);
+        }
+        throw new FetchError("Failed to create object", response, responseData);
     });
 
     returnPromise.cancel = async () => {
@@ -123,7 +127,7 @@ const defaultRunAction = (action) => {
     return returnPromise;
 };
 const runAction = computed(() => props.runAction || defaultRunAction);
-
+const formContext = inject(FormContextSymbol, null);
 let actionPromise = null;
 const handleConfirm = async () => {
     actionState.loading = true;
@@ -145,14 +149,17 @@ const handleConfirm = async () => {
             }),
         );
     } catch (error) {
-        actionState.errored = true;
-        actionState.error = error;
-        toast.add({
-            severity: "error",
-            summary: actionErrorSummary,
-            detail: actionState.error,
-            life: 5000,
-        });
+        const handled = await defaultOnSubmissionError({ error, formContext, toast });
+        if (!handled) {
+            actionState.errored = true;
+            actionState.error = error;
+            toast.add({
+                severity: "error",
+                summary: actionErrorSummary,
+                detail: actionState.error,
+                life: 5000,
+            });
+        }
     } finally {
         actionState.loading = false;
     }

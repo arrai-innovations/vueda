@@ -15,7 +15,7 @@ const escapeHtml = (message) => {
         "&#039;": "'",
         "&nbsp;": " ",
     };
-    return message.replace(/&amp;|&lt;|&gt;|&quot;|&#039;|&nbsp;/g, (m) => map[m]);
+    return message?.replace(/&amp;|&lt;|&gt;|&quot;|&#039;|&nbsp;/g, (m) => map[m]);
 };
 
 /**
