@@ -102,9 +102,10 @@ export function useTheme(componentName, props, context, keyFn) {
     const currentInstance = getCurrentInstance();
     const injectedThemeOverride = currentInstance ? inject(ThemeOverrideSymbol, null) : null;
     const themeOverride = computed(() => {
-        const iTO = deepUnref(injectedThemeOverride);
-        const pTO = deepUnref(unref(props)?.themeOverride);
-        return iTO ? mergeTheme(iTO, pTO) : pTO;
+        const cTO = deepUnref(config.themeOverride) || {};
+        const iTO = deepUnref(injectedThemeOverride) || {};
+        const pTO = deepUnref(unref(props)?.themeOverride) || {};
+        return iTO ? mergeTheme(cTO, iTO, pTO) : pTO;
     });
 
     let myContext = context;
