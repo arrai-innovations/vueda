@@ -166,18 +166,22 @@ const togglePopover = (e) => {
             </form-help-text>
         </div>
     </popover>
-    <div
-        v-if="effectiveRequired || showHelpIcon || showErrorIcon || showWarnIcon"
-        :class="theme('root')"
+
+    <slot
+        :class="theme('button')"
+        :has-errors="hasErrors"
+        :has-help="showHelpIcon"
+        :has-warnings="hasWarnings"
+        name="feedback-button"
+        :required="effectiveRequired"
         v-bind="attrs"
+        @click="togglePopover"
     >
-        <slot
-            :has-errors="hasErrors"
-            :has-help="showHelpIcon"
-            :has-warnings="hasWarnings"
-            name="feedback-button"
-            :required="effectiveRequired"
-            @click="togglePopover"
+        <div
+            v-if="effectiveRequired || showHelpIcon || showErrorIcon || showWarnIcon"
+            :class="theme('root')"
+            v-bind="attrs"
+            data-qa="form-hidden-feedback-root"
         >
             <Button
                 :class="theme('button')"
@@ -192,8 +196,8 @@ const togglePopover = (e) => {
                 <span v-if="showWarnIcon" :class="[theme('icon'), theme('warnings')]">⚠️</span>
                 <span v-if="showHelpIcon" :class="[theme('icon'), theme('help')]">ℹ️</span>
             </Button>
-        </slot>
-    </div>
+        </div>
+    </slot>
 </template>
 
 <style scoped></style>

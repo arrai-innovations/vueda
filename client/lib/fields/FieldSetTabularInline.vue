@@ -11,12 +11,12 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
+import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import { useBreakpoints } from "@vueuse/core";
 import { merge } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
-import Checkbox from "primevue/checkbox";
 import Divider from "primevue/divider";
 import { computed, inject, nextTick, reactive, ref, shallowReactive, unref, useSlots, watch } from "vue";
 
@@ -58,17 +58,6 @@ const props = defineProps({
     objectGridVariant: {
         type: String,
         default: "default",
-    },
-    extraFieldObjects: {
-        type: Array,
-        default: () => [
-            {
-                name: `delete_`,
-                extra: true,
-                label: "Delete?",
-                action: true,
-            },
-        ],
     },
     fieldObjects: {
         type: Array,
@@ -196,17 +185,17 @@ const doCreate = async (e, values) => {
     return itemRefs.value[newItemIndex];
 };
 
-const handleSelected = (newSelected) => {
-    const added = newSelected.filter((i) => !selected.value.includes(i));
-    const removed = selected.value.filter((i) => !newSelected.includes(i));
-    added.forEach((i) => {
-        fieldSetContext.ignore(`${fieldSetContext.state.name}[${i}]`);
-    });
-    removed.forEach((i) => {
-        fieldSetContext.removeIgnore(`${fieldSetContext.state.name}[${i}]`);
-    });
-    selected.value = newSelected;
-    if (newSelected.length) {
+const handleSelected = (isSelected, rowIndex) => {
+    if (isSelected) {
+        if (!selected.value.includes(rowIndex)) {
+            selected.value.push(rowIndex);
+            fieldSetContext.ignore(`${fieldSetContext.state.name}[${rowIndex}]`);
+        }
+    } else {
+        selected.value = selected.value.filter((i) => i !== rowIndex);
+        fieldSetContext.removeIgnore(`${fieldSetContext.state.name}[${rowIndex}]`);
+    }
+    if (selected.value.length) {
         fieldSetContext.setModified();
     } else {
         fieldSetContext.clearModified();
@@ -217,16 +206,24 @@ const removeObject = (index) => {
     fieldSetContext.blur();
     fieldSetContext.state.value = cloneDeep(fieldSetContext.state.value).filter((_, i) => i !== index);
 };
-const objectsInOrder = computed(() => fieldSetContext.state.value);
 const computedFieldProps = computed(() =>
     merge(formModel.fieldProps[fieldSetContext.state.formModelName], props.fieldProps),
 );
 const computedFieldObjects = computed(() => {
-    const objects = [...fieldObjects.value, ...props.extraFieldObjects];
+    const objects = [
+        {
+            name: "item-action-bar",
+        },
+    ];
     if (computedFieldProps.value.readOnly) {
-        return objects?.filter((field) => !field.action);
+        // by not rendering the fields, the default objects grid behavior is to render the values
+        return objects;
     }
-    return objects;
+    objects.push(...fieldObjects.value);
+    return objects.filter((field) => !field.action);
+});
+const actions = computed(() => {
+    return [...fieldObjects.value].filter((field) => field.action);
 });
 const breakpoints = useBreakpoints(breakpointsVueda);
 const isVisibleByDefault = computed(() => {
@@ -274,15 +271,18 @@ const refFn = (slotProps, el) => {
     itemRefs.value[slotProps.rowIndex] = el;
 };
 const slots = useSlots();
-const slotNames = ["toggle-button", "create-button", "delete-button", "delete-checkbox"];
+const slotNames = [
+    "toggle-button",
+    "create-button",
+    "delete-button",
+    "delete-checkbox",
+    // todo: implement action-button for non item actions
+    // "action-button",
+    "item-action-button",
+];
 const resolvedSlotNames = slotNames.reduce((acc, name) => {
     acc[name] = useSlotNameResolver(
-        computed(() => [
-            `field(${fieldSetContext.state.formModelName})${name}`,
-            `field(${fieldSetContext.state.formModelName})`,
-            `fieldset-${name}`,
-            name,
-        ]),
+        computed(() => [`field(${fieldSetContext.state.formModelName})${name}`, `fieldset-${name}`, name]),
     );
     return acc;
 }, {});
@@ -290,6 +290,7 @@ const remainingSlotNames = computed(() => {
     const slotNames = Object.keys(slots);
     const knownSlotNames = [
         "default",
+        `field(${fieldSetContext.state.formModelName})item-action-bar`,
         ...slotNames.flatMap((name) => unref(resolvedSlotNames?.[name]?.possibleNames)),
         ...getFormChoresSlotNames(fieldSetContext.state.formModelName),
     ];
@@ -362,7 +363,7 @@ const remainingSlotNames = computed(() => {
                     selected_: 'text-center',
                 }"
                 :fields="computedFieldObjects"
-                :objects-in-order="objectsInOrder"
+                :objects-in-order="fieldSetContext.state.value"
                 :table-breakpoint="$attrs.tableBreakpoint || 'lg'"
                 :theme-override="{ ObjectsGridBodyCell: { root: { class: 'min-w-36' } } }"
                 :variant="props.objectGridVariant"
@@ -373,6 +374,100 @@ const remainingSlotNames = computed(() => {
                     #[`header(${fieldObj.name})`]="headerSlotProps"
                 >
                     <slot :name="`header(${fieldObj.name})`" v-bind="headerSlotProps"></slot>
+                </template>
+                <template #[`field(item-action-bar)`]="objectGridFieldSlotProps">
+                    <slot name="item-action-bar">
+                        <div
+                            v-if="actions?.length"
+                            :class="theme('itemActionBar')"
+                            data-qa="field-set-tabular-inline-item-action-bar"
+                        >
+                            <template v-for="action in actions">
+                                <template v-if="action.fieldName === 'delete'">
+                                    <slot
+                                        v-if="!objectGridFieldSlotProps.pk"
+                                        :action="action"
+                                        :label="action.label"
+                                        :name="resolvedSlotNames['delete-button'].name"
+                                        :row-index="objectGridFieldSlotProps.rowIndex"
+                                        :selected="selected.includes(objectGridFieldSlotProps.rowIndex)"
+                                        :theme="theme"
+                                        :value="action.value"
+                                        verb="delete"
+                                        @click="removeObject(objectGridFieldSlotProps.rowIndex)"
+                                        @selected="
+                                            (isSelected) =>
+                                                handleSelected(isSelected, objectGridFieldSlotProps.rowIndex)
+                                        "
+                                    >
+                                        <Button
+                                            label="Delete"
+                                            text
+                                            @click="removeObject(objectGridFieldSlotProps.rowIndex)"
+                                        />
+                                    </slot>
+                                    <slot
+                                        v-else
+                                        :action="action"
+                                        :label="action.label"
+                                        :name="resolvedSlotNames['delete-checkbox'].name"
+                                        :row-index="objectGridFieldSlotProps.rowIndex"
+                                        :selected="selected.includes(objectGridFieldSlotProps.rowIndex)"
+                                        :theme="theme"
+                                        :value="action.value"
+                                        verb="delete"
+                                        @click="removeObject(objectGridFieldSlotProps.rowIndex)"
+                                        @selected="
+                                            (isSelected) =>
+                                                handleSelected(isSelected, objectGridFieldSlotProps.rowIndex)
+                                        "
+                                    >
+                                        <widget-checkbox
+                                            :contextless="true"
+                                            :input-id="`selected-row-${objectGridFieldSlotProps.rowIndex}`"
+                                            label="Delete?"
+                                            :model-value="selected.includes(objectGridFieldSlotProps.rowIndex)"
+                                            name="delete-checkbox"
+                                            :required="false"
+                                            size="small"
+                                            :value="objectGridFieldSlotProps.rowIndex"
+                                            @update:model-value="
+                                                (isSelected) =>
+                                                    handleSelected(isSelected, objectGridFieldSlotProps.rowIndex)
+                                            "
+                                        />
+                                    </slot>
+                                </template>
+                                <template v-else>
+                                    <slot
+                                        :name="resolvedSlotNames['item-action-button'].name"
+                                        v-bind="{
+                                            objectGridFieldSlotProps,
+                                            action,
+                                            fieldSetContextState: fieldSetContext.state,
+                                            rowValueName: `${fieldSetContext.state.name}[${objectGridFieldSlotProps.rowIndex}]`,
+                                            doCreate,
+                                        }"
+                                    >
+                                        <Button
+                                            :label="action.label"
+                                            @click="
+                                                ($event) =>
+                                                    action.action({
+                                                        objectGridFieldSlotProps,
+                                                        action,
+                                                        fieldSetContextState: fieldSetContext.state,
+                                                        rowValueName: `${fieldSetContext.state.name}[${objectGridFieldSlotProps.rowIndex}]`,
+                                                        event: $event,
+                                                        doCreate,
+                                                    })
+                                            "
+                                        />
+                                    </slot>
+                                </template>
+                            </template>
+                        </div>
+                    </slot>
                 </template>
                 <template
                     v-for="fieldObj in fieldObjects"
@@ -396,42 +491,6 @@ const remainingSlotNames = computed(() => {
                             <slot :name="slotName" v-bind="slotProps" />
                         </template>
                     </field-renderer>
-                </template>
-                <template v-for="field in extraFieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
-                    <slot
-                        v-if="!slotProps.pk"
-                        :field-class="theme('field')"
-                        :field-props="computedFieldProps"
-                        :label="field.label"
-                        :name="resolvedSlotNames['delete-button'].name"
-                        :theme="theme"
-                        :value="field.value"
-                        verb="delete"
-                        @click="removeObject(slotProps.rowIndex)"
-                        @selected="handleSelected"
-                    >
-                        <Button label="Delete" text @click="removeObject(slotProps.rowIndex)"></Button>
-                    </slot>
-                    <slot
-                        v-else
-                        :field-class="theme('field')"
-                        :field-props="computedFieldProps"
-                        :label="field.label"
-                        :name="resolvedSlotNames['delete-checkbox'].name"
-                        :theme="theme"
-                        :value="field.value"
-                        verb="delete"
-                        @click="removeObject(slotProps.rowIndex)"
-                        @selected="handleSelected"
-                    >
-                        <Checkbox
-                            :input-id="`selected-row-${slotProps.rowIndex}`"
-                            :model-value="selected"
-                            name="delete-checkbox"
-                            :value="slotProps.rowIndex"
-                            @update:model-value="handleSelected"
-                        />
-                    </slot>
                 </template>
             </objects-grid>
         </div>

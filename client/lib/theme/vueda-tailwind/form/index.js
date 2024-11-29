@@ -122,6 +122,9 @@ export default {
         actionBar: {
             class: "grow-0 flex gap-2",
         },
+        itemActionBar: {
+            class: "flex gap-2 items-baseline",
+        },
         objectsGrid: {
             class: "w-full",
         },
