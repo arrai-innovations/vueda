@@ -18,7 +18,7 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
-import { computed, inject, nextTick, reactive, ref, shallowReactive, unref, useSlots, watch } from "vue";
+import { computed, inject, onBeforeUpdate, reactive, ref, shallowReactive, unref, useSlots, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -84,7 +84,10 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const itemRefs = ref([]);
+const itemRefs = ref(null);
+onBeforeUpdate(() => {
+    itemRefs.value = null;
+});
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldSetContext = useField(props, emit);
 const parentFormModel = inject(FormModelSymbol, null);
@@ -149,6 +152,7 @@ const emptyFieldObject = () => {
 };
 
 const selected = ref([]);
+
 function focusFirstTabbableElement(element) {
     if (!element) {
         return;
@@ -160,29 +164,33 @@ function focusFirstTabbableElement(element) {
         "select:not([disabled]), " +
         "textarea:not([disabled]), " +
         '[tabindex]:not([tabindex="-1"])';
-    console.log("element", element);
-    console.log("innerHtml", element.innerHTML);
     const firstTabbable = element.querySelector(tabbableSelector);
-    console.log("firstTabbable", firstTabbable);
     if (firstTabbable) {
         firstTabbable.focus();
     }
 }
-const doCreate = async (e, values) => {
-    if (!values) {
-        values = emptyFieldObject();
+
+const focusIndex = ref(null);
+watch(
+    [itemRefs, focusIndex],
+    ([newItemRefs, newFocusIndex]) => {
+        // noinspection EqualityComparisonWithCoercionJS
+        const newItem = newItemRefs?.find?.((el) => el.dataset.rowIndex == newFocusIndex);
+        if (newItem) {
+            newItem.scrollIntoView({ behavior: "smooth", block: "center" });
+            focusFirstTabbableElement(newItem.parentNode);
+            focusIndex.value = null;
+        }
+    },
+    { deep: true, flush: "post" },
+);
+const doCreate = (_e, defaultValues) => {
+    if (!defaultValues) {
+        defaultValues = emptyFieldObject();
     }
     fieldSetContext.blur();
-    fieldSetContext.state.value = [...cloneDeep(fieldSetContext.state.value), values];
-    await nextTick();
-    const newItemIndex = fieldSetContext.state.value.length - 1;
-    const newItem = itemRefs.value[newItemIndex];
-    if (newItem) {
-        newItem.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-    await nextTick();
-    focusFirstTabbableElement(newItem.parentNode);
-    return itemRefs.value[newItemIndex];
+    fieldSetContext.state.value = [...cloneDeep(fieldSetContext.state.value), defaultValues];
+    focusIndex.value = fieldSetContext.state.value.length - 1;
 };
 
 const handleSelected = (isSelected, rowIndex) => {
@@ -264,11 +272,11 @@ const toggleVisibility = () => {
     }
     userHasToggled.value = true;
 };
-const refFn = (slotProps, el) => {
+const refFn = (el) => {
     if (!itemRefs.value) {
         itemRefs.value = [];
     }
-    itemRefs.value[slotProps.rowIndex] = el;
+    itemRefs.value.push(el);
 };
 const slots = useSlots();
 const slotNames = [
@@ -299,7 +307,7 @@ const remainingSlotNames = computed(() => {
 </script>
 
 <template>
-    <div :class="combineClasses(theme('root'), $attrs.class)" data-qa="fieldset-tabular-inline-root">
+    <div ref="test" :class="combineClasses(theme('root'), $attrs.class)" data-qa="fieldset-tabular-inline-root">
         <div :class="theme('inner')" data-qa="fieldset-tabular-inline-inner">
             <Divider
                 :pt="{
@@ -395,10 +403,6 @@ const remainingSlotNames = computed(() => {
                                         :value="action.value"
                                         verb="delete"
                                         @click="removeObject(objectGridFieldSlotProps.rowIndex)"
-                                        @selected="
-                                            (isSelected) =>
-                                                handleSelected(isSelected, objectGridFieldSlotProps.rowIndex)
-                                        "
                                     >
                                         <Button
                                             label="Delete"
@@ -409,15 +413,16 @@ const remainingSlotNames = computed(() => {
                                     <slot
                                         v-else
                                         :action="action"
-                                        :label="action.label"
+                                        :contextless="true"
+                                        label="Delete?"
+                                        :model-value="selected.includes(objectGridFieldSlotProps.rowIndex)"
                                         :name="resolvedSlotNames['delete-checkbox'].name"
+                                        :required="false"
                                         :row-index="objectGridFieldSlotProps.rowIndex"
-                                        :selected="selected.includes(objectGridFieldSlotProps.rowIndex)"
                                         :theme="theme"
                                         :value="action.value"
                                         verb="delete"
-                                        @click="removeObject(objectGridFieldSlotProps.rowIndex)"
-                                        @selected="
+                                        @update:model-value="
                                             (isSelected) =>
                                                 handleSelected(isSelected, objectGridFieldSlotProps.rowIndex)
                                         "
@@ -470,15 +475,16 @@ const remainingSlotNames = computed(() => {
                     </slot>
                 </template>
                 <template
-                    v-for="fieldObj in fieldObjects"
+                    v-for="(fieldObj, foIndex) in fieldObjects"
                     :key="`${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}-${objectGridFieldSlotProps.colIndex}`"
                     #[`field(${fieldObj.name})`]="objectGridFieldSlotProps"
                 >
                     <a
-                        v-if="objectGridFieldSlotProps.colIndex === 0"
+                        v-if="foIndex === 0"
                         :id="`fieldset-tabular-inline-anchor-${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}`"
-                        :ref="(el) => refFn(objectGridFieldSlotProps, el)"
+                        :ref="(el) => refFn(el)"
                         data-qa="fieldset-tabular-inline-anchor"
+                        :data-row-index="objectGridFieldSlotProps.rowIndex"
                     />
                     <field-renderer
                         :field-props="computedFieldProps"
