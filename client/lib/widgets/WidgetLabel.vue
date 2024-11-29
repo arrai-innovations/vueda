@@ -20,10 +20,6 @@ export const WIDGET_LABEL_PROPS = {
         type: Boolean,
         default: false,
     },
-    id: {
-        type: String,
-        default: undefined,
-    },
     isCardLayout: {
         type: Boolean,
         default: false,
@@ -47,14 +43,22 @@ defineOptions({
 const props = defineProps({
     ...WIDGET_LABEL_PROPS,
     ...THEME_OVERRIDE_PROPS,
+    id: {
+        type: String,
+        default: undefined,
+    },
+    for: {
+        type: String,
+        default: undefined,
+    },
+    tag: {
+        type: String,
+        default: "label",
+    },
 });
 
 /** @type {import('@vueda/use/useWidget.js').WidgetContext} */
 const widgetContext = inject(WidgetContextSymbol);
-// traditional id points to input
-const computedFor = computed(() => (props.id ? props.id : widgetContext.state.widgetId));
-// aria-labelledby points to label
-const computedId = computed(() => (!props.id ? widgetContext?.state?.widgetId : undefined));
 const combinedLabel = computed(() => props.label ?? widgetContext?.state?.combinedLabel);
 const theme = useWidgetTheme("WidgetLabel", props, widgetContext.state);
 const slots = useSlots();
@@ -63,9 +67,18 @@ const labelClass = computed(() => combineClasses(theme("label"), { "sr-only": pr
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-label-root">
-        <label :id="computedId" :class="labelClass" data-qa="widget-label-label" :for="computedFor" v-bind="$attrs">
-            <slot :id="computedId" :for="computedFor" :label="combinedLabel" name="label">{{ combinedLabel }}</slot>
-        </label>
+        <component
+            :is="$props.tag"
+            :id="id"
+            :class="labelClass"
+            v-bind="$attrs"
+            data-qa="widget-label-label"
+            :for="$props.for"
+        >
+            <slot :id="id" :class="labelClass" :for="$props.for" v-bind="$attrs" :label="combinedLabel" name="label">{{
+                combinedLabel
+            }}</slot>
+        </component>
         <slot :class="theme('feedback')" name="feedback" v-bind="pick(props, Object.keys(FORM_HIDDEN_FEEDBACK_PROPS))">
             <form-hidden-feedback
                 :class="theme('feedback')"

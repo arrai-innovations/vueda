@@ -82,7 +82,11 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
+        <widget-label
+            :id="widgetContext.state.widgetId"
+            tag="div"
+            v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
+        >
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
@@ -91,6 +95,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                     <component
                         :is="menuComponent"
                         v-if="menuComponent"
+                        :aria-labelledby="widgetContext.state.widgetId"
                         :class="theme('menu')"
                         :disabled="widgetContext.state.disabled"
                     />

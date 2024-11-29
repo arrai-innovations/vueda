@@ -60,6 +60,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
         <widget-label
             :id="`${widgetContext.state.widgetId}-label`"
             :label-class="theme('optionLabel')"
+            tag="div"
             v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
         >
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">

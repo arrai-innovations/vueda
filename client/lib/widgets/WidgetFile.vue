@@ -64,13 +64,21 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 
 <template>
     <div :class="theme('root')">
-        <widget-label v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
+        <widget-label
+            :id="widgetContext.state.widgetId"
+            tag="div"
+            v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
+        >
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
             <template #default="{ class: labelControlClass }">
                 <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-file-inner">
-                    <div v-if="widgetContext.state.combinedValue" :class="theme('file')">
+                    <div
+                        v-if="widgetContext.state.combinedValue"
+                        :aria-labelledby="widgetContext.state.widgetId"
+                        :class="theme('file')"
+                    >
                         <a :class="theme('link')" :href="fileURL">{{ fileName }}</a>
                         <div :class="theme('buttonGroup')">
                             <Button icon="pi pi-times" rounded @click="onRemoveFile" />
@@ -78,11 +86,19 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         </div>
                     </div>
                     <div v-else>
-                        <slot name="file-uploader">
+                        <slot
+                            v-bind="omit($attrs, 'value')"
+                            :aria-labelledby="widgetContext.state.widgetId"
+                            :disabled="widgetContext.state.disabled"
+                            :invalid="widgetContext.state.validationState.invalid"
+                            name="file-uploader"
+                            @uploader="upload"
+                        >
                             <FileUpload
+                                v-bind="omit($attrs, 'value')"
+                                :aria-labelledby="widgetContext.state.widgetId"
                                 auto
                                 custom-upload
-                                v-bind="omit($attrs, 'value')"
                                 :disabled="widgetContext.state.disabled"
                                 :invalid="widgetContext.state.validationState.invalid"
                                 mode="basic"

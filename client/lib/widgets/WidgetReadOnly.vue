@@ -64,7 +64,11 @@ const slotsWithoutFeedback = computed(() =>
 <template>
     <div :class="theme('root')">
         <div :class="theme('inner')">
-            <widget-label :id="widgetContext.state.widgetId" v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
+            <widget-label
+                :id="widgetContext.state.widgetId"
+                tag="div"
+                v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
+            >
                 <template v-for="slotName in slotsWithoutFeedback" :key="slotName" #[slotName]="slotProps">
                     <slot :name="slotName" v-bind="slotProps" />
                 </template>

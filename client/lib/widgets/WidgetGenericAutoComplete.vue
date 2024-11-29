@@ -187,6 +187,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
     <div :class="theme('root')">
         <widget-label
             :id="widgetContext.state.widgetId"
+            tag="div"
             v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
             @click="handleLabelClick"
         >

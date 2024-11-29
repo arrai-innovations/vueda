@@ -36,7 +36,11 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
+        <widget-label
+            :id="widgetContext.state.widgetId"
+            tag="div"
+            v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
+        >
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
@@ -49,6 +53,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                     <div v-else>
                         <FileUpload
                             accept="image/*"
+                            :aria-labelledby="widgetContext.state.widgetId"
                             auto
                             custom-upload
                             :disabled="widgetContext.state.disabled"

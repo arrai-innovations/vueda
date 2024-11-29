@@ -49,7 +49,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-date-picker-root">
-        <widget-label v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
+        <widget-label :for="widgetContext.state.widgetId" v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>

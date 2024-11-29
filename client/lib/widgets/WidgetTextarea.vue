@@ -29,14 +29,14 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')">
-        <widget-label v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
+        <widget-label :for="widgetContext.state.widgetId" v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))">
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
             <template #default="{ class: labelControlClass }">
                 <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-textarea-inner">
                     <primevue-textarea
-                        id="widgetContext.state.widgetId"
+                        :id="widgetContext.state.widgetId"
                         v-bind="omit($attrs, 'value')"
                         v-model="widgetContext.state.combinedValue"
                         auto-resize
