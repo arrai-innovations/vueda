@@ -35,6 +35,11 @@ export const WIDGET_PROPS = {
         type: Function,
         default: null,
     },
+    contextless: {
+        type: Boolean,
+        default: false,
+        description: "Ignore a field context even if it exists.",
+    },
 };
 
 export const WIDGET_EMITS = ["update:modelValue"];
@@ -90,7 +95,7 @@ export function useWidget(props, emit) {
             ),
             combinedValue: computed({
                 get: () => {
-                    if (props.modelValue !== undefined) {
+                    if (props.contextless || props.modelValue !== undefined) {
                         return props.modelValue;
                     }
                     if (fieldContext) {
@@ -99,8 +104,9 @@ export function useWidget(props, emit) {
                     return undefined;
                 },
                 set: (value) => {
-                    if (props.modelValue !== undefined) {
+                    if (props.contextless || props.modelValue !== undefined) {
                         emit("update:modelValue", value);
+                        return;
                     }
                     if (fieldContext) {
                         if (isEqual(value, fieldContext.state.value)) {
@@ -123,7 +129,7 @@ export function useWidget(props, emit) {
                 return false;
             }),
             validationState: computed(() => {
-                if (fieldContext) {
+                if (!props.contextless && fieldContext) {
                     const hasErrors = Object.keys(fieldContext.state.errors || {}).length > 0;
                     const hasMessages = Object.keys(fieldContext.state.messages || {}).length > 0;
                     return {
@@ -137,7 +143,7 @@ export function useWidget(props, emit) {
                 };
             }),
             focused: computed(() => {
-                if (fieldContext) {
+                if (!props.contextless && fieldContext) {
                     return fieldContext.state.focused;
                 }
                 return false;
@@ -145,22 +151,22 @@ export function useWidget(props, emit) {
             required: computed(() => props.required ?? fieldContext?.state.required ?? false),
         }),
         setTouched: () => {
-            if (fieldContext) {
+            if (!props.contextless && fieldContext) {
                 fieldContext.setTouched();
             }
         },
         calculateModified: () => {
-            if (fieldContext) {
+            if (!props.contextless && fieldContext) {
                 fieldContext.calculateModified();
             }
         },
         focus: async () => {
-            if (fieldContext) {
+            if (!props.contextless && fieldContext) {
                 fieldContext.focus();
             }
         },
         blur: () => {
-            if (fieldContext) {
+            if (!props.contextless && fieldContext) {
                 fieldContext.blur();
                 // FormContext handles setting touched
             }
