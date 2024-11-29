@@ -218,14 +218,11 @@ const computedFieldProps = computed(() =>
     merge(formModel.fieldProps[fieldSetContext.state.formModelName], props.fieldProps),
 );
 const computedFieldObjects = computed(() => {
-    const objects = [
-        {
+    const objects = [];
+    if (actions.value.length) {
+        objects.push({
             name: "item-action-bar",
-        },
-    ];
-    if (computedFieldProps.value.readOnly) {
-        // by not rendering the fields, the default objects grid behavior is to render the values
-        return objects;
+        });
     }
     objects.push(...fieldObjects.value);
     return objects.filter((field) => !field.action);
