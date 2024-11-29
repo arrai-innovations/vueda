@@ -26,7 +26,7 @@ const props = defineProps({
         type: String,
         default: "id",
     },
-    obj: {
+    foreignKeyObj: {
         type: Object,
         default: undefined,
     },
@@ -37,7 +37,7 @@ const widgetContext = useWidget(props, emit);
 const theme = useWidgetTheme("WidgetReadOnly", props, widgetContext.state);
 const isActive = useIsActive();
 const validAndActive = computed(
-    () => !!(!props.obj && isActive.value && props.app && props.model && widgetContext.state.combinedValue),
+    () => !!(!props.foreignKeyObj && isActive.value && props.app && props.model && widgetContext.state.combinedValue),
 );
 const instanceObjectProps = reactive({
     crudArgs: {
@@ -56,10 +56,10 @@ const instanceObject = useObject({
 });
 
 const readonlyValue = computed(() => {
-    return props.obj ? props.obj.formatted_name : instanceObject.state?.object?.formatted_name;
+    return props.foreignKeyObj ? props.foreignKeyObj.formatted_name : instanceObject.state?.object?.formatted_name;
 });
 const pkValue = computed(() => {
-    return props.obj ? props.obj[props.pkKey] : instanceObject.state?.object?.[props.pkKey];
+    return props.foreignKeyObj ? props.foreignKeyObj[props.pkKey] : instanceObject.state?.object?.[props.pkKey];
 });
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);

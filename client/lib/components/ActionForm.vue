@@ -209,7 +209,7 @@ onUnmounted(() => {
                     <ul v-else :class="theme('list')">
                         <li v-for="object in fetchState.objects" :key="object.id">
                             <field-string :field-value="object.id" :label="object.id" :name="object.id">
-                                <widget-read-only :app="app" :hidden="true" :model="model" :obj="object" />
+                                <widget-read-only :app="app" :foreign-key-obj="object" :hidden="true" :model="model" />
                                 <form-feedback type="error" />
                                 <form-feedback type="message" />
                             </field-string>
