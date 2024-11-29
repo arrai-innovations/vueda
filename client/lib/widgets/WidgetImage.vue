@@ -1,4 +1,5 @@
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
@@ -39,24 +40,26 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')">
-                <div v-if="widgetContext.state.combinedValue" :class="theme('image')">
-                    <Image alt="Image" :src="widgetContext.state.combinedValue" width="250" />
-                    <Button icon="pi pi-times" rounded @click="onRemove" />
+            <template #default="{ class: labelControlClass }">
+                <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-image-inner">
+                    <div v-if="widgetContext.state.combinedValue" :class="theme('image')">
+                        <Image alt="Image" :src="widgetContext.state.combinedValue" width="250" />
+                        <Button icon="pi pi-times" rounded @click="onRemove" />
+                    </div>
+                    <div v-else>
+                        <FileUpload
+                            accept="image/*"
+                            auto
+                            custom-upload
+                            :disabled="widgetContext.state.disabled"
+                            :max-file-size="1000000"
+                            mode="basic"
+                            name="demo[]"
+                            @uploader="upload"
+                        />
+                    </div>
                 </div>
-                <div v-else>
-                    <FileUpload
-                        accept="image/*"
-                        auto
-                        custom-upload
-                        :disabled="widgetContext.state.disabled"
-                        :max-file-size="1000000"
-                        mode="basic"
-                        name="demo[]"
-                        @uploader="upload"
-                    />
-                </div>
-            </div>
+            </template>
         </widget-label>
     </div>
 </template>

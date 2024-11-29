@@ -1,4 +1,5 @@
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
@@ -40,29 +41,33 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')">
-                <div class="card flex justify-center">
-                    <div class="w-56">
-                        <span v-if="widgetContext.state.combinedValue">{{ widgetContext.state.combinedValue }}</span>
-                        <span v-else>[{{ props.minValue }},{{ props.maxValue }}]</span>
-                        <Slider
-                            v-model="widgetContext.state.combinedValue"
-                            v-bind="omit($attrs, 'value')"
-                            :aria-labelledby="widgetContext.state.widgetId"
-                            class="w-56"
-                            :disabled="widgetContext.state.disabled"
-                            :invalid="widgetContext.state.validationState.invalid"
-                            :max="props.maxValue"
-                            :min="props.minValue"
-                            :name="widgetContext.state.combinedName"
-                            :pt="effectivePt"
-                            range
-                            @change="widgetContext.focus"
-                            @slideend="widgetContext.blur"
-                        />
+            <template #default="{ class: labelControlClass }">
+                <div :class="combineClasses(theme('input'), labelControlClass)">
+                    <div class="card flex justify-center">
+                        <div class="w-56">
+                            <span v-if="widgetContext.state.combinedValue">{{
+                                widgetContext.state.combinedValue
+                            }}</span>
+                            <span v-else>[{{ props.minValue }},{{ props.maxValue }}]</span>
+                            <Slider
+                                v-model="widgetContext.state.combinedValue"
+                                v-bind="omit($attrs, 'value')"
+                                :aria-labelledby="widgetContext.state.widgetId"
+                                class="w-56"
+                                :disabled="widgetContext.state.disabled"
+                                :invalid="widgetContext.state.validationState.invalid"
+                                :max="props.maxValue"
+                                :min="props.minValue"
+                                :name="widgetContext.state.combinedName"
+                                :pt="effectivePt"
+                                range
+                                @change="widgetContext.focus"
+                                @slideend="widgetContext.blur"
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
+            </template>
         </widget-label>
     </div>
 </template>

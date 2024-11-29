@@ -1,5 +1,6 @@
 <script setup>
 import { useList } from "@arrai-innovations/reactive-helpers";
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
@@ -182,26 +183,28 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')">
-                <AutoComplete
-                    :disabled="widgetContext.state.disabled"
-                    force-selection
-                    :input-id="widgetContext.state.widgetId"
-                    :invalid="widgetContext.state.validationState.invalid"
-                    :loading="modelListInstance.state.loading"
-                    :model-value="modelItem"
-                    :name="widgetContext.state.combinedName"
-                    :option-label="computedOptionLabel"
-                    :option-value="computedOptionValue"
-                    :pt="effectivePt"
-                    :suggestions="modelListInstance.state.objectsInOrder"
-                    v-bind="omit($attrs, 'value')"
-                    @blur="delayedBlur"
-                    @complete="search"
-                    @focus="cancelBlurIfFocused"
-                    @update:model-value="(selected) => valueUpdated(selected)"
-                />
-            </div>
+            <template #default="{ class: labelControlClass }">
+                <div :class="combineClasses(theme('inner'), labelControlClass)">
+                    <AutoComplete
+                        :disabled="widgetContext.state.disabled"
+                        force-selection
+                        :input-id="widgetContext.state.widgetId"
+                        :invalid="widgetContext.state.validationState.invalid"
+                        :loading="modelListInstance.state.loading"
+                        :model-value="modelItem"
+                        :name="widgetContext.state.combinedName"
+                        :option-label="computedOptionLabel"
+                        :option-value="computedOptionValue"
+                        :pt="effectivePt"
+                        :suggestions="modelListInstance.state.objectsInOrder"
+                        v-bind="omit($attrs, ['value'])"
+                        @blur="delayedBlur"
+                        @complete="search"
+                        @focus="cancelBlurIfFocused"
+                        @update:model-value="(selected) => valueUpdated(selected)"
+                    />
+                </div>
+            </template>
         </widget-label>
     </div>
 </template>

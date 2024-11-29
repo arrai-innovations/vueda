@@ -76,8 +76,6 @@ const labelClass = computed(() => combineClasses(theme("label"), { "sr-only": pr
                 </template>
             </form-hidden-feedback>
         </slot>
-        <div :class="theme('control')" data-qa="widget-label-control">
-            <slot></slot>
-        </div>
+        <slot :class="theme('control')"></slot>
     </div>
 </template>

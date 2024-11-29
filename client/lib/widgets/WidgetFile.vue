@@ -1,4 +1,5 @@
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
@@ -67,31 +68,33 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')">
-                <div v-if="widgetContext.state.combinedValue" :class="theme('file')">
-                    <a :class="theme('link')" :href="fileURL">{{ fileName }}</a>
-                    <div :class="theme('buttonGroup')">
-                        <Button icon="pi pi-times" rounded @click="onRemoveFile" />
-                        <Button icon="pi pi-download" rounded @click="onDownload" />
+            <template #default="{ class: labelControlClass }">
+                <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-file-inner">
+                    <div v-if="widgetContext.state.combinedValue" :class="theme('file')">
+                        <a :class="theme('link')" :href="fileURL">{{ fileName }}</a>
+                        <div :class="theme('buttonGroup')">
+                            <Button icon="pi pi-times" rounded @click="onRemoveFile" />
+                            <Button icon="pi pi-download" rounded @click="onDownload" />
+                        </div>
+                    </div>
+                    <div v-else>
+                        <slot name="file-uploader">
+                            <FileUpload
+                                auto
+                                custom-upload
+                                v-bind="omit($attrs, 'value')"
+                                :disabled="widgetContext.state.disabled"
+                                :invalid="widgetContext.state.validationState.invalid"
+                                mode="basic"
+                                name="files[]"
+                                :pt="effectivePt"
+                                @uploader="upload"
+                            >
+                            </FileUpload>
+                        </slot>
                     </div>
                 </div>
-                <div v-else>
-                    <slot name="file-uploader">
-                        <FileUpload
-                            auto
-                            custom-upload
-                            v-bind="omit($attrs, 'value')"
-                            :disabled="widgetContext.state.disabled"
-                            :invalid="widgetContext.state.validationState.invalid"
-                            mode="basic"
-                            name="files[]"
-                            :pt="effectivePt"
-                            @uploader="upload"
-                        >
-                        </FileUpload>
-                    </slot>
-                </div>
-            </div>
+            </template>
         </widget-label>
     </div>
 </template>

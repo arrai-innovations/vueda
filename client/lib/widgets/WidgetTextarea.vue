@@ -1,4 +1,5 @@
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
@@ -32,20 +33,22 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')">
-                <primevue-textarea
-                    id="widgetContext.state.widgetId"
-                    v-bind="omit($attrs, 'value')"
-                    v-model="widgetContext.state.combinedValue"
-                    auto-resize
-                    :disabled="widgetContext.state.disabled"
-                    :invalid="widgetContext.state.validationState.invalid"
-                    :name="widgetContext.state.combinedName"
-                    :pt="effectivePt"
-                    @blur="widgetContext.blur"
-                    @focus="widgetContext.focus"
-                />
-            </div>
+            <template #default="{ class: labelControlClass }">
+                <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-textarea-inner">
+                    <primevue-textarea
+                        id="widgetContext.state.widgetId"
+                        v-bind="omit($attrs, 'value')"
+                        v-model="widgetContext.state.combinedValue"
+                        auto-resize
+                        :disabled="widgetContext.state.disabled"
+                        :invalid="widgetContext.state.validationState.invalid"
+                        :name="widgetContext.state.combinedName"
+                        :pt="effectivePt"
+                        @blur="widgetContext.blur"
+                        @focus="widgetContext.focus"
+                    />
+                </div>
+            </template>
         </widget-label>
     </div>
 </template>

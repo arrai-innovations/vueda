@@ -9,10 +9,10 @@ export default {
     },
     WidgetCheckbox: {
         root: {
-            class: ["ml-2 flex flex-row grow items-center"],
+            class: ["ml-2 flex flex-row grow items-baseline"],
         },
         inner: {
-            class: ["flex flex-row grow items-center"],
+            class: ["flex flex-row grow items-baseline"],
         },
         input: {
             class: ["min-w-min grow-0 shrink-0"],
@@ -21,10 +21,10 @@ export default {
             WidgetLabel: {
                 root: {
                     class: {
-                        // grid: false,
-                        // grow: true,
+                        grid: false,
+                        // items-baseline doesn't play nice with the toggle switch
+                        "flex gap-2 items-center": true,
                         "ml-2 mb-1": false,
-                        // "gap-1 md:gap-2 2xl:gap-4": true,
                     },
                 },
                 label: {

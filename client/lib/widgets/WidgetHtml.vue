@@ -1,4 +1,5 @@
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import TextAlign from "@tiptap/extension-text-align";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/vue-3";
@@ -85,15 +86,17 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')">
-                <component
-                    :is="menuComponent"
-                    v-if="menuComponent"
-                    :class="theme('menu')"
-                    :disabled="widgetContext.state.disabled"
-                />
-                <editor-content :class="theme('editor')" v-bind="$attrs" :editor="editor" />
-            </div>
+            <template #default="{ class: labelControlClass }">
+                <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-html-inner">
+                    <component
+                        :is="menuComponent"
+                        v-if="menuComponent"
+                        :class="theme('menu')"
+                        :disabled="widgetContext.state.disabled"
+                    />
+                    <editor-content :class="theme('editor')" v-bind="$attrs" :editor="editor" />
+                </div>
+            </template>
         </widget-label>
     </div>
 </template>

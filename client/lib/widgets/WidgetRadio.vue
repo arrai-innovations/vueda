@@ -1,4 +1,5 @@
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
@@ -64,47 +65,49 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')">
-                <ul :aria-labelledby="`${widgetContext.state.widgetId}-label`" :class="theme('options')">
-                    <li v-for="option in computedOptions" :key="option.value" :class="theme('option')">
-                        <slot
-                            :id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
-                            :class="theme('optionInput')"
-                            :input-name="widgetContext.state.combinedName"
-                            :model-value="widgetContext.state.combinedValue"
-                            :name="$slots[`radio(${option.value})`] ? `radio(${option.value})` : 'radio'"
-                            :value="option.value"
-                            @update:model-value="widgetContext.state.combinedValue = $event"
-                        >
-                            <radio-button
-                                v-model="widgetContext.state.combinedValue"
+            <template #default="{ class: labelControlClass }">
+                <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-radio-inner">
+                    <ul :aria-labelledby="`${widgetContext.state.widgetId}-label`" :class="theme('options')">
+                        <li v-for="option in computedOptions" :key="option.value" :class="theme('option')">
+                            <slot
+                                :id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
                                 :class="theme('optionInput')"
-                                :disabled="widgetContext.state.disabled"
-                                :input-id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
-                                :invalid="widgetContext.state.validationState.invalid"
-                                :name="widgetContext.state.combinedName"
-                                :pt="effectivePt"
+                                :input-name="widgetContext.state.combinedName"
+                                :model-value="widgetContext.state.combinedValue"
+                                :name="$slots[`radio(${option.value})`] ? `radio(${option.value})` : 'radio'"
                                 :value="option.value"
-                                v-bind="omit($attrs, 'value')"
-                                @blur="widgetContext.blur"
-                                @focus="handleFocus"
-                            />
-                        </slot>
-                        <slot
-                            :class="theme('optionLabel')"
-                            :for="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
-                            :label="option.label"
-                            :name="$slots[`label(${option.value})`] ? `label(${option.value})` : 'label'"
-                        >
-                            <label
-                                :class="[theme('optionLabel')]"
-                                :for="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
-                                >{{ option.label }}</label
+                                @update:model-value="widgetContext.state.combinedValue = $event"
                             >
-                        </slot>
-                    </li>
-                </ul>
-            </div>
+                                <radio-button
+                                    v-model="widgetContext.state.combinedValue"
+                                    :class="theme('optionInput')"
+                                    :disabled="widgetContext.state.disabled"
+                                    :input-id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
+                                    :invalid="widgetContext.state.validationState.invalid"
+                                    :name="widgetContext.state.combinedName"
+                                    :pt="effectivePt"
+                                    :value="option.value"
+                                    v-bind="omit($attrs, 'value')"
+                                    @blur="widgetContext.blur"
+                                    @focus="handleFocus"
+                                />
+                            </slot>
+                            <slot
+                                :class="theme('optionLabel')"
+                                :for="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
+                                :label="option.label"
+                                :name="$slots[`label(${option.value})`] ? `label(${option.value})` : 'label'"
+                            >
+                                <label
+                                    :class="[theme('optionLabel')]"
+                                    :for="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"
+                                    >{{ option.label }}</label
+                                >
+                            </slot>
+                        </li>
+                    </ul>
+                </div>
+            </template>
         </widget-label>
     </div>
 </template>

@@ -1,4 +1,5 @@
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
@@ -58,21 +59,23 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <MultiSelect
-                ref="selectRef"
-                v-model="widgetContext.state.combinedValue"
-                :aria-labelledby="widgetContext.state.widgetId"
-                class="w-full md:w-80"
-                v-bind="omit($attrs, 'value')"
-                :disabled="widgetContext.state.disabled"
-                display="chip"
-                filter
-                :invalid="widgetContext.state.validationState.invalid"
-                :options="props.options"
-                :pt="effectivePt"
-                @blur="handleBlur"
-                @focus="handleFocus"
-            />
+            <template #default="{ class: labelControlClass }">
+                <MultiSelect
+                    ref="selectRef"
+                    v-model="widgetContext.state.combinedValue"
+                    :aria-labelledby="widgetContext.state.widgetId"
+                    :class="combineClasses($attrs.class, labelControlClass)"
+                    v-bind="omit($attrs, ['value', 'class'])"
+                    :disabled="widgetContext.state.disabled"
+                    display="chip"
+                    filter
+                    :invalid="widgetContext.state.validationState.invalid"
+                    :options="props.options"
+                    :pt="effectivePt"
+                    @blur="handleBlur"
+                    @focus="handleFocus"
+                />
+            </template>
         </widget-label>
     </div>
 </template>

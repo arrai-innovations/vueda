@@ -1,4 +1,5 @@
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
@@ -80,24 +81,26 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')">
-                <Select
-                    ref="selectRef"
-                    v-bind="omit($attrs, 'value')"
-                    :aria-labelledby="widgetContext.state.widgetId"
-                    :disabled="widgetContext.state.disabled"
-                    :invalid="widgetContext.state.validationState.invalid"
-                    :model-value="modelItem"
-                    :option-label="props.optionLabel"
-                    :option-value="props.optionValue"
-                    :options="props.options"
-                    :pt="effectivePt"
-                    show-clear
-                    @blur="handleBlur"
-                    @focus="handleFocus"
-                    @update:model-value="(selected) => valueUpdated(selected)"
-                />
-            </div>
+            <template #default="{ class: labelControlClass }">
+                <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-select-inner">
+                    <Select
+                        ref="selectRef"
+                        v-bind="omit($attrs, 'value')"
+                        :aria-labelledby="widgetContext.state.widgetId"
+                        :disabled="widgetContext.state.disabled"
+                        :invalid="widgetContext.state.validationState.invalid"
+                        :model-value="modelItem"
+                        :option-label="props.optionLabel"
+                        :option-value="props.optionValue"
+                        :options="props.options"
+                        :pt="effectivePt"
+                        show-clear
+                        @blur="handleBlur"
+                        @focus="handleFocus"
+                        @update:model-value="(selected) => valueUpdated(selected)"
+                    />
+                </div>
+            </template>
         </widget-label>
     </div>
 </template>

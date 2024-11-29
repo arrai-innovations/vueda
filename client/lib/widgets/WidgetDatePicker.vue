@@ -1,4 +1,5 @@
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
@@ -52,33 +53,35 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')" data-qa="widget-date-picker-inner">
-                <DatePicker
-                    :clear-button-props="{
-                        label: `Clear`,
-                        outlined: true,
-                        text: true,
-                    }"
-                    v-bind="omit($attrs, 'value')"
-                    :disabled="widgetContext.state.disabled"
-                    :input-id="widgetContext.state.widgetId"
-                    :invalid="widgetContext.state.validationState.invalid"
-                    :model-value="modelValue"
-                    :name="widgetContext.state.combinedName"
-                    :pt="effectivePt"
-                    :selection-mode="computedSelectionMode"
-                    show-button-bar
-                    :today-button-props="{
-                        label: `Now`,
-                        outlined: true,
-                        text: true,
-                    }"
-                    @blur="widgetContext.blur"
-                    @focus="widgetContext.focus"
-                    @today-click="onTodayButtonClick"
-                    @update:model-value="(value) => valueUpdated(value)"
-                />
-            </div>
+            <template #default="{ class: labelControlClass }">
+                <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-date-picker-inner">
+                    <DatePicker
+                        :clear-button-props="{
+                            label: `Clear`,
+                            outlined: true,
+                            text: true,
+                        }"
+                        v-bind="omit($attrs, ['value'])"
+                        :disabled="widgetContext.state.disabled"
+                        :input-id="widgetContext.state.widgetId"
+                        :invalid="widgetContext.state.validationState.invalid"
+                        :model-value="modelValue"
+                        :name="widgetContext.state.combinedName"
+                        :pt="effectivePt"
+                        :selection-mode="computedSelectionMode"
+                        show-button-bar
+                        :today-button-props="{
+                            label: `Now`,
+                            outlined: true,
+                            text: true,
+                        }"
+                        @blur="widgetContext.blur"
+                        @focus="widgetContext.focus"
+                        @today-click="onTodayButtonClick"
+                        @update:model-value="(value) => valueUpdated(value)"
+                    />
+                </div>
+            </template>
         </widget-label>
     </div>
 </template>

@@ -1,5 +1,6 @@
 <script setup>
 import { useList } from "@arrai-innovations/reactive-helpers";
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
@@ -192,43 +193,45 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')">
-                <div :class="theme('dropdownOuter')">
-                    <Select
-                        ref="selectRef"
-                        :aria-labelledby="widgetContext.state.widgetId"
-                        :invalid="widgetContext.state.validationState.invalid"
-                        :model-value="selectedType"
-                        option-label="label"
-                        option-value="value"
-                        :options="dropdownOptions"
-                        v-bind="omit($attrs, 'value')"
-                        placeholder="Select a model"
-                        :pt="effectivePt"
-                        show-clear
-                        @update:model-value="(selected) => typeUpdate(selected)"
-                    />
+            <template #default="{ class: labelControlClass }">
+                <div :class="combineClasses(theme('inner'), labelControlClass)">
+                    <div :class="theme('dropdownOuter')">
+                        <Select
+                            ref="selectRef"
+                            :aria-labelledby="widgetContext.state.widgetId"
+                            :invalid="widgetContext.state.validationState.invalid"
+                            :model-value="selectedType"
+                            option-label="label"
+                            option-value="value"
+                            :options="dropdownOptions"
+                            v-bind="omit($attrs, 'value')"
+                            placeholder="Select a model"
+                            :pt="effectivePt"
+                            show-clear
+                            @update:model-value="(selected) => typeUpdate(selected)"
+                        />
+                    </div>
+                    <div :class="theme('autoCompleteOuter')">
+                        <AutoComplete
+                            v-bind="omit($attrs, 'value')"
+                            :disabled="widgetContext.state.disabled || !selectedType"
+                            force-selection
+                            :invalid="widgetContext.state.validationState.invalid"
+                            :loading="modelListInstance.state.loading"
+                            :model-value="contentObject"
+                            :name="widgetContext.state.combinedName"
+                            option-label="label"
+                            :placeholder="hintText"
+                            :pt="effectivePt"
+                            :suggestions="filteredOptions"
+                            @blur="widgetContext.blur"
+                            @complete="search"
+                            @focus="widgetContext.focus"
+                            @update:model-value="(selected) => objectUpdated(selected)"
+                        />
+                    </div>
                 </div>
-                <div :class="theme('autoCompleteOuter')">
-                    <AutoComplete
-                        v-bind="omit($attrs, 'value')"
-                        :disabled="widgetContext.state.disabled || !selectedType"
-                        force-selection
-                        :invalid="widgetContext.state.validationState.invalid"
-                        :loading="modelListInstance.state.loading"
-                        :model-value="contentObject"
-                        :name="widgetContext.state.combinedName"
-                        option-label="label"
-                        :placeholder="hintText"
-                        :pt="effectivePt"
-                        :suggestions="filteredOptions"
-                        @blur="widgetContext.blur"
-                        @complete="search"
-                        @focus="widgetContext.focus"
-                        @update:model-value="(selected) => objectUpdated(selected)"
-                    />
-                </div>
-            </div>
+            </template>
         </widget-label>
     </div>
 </template>

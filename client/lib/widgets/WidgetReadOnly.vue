@@ -1,11 +1,13 @@
 <script setup>
 import { useObject } from "@arrai-innovations/reactive-helpers";
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import { computed, reactive, toRef, unref, useSlots } from "vue";
 
@@ -67,26 +69,32 @@ const slotsWithoutFeedback = computed(() =>
                     <slot :name="slotName" v-bind="slotProps" />
                 </template>
                 <template #feedback-button>&#8203;</template>
-                <div v-bind="$attrs" :aria-labelledby="widgetContext.state.widgetId" :class="theme('input')">
-                    <slot :value="readonlyValue || widgetContext.state.combinedValue">
-                        <link-model-view
-                            v-if="readonlyValue"
-                            :app="app"
-                            :button-class="{
-                                root: 'px-0 py-0 gap-0 leading-none',
-                                label: 'text-primary hover:underline',
-                            }"
-                            class="whitespace-nowrap grow shrink-0"
-                            :label="readonlyValue"
-                            :model="model"
-                            :pk="widgetContext.state.combinedValue"
-                            view="update"
-                        />
-                        <span v-else>
-                            {{ widgetContext.state.combinedValue }}
-                        </span>
-                    </slot>
-                </div>
+                <template #default="{ class: labelControlClass }">
+                    <div
+                        v-bind="omit($attrs, ['class'])"
+                        :aria-labelledby="widgetContext.state.widgetId"
+                        :class="combineClasses(theme('inner'), labelControlClass, $attrs.class)"
+                    >
+                        <slot :value="readonlyValue || widgetContext.state.combinedValue">
+                            <link-model-view
+                                v-if="readonlyValue"
+                                :app="app"
+                                :button-class="{
+                                    root: 'px-0 py-0 gap-0 leading-none',
+                                    label: 'text-primary hover:underline',
+                                }"
+                                class="whitespace-nowrap grow shrink-0"
+                                :label="readonlyValue"
+                                :model="model"
+                                :pk="widgetContext.state.combinedValue"
+                                view="update"
+                            />
+                            <span v-else>
+                                {{ widgetContext.state.combinedValue }}
+                            </span>
+                        </slot>
+                    </div>
+                </template>
             </widget-label>
         </div>
     </div>

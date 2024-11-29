@@ -1,5 +1,6 @@
 <script setup>
 import { useList, useObject } from "@arrai-innovations/reactive-helpers";
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -246,39 +247,41 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :class="theme('inner')">
-                <LinkModelView
-                    v-if="props.readonly"
-                    :app="app"
-                    class="whitespace-nowrap grow shrink-0"
-                    :label="computedLabel"
-                    :model="model"
-                    :pk="widgetContext.state.combinedValue"
-                    view="update"
-                />
-                <Select
-                    v-else
-                    v-bind="omit($attrs, 'value')"
-                    ref="selectRef"
-                    v-model="widgetContext.state.combinedValue"
-                    :aria-labelledby="widgetContext.state.widgetId"
-                    :disabled="widgetContext.state.disabled"
-                    filter
-                    :invalid="widgetContext.state.validationState.invalid"
-                    :option-label="props.optionLabel"
-                    :option-value="pkKey"
-                    :options="computedOptions"
-                    :placeholder="placeHolderText"
-                    :pt="effectivePt"
-                    reset-filter-on-clear
-                    show-clear
-                    @blur="widgetContext.blur"
-                    @change="onValueChange"
-                    @filter="handleFilter"
-                    @focus="handleFocus"
-                    @hide="handleHide"
-                />
-            </div>
+            <template #default="{ class: labelControlClass }">
+                <div :class="combineClasses(theme('inner'), labelControlClass)">
+                    <LinkModelView
+                        v-if="props.readonly"
+                        :app="app"
+                        class="whitespace-nowrap grow shrink-0"
+                        :label="computedLabel"
+                        :model="model"
+                        :pk="widgetContext.state.combinedValue"
+                        view="update"
+                    />
+                    <Select
+                        v-else
+                        v-bind="omit($attrs, 'value')"
+                        ref="selectRef"
+                        v-model="widgetContext.state.combinedValue"
+                        :aria-labelledby="widgetContext.state.widgetId"
+                        :disabled="widgetContext.state.disabled"
+                        filter
+                        :invalid="widgetContext.state.validationState.invalid"
+                        :option-label="props.optionLabel"
+                        :option-value="pkKey"
+                        :options="computedOptions"
+                        :placeholder="placeHolderText"
+                        :pt="effectivePt"
+                        reset-filter-on-clear
+                        show-clear
+                        @blur="widgetContext.blur"
+                        @change="onValueChange"
+                        @filter="handleFilter"
+                        @focus="handleFocus"
+                        @hide="handleHide"
+                    />
+                </div>
+            </template>
         </widget-label>
     </div>
 </template>

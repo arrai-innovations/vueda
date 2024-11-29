@@ -1,4 +1,5 @@
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
@@ -107,69 +108,74 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                 <slot :name="slotName" v-bind="slotProps" />
             </template>
-            <div :aria-labelledby="`${widgetContext.state.widgetId}-label`" :class="theme('inner')">
-                <div v-if="showDays" :class="theme('innerItem')">
-                    <InputNumber
-                        ref="daysInput"
-                        aria-label="days"
-                        :disabled="widgetContext.state.disabled"
-                        :invalid="widgetContext.state.validationState.invalid"
-                        :max="365"
-                        :min="0"
-                        :model-value="valueDay"
-                        :pt="effectivePt"
-                        show-buttons
-                        suffix=" days"
-                        v-bind="omit($attrs, 'value')"
-                        @update:model-value="(newValue) => updateDay(newValue)"
-                    />
+            <template #default="{ class: labelControlClass }">
+                <div
+                    :aria-labelledby="`${widgetContext.state.widgetId}-label`"
+                    :class="combineClasses(theme('inner'), labelControlClass)"
+                >
+                    <div v-if="showDays" :class="theme('innerItem')">
+                        <InputNumber
+                            ref="daysInput"
+                            aria-label="days"
+                            :disabled="widgetContext.state.disabled"
+                            :invalid="widgetContext.state.validationState.invalid"
+                            :max="365"
+                            :min="0"
+                            :model-value="valueDay"
+                            :pt="effectivePt"
+                            show-buttons
+                            suffix=" days"
+                            v-bind="omit($attrs, 'value')"
+                            @update:model-value="(newValue) => updateDay(newValue)"
+                        />
+                    </div>
+                    <div v-if="showHours" :class="theme('innerItem')">
+                        <InputNumber
+                            ref="hoursInput"
+                            aria-label="hours"
+                            :disabled="widgetContext.state.disabled"
+                            :invalid="widgetContext.state.validationState.invalid"
+                            :min="0"
+                            :model-value="valueHour"
+                            :pt="effectivePt"
+                            show-buttons
+                            suffix=" hours"
+                            v-bind="omit($attrs, 'value')"
+                            @update:model-value="(newValue) => updateHour(newValue)"
+                        />
+                    </div>
+                    <div v-if="showMinutes" :class="theme('innerItem')">
+                        <InputNumber
+                            ref="minutesInput"
+                            aria-label="minutes"
+                            :disabled="widgetContext.state.disabled"
+                            :invalid="widgetContext.state.validationState.invalid"
+                            :min="0"
+                            :model-value="valueMinute"
+                            :pt="effectivePt"
+                            show-buttons
+                            suffix=" minutes"
+                            v-bind="omit($attrs, 'value')"
+                            @update:model-value="(newValue) => updateMinute(newValue)"
+                        />
+                    </div>
+                    <div v-if="showSeconds" :class="theme('innerItem')">
+                        <InputNumber
+                            ref="secondsInput"
+                            aria-label="seconds"
+                            :disabled="widgetContext.state.disabled"
+                            :invalid="widgetContext.state.validationState.invalid"
+                            :min="0"
+                            :model-value="valueSecond"
+                            :pt="effectivePt"
+                            show-buttons
+                            suffix=" seconds"
+                            v-bind="omit($attrs, 'value')"
+                            @update:model-value="(newValue) => updateSecond(newValue)"
+                        />
+                    </div>
                 </div>
-                <div v-if="showHours" :class="theme('innerItem')">
-                    <InputNumber
-                        ref="hoursInput"
-                        aria-label="hours"
-                        :disabled="widgetContext.state.disabled"
-                        :invalid="widgetContext.state.validationState.invalid"
-                        :min="0"
-                        :model-value="valueHour"
-                        :pt="effectivePt"
-                        show-buttons
-                        suffix=" hours"
-                        v-bind="omit($attrs, 'value')"
-                        @update:model-value="(newValue) => updateHour(newValue)"
-                    />
-                </div>
-                <div v-if="showMinutes" :class="theme('innerItem')">
-                    <InputNumber
-                        ref="minutesInput"
-                        aria-label="minutes"
-                        :disabled="widgetContext.state.disabled"
-                        :invalid="widgetContext.state.validationState.invalid"
-                        :min="0"
-                        :model-value="valueMinute"
-                        :pt="effectivePt"
-                        show-buttons
-                        suffix=" minutes"
-                        v-bind="omit($attrs, 'value')"
-                        @update:model-value="(newValue) => updateMinute(newValue)"
-                    />
-                </div>
-                <div v-if="showSeconds" :class="theme('innerItem')">
-                    <InputNumber
-                        ref="secondsInput"
-                        aria-label="seconds"
-                        :disabled="widgetContext.state.disabled"
-                        :invalid="widgetContext.state.validationState.invalid"
-                        :min="0"
-                        :model-value="valueSecond"
-                        :pt="effectivePt"
-                        show-buttons
-                        suffix=" seconds"
-                        v-bind="omit($attrs, 'value')"
-                        @update:model-value="(newValue) => updateSecond(newValue)"
-                    />
-                </div>
-            </div>
+            </template>
         </widget-label>
     </div>
 </template>
