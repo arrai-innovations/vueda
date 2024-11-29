@@ -5,6 +5,7 @@ import PageTitle from "@vueda/components/PageTitle.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useWarnings } from "@vueda/use/useWarnings.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import { isArray } from "lodash-es";
 import Button from "primevue/button";
 import { computed, toRef } from "vue";
 import { useRouter } from "vue-router";
@@ -44,8 +45,19 @@ const actionTitleText = computed(() => {
         : `${memoizedStartCase(props.action)} ${memoizedStartCase(props.model)}`;
 });
 const router = useRouter();
+const initialValues = computed(() => {
+    const initialValues = {};
+    if (isArray(props.pk)) {
+        props.pk.forEach((pk) => {
+            initialValues[pk] = null;
+        });
+    } else if (props.pk) {
+        initialValues[props.pk] = null;
+    }
+    return initialValues;
+});
 const formContext = useForm({
-    initialValues: {},
+    initialValues,
 });
 
 useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, toRef(props, "action"), toRef(props, "pk"));

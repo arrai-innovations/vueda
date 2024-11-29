@@ -1,5 +1,7 @@
 <script setup>
 import { loadingCombine } from "@arrai-innovations/reactive-helpers";
+import FormFeedback from "@vueda/components/FormFeedback.vue";
+import FieldString from "@vueda/fields/FieldString.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
 import { defaultOnSubmissionError } from "@vueda/use/useObjectForm.js";
@@ -10,6 +12,7 @@ import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
+import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import { isObject } from "lodash-es";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
@@ -199,13 +202,17 @@ onUnmounted(() => {
         <div :class="theme('inner')">
             <div :class="theme('selectedObjects')">
                 <slot :loading="combinedLoading" name="selected-objects" :objects="fetchState.objects">
-                    <p>You have selected the following item(s):</p>
+                    <p>You have selected the following {{ unref(modelVerboseName) }}(s):</p>
                     <div v-if="combinedLoading">
                         <p>Loading objects...</p>
                     </div>
-                    <ul v-else class="list-inside">
+                    <ul v-else :class="theme('list')">
                         <li v-for="object in fetchState.objects" :key="object.id">
-                            {{ object.formatted_name || object.id }}
+                            <field-string :field-value="object.id" :label="object.id" :name="object.id">
+                                <widget-read-only :app="app" :hidden="true" :model="model" :obj="object" />
+                                <form-feedback type="error" />
+                                <form-feedback type="message" />
+                            </field-string>
                         </li>
                     </ul>
                 </slot>

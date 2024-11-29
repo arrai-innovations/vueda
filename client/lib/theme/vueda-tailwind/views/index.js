@@ -60,6 +60,9 @@ export default {
         buttons: {
             class: ["flex flex-col lg:flex-row mx-2 gap-2 mb-2 flex-wrap lg:flex-nowrap"],
         },
+        list: {
+            class: ["list-inner divide-y"],
+        },
     },
     ViewList: {
         selectedCheckbox: {
