@@ -142,16 +142,19 @@ export const storeUser = defineStore("user", {
                     // no content
                     return this.fetchCurrentUser();
                 }
+                let error;
                 if (response.status === 400) {
                     // bad request
                     // return instead of throw, avoiding the local catch and not getting added to the error state
-                    return Promise.reject(new FormValidationError(responseData, response));
+                    error = new FormValidationError(responseData, response);
+                } else {
+                    error = new UserError("Unexpected authentication response", response, responseData);
                 }
-                throw new UserError("Unexpected authentication response", response, responseData);
+                throw error;
             } catch (error) {
                 this.error = error;
                 this.errored = true;
-                throw error;
+                // throw error;
             } finally {
                 this.loading = false;
             }
