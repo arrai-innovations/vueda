@@ -26,6 +26,10 @@ const props = defineProps({
         type: String,
         default: "id",
     },
+    obj: {
+        type: Object,
+        default: undefined,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
@@ -33,7 +37,7 @@ const widgetContext = useWidget(props, emit);
 const theme = useWidgetTheme("WidgetReadOnly", props, widgetContext.state);
 const isActive = useIsActive();
 const validAndActive = computed(
-    () => !!(isActive.value && props.app && props.model && widgetContext.state.combinedValue),
+    () => !!(!props.obj && isActive.value && props.app && props.model && widgetContext.state.combinedValue),
 );
 const instanceObjectProps = reactive({
     crudArgs: {
@@ -52,7 +56,10 @@ const instanceObject = useObject({
 });
 
 const readonlyValue = computed(() => {
-    return instanceObject.state?.object?.formatted_name;
+    return props.obj ? props.obj.formatted_name : instanceObject.state?.object?.formatted_name;
+});
+const pkValue = computed(() => {
+    return props.obj ? props.obj[props.pkKey] : instanceObject.state?.object?.[props.pkKey];
 });
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
@@ -90,7 +97,7 @@ const slotsWithoutFeedback = computed(() =>
                                 class="whitespace-nowrap grow shrink-0"
                                 :label="readonlyValue"
                                 :model="model"
-                                :pk="widgetContext.state.combinedValue"
+                                :pk="pkValue"
                                 view="update"
                             />
                             <span v-else>
