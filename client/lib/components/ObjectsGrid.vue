@@ -13,8 +13,9 @@ const props = defineProps({
         default: "",
     },
     objectsInOrder: {
-        type: [Array, undefined],
+        type: Array,
         default: () => [],
+        required: false,
     },
     relatedObjects: {
         type: Object,
@@ -195,10 +196,10 @@ const theme = useTheme("ObjectsGrid", props, themeProps, (key, kwargs) => {
 });
 </script>
 <template>
-    <div :class="theme('root')">
-        <div :class="theme('table')" role="table">
-            <div :class="theme('headerRowGroup')" role="rowgroup">
-                <div :class="theme('headerRow')" role="row">
+    <div :class="theme('root')" data-qa="objects-grid-root">
+        <div :class="theme('table')" data-qa="objects-grid-table" role="table">
+            <div :class="theme('headerRowGroup')" data-qa="objects-grid-header-row-group" role="rowgroup">
+                <div :class="theme('headerRow')" data-qa="objects-grid-header-row" role="row">
                     <template v-for="(field, colIndex) in fields" :key="field?.name || `col-index-${colIndex}`">
                         <div
                             v-if="field?.name"
@@ -238,14 +239,19 @@ const theme = useTheme("ObjectsGrid", props, themeProps, (key, kwargs) => {
                     </template>
                 </div>
             </div>
-            <div v-if="!objectsInOrder?.length && !loading && emptyText" :class="theme('bodyRowGroup')" role="rowgroup">
+            <div
+                v-if="!objectsInOrder?.length && !loading && emptyText"
+                :class="theme('bodyRowGroup')"
+                data-qa="objects-grid-body-row-group-empty"
+                role="rowgroup"
+            >
                 <div :class="theme('bodyRow')" role="row">
                     <div :class="theme('emptyText')" role="cell">
                         {{ emptyText }}
                     </div>
                 </div>
             </div>
-            <div v-else :class="theme('bodyRowGroup')" role="rowgroup">
+            <div v-else :class="theme('bodyRowGroup')" data-qa="objects-grid-body-row-group" role="rowgroup">
                 <div
                     v-for="(obj, rowIndex) in objectsInOrder || []"
                     :key="obj?.[pkKey] || `row-index-${rowIndex}`"
@@ -257,7 +263,7 @@ const theme = useTheme("ObjectsGrid", props, themeProps, (key, kwargs) => {
                     data-qa="objects-grid-row"
                     role="row"
                 >
-                    <template v-for="(field, colIndex) in fields" :key="field?.name || `col-index-${colIndex}`">
+                    <template v-for="(field, colIndex) in fields" :key="`${field?.name || colIndex}-${rowIndex}`">
                         <template v-if="field?.name">
                             <objects-grid-card-cell
                                 v-if="!isTable"
