@@ -157,7 +157,7 @@ export function onBeforeFieldUnmount(fieldContext) {
  *     requiredMessage: string,
  *     label: string,
  *     help: string,
- *     validate: (value: any) => boolean,
+ *     validate: (value: any,name:any) => boolean,
  *     requiredFn: (value: any, name: any) => boolean,
  * }>} FieldContextProps
  */
@@ -176,7 +176,6 @@ const returnVoid = () => {};
 export function useField(props, emit, functions) {
     /** @type {import('@vueda/use/useForm.js').FormContext|null} */
     const formContext = inject(FormContextSymbol, null);
-
     const requiredFn = computed(() => props.requiredFn || defaultValidateRequired);
     const requiredMessage = computed(() => {
         return props.requiredMessage || "This field is required.";
@@ -241,7 +240,7 @@ export function useField(props, emit, functions) {
 
     const checkCustomValidation = () => {
         if (props.validate && state.touched && formContext) {
-            const result = props.validate(state.value);
+            const result = props.validate(state.value, state.name);
             if (result === true) {
                 formContext.deleteError(props.name, "validate");
             } else {
