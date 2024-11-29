@@ -175,7 +175,7 @@ watch(
     [itemRefs, focusIndex],
     ([newItemRefs, newFocusIndex]) => {
         // noinspection EqualityComparisonWithCoercionJS
-        const newItem = newItemRefs?.find?.((el) => el.dataset.rowIndex == newFocusIndex);
+        const newItem = newItemRefs?.find?.((el) => el?.dataset?.rowIndex == newFocusIndex);
         if (newItem) {
             newItem.scrollIntoView({ behavior: "smooth", block: "center" });
             focusFirstTabbableElement(newItem.parentNode);
