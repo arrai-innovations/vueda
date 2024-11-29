@@ -199,8 +199,8 @@ export default {
         root: ({ props }) => ({
             class: [props?.variant === "simple" ? "mx-2" : "", "my-2"],
         }),
-        message: {
-            class: [],
+        messages: {
+            class: ["flex flex-col gap-1 md:gap-2 2xl:gap-4"],
         },
     },
     FormModel: {

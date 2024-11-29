@@ -91,8 +91,13 @@ const themeProps = computed(() => ({
 const theme = useTheme("FormFeedback", props, themeProps);
 </script>
 <template>
-    <div :class="theme('root')">
-        <div v-for="message in Object.values(feedbackItems || {})" :key="message" :class="theme('message')">
+    <div :class="theme('root')" data-qa="form-feedback-root">
+        <div
+            v-for="message in Object.values(feedbackItems || {})"
+            :key="message"
+            :class="theme('messages')"
+            data-qa="form-feedback-messages"
+        >
             <slot :name="type" v-bind="{ message, type, attrs: $attrs }">
                 <Message
                     v-for="line in isArray(message) ? message : [message]"
