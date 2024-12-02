@@ -54,11 +54,13 @@ export const getFormHiddenFeedbackSlotsComputed = (slots) => {
 };
 </script>
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
+import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Popover from "primevue/popover";
 import { inject, onMounted, ref, unref, useAttrs } from "vue";
@@ -168,18 +170,19 @@ const togglePopover = (e) => {
     </popover>
 
     <slot
-        :class="theme('button')"
+        :button-class="theme('button')"
+        :class="combineClasses(theme('root'), $attrs.class)"
         :has-errors="hasErrors"
         :has-help="showHelpIcon"
         :has-warnings="hasWarnings"
         name="feedback-button"
         :required="effectiveRequired"
-        v-bind="attrs"
+        v-bind="omit($attrs, ['class'])"
         @click="togglePopover"
     >
         <div
             v-if="effectiveRequired || showHelpIcon || showErrorIcon || showWarnIcon"
-            :class="theme('root')"
+            :class="combineClasses(theme('root'), $attrs.class)"
             v-bind="attrs"
             data-qa="form-hidden-feedback-root"
         >

@@ -209,7 +209,7 @@ export default {
                     "gap-1": true,
                     // "flex flex-row items-stretch gap-1",
                     // not items-baseline, checkboxes and buttons don't play well with it
-                    "grid grid-cols-2 justify-between items-baseline": !props.hidden,
+                    "grid grid-cols-[max-content_auto] justify-between items-center": !props.hidden,
                     "flex flex-row-reverse items-baseline": props.hidden,
                 },
             };
@@ -224,7 +224,7 @@ export default {
         },
         feedback: ({ props }) => ({
             class: {
-                "justify-self-end": !props.hidden,
+                "justify-self-end min-w-max": !props.hidden,
             },
         }),
         control: ({ props }) => {
