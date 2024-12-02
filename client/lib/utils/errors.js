@@ -106,7 +106,7 @@ export class FormValidationError extends Error {
             delete data.serverStack;
         }
         const paths = flattenPaths(data);
-        const warningsPattern = /\.warnings\[\d+\]$/;
+        const warningsPattern = /\.warnings\[\d+\]/;
         const withWarnings = [];
         const withoutWarnings = [];
 
@@ -137,11 +137,7 @@ export class FormValidationError extends Error {
          * @type {{[path: string]: string}}
          */
         this.messages = withWarnings.reduce((acc, path) => {
-            const normalizedPath = path
-                .replace(/\.warnings\[\d+\]$/, "")
-                .split("[")
-                .slice(0, -1)
-                .join("[");
+            const normalizedPath = path.replace(warningsPattern, "").split("[").slice(0, -1).join("[");
 
             if (!acc[normalizedPath]) {
                 acc[normalizedPath] = [];
