@@ -75,7 +75,8 @@
     "primevue": "^4.0.7",
     "vue": "^3.4.0",
     "vue-deepunref": "^1.0.1",
-    "vue-router": "^4.2.5"
+    "vue-router": "^4.2.5",
+    "luxon": "^3.4.4"
   },
   "dependencies": {
     "@tiptap/extension-text-align": "^2.1.13",
@@ -84,7 +85,6 @@
     "browser-util-inspect": "^0.2.0",
     "dompurify": "^3.2.0",
     "js-cookie": "^3.0.5",
-    "luxon": "^3.4.4",
     "p-limit": "^5.0.0",
     "platform-detect": "^3.0.1",
     "pluralize": "^8.0.0",
