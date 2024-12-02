@@ -114,6 +114,12 @@ class VuedaValidationError(ValidationError):
         elif not isinstance(detail, dict) and not isinstance(detail, list):
             detail = [detail]
         if is_warning:
-            self.detail = [_get_error_details({"warnings": detail}, code)]
+            if isinstance(detail, dict):
+                details = {}
+                for key, value in detail.items():
+                    details[key] = [{"warnings": value}]
+                self.detail = _get_error_details(details, code)
+            else:
+                self.detail = [_get_error_details({"warnings": detail}, code)]
         else:
             self.detail = _get_error_details(detail, code)
