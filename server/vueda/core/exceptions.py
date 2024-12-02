@@ -40,7 +40,23 @@ def debug_stack_exception_handler(exc, context):
         sentry_sdk.capture_exception(exc)
 
     if isinstance(response.data, list):
-        response.data = {settings.REST_FRAMEWORK["NON_FIELD_ERRORS_KEY"] or "non_field_errors": response.data}
+        response_data = {}
+        for data in response.data:
+            if isinstance(data, VuedaValidationError):
+                if isinstance(data.detail, (tuple, list)):
+                    for item in data.detail:
+                        if isinstance(item, str):
+                            response_data[settings.REST_FRAMEWORK["NON_FIELD_ERRORS_KEY"] or "non_field_errors"] = item
+                        elif isinstance(item, dict):
+                            response_data.update(item)
+                elif isinstance(data.detail, dict):
+                    response_data.update(data.detail)
+            else:
+                if isinstance(data, str):
+                    response_data[settings.REST_FRAMEWORK["NON_FIELD_ERRORS_KEY"] or "non_field_errors"] = data
+                elif isinstance(data, dict):
+                    response_data.update(data)
+        response.data = response_data
 
     if settings.DEBUG or getattr(settings, "IN_TESTS", False):
         response.data["serverStack"] = "".join(format_exception(type(exc), exc, exc.__traceback__))
@@ -64,7 +80,9 @@ def _get_error_details(data, default_code=None):
     Descend into a nested data structure, forcing any
     lazy translation strings or strings into `ErrorDetail`.
     """
-    if isinstance(data, (list, tuple)):
+    if isinstance(data, VuedaValidationError):
+        return data
+    elif isinstance(data, (list, tuple)):
         ret = [_get_error_details(item, default_code) for item in data]
         if isinstance(data, ReturnList):
             return ReturnList(ret, serializer=data.serializer)
