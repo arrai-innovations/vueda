@@ -162,13 +162,14 @@ const calculatedDisplayFields = computed(() => {
     }
 });
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model && modelConfig.info?.pk));
+const alwaysListArgsKeys = ["o", "f", "e"];
 const listState = reactive({
     currentPage: 1,
     search: "",
     listArgs: {
         o: toRef(sorting.state, "sorted"),
         f: calculatedListFields,
-        e: modelConfig.config?.expands,
+        e: computed(() => modelConfig.config?.expands),
     },
     filterArgs: {},
 });
@@ -217,7 +218,10 @@ watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, 
 watch(
     toRef(props, "listArgs"),
     () => {
-        assignReactiveObject(listState.listArgs, props.listArgs, [...Object.keys(listState.filterArgs), "o", "f"]);
+        assignReactiveObject(listState.listArgs, props.listArgs, [
+            ...Object.keys(listState.filterArgs),
+            ...alwaysListArgsKeys,
+        ]);
     },
     { deep: true, immediate: true },
 );
