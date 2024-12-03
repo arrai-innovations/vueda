@@ -49,6 +49,10 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    submitFields: {
+        type: Array,
+        default: undefined,
+    },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
 const viewName = "create";
@@ -65,7 +69,7 @@ const instanceObjectProps = reactive({
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     retrieveArgs: {
         f: computed(() => {
-            return [...(modelConfig.config?.submitFields || [])];
+            return [...(props.submitFields ?? modelConfig.config?.submitFields ?? [])];
         }),
         e: computed(() => modelConfig.config?.expands),
     },

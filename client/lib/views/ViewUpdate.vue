@@ -110,6 +110,14 @@ const props = defineProps({
             },
         }),
     },
+    fetchFields: {
+        type: Array,
+        default: undefined,
+    },
+    submitFields: {
+        type: Array,
+        default: undefined,
+    },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
 
@@ -134,8 +142,8 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), v
 const titleStr = computed(() => {
     return `Update ${memoizedStartCase(modelConfig.config?.verboseName)}` || "Update Item";
 });
-const fetchFields = computed(() => modelConfig.config?.fetchFields);
-const submitFields = computed(() => modelConfig.config?.submitFields);
+const fetchFields = computed(() => props.fetchFields ?? modelConfig.config?.fetchFields);
+const submitFields = computed(() => props.submitFields ?? modelConfig.config?.submitFields);
 
 const createInstanceObjectProps = (fields, intendToRetrieve = true) => {
     return reactive({
