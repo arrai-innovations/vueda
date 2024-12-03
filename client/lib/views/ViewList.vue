@@ -239,8 +239,7 @@ watch(
         });
         assignReactiveObject(listState.listArgs, listState.filterArgs, [
             ...Object.keys(props.listArgs),
-            "o",
-            "f",
+            ...alwaysListArgsKeys,
             props.searchKey,
         ]);
     },
