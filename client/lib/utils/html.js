@@ -36,7 +36,7 @@ export const sanitizeMessage = (message) => {
 /**
  * Sanitize messages to prevent XSS attacks.
  *
- * @param {{ [code: string]: string }} messages - The messages to sanitize.
+ * @param {{ [code: string]: string | string[] }} messages - The messages to sanitize.
  */
 export const sanitizeMessages = (messages) => {
     return Object.fromEntries(
