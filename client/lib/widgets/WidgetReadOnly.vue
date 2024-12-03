@@ -66,20 +66,21 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 const slotsWithoutFeedback = computed(() =>
     unref(availableLabelSlotNames).filter((slotName) => slotName !== "feedback-button"),
 );
+const widgetLabelProps = computed(() => {
+    const wlp = pick(props, Object.keys(WIDGET_LABEL_PROPS));
+    wlp.required = false;
+    wlp.help = undefined;
+    return wlp;
+});
 </script>
 
 <template>
     <div :class="theme('root')">
         <div :class="theme('inner')">
-            <widget-label
-                :id="widgetContext.state.widgetId"
-                tag="div"
-                v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
-            >
+            <widget-label :id="widgetContext.state.widgetId" tag="div" v-bind="widgetLabelProps">
                 <template v-for="slotName in slotsWithoutFeedback" :key="slotName" #[slotName]="slotProps">
                     <slot :name="slotName" v-bind="slotProps" />
                 </template>
-                <template #feedback-button>&#8203;</template>
                 <template #default="{ class: labelControlClass }">
                     <div
                         v-bind="omit($attrs, ['class'])"
