@@ -13,6 +13,9 @@ from vueda.core.models import ActivatableBaseModel
 from vueda.history.viewsets import SimpleHistoryViewSetMixin
 
 
+PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
+
+
 class AtomicCreateModelViewSetMixin(drf_viewsets.mixins.CreateModelMixin):
     def create(self, request, *args, **kwargs):
         with transaction.atomic():
@@ -60,9 +63,17 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
     def apply_row_level_filter(self, queryset):
         model = queryset.model
         row_level_permissions = getattr(model, "RowLevelPermissions", None)
+
+        permission_list_name = "list"
+        if "list" in PERMISSION_NAMES_MAPPING:
+            permission_list_name = PERMISSION_NAMES_MAPPING["list"]
+
         if row_level_permissions is not None:
             optional_q = row_level_permissions.check_queryset(
-                queryset, f"{model._meta.app_label}.list_{model._meta.model_name}", self.request.user, "list"
+                queryset,
+                f"{model._meta.app_label}.{permission_list_name}_{model._meta.model_name}",
+                self.request.user,
+                "list",
             )
             if isinstance(optional_q, Q):
                 return queryset.filter(optional_q)

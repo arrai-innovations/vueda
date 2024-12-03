@@ -25,6 +25,9 @@ from vueda.info.serializers import ModelInfoFilterSetChoicesSerializer
 from vueda.info.serializers import ModelInfoSerializer
 
 
+PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
+
+
 class ModelInfoViewSet(FlexFieldsMixin, ReadOnlyModelViewSet):
     """
     This viewset is for providing metadata about models, including fields, actions, and permissions
@@ -229,11 +232,15 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
         field = fields[self.choices_field]
         field_info = get_field_info(serializer.Meta.model)
 
+        permission_read_name = "read"
+        if "read" in PERMISSION_NAMES_MAPPING:
+            permission_read_name = PERMISSION_NAMES_MAPPING["read"]
+
         # If we add field level permissions at some point, then we will want to check them here.
         if self.choices_field in field_info.fields_and_pk:
             model_class = serializer.Meta.model
             meta = model_class._meta
-            self.choices_permissions = (f"{meta.app_label}.read_{meta.model_name}",)
+            self.choices_permissions = (f"{meta.app_label}.{permission_read_name}_{meta.model_name}",)
             self.choices_queryset_model = model_class
 
         elif self.choices_field in field_info.relations:
@@ -241,7 +248,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
             model_class = serializer.Meta.model
             meta = model_class._meta
             self.choices_permissions = (
-                f"{meta.app_label}.read_{meta.model_name}",
+                f"{meta.app_label}.{permission_read_name}_{meta.model_name}",
                 f"{related_field_info.related_model._meta.app_label}.list"
                 f"_{related_field_info.related_model._meta.model_name}",
             )
@@ -391,20 +398,28 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         self.empty_label = getattr(filtr, "empty_label", settings.EMPTY_CHOICE_LABEL)
         self.empty_value = getattr(filtr, "empty_value", settings.EMPTY_CHOICE_VALUE)
 
+        permission_read_name = "read"
+        if "read" in PERMISSION_NAMES_MAPPING:
+            permission_read_name = PERMISSION_NAMES_MAPPING["read"]
+
+        permission_list_name = "list"
+        if "list" in PERMISSION_NAMES_MAPPING:
+            permission_list_name = PERMISSION_NAMES_MAPPING["list"]
+
         self.queryset = None
         if hasattr(filtr, "queryset"):
             self.queryset = filtr.queryset
             related_model = filtr.queryset.model
             related_meta = related_model._meta
             self.choices_permissions = (
-                f"{meta.app_label}.read_{meta.model_name}",
-                f"{related_meta.app_label}.list_{related_meta.model_name}",
+                f"{meta.app_label}.{permission_read_name}_{meta.model_name}",
+                f"{related_meta.app_label}.{permission_list_name}_{related_meta.model_name}",
             )
             self.choices_queryset_model = related_model
 
         else:
             self.choices = filtr.field.widget._choices
-            self.choices_permissions = (f"{meta.app_label}.read_{meta.model_name}",)
+            self.choices_permissions = (f"{meta.app_label}.{permission_read_name}_{meta.model_name}",)
             self.choices_queryset_model = model_class
 
         if hasattr(self, "choices"):

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db.models import Max
@@ -7,6 +8,9 @@ from rest_framework.response import Response
 from vueda.history.serialiers import WhoIsSerializer
 from vueda.user.views import WhoIsView as CoreWhoIsView
 from vueda.workflow.views import WorkflowView
+
+
+PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
 
 
 class WhoIsView(CoreWhoIsView):
@@ -35,7 +39,12 @@ class GetObjectHistoryView(WorkflowView):
                 exception=Exception("Object does not have a history."),
                 status=drf_status.HTTP_404_NOT_FOUND,
             )
-        if not user.has_perm(f"{app_label}.read_{model.replace('_', '')}", obj=self.object):
+
+        permission_read_name = "read"
+        if "read" in PERMISSION_NAMES_MAPPING:
+            permission_read_name = PERMISSION_NAMES_MAPPING["read"]
+
+        if not user.has_perm(f"{app_label}.{permission_read_name}_{model.replace('_', '')}", obj=self.object):
             err_msg = "You do not have permission to perform this action."
             return Response(
                 data={"detail": err_msg},

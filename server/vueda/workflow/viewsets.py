@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import transaction
 from rest_framework import mixins
 from rest_framework import status as drf_status
@@ -11,6 +12,9 @@ from vueda.workflow.filtersets import WorkflowFilterSet
 from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import Workflow
 from vueda.workflow.serializers import WorkflowSerializer
+
+
+PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
 
 
 class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -58,7 +62,12 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 exception=Exception("Object does not have a workflow."),
                 status=drf_status.HTTP_404_NOT_FOUND,
             )
-        if not user.has_perm(f"{app_label}.read_{model.replace('_', '')}", obj=instance):
+
+        permission_read_name = "read"
+        if "read" in PERMISSION_NAMES_MAPPING:
+            permission_read_name = PERMISSION_NAMES_MAPPING["read"]
+
+        if not user.has_perm(f"{app_label}.{permission_read_name}_{model.replace('_', '')}", obj=instance):
             err_msg = "You do not have permission to perform this action."
             return Response(
                 data={"detail": err_msg},
