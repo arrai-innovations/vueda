@@ -215,22 +215,31 @@ export default {
             };
         },
         label: {
-            class: ({ widgetContextState }) => ({
-                "leading-7": true,
-                "text-surface-900/60 dark:text-white/60": true,
-                "!text-amber-600 dark:!text-amber-500": widgetContextState?.validationState?.warning,
-                "!text-maroon-600 dark:!text-maroon-500": widgetContextState?.validationState?.invalid,
-            }),
+            class: ({ widgetContextState, props }) => {
+                const hasValidation =
+                    widgetContextState?.validationState?.warning || widgetContextState?.validationState?.invalid;
+                return {
+                    "sr-only": props.hidden,
+                    "row-start-1 row-end-2 col-start-1": !props.hidden,
+                    "col-end-2": !props.hidden && hasValidation,
+                    "col-end-3": !props.hidden && !hasValidation,
+                    "leading-7": true,
+                    "text-surface-900/60 dark:text-white/60": true,
+                    "!text-amber-600 dark:!text-amber-500": widgetContextState?.validationState?.warning,
+                    "!text-maroon-600 dark:!text-maroon-500": widgetContextState?.validationState?.invalid,
+                };
+            },
         },
         feedback: ({ props }) => ({
             class: {
+                "row-start-1 row-end-2 col-start-2 col-end-3": !props.hidden,
                 "justify-self-end min-w-max": !props.hidden,
             },
         }),
         control: ({ props }) => {
             return {
                 class: {
-                    "col-span-2": !props.hidden,
+                    "row-start-2 row-end-3 col-start-1 col-end-3": !props.hidden,
                     grow: props.hidden,
                 },
             };

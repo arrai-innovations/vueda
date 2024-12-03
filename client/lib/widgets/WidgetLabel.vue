@@ -27,7 +27,6 @@ export const WIDGET_LABEL_PROPS = {
 };
 </script>
 <script setup>
-import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FormHiddenFeedback from "@vueda/components/FormHiddenFeedback.vue";
 import { getFormHiddenFeedbackSlotsComputed } from "@vueda/components/FormHiddenFeedback.vue";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
@@ -63,22 +62,22 @@ const combinedLabel = computed(() => props.label ?? widgetContext?.state?.combin
 const theme = useWidgetTheme("WidgetLabel", props, widgetContext.state);
 const slots = useSlots();
 const availableFeedbackSlotNames = getFormHiddenFeedbackSlotsComputed(slots);
-const labelClass = computed(() => combineClasses(theme("label"), { "sr-only": props.hidden }));
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-label-root">
         <component
             :is="$props.tag"
             :id="id"
-            :class="labelClass"
+            :class="theme('label')"
             v-bind="$attrs"
             data-qa="widget-label-label"
             :for="$props.for"
         >
-            <slot :id="id" :class="labelClass" :for="$props.for" v-bind="$attrs" :label="combinedLabel" name="label">{{
-                combinedLabel
-            }}</slot>
+            <slot :id="id" :class="theme('label')" :for="$props.for" v-bind="$attrs" :label="combinedLabel" name="label"
+                >{{ combinedLabel }}
+            </slot>
         </component>
+        <slot :class="theme('control')"></slot>
         <slot :class="theme('feedback')" name="feedback" v-bind="pick(props, Object.keys(FORM_HIDDEN_FEEDBACK_PROPS))">
             <form-hidden-feedback
                 :class="theme('feedback')"
@@ -89,6 +88,5 @@ const labelClass = computed(() => combineClasses(theme("label"), { "sr-only": pr
                 </template>
             </form-hidden-feedback>
         </slot>
-        <slot :class="theme('control')"></slot>
     </div>
 </template>
