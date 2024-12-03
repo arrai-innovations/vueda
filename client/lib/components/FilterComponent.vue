@@ -118,7 +118,7 @@ const onFilter = (filter) => {
         }
         addedFilters.value.push(filterObject);
     } else {
-        if (isEmpty(filterValue)) {
+        if (isEmpty(filterValue) || (filter.range && isRangeObjectEmpty(filterValue))) {
             removeFilter();
         }
         assignReactiveObject(
@@ -133,6 +133,11 @@ const onFilter = (filter) => {
     }
     op.value.hide();
 };
+
+const isRangeObjectEmpty = (rangeObject) => {
+    return Object.values(rangeObject).every((value) => !value);
+};
+
 const removeFilter = () => {
     assignReactiveObject(
         addedFilters,

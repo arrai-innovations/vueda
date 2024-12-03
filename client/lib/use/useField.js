@@ -190,20 +190,20 @@ export function useField(props, emit, functions) {
         help: computed(() => props.help || ""),
         suffix: computed(() => props.rangeSuffix || ""),
         value:
-            formContext || props.modelValue
+            formContext || props.modelValue !== undefined
                 ? computed({
                       get: () => {
-                          const value = props.modelValue ?? get(formContext.state.values, props.name);
+                          const value =
+                              props.modelValue !== undefined
+                                  ? props.modelValue
+                                  : get(formContext.state.values, props.name);
                           const returningValue = functions?.preprocessGet ? functions.preprocessGet(value) : value;
-                          if (props.modelValue && functions?.preprocessGet) {
+                          if (props.modelValue !== undefined && functions?.preprocessGet) {
                               emit("update:modelValue", returningValue);
                           }
                           return returningValue;
                       },
                       set: (newValue) => {
-                          if (!formContext) {
-                              return;
-                          }
                           if (isEqual(newValue, state.value)) {
                               return;
                           }
@@ -211,10 +211,14 @@ export function useField(props, emit, functions) {
                               newValue = functions.preprocessSet(newValue);
                           }
                           if (newValue === undefined) {
-                              formContext.deleteValue(state.name);
+                              if (formContext) {
+                                  formContext.deleteValue(state.name);
+                              }
                               emit("update:modelValue", undefined);
                           } else {
-                              formContext.updateValue(state.name, newValue);
+                              if (formContext) {
+                                  formContext.updateValue(state.name, newValue);
+                              }
                               emit("update:modelValue", newValue);
                           }
                       },

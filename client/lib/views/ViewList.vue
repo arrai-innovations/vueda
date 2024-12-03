@@ -8,7 +8,6 @@ import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
-import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -254,13 +253,10 @@ const dismissError = () => {
     modelConfig.clearError();
     instanceList.clearError();
 };
-const formContextProps = reactive({
-    initialValues: {},
-});
-const formContext = useForm(formContextProps);
+
 const filterList = () => {
     listState.search = listSearch.value;
-    listState.filterArgs = cloneDeep(formContext.state.values);
+    // listState.filterArgs = cloneDeep(formContext.state.values);
 };
 const selectedObjects = ref([]);
 const workflow = useWorkflow(toRef(props, "app"), toRef(props, "model"), selectedObjects, isActive, validAndActive);
