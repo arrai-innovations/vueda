@@ -157,10 +157,21 @@ export default {
     WidgetReadOnly: {
         root: { class: [] },
         inner: {
-            class: ["flex flex-col"],
+            class: ({ props }) => ({
+                "flex flex-col": !props.hidden,
+            }),
         },
         input: {
             class: ["ml-2"],
+        },
+        value: {
+            class: [],
+        },
+        linkItem: {
+            class: [],
+        },
+        textItem: {
+            class: [],
         },
     },
     WidgetSearchableSelect: {
@@ -202,7 +213,12 @@ export default {
         },
     },
     WidgetLabel: {
-        root: ({ props }) => {
+        root: ({ props, widgetContextState }) => {
+            const isRequiredHasHelpOrHasValidation =
+                widgetContextState?.required ||
+                props.help ||
+                widgetContextState?.validationState?.warning ||
+                widgetContextState?.validationState?.invalid;
             return {
                 class: {
                     "ml-2 mb-1": !props.isCardLayout,
@@ -210,7 +226,7 @@ export default {
                     // "flex flex-row items-stretch gap-1",
                     // not items-baseline, checkboxes and buttons don't play well with it
                     "grid grid-cols-[max-content_auto] justify-between items-center": !props.hidden,
-                    "flex flex-row-reverse items-baseline": props.hidden,
+                    "flex flex-row-reverse items-baseline": props.hidden && isRequiredHasHelpOrHasValidation,
                 },
             };
         },

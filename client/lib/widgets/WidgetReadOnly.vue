@@ -75,8 +75,8 @@ const widgetLabelProps = computed(() => {
 </script>
 
 <template>
-    <div :class="theme('root')">
-        <div :class="theme('inner')">
+    <div :class="theme('root')" data-qa="widget-read-only-root">
+        <div :class="theme('inner')" data-qa="widget-read-only-inner">
             <widget-label :id="widgetContext.state.widgetId" tag="div" v-bind="widgetLabelProps">
                 <template v-for="slotName in slotsWithoutFeedback" :key="slotName" #[slotName]="slotProps">
                     <slot :name="slotName" v-bind="slotProps" />
@@ -85,25 +85,39 @@ const widgetLabelProps = computed(() => {
                     <div
                         v-bind="omit($attrs, ['class'])"
                         :aria-labelledby="widgetContext.state.widgetId"
-                        :class="combineClasses(theme('inner'), labelControlClass, $attrs.class)"
+                        :class="combineClasses(theme('value'), labelControlClass, $attrs.class)"
+                        data-qa="widget-read-only-value"
                     >
                         <slot :value="readonlyValue || widgetContext.state.combinedValue">
-                            <link-model-view
+                            <slot
                                 v-if="readonlyValue"
                                 :app="app"
-                                :button-class="{
-                                    root: 'px-0 py-0 gap-0 leading-none',
-                                    label: 'text-primary hover:underline',
-                                }"
-                                class="whitespace-nowrap grow shrink-0"
+                                :class="theme('linkItem')"
                                 :label="readonlyValue"
                                 :model="model"
+                                name="link-item"
                                 :pk="pkValue"
                                 view="update"
-                            />
-                            <span v-else>
-                                {{ widgetContext.state.combinedValue }}
-                            </span>
+                            >
+                                <link-model-view
+                                    :app="app"
+                                    :class="theme('linkItem')"
+                                    :label="readonlyValue"
+                                    :model="model"
+                                    :pk="pkValue"
+                                    view="update"
+                                />
+                            </slot>
+                            <slot
+                                v-else
+                                :class="theme('textItem')"
+                                name="text-item"
+                                :value="widgetContext.state.combinedValue"
+                            >
+                                <span :class="theme('textItem')">
+                                    {{ widgetContext.state.combinedValue }}
+                                </span>
+                            </slot>
                         </slot>
                     </div>
                 </template>
