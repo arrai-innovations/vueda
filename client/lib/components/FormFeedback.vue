@@ -91,7 +91,7 @@ const themeProps = computed(() => ({
 const theme = useTheme("FormFeedback", props, themeProps);
 </script>
 <template>
-    <div :class="theme('root')" data-qa="form-feedback-root">
+    <div v-if="Object.values(feedbackItems || {})?.length" :class="theme('root')" data-qa="form-feedback-root">
         <div
             v-for="message in Object.values(feedbackItems || {})"
             :key="message"
