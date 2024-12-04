@@ -83,6 +83,19 @@ watch(
                 </template>
             </filter-component>
         </template>
-        <Button label="Clear Filters" rounded size="small" variant="text" @click="clearFilters" />
+        <slot
+            :has-filters="!!addedFilters?.length"
+            label="Clear Filters"
+            name="clear-filters-button"
+            verb="clearFilters"
+            @click="clearFilters"
+        >
+            <Button
+                label="Clear Filters"
+                name="clear-filters-button"
+                :severity="!!addedFilters?.length ? 'warn' : 'secondary'"
+                @click="clearFilters"
+            />
+        </slot>
     </div>
 </template>
