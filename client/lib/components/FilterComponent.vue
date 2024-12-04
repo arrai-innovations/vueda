@@ -163,7 +163,16 @@ const filterButtonIconSlotNames = useSlotNameResolver(
 </script>
 
 <template>
-    <slot :has-filter="hasFilterValue" :name="filterButtonSlotNames.name">
+    <slot
+        :class="buttonClass"
+        :filter-details="props.filterDetails"
+        :filter-name="props.filterName"
+        :has-filter-value="hasFilterValue"
+        :label="computedFilterLabel"
+        :name="filterButtonSlotNames.name"
+        :remove-filter="removeFilter"
+        @click="toggle"
+    >
         <Button
             :class="buttonClass"
             :label="computedFilterLabel"
@@ -174,6 +183,8 @@ const filterButtonIconSlotNames = useSlotNameResolver(
         >
             <template #icon>
                 <slot
+                    :filter-details="props.filterDetails"
+                    :filter-name="props.filterName"
                     :has-filter-value="hasFilterValue"
                     :name="filterButtonIconSlotNames.name"
                     :remove-filter="removeFilter"
