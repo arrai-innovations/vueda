@@ -1,12 +1,13 @@
 <script setup>
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import isArray from "lodash-es/isArray.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isObject from "lodash-es/isObject.js";
 import Button from "primevue/button";
 import Popover from "primevue/popover";
-import { computed, ref } from "vue";
+import { computed, reactive, ref, toRefs, unref, useSlots, useTemplateRef } from "vue";
 
 const props = defineProps({
     filterName: {
@@ -21,19 +22,39 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    ...THEME_OVERRIDE_PROPS,
 });
 // TODO: this is built assuming each filter field has only one lookup expression
 const emit = defineEmits(["hide-filter-form"]);
-const op = ref();
+const popoverRef = useTemplateRef("popoverRef");
 
 const addedFilters = defineModel({
     type: Object,
     required: true,
 });
 
-const toggle = (event) => {
-    op.value.toggle(event);
+const internalShowState = ref(false);
+const doToggle = (event) => {
+    if (event) {
+        event.preventDefault();
+    }
+    internalShowState.value = !internalShowState.value;
+    if (!slots[filterFormPopoverSlotNames.name]) {
+        popoverRef.value.toggle(event);
+    }
 };
+const slots = useSlots();
+const filterButtonSlotNames = useSlotNameResolver(
+    computed(() => [`filter-button(${props.filterName})`, `filter-button`]),
+);
+const filterButtonIconSlotNames = useSlotNameResolver(
+    computed(() => [`filter-button-icon(${props.filterName})`, `filter-button-icon`]),
+);
+const filterFormPopoverSlotNames = useSlotNameResolver(
+    computed(() => [`filter-form-popover(${props.filterName})`, `filter-form-popover`]),
+);
+const filterFormSlotNames = useSlotNameResolver(computed(() => [`filter-form(${props.filterName})`, `filter-form`]));
+
 const displayFilterValue = computed(() => {
     const filters = addedFilters.value.filter((filter) => filter.field === props.filterName);
     return filters
@@ -66,16 +87,17 @@ const displayFilterValue = computed(() => {
 const computedFilterLabel = computed(() => {
     const filterLabel = props.filterDetails.label ?? props.filterName;
     if (addedFilters.value.some((filter) => filter.field === props.filterName)) {
-        const label = `${filterLabel} | ${displayFilterValue.value}`;
-        if (op.value && op.value.visible) {
-            return `${label}  ▼`;
-        }
-        return `${label}  ▲`;
+        return `${filterLabel} | ${displayFilterValue.value}  ${unref(internalShowState) ? "▼" : "▲"}`;
     }
     return filterLabel;
 });
 
-const onFilter = (filter) => {
+const applyFilter = (e, filter) => {
+    if (e && e.preventDefault) {
+        e.preventDefault();
+    } else {
+        filter = e;
+    }
     const lookupExpressionsToParams = [];
     // TODO: this now handle handles with single lookup expression
     const lookupExpression = filter.lookupExpression === false ? undefined : props.filterDetails.lookupExprs?.[0];
@@ -132,7 +154,12 @@ const onFilter = (filter) => {
             }),
         );
     }
-    op.value.hide();
+    internalShowState.value = false;
+    if (slots[filterFormPopoverSlotNames.name]) {
+        emit("hide-filter-form", props.filterName);
+    } else {
+        popoverRef.value.hide();
+    }
 };
 
 const isRangeObjectEmpty = (rangeObject) => {
@@ -151,40 +178,36 @@ const removeFilter = () => {
 const hasFilterValue = computed(() => {
     return addedFilters.value.some((filter) => filter.field === props.filterName);
 });
-const buttonClass = computed(() => {
-    return hasFilterValue.value ? "" : "!border-dashed";
+const themeProps = reactive({
+    ...toRefs(props),
+    hasFilterValue,
 });
-const filterButtonSlotNames = useSlotNameResolver(
-    computed(() => [`filter-button(${props.filterName})`, `filter-button`]),
-);
-const filterButtonIconSlotNames = useSlotNameResolver(
-    computed(() => [`filter-button-icon(${props.filterName})`, `filter-button-icon`]),
-);
+const theme = useTheme("FilterComponent", props, themeProps);
 </script>
 
 <template>
     <slot
-        :class="buttonClass"
-        :filter-details="props.filterDetails"
-        :filter-name="props.filterName"
+        :class="theme('button')"
+        :do-toggle="doToggle"
+        :filter-details="filterDetails"
+        :filter-name="filterName"
         :has-filter-value="hasFilterValue"
         :label="computedFilterLabel"
         :name="filterButtonSlotNames.name"
         :remove-filter="removeFilter"
-        @click="toggle"
     >
         <Button
-            :class="buttonClass"
+            :class="theme('button')"
             :label="computedFilterLabel"
             rounded
             size="small"
             variant="outlined"
-            @click="toggle"
+            @click="doToggle"
         >
             <template #icon>
                 <slot
-                    :filter-details="props.filterDetails"
-                    :filter-name="props.filterName"
+                    :filter-details="filterDetails"
+                    :filter-name="filterName"
                     :has-filter-value="hasFilterValue"
                     :name="filterButtonIconSlotNames.name"
                     :remove-filter="removeFilter"
@@ -195,12 +218,30 @@ const filterButtonIconSlotNames = useSlotNameResolver(
             </template>
         </Button>
     </slot>
-    <Popover ref="op" @filter.prevent="onFilter" @show="emit('hide-filter-form', filterName)">
-        <slot
+    <slot
+        :apply-filter="applyFilter"
+        :class="theme('popover')"
+        :do-toggle="doToggle"
+        :filter-details="filterDetails"
+        :filter-name="filterName"
+        :has-filter-value="hasFilterValue"
+        :name="filterFormPopoverSlotNames.name"
+    >
+        <Popover
+            ref="popoverRef"
+            :apply-filter="applyFilter"
+            :class="theme('popover')"
             :filter-details="filterDetails"
-            :has-filter="hasFilterValue"
-            :name="`filter-form(${filterName})`"
-            :on-filter="onFilter"
-        ></slot>
-    </Popover>
+            :filter-name="filterName"
+            :has-filter-value="hasFilterValue"
+        >
+            <slot
+                :apply-filter="applyFilter"
+                :filter-details="filterDetails"
+                :filter-name="filterName"
+                :has-filter-value="hasFilterValue"
+                :name="filterFormSlotNames.name"
+            />
+        </Popover>
+    </slot>
 </template>

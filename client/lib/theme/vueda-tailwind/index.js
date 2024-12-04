@@ -41,4 +41,15 @@ export default {
             ],
         },
     },
+    FilterComponent: {
+        root: {},
+        button: {
+            class: ({ hasFilterValue }) => ({
+                "!border-dashed": !hasFilterValue,
+            }),
+        },
+        popover: {
+            class: [],
+        },
+    },
 };
