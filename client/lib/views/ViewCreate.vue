@@ -4,6 +4,7 @@ import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
+import StickyBar from "@vueda/components/StickyBar.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
@@ -156,23 +157,23 @@ onMounted(() => {
                     </slot>
                 </template>
             </template>
-            <template #under-actions>
-                <div
-                    class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"
-                    data-qa="update-action-buttons"
-                >
-                    <slot
-                        :form="formId"
-                        label="Submit"
-                        :loading="objectForm.state.loading"
-                        name="submit-button"
-                        type="submit"
-                    >
-                        <Button :form="formId" label="Submit" :loading="objectForm.state.loading" type="submit" />
-                    </slot>
-                </div>
+            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                <slot :name="slot" v-bind="slotProps || {}" />
             </template>
         </page-title>
+        <sticky-bar class="w-full">
+            <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="update-action-buttons">
+                <slot
+                    :form="formId"
+                    label="Submit"
+                    :loading="objectForm.state.loading"
+                    name="submit-button"
+                    type="submit"
+                >
+                    <Button :form="formId" label="Submit" :loading="objectForm.state.loading" type="submit" />
+                </slot>
+            </div>
+        </sticky-bar>
         <div>
             <error-display
                 :error="combinedError"

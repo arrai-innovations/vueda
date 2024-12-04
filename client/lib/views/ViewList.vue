@@ -7,6 +7,7 @@ import LinkModelView from "@vueda/components/LinkModelView.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
+import StickyBar from "@vueda/components/StickyBar.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -416,19 +417,21 @@ const theme = useTheme("ViewList", props, {
                         </slot>
                     </div>
                 </div>
-                <filter-group
-                    v-model="listState.filterArgs"
-                    :filterable-details="modelConfig.config?.filterableDetails || {}"
-                    :filterables="modelConfig.config?.filterables || []"
-                    @filter-change="emit('filter-change', $event)"
-                    @hide-filter-form="emit('hide-filter-form', $event)"
-                >
-                    <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-                        <slot :name="slot" v-bind="slotProps || {}" />
-                    </template>
-                </filter-group>
             </template>
         </page-title>
+        <sticky-bar class="w-full">
+            <filter-group
+                v-model="listState.filterArgs"
+                :filterable-details="modelConfig.config?.filterableDetails || {}"
+                :filterables="modelConfig.config?.filterables || []"
+                @filter-change="emit('filter-change', $event)"
+                @hide-filter-form="emit('hide-filter-form', $event)"
+            >
+                <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                    <slot :name="slot" v-bind="slotProps || {}" />
+                </template>
+            </filter-group>
+        </sticky-bar>
 
         <error-display :error="error" :errored="errored" @dismiss-error="dismissError" />
         <!-- todo: filters/search -->

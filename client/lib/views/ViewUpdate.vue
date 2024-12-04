@@ -4,6 +4,7 @@ import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
+import StickyBar from "@vueda/components/StickyBar.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -293,46 +294,46 @@ useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, t
                 </template>
                 <slot name="extra-buttons" />
             </template>
-            <template #under-actions>
-                <div
-                    class="flex flex-wrap gap-1 2xl:gap-2 w-full w-full sm:w-fit sm:max-w-max"
-                    data-qa="update-action-buttons"
-                >
-                    <slot
-                        :form="formId"
-                        label="Submit"
-                        :loading="objectForm.state.loading"
-                        name="submit-button"
-                        type="submit"
-                    >
-                        <Button :form="formId" label="Submit" :loading="objectForm.state.loading" type="submit" />
-                    </slot>
-                    <template v-for="actionName in detailedActions" :key="actionName">
-                        <slot
-                            :app="app"
-                            :label="memoizedStartCase(actionName)"
-                            :model="model"
-                            name="action-button"
-                            :pk="pk"
-                            :view="actionName"
-                        >
-                            <link-model-view
-                                :app="app"
-                                button
-                                :label="memoizedStartCase(actionName)"
-                                :model="model"
-                                :pk="pk"
-                                severity="secondary"
-                                :view="actionName"
-                            />
-                        </slot>
-                    </template>
-                </div>
-            </template>
             <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                 <slot :name="slot" v-bind="slotProps || {}" />
             </template>
         </page-title>
+        <sticky-bar class="w-full">
+            <div
+                class="flex flex-wrap gap-1 2xl:gap-2 w-full w-full sm:w-fit sm:max-w-max"
+                data-qa="update-action-buttons"
+            >
+                <slot
+                    :form="formId"
+                    label="Submit"
+                    :loading="objectForm.state.loading"
+                    name="submit-button"
+                    type="submit"
+                >
+                    <Button :form="formId" label="Submit" :loading="objectForm.state.loading" type="submit" />
+                </slot>
+                <template v-for="actionName in detailedActions" :key="actionName">
+                    <slot
+                        :app="app"
+                        :label="memoizedStartCase(actionName)"
+                        :model="model"
+                        name="action-button"
+                        :pk="pk"
+                        :view="actionName"
+                    >
+                        <link-model-view
+                            :app="app"
+                            button
+                            :label="memoizedStartCase(actionName)"
+                            :model="model"
+                            :pk="pk"
+                            severity="secondary"
+                            :view="actionName"
+                        />
+                    </slot>
+                </template>
+            </div>
+        </sticky-bar>
         <div :class="props.outerClass" data-qa="update-form">
             <error-display
                 :error="combinedError"
