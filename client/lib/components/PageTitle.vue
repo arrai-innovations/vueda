@@ -21,7 +21,7 @@ const props = defineProps({
     },
     sticky: {
         type: Boolean,
-        default: true,
+        default: false,
     },
     ...THEME_OVERRIDE_PROPS,
 });
