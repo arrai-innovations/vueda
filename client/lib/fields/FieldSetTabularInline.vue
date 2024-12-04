@@ -188,6 +188,10 @@ const doCreate = (_e, defaultValues) => {
     if (!defaultValues) {
         defaultValues = emptyFieldObject();
     }
+    if (!internalVisible.value) {
+        internalVisible.value = true;
+        userHasToggled.value = true;
+    }
     fieldSetContext.blur();
     fieldSetContext.state.value = [...cloneDeep(fieldSetContext.state.value), defaultValues];
     focusIndex.value = fieldSetContext.state.value.length - 1;
