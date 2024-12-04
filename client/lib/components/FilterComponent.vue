@@ -1,5 +1,6 @@
 <script setup>
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
+import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import isArray from "lodash-es/isArray.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isObject from "lodash-es/isObject.js";
@@ -153,10 +154,16 @@ const hasFilterValue = computed(() => {
 const buttonClass = computed(() => {
     return hasFilterValue.value ? "" : "!border-dashed";
 });
+const filterButtonSlotNames = useSlotNameResolver(
+    computed(() => [`filter-button(${props.filterName})`, `filter-button`]),
+);
+const filterButtonIconSlotNames = useSlotNameResolver(
+    computed(() => [`filter-button-icon(${props.filterName})`, `filter-button-icon`]),
+);
 </script>
 
 <template>
-    <slot :has-filter="hasFilterValue" :name="`filter-button(${filterName})`">
+    <slot :has-filter="hasFilterValue" :name="filterButtonSlotNames.name">
         <Button
             :class="buttonClass"
             :label="computedFilterLabel"
@@ -166,7 +173,11 @@ const buttonClass = computed(() => {
             @click="toggle"
         >
             <template #icon>
-                <slot :has-filter-value="hasFilterValue" name="filter-button-icon" :remove-filter="removeFilter">
+                <slot
+                    :has-filter-value="hasFilterValue"
+                    :name="filterButtonIconSlotNames.name"
+                    :remove-filter="removeFilter"
+                >
                     <span v-if="hasFilterValue" @click.prevent="removeFilter"> ✖️ </span>
                     <span v-else> ➕ </span>
                 </slot>
