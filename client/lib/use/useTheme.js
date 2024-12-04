@@ -1,6 +1,7 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
+import isEmpty from "lodash-es/isEmpty.js";
 import isFunction from "lodash-es/isFunction.js";
 import mergeWith from "lodash-es/mergeWith.js";
 import { computed, effectScope, getCurrentInstance, inject, provide, unref } from "vue";
@@ -169,12 +170,33 @@ export function setTheme(newTheme) {
 export function patchTheme(partialTheme) {
     const pt = cloneDeep(partialTheme);
     for (const componentName in pt) {
-        defaultTheme[componentName] = {
-            ...(defaultTheme[componentName] || {}),
-            ...partialTheme[componentName],
-        };
+        defaultTheme[componentName] = mergeTheme(defaultTheme[componentName], pt[componentName]);
     }
 }
+
+const mergeWithCb = (objValue, srcValue, key) => {
+    const isObjFunction = isFunction(objValue);
+    const isSrcFunction = isFunction(srcValue);
+    const isFunctionInvolved = isObjFunction || isSrcFunction;
+    const isClassKey = key === "class";
+    if (isClassKey) {
+        if (isFunctionInvolved) {
+            return (args) =>
+                combineClasses(isObjFunction ? objValue(args) : objValue, isSrcFunction ? srcValue(args) : srcValue);
+        }
+        return combineClasses(objValue, srcValue);
+    }
+    if (isFunctionInvolved) {
+        return (args) =>
+            mergeWith(
+                isObjFunction ? objValue(args) : objValue,
+                isSrcFunction ? srcValue(args) : srcValue,
+                mergeWithCb,
+            );
+    }
+    // fallback to object lodash object mashing
+    return undefined;
+};
 
 /**
  * Custom merge function for merging theme objects, ensuring classes are combined.
@@ -183,15 +205,16 @@ export function patchTheme(partialTheme) {
  * @returns {ThemeObject} - The merged ThemeObject.
  */
 export function mergeTheme(...themes) {
+    if (themes.length === 1) {
+        return themes[0];
+    }
+    if (isEmpty(themes)) {
+        return {};
+    }
     return themes.reduce((acc, theme) => {
         if (!theme) {
             return acc;
         }
-        return mergeWith(acc, theme, (objValue, srcValue, key) => {
-            if (key === "class") {
-                return combineClasses(objValue, srcValue);
-            }
-            return undefined;
-        });
-    }, {});
+        return mergeWith(acc, theme, mergeWithCb);
+    }, cloneDeep(themes[0]));
 }
