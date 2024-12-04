@@ -65,14 +65,7 @@ const availableFeedbackSlotNames = getFormHiddenFeedbackSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-label-root">
-        <component
-            :is="$props.tag"
-            :id="id"
-            :class="theme('label')"
-            v-bind="$attrs"
-            data-qa="widget-label-label"
-            :for="$props.for"
-        >
+        <component :is="$props.tag" :id="id" :class="theme('label')" v-bind="$attrs" :for="$props.for">
             <slot :id="id" :class="theme('label')" :for="$props.for" v-bind="$attrs" :label="combinedLabel" name="label"
                 >{{ combinedLabel }}
             </slot>

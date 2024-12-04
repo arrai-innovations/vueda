@@ -178,7 +178,6 @@ const evenColumn = (obj) => {
                 v-bind="$attrs"
                 :calculated-objects="instanceList.state.calculatedObjects"
                 class="w-full"
-                :data-qa="`history-list-${app}-${model}-objects-grid`"
                 :even-column="evenColumn"
                 :field-props="{
                     pkKey: modelConfig.info?.pk,

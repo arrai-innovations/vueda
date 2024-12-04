@@ -362,7 +362,6 @@ const remainingSlotNames = computed(() => {
                 v-if="internalVisible"
                 :calculated-objects="$attrs.calculatedObjects || {}"
                 :class="theme('objectsGrid')"
-                data-qa="fieldset-tabular-inline-objects-grid"
                 :empty-text="null"
                 :field-classes="{
                     selected_: 'text-center',
