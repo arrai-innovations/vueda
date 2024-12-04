@@ -49,7 +49,7 @@ export default {
             class: [],
         },
         inner: {
-            class: ["gap-1 mt-1 prose dark:prose-invert"],
+            class: ["flex flex-col gap-1 md:gap-2 2xl:gap-4 mt-1"],
         },
         selectedObjects: {
             class: [],
@@ -61,7 +61,20 @@ export default {
             class: ["flex flex-col lg:flex-row mx-2 gap-2 mb-2 flex-wrap lg:flex-nowrap"],
         },
         list: {
-            class: ["list-inner divide-y"],
+            class: ["flex flex-col gap-2 max-w-max w-full"],
+        },
+        listItem: {
+            class: [],
+        },
+        themeOverride: {
+            WidgetReadOnly: {
+                linkItem: {
+                    class: [],
+                },
+                textItem: {
+                    class: [],
+                },
+            },
         },
     },
     ViewList: {
@@ -72,6 +85,11 @@ export default {
         },
     },
     ViewHistoryList: {
+        root: {
+            class: [],
+        },
+    },
+    ViewAction: {
         root: {
             class: [],
         },

@@ -195,21 +195,35 @@ onUnmounted(() => {
         actionPromise.cancel();
     }
 });
+const handleCancelClick = () => {
+    router.back();
+};
 </script>
 
 <template>
-    <div :class="theme('root')">
-        <div :class="theme('inner')">
-            <div :class="theme('selectedObjects')">
+    <div :class="theme('root')" data-qa="view-action-root">
+        <div :class="theme('inner')" data-qa="view-action-inner">
+            <div :class="theme('selectedObjects')" data-qa="view-action-selected-objects">
                 <slot :loading="combinedLoading" name="selected-objects" :objects="fetchState.objects">
                     <p>You have selected the following {{ unref(modelVerboseName) }}(s):</p>
                     <div v-if="combinedLoading">
                         <p>Loading objects...</p>
                     </div>
                     <ul v-else :class="theme('list')">
-                        <li v-for="object in fetchState.objects" :key="object.id">
-                            <field-string :field-value="object.id" :label="object.id" :name="object.id">
-                                <widget-read-only :app="app" :foreign-key-obj="object" :hidden="true" :model="model" />
+                        <li v-for="object in fetchState.objects" :key="object.id" :class="theme('listItem')">
+                            <field-string :field-value="object.id" :label="object.id" :name="object.id + ''">
+                                <widget-read-only
+                                    :app="app"
+                                    :foreign-key-obj="object"
+                                    :hidden="true"
+                                    :invalid="false"
+                                    :model="model"
+                                    :warning="false"
+                                >
+                                    <template #link-item="slotProps">
+                                        <slot name="link-item" v-bind="slotProps" />
+                                    </template>
+                                </widget-read-only>
                                 <form-feedback type="error" />
                                 <form-feedback type="message" />
                             </field-string>
@@ -217,12 +231,12 @@ onUnmounted(() => {
                     </ul>
                 </slot>
             </div>
-            <div :class="theme('message')">
+            <div :class="theme('message')" data-qa="view-action-message">
                 <slot name="confirm-message">
                     <p>{{ computedConfirmMessage }}</p>
                 </slot>
             </div>
-            <div :class="theme('buttons')">
+            <div :class="theme('buttons')" data-qa="view-action-buttons">
                 <slot
                     label="Yes, continue"
                     :loading="combinedLoading"
@@ -232,14 +246,8 @@ onUnmounted(() => {
                 >
                     <Button :loading="combinedLoading" @click="handleConfirm">Yes, continue</Button>
                 </slot>
-                <slot
-                    label="Cancel"
-                    :loading="actionState.loading"
-                    name="cancel-button"
-                    verb="cancel"
-                    @click="router.back()"
-                >
-                    <Button label="Cancel" :loading="actionState.loading" @click="router.back()" />
+                <slot label="Cancel, go back" name="cancel-button" verb="cancel" @click="handleCancelClick">
+                    <Button label="Cancel, go back" @click="handleCancelClick" />
                 </slot>
             </div>
         </div>
