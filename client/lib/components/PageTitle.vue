@@ -52,6 +52,6 @@ const theme = useTheme("PageTitle", props);
             </div>
             <slot :class="theme('footer')" name="footer" />
         </div>
-        <div :class="theme('gradient')" />
+        <div v-if="sticky" :class="theme('gradient')" />
     </div>
 </template>
