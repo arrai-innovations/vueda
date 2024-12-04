@@ -83,6 +83,27 @@ export default {
             // can't have dynamic tailwind classes, 'unused' classes are purged
             class: ["lg:w-0"],
         },
+        searchInput: {
+            class: ["lg:max-w-[30ch]"],
+        },
+        bulkActionButton: {
+            class: ["grow sm:grow-0"],
+        },
+        targetlessActionButton: {
+            class: [],
+        },
+        filterGroupBar: {
+            class: ["w-full"],
+        },
+        objectsGrid: {
+            class: ["w-full"],
+        },
+        underActionsBar: {
+            class: ["w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-1"],
+        },
+        bulkActionsBar: {
+            class: ["flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"],
+        },
     },
     ViewHistoryList: {
         root: {

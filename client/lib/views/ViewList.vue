@@ -1,5 +1,6 @@
 <script setup>
 import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
+import { keyDiff, union } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FilterGroup from "@vueda/components/FilterGroup.vue";
 import FormFeedback from "@vueda/components/FormFeedback.vue";
@@ -11,16 +12,18 @@ import StickyBar from "@vueda/components/StickyBar.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useWorkflow } from "@vueda/use/useWorkflow.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
+import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
-import { computed, onMounted, reactive, readonly, ref, toRaw, toRef, unref, watch } from "vue";
+import { computed, effectScope, onMounted, reactive, readonly, ref, toRaw, toRef, unref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 defineOptions({
@@ -324,102 +327,119 @@ const theme = useTheme("ViewList", props, {
     errored,
     error,
 });
+const targetlessActionButtonSlotName = useSlotNameResolver(["targetless-action-button", "button"]);
+const bulkActionButtonSlotName = useSlotNameResolver(["bulk-action-button", "button"]);
+const targetlessActions = computed(() => {
+    const actions = modelConfig.config?.actions || [];
+    const actionDetails = modelConfig.config?.actionDetails || {};
+    return new Set(
+        actions.filter((name) => {
+            const actionDetail = actionDetails[name];
+            return actionDetail && viewName !== name && !actionDetail.detail && !actionDetail.bulk;
+        }),
+    );
+});
+
+const bulkActions = computed(() => {
+    const actions = modelConfig.config?.actions || [];
+    const actionDetails = modelConfig.config?.actionDetails || {};
+    return new Set(actions.filter((name) => actionDetails[name]?.bulk));
+});
+
+const buttonSlotProps = reactive({});
+const bspEffectScope = effectScope();
+watch(
+    [bulkActions, targetlessActions],
+    ([newBulkActions, newTargetlessActions]) => {
+        const bulkActionSet = newBulkActions || new Set();
+        const targetlessActionSet = newTargetlessActions || new Set();
+        const { addedKeys, removedKeys } = keyDiff(
+            union(bulkActionSet, targetlessActionSet),
+            Object.keys(buttonSlotProps),
+        );
+        for (const addedKey of addedKeys) {
+            const isBulk = bulkActionSet.has(addedKey);
+            bspEffectScope.run(() => {
+                buttonSlotProps[addedKey] = {
+                    app: toRef(props, "app"),
+                    model: toRef(props, "model"),
+                    view: addedKey,
+                    label: memoizedStartCase(addedKey),
+                    click: isBulk ? detailActionOnClick(addedKey) : undefined,
+                    selectedObjects: isBulk ? selectedObjects : undefined,
+                    disabled: isBulk ? computed(() => !availableTransitions.value.includes(addedKey)) : undefined,
+                    class: isBulk ? theme("bulkActionButton") : theme("targetlessActionButton"),
+                };
+            });
+        }
+        for (const removedKey of removedKeys) {
+            if (buttonSlotProps[removedKey].disabled) {
+                // internal vue api, but if we are here, we are deleting before the end of the scope
+                buttonSlotProps[removedKey].disabled.effect?.stop();
+            }
+            delete buttonSlotProps[removedKey];
+        }
+    },
+    { immediate: true },
+);
+const searchSlotProps = reactive({
+    app: toRef(props, "app"),
+    model: toRef(props, "model"),
+    verb: "search",
+    label: "Search",
+    filterList,
+    listSearch,
+    updateListSearch: (value) => {
+        listSearch.value = value;
+    },
+    searchInputClass: theme("searchInput"),
+});
 </script>
 <template>
     <div>
         <page-title :loading="instanceList.state.loading" :title="titleStr">
             <template #button>
                 <template
-                    v-for="actionName in modelConfig.config?.actions?.filter((name) => {
-                        const actionDetail = modelConfig.config?.actionDetails?.[name];
-                        return actionDetail && viewName !== name && !actionDetail.detail && !actionDetail.bulk;
-                    })"
-                    :key="
-                        getCRUDName({
-                            app: app,
-                            model: model,
-                            view: actionName,
-                        })
-                    "
+                    v-for="actionName in targetlessActions"
+                    :key="getCRUDName({ app: app, model: model, view: actionName })"
                 >
-                    <slot
-                        name="targetless-action-button"
-                        v-bind="{ model, app, view: actionName, label: memoizedStartCase(actionName) }"
-                    >
-                        <link-model-view
-                            :app="app"
-                            :label="memoizedStartCase(actionName)"
-                            :model="model"
-                            :view="actionName"
-                        />
+                    <slot :name="targetlessActionButtonSlotName.name" v-bind="buttonSlotProps[actionName]">
+                        <link-model-view v-bind="buttonSlotProps[actionName]" />
                     </slot>
                 </template>
             </template>
             <template #under-actions>
-                <div class="w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-1">
-                    <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="bulk-action-bar">
-                        <template
-                            v-for="actionName in modelConfig.config?.actions?.filter(
-                                (name) =>
-                                    modelConfig.config?.actionDetails?.[name] &&
-                                    modelConfig.config?.actionDetails?.[name].bulk,
-                            )"
-                            :key="actionName"
-                        >
-                            <slot
-                                name="bulk-action-button"
-                                v-bind="{
-                                    model,
-                                    app,
-                                    view: actionName,
-                                    label: memoizedStartCase(actionName),
-                                    click: detailActionOnClick(actionName),
-                                    selectedObjects,
-                                }"
-                            >
+                <div :class="theme('underActionsBar')" data-qa="view-list-under-actions">
+                    <div :class="theme('bulkActionsBar')" data-qa="view-list-bulk-actions">
+                        <template v-for="actionName in bulkActions" :key="actionName">
+                            <slot :name="bulkActionButtonSlotName.name" v-bind="buttonSlotProps[actionName]">
                                 <link-model-view
-                                    :app="app"
                                     button
-                                    class="grow sm:grow-0"
-                                    :disabled="!availableTransitions.includes(actionName)"
-                                    :label="memoizedStartCase(actionName)"
-                                    :model="model"
-                                    :pk="selectedObjects"
-                                    :view="actionName"
+                                    :pk="buttonSlotProps[actionName].selectedObjects"
+                                    v-bind="omit(buttonSlotProps[actionName], ['selectedObjects'])"
                                 />
                             </slot>
                         </template>
                     </div>
                     <div class="flex flex-col items-end">
-                        <slot
-                            name="search"
-                            v-bind="{
-                                listSearch,
-                                filterList,
-                                model,
-                                app,
-                                viewName,
-                                verb: 'search',
-                                label: 'Search',
-                            }"
-                        >
+                        <slot name="search" v-bind="searchSlotProps">
                             <InputGroup>
                                 <InputText
-                                    v-model="listSearch"
-                                    class="lg:max-w-[30ch]"
+                                    :class="theme('searchInput')"
+                                    :model-value="searchSlotProps.listSearch"
                                     name="search"
                                     placeholder="Search"
                                     type="search"
-                                    @search="filterList"
+                                    @update:model-value="searchSlotProps.updateListSearch"
                                 />
-                                <Button label="Search" @click="filterList" />
+                                <Button label="Search" @click="searchSlotProps.filterList" />
                             </InputGroup>
                         </slot>
                     </div>
                 </div>
             </template>
         </page-title>
-        <sticky-bar class="w-full">
+        <sticky-bar :class="theme('filterGroupBar')">
             <filter-group
                 v-model="listState.filterArgs"
                 :filterable-details="modelConfig.config?.filterableDetails || {}"
@@ -446,8 +466,7 @@ const theme = useTheme("ViewList", props, {
         <objects-grid
             v-bind="$attrs"
             :calculated-objects="instanceList.state.calculatedObjects"
-            class="w-full"
-            :data-qa="`view-list-${app}-${model}-objects-grid`"
+            :class="theme('objectsGrid')"
             :field-classes="{
                 ...($attrs.fieldClasses || {}),
                 selected_: theme('selectedCheckbox'),
