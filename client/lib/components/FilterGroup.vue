@@ -1,5 +1,6 @@
 <script setup>
 import FilterComponent from "@vueda/components/FilterComponent.vue";
+import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { isObject } from "lodash-es";
 import isArray from "lodash-es/isArray.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -71,17 +72,26 @@ watch(
 <template>
     <div class="flex flex-wrap gap-1 mt-1">
         <template v-for="(filter, index) in computedFilters" :key="index">
-            <filter-component
+            <slot
+                :filter="filter"
                 :filter-details="props.filterableDetails[filter]"
-                :filter-name="filter"
                 :index="index"
                 :model-value="addedFilters"
+                :name="useSlotNameResolver([`filter-component(${filter})`, 'filter-component'])"
                 @hide-filter-form="emit('hide-filter-form', $event)"
             >
-                <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-                    <slot :name="slot" v-bind="slotProps || {}" />
-                </template>
-            </filter-component>
+                <filter-component
+                    :filter-details="props.filterableDetails[filter]"
+                    :filter-name="filter"
+                    :index="index"
+                    :model-value="addedFilters"
+                    @hide-filter-form="emit('hide-filter-form', $event)"
+                >
+                    <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                        <slot :name="slot" v-bind="slotProps || {}" />
+                    </template>
+                </filter-component>
+            </slot>
         </template>
         <slot
             :has-filters="!!addedFilters?.length"
