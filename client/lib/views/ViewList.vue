@@ -23,7 +23,7 @@ import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
-import { computed, effectScope, onMounted, reactive, readonly, ref, toRaw, toRef, unref, watch } from "vue";
+import { computed, effectScope, onMounted, reactive, readonly, ref, toRaw, toRef, toRefs, unref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 defineOptions({
@@ -321,12 +321,13 @@ const computedFieldObjects = computed(() => {
     return [...props.extraFieldObjects, ...calculatedDisplayFields.value];
 });
 const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name})`);
-const theme = useTheme("ViewList", props, {
-    props,
+const themeReactiveProps = reactive({
+    ...toRefs(props),
     loading,
     errored,
     error,
 });
+const theme = useTheme("ViewList", props, themeReactiveProps);
 const targetlessActionButtonSlotName = useSlotNameResolver(["targetless-action-button", "button"]);
 const bulkActionButtonSlotName = useSlotNameResolver(["bulk-action-button", "button"]);
 const targetlessActions = computed(() => {
@@ -490,7 +491,7 @@ const searchSlotProps = reactive({
                 v-for="slot in Object.keys($slots).filter((slot) => !specialSlots.includes(slot))"
                 #[slot]="slotProps"
             >
-                <slot :name="slot" v-bind="slotProps || {}"> </slot>
+                <slot :name="slot" v-bind="slotProps || {}"></slot>
             </template>
             <template v-for="field in extraFieldObjects" :key="field.name" #[`header(${field.name})`]="slotProps">
                 <slot :name="`field(${field.name})`" v-bind="slotProps">

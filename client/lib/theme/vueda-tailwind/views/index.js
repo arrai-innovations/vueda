@@ -32,7 +32,7 @@ export default {
             class: ["block sm:hidden", "border-primary-300 dark:border-primary-600 border-t-2"],
         },
         buttons: {
-            class: ["flex gap-1 flex-wrap", "justify-end"],
+            class: ["flex gap-1 flex-wrap", "justify-end", "self-center"],
         },
         subtitleContainer: {
             class: ["w-full flex flex-wrap", "items-baseline justify-between", "gap-2 md:gap-4 lg:gap-7"],
@@ -99,7 +99,7 @@ export default {
             class: ["w-full"],
         },
         underActionsBar: {
-            class: ["w-full flex flex-col sm:flex-row sm:justify-between items-baseline gap-1"],
+            class: ["w-full flex flex-col sm:flex-row sm:justify-between gap-1"],
         },
         bulkActionsBar: {
             class: ["flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"],
