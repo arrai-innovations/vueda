@@ -9,7 +9,7 @@ import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
-import { computed, reactive, toRef, unref, useSlots, watch } from "vue";
+import { computed, reactive, toRef, useSlots, watch } from "vue";
 
 const props = defineProps({
     ...WIDGET_PROPS,
@@ -63,9 +63,6 @@ const pkValue = computed(() => {
 });
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
-const slotsWithoutFeedback = computed(() =>
-    unref(availableLabelSlotNames).filter((slotName) => slotName !== "feedback-button"),
-);
 const widgetLabelProps = computed(() => {
     const wlp = pick(props, Object.keys(WIDGET_LABEL_PROPS));
     wlp.required = false;
@@ -88,7 +85,7 @@ watch(
     <div :class="theme('root')" data-qa="widget-read-only-root">
         <div :class="theme('inner')" data-qa="widget-read-only-inner">
             <widget-label :id="widgetContext.state.widgetId" tag="div" v-bind="widgetLabelProps">
-                <template v-for="slotName in slotsWithoutFeedback" :key="slotName" #[slotName]="slotProps">
+                <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                     <slot :name="slotName" v-bind="slotProps" />
                 </template>
                 <template #default="{ class: labelControlClass }">
