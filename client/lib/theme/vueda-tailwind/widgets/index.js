@@ -215,8 +215,10 @@ export default {
     WidgetLabel: {
         root: ({ props, widgetContextState }) => {
             const isRequiredHasHelpOrHasValidation =
-                widgetContextState?.required ||
+                props.required ||
                 props.help ||
+                widgetContextState?.required ||
+                widgetContextState?.help ||
                 widgetContextState?.validationState?.warning ||
                 widgetContextState?.validationState?.invalid;
             return {

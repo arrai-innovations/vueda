@@ -23,6 +23,10 @@ export const WIDGET_PROPS = {
         type: String,
         default: undefined,
     },
+    help: {
+        type: String,
+        default: undefined,
+    },
     required: {
         type: Boolean,
         default: undefined, // let the default from field context take over
@@ -59,6 +63,7 @@ export const WIDGET_EMITS = ["update:modelValue"];
  * @property {import('vue').ComputedRef<{invalid:boolean,warning:boolean}>} validationState - The validation state of the widget.
  * @property {import('vue').ComputedRef<boolean>} focused - Whether the widget is focused.
  * @property {import('vue').ComputedRef<boolean>} required - Whether the widget is required.
+ * @property {import('vue').ComputedRef<boolean>} help - The help text.
  */
 
 /**
@@ -166,6 +171,7 @@ export function useWidget(props, emit) {
                 return false;
             }),
             required: computed(() => props.required ?? fieldContext?.state.required ?? false),
+            help: computed(() => props.help ?? fieldContext?.state.help ?? false),
         }),
         setTouched: () => {
             if (!props.contextless && fieldContext) {
