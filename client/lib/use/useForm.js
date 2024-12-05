@@ -16,8 +16,13 @@ import { provide, reactive, readonly, toRef, watch } from "vue";
  */
 
 /**
+ * @typedef {{[fieldName: object]: FieldValueDetails|any}} FieldValueDetails
+ */
+
+/**
  * @typedef {object} FormContextRawState
  * @property {FieldValues} values - The form's values, referenced by lodash key path.
+ * @property {FieldValueDetails} valueDetails - The field value object if the field value is a foreign key to a model, referenced by lodash key path.
  * @property {{[path: string]: {[errorCode: string]: string}}} errors - The form's error
  *  messages, per field, by path. Form-level errors are stored using `NON_FIELD_ERRORS_KEY`.
  * @property {boolean} anyError - Whether any field has an error.
@@ -68,6 +73,31 @@ const deleteValue = (state, name) => {
     if (get(state.values, name) !== undefined) {
         del(state.values, name);
         calculateModified(state, name);
+    }
+};
+
+/**
+ * @param {FormContextState} state
+ * @param {string} name
+ * @param {object} valueDetail
+ * @private
+ */
+const updateValueDetails = (state, name, valueDetail) => {
+    validateName(name);
+    if (!isEqual(get(state.valueDetails, name), valueDetail)) {
+        set(state.valueDetails, name, valueDetail);
+    }
+};
+
+/**
+ * @param {FormContextState} state
+ * @param {string} name
+ * @private
+ */
+const deleteValueDetails = (state, name) => {
+    validateName(name);
+    if (get(state.valueDetails, name) !== undefined) {
+        del(state.valueDetails, name);
     }
 };
 
@@ -438,6 +468,8 @@ const removeIgnore = (state, name) => {
  * @property {() => void} reset - Reset the form to its initial values.
  * @property {(name: string, value: any) => void} updateValue - Update a field's value.
  * @property {(name: string) => void} deleteValue - Delete a field's value.
+ * @property {(name: string, valueDetail: any) => void} updateValueDetails - Update a field's detailed value object.
+ * @property {(name: string) => void} deleteValueDetails - Delete a field's detailed value object.
  * @property {(name: string, code: string, message: string) => void} updateError - Update a field's error.
  * @property {(name: string, code?: string) => void} deleteError - Delete a field's error.
  * @property {(name: string, code: string, message: string) => void} updateMessage - Update a field's message.
@@ -543,6 +575,7 @@ const removeIgnore = (state, name) => {
 export function useForm(props) {
     const state = reactive({
         values: {},
+        valueDetails: {},
         errors: {},
         anyError: false,
         messages: {},
@@ -573,6 +606,8 @@ export function useForm(props) {
         state: readonly(state),
         updateValue: updateValue.bind(null, state),
         deleteValue: deleteValue.bind(null, state),
+        updateValueDetails: updateValueDetails.bind(null, state),
+        deleteValueDetails: deleteValueDetails.bind(null, state),
         updateError: updateError.bind(null, state),
         deleteError: deleteError.bind(null, state),
         updateMessage: updateMessage.bind(null, state),

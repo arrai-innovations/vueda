@@ -227,6 +227,16 @@ const computedOptions = computed(() => {
     }
     return [];
 });
+watch(
+    [computedOptions, () => widgetContext.state.combinedValue],
+    ([options, value]) => {
+        if (options.length && value) {
+            const selected = options.find((option) => option[props.optionValue] === value);
+            widgetContext.state.valueDetail = selected;
+        }
+    },
+    { immediate: true, deep: true },
+);
 
 const handleHide = () => {
     if (intendToRetrieve.value) {

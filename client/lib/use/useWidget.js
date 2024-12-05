@@ -51,6 +51,7 @@ export const WIDGET_EMITS = ["update:modelValue"];
  * @property {Readonly<import('vue').Ref<string>>} widgetId - A unique identifier for the widget.
  * @property {import('vue').WritableComputedRef<any>} combinedValue - The combined value of the widget, either from the model or
  * the field context.
+ * @property {import('vue').WritableComputedRef<any>} valueDetail - The value detail of the widget.
  * @property {import('vue').ComputedRef<string>} combinedName - The combined name of the widget, either from the props
  * or the field context.
  * @property {import('vue').ComputedRef<string>} combinedLabel - The combined label of the widget, either from the props
@@ -93,6 +94,22 @@ export function useWidget(props, emit) {
             widgetId: readonly(
                 ref(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)),
             ),
+            valueDetail: computed({
+                get: () => {
+                    if (fieldContext) {
+                        return fieldContext.state.valueDetail;
+                    }
+                    return undefined;
+                },
+                set: (value) => {
+                    if (fieldContext) {
+                        if (isEqual(value, fieldContext.state.valueDetail)) {
+                            return;
+                        }
+                        fieldContext.state.valueDetail = value;
+                    }
+                },
+            }),
             combinedValue: computed({
                 get: () => {
                     if (props.contextless || props.modelValue !== undefined) {

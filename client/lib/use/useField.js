@@ -57,6 +57,10 @@ export const FIELD_PROPS = {
         type: Array,
         default: () => [],
     },
+    dependencies: {
+        type: Array,
+        default: () => [],
+    },
     formModelName: {
         type: String,
         default: undefined,
@@ -103,6 +107,7 @@ export function onBeforeFieldUnmount(fieldContext) {
  * @property {import('vue').ComputedRef<string>} help - The help text for the field.
  * @property {import('vue').ComputedRef<string>} suffix - The suffix for the field.
  * @property {import('vue').WritableComputedRef<any>} value - The current value of the field.
+ * @property {import('vue').WritableComputedRef<any>} valueDetail - The current detail value object of the field.
  * @property {import('vue').ComputedRef<any>} initialValue - The initial value of the field.
  * @property {import('vue').ComputedRef<{[code: string]: string}>} messages - The messages for the field.
  * @property {import('vue').ComputedRef<{[code: string]: string}>} errors - The errors for the field.
@@ -184,11 +189,30 @@ export function useField(props, emit, functions) {
         name: readonly(toRef(props, "name")),
         formModelName: readonly(toRef(props, "formModelName")),
         dependents: readonly(toRef(props, "dependents")),
+        dependencies: readonly(toRef(props, "dependencies")),
         readOnly: readonly(toRef(props, "readOnly")),
         label: computed(() => (props.label?.length ? props.label : props.name)),
         required: computed(() => props.required ?? false),
         help: computed(() => props.help || ""),
         suffix: computed(() => props.rangeSuffix || ""),
+        valueDetail: formContext
+            ? computed({
+                  get: () => {
+                      return get(formContext.state.valueDetails, props.name);
+                  },
+                  set: (newValue) => {
+                      if (isEqual(newValue, state.valueDetail)) {
+                          return;
+                      }
+                      if (newValue === undefined) {
+                          formContext.deleteValueDetails(state.name);
+                      } else {
+                          formContext.updateValueDetails(state.name, newValue);
+                      }
+                  },
+              })
+            : undefined,
+
         value:
             formContext || props.modelValue !== undefined
                 ? computed({
@@ -231,10 +255,29 @@ export function useField(props, emit, functions) {
         modified: formContext ? computed(() => formContext.state.modified[props.name]) : false,
         ignored: formContext ? computed(() => formContext.state.ignored[props.name]) : false,
         focused: formContext ? computed(() => formContext.state.focused === props.name) : false,
+        dependencyValues: formContext
+            ? computed(() => {
+                  const valueDetails = {};
+                  state.dependencies.forEach((dependency) => {
+                      let field = dependency;
+                      if (dependency.includes("$parent") && state.name.includes(".")) {
+                          const parent = state.name.split(".")[0];
+                          field = dependency.split(".")[1];
+                          dependency = dependency.replace("$parent", parent);
+                      }
+                      const value =
+                          get(formContext.state.valueDetails, dependency) ?? get(formContext.state.values, dependency);
+                      if (value !== undefined) {
+                          valueDetails[field] = value;
+                      }
+                  });
+                  return Object.keys(valueDetails).length ? valueDetails : undefined;
+              })
+            : undefined,
     });
     const checkRequired = () => {
-        if (props.required && state.touched && formContext && !state.readOnly) {
-            if (!unref(requiredFn)(state.value, state.name) || state.ignored) {
+        if ((props.required || props.requiredFn) && state.touched && formContext && !state.readOnly) {
+            if (!unref(requiredFn)(state.value, state.dependencyValues) || state.ignored) {
                 formContext.updateError(props.name, "required", requiredMessage.value);
             } else {
                 formContext.deleteError(props.name, "required");
@@ -244,7 +287,7 @@ export function useField(props, emit, functions) {
 
     const checkCustomValidation = () => {
         if (props.validate && state.touched && formContext) {
-            const result = props.validate(state.value, state.name);
+            const result = props.validate(state.value, state.dependencyValues);
             if (result === true) {
                 formContext.deleteError(props.name, "validate");
             } else {
@@ -265,6 +308,17 @@ export function useField(props, emit, functions) {
             }
         },
         { deep: true },
+    );
+
+    watch(
+        () => state.dependencyValues,
+        (newValue, oldValue) => {
+            if (!isEqual(newValue, oldValue)) {
+                checkRequired();
+                checkCustomValidation();
+            }
+        },
+        { deep: true, immediate: true },
     );
 
     watch(

@@ -9,7 +9,7 @@ import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
-import { computed, reactive, toRef, unref, useSlots } from "vue";
+import { computed, reactive, toRef, unref, useSlots, watch } from "vue";
 
 const props = defineProps({
     ...WIDGET_PROPS,
@@ -72,6 +72,16 @@ const widgetLabelProps = computed(() => {
     wlp.help = undefined;
     return wlp;
 });
+
+watch(
+    [toRef(props, "foreignKeyObj"), instanceObject.state.object],
+    ([foreignKeyObj, stateObject]) => {
+        if (foreignKeyObj || stateObject[props.pkKey]) {
+            widgetContext.state.valueDetail = foreignKeyObj || stateObject;
+        }
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
