@@ -1,11 +1,12 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
+import { useFilteredAttrs } from "@vueda/use/useFilteredAttrs.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import { knownDatePickerProps } from "@vueda/utils/primevueConsts.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
-import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import DatePicker from "primevue/datepicker";
 import { computed, useSlots } from "vue";
@@ -46,6 +47,22 @@ const getCurrentDate = () => {
 };
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
+const datePickerAttrs = useFilteredAttrs(knownDatePickerProps, [
+    "clearButtonProps",
+    "disabled",
+    "inputId",
+    "invalid",
+    "modelValue",
+    "name",
+    "pt",
+    "selectionMode",
+    "showButtonBar",
+    "todayButtonProps",
+    "onBlur",
+    "onFocus",
+    "onTodayClick",
+    "onUpdate:modelValue",
+]);
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-date-picker-root">
@@ -56,12 +73,12 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template #default="{ class: labelControlClass }">
                 <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-date-picker-inner">
                     <DatePicker
+                        v-bind="datePickerAttrs"
                         :clear-button-props="{
                             label: `Clear`,
                             outlined: true,
                             text: true,
                         }"
-                        v-bind="omit($attrs, ['value'])"
                         :disabled="widgetContext.state.disabled"
                         :input-id="widgetContext.state.widgetId"
                         :invalid="widgetContext.state.validationState.invalid"
