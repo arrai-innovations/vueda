@@ -1,6 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed } from "vue";
+import { computed, toRef } from "vue";
 
 const props = defineProps({
     field: {
@@ -36,7 +36,9 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 
-const theme = useTheme("ObjectsGridTableHeader", props);
+const theme = useTheme("ObjectsGridTableHeader", props, {
+    sortable: toRef(props, "sortable"),
+});
 const uniqueKeyForSlot = computed(() =>
     props.field.name ? `${props.field.name}-${props.colIndex}` : `col-${props.colIndex}`,
 );

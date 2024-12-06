@@ -109,11 +109,6 @@ export function useTheme(componentName, props, context, keyFn) {
         return iTO ? mergeTheme(cTO, iTO, pTO) : pTO;
     });
 
-    let myContext = context;
-    if (!myContext) {
-        myContext = computed(() => ({ props: unref(props) }));
-    }
-
     if (currentInstance) {
         provide(ThemeOverrideSymbol, themeOverride);
     }
@@ -130,7 +125,7 @@ export function useTheme(componentName, props, context, keyFn) {
         if (!computeds[myKey]) {
             es.run(() => {
                 computeds[myKey] = computed(() => {
-                    const calcContext = { ...(unref(myContext) || {}), ...kwargs };
+                    const calcContext = { ...(unref(context) || {}), ...kwargs };
                     const defaultClass = getClassValue(config, key, calcContext);
                     const overrideClass = getClassValue(unref(themeOverride)?.[componentName] || {}, key, calcContext);
                     return combineClasses(defaultClass, overrideClass);

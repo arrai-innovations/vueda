@@ -1,12 +1,13 @@
 import { useTheme } from "@vueda/use/useTheme.js";
-import { reactive, useAttrs } from "vue";
+import { reactive, toRef } from "vue";
 
-export function useWidgetTheme(componentName, props, widgetContextState, keyFn) {
-    const attrs = useAttrs();
+export function useWidgetTheme(componentName, props, widgetContextState, additionalContext, keyFn) {
     const themeContext = reactive({
-        props,
-        attrs,
-        widgetContextState,
+        required: toRef(widgetContextState, "required"),
+        help: toRef(widgetContextState, "help"),
+        invalid: toRef(widgetContextState.validationState, "invalid"),
+        warning: toRef(widgetContextState.validationState, "warning"),
+        ...additionalContext,
     });
     return useTheme(componentName, props, themeContext, keyFn);
 }

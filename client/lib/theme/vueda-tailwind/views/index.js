@@ -1,10 +1,10 @@
 export default {
     PageTitle: {
-        root: ({ props }) => ({
+        root: ({ headerClass, sticky }) => ({
             class: [
-                props.headerClass,
+                headerClass,
                 {
-                    "sticky top-0 z-30": props.sticky,
+                    "sticky top-0 z-30": sticky,
                 },
             ],
         }),

@@ -35,7 +35,9 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const theme = useWidgetTheme("WidgetReadOnly", props, widgetContext.state);
+const theme = useWidgetTheme("WidgetReadOnly", props, widgetContext.state, {
+    hidden: toRef(props, "hidden"),
+});
 const isActive = useIsActive();
 const validAndActive = computed(
     () => !!(!props.foreignKeyObj && isActive.value && props.app && props.model && widgetContext.state.combinedValue),

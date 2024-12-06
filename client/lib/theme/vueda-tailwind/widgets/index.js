@@ -142,13 +142,12 @@ export default {
             class: [],
         },
         optionLabel: {
-            class: ({ props }) => {
+            class: ({ invalid, warning }) => {
                 return [
                     {
-                        "text-surface-900/60 dark:text-white/60":
-                            !props.validationState.invalid && !props.validationState.warning,
-                        "text-red-500 dark:text-red-400": props.validationState.invalid,
-                        "text-warning-500 dark:text-warning-400": props.validationState.warning,
+                        "text-surface-900/60 dark:text-white/60": !invalid && !warning,
+                        "text-red-500 dark:text-red-400": invalid,
+                        "text-warning-500 dark:text-warning-400": warning,
                     },
                 ];
             },
@@ -157,8 +156,8 @@ export default {
     WidgetReadOnly: {
         root: { class: [] },
         inner: {
-            class: ({ props }) => ({
-                "flex flex-col": !props.hidden,
+            class: ({ hidden }) => ({
+                "flex flex-col": !hidden,
             }),
         },
         input: {
@@ -213,52 +212,45 @@ export default {
         },
     },
     WidgetLabel: {
-        root: ({ props, widgetContextState }) => {
-            const isRequiredHasHelpOrHasValidation =
-                props.required ||
-                props.help ||
-                widgetContextState?.required ||
-                widgetContextState?.help ||
-                widgetContextState?.validationState?.warning ||
-                widgetContextState?.validationState?.invalid;
+        root: ({ isCardLayout, hidden, required, help, warning, invalid }) => {
+            const isRequiredHasHelpOrHasValidation = required || help || warning || invalid;
             return {
                 class: {
-                    "ml-2 mb-1": !props.isCardLayout,
+                    "ml-2 mb-1": !isCardLayout,
                     "gap-1": true,
                     // "flex flex-row items-stretch gap-1",
                     // not items-baseline, checkboxes and buttons don't play well with it
-                    "grid grid-cols-[max-content_auto] justify-between items-center": !props.hidden,
-                    "flex flex-row items-baseline": props.hidden && isRequiredHasHelpOrHasValidation,
+                    "grid grid-cols-[max-content_auto] justify-between items-center": !hidden,
+                    "flex flex-row items-baseline": hidden && isRequiredHasHelpOrHasValidation,
                 },
             };
         },
         label: {
-            class: ({ widgetContextState, props }) => {
-                const hasValidation =
-                    widgetContextState?.validationState?.warning || widgetContextState?.validationState?.invalid;
+            class: ({ warning, invalid, hidden }) => {
+                const hasValidation = warning || invalid;
                 return {
-                    "sr-only": props.hidden,
-                    "row-start-1 row-end-2 col-start-1": !props.hidden,
-                    "col-end-2": !props.hidden && hasValidation,
-                    "col-end-3": !props.hidden && !hasValidation,
+                    "sr-only": hidden,
+                    "row-start-1 row-end-2 col-start-1": !hidden,
+                    "col-end-2": !hidden && hasValidation,
+                    "col-end-3": !hidden && !hasValidation,
                     "leading-7": true,
                     "text-surface-900/60 dark:text-white/60": true,
-                    "!text-amber-600 dark:!text-amber-500": widgetContextState?.validationState?.warning,
-                    "!text-maroon-600 dark:!text-maroon-500": widgetContextState?.validationState?.invalid,
+                    "!text-amber-600 dark:!text-amber-500": warning,
+                    "!text-maroon-600 dark:!text-maroon-500": invalid,
                 };
             },
         },
-        feedback: ({ props }) => ({
+        feedback: ({ hidden }) => ({
             class: {
-                "row-start-1 row-end-2 col-start-2 col-end-3": !props.hidden,
-                "justify-self-end min-w-max": !props.hidden,
+                "row-start-1 row-end-2 col-start-2 col-end-3": !hidden,
+                "justify-self-end min-w-max": !hidden,
             },
         }),
-        control: ({ props }) => {
+        control: ({ hidden }) => {
             return {
                 class: {
-                    "row-start-2 row-end-3 col-start-1 col-end-3": !props.hidden,
-                    grow: props.hidden,
+                    "row-start-2 row-end-3 col-start-1 col-end-3": !hidden,
+                    grow: hidden,
                 },
             };
         },

@@ -5,7 +5,7 @@ import ObjectsGridTableHeader from "@vueda/components/ObjectsGridTableHeader.vue
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
-import { computed, onMounted, reactive, toRef, watch } from "vue";
+import { computed, onMounted, toRef, watch } from "vue";
 
 const props = defineProps({
     titleFieldName: {
@@ -184,10 +184,10 @@ const sortClick = (e, fieldName) => {
 };
 
 const directionlessSorted = computed(() => props.sorted.map((field) => field.replace(/^-/, "")));
-const themeProps = reactive({
+const themeProps = {
     isTable,
     tableBreakpoint: toRef(props, "tableBreakpoint"),
-});
+};
 const theme = useTheme("ObjectsGrid", props, themeProps, (key, kwargs) => {
     if ("evenCard" in kwargs) {
         return key + (kwargs.evenCard ? "Even" : "Odd");

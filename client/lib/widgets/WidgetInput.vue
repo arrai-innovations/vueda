@@ -10,6 +10,7 @@ import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import InputGroup from "primevue/inputgroup";
 import InputMask from "primevue/inputmask";
+import InputNumber from "primevue/inputnumber";
 import InputOtp from "primevue/inputotp";
 import InputText from "primevue/inputtext";
 import { computed, useSlots } from "vue";
@@ -34,7 +35,8 @@ const inputComponent = computed(
     () =>
         ({
             text: InputText,
-            number: InputText, // Not using InputNumber because it doesn't update the v-model on @input
+            // number: InputText, // Not using InputNumber because it doesn't update the v-model on @input
+            number: InputNumber,
             otp: InputOtp,
             mask: InputMask,
         })[props.type] || InputText,

@@ -33,7 +33,7 @@ import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import pick from "lodash-es/pick.js";
-import { inject, useSlots } from "vue";
+import { inject, toRef, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -59,7 +59,14 @@ const props = defineProps({
 /** @type {import('@vueda/use/useWidget.js').WidgetContext} */
 const widgetContext = inject(WidgetContextSymbol);
 const combinedLabel = computed(() => props.label ?? widgetContext?.state?.combinedLabel);
-const theme = useWidgetTheme("WidgetLabel", props, widgetContext.state);
+const theme = useWidgetTheme("WidgetLabel", props, widgetContext.state, {
+    hidden: toRef(props, "hidden"),
+    isCardLayout: toRef(props, "isCardLayout"),
+    invalid: toRef(widgetContext.state.validationState, "invalid"),
+    valid: toRef(widgetContext.state.validationState, "valid"),
+    required: computed(() => props.required ?? widgetContext.state.required),
+    help: computed(() => props.help ?? widgetContext.state.help),
+});
 const slots = useSlots();
 const availableFeedbackSlotNames = getFormHiddenFeedbackSlotsComputed(slots);
 </script>

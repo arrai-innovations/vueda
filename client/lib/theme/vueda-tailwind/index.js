@@ -19,13 +19,13 @@ export default {
         },
     },
     StickyBar: {
-        root: (args) => {
+        root: ({ hidden }) => {
             return {
                 class: {
                     "sticky top-[-1px] z-30": true,
                     "transition-transform duration-300 ease-in-out transform": true,
-                    "translate-y-[-100%]": args?.hidden,
-                    "translate-y-0": !args?.hidden,
+                    "translate-y-[-100%]": hidden,
+                    "translate-y-0": !hidden,
                 },
             };
         },

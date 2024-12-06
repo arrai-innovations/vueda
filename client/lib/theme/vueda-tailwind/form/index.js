@@ -191,13 +191,13 @@ export default {
         },
     },
     FormHelpText: {
-        root: ({ props }) => ({
-            class: [props?.variant === "simple" ? "mx-2" : "", "my-2"],
+        root: ({ variant }) => ({
+            class: [variant === "simple" ? "mx-2" : "", "my-2"],
         }),
     },
     FormFeedback: {
-        root: ({ props }) => ({
-            class: [props?.variant === "simple" ? "mx-2" : "", "my-2"],
+        root: ({ variant }) => ({
+            class: [variant === "simple" ? "mx-2" : "", "my-2"],
         }),
         messages: {
             class: ["flex flex-col gap-1 md:gap-2 2xl:gap-4"],
