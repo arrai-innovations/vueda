@@ -1,4 +1,5 @@
 <script setup>
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import ObjectsGridCardCell from "@vueda/components/ObjectsGridCardCell.vue";
 import ObjectsGridTableHeader from "@vueda/components/ObjectsGridTableHeader.vue";
@@ -207,7 +208,7 @@ const theme = useTheme(
                     <template v-for="(field, colIndex) in fields" :key="field?.name || `col-index-${colIndex}`">
                         <div
                             v-if="field?.name"
-                            :class="[theme('headerCell'), headerClasses?.[field?.name]]"
+                            :class="combineClasses(theme('headerCell'), headerClasses?.[field?.name])"
                             :data-header="field?.name"
                             data-qa="objects-grid-header"
                             role="columnheader"
@@ -272,7 +273,7 @@ const theme = useTheme(
                             <objects-grid-card-cell
                                 v-if="!isTable"
                                 :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
-                                :class="[fieldClasses?.[field?.name], cardFieldClasses?.[field?.name]]"
+                                :class="combineClasses(fieldClasses?.[field?.name], cardFieldClasses?.[field?.name])"
                                 :col-index="colIndex"
                                 :data-field="field?.name"
                                 :field="field"
@@ -294,7 +295,7 @@ const theme = useTheme(
                             <objects-grid-body-cell
                                 v-else
                                 :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
-                                :class="[fieldClasses?.[field?.name], tableFieldClasses?.[field?.name]]"
+                                :class="combineClasses(fieldClasses?.[field?.name], tableFieldClasses?.[field?.name])"
                                 :col-index="colIndex"
                                 :data-field="field?.name"
                                 :field="field"
