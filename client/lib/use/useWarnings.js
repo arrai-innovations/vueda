@@ -36,18 +36,18 @@ export const OnRetrieveErrorHandler = async ({ error, formContext, state }) => {
 /**
  * @param {string} app - The app name
  * @param {string} model - The model name
+ * @param {string} action- The action to be performed
  * @param {string} [pk] - The primary key of the object
  * @param {boolean} detailed- Whether to fetch detailed warnings
  * @returns {Promise<void> & { cancel: () => Promise<void> }} - A cancellable promise.
  */
-function warningsFetch(app, model, pk, detailed) {
+function warningsFetch(app, model, action, pk, detailed) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const controller = new AbortController();
-    const action = "warnings";
     const queryString = detailed ? "" : makeSearchParamsString({ pks: pk, action: action });
     const url = detailed
-        ? getDetailUrl({ app, model, pk, action })
-        : getListUrl({ app, model, action, query: queryString });
+        ? getDetailUrl({ app, model, pk, action: "warnings" })
+        : getListUrl({ app, model, action: "warnings", query: queryString });
     const returnPromise = fetch(url, {
         method: "GET",
         credentials: "include",
@@ -108,7 +108,7 @@ export function useWarnings(app, model, formContext, view, pk) {
         }
         loadingError.setLoading();
         loadingError.clearError();
-        promise = warningsFetch(args.app, args.model, args.pk, args.detailed)
+        promise = warningsFetch(args.app, args.model, args.action, args.pk, args.detailed)
             .then((object) => {
                 state.responseData = object;
                 return Promise.resolve(true);
@@ -143,7 +143,7 @@ export function useWarnings(app, model, formContext, view, pk) {
                 // not detailed meaning it is bulk. we don't deal with list/target less yet.
                 const detailed = newView == "update";
                 if (newPk) {
-                    const args = { app: newApp, model: newModel, pk: newPk, detailed: detailed };
+                    const args = { app: newApp, model: newModel, action: newView, pk: newPk, detailed: detailed };
                     await retrieveFn(args);
                     if (state.errored) {
                         const error = state.error;
