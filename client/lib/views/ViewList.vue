@@ -24,7 +24,7 @@ import Checkbox from "primevue/checkbox";
 import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
 import { computed, effectScope, onMounted, reactive, readonly, ref, toRaw, toRef, toRefs, unref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 defineOptions({
     inheritAttrs: false,
@@ -129,8 +129,12 @@ const props = defineProps({
 });
 const listSearch = ref(null);
 const isActive = useIsActive();
+const validAndActive = computed(() => !!(isActive.value && props.app && props.model && modelConfig.info?.pk));
 const viewName = "list";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
+const selectedObjects = ref([]);
+const workflow = useWorkflow(toRef(props, "app"), toRef(props, "model"), selectedObjects, isActive, validAndActive);
+const router = useRouter();
 const sorting = reactive({
     state: {
         sortables: computed(() => modelConfig?.config?.sortables),
@@ -164,7 +168,6 @@ const calculatedDisplayFields = computed(() => {
         );
     }
 });
-const validAndActive = computed(() => !!(isActive.value && props.app && props.model && modelConfig.info?.pk));
 const alwaysListArgsKeys = ["o", "f", "e"];
 const listState = reactive({
     currentPage: 1,
@@ -228,6 +231,8 @@ watch(
     },
     { deep: true, immediate: true },
 );
+const route = useRoute();
+
 watch(
     () => cloneDeep(listState.filterArgs),
     (newFilter, oldFilter) => {
@@ -245,6 +250,9 @@ watch(
             ...alwaysListArgsKeys,
             props.searchKey,
         ]);
+        if (!isEqual(newFilter, route.query)) {
+            router.push({ query: listState.filterArgs });
+        }
     },
     { deep: true },
 );
@@ -262,9 +270,7 @@ const filterList = () => {
     listState.search = listSearch.value;
     // listState.filterArgs = cloneDeep(formContext.state.values);
 };
-const selectedObjects = ref([]);
-const workflow = useWorkflow(toRef(props, "app"), toRef(props, "model"), selectedObjects, isActive, validAndActive);
-const router = useRouter();
+
 const detailActionOnClick = (actionName) => {
     return async () => {
         await router.push(

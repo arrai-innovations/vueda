@@ -23,6 +23,10 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    listArgs: {
+        type: Object,
+        required: true,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 // TODO: this is built assuming each filter field has only one lookup expression
@@ -58,6 +62,16 @@ const resolvedSlotNamesArgs = {
 const resolvedSlotNames = Object.fromEntries(
     Object.entries(resolvedSlotNamesArgs).map(([key, value]) => [key, useSlotNameResolver(value)]),
 );
+
+// watch(
+//     toRef(props, "listArgs"),
+//     () => {
+//         const possibleFilterName = props.filterDetails.lookupExprs?.[0].map((expr) => `${props.filterName}__${expr}`);
+//         //TODO: upadte the addedFilders according to listATgs here.
+//         },
+//     { deep: true, immediate: true },
+// );
+
 const doToggle = (event) => {
     if (event) {
         event.preventDefault();
@@ -104,27 +118,35 @@ const computedFilterLabel = computed(() => {
     return filterLabel;
 });
 
+const lookupExpression = computed(() => {
+    return props.filterDetails.ignorelookupExprs ? undefined : props.filterDetails.lookupExprs?.[0];
+});
+const lookupExpressionsToParams = computed(() => {
+    const lookupExpressionsToParams = [];
+    if (props.filterDetails.suffixes?.length) {
+        props.filterDetails.suffixes.forEach((suffix) => {
+            const p = lookupExpression.value
+                ? `${props.filterName}_${suffix}__${lookupExpression.value}`
+                : `${props.filterName}_${suffix}`;
+            lookupExpressionsToParams.push(p);
+        });
+    }
+    return lookupExpressionsToParams;
+});
+
 const applyFilter = (e, filter) => {
     if (e && e.preventDefault) {
         e.preventDefault();
     } else {
         filter = e;
     }
-    const lookupExpressionsToParams = [];
-    // TODO: this now handle handles with single lookup expression
-    const lookupExpression = filter.lookupExpression === false ? undefined : props.filterDetails.lookupExprs?.[0];
-    const key = lookupExpression ? `${filter.name}__${lookupExpression}` : filter.name;
-    if (props.filterDetails.suffixes?.length) {
-        props.filterDetails.suffixes.forEach((suffix) => {
-            const p = lookupExpression ? `${filter.name}_${suffix}__${lookupExpression}` : `${filter.name}_${suffix}`;
 
-            lookupExpressionsToParams.push(p);
-        });
-    }
+    // TODO: this now handle handles with single lookup expression
+    const key = lookupExpression.value ? `${filter.name}__${lookupExpression.value}` : filter.name;
     //TODO: This is kinda hard coded for dates only
     const filterValue = filter.value;
     let labelValue = filter.labelValue;
-    if (filter.range && lookupExpressionsToParams.length) {
+    if (filter.range && lookupExpressionsToParams.value.length) {
         const keys = Object.keys(filterValue);
         if (!filter.labelValue) {
             labelValue = {};
@@ -142,7 +164,7 @@ const applyFilter = (e, filter) => {
         key,
         isValueRawObject: filter.isValueRawObject,
         expression: lookupExpression,
-        param: lookupExpressionsToParams.length ? lookupExpressionsToParams : key,
+        param: lookupExpressionsToParams.value.length ? lookupExpressionsToParams : key,
         value: filterValue,
         labelValue: labelValue,
         is_range: filter.range,

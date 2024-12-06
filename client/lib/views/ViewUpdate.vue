@@ -105,11 +105,7 @@ const props = defineProps({
     },
     calculatedObjectRules: {
         type: Object,
-        default: () => ({
-            some_test_field: (timesheet) => {
-                return timesheet;
-            },
-        }),
+        default: () => ({}),
     },
     fetchFields: {
         type: Array,

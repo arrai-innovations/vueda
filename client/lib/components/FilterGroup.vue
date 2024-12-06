@@ -1,4 +1,5 @@
 <script setup>
+import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import FilterComponent from "@vueda/components/FilterComponent.vue";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { isObject } from "lodash-es";
@@ -6,6 +7,7 @@ import isArray from "lodash-es/isArray.js";
 import isEqual from "lodash-es/isEqual.js";
 import Button from "primevue/button";
 import { computed, readonly, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 
 const listArgs = defineModel({
     type: Object,
@@ -30,8 +32,24 @@ const addedFilters = ref([]);
 const clearFilters = () => {
     addedFilters.value = [];
 };
-
+const route = useRoute();
 const computedFilters = computed(() => props.filterables.filter((filter) => props.filterableDetails[filter]));
+
+watch(
+    () => route.query, // Watch the query part of the route
+    (newQuery) => {
+        console.log("newQuery", newQuery);
+        if (!isEqual(newQuery, listArgs.value)) {
+            assignReactiveObject(listArgs, newQuery);
+            // const listArgsAsList = Object.entries(listArgs.value).map(([key, value]) => ({ field: key, value }));
+            // emit("filter-change", listArgsAsList);
+            // TODO: sync addedFilters with listArgs
+        }
+        console.log("listArgs.value", listArgs.value);
+    },
+    { immediate: true }, // Run immediately on component mount
+);
+
 watch(
     addedFilters,
     (newAddedFilters) => {
@@ -84,6 +102,7 @@ watch(
                     :filter-details="props.filterableDetails[filter]"
                     :filter-name="filter"
                     :index="index"
+                    :list-args="listArgs"
                     :model-value="addedFilters"
                     @hide-filter-form="emit('hide-filter-form', $event)"
                 >
