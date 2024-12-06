@@ -364,7 +364,6 @@ const remainingSlotNames = computed(() => {
             </slot>
             <objects-grid
                 v-if="internalVisible"
-                :calculated-objects="$attrs.calculatedObjects || {}"
                 :class="theme('objectsGrid')"
                 :empty-text="null"
                 :field-classes="{
@@ -373,8 +372,8 @@ const remainingSlotNames = computed(() => {
                 :fields="computedFieldObjects"
                 :objects-in-order="fieldSetContext.state.value"
                 :table-breakpoint="$attrs.tableBreakpoint || 'lg'"
-                :theme-override="{ ObjectsGridBodyCell: { root: { class: 'min-w-36' } } }"
                 :variant="props.objectGridVariant"
+                v-bind="omit($attrs, ['class'])"
             >
                 <template
                     v-for="fieldObj in fieldObjects"

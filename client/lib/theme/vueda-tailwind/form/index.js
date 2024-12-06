@@ -143,6 +143,13 @@ export default {
         toggleButton: {
             class: [],
         },
+        themeOverride: {
+            ObjectsGridBodyCell: {
+                root: {
+                    class: "min-w-36",
+                },
+            },
+        },
     },
     FilterForm: {
         dialog: {
