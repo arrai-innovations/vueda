@@ -299,10 +299,7 @@ useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, t
             </template>
         </page-title>
         <sticky-bar class="w-full">
-            <div
-                class="flex flex-wrap gap-1 2xl:gap-2 w-full w-full sm:w-fit sm:max-w-max"
-                data-qa="update-action-buttons"
-            >
+            <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="update-action-buttons">
                 <slot
                     :form="formId"
                     label="Submit"
