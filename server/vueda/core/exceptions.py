@@ -98,6 +98,21 @@ def _get_error_details(data, default_code=None):
     return ErrorDetail(text, code)
 
 
+def get_error_details_as_warning(detail):
+    if isinstance(detail, (list, tuple)):
+        return [get_error_details_as_warning(d) for d in detail]
+    if isinstance(detail, dict):
+        details = {}
+        for key, value in detail.items():
+            errors = get_error_details_as_warning(value)
+            if not isinstance(errors, list):
+                errors = [errors]
+            details[key] = errors
+        return details
+    else:
+        return {"warnings": detail}
+
+
 class VuedaValidationError(ValidationError):
     default_type = "error"
 
@@ -115,10 +130,8 @@ class VuedaValidationError(ValidationError):
             detail = [detail]
         if is_warning:
             if isinstance(detail, dict):
-                details = {}
-                for key, value in detail.items():
-                    details[key] = [{"warnings": value}]
-                self.detail = _get_error_details(details, code)
+                error_detail = get_error_details_as_warning(detail)
+                self.detail = _get_error_details(error_detail, code)
             else:
                 self.detail = [_get_error_details({"warnings": detail}, code)]
         else:
