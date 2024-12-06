@@ -141,6 +141,9 @@ export function useWidget(props, emit) {
             combinedName: computed(() => {
                 return props.name?.length ? props.name : fieldContext.state.name;
             }),
+            formModelName: computed(() => {
+                return fieldContext?.state.formModelName;
+            }),
             combinedLabel: computed(() => {
                 return props.label?.length ? props.label : fieldContext.state.label;
             }),

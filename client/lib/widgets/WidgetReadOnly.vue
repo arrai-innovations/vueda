@@ -3,6 +3,7 @@ import { useObject } from "@arrai-innovations/reactive-helpers";
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { useIsActive } from "@vueda/use/useIsActive.js";
+import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
@@ -79,6 +80,12 @@ watch(
     },
     { immediate: true },
 );
+const linkItemResolvedSlotNames = useSlotNameResolver(
+    computed(() => [`widget-read-only(${widgetContext.state.formModelName})link-item`, "link-item"]),
+);
+const textItemResolvedSlotNames = useSlotNameResolver(
+    computed(() => [`widget-read-only(${widgetContext.state.formModelName})text-item`, "text-item"]),
+);
 </script>
 
 <template>
@@ -100,9 +107,11 @@ watch(
                                 v-if="readonlyValue"
                                 :app="app"
                                 :class="theme('linkItem')"
+                                :field-name="widgetContext.state.combinedName"
+                                :form-model-name="widgetContext.state.formModelName"
                                 :label="readonlyValue"
                                 :model="model"
-                                name="link-item"
+                                :name="linkItemResolvedSlotNames.name"
                                 :pk="pkValue"
                                 view="update"
                             >
@@ -118,7 +127,9 @@ watch(
                             <slot
                                 v-else
                                 :class="theme('textItem')"
-                                name="text-item"
+                                :field-name="widgetContext.state.combinedName"
+                                :form-model-name="widgetContext.state.formModelName"
+                                :name="textItemResolvedSlotNames.name"
                                 :value="widgetContext.state.combinedValue"
                             >
                                 <span :class="theme('textItem')">
