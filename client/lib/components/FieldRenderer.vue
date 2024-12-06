@@ -46,6 +46,18 @@ const fieldValuePath = computed(() =>
         ? props.formModelName
         : `${fieldSetContext.state.name}[${props.objectGridFieldSlotProps.rowIndex}].${unref(relativeFieldName)}`,
 );
+const fieldSlotName = computed(() => `field(${props.formModelName})`);
+const fieldDefaultSlotName = computed(() => `${unref(fieldSlotName)}default`);
+const widgetSlotName = computed(() => `widget(${props.formModelName})`);
+const widgetDefaultSlotName = computed(() => `${unref(widgetSlotName)}default`);
+const knownSlots = computed(() => [
+    unref(fieldSlotName),
+    unref(fieldDefaultSlotName),
+    unref(widgetSlotName),
+    unref(widgetDefaultSlotName),
+    "default",
+]);
+const remainingSlots = computed(() => Object.keys(slots).filter((slotName) => !unref(knownSlots).includes(slotName)));
 const slotProps = reactive({
     fieldComponent: computed(() => props.formModel.fieldComponents[props.formModelName]),
     fieldDetail: computed(() => props.formModel.fieldDetails[props.formModelName]),
@@ -72,6 +84,7 @@ const slotProps = reactive({
             props.themeOverride,
         ),
     })),
+    slots: computed(() => unref(remainingSlots).map((slotName) => [slotName, slots[slotName]])),
 });
 const theme = useTheme(
     "FormModel",
@@ -81,18 +94,6 @@ const theme = useTheme(
 );
 slotProps.fieldClass = computed(() => combineClasses(unref(theme("field")), slotProps.fieldProps?.class, attrs.class));
 slotProps.fieldInnerClass = theme("fieldInner");
-const fieldSlotName = computed(() => `field(${props.formModelName})`);
-const fieldDefaultSlotName = computed(() => `${unref(fieldSlotName)}default`);
-const widgetSlotName = computed(() => `widget(${props.formModelName})`);
-const widgetDefaultSlotName = computed(() => `${unref(widgetSlotName)}default`);
-const knownSlots = computed(() => [
-    unref(fieldSlotName),
-    unref(fieldDefaultSlotName),
-    unref(widgetSlotName),
-    unref(widgetDefaultSlotName),
-    "default",
-]);
-const remainingSlots = computed(() => Object.keys(slots).filter((slotName) => !unref(knownSlots).includes(slotName)));
 </script>
 
 <template>
