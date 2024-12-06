@@ -1,7 +1,6 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
-import isEmpty from "lodash-es/isEmpty.js";
 import isFunction from "lodash-es/isFunction.js";
 import mergeWith from "lodash-es/mergeWith.js";
 import { computed, effectScope, getCurrentInstance, inject, provide, unref } from "vue";
@@ -200,16 +199,19 @@ const mergeWithCb = (objValue, srcValue, key) => {
  * @returns {ThemeObject} - The merged ThemeObject.
  */
 export function mergeTheme(...themes) {
+    if (themes.length === 0) {
+        return {};
+    }
     if (themes.length === 1) {
         return themes[0];
     }
-    if (isEmpty(themes)) {
-        return {};
-    }
-    return themes.reduce((acc, theme) => {
+
+    const [initialTheme, ...restThemes] = themes;
+
+    return restThemes.reduce((acc, theme) => {
         if (!theme) {
             return acc;
         }
         return mergeWith(acc, theme, mergeWithCb);
-    }, cloneDeep(themes[0]));
+    }, cloneDeep(initialTheme));
 }
