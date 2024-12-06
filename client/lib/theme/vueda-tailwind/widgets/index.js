@@ -220,7 +220,7 @@ export default {
                     "gap-1": true,
                     // "flex flex-row items-stretch gap-1",
                     // not items-baseline, checkboxes and buttons don't play well with it
-                    "grid grid-cols-[max-content_auto] justify-between items-center": !hidden,
+                    "grid grid-cols-[auto_1fr] justify-between items-center": !hidden,
                     "flex flex-row items-baseline": hidden && isRequiredHasHelpOrHasValidation,
                 },
             };
