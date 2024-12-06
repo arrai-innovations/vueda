@@ -106,7 +106,7 @@ export class FormValidationError extends Error {
             delete data.serverStack;
         }
         const paths = flattenPaths(data);
-        const warningsPattern = /\.warnings\[\d+\]/;
+        const warningsPattern = /\.warnings(\[\d+\])(\..+)?$|\.warnings$/;
         const withWarnings = [];
         const withoutWarnings = [];
 

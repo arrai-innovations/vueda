@@ -2,7 +2,6 @@
 import { useList, useObject } from "@arrai-innovations/reactive-helpers";
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
-import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
@@ -42,6 +41,10 @@ const props = defineProps({
         required: true,
     },
     modelFields: {
+        type: Array,
+        default: () => [],
+    },
+    modelExpandFields: {
         type: Array,
         default: () => [],
     },
@@ -109,6 +112,7 @@ const instanceObjectProps = reactive({
     pk: computed(() => widgetContext.state.combinedValue),
     retrieveArgs: {
         f: toRef(props, "modelFields"),
+        e: toRef(props, "modelExpandFields"),
     },
     intendToRetrieve,
 });
@@ -152,24 +156,6 @@ const modelList = useList({
     keepOldPages: true,
     clearListOnListIntentTriggered: false,
 });
-const storeModelChoice = storeModelChoices();
-//watch on the returned list objects, and fieldApp, fieldModel, fieldName
-watch(
-    [
-        toRef(modelList.state, "objectsInOrder"),
-        toRef(props, "fieldApp"),
-        toRef(props, "fieldModel"),
-        toRef(props, "fieldName"),
-    ],
-    ([objectsInOrder, fieldApp, fieldModel, fieldName]) => {
-        if (objectsInOrder.length && fieldApp && fieldModel && fieldName) {
-            storeModelChoice.setChoices(fieldApp, fieldModel, fieldName, objectsInOrder);
-        }
-    },
-    {
-        immediate: true,
-    },
-);
 
 watch(
     [toRef(props, "options")],
