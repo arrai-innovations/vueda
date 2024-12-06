@@ -321,13 +321,16 @@ const computedFieldObjects = computed(() => {
     return [...props.extraFieldObjects, ...calculatedDisplayFields.value];
 });
 const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name})`);
-const themeReactiveProps = reactive({
-    ...toRefs(props),
-    loading,
-    errored,
-    error,
-});
-const theme = useTheme("ViewList", props, themeReactiveProps);
+const theme = useTheme(
+    "ViewList",
+    props,
+    reactive({
+        ...toRefs(props),
+        loading,
+        errored,
+        error,
+    }),
+);
 const targetlessActionButtonSlotName = useSlotNameResolver(["targetless-action-button", "button"]);
 const bulkActionButtonSlotName = useSlotNameResolver(["bulk-action-button", "button"]);
 const targetlessActions = computed(() => {

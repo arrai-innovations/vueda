@@ -8,7 +8,7 @@ import { isArray } from "lodash-es";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
 import Message from "primevue/message";
-import { computed, inject, reactive, watch } from "vue";
+import { inject, reactive, toRef, watch } from "vue";
 
 const props = defineProps({
     type: {
@@ -84,11 +84,13 @@ watch(
     //  deleted. this leaves empty feedback boxes on the form.
     { immediate: true, deep: true },
 );
-const themeProps = computed(() => ({
+const theme = useTheme(
+    "FormFeedback",
     props,
-    ...fieldContext?.state,
-}));
-const theme = useTheme("FormFeedback", props, themeProps);
+    reactive({
+        variant: toRef(props, "variant"),
+    }),
+);
 </script>
 <template>
     <div v-if="Object.values(feedbackItems || {})?.length" :class="theme('root')" data-qa="form-feedback-root">

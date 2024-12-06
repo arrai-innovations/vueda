@@ -2,7 +2,7 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import omit from "lodash-es/omit.js";
-import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, useTemplateRef, watch } from "vue";
 
 const root = useTemplateRef("root");
 const props = defineProps({
@@ -41,11 +41,13 @@ onBeforeUnmount(() => {
     window.removeEventListener("scroll", handleScroll);
 });
 
-const themeProps = {
-    hidden: computed(() => isScrolledPastThreshold.value && !isScrollingUp.value),
-};
-
-const theme = useTheme("StickyBar", props, themeProps);
+const theme = useTheme(
+    "StickyBar",
+    props,
+    reactive({
+        hidden: computed(() => isScrolledPastThreshold.value && !isScrollingUp.value),
+    }),
+);
 </script>
 <template>
     <div

@@ -8,7 +8,7 @@ import isObject from "lodash-es/isObject.js";
 import Button from "primevue/button";
 import ButtonGroup from "primevue/buttongroup";
 import Popover from "primevue/popover";
-import { computed, ref, useSlots, useTemplateRef } from "vue";
+import { computed, reactive, ref, useSlots, useTemplateRef } from "vue";
 
 const props = defineProps({
     filterName: {
@@ -189,10 +189,13 @@ const removeFilter = () => {
 const hasFilterValue = computed(() => {
     return addedFilters.value.some((filter) => filter.field === props.filterName);
 });
-const themeProps = {
-    hasFilterValue,
-};
-const theme = useTheme("FilterComponent", props, themeProps);
+const theme = useTheme(
+    "FilterComponent",
+    props,
+    reactive({
+        hasFilterValue,
+    }),
+);
 </script>
 
 <template>

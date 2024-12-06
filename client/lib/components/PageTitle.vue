@@ -1,7 +1,7 @@
 <script setup>
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { toRef } from "vue";
+import { reactive, toRef } from "vue";
 
 const props = defineProps({
     headerClass: {
@@ -26,10 +26,14 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const theme = useTheme("PageTitle", props, {
-    headerClass: toRef(props, "headerClass"),
-    sticky: toRef(props, "sticky"),
-});
+const theme = useTheme(
+    "PageTitle",
+    props,
+    reactive({
+        headerClass: toRef(props, "headerClass"),
+        sticky: toRef(props, "sticky"),
+    }),
+);
 </script>
 <template>
     <div :class="theme('root')">
