@@ -1,5 +1,5 @@
 <script setup>
-import { FIELD_EMITS, FIELD_PROPS, onBeforeFieldUnmount, useField } from "@vueda/use/useField.js";
+import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import omit from "lodash-es/omit.js";
 
 defineOptions({
@@ -9,9 +9,7 @@ const props = defineProps({
     ...FIELD_PROPS,
 });
 const emit = defineEmits([...FIELD_EMITS]);
-const fieldContext = useField(props, emit);
-
-onBeforeFieldUnmount(fieldContext);
+useField(props, emit);
 </script>
 <template>
     <div :class="$attrs.class" data-qa="field-UUID">

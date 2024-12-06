@@ -2,7 +2,7 @@ import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
-import { computed, inject, onBeforeUnmount, provide, reactive, readonly, toRef, unref, watch } from "vue";
+import { computed, inject, provide, reactive, readonly, toRef, unref, watch } from "vue";
 
 /**
  * The reactive props we expect fields to receive and pass to useField when creating a field context.
@@ -79,21 +79,6 @@ export function defaultValidateRequired(value) {
     return value !== null && value !== undefined && value !== "" && value !== false && value !== 0;
 }
 
-/**
- * The lifecycle hook that is called to ensure any error or message associated with field is cleared.
- * This ensures that when different fields are rendered for the same form field (e.g., the filter value on a filter form),
- * we need to manually clear any associated errors, messages, or values. This is necessary because the same field context is being reused.
- * @param {FieldContext} fieldContext
- */
-export function onBeforeFieldUnmount(fieldContext) {
-    return onBeforeUnmount(() => {
-        fieldContext.deleteError(undefined);
-        fieldContext.deleteMessage(undefined);
-        //  this was here because the filter form was using the same field component for different filters.
-        // needed to clean up the values each time switch filter
-        // fieldContext.deleteValue();
-    });
-}
 /**
  * @typedef {object} FieldContextRawState
  * @property {import('vue').ComputedRef<string>} name - The name of the field. This is the path to look up the value of

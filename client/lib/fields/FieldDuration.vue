@@ -1,5 +1,5 @@
 <script setup>
-import { FIELD_EMITS, FIELD_PROPS, onBeforeFieldUnmount, useField } from "@vueda/use/useField.js";
+import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { isObject } from "lodash-es";
 import isString from "lodash-es/isString.js";
 import omit from "lodash-es/omit.js";
@@ -84,9 +84,7 @@ const preprocessSet = (value) => {
     }
     return value;
 };
-const fieldContext = useField(props, emit, { preprocessSet, preprocessGet });
-
-onBeforeFieldUnmount(fieldContext);
+useField(props, emit, { preprocessSet, preprocessGet });
 </script>
 <template>
     <div :class="$attrs.class" data-qa="field-string">

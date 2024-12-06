@@ -1,5 +1,5 @@
 <script setup>
-import { FIELD_EMITS, FIELD_PROPS, onBeforeFieldUnmount, useField } from "@vueda/use/useField.js";
+import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import omit from "lodash-es/omit.js";
 import { computed, toRef, watch } from "vue";
 
@@ -97,7 +97,6 @@ watch(
     },
     { immediate: true },
 );
-onBeforeFieldUnmount(fieldContext);
 </script>
 <template>
     <div :class="$attrs.class" data-qa="field-number">
