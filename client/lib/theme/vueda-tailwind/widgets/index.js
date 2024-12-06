@@ -228,7 +228,7 @@ export default {
                     // "flex flex-row items-stretch gap-1",
                     // not items-baseline, checkboxes and buttons don't play well with it
                     "grid grid-cols-[max-content_auto] justify-between items-center": !props.hidden,
-                    "flex flex-row-reverse items-baseline": props.hidden && isRequiredHasHelpOrHasValidation,
+                    "flex flex-row items-baseline": props.hidden && isRequiredHasHelpOrHasValidation,
                 },
             };
         },
