@@ -60,13 +60,13 @@ export default {
                     // you can't tell how many cards are on a row, so we must treat them all the same.
                     // first and last don't help us here.
                     {
-                        "max-md:rounded max-md:gap-2 max-md:p-2 max-md:flex max-md:flex-col max-md:flex-wrap max-md:[&>*]:flex-1 max-md:[&>*]:flex-grow max-md:[&>*]:min-w-min":
+                        "max-md:rounded max-md:gap-2 max-md:p-2 max-md:flex max-md:flex-col max-md:[&>*]:flex-1 max-md:[&>*]:flex-grow max-md:[&>*]:min-w-0":
                             tableBreakpoint === "md",
-                        "max-lg:rounded max-lg:gap-2 max-lg:p-2 max-lg:flex max-lg:flex-col max-lg:flex-wrap max-lg:[&>*]:flex-1 max-lg:[&>*]:flex-grow max-lg:[&>*]:min-w-min":
+                        "max-lg:rounded max-lg:gap-2 max-lg:p-2 max-lg:flex max-lg:flex-col max-lg:[&>*]:flex-1 max-lg:[&>*]:flex-grow max-lg:[&>*]:min-w-0":
                             tableBreakpoint === "lg",
-                        "max-xl:rounded max-xl:gap-2 max-xl:p-2 max-xl:flex max-xl:flex-col max-xl:flex-wrap max-xl:[&>*]:flex-1 max-xl:[&>*]:flex-grow max-xl:[&>*]:min-w-min":
+                        "max-xl:rounded max-xl:gap-2 max-xl:p-2 max-xl:flex max-xl:flex-col max-xl:[&>*]:flex-1 max-xl:[&>*]:flex-grow max-xl:[&>*]:min-w-0":
                             tableBreakpoint === "xl",
-                        "max-2xl:rounded max-2xl:gap-2 max-2xl:p-2 max-2xl:flex max-2xl:flex-col max-2xl:flex-wrap max-2xl:[&>*]:flex-1 max-2xl:[&>*]:flex-grow max-2xl:[&>*]:min-w-min":
+                        "max-2xl:rounded max-2xl:gap-2 max-2xl:p-2 max-2xl:flex max-2xl:flex-col max-2xl:[&>*]:flex-1 max-2xl:[&>*]:flex-grow max-2xl:[&>*]:min-w-0":
                             tableBreakpoint === "2xl",
                         // "bg-surface-50 dark:bg-surface-900": !evenCard,
                         // "bg-surface-100 dark:bg-surface-800": evenCard,

@@ -115,7 +115,7 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-col gap-2 flex-wrap [&>*]:flex-1 [&>*]:!w-full"],
+            class: ["flex flex-col gap-2"],
         },
         inputRoot: {},
     },
