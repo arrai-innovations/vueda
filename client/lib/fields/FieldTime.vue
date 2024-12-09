@@ -1,6 +1,7 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import omit from "lodash-es/omit.js";
+import { DateTime } from "luxon";
 import { computed, toRef, watch } from "vue";
 
 defineOptions({
@@ -23,9 +24,14 @@ const props = defineProps({
     },
 });
 const getDateFromString = (timeString) => {
-    const [hours, minutes, seconds] = timeString.split(":").map(Number);
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, seconds);
+    if (!timeString || typeof timeString !== "string") {
+        return null;
+    }
+    const parsed = DateTime.fromFormat(timeString, "HH:mm:ss");
+    if (parsed.isValid) {
+        return parsed.toJSDate();
+    }
+    return null;
 };
 const preprocessSet = (value) => {
     if (value instanceof Date) {
@@ -34,18 +40,21 @@ const preprocessSet = (value) => {
     return value;
 };
 const preprocessGet = (value) => {
-    if (value === undefined || value === null) {
+    if (value === undefined || value === null || value === "") {
+        return null;
+    }
+    if (value instanceof Date) {
         return value;
     }
-    return value instanceof Date ? value : getDateFromString(value);
+    return getDateFromString(value) || null;
 };
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit, { preprocessSet, preprocessGet });
 const formatTime = (date) => {
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    const seconds = date.getSeconds().toString().padStart(2, "0");
-    return `${hours}:${minutes}:${seconds}`;
+    if (!date) {
+        return "";
+    }
+    return DateTime.fromJSDate(date).toFormat("HH:mm:ss");
 };
 /**
  * Convert a time string or Date object to a comparable value.
@@ -53,11 +62,20 @@ const formatTime = (date) => {
  * @returns {Number|null} The comparable value.
  */
 const timeToComparableValue = (time) => {
-    if (typeof time === "string") {
-        const [hours, minutes, seconds] = time.split(":").map(Number);
-        return hours * 3600 + minutes * 60 + (seconds || 0);
+    if (!time) {
+        return null;
     }
-    return time instanceof Date ? time.getUTCHours() * 3600 + time.getUTCMinutes() * 60 : null;
+    if (typeof time === "string") {
+        const parsed = DateTime.fromFormat(time, "HH:mm:ss");
+        if (parsed.isValid) {
+            return parsed.hour * 3600 + parsed.minute * 60 + parsed.second;
+        }
+        return null;
+    }
+    if (time instanceof Date) {
+        return time.getUTCHours() * 3600 + time.getUTCMinutes() * 60 + time.getUTCSeconds();
+    }
+    return null;
 };
 
 /**

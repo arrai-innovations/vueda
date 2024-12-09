@@ -1,11 +1,13 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import omit from "lodash-es/omit.js";
+import { DateTime } from "luxon";
 import { computed, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
 });
+
 const props = defineProps({
     ...FIELD_PROPS,
     maxValue: {
@@ -22,80 +24,73 @@ const props = defineProps({
     },
 });
 
-const parseLocalDateFromUTC = (dateString) => {
-    const [year, month, day] = dateString.split("-").map(Number);
-    const utcDate = new Date(Date.UTC(year, month - 1, day));
-    return new Date(utcDate.getTime() + utcDate.getTimezoneOffset() * 60000);
-};
-
 const preprocessGet = (value) => {
-    if (typeof value === "string") {
-        return parseLocalDateFromUTC(value);
+    if (!value || value === "") {
+        return null;
     }
-    return value;
+    if (value instanceof Date) {
+        return value;
+    }
+    const parsed = DateTime.fromISO(value, { zone: "local" });
+    return parsed.isValid ? parsed.toJSDate() : null;
 };
 
 const preprocessSet = (value) => {
     if (value instanceof Date) {
-        if (props.customDateConverter) {
-            value = props.customDateConverter(value);
-        }
-        return new Date(value).toISOString().split("T")[0];
+        const dt = DateTime.fromJSDate(value, { zone: "local" });
+        const formatted = dt.toISODate(); // Returns date in "yyyy-MM-dd" format
+        return props.customDateConverter ? props.customDateConverter(formatted) : formatted;
     }
     return value;
 };
 
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit, { preprocessGet, preprocessSet });
+
 const valueAsDate = computed(() => {
-    const value = fieldContext.state.value;
-    if (value) {
-        return new Date(value);
-    }
-    return null;
+    return preprocessGet(fieldContext.state.value);
 });
+
 const maxValueAsDate = computed(() => {
-    const maxValue = props.maxValue;
-    if (maxValue) {
-        return new Date(maxValue);
-    }
-    return null;
+    return preprocessGet(props.maxValue);
 });
+
 const minValueAsDate = computed(() => {
-    const minValue = props.minValue;
-    if (minValue) {
-        return new Date(minValue);
-    }
-    return null;
+    return preprocessGet(props.minValue);
 });
+
+const formatDate = (date) => {
+    if (!date) {
+        return "";
+    }
+    return DateTime.fromJSDate(date, { zone: "local" }).toISODate();
+};
 
 watch(
     [maxValueAsDate, valueAsDate],
     ([maxValue, value]) => {
-        if (maxValue) {
-            if (value && value > maxValue) {
-                fieldContext.updateError("maxValue", `Must be ${maxValue.toISOString().split("T")[0]} or less.`);
-            } else {
-                fieldContext.deleteError("maxValue");
-            }
+        if (maxValue && value && value > maxValue) {
+            fieldContext.updateError("maxValue", `Must be ${formatDate(maxValue)} or less.`);
+        } else {
+            fieldContext.deleteError("maxValue");
         }
     },
     { immediate: true },
 );
+
 watch(
     [minValueAsDate, valueAsDate],
     ([minValue, value]) => {
-        if (minValue) {
-            if (value && value < minValue) {
-                fieldContext.updateError("minValue", `Must be ${minValue.toISOString().split("T")[0]} or more.`);
-            } else {
-                fieldContext.deleteError("minValue");
-            }
+        if (minValue && value && value < minValue) {
+            fieldContext.updateError("minValue", `Must be ${formatDate(minValue)} or more.`);
+        } else {
+            fieldContext.deleteError("minValue");
         }
     },
     { immediate: true },
 );
 </script>
+
 <template>
     <div :class="$attrs.class" data-qa="field-date">
         <slot :field-attrs="omit($attrs, ['class'])" :field-props="props" />

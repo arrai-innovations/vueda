@@ -1,6 +1,7 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import omit from "lodash-es/omit.js";
+import { DateTime } from "luxon";
 import { computed, watch } from "vue";
 
 defineOptions({
@@ -18,28 +19,25 @@ const props = defineProps({
     },
 });
 const preprocessGet = (value) => {
-    if (typeof value === "string") {
-        return new Date(value);
+    if (!value || value === "") {
+        return null;
     }
-    return value;
-};
-const preprocessSet = (value) => {
     if (value instanceof Date) {
-        const date = new Date(value);
-        date.setTime(date.getTime() - date.getTimezoneOffset() * 60000);
-        const isoString = date.toISOString();
-        const timezoneOffset = date.getTimezoneOffset();
-        const offsetSign = timezoneOffset > 0 ? "-" : "+";
-        const offsetHours = Math.floor(Math.abs(timezoneOffset) / 60)
-            .toString()
-            .padStart(2, "0");
-        const offsetMinutes = (Math.abs(timezoneOffset) % 60).toString().padStart(2, "0");
-        return `${isoString.split(".")[0]}${offsetSign}${offsetHours}:${offsetMinutes}`;
+        return value;
     }
-    return value;
+    const parsed = DateTime.fromISO(value);
+    return parsed.isValid ? parsed.toJSDate() : null;
 };
+
+const preprocessSet = (value) => (value instanceof Date ? DateTime.fromJSDate(value).toISO() : value);
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit, { preprocessGet, preprocessSet });
+const formatDateTime = (date) => {
+    if (!date) {
+        return "";
+    }
+    return DateTime.fromJSDate(date).toISO({ suppressMilliseconds: true });
+};
 const valueAsDateTime = computed(() => {
     const value = fieldContext.state.value;
     if (value) {
@@ -48,40 +46,19 @@ const valueAsDateTime = computed(() => {
     return null;
 });
 const maxValueAsDateTime = computed(() => {
-    const maxValue = props.maxValue;
-    if (maxValue) {
-        return new Date(maxValue);
-    }
-    return null;
+    return preprocessGet(props.maxValue);
 });
+
 const minValueAsDateTime = computed(() => {
-    const minValue = props.minValue;
-    if (minValue) {
-        return new Date(minValue);
-    }
-    return null;
+    return preprocessGet(props.minValue);
 });
-//TODO: Fix datetime
-// watch(
-//     toRef(fieldContext.state, "value"),
-//     (newValue) => {
-//         console.log("Watch from fieldData")
-//
-//         if (newValue instanceof Date) {
-//             fieldContext.state.value = preprocessSet(newValue);
-//         }
-//     },
-//     { immediate: true },
-// );
 watch(
     [maxValueAsDateTime, valueAsDateTime],
     ([maxValue, value]) => {
-        if (maxValue) {
-            if (value && value > maxValue) {
-                fieldContext.updateError("maxValue", `Must be ${maxValue.toISOString().split(".")[0]} or less.`);
-            } else {
-                fieldContext.deleteError("maxValue");
-            }
+        if (maxValue && value && value > maxValue) {
+            fieldContext.updateError("maxValue", `Must be ${formatDateTime(maxValue)} or less.`);
+        } else {
+            fieldContext.deleteError("maxValue");
         }
     },
     { immediate: true },
@@ -89,12 +66,10 @@ watch(
 watch(
     [minValueAsDateTime, valueAsDateTime],
     ([minValue, value]) => {
-        if (minValue) {
-            if (value && value < minValue) {
-                fieldContext.updateError("minValue", `Must be ${minValue.toISOString().split(".")[0]} or more.`);
-            } else {
-                fieldContext.deleteError("minValue");
-            }
+        if (minValue && value && value < minValue) {
+            fieldContext.updateError("minValue", `Must be ${formatDateTime(minValue)} or more.`);
+        } else {
+            fieldContext.deleteError("minValue");
         }
     },
     { immediate: true },

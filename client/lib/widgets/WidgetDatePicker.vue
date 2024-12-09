@@ -8,8 +8,32 @@ import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { knownDatePickerProps } from "@vueda/utils/primevueConsts.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import pick from "lodash-es/pick.js";
+import { DateTime } from "luxon";
 import DatePicker from "primevue/datepicker";
-import { computed, useSlots } from "vue";
+import { computed, nextTick, ref, unref, useSlots } from "vue";
+
+// we use these formats to handle unvalidated input.
+// unvalidated input is a workaround of datepicker not dealing with manual input well.
+const formats = {
+    time: [
+        "h:mm a", // 9:11 AM
+        "hh:mm a", // 09:11 AM
+        "H:mm", // 21:11
+        "HH:mm", // 09:11 in 24-hour format
+        "HHmm", // 0911 in 24-hour format
+        "h a", // 9 AM
+        "hh a", // 09 AM
+        "H", // 21
+        "HH", // 09 in 24-hour format
+    ],
+    date: [
+        "yyyy-MM-dd", // 2023-12-01
+    ],
+    datetime: [
+        "yyyy-MM-dd HH:mm", // 2023-12-01 21:11
+        "yyyy-MM-dd h:mm a", // 2023-12-01 9:11 AM
+    ],
+};
 
 defineOptions({
     inheritAttrs: false,
@@ -32,10 +56,16 @@ const valueIsArray = computed(() => Array.isArray(widgetContext.state.combinedVa
 const computedSelectionMode = computed(() =>
     props.selectionMode ? props.selectionMode : valueIsArray.value ? "range" : "single",
 );
+const unvalidatedInput = ref(null);
+const debounceTimeout = ref(null);
+const DEBOUNCE_DELAY = 1000;
 const modelValue = computed(() => {
-    return widgetContext.state.combinedValue;
+    return unvalidatedInput.value ?? widgetContext.state.combinedValue ?? null;
 });
 const valueUpdated = (value) => {
+    if (unvalidatedInput.value) {
+        unvalidatedInput.value = null;
+    }
     widgetContext.state.combinedValue = value;
 };
 const onTodayButtonClick = () => {
@@ -63,6 +93,75 @@ const datePickerAttrs = useFilteredAttrs(knownDatePickerProps, [
     "onTodayClick",
     "onUpdate:modelValue",
 ]);
+const inputType = computed(() => {
+    const dpAttrs = unref(datePickerAttrs);
+    const showTime = dpAttrs.showTime ?? false;
+    const timeOnly = dpAttrs.timeOnly ?? false;
+    if (dpAttrs.selectionMode === "range") {
+        // todo: handle ranges
+        return "datetime";
+    } else if (showTime && !timeOnly) {
+        return "datetime";
+    } else if (showTime || timeOnly) {
+        return "time";
+    } else {
+        return "date";
+    }
+});
+const parseInputToModel = (input, type = "datetime") => {
+    const typeFormats = formats[type] || [];
+    let parsedDate = null;
+    for (const format of typeFormats) {
+        parsedDate = DateTime.fromFormat(input, format, { locale: "en" });
+        if (parsedDate.isValid) {
+            return parsedDate.toJSDate();
+        }
+    }
+    throw new Error("Invalid input format");
+};
+const normalizeAndUpdate = (value, type = "datetime") => {
+    if (!value || !value.trim()) {
+        valueUpdated(null);
+        return;
+    }
+    try {
+        const parsedDate = parseInputToModel(value, type);
+        valueUpdated(parsedDate);
+    } catch (error) {
+        console.warn("Invalid input:", error.message);
+    }
+};
+const onInput = (e) => {
+    const value = e.target.value;
+    unvalidatedInput.value = value;
+    if (debounceTimeout.value) {
+        clearTimeout(debounceTimeout.value);
+    }
+    debounceTimeout.value = setTimeout(() => {
+        try {
+            normalizeAndUpdate(value, inputType.value);
+        } catch (error) {
+            console.warn("Invalid input during typing:", error.message);
+        } finally {
+            debounceTimeout.value = null;
+        }
+    }, DEBOUNCE_DELAY);
+};
+
+const onBlur = (e) => {
+    const value = e.value;
+    try {
+        normalizeAndUpdate(value, inputType.value);
+    } catch (error) {
+        console.warn("Invalid input on blur:", error.message);
+    }
+    nextTick(() => {
+        widgetContext.blur();
+        if (unvalidatedInput.value) {
+            unvalidatedInput.value = null;
+        }
+    });
+};
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-date-picker-root">
@@ -79,6 +178,7 @@ const datePickerAttrs = useFilteredAttrs(knownDatePickerProps, [
                             outlined: true,
                             text: true,
                         }"
+                        :default-value="null"
                         :disabled="widgetContext.state.disabled"
                         :input-id="widgetContext.state.widgetId"
                         :invalid="widgetContext.state.validationState.invalid"
@@ -92,8 +192,9 @@ const datePickerAttrs = useFilteredAttrs(knownDatePickerProps, [
                             outlined: true,
                             text: true,
                         }"
-                        @blur="widgetContext.blur"
+                        @blur="onBlur"
                         @focus="widgetContext.focus"
+                        @input="onInput"
                         @today-click="onTodayButtonClick"
                         @update:model-value="(value) => valueUpdated(value)"
                     />

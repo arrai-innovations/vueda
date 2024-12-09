@@ -1,3 +1,4 @@
+import camelCase from "lodash-es/camelCase.js";
 import { computed, useAttrs } from "vue";
 import { deepUnref } from "vue-deepunref";
 
@@ -48,13 +49,18 @@ export function useFilteredAttrs(pickList, omitList, attrs = null) {
         attrs = useAttrs();
     }
     return computed(() => {
-        let filteredAttrs = attrs;
+        let filteredAttrs = deepUnref(attrs);
+        // vue translates props, but not attrs, from kebab-case to camelCase
+        // to avoid confusion, we convert them here, to match the allow or deny lists
+        filteredAttrs = Object.fromEntries(
+            Object.entries(filteredAttrs).map(([key, value]) => [camelCase(key), value]),
+        );
         if (pickList?.length) {
             filteredAttrs = pick(filteredAttrs, pickList);
         }
         if (omitList?.length) {
             filteredAttrs = omit(filteredAttrs, omitList);
         }
-        return /** @type {{ [key: string]: any }} */ deepUnref(filteredAttrs);
+        return filteredAttrs;
     });
 }
