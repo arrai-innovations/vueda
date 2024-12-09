@@ -440,6 +440,7 @@ const searchSlotProps = reactive({
                                     name="search"
                                     placeholder="Search"
                                     type="search"
+                                    @search="searchSlotProps.filterList"
                                     @update:model-value="searchSlotProps.updateListSearch"
                                 />
                                 <Button label="Search" @click="searchSlotProps.filterList" />
