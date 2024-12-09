@@ -93,6 +93,9 @@ const instanceList = useList({
 
 const handleActivate = async () => {
     await instanceList.executeAction();
+    if (instanceList.state.errored) {
+        throw instanceList.state.error;
+    }
 };
 </script>
 

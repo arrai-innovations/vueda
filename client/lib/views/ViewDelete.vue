@@ -63,6 +63,9 @@ const instanceList = useList({
 
 const handleDelete = async () => {
     await instanceList.bulkDelete();
+    if (instanceList.state.errored) {
+        throw instanceList.state.error;
+    }
 };
 </script>
 
