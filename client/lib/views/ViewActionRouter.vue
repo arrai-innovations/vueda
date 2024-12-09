@@ -29,7 +29,7 @@ const props = defineProps({
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const getExtraActionComponent = async (action) => {
     try {
-        // site customizations by app, model and action
+        // by app, model and action
         return (
             await import(
                 `@/views/ViewAction${getPascalCaseName(props.app)}${getPascalCaseName(props.model)}${getPascalCaseName(action)}.vue`
@@ -37,9 +37,10 @@ const getExtraActionComponent = async (action) => {
         ).default;
     } catch (e) {
         try {
-            // site customizations by action
+            // by action
             return (await import(`@/views/ViewAction${getPascalCaseName(action)}.vue`)).default;
         } catch (e) {
+            // no extra action component found
             return ViewActionNotFound;
         }
     }
