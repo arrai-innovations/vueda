@@ -42,7 +42,7 @@ const onAdd = () => {
     fieldContext.state.value = [...(cloneDeep(fieldContext.state.value) || [""]), undefined];
 };
 
-const onDelete = (index) => {
+const onDestroy = (index) => {
     fieldContext.state.value = cloneDeep(fieldContext.state.value).filter((_, i) => i !== index);
 };
 const theme = useTheme("FieldSetMany", props);
@@ -82,8 +82,8 @@ watch(
                             </component>
                         </div>
                         <div v-if="index">
-                            <slot name="delete" @click="onDelete(index)">
-                                <Button icon="pi pi-times" rounded @click="onDelete(index)" />
+                            <slot name="destroy" @click="onDestroy(index)">
+                                <Button icon="pi pi-times" rounded @click="onDestroy(index)" />
                             </slot>
                         </div>
                     </div>

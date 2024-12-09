@@ -49,8 +49,8 @@ export const getSlotNamesFor = (slots, type, fieldName) => {
         if (!slots[`widget(${fieldName})create-button`]) {
             slotKeys.push(["fieldset-create-button", "create-button"]);
         }
-        if (!slots[`widget(${fieldName})delete-button`]) {
-            slotKeys.push(["fieldset-delete-button", "delete-button"]);
+        if (!slots[`widget(${fieldName})destroy-button`]) {
+            slotKeys.push(["fieldset-destroy-button", "destroy-button"]);
         }
     }
 

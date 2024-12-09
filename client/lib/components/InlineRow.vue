@@ -58,8 +58,8 @@ const props = defineProps({
 const formModel = inject(FormModelSymbol, null);
 const theme = useTheme("FieldSetStackedInlineRow", props);
 
-const emit = defineEmits(["delete-row", "update:selected"]);
-const onDelete = () => emit("delete-row", props.index);
+const emit = defineEmits(["destroy-row", "update:selected"]);
+const onDelete = () => emit("destroy-row", props.index);
 
 const getFieldName = (fieldName) => {
     return `${props.fieldName}__${fieldName}`;
@@ -131,7 +131,7 @@ const getFieldPath = (fieldName) => {
         <div v-if="$slots['after-fields']" :class="theme('afterFields')">
             <slot name="after-fields" />
         </div>
-        <div :class="theme('deleteOuter')">
+        <div :class="theme('destroyOuter')">
             <div v-if="pk" class="flex items-center">
                 <slot :input-id="`selected-inline-${pk}`" name="selected" :selected="selected" :value="index">
                     <Checkbox
@@ -145,7 +145,7 @@ const getFieldPath = (fieldName) => {
                 </slot>
             </div>
             <div v-else>
-                <slot label="Delete" name="inline-row-delete" size="small" verb="delete" @click="onDelete">
+                <slot label="Delete" name="inline-row-destroy" size="small" verb="destroy" @click="onDelete">
                     <Button label="Delete" size="small" @click="onDelete" />
                 </slot>
             </div>

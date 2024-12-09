@@ -283,8 +283,8 @@ const slots = useSlots();
 const slotNames = [
     "toggle-button",
     "create-button",
-    "delete-button",
-    "delete-checkbox",
+    "destroy-button",
+    "destroy-checkbox",
     // todo: implement action-button for non item actions
     // "action-button",
     "item-action-button",
@@ -390,17 +390,17 @@ const remainingSlotNames = computed(() => {
                             data-qa="field-set-tabular-inline-item-action-bar"
                         >
                             <template v-for="action in actions">
-                                <template v-if="action.fieldName === 'delete'">
+                                <template v-if="action.fieldName === 'destroy'">
                                     <slot
                                         v-if="!objectGridFieldSlotProps.pk"
                                         :action="action"
                                         :label="action.label"
-                                        :name="resolvedSlotNames['delete-button'].name"
+                                        :name="resolvedSlotNames['destroy-button'].name"
                                         :row-index="objectGridFieldSlotProps.rowIndex"
                                         :selected="selected.includes(objectGridFieldSlotProps.rowIndex)"
                                         :theme="theme"
                                         :value="action.value"
-                                        verb="delete"
+                                        verb="destroy"
                                         @click="removeObject(objectGridFieldSlotProps.rowIndex)"
                                     >
                                         <Button
@@ -413,14 +413,14 @@ const remainingSlotNames = computed(() => {
                                         v-else
                                         :action="action"
                                         :contextless="true"
-                                        label="Delete?"
+                                        label="Destroy?"
                                         :model-value="selected.includes(objectGridFieldSlotProps.rowIndex)"
-                                        :name="resolvedSlotNames['delete-checkbox'].name"
+                                        :name="resolvedSlotNames['destroy-checkbox'].name"
                                         :required="false"
                                         :row-index="objectGridFieldSlotProps.rowIndex"
                                         :theme="theme"
                                         :value="action.value"
-                                        verb="delete"
+                                        verb="destroy"
                                         @update:model-value="
                                             (isSelected) =>
                                                 handleSelected(isSelected, objectGridFieldSlotProps.rowIndex)
@@ -429,9 +429,9 @@ const remainingSlotNames = computed(() => {
                                         <widget-checkbox
                                             :contextless="true"
                                             :input-id="`selected-row-${objectGridFieldSlotProps.rowIndex}`"
-                                            label="Delete?"
+                                            label="Destroy?"
                                             :model-value="selected.includes(objectGridFieldSlotProps.rowIndex)"
-                                            name="delete-checkbox"
+                                            name="destroy-checkbox"
                                             :required="false"
                                             size="small"
                                             :value="objectGridFieldSlotProps.rowIndex"

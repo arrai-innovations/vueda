@@ -96,7 +96,7 @@ export default {
                 // "rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"
             ],
         },
-        deleteOuter: {
+        destroyOuter: {
             class: ["flex py-2"],
         },
     },

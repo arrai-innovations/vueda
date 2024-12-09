@@ -99,9 +99,6 @@ const handleDeactivate = async () => {
 </script>
 
 <template>
-    <!-- todo: this is a placeholder. this could be a modal from the origin page. -->
-    <!--  however, if we keep it as a separate page, that gives us more room to add more features -->
-    <!--  like mass delete, etc. -->
     <div v-if="!isEmpty(modelConfig.info)">
         <action-form
             action="deactivate"

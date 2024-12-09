@@ -147,7 +147,7 @@ const handleDeleteSingle = (selected_) => {
                     :fields="fieldNames"
                     :pk="fieldContext.state.value.id"
                     :selected="selected"
-                    @delete-row="clearField"
+                    @destroy-row="clearField"
                     @update:selected="handleDeleteSingle"
                 />
             </div>
@@ -158,11 +158,11 @@ const handleDeleteSingle = (selected_) => {
                     :index="index"
                     :pk="value.id"
                     :selected="selected"
-                    @delete-row="removeRow"
+                    @destroy-row="removeRow"
                     @update:selected="handleSelected"
                 >
-                    <template #inline-row-delete="slotProps">
-                        <slot :index="index" name="inline-row-delete" v-bind="slotProps" />
+                    <template #inline-row-destroy="slotProps">
+                        <slot :index="index" name="inline-row-destroy" v-bind="slotProps" />
                     </template>
                 </InlineRow>
             </div>

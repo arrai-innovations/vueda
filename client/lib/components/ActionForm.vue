@@ -85,6 +85,7 @@ const actionErrorSummary = computed(() => {
 });
 
 const pks = computed(() => props.fetchState?.objectsInOrder?.map((obj) => obj.id));
+const pksAsString = computed(() => unref(pks)?.map((pk) => pk.toString()));
 const bulk = computed(() => unref(pks)?.length > 1);
 
 const defaultRunAction = (action) => {
@@ -204,17 +205,17 @@ const handleCancelClick = () => {
     <div :class="theme('root')" data-qa="view-action-root">
         <div :class="theme('inner')" data-qa="view-action-inner">
             <div :class="theme('selectedObjects')" data-qa="view-action-selected-objects">
-                <slot :loading="combinedLoading" name="selected-objects" :objects="fetchState.objects">
+                <slot :loading="combinedLoading" name="selected-objects" :objects="fetchState?.objects">
                     <p>You have selected the following {{ unref(modelVerboseName) }}(s):</p>
                     <div v-if="combinedLoading">
                         <p>Loading objects...</p>
                     </div>
                     <ul v-else :class="theme('list')">
-                        <li v-for="object in fetchState.objects" :key="object.id" :class="theme('listItem')">
-                            <field-string :field-value="object.id" :label="object.id" :name="object.id + ''">
+                        <li v-for="pk in pksAsString" :key="pk" :class="theme('listItem')">
+                            <field-string :field-value="pk" :label="pk" :name="pk">
                                 <widget-read-only
                                     :app="app"
-                                    :foreign-key-obj="object"
+                                    :foreign-key-obj="fetchState.objects[pk]"
                                     :hidden="true"
                                     :invalid="false"
                                     :model="model"
