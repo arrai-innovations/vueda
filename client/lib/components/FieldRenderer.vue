@@ -4,7 +4,7 @@ import { mergeTheme, useTheme } from "@vueda/use/useTheme.js";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
-import { computed, inject, reactive, unref, useAttrs, useSlots } from "vue";
+import { computed, inject, markRaw, reactive, unref, useAttrs, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -58,60 +58,83 @@ const knownSlots = computed(() => [
     "default",
 ]);
 const remainingSlots = computed(() => Object.keys(slots).filter((slotName) => !unref(knownSlots).includes(slotName)));
-const slotProps = reactive({
-    fieldComponent: computed(() => props.formModel.fieldComponents[props.formModelName]),
-    fieldDetail: computed(() => props.formModel.fieldDetails[props.formModelName]),
-    fieldProps: computed(() => ({
-        ...omit(props.objectGridFieldSlotProps, ["value"]),
-        ...omit(props.formModel.fieldProps[props.formModelName], ["themeOverride"]),
-        ...omit(attrs, ["class"]),
-        name: unref(fieldValuePath),
-        formModelName: props.formModelName,
-        modelValue: props.objectGridFieldSlotProps?.value,
-        themeOverride: mergeTheme(props.formModel.fieldProps[props.formModelName]?.themeOverride, props.themeOverride),
-    })),
-    widgetComponent: computed(
-        () => props.formModel.widgetComponents[props.formModelName] ?? availableWidgets.WidgetUnmapped,
+const fieldComponent = computed(() => markRaw(props.formModel.fieldComponents[props.formModelName]));
+const widgetComponent = computed(() =>
+    markRaw(props.formModel.widgetComponents[props.formModelName] ?? availableWidgets.WidgetUnmapped),
+);
+const fieldDetail = computed(() => props.formModel.fieldDetails[props.formModelName]);
+const fieldProps = computed(() => ({
+    ...omit(props.objectGridFieldSlotProps, ["value"]),
+    ...omit(props.formModel.fieldProps[props.formModelName], ["themeOverride"]),
+    ...omit(attrs, ["class"]),
+    name: unref(fieldValuePath),
+    formModelName: props.formModelName,
+    modelValue: props.objectGridFieldSlotProps?.value,
+    themeOverride: mergeTheme(props.formModel.fieldProps[props.formModelName]?.themeOverride, props.themeOverride),
+}));
+const widgetProps = computed(() => ({
+    ...props.objectGridFieldSlotProps,
+    ...omit(props.formModel.widgetProps[props.formModelName], ["themeOverride"]),
+    ...omit(attrs, ["class"]),
+    hidden: !!fieldSetContext,
+    themeOverride: mergeTheme(
+        props.formModel.fieldProps[props.formModelName]?.themeOverride,
+        props.formModel.widgetProps[props.formModelName]?.themeOverride,
+        props.themeOverride,
     ),
-    widgetProps: computed(() => ({
-        ...props.objectGridFieldSlotProps,
-        ...omit(props.formModel.widgetProps[props.formModelName], ["themeOverride"]),
-        ...omit(attrs, ["class"]),
-        hidden: !!fieldSetContext,
-        themeOverride: mergeTheme(
-            props.formModel.fieldProps[props.formModelName]?.themeOverride,
-            props.formModel.widgetProps[props.formModelName]?.themeOverride,
-            props.themeOverride,
-        ),
-    })),
-    slots: computed(() => unref(remainingSlots).map((slotName) => [slotName, slots[slotName]])),
-});
+}));
+const slotsForPassing = computed(() => unref(remainingSlots).map((slotName) => [slotName, slots[slotName]]));
 const theme = useTheme(
     "FormModel",
     reactive({
         themeOverride: computed(() => mergeTheme(props.formModel.theme, props.themeOverride)),
     }),
 );
-slotProps.fieldClass = computed(() => combineClasses(unref(theme("field")), slotProps.fieldProps?.class, attrs.class));
-slotProps.fieldInnerClass = theme("fieldInner");
+const fieldClass = computed(() => combineClasses(unref(theme("field")), unref(fieldProps)?.class, attrs.class));
+const fieldInnerClass = theme("fieldInner");
 </script>
 
 <template>
-    <slot :name="fieldSlotName" v-bind="slotProps">
-        <component
-            :is="slotProps.fieldComponent"
-            v-if="slotProps.fieldComponent"
-            :class="slotProps.fieldClass"
-            v-bind="omit(slotProps.fieldProps, ['class'])"
-        >
+    <slot
+        :field-class="fieldClass"
+        :field-component="fieldComponent"
+        :field-detail="fieldDetail"
+        :field-inner-class="fieldInnerClass"
+        :field-props="fieldProps"
+        :name="fieldSlotName"
+        :slots="slotsForPassing"
+        :widget-component="widgetComponent"
+        :widget-props="widgetProps"
+    >
+        <component :is="fieldComponent" v-if="fieldComponent" :class="fieldClass" v-bind="omit(fieldProps, ['class'])">
             <template v-for="slotName in remainingSlots" #[slotName]="fieldSlotProps">
                 <slot :name="slotName" v-bind="fieldSlotProps || {}" />
             </template>
             <template #default>
-                <slot :name="fieldDefaultSlotName" v-bind="slotProps">
-                    <div :class="slotProps.fieldInnerClass" data-qa="field-renderer-field-inner">
-                        <slot :name="widgetSlotName" v-bind="slotProps">
-                            <component :is="slotProps.widgetComponent" v-bind="slotProps.widgetProps">
+                <slot
+                    :field-class="fieldClass"
+                    :field-component="fieldComponent"
+                    :field-detail="fieldDetail"
+                    :field-inner-class="fieldInnerClass"
+                    :field-props="fieldProps"
+                    :name="fieldDefaultSlotName"
+                    :slots="slotsForPassing"
+                    :widget-component="widgetComponent"
+                    :widget-props="widgetProps"
+                >
+                    <div :class="fieldInnerClass" data-qa="field-renderer-field-inner">
+                        <slot
+                            :field-class="fieldClass"
+                            :field-component="fieldComponent"
+                            :field-detail="fieldDetail"
+                            :field-inner-class="fieldInnerClass"
+                            :field-props="fieldProps"
+                            :name="widgetSlotName"
+                            :slots="slotsForPassing"
+                            :widget-component="widgetComponent"
+                            :widget-props="widgetProps"
+                        >
+                            <component :is="widgetComponent" v-bind="widgetProps">
                                 <template v-for="slotName in remainingSlots" #[slotName]="widgetSlotProps">
                                     <slot :name="slotName" v-bind="widgetSlotProps || {}" />
                                 </template>
