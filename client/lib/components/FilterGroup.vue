@@ -1,5 +1,4 @@
 <script setup>
-import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import FilterComponent from "@vueda/components/FilterComponent.vue";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { isObject } from "lodash-es";
@@ -25,8 +24,12 @@ const props = defineProps({
         required: true,
         description: "A dictionary of overriding filterable details.",
     },
+    filterFormsValues: {
+        type: Object,
+        default: () => ({}),
+    },
 });
-const emit = defineEmits(["filter-change", "hide-filter-form"]);
+const emit = defineEmits(["filter-change", "hide-filter-form", "query-change"]);
 const addedFilters = ref([]);
 
 const clearFilters = () => {
@@ -38,14 +41,9 @@ const computedFilters = computed(() => props.filterables.filter((filter) => prop
 watch(
     () => route.query, // Watch the query part of the route
     (newQuery) => {
-        console.log("newQuery", newQuery);
         if (!isEqual(newQuery, listArgs.value)) {
-            assignReactiveObject(listArgs, newQuery);
-            // const listArgsAsList = Object.entries(listArgs.value).map(([key, value]) => ({ field: key, value }));
-            // emit("filter-change", listArgsAsList);
-            // TODO: sync addedFilters with listArgs
+            emit("query-change", newQuery);
         }
-        console.log("listArgs.value", listArgs.value);
     },
     { immediate: true }, // Run immediately on component mount
 );
@@ -100,6 +98,7 @@ watch(
             >
                 <filter-component
                     :filter-details="props.filterableDetails[filter]"
+                    :filter-form-values="filterFormsValues[filter]"
                     :filter-name="filter"
                     :index="index"
                     :list-args="listArgs"

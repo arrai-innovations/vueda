@@ -4,11 +4,13 @@ import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import isArray from "lodash-es/isArray.js";
 import isEmpty from "lodash-es/isEmpty.js";
+import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
 import Button from "primevue/button";
 import ButtonGroup from "primevue/buttongroup";
 import Popover from "primevue/popover";
-import { computed, reactive, ref, useSlots, useTemplateRef } from "vue";
+import { computed, reactive, ref, toRef, useSlots, useTemplateRef, watch } from "vue";
+import { useRoute } from "vue-router";
 
 const props = defineProps({
     filterName: {
@@ -26,6 +28,10 @@ const props = defineProps({
     listArgs: {
         type: Object,
         required: true,
+    },
+    filterFormValues: {
+        type: Object,
+        default: undefined,
     },
     ...THEME_OVERRIDE_PROPS,
 });
@@ -63,14 +69,25 @@ const resolvedSlotNames = Object.fromEntries(
     Object.entries(resolvedSlotNamesArgs).map(([key, value]) => [key, useSlotNameResolver(value)]),
 );
 
-// watch(
-//     toRef(props, "listArgs"),
-//     () => {
-//         const possibleFilterName = props.filterDetails.lookupExprs?.[0].map((expr) => `${props.filterName}__${expr}`);
-//         //TODO: upadte the addedFilders according to listATgs here.
-//         },
-//     { deep: true, immediate: true },
-// );
+const lookupExpression = computed(() => {
+    return props.filterDetails.ignorelookupExprs ? undefined : props.filterDetails.lookupExprs?.[0];
+});
+const lookupExpressionsToParams = computed(() => {
+    const params = [];
+    if (props.filterDetails.suffixes?.length) {
+        props.filterDetails.suffixes.forEach((suffix) => {
+            const p = lookupExpression.value
+                ? `${props.filterName}_${suffix}__${lookupExpression.value}`
+                : `${props.filterName}_${suffix}`;
+            params.push(p);
+        });
+    }
+    if (params.length > 0) {
+        return params;
+    }
+    return lookupExpression.value ? `${props.filterName}__${lookupExpression.value}` : props.filterName;
+});
+const route = useRoute();
 
 const doToggle = (event) => {
     if (event) {
@@ -81,30 +98,60 @@ const doToggle = (event) => {
         popoverRef.value.toggle(event);
     }
 };
+
 const displayFilterValue = computed(() => {
     const filters = addedFilters.value.filter((filter) => filter.field === props.filterName);
+    if (!filters.length) {
+        return "";
+    }
     return filters
         .map((filter) => {
-            const values = filter.labelValue ?? filter.value;
-            if (isArray(values)) {
-                return values.join(",");
-            } else if (isObject(values)) {
+            const filterValue = filter.value;
+            let labelValue = filter.labelValue;
+            if (filter.is_range && lookupExpressionsToParams.value.length) {
+                const keys = Object.keys(filterValue);
+                if (!labelValue) {
+                    labelValue = {};
+                    for (const key of keys) {
+                        const value = filterValue[key];
+                        if (!value) {
+                            continue;
+                        }
+                        labelValue[key] = new Date(value).toISOString().split("T")[0];
+                    }
+                }
+            } else if (labelValue === true) {
+                const options = props.filterFormValues.options?.length
+                    ? props.filterFormValues.options
+                    : props.filterDetails.choices;
+                if (isArray(filterValue)) {
+                    labelValue = filterValue.map((option) =>
+                        isArray(options) ? options.find((choice) => choice.value === option)?.label : "",
+                    );
+                } else {
+                    labelValue = isArray(options) ? options.find((choice) => choice.value == filterValue)?.label : "";
+                }
+            }
+            labelValue = labelValue ?? filter.value;
+            if (isArray(labelValue)) {
+                return labelValue.join(",");
+            } else if (isObject(labelValue)) {
                 if (filter.is_range) {
-                    const keys = Object.keys(values);
+                    const keys = Object.keys(labelValue);
                     if (keys.length === 2) {
-                        return `${values[keys[0]] ?? ""} - ${values[keys[1]] ?? ""}`;
+                        return `${labelValue[keys[0]] ?? ""} - ${labelValue[keys[1]] ?? ""}`;
                     } else if (keys.length === 1) {
-                        return `${keys[0]}: ${values[keys[0]] ?? ""}`;
+                        return `${keys[0]}: ${labelValue[keys[0]] ?? ""}`;
                     }
                     return "";
                 }
-                return Object.keys(values)
+                return Object.keys(labelValue)
                     .map((key) => {
-                        return `${key}: ${values[key]}`;
+                        return `${key}: ${labelValue[key]}`;
                     })
                     .join(", ");
             } else {
-                return `${values}`;
+                return `${labelValue}`;
             }
         })
         .join(", ");
@@ -118,58 +165,35 @@ const computedFilterLabel = computed(() => {
     return filterLabel;
 });
 
-const lookupExpression = computed(() => {
-    return props.filterDetails.ignorelookupExprs ? undefined : props.filterDetails.lookupExprs?.[0];
-});
-const lookupExpressionsToParams = computed(() => {
-    const lookupExpressionsToParams = [];
-    if (props.filterDetails.suffixes?.length) {
-        props.filterDetails.suffixes.forEach((suffix) => {
-            const p = lookupExpression.value
-                ? `${props.filterName}_${suffix}__${lookupExpression.value}`
-                : `${props.filterName}_${suffix}`;
-            lookupExpressionsToParams.push(p);
-        });
-    }
-    return lookupExpressionsToParams;
-});
-
-const applyFilter = (e, filter) => {
+const onApplyFilter = (e) => {
     if (e && e.preventDefault) {
         e.preventDefault();
-    } else {
-        filter = e;
     }
+    applyFilter();
+};
 
+const applyFilter = () => {
     // TODO: this now handle handles with single lookup expression
-    const key = lookupExpression.value ? `${filter.name}__${lookupExpression.value}` : filter.name;
     //TODO: This is kinda hard coded for dates only
+    const filter = props.filterFormValues;
     const filterValue = filter.value;
-    let labelValue = filter.labelValue;
-    if (filter.range && lookupExpressionsToParams.value.length) {
-        const keys = Object.keys(filterValue);
-        if (!filter.labelValue) {
-            labelValue = {};
-            for (const key of keys) {
-                const value = filterValue[key];
-                if (!value) {
-                    continue;
-                }
-                labelValue[key] = new Date(value).toISOString().split("T")[0];
+    if (filter.range && isObject(filterValue)) {
+        Object.entries(filterValue).forEach(([key, value]) => {
+            if (value instanceof Date) {
+                filterValue[key] = value.toISOString().split("T")[0];
             }
-        }
+        });
     }
     const filterObject = {
         field: filter.name,
-        key,
         isValueRawObject: filter.isValueRawObject,
         expression: lookupExpression,
-        param: lookupExpressionsToParams.value.length ? lookupExpressionsToParams : key,
+        param: lookupExpressionsToParams.value,
         value: filterValue,
-        labelValue: labelValue,
+        labelValue: filter.labelValue,
         is_range: filter.range,
     };
-    if (!addedFilters.value.some((filter) => filter.key === key)) {
+    if (!addedFilters.value.some((f) => f.field === filter.name)) {
         if (isEmpty(filterValue)) {
             return;
         }
@@ -217,6 +241,32 @@ const theme = useTheme(
     reactive({
         hasFilterValue,
     }),
+);
+
+watch(
+    [toRef(props, "filterFormValues"), () => route.query],
+    ([newFormValue, newQuery], [oldFormValues, oldQuery]) => {
+        if (isEqual(newFormValue, oldFormValues) && isEqual(newQuery, oldQuery)) {
+            return;
+        }
+        if (!isEqual(newQuery, props.listArgs)) {
+            // debugger
+            let queryHasFilter = false;
+            if (isArray(lookupExpressionsToParams.value)) {
+                lookupExpressionsToParams.value.forEach((param) => {
+                    if (newQuery[param]) {
+                        queryHasFilter = true;
+                    }
+                });
+            } else if (newQuery[lookupExpressionsToParams.value]) {
+                queryHasFilter = true;
+            }
+            if (queryHasFilter) {
+                applyFilter();
+            }
+        }
+    },
+    { deep: true, immediate: true },
 );
 </script>
 
@@ -334,14 +384,14 @@ const theme = useTheme(
         >
             <Popover
                 ref="popoverRef"
-                :apply-filter="applyFilter"
+                :apply-filter="onApplyFilter"
                 :class="theme('formPopover')"
                 :filter-details="filterDetails"
                 :filter-name="filterName"
                 :has-filter-value="hasFilterValue"
             >
                 <slot
-                    :apply-filter="applyFilter"
+                    :apply-filter="onApplyFilter"
                     :filter-details="filterDetails"
                     :filter-name="filterName"
                     :has-filter-value="hasFilterValue"

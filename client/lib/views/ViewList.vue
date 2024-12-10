@@ -23,7 +23,7 @@ import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
-import { computed, effectScope, onMounted, reactive, readonly, ref, toRaw, toRef, toRefs, unref, watch } from "vue";
+import { computed, effectScope, onMounted, reactive, readonly, ref, toRef, toRefs, unref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 defineOptions({
@@ -125,6 +125,10 @@ const props = defineProps({
             },
         ],
     },
+    filterFormsValues: {
+        type: Object,
+        default: () => ({}),
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const listSearch = ref(null);
@@ -135,6 +139,7 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), v
 const selectedObjects = ref([]);
 const workflow = useWorkflow(toRef(props, "app"), toRef(props, "model"), selectedObjects, isActive, validAndActive);
 const router = useRouter();
+const route = useRoute();
 const sorting = reactive({
     state: {
         sortables: computed(() => modelConfig?.config?.sortables),
@@ -217,10 +222,27 @@ watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, 
     }
     if (!newSearch) {
         delete listState.listArgs[props.searchKey];
+        const routeQuery = omit(route.query, [props.searchKey]);
+        router.push({ query: routeQuery });
     } else {
         listState.listArgs[props.searchKey] = newSearch;
+        const routeQuery = { ...route.query, [props.searchKey]: newSearch };
+        if (!isEqual(routeQuery, route.query)) {
+            router.push({ query: routeQuery });
+        }
     }
 });
+watch(
+    () => route.query,
+    (newQuery) => {
+        const searchQuery = newQuery[props.searchKey] || "";
+        if (!isEqual(searchQuery, listState.search)) {
+            listSearch.value = searchQuery;
+            listState.search = searchQuery;
+        }
+    },
+    { immediate: true },
+);
 watch(
     toRef(props, "listArgs"),
     () => {
@@ -231,7 +253,6 @@ watch(
     },
     { deep: true, immediate: true },
 );
-const route = useRoute();
 
 watch(
     () => cloneDeep(listState.filterArgs),
@@ -239,19 +260,18 @@ watch(
         if (!isEqual(newFilter, oldFilter)) {
             listState.currentPage = 1;
         }
-        Object.entries(listState.filterArgs).forEach(([key, value]) => {
-            if (value instanceof Date) {
-                const rawFilterArgs = toRaw(listState.filterArgs);
-                listState.filterArgs = { ...rawFilterArgs, [key]: value.toISOString().split("T")[0] };
-            }
-        });
         assignReactiveObject(listState.listArgs, listState.filterArgs, [
             ...Object.keys(props.listArgs),
             ...alwaysListArgsKeys,
             props.searchKey,
         ]);
-        if (!isEqual(newFilter, route.query)) {
-            router.push({ query: listState.filterArgs });
+        const filterQuery = omit(route.query, [props.searchKey]);
+        if (!isEqual(newFilter, filterQuery)) {
+            const routeQuery = {
+                [props.searchKey]: route.query[props.searchKey],
+                ...newFilter,
+            };
+            router.push({ query: routeQuery });
         }
     },
     { deep: true },
@@ -268,7 +288,6 @@ const dismissError = () => {
 
 const filterList = () => {
     listState.search = listSearch.value;
-    // listState.filterArgs = cloneDeep(formContext.state.values);
 };
 
 const detailActionOnClick = (actionName) => {
@@ -292,6 +311,7 @@ const emit = defineEmits([
     "related-objects",
     "calculated-objects",
     "filter-change",
+    "query-change",
     "hide-filter-form",
 ]);
 onMounted(() => {
@@ -453,10 +473,12 @@ const searchSlotProps = reactive({
         <sticky-bar :class="theme('filterGroupBar')">
             <filter-group
                 v-model="listState.filterArgs"
+                :filter-forms-values="props.filterFormsValues"
                 :filterable-details="modelConfig.config?.filterableDetails || {}"
                 :filterables="modelConfig.config?.filterables || []"
                 @filter-change="emit('filter-change', $event)"
                 @hide-filter-form="emit('hide-filter-form', $event)"
+                @query-change="emit('query-change', $event)"
             >
                 <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />
