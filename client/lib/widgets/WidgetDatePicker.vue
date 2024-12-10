@@ -7,6 +7,7 @@ import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { knownDatePickerProps } from "@vueda/utils/primevueConsts.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import isEqual from "lodash-es/isEqual.js";
 import pick from "lodash-es/pick.js";
 import { DateTime } from "luxon";
 import DatePicker from "primevue/datepicker";
@@ -74,7 +75,9 @@ const valueUpdated = (value) => {
     if (unvalidatedInput.value) {
         unvalidatedInput.value = null;
     }
-    widgetContext.state.combinedValue = value;
+    if (!isEqual(value, widgetContext.state.combinedValue)) {
+        widgetContext.state.combinedValue = value;
+    }
 };
 const onTodayButtonClick = () => {
     widgetContext.state.combinedValue = getCurrentDate();

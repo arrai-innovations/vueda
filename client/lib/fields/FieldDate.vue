@@ -36,12 +36,12 @@ const preprocessGet = (value) => {
 };
 
 const preprocessSet = (value) => {
+    let newValue = value;
     if (value instanceof Date) {
         const dt = DateTime.fromJSDate(value, { zone: "local" });
-        const formatted = dt.toISODate(); // Returns date in "yyyy-MM-dd" format
-        return props.customDateConverter ? props.customDateConverter(formatted) : formatted;
+        newValue = dt.toISODate(); // Returns date in "yyyy-MM-dd" format
     }
-    return value;
+    return props.customDateConverter ? props.customDateConverter(newValue) : newValue;
 };
 
 const emit = defineEmits([...FIELD_EMITS]);
