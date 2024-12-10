@@ -46,11 +46,11 @@ const props = defineProps({
         default: undefined,
     },
     minDate: {
-        type: Date,
+        type: String,
         default: undefined,
     },
     maxDate: {
-        type: Date,
+        type: String,
         default: undefined,
     },
     ...THEME_OVERRIDE_PROPS,
@@ -172,6 +172,12 @@ const onBlur = (e) => {
         }
     });
 };
+const minDateAsDate = computed(() => {
+    return props.minDate ? DateTime.fromFormat(props.minDate, "yyyy-MM-dd").toJSDate() : undefined;
+});
+const maxDateAsDate = computed(() => {
+    return props.maxDate ? DateTime.fromFormat(props.maxDate, "yyyy-MM-dd").toJSDate() : undefined;
+});
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-date-picker-root">
@@ -192,8 +198,8 @@ const onBlur = (e) => {
                         :disabled="widgetContext.state.disabled"
                         :input-id="widgetContext.state.widgetId"
                         :invalid="widgetContext.state.validationState.invalid"
-                        :max-date="props.maxDate"
-                        :min-date="props.minDate"
+                        :max-date="maxDateAsDate"
+                        :min-date="minDateAsDate"
                         :model-value="modelValue"
                         :name="widgetContext.state.combinedName"
                         :pt="effectivePt"
