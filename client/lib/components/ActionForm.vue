@@ -218,6 +218,7 @@ const handleCancelClick = () => {
                                     :foreign-key-obj="fetchState.objects[pk]"
                                     :hidden="true"
                                     :invalid="false"
+                                    :loading="combinedLoading"
                                     :model="model"
                                     :warning="false"
                                 >

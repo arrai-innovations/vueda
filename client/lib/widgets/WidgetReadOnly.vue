@@ -31,6 +31,10 @@ const props = defineProps({
         type: Object,
         default: undefined,
     },
+    loading: {
+        type: Boolean,
+        default: false,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
@@ -59,6 +63,9 @@ const instanceObject = useObject({
 });
 
 const readonlyValue = computed(() => {
+    if (instanceObject.state?.loading || props.loading) {
+        return "Loading...";
+    }
     return props.foreignKeyObj ? props.foreignKeyObj.formatted_name : instanceObject.state?.object?.formatted_name;
 });
 const pkValue = computed(() => {
