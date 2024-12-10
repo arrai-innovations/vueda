@@ -168,15 +168,19 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 if (computedFields.includes(fieldName)) {
                     return availableFields.FieldString;
                 }
-                const component =
+                const customField =
                     props.fieldComponents?.[fieldName] ||
                     modelConfig?.config?.fieldComponents?.[fieldName] ||
                     (baseExpanded ? availableFields.FieldSetStackedInline : getFieldComponent(detailObject));
-                if (typeof component === "string") {
-                    // let props and modelConfig not pass actual components
-                    return availableFields[component];
+                if (typeof customField === "function") {
+                    // If it's a function, it's a component reference wrapped in a fn to avoid reactivity issues
+                    return customField();
                 }
-                return component || availableFields.FieldString;
+                if (typeof customField === "string") {
+                    // let props and modelConfig not pass actual components
+                    return availableFields[customField];
+                }
+                return customField || availableFields.FieldString;
             });
         });
         return component;
@@ -211,16 +215,19 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 if (baseExpanded) {
                     return null;
                 }
-                const component =
+                const customWidget =
                     props.widgetComponents?.[fieldName] ||
                     modelConfig?.config?.widgetComponents?.[fieldName] ||
                     getWidgetComponent(detailObject);
-
-                if (typeof component === "string") {
-                    // Allow props and modelConfig to pass component names
-                    return availableWidgets[component];
+                if (typeof customWidget === "function") {
+                    // If it's a function, it's a component reference wrapped in a fn to avoid reactivity issues
+                    return customWidget();
                 }
-                return component || availableWidgets.WidgetInput;
+                if (typeof customWidget === "string") {
+                    // Allow props and modelConfig to pass component names
+                    return availableWidgets[customWidget];
+                }
+                return customWidget || availableWidgets.WidgetInput;
             });
         });
 
