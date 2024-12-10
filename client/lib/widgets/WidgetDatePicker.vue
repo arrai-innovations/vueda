@@ -45,6 +45,14 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
+    minDate: {
+        type: Date,
+        default: undefined,
+    },
+    maxDate: {
+        type: Date,
+        default: undefined,
+    },
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
 });
@@ -82,16 +90,18 @@ const datePickerAttrs = useFilteredAttrs(knownDatePickerProps, [
     "disabled",
     "inputId",
     "invalid",
+    "maxDate", // these are broken when passed via attrs, the js date objects become empty objects
+    "minDate", // these are broken when passed via attrs, the js date objects become empty objects
     "modelValue",
     "name",
-    "pt",
-    "selectionMode",
-    "showButtonBar",
-    "todayButtonProps",
     "onBlur",
     "onFocus",
     "onTodayClick",
     "onUpdate:modelValue",
+    "pt",
+    "selectionMode",
+    "showButtonBar",
+    "todayButtonProps",
 ]);
 const inputType = computed(() => {
     const dpAttrs = unref(datePickerAttrs);
@@ -182,6 +192,8 @@ const onBlur = (e) => {
                         :disabled="widgetContext.state.disabled"
                         :input-id="widgetContext.state.widgetId"
                         :invalid="widgetContext.state.validationState.invalid"
+                        :max-date="props.maxDate"
+                        :min-date="props.minDate"
                         :model-value="modelValue"
                         :name="widgetContext.state.combinedName"
                         :pt="effectivePt"
