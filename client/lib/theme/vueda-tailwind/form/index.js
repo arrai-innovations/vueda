@@ -128,6 +128,9 @@ export default {
         objectsGrid: {
             class: "w-full",
         },
+        objectsGridHidden: {
+            class: "hidden",
+        },
         field: {
             class: [
                 // "rounded", "px-1 lg:px-2 py-1 lg:py-2",

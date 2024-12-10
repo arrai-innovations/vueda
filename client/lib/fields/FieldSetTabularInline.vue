@@ -363,8 +363,11 @@ const remainingSlotNames = computed(() => {
                 </form-chores>
             </slot>
             <objects-grid
-                v-if="internalVisible"
-                :class="theme('objectsGrid')"
+                :class="
+                    combineClasses(theme('objectsGrid'), {
+                        [theme('objectsGridHidden')]: !internalVisible,
+                    })
+                "
                 :empty-text="null"
                 :field-classes="{
                     selected_: 'text-center',
