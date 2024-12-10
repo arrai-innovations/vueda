@@ -1,4 +1,5 @@
 <script setup>
+import EmptyComponent from "@vueda/components/EmptyComponent.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { DateTime } from "luxon";
 import { computed, onMounted, onUnmounted, ref, toRef, watch } from "vue";
@@ -24,6 +25,10 @@ const props = defineProps({
     showTooltip: {
         type: Boolean,
         default: true,
+    },
+    inline: {
+        type: Boolean,
+        default: false,
     },
     ...THEME_OVERRIDE_PROPS,
 });
@@ -117,7 +122,7 @@ const tooltipContent = computed(() => {
 </script>
 
 <template>
-    <div :class="theme('root')">
+    <component :is="inline ? EmptyComponent : 'div'" :class="theme('root')">
         <template v-if="props.value && parsedValue.isValid">
             <template v-if="format === 'inline'">
                 <span :class="theme('inline')">{{ absolute }}</span>
@@ -143,5 +148,5 @@ const tooltipContent = computed(() => {
             <span v-else :class="[tooltipTheme]" :title="showTooltip ? tooltipContent : undefined">{{ absolute }}</span>
         </template>
         <span v-else :class="theme('dash')">-</span>
-    </div>
+    </component>
 </template>
