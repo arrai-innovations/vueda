@@ -1,4 +1,6 @@
 import DOMPurify from "dompurify";
+import isObject from "lodash-es/isObject.js";
+import isString from "lodash-es/isString.js";
 
 /**
  * Escape HTML characters in a message.
@@ -36,14 +38,23 @@ export const sanitizeMessage = (message) => {
 /**
  * Sanitize messages to prevent XSS attacks.
  *
- * @param {{ [code: string]: string | string[] }} messages - The messages to sanitize.
+ * @param {{ [code: string]: string | string[] | object }} messages - The messages to sanitize.
  */
 export const sanitizeMessages = (messages) => {
+    if (isString(messages)) {
+        return sanitizeMessage(messages);
+    }
     return Object.fromEntries(
         Object.entries(messages).map(([key, value]) => {
             let sanitizedMessage;
             if (Array.isArray(value)) {
-                sanitizedMessage = value.map((message) => sanitizeMessage(message));
+                sanitizedMessage = value.map((message) => sanitizeMessages(message));
+            } else if (isObject(value)) {
+                const sanitizedValue = {};
+                for (const [k, v] of Object.entries(value)) {
+                    sanitizedValue[sanitizeMessage(k)] = sanitizeMessages(v);
+                }
+                sanitizedMessage = sanitizedValue;
             } else {
                 sanitizedMessage = sanitizeMessage(value);
             }

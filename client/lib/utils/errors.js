@@ -117,12 +117,19 @@ export class FormValidationError extends Error {
                 withoutWarnings.push(path);
             }
         });
+
+        const objectErrorPaths = this.extractObjectPaths(withoutWarnings, ".detail");
+        const stringErrorPaths = this.extractStringPaths(withoutWarnings, objectErrorPaths);
+
+        const objectWarningPaths = this.extractObjectPaths(withWarnings, ".detail");
+        const stringWarningPaths = this.extractStringPaths(withWarnings, objectWarningPaths);
+
         /**
          * The messages for the form validation errors.
          *
          * @type {{[path: string]: string}}
          */
-        this.errors = withoutWarnings.reduce((acc, path) => {
+        this.errors = objectErrorPaths.concat(stringErrorPaths).reduce((acc, path) => {
             const normalizedPath = path.split("[").slice(0, -1).join("[");
             if (!acc[normalizedPath]) {
                 acc[normalizedPath] = [];
@@ -136,7 +143,7 @@ export class FormValidationError extends Error {
          *
          * @type {{[path: string]: string}}
          */
-        this.messages = withWarnings.reduce((acc, path) => {
+        this.messages = objectWarningPaths.concat(stringWarningPaths).reduce((acc, path) => {
             const normalizedPath = path.replace(warningsPattern, "").split("[").slice(0, -1).join("[");
 
             if (!acc[normalizedPath]) {
@@ -145,5 +152,25 @@ export class FormValidationError extends Error {
             acc[normalizedPath].push(get(data, path));
             return acc;
         }, {});
+    }
+
+    /**
+     * Extracts object paths (those ending with a specific suffix, like `.detail`).
+     * @param {string[]} paths - Paths to process.
+     * @param {string} suffix - The suffix to look for.
+     * @returns {string[]} Array of object paths.
+     */
+    extractObjectPaths(paths, suffix) {
+        return paths.map((path) => (path.endsWith(suffix) ? path.slice(0, -suffix.length) : null)).filter(Boolean);
+    }
+
+    /**
+     * Extracts string paths (those that don't start with object paths).
+     * @param {string[]} paths - Paths to process.
+     * @param {string[]} objectPaths - Paths already identified as object errors/warnings.
+     * @returns {string[]} Array of string paths.
+     */
+    extractStringPaths(paths, objectPaths) {
+        return paths.filter((path) => !objectPaths.some((objectPath) => path.startsWith(objectPath)));
     }
 }

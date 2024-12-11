@@ -7,6 +7,7 @@ import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import { isArray } from "lodash-es";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
+import isObject from "lodash-es/isObject.js";
 import Message from "primevue/message";
 import { inject, reactive, toRef, watch } from "vue";
 
@@ -91,6 +92,16 @@ const theme = useTheme(
         variant: toRef(props, "variant"),
     }),
 );
+const renderDetail = (data) => {
+    const detail = data.detail;
+    return detail.replace(/\$\{(\w+)\}/g, (_, key) => {
+        const value = data[key];
+        if (Array.isArray(value)) {
+            return `<ul class="${theme("messagesInnerList")}">${value.map((item) => `<li>${item}</li>`).join("")}</ul>`;
+        }
+        return value !== undefined ? value : ""; // Replace with the value or leave empty
+    });
+};
 </script>
 <template>
     <div v-if="Object.values(feedbackItems || {})?.length" :class="theme('root')" data-qa="form-feedback-root">
@@ -113,7 +124,13 @@ const theme = useTheme(
                     <template #icon="slotProps">
                         <slot name="icon" v-bind="slotProps" />
                     </template>
-                    <template v-if="allowHtml && containsHtml(line)">
+                    <template v-if="isObject(line)">
+                        <div v-if="allowHtml" v-html="renderDetail(line)"></div>
+                        <div v-else v-for="[name, message] of Object.entries(line)" :key="name">
+                            {{ name }}: {{ message }}
+                        </div>
+                    </template>
+                    <template v-else-if="allowHtml && containsHtml(line)">
                         <div v-html="line" />
                     </template>
                     <template v-else>
