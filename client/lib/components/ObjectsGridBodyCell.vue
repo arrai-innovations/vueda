@@ -2,7 +2,7 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { useObjectGridCell } from "@vueda/use/useObjectGridCell.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed } from "vue";
+import { computed, reactive } from "vue";
 
 const props = defineProps({
     field: {
@@ -26,7 +26,7 @@ const props = defineProps({
         type: Number,
         required: true,
     },
-    colIndex: {
+    columnIndex: {
         type: Number,
         required: true,
     },
@@ -46,12 +46,15 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 
-const theme = useTheme("ObjectsGridBodyCell", props);
+const themeContext = reactive({
+    props,
+});
+const theme = useTheme("ObjectsGridBodyCell", props, themeContext);
 const { formattedComputed, valueComputed } = useObjectGridCell(props);
 const uniqueKeyForSlot = computed(() =>
     props.field.name && props.obj?.[props.pkKey]
         ? `${props.field.name}-${props.obj?.[props.pkKey]}`
-        : `col-${props.colIndex}-row-${props.rowIndex}`,
+        : `col-${props.columnIndex}-row-${props.rowIndex}`,
 );
 </script>
 <template>
@@ -59,7 +62,7 @@ const uniqueKeyForSlot = computed(() =>
         <slot
             :key="uniqueKeyForSlot"
             :calculated-obj="calculatedObject"
-            :col-index="colIndex"
+            :column-index="columnIndex"
             :field="field"
             :formatted="formattedComputed"
             :is-card-layout="false"

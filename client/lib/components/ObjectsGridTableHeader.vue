@@ -1,6 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed, reactive, toRef } from "vue";
+import { computed, reactive } from "vue";
 
 const props = defineProps({
     field: {
@@ -8,7 +8,7 @@ const props = defineProps({
         required: true,
         description: "The field definition, we use name and label",
     },
-    colIndex: {
+    columnIndex: {
         type: Number,
         required: true,
     },
@@ -36,23 +36,20 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 
-const theme = useTheme(
-    "ObjectsGridTableHeader",
+const themeContext = reactive({
     props,
-    reactive({
-        sortable: toRef(props, "sortable"),
-    }),
-);
+});
+const theme = useTheme("ObjectsGridTableHeader", props, themeContext);
 const uniqueKeyForSlot = computed(() =>
-    props.field.name ? `${props.field.name}-${props.colIndex}` : `col-${props.colIndex}`,
+    props.field.name ? `${props.field.name}-${props.columnIndex}` : `col-${props.columnIndex}`,
 );
 </script>
 <template>
-    <div :class="theme('root')">
-        <span :class="theme('label')">
+    <div :class="theme('root')" data-qa="objects-grid-table-header-root">
+        <span :class="theme('label')" data-qa="objects-grid-table-header-label">
             <slot
                 :key="uniqueKeyForSlot"
-                :col-index="colIndex"
+                :column-index="columnIndex"
                 :field="field"
                 v-bind="fieldProps"
                 gird-type="table-header"
@@ -62,11 +59,11 @@ const uniqueKeyForSlot = computed(() =>
                 {{ field.label }}
             </slot>
         </span>
-        <span v-if="sortable" :class="theme('sortIcon')">
+        <span v-if="sortable" :class="theme('sortIcon')" data-qa="objects-grid-table-header-sort-icon">
             <slot
                 :key="uniqueKeyForSlot"
                 :ascending="ascending"
-                :col-index="colIndex"
+                :column-index="columnIndex"
                 :descending="descending"
                 :field="field"
                 :is-card-layout="false"
@@ -78,7 +75,11 @@ const uniqueKeyForSlot = computed(() =>
                 <template v-else-if="descending">⬇️</template>
                 <template v-else>↕️</template>
             </slot>
-            <span v-if="multiSortIndex !== -1" :class="theme('multiSortNumber')">
+            <span
+                v-if="multiSortIndex !== -1"
+                :class="theme('multiSortNumber')"
+                data-qa="objects-grid-table-header-multi-sort-number"
+            >
                 {{ multiSortIndex + 1 }}
             </span>
         </span>

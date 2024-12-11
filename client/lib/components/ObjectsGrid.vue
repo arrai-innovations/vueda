@@ -1,12 +1,14 @@
 <script setup>
-import { combineClasses } from "@arrai-innovations/reactive-helpers";
+import { combineClasses, keyDiff } from "@arrai-innovations/reactive-helpers";
+import EmptyComponent from "@vueda/components/EmptyComponent.vue";
 import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import ObjectsGridCardCell from "@vueda/components/ObjectsGridCardCell.vue";
 import ObjectsGridTableHeader from "@vueda/components/ObjectsGridTableHeader.vue";
+import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
-import { computed, onMounted, reactive, toRef, watch } from "vue";
+import { computed, effectScope, onMounted, reactive, toRef, useSlots, watch } from "vue";
 
 const props = defineProps({
     titleFieldName: {
@@ -51,6 +53,14 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    tableHeaderClasses: {
+        type: Object,
+        default: () => ({}),
+    },
+    cardHeaderClasses: {
+        type: Object,
+        default: () => ({}),
+    },
     loading: {
         type: Boolean,
         default: undefined,
@@ -77,18 +87,6 @@ const props = defineProps({
     variant: {
         type: String,
         default: "default",
-    },
-    oddCardOrRowClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    evenTwoColumnCardClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    oddTwoColumnCardClass: {
-        type: [String, Array, Object],
-        default: () => [],
     },
     outerClass: {
         type: [String, Array, Object],
@@ -139,21 +137,15 @@ const props = defineProps({
 const emit = defineEmits(["update:sorted", "update:isTable"]);
 
 const breakpoints = useBreakpoints(breakpointsVueda);
-const isTable = breakpoints.greaterOrEqual(toRef(props, "tableBreakpoint"));
-const twoColumns = breakpoints.between("sm", toRef(props, "tableBreakpoint"));
+const isTableByBP = breakpoints.greaterOrEqual(toRef(props, "tableBreakpoint"));
+// xs isn't a real breakpoint that greaterOrEqual understands. if the bp is xs, it is always table.
+const isTable = computed(() => props.tableBreakpoint === "xs" || isTableByBP.value);
 watch(isTable, (newValue) => {
     emit("update:isTable", newValue);
 });
 onMounted(() => {
     emit("update:isTable", isTable.value);
 });
-const evenCard = (obj, index) => {
-    if (isTable.value || !twoColumns.value) {
-        return props.evenColumn(obj) !== null ? props.evenColumn(obj) : index % 2 === 0;
-    }
-    // checkerboard pattern
-    return index % 4 === 1 || index % 4 === 2;
-};
 
 const sortClick = (e, fieldName) => {
     if (!props.sortables.includes(fieldName)) {
@@ -185,18 +177,42 @@ const sortClick = (e, fieldName) => {
 };
 
 const directionlessSorted = computed(() => props.sorted.map((field) => field.replace(/^-/, "")));
-const theme = useTheme(
-    "ObjectsGrid",
-    props,
-    reactive({
-        isTable,
-        tableBreakpoint: toRef(props, "tableBreakpoint"),
-    }),
-    (key, kwargs) => {
-        if ("evenCard" in kwargs) {
-            return key + (kwargs.evenCard ? "Even" : "Odd");
-        }
-        return key;
+const themeContext = reactive({
+    isTable,
+    tableBreakpoint: toRef(props, "tableBreakpoint"),
+});
+const theme = useTheme("ObjectsGrid", props, themeContext, (key, kwargs) => {
+    if (key === "headerCell" && kwargs.columnName && kwargs.columnIndex !== undefined) {
+        return `${key}[name:${kwargs.columnName}][index:${kwargs.columnIndex}]`;
+    }
+    return key;
+});
+
+// todo: use useSlotNameResolver to make generic field and header slot names while retaining the ability to override
+//  single fields by name
+const slots = useSlots();
+const slotNameResolvers = reactive({});
+const fieldNames = computed(() => props.fields.map((field) => field.name));
+const slotNameResolverEffectScope = effectScope();
+watch(
+    fieldNames,
+    (newFieldNames) => {
+        slotNameResolverEffectScope.run(() => {
+            const { addedKeys } = keyDiff(newFieldNames, Object.keys(slotNameResolvers));
+            for (const key of addedKeys) {
+                if (!slotNameResolvers[key]) {
+                    slotNameResolvers[key] = {};
+                    slotNameResolvers[key]["field"] = useSlotNameResolver([`field(${key})`, "field"], slots);
+                    slotNameResolvers[key]["header"] = useSlotNameResolver([`header(${key})`, "header"], slots);
+                    slotNameResolvers[key]["sortIcon"] = useSlotNameResolver([`sort-icon(${key})`, "sort-icon"], slots);
+                }
+            }
+            // we don't delete. the effectScope will clean up when we unmount.
+            //  if you re-add, the name is all that matters, so existing resolvers can be reused.
+        });
+    },
+    {
+        immediate: true,
     },
 );
 </script>
@@ -205,20 +221,29 @@ const theme = useTheme(
         <div :class="theme('table')" data-qa="objects-grid-table" role="table">
             <div :class="theme('headerRowGroup')" data-qa="objects-grid-header-row-group" role="rowgroup">
                 <div :class="theme('headerRow')" data-qa="objects-grid-header-row" role="row">
-                    <template v-for="(field, colIndex) in fields" :key="field?.name || `col-index-${colIndex}`">
+                    <template
+                        v-for="(field, columnIndex) in fields"
+                        :key="field?.name || `column-index-${columnIndex}`"
+                    >
                         <div
                             v-if="field?.name"
-                            :class="combineClasses(theme('headerCell'), headerClasses?.[field?.name])"
+                            :class="
+                                combineClasses(
+                                    theme('headerCell', { columnName: field?.name, columnIndex: columnIndex }),
+                                    headerClasses?.[field?.name],
+                                    tableHeaderClasses?.[field?.name],
+                                )
+                            "
                             :data-header="field?.name"
                             data-qa="objects-grid-header"
                             role="columnheader"
                             @click="sortClick($event, field?.name)"
                         >
-                            <objects-grid-table-header v-if="field.extra" :col-index="colIndex" :field="field">
+                            <objects-grid-table-header v-if="field.extra" :column-index="columnIndex" :field="field">
                                 <template #label="slotProps">
                                     <slot
-                                        :key="field?.name || `col-index-${colIndex}`"
-                                        :name="`header(${field?.name})`"
+                                        :key="field?.name || `column-index-${columnIndex}`"
+                                        :name="slotNameResolvers[field?.name]?.header?.name"
                                         v-bind="slotProps"
                                     />
                                 </template>
@@ -226,7 +251,7 @@ const theme = useTheme(
                             <objects-grid-table-header
                                 v-else
                                 :ascending="sorted.includes(field.name)"
-                                :col-index="colIndex"
+                                :column-index="columnIndex"
                                 :descending="sorted.includes(`-${field.name}`)"
                                 :field="field"
                                 :field-props="fieldProps"
@@ -234,10 +259,10 @@ const theme = useTheme(
                                 :sortable="sortables.includes(field.name)"
                             >
                                 <template #label="slotProps">
-                                    <slot :name="`header(${field?.name})`" v-bind="slotProps" />
+                                    <slot :name="slotNameResolvers[field?.name]?.header?.name" v-bind="slotProps" />
                                 </template>
-                                <template v-if="$slots['sort-icon']" #sort-icon="slotProps">
-                                    <slot name="sort-icon" v-bind="slotProps" />
+                                <template #sort-icon="slotProps">
+                                    <slot :name="slotNameResolvers[field?.name]?.sortIcon?.name" v-bind="slotProps" />
                                 </template>
                             </objects-grid-table-header>
                         </div>
@@ -260,59 +285,71 @@ const theme = useTheme(
                 <div
                     v-for="(obj, rowIndex) in objectsInOrder || []"
                     :key="obj?.[pkKey] || `row-index-${rowIndex}`"
-                    :class="[
-                        theme('bodyRow', {
-                            evenCard: evenCard(obj, rowIndex),
-                        }),
-                    ]"
+                    :class="[theme('bodyRow')]"
                     data-qa="objects-grid-row"
                     role="row"
                 >
-                    <template v-for="(field, colIndex) in fields" :key="`${field?.name || colIndex}-${rowIndex}`">
-                        <template v-if="field?.name">
-                            <objects-grid-card-cell
-                                v-if="!isTable"
-                                :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
-                                :class="combineClasses(fieldClasses?.[field?.name], cardFieldClasses?.[field?.name])"
-                                :col-index="colIndex"
-                                :data-field="field?.name"
-                                :field="field"
-                                :field-props="fieldProps"
-                                :obj="obj"
-                                :pk="obj?.[pkKey]"
-                                :pk-key="pkKey"
-                                :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
-                                role="cell"
-                                :row-index="rowIndex"
-                            >
-                                <template #header="slotProps">
-                                    <slot :name="`header(${field?.name})`" v-bind="slotProps" />
-                                </template>
-                                <template #value="slotProps">
-                                    <slot :name="`field(${field?.name})`" v-bind="slotProps" />
-                                </template>
-                            </objects-grid-card-cell>
-                            <objects-grid-body-cell
-                                v-else
-                                :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
-                                :class="combineClasses(fieldClasses?.[field?.name], tableFieldClasses?.[field?.name])"
-                                :col-index="colIndex"
-                                :data-field="field?.name"
-                                :field="field"
-                                :field-props="fieldProps"
-                                :obj="obj"
-                                :pk="obj?.[pkKey]"
-                                :pk-key="pkKey"
-                                :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
-                                role="cell"
-                                :row-index="rowIndex"
-                            >
-                                <template #value="slotProps">
-                                    <slot :name="`field(${field?.name})`" v-bind="slotProps" />
-                                </template>
-                            </objects-grid-body-cell>
+                    <component
+                        :is="isTable ? EmptyComponent : 'div'"
+                        :class="theme('cardContainer')"
+                        data-qa="objects-grid-card-container"
+                    >
+                        <template
+                            v-for="(field, columnIndex) in fields"
+                            :key="`${field?.name || columnIndex}-${rowIndex}`"
+                        >
+                            <template v-if="field?.name">
+                                <objects-grid-card-cell
+                                    v-if="!isTable"
+                                    :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
+                                    :class="
+                                        combineClasses(fieldClasses?.[field?.name], cardFieldClasses?.[field?.name])
+                                    "
+                                    :column-index="columnIndex"
+                                    :data-field="field?.name"
+                                    :field="field"
+                                    :field-props="fieldProps"
+                                    :header-class="
+                                        combineClasses(headerClasses?.[field?.name], cardHeaderClasses?.[field?.name])
+                                    "
+                                    :obj="obj"
+                                    :pk="obj?.[pkKey]"
+                                    :pk-key="pkKey"
+                                    :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
+                                    role="cell"
+                                    :row-index="rowIndex"
+                                >
+                                    <template #header="slotProps">
+                                        <slot :name="slotNameResolvers[field?.name]?.header?.name" v-bind="slotProps" />
+                                    </template>
+                                    <template #value="slotProps">
+                                        <slot :name="slotNameResolvers[field?.name]?.field?.name" v-bind="slotProps" />
+                                    </template>
+                                </objects-grid-card-cell>
+                                <objects-grid-body-cell
+                                    v-else
+                                    :calculated-object="calculatedObjects[obj?.[pkKey]] ?? {}"
+                                    :class="
+                                        combineClasses(fieldClasses?.[field?.name], tableFieldClasses?.[field?.name])
+                                    "
+                                    :column-index="columnIndex"
+                                    :data-field="field?.name"
+                                    :field="field"
+                                    :field-props="fieldProps"
+                                    :obj="obj"
+                                    :pk="obj?.[pkKey]"
+                                    :pk-key="pkKey"
+                                    :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
+                                    role="cell"
+                                    :row-index="rowIndex"
+                                >
+                                    <template #value="slotProps">
+                                        <slot :name="slotNameResolvers[field?.name]?.field?.name" v-bind="slotProps" />
+                                    </template>
+                                </objects-grid-body-cell>
+                            </template>
                         </template>
-                    </template>
+                    </component>
                 </div>
             </div>
         </div>

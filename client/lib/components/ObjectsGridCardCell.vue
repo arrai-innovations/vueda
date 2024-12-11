@@ -2,8 +2,11 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { useObjectGridCell } from "@vueda/use/useObjectGridCell.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed } from "vue";
+import { computed, reactive } from "vue";
 
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     field: {
         type: Object,
@@ -26,7 +29,7 @@ const props = defineProps({
         type: Number,
         required: true,
     },
-    colIndex: {
+    columnIndex: {
         type: Number,
         required: true,
     },
@@ -43,50 +46,55 @@ const props = defineProps({
         type: [String, Number],
         default: undefined,
     },
+    headerClass: {
+        type: String,
+        default: "",
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 
-const theme = useTheme("ObjectsGridCardCell", props);
+const themeContext = reactive({
+    props,
+});
+const theme = useTheme("ObjectsGridCardCell", props, themeContext);
 const { formattedComputed, valueComputed } = useObjectGridCell(props);
 const uniqueKeyForSlot = computed(() =>
     props.field.name && props.obj?.[props.pkKey]
         ? `${props.field.name}-${props.obj?.[props.pkKey]}`
-        : `col-${props.colIndex}-row-${props.rowIndex}`,
+        : `col-${props.columnIndex}-row-${props.rowIndex}`,
 );
 </script>
 <template>
-    <div :class="combineClasses(theme('root'), $attrs.class)" data-qa="objects-grid-card-cell" role="cell">
+    <slot
+        :key="uniqueKeyForSlot"
+        :class="theme('header')"
+        :column-index="columnIndex"
+        :field="field"
+        gird-type="cell"
+        :is-card-layout="true"
+        name="header"
+    >
+        <div :class="combineClasses(theme('header'), headerClass)" :data-card-header="field.name">
+            {{ field.label }}
+        </div>
+    </slot>
+    <div :class="combineClasses(theme('value'), $attrs.class)" :data-card="field.name">
         <slot
             :key="uniqueKeyForSlot"
-            :class="theme('header')"
-            :col-index="colIndex"
+            :calculated-obj="calculatedObject"
+            :column-index="columnIndex"
             :field="field"
-            gird-type="cell"
+            :formatted="formattedComputed"
             :is-card-layout="true"
-            name="header"
+            name="value"
+            :obj="obj"
+            :pk="obj?.[pkKey]"
+            :pk-key="pkKey"
+            :related-obj="relatedObject"
+            :row-index="rowIndex"
+            :value="valueComputed"
+            v-bind="fieldProps"
+            >{{ formattedComputed }}</slot
         >
-            <div :class="theme('header')" :data-card-header="field.name">
-                {{ field.label }}
-            </div>
-        </slot>
-        <div :class="theme('value')" :data-card="field.name">
-            <slot
-                :key="uniqueKeyForSlot"
-                :calculated-obj="calculatedObject"
-                :col-index="colIndex"
-                :field="field"
-                :formatted="formattedComputed"
-                :is-card-layout="true"
-                name="value"
-                :obj="obj"
-                :pk="obj?.[pkKey]"
-                :pk-key="pkKey"
-                :related-obj="relatedObject"
-                :row-index="rowIndex"
-                :value="valueComputed"
-                v-bind="fieldProps"
-                >{{ formattedComputed }}</slot
-            >
-        </div>
     </div>
 </template>
