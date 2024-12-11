@@ -6,6 +6,16 @@ import isArray from "lodash-es/isArray.js";
 import isEqual from "lodash-es/isEqual.js";
 import { reactive, readonly, ref, toRef, unref, watch } from "vue";
 
+let usingVuedaWorkFlow = true;
+
+/**
+ * Set the usingVuedaWorkFlow value.
+ *
+ * @param {boolean} value - The value to set usingVuedaWorkFlow to.
+ */
+export function setUsingVuedaWorkFlow(value) {
+    usingVuedaWorkFlow = value;
+}
 /**
  * The raw instance of a useWorkflow object.
  *
@@ -36,6 +46,15 @@ import { reactive, readonly, ref, toRef, unref, watch } from "vue";
  * @returns {useWorkflow} An object containing objectTransitions.
  */
 export function useWorkflow(app, model, pks, isActive, intendToFetch) {
+    if (!usingVuedaWorkFlow) {
+        return {
+            loading: ref(false),
+            error: ref(null),
+            errored: ref(false),
+            clearError: () => {},
+            objectTransitions: ref({}),
+        };
+    }
     const loadingError = useLoadingError();
     if (!isActive) {
         isActive = useIsActive();
