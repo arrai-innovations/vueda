@@ -238,13 +238,7 @@ export function useFormModel(props) {
                     fieldComponents[fieldName] = setFieldComponent(fieldName, fieldDetail, baseExpanded);
                     fieldProps[fieldName] = setFieldComponentProps(fieldName, fieldDetail);
                     widgetComponents[fieldName] = setWidgetComponent(fieldName, fieldDetail, baseExpanded);
-                    widgetProps[fieldName] = setWidgetComponentProps(
-                        fieldName,
-                        fieldDetail,
-                        baseExpanded,
-                        isExpandedField,
-                        field,
-                    );
+                    widgetProps[fieldName] = setWidgetComponentProps(fieldName, fieldDetail, isExpandedField, field);
                 }
                 assignStateObjectsIfChanged({
                     fieldComponents,

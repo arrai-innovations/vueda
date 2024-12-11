@@ -234,22 +234,11 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         return widget;
     }
 
-    function setWidgetComponentProps(
-        key,
-        detailObject,
-        baseExpanded = false,
-        isExpandedField = false,
-        field = {},
-        fieldName = key,
-    ) {
+    function setWidgetComponentProps(key, detailObject, isExpandedField = false, field = {}, fieldName = key) {
         let widget = undefined;
         es.run(() => {
             widget = computed(() => {
-                if (baseExpanded) {
-                    return {};
-                }
                 const fieldLevelThemeOverride = getFieldLevelThemeOverride(fieldName, true);
-
                 const baseProps = {
                     ...(getWidgetProps(detailObject) || {}),
                     ...(deepUnref(modelConfig.config?.widgetProps?.[fieldName]) || {}),
