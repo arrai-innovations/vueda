@@ -13,7 +13,7 @@ export default {
             class: ["flex", "items-center", "justify-between"],
         },
         row: {
-            class: ["flex", "flex-wrap", "gap-2", "flex-row"],
+            class: ["flex", "flex-wrap", "gap-1", "2xs:gap-2", "flex-row"],
         },
         component: {
             class: ["w-5/6"],
@@ -27,10 +27,10 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-row flex-wrap gap-2"],
+            class: ["flex flex-row flex-wrap gap1 2xs:gap-2"],
         },
         header: {
-            class: ["flex items-baseline gap-2"],
+            class: ["flex items-baseline gap-1 2xs:gap-2"],
         },
         title: {
             class: "ml-2 leading-7 text-surface-900 dark:text-white text-lg",
@@ -107,23 +107,26 @@ export default {
         inner: {
             class: ["flex flex-col"],
         },
+        dividerRoot: {
+            class: "!my-1",
+        },
         dividerContent: {
-            class: ["flex flex-row items-baseline justify-between gap-1 md:gap-2 2xl:gap-4"],
+            class: ["flex flex-row items-baseline justify-between gap-1 2xs:gap-2 2xl:gap-4"],
         },
         hr: {
             class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2 my-2",
         },
         titleBar: {
-            class: "ml-2 leading-7 flex items-baseline gap-2 md:gap-4",
+            class: "ml-2 leading-7 flex items-baseline gap-1 2xs:gap-2 2xl:gap-4",
         },
         title: {
             class: ["text-surface-900 dark:text-white"],
         },
         actionBar: {
-            class: "grow-0 flex gap-2",
+            class: "grow-0 flex gap-1 2xs:gap-2 2xl:gap-4",
         },
         itemActionBar: {
-            class: "flex gap-2 items-baseline",
+            class: "flex gap-1 2xs:gap-2 2xl:gap-4 items-baseline",
         },
         objectsGrid: {
             class: "w-full",
@@ -159,7 +162,7 @@ export default {
             class: "w-64",
         },
         form: {
-            class: "flex flex-col gap-2",
+            class: "flex flex-col gap-1 2xs:gap-2 2xl:gap-4",
         },
         fieldContainer: {
             class: "mb-2",
@@ -168,7 +171,7 @@ export default {
             class: [],
         },
         fieldInput: {
-            class: "rounded border border-surface-300 dark:border-surface-600 p-2",
+            class: "rounded border border-surface-300 dark:border-surface-600 p-1 2xs:p-2",
         },
         submitButton: {
             class: "whitespace-nowrap",

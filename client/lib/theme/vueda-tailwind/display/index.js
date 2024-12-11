@@ -42,13 +42,13 @@ export default {
             class: "w-full",
         },
         container: {
-            class: "max-w-full overflow-x-auto p-1 flex flex-col gap-2",
+            class: "max-w-full overflow-x-auto p-1 2xs:p-2 2xl:p-4 flex flex-col gap-2",
         },
         message: {
             class: [],
         },
         codeBlock: {
-            class: "bg-surface-100 dark:bg-surface-800 p-2 rounded", // Styling for the code block
+            class: "bg-surface-100 dark:bg-surface-800 p-1 2xs:p-2 2xl:p-4 rounded", // Styling for the code block
         },
         link: {
             class: "underline",

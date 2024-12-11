@@ -5,7 +5,6 @@ export default {
         },
         table: {
             class: ({ isTable }) => [
-                "mb-2 md:mb-4 lg:mb-7",
                 {
                     "!table overflow-x-auto max-w-full": isTable,
                 },
@@ -13,7 +12,7 @@ export default {
         },
         headerRowGroup: {
             class: ({ isTable }) => [
-                "gap-4",
+                "gap-1 2xs:gap-2 2xl:gap-4",
                 {
                     "!table-header-group": isTable,
                     hidden: !isTable,
@@ -25,62 +24,52 @@ export default {
         },
         headerCell: {
             class: ({ isTable }) => [
-                // "text-white",
-                // "bg-surface-900 dark:bg-surface-500",
-                // "align-middle",
                 "align-bottom",
                 "font-semibold",
                 "select-none",
-                // "first:rounded-tl",
-                // "last:rounded-tr",
                 {
                     "!table-cell": isTable,
-                },
-            ],
-        },
-        bodyRowGroup: {
-            class: ({ isTable }) => [
-                "screen:grid",
-                "gap-4",
-                "sm:grid-cols-2",
-                "md:grid-cols-3",
-                "lg:grid-cols-4",
-                "grid-flow-row",
-                {
-                    "!table-row-group": isTable,
                 },
             ],
         },
         emptyText: {
             class: ["text-center"],
         },
+        bodyRowGroup: {
+            class: ({ isTable }) => [
+                "screen:grid",
+                "p-1 2xs:p-2 2xl:p-4 gap-1 2xs:gap-2 2xl:gap-4",
+                // don't add grid-cols-x here.
+                // projects should set their own via theme-override
+                // as appropriate for their individual cases.
+                "grid-flow-row",
+                {
+                    "!table-row-group": isTable,
+                },
+            ],
+        },
+        // bodyRow: {
+        //     class: "",
+        // },
         bodyRow: {
-            class: ({ isTable, tableBreakpoint }) => {
+            class: ({ isTable }) => {
                 return [
                     // you can't tell how many cards are on a row, so we must treat them all the same.
                     // first and last don't help us here.
                     {
-                        "max-md:rounded max-md:gap-2 max-md:p-2 max-md:flex max-md:flex-col max-md:[&>*]:flex-1 max-md:[&>*]:flex-grow max-md:[&>*]:min-w-0":
-                            tableBreakpoint === "md",
-                        "max-lg:rounded max-lg:gap-2 max-lg:p-2 max-lg:flex max-lg:flex-col max-lg:[&>*]:flex-1 max-lg:[&>*]:flex-grow max-lg:[&>*]:min-w-0":
-                            tableBreakpoint === "lg",
-                        "max-xl:rounded max-xl:gap-2 max-xl:p-2 max-xl:flex max-xl:flex-col max-xl:[&>*]:flex-1 max-xl:[&>*]:flex-grow max-xl:[&>*]:min-w-0":
-                            tableBreakpoint === "xl",
-                        "max-2xl:rounded max-2xl:gap-2 max-2xl:p-2 max-2xl:flex max-2xl:flex-col max-2xl:[&>*]:flex-1 max-2xl:[&>*]:flex-grow max-2xl:[&>*]:min-w-0":
-                            tableBreakpoint === "2xl",
-                        // "bg-surface-50 dark:bg-surface-900": !evenCard,
-                        // "bg-surface-100 dark:bg-surface-800": evenCard,
-                        "border-2 border-surface-200 dark:border-surface-700": true,
-                        "overflow-y-auto": true,
                         "!table-row": isTable,
+                        "p-1 2xs:p-2 2xl:p-4 rounded-md border 2xs:border-2 overflow-y-auto": !isTable,
                     },
                 ];
             },
         },
+        cardContainer: {
+            class: "p-1 2xs:p-2 2xl:p-4 gap-1 2xs:gap-2 2xl:gap-4 mb-1 mt-2 flex flex-col [&>*]:min-w-0",
+        },
     },
     ObjectsGridTableHeader: {
         root: {
-            class: ({ sortable }) => [
+            class: ({ props: { sortable } }) => [
                 "flex",
                 "items-end",
                 "justify-between",
@@ -104,26 +93,11 @@ export default {
         },
     },
     ObjectsGridCardCell: {
-        root: {
-            class: ["gap-2", "p-2"],
-        },
         header: {
-            class: [
-                "align-middle",
-                "border-surface-200 dark:border-surface-700",
-                "text-material-black dark:text-white",
-                "font-semibold",
-                "pl-1 pr-3",
-                "select-none",
-            ],
+            class: ["align-middle", "text-material-black dark:text-white", "font-semibold", "select-none"],
         },
         value: {
-            class: [
-                "align-middle",
-                "border-surface-200 dark:border-surface-700",
-                "text-surface-800 dark:text-surface-200",
-                "font-normal",
-            ],
+            class: ["align-middle", "text-surface-800 dark:text-surface-200", "font-normal"],
         },
     },
     ObjectsGridBodyCell: {
@@ -132,11 +106,19 @@ export default {
                 "align-middle",
                 "text-surface-800 dark:text-surface-200",
                 "font-normal",
-                "border-surface-200 dark:border-surface-700",
                 "px-1 lg:px-2",
                 "table-cell",
                 "h-[3.5rem]",
             ],
+        },
+        themeOverride: {
+            WidgetLabel: {
+                root: {
+                    class: {
+                        "ml-2 mb-1": false,
+                    },
+                },
+            },
         },
     },
 };
