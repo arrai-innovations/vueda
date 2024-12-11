@@ -4,7 +4,7 @@ import { mergeTheme, useTheme } from "@vueda/use/useTheme.js";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
-import { computed, inject, markRaw, reactive, unref, useAttrs, useSlots } from "vue";
+import { computed, inject, markRaw, reactive, toRef, unref, useAttrs, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -84,12 +84,17 @@ const widgetProps = computed(() => ({
     ),
 }));
 const slotsForPassing = computed(() => unref(remainingSlots).map((slotName) => [slotName, slots[slotName]]));
-const theme = useTheme(
-    "FormModel",
-    reactive({
-        themeOverride: computed(() => mergeTheme(props.formModel.theme, props.themeOverride)),
-    }),
-);
+const themeProps = reactive({
+    themeOverride: computed(() => mergeTheme(props.formModel.theme, props.themeOverride)),
+});
+const themeContext = reactive({
+    formModelName: toRef(props, "formModelName"),
+    fieldDetail: fieldDetail,
+    fieldProps: fieldProps,
+    widgetProps: widgetProps,
+    inFieldSet: computed(() => !!fieldSetContext),
+});
+const theme = useTheme("FormModel", themeProps, themeContext);
 const fieldClass = computed(() => combineClasses(unref(theme("field")), unref(fieldProps)?.class, attrs.class));
 const fieldInnerClass = theme("fieldInner");
 </script>
@@ -101,6 +106,7 @@ const fieldInnerClass = theme("fieldInner");
         :field-detail="fieldDetail"
         :field-inner-class="fieldInnerClass"
         :field-props="fieldProps"
+        :form-model-name="props.formModelName"
         :name="fieldSlotName"
         :slots="slotsForPassing"
         :widget-component="widgetComponent"
@@ -117,6 +123,7 @@ const fieldInnerClass = theme("fieldInner");
                     :field-detail="fieldDetail"
                     :field-inner-class="fieldInnerClass"
                     :field-props="fieldProps"
+                    :form-model-name="props.formModelName"
                     :name="fieldDefaultSlotName"
                     :slots="slotsForPassing"
                     :widget-component="widgetComponent"
@@ -129,6 +136,7 @@ const fieldInnerClass = theme("fieldInner");
                             :field-detail="fieldDetail"
                             :field-inner-class="fieldInnerClass"
                             :field-props="fieldProps"
+                            :form-model-name="props.formModelName"
                             :name="widgetSlotName"
                             :slots="slotsForPassing"
                             :widget-component="widgetComponent"
