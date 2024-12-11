@@ -7,5 +7,6 @@ export const breakpointsVueda = {
     xl: 1280,
     "2xl": 1536,
     "3xl": 1920, // custom, see tailwind.config.js#theme[.extend].screens
+    "4xl": 2560, // custom, see tailwind.config.js#theme[.extend].screens
     inf: 999999, // custom, see tailwind.config.js#theme[.extend].screens
 };
