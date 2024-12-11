@@ -312,6 +312,9 @@ const remainingSlotNames = computed(() => {
         <div :class="theme('inner')" data-qa="fieldset-tabular-inline-inner">
             <Divider
                 :pt="{
+                    root: {
+                        class: theme('dividerRoot'),
+                    },
                     content: {
                         class: theme('dividerContent'),
                     },
@@ -478,7 +481,7 @@ const remainingSlotNames = computed(() => {
                 </template>
                 <template
                     v-for="(fieldObj, foIndex) in fieldObjects"
-                    :key="`${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}-${objectGridFieldSlotProps.colIndex}`"
+                    :key="`${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}-${objectGridFieldSlotProps.columnIndex}`"
                     #[`field(${fieldObj.name})`]="objectGridFieldSlotProps"
                 >
                     <a
