@@ -43,12 +43,16 @@ import { deepUnref } from "vue-deepunref";
 /**
  * Helper to resolve the most specific slot name from a list of candidates in order of precedence.
  *
- * @param {SlotNamesInOrderOfPrecedence} slotNamesInOrderOfPrecedence - The slot names to check for, in order of precedence.
+ * @param {SlotNamesInOrderOfPrecedence} slotNamesInOrderOfPrecedence - The slot names to check for, in order of
+ *  precedence.
+ * @param {import('vue').Slots|undefined} slots - The slots object to check against. If not provided, the current
+ *  instance's slots will be used.
  * @returns {import('vue').UnwrapNestedRefs<ResolvedSlotName>} - The resolved slot name.
  */
-export function useSlotNameResolver(slotNamesInOrderOfPrecedence) {
-    const slots = useSlots();
-
+export function useSlotNameResolver(slotNamesInOrderOfPrecedence, slots) {
+    if (!slots) {
+        slots = useSlots();
+    }
     const possibleNames = computed(() => deepUnref(slotNamesInOrderOfPrecedence));
     const exists = computed(() => possibleNames.value.some((slotName) => !!slots[slotName]));
     const name = computed(() => possibleNames.value.find((slotName) => slots[slotName]));
