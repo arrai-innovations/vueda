@@ -18,10 +18,6 @@ const props = defineProps({
         type: [Date, String],
         default: undefined,
     },
-    customDateConverter: {
-        type: Function,
-        default: undefined,
-    },
 });
 
 const preprocessGet = (value) => {
@@ -36,12 +32,11 @@ const preprocessGet = (value) => {
 };
 
 const preprocessSet = (value) => {
-    let newValue = value;
     if (value instanceof Date) {
         const dt = DateTime.fromJSDate(value, { zone: "local" });
-        newValue = dt.toISODate(); // Returns date in "yyyy-MM-dd" format
+        return dt.toISODate(); // Returns date in "yyyy-MM-dd" format
     }
-    return props.customDateConverter ? props.customDateConverter(newValue) : newValue;
+    return value;
 };
 
 const emit = defineEmits([...FIELD_EMITS]);

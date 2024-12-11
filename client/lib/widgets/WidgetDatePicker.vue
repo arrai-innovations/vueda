@@ -54,6 +54,10 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
+    customDateConverter: {
+        type: Function,
+        default: undefined,
+    },
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
 });
@@ -77,6 +81,12 @@ const valueUpdated = (value) => {
     }
     if (!isEqual(value, widgetContext.state.combinedValue)) {
         widgetContext.state.combinedValue = value;
+        // Conversion is done at the widget level to update the value first with the unconverted one, ensuring the widget recognizes the change.
+        // This allows the DatePicker to display the correct converted value, instead of being stuck on the clicked value.
+        if (props.customDateConverter) {
+            const newValue = props.customDateConverter(value);
+            widgetContext.state.combinedValue = newValue;
+        }
     }
 };
 const onTodayButtonClick = () => {
