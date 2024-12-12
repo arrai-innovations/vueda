@@ -34,7 +34,7 @@ export default {
             class: "cursor-help",
         },
         dash: {
-            class: "text-surface-500",
+            class: "",
         },
     },
     ErrorDisplay: {

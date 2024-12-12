@@ -74,7 +74,6 @@ export const getFormChoresSlotNames = (formModelName) => {
  * @property {(
  *     key: string,
  *     detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo,
- *     baseExpanded?: boolean,
  *     isExpandedField?: boolean,
  *     field?: object,
  *     fieldName?: string
