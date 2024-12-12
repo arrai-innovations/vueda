@@ -4,6 +4,42 @@ orbs:
     prettier: arrai/prettier@5.9.3
     npm: arrai/npm@3.0.3
     github: arrai/github@3.0.0
+executors:
+    base:
+        docker:
+            - image: cimg/base:current
+jobs:
+    run_pipeline:
+        parameters:
+            executor:
+                type: executor
+                default: base
+            resource_class:
+                type: enum
+                enum: [small, medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
+                default: small
+            vcs:
+                type: enum
+                enum: [bitbucket, github]
+                default: github
+            org:
+                type: string
+                default: ${CIRCLE_PROJECT_USERNAME}
+            project:
+                type: string
+            token:
+                type: string
+                default: ${CIRCLECI_API_TOKEN}
+        executor: <<parameters.executor>>
+        resource_class: <<parameters.resource_class>>
+        steps:
+            - run:
+                  name: Run Pipeline
+                  command: |
+                      curl --location \
+                           --request POST 'https://circleci.com/api/v2/project/<<parameters.vcs>>/<<parameters.org>>/<<parameters.project>>/pipeline' \
+                           --header 'Content-Type: application/json' \
+                           --user "<<parameters.token>>:"
 workflows:
     test:
         jobs:
@@ -28,6 +64,13 @@ workflows:
                       branches:
                           ignore:
                               - main
+            - run_pipeline:
+                  name: run-sems-client-pipeline-main
+                  project: sems-client
+                  filters:
+                      branches:
+                          only:
+                              - main
             - npm/publish:
                   name: publish
                   context: arrai-private-package-publishing
@@ -41,6 +84,16 @@ workflows:
                   context: arrai-global
                   requires:
                       - publish
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore: /.*/
+            - run_pipeline:
+                  name: run-sems-client-pipeline-tag
+                  requires:
+                      - release_on_github
+                  project: sems-client
                   filters:
                       tags:
                           only: /.*/
