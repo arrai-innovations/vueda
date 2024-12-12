@@ -35,7 +35,6 @@ const inputComponent = computed(
     () =>
         ({
             text: InputText,
-            // number: InputText, // Not using InputNumber because it doesn't update the v-model on @input
             number: InputNumber,
             otp: InputOtp,
             mask: InputMask,

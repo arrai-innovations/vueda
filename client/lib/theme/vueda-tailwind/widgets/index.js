@@ -231,20 +231,21 @@ export default {
                     "ml-2 mb-1": !isCardLayout,
                     "gap-1": true,
                     // not items-baseline, checkboxes and buttons don't play well with it
-                    "grid grid-cols-[auto_1fr] justify-between items-center": !hidden,
+                    // nor items-center, cells in the row stretch to fill the row by default
+                    "grid grid-cols-[auto_1fr] justify-between": !hidden,
                     "flex flex-row items-baseline": hidden && isRequiredHasHelpOrHasValidation,
                 },
             };
         },
         label: {
-            class: ({ warning, invalid, hidden }) => {
-                const hasValidation = warning || invalid;
+            class: ({ warning, invalid, hidden, required, help }) => {
+                const showingButton = warning || invalid || help || required;
                 return {
                     "sr-only": hidden,
                     "row-start-1 row-end-2 col-start-1": !hidden,
-                    "col-end-2": !hidden && hasValidation,
-                    "col-end-3": !hidden && !hasValidation,
-                    "leading-7": true,
+                    "col-end-2": !hidden && showingButton,
+                    "col-end-3": !hidden && !showingButton,
+                    "leading-[2.3958125rem]": true,
                     "text-surface-900/60 dark:text-white/60": true,
                     "!text-amber-600 dark:!text-amber-500": warning,
                     "!text-maroon-600 dark:!text-maroon-500": invalid,
