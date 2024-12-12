@@ -66,6 +66,9 @@ export default {
         listItem: {
             class: [],
         },
+        nonFieldErrorBlock: {
+            class: ["max-w-full overflow-x-auto p-1 2xs:p-2 2xl:p-4 flex flex-col gap-2"],
+        },
     },
     ViewList: {
         selectedCheckbox: {

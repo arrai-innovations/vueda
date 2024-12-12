@@ -1,5 +1,6 @@
 <script setup>
 import { loadingCombine } from "@arrai-innovations/reactive-helpers";
+import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FieldString from "@vueda/fields/FieldString.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
@@ -70,6 +71,10 @@ const actionState = reactive({
     errored: false,
     error: null,
 });
+const combinedError = computed(() => {
+    return props.fetchState.error || actionState.error;
+});
+const combinedErrored = computed(() => !!combinedError.value);
 const combinedLoading = computed(() => loadingCombine(props.fetchState.loading, actionState.loading));
 const actionSuccessSummary = computed(() => {
     if (props.actionSuccessSummary) {
@@ -202,14 +207,13 @@ const handleCancelClick = () => {
 </script>
 
 <template>
-    <pre>
-    fetchState.loading: {{ props.fetchState.loading }}
-    </pre>
-    <pre>
-        actionState: {{ actionState }}
-    </pre>
+    <error-display :error="combinedError" :errored="combinedErrored" :ignore-form-validation-errors="true" />
     <div :class="theme('root')" data-qa="view-action-root">
         <div :class="theme('inner')" data-qa="view-action-inner">
+            <div :class="theme('nonFieldErrorBlock')">
+                <form-feedback type="error" />
+                <form-feedback type="message" />
+            </div>
             <div :class="theme('selectedObjects')" data-qa="view-action-selected-objects">
                 <slot :loading="combinedLoading" name="selected-objects" :objects="fetchState?.objects">
                     <p>You have selected the following {{ unref(modelVerboseName) }}(s):</p>
