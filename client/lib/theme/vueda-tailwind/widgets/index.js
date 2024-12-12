@@ -172,6 +172,18 @@ export default {
         textItem: {
             class: [],
         },
+        linkItemPrefix: {
+            class: [],
+        },
+        textItemPrefix: {
+            class: [],
+        },
+        linkItemSuffix: {
+            class: [],
+        },
+        textItemSuffix: {
+            class: [],
+        },
     },
     WidgetSearchableSelect: {
         root: {

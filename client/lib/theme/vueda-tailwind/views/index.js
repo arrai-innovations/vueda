@@ -66,16 +66,6 @@ export default {
         listItem: {
             class: [],
         },
-        themeOverride: {
-            WidgetReadOnly: {
-                linkItem: {
-                    class: [],
-                },
-                textItem: {
-                    class: [],
-                },
-            },
-        },
     },
     ViewList: {
         selectedCheckbox: {

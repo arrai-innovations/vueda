@@ -35,6 +35,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    suffix: {
+        type: String,
+        default: "",
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
@@ -124,6 +128,7 @@ const textItemResolvedSlotNames = useSlotNameResolver(
                                 :pk="pkValue"
                                 view="update"
                             >
+                                <span v-if="prefix" :class="theme('linkItemPrefix')">{{ prefix }}</span>
                                 <link-model-view
                                     :app="app"
                                     :class="theme('linkItem')"
@@ -132,6 +137,7 @@ const textItemResolvedSlotNames = useSlotNameResolver(
                                     :pk="pkValue"
                                     view="update"
                                 />
+                                <span v-if="suffix" :class="theme('linkItemSuffix')">{{ suffix }}</span>
                             </slot>
                             <slot
                                 v-else
@@ -141,9 +147,11 @@ const textItemResolvedSlotNames = useSlotNameResolver(
                                 :name="textItemResolvedSlotNames.name"
                                 :value="widgetContext.state.combinedValue"
                             >
+                                <span v-if="prefix" :class="theme('textItemPrefix')">{{ prefix }}</span>
                                 <span :class="theme('textItem')">
                                     {{ widgetContext.state.combinedValue }}
                                 </span>
+                                <span v-if="suffix" :class="theme('textItemSuffix')">{{ suffix }}</span>
                             </slot>
                         </slot>
                     </div>
