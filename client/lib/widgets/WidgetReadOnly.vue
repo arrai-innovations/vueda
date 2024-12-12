@@ -35,6 +35,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    prefix: {
+        type: String,
+        default: "",
+    },
     suffix: {
         type: String,
         default: "",

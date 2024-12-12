@@ -75,7 +75,7 @@
     "lodash-es": "^4.17.21",
     "luxon": "^3.4.4",
     "pinia": "^2.2.6",
-    "primevue": "^4.0.7",
+    "primevue": "^4.2.5",
     "vue": "^3.4.0",
     "vue-deepunref": "^1.0.1",
     "vue-router": "^4.2.5"
