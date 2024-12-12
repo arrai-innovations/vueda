@@ -11,13 +11,6 @@ executors:
 jobs:
     run_pipeline:
         parameters:
-            executor:
-                type: executor
-                default: base
-            resource_class:
-                type: enum
-                enum: [small, medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
-                default: small
             vcs:
                 type: enum
                 enum: [bitbucket, github]
@@ -30,8 +23,8 @@ jobs:
             token:
                 type: string
                 default: ${CIRCLECI_API_TOKEN}
-        executor: <<parameters.executor>>
-        resource_class: <<parameters.resource_class>>
+        executor: base
+        resource_class: small
         steps:
             - run:
                   name: Run Pipeline
