@@ -37,7 +37,7 @@ jobs:
                   name: Run Pipeline
                   command: |
                       curl --location \
-                           --request POST 'https://circleci.com/api/v2/project/<<parameters.vcs>>/<<parameters.org>>/<<parameters.project>>/pipeline' \
+                           --request POST "https://circleci.com/api/v2/project/<<parameters.vcs>>/<<parameters.org>>/<<parameters.project>>/pipeline" \
                            --header 'Content-Type: application/json' \
                            --user "<<parameters.token>>:"
 workflows:
