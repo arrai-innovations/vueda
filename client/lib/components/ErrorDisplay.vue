@@ -1,11 +1,12 @@
 <script setup>
+import * as Sentry from "@sentry/vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import { formatError } from "@vueda/utils/formatError.js";
 import isArray from "lodash-es/isArray.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import Message from "primevue/message";
-import { computed, useAttrs, watch } from "vue";
+import { computed, ref, toRef, useAttrs, watch } from "vue";
 
 const props = defineProps({
     errored: {
@@ -53,9 +54,22 @@ const ignoredError = (error) =>
         (props.ignoreAbortedRequests && error?.message?.includes("aborted"))
     );
 
+const reportedErrors = ref(new Set());
+
+const reportToSentry = (error) => {
+    const errorKey = error?.message || JSON.stringify(error); // Create a unique key for each error
+    if (!reportedErrors.value.has(errorKey)) {
+        Sentry.captureException(error);
+        reportedErrors.value.add(errorKey);
+    }
+    if (import.meta.env.DEV) {
+        console.error(error);
+    }
+};
+
 watch(
-    () => props.state?.error,
-    async (error) => {
+    toRef(props, "error"),
+    (error) => {
         if (ignoredError(error)) {
             return;
         }
@@ -63,12 +77,12 @@ watch(
             if (isEmpty(error)) {
                 return;
             }
-            const myError = error.flat().filter((e) => !ignoredError(e));
-            myError.forEach((e) => {
-                console.error(e);
-            });
+            error
+                .flat()
+                .filter((e) => !ignoredError(e))
+                .forEach(reportToSentry);
         } else if (error) {
-            console.error(error);
+            reportToSentry(error);
         }
     },
     { immediate: true },
