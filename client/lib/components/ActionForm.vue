@@ -202,6 +202,12 @@ const handleCancelClick = () => {
 </script>
 
 <template>
+    <pre>
+    fetchState.loading: {{ props.fetchState.loading }}
+    </pre>
+    <pre>
+        actionState: {{ actionState }}
+    </pre>
     <div :class="theme('root')" data-qa="view-action-root">
         <div :class="theme('inner')" data-qa="view-action-inner">
             <div :class="theme('selectedObjects')" data-qa="view-action-selected-objects">
