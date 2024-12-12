@@ -7,6 +7,9 @@ orbs:
     safety: arrai/safety@3.0.4
     utils: arrai/utils@1.16.3
 executors:
+    base:
+        docker:
+            - image: cimg/base:current
     python311:
         docker:
             - image: cimg/python:3.11
@@ -49,7 +52,30 @@ jobs:
                   paths:
                       - ~/project/dist
                   key: build-{{ arch }}-{{ .Environment.CIRCLE_WORKFLOW_ID }}
-
+    run_pipeline:
+        parameters:
+            vcs:
+                type: enum
+                enum: [bitbucket, github]
+                default: github
+            org:
+                type: string
+                default: ${CIRCLE_PROJECT_USERNAME}
+            project:
+                type: string
+            token:
+                type: string
+                default: ${CIRCLECI_API_TOKEN}
+        executor: base
+        resource_class: small
+        steps:
+            - run:
+                  name: Run Pipeline
+                  command: |
+                      curl --location \
+                           --request POST "https://circleci.com/api/v2/project/<<parameters.vcs>>/<<parameters.org>>/<<parameters.project>>/pipeline" \
+                           --header 'Content-Type: application/json' \
+                           --user "<<parameters.token>>:"
 workflows:
     test:
         jobs:
@@ -67,6 +93,15 @@ workflows:
                           only: /.*/
                       tags:
                           only: /.*/
+            - run_pipeline:
+                  name: run-sems-server-pipeline-main
+                  requires:
+                      - pytest
+                  project: sems-server
+                  filters:
+                      branches:
+                          only:
+                              - main
             # todo: docs?
             - build:
                   name: build
@@ -93,6 +128,16 @@ workflows:
                   cache_key: build-{{ arch }}-{{ .Environment.CIRCLE_WORKFLOW_ID }}
                   requires:
                       - build
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore: /.*/
+            - run_pipeline:
+                  name: run-sems-server-pipeline-tag
+                  requires:
+                      - publish
+                  project: sems-server
                   filters:
                       tags:
                           only: /.*/
