@@ -12,6 +12,7 @@ import { useObject404 } from "@vueda/use/useObject404.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { useWarnings } from "@vueda/use/useWarnings.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import cloneDeep from "lodash-es/cloneDeep.js";
 import Button from "primevue/button";
 import { computed, onMounted, reactive, readonly, ref, toRef, watch } from "vue";
 
@@ -210,7 +211,7 @@ watch(
         // populate the form when the page loads and when we have the object back.
         // undefined on loading means not run yet.
         if (vAA && loading === false) {
-            assignReactiveObject(formContextProps.initialValues, instanceObjectForRetrieve.state.object);
+            assignReactiveObject(formContextProps.initialValues, cloneDeep(instanceObjectForRetrieve.state.object));
         }
     },
     {

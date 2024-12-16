@@ -113,6 +113,7 @@ export function defaultValidateRequired(value) {
  * @typedef {object} FieldContext
  * @property {FieldContextState} state - The reactive state of the field.
  * @property {(value: any) => void} updateValue - Update the field's value.
+ * @property {(value: any) => void} updateInitialValue - Update the field's initial value.
  * @property {() => void} deleteValue - Delete the field's value.
  * @property {(code: string, message: string) => void} updateError - Update the field's error.
  * @property {(code: string) => void} deleteError - Delete the field's error.
@@ -233,7 +234,19 @@ export function useField(props, emit, functions) {
                       },
                   })
                 : undefined,
-        initialValue: formContext ? computed(() => get(formContext.state.initialValues, props.name)) : undefined,
+        initialValue: formContext
+            ? computed({
+                  get: () => {
+                      return get(formContext.state.initialValues, props.name);
+                  },
+                  set: (newValue) => {
+                      if (isEqual(newValue, state.valueDetail)) {
+                          return;
+                      }
+                      formContext.updateInitialValue(state.name, newValue);
+                  },
+              })
+            : undefined,
         messages: formContext ? computed(() => get(formContext.state.messages, props.name)) : {},
         errors: formContext ? computed(() => get(formContext.state.errors, props.name)) : {},
         touched: formContext ? computed(() => formContext.state.touched[props.name]) : false,
@@ -353,6 +366,7 @@ export function useField(props, emit, functions) {
     const returnObj = {
         state,
         updateError: ifFormContext((code, message) => formContext.updateError(state.name, code, message)),
+        updateInitialValue: ifFormContext((value) => formContext.updateInitialValue(state.name, value)),
         deleteError: ifFormContext((code) => formContext.deleteError(state.name, code)),
         updateMessage: ifFormContext((code, message) => formContext.updateMessage(state.name, code, message)),
         deleteMessage: ifFormContext((code) => formContext.deleteMessage(state.name, code)),

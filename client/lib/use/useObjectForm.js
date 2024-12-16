@@ -33,6 +33,7 @@ import { useRouter } from "vue-router";
  * @property {string} model - The model name.
  * @property {string} verboseName - The verbose name of the model.
  * @property {boolean} modified - Whether the form has changes from the initial values.
+ * @property {boolean} touched - Whether the form has been touched.
  */
 
 /**
@@ -245,6 +246,7 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         model: computed(() => props.model),
         verboseName: computed(() => props.verboseName),
         modified: computed(() => formContext.state.anyModified),
+        touched: computed(() => formContext.state.anyTouched),
     });
     const returnObject = {
         state,

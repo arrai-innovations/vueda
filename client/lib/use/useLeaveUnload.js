@@ -11,6 +11,7 @@ import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 /**
  * @typedef {object} UseLeaveUnloadRefsProps
  * @property {import('vue').Ref<boolean>} modified - Whether the form has changes to be lost.
+ * @property {import('vue').Ref<boolean>} touched - Whether the form has been touched.
  * @property {import('vue').Ref<boolean>} loading - Whether the form is being processed currently.
  */
 
@@ -25,7 +26,7 @@ export function useLeaveUnload(props) {
     const isActive = useIsActive();
 
     const beforeRouteLeaveListener = () => {
-        if (isActive.value && props.modified && !props.loading) {
+        if (isActive.value && props.modified && props.touched && !props.loading) {
             const answer = window.confirm("You have unsaved changes, are you sure to leave?");
             // cancel the navigation and stay on the same page
             if (!answer) {

@@ -56,6 +56,19 @@ const validateName = (name) => {
  * @param {any} value
  * @private
  */
+const updateInitialValue = (state, name, value) => {
+    validateName(name);
+    if (!isEqual(get(state.initialValues, name), value)) {
+        set(state.initialValues, name, value);
+    }
+};
+
+/**
+ * @param {FormContextState} state
+ * @param {string} name
+ * @param {any} value
+ * @private
+ */
 const updateValue = (state, name, value) => {
     validateName(name);
     if (!isEqual(get(state.values, name), value)) {
@@ -471,6 +484,7 @@ const removeIgnore = (state, name) => {
  * @property {FormContextState} state - The form context's reactive state.
  * @property {() => void} reset - Reset the form to its initial values.
  * @property {(name: string, value: any) => void} updateValue - Update a field's value.
+ * @property {(name: string, value: any) => void} updateInitialValue - Update a field's initial value.
  * @property {(name: string) => void} deleteValue - Delete a field's value.
  * @property {(name: string, valueDetail: any) => void} updateValueDetails - Update a field's detailed value object.
  * @property {(name: string) => void} deleteValueDetails - Delete a field's detailed value object.
@@ -609,6 +623,7 @@ export function useForm(props) {
     const formContext = {
         state: readonly(state),
         updateValue: updateValue.bind(null, state),
+        updateInitialValue: updateInitialValue.bind(null, state),
         deleteValue: deleteValue.bind(null, state),
         updateValueDetails: updateValueDetails.bind(null, state),
         deleteValueDetails: deleteValueDetails.bind(null, state),

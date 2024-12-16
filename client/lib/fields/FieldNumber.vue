@@ -1,5 +1,6 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import { computed, toRef, watch } from "vue";
 
@@ -92,7 +93,11 @@ watch(
             }
         }
         if (coercedValue !== newValue) {
-            fieldContext.state.value = coercedValue;
+            if (isEqual(newValue, fieldContext.state.initialValue)) {
+                fieldContext.state.initialValue = coercedValue;
+            } else {
+                fieldContext.state.value = coercedValue;
+            }
         }
     },
     { immediate: true },

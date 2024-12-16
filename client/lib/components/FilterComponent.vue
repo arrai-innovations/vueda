@@ -250,7 +250,6 @@ watch(
             return;
         }
         if (!isEqual(newQuery, props.listArgs)) {
-            // debugger
             let queryHasFilter = false;
             if (isArray(lookupExpressionsToParams.value)) {
                 lookupExpressionsToParams.value.forEach((param) => {

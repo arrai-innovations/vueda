@@ -81,6 +81,7 @@ export const WIDGET_EMITS = ["update:modelValue"];
  * @property {() => void} calculateModified - Calculate the modified state of the widget.
  * @property {() => void} focus - Focus the widget.
  * @property {() => void} blur - Blur the widget.
+ * @property {(value: any) => void} updateInitialValue - Update the initial value of the widget.
  */
 
 /**
@@ -195,6 +196,11 @@ export function useWidget(props, emit) {
             if (!props.contextless && fieldContext) {
                 fieldContext.blur();
                 // FormContext handles setting touched
+            }
+        },
+        updateInitialValue: (value) => {
+            if (!props.contextless && fieldContext) {
+                fieldContext.updateInitialValue(value);
             }
         },
     };
