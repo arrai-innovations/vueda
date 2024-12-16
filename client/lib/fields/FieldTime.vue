@@ -19,7 +19,7 @@ const props = defineProps({
     },
     step: {
         type: Number,
-        default: 60,
+        default: undefined,
         description: "The step in seconds.",
     },
 });

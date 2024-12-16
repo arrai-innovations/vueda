@@ -11,7 +11,7 @@ import isEqual from "lodash-es/isEqual.js";
 import pick from "lodash-es/pick.js";
 import { DateTime } from "luxon";
 import DatePicker from "primevue/datepicker";
-import { computed, nextTick, ref, unref, useSlots } from "vue";
+import { computed, nextTick, ref, unref, useSlots, useTemplateRef } from "vue";
 
 // we use these formats to handle unvalidated input.
 // unvalidated input is a workaround of datepicker not dealing with manual input well.
@@ -58,9 +58,18 @@ const props = defineProps({
         type: Function,
         default: undefined,
     },
+    showTime: {
+        type: Boolean,
+        default: false,
+    },
+    timeOnly: {
+        type: Boolean,
+        default: false,
+    },
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
 });
+const datepickerRef = useTemplateRef("datepickerRef");
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const theme = useWidgetTheme("WidgetDatePicker", props, widgetContext.state);
@@ -90,12 +99,16 @@ const valueUpdated = (value) => {
     }
 };
 const onTodayButtonClick = () => {
-    widgetContext.state.combinedValue = getCurrentDate();
+    const newDate = new Date();
+    if (props.showTime || props.timeOnly) {
+        const min = datepickerRef.value.currentMinute;
+        const sec = datepickerRef.value.currentSecond;
+        const hr = datepickerRef.value.currentHour;
+        newDate.setHours(hr, min, sec, 0);
+    }
+    widgetContext.state.combinedValue = newDate;
 };
 
-const getCurrentDate = () => {
-    return new Date();
-};
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 const datePickerAttrs = useFilteredAttrs(knownDatePickerProps, [
@@ -201,6 +214,7 @@ const maxDateAsDate = computed(() => {
             <template #default="{ class: labelControlClass }">
                 <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-date-picker-inner">
                     <DatePicker
+                        ref="datepickerRef"
                         v-bind="datePickerAttrs"
                         :clear-button-props="{
                             label: `Clear`,
@@ -218,6 +232,8 @@ const maxDateAsDate = computed(() => {
                         :pt="effectivePt"
                         :selection-mode="computedSelectionMode"
                         show-button-bar
+                        show-time
+                        time-only
                         :today-button-props="{
                             label: `Now`,
                             outlined: true,
