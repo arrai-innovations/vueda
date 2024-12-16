@@ -1,5 +1,6 @@
 import { assignReactiveObject, useLoadingError, useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
+import { getActionName } from "@vueda/use/useActionMap.js";
 import { useIsActive } from "@vueda/use/useIsActive";
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/crudSupport.js";
@@ -113,9 +114,10 @@ export function useModelConfig(app, model, view) {
             if (newApp && newModel) {
                 loadingError.clearError();
                 loadingError.setLoading();
+                const actionName = getActionName(newView);
                 try {
-                    const args = { app: newApp, model: newModel, view: newView };
-                    const key = newView ? getAppModelViewDotName(args) : getAppModelDotName(args);
+                    const args = { app: newApp, model: newModel, view: actionName };
+                    const key = actionName ? getAppModelViewDotName(args) : getAppModelDotName(args);
                     if (previousKey !== key) {
                         originalConfig.value = toRef(modelConfigStore.builtConfigs, key);
                         previousKey = key;

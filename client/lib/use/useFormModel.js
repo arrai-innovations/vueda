@@ -211,7 +211,9 @@ export function useFormModel(props) {
                             continue;
                         }
                         const baseItem = allFields[baseIndex];
-                        for (const [expandFieldName, expandFieldDetail] of Object.entries(baseItem.expandDetail.f)) {
+                        for (const [expandFieldName, expandFieldDetail] of Object.entries(
+                            baseItem.expandDetail.f || {},
+                        )) {
                             const fieldName = `${expandName}__${expandFieldName}`;
                             const item = {
                                 fieldName,

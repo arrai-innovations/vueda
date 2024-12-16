@@ -1,6 +1,7 @@
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { ModelInfoError, storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import { getActionName } from "@vueda/use/useActionMap.js";
 import isEmpty from "lodash-es/isEmpty.js";
 
 /**
@@ -230,7 +231,8 @@ export async function requireModelInfo(instance, redirectTo, to, router, pinia) 
         if (configStore.routerActions) {
             actions = actions.filter((action) => configStore.routerActions.includes(action));
         }
-        if (actions.length && actions.includes(to.params.action)) {
+        const actionName = getActionName(to.params.action);
+        if (actions.length && actions.includes(actionName)) {
             return true;
         } else {
             toast.add({

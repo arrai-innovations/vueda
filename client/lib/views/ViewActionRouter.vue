@@ -1,12 +1,13 @@
 <script setup>
 import { crudComponents } from "@vueda/router/routerComponent.js";
+import { getActionName } from "@vueda/use/useActionMap.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { getPascalCaseName } from "@vueda/utils/crudSupport.js";
 import ViewActionNotFound from "@vueda/views/ViewActionNotFound.vue";
 import ViewLoading from "@vueda/views/ViewLoading.vue";
 import ViewWorkFlowTransition from "@vueda/views/ViewWorkFlowTransition.vue";
 import { computedAsync } from "@vueuse/core";
-import { ref, toRaw, toRef, watch } from "vue";
+import { ref, toRef, watch } from "vue";
 
 const props = defineProps({
     app: {
@@ -50,22 +51,22 @@ const actionComponentRef = ref(() => ViewLoading);
 watch(
     [() => modelConfig.loading, () => props.action, () => modelConfig.info?.actions],
     async ([loading, actionStr, actionsObj]) => {
+        const actionName = getActionName(actionStr);
         if (loading) {
             actionComponentRef.value = () => ViewLoading;
-        } else if (actionStr === "transition") {
+        } else if (actionName === "transition") {
             actionComponentRef.value = () => ViewWorkFlowTransition;
         } else if (!actionsObj) {
             actionComponentRef.value = () => ViewActionNotFound;
         } else if (actionsObj?.length) {
-            const action = actionsObj.find((action) => action.name === actionStr);
+            const action = actionsObj.find((action) => action.name === actionName);
             if (!action) {
                 actionComponentRef.value = () => ViewActionNotFound;
             }
-            const actionName = toRaw(action).name;
-            if (Object.keys(crudComponents).includes(actionName)) {
-                actionComponentRef.value = async () => await crudComponents[actionName](props);
+            if (Object.keys(crudComponents).includes(actionStr)) {
+                actionComponentRef.value = async () => await crudComponents[actionStr](props);
             } else {
-                actionComponentRef.value = async () => await getExtraActionComponent(actionName);
+                actionComponentRef.value = async () => await getExtraActionComponent(actionStr);
             }
         }
     },
