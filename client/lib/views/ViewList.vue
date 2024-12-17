@@ -129,6 +129,10 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    filterables: {
+        type: Array,
+        default: undefined,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const listSearch = ref(null);
@@ -475,7 +479,7 @@ const searchSlotProps = reactive({
                 v-model="listState.filterArgs"
                 :filter-forms-values="props.filterFormsValues"
                 :filterable-details="modelConfig.config?.filterableDetails || {}"
-                :filterables="modelConfig.config?.filterables || []"
+                :filterables="props.filterables || modelConfig.config?.filterables || []"
                 @filter-change="emit('filter-change', $event)"
                 @hide-filter-form="emit('hide-filter-form', $event)"
                 @query-change="emit('query-change', $event)"
