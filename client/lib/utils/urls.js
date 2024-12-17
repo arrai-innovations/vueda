@@ -1,5 +1,5 @@
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
-import { getServerRoutePart } from "@vueda/utils/crudSupport.js";
+import { getServerActionName, getServerRoutePart } from "@vueda/utils/crudSupport.js";
 
 const defaultUrls = {
     historyObjectHistory: "/routes/history/object-history/:app/:model/:pk/",
@@ -68,7 +68,7 @@ export const getListUrl = ({ app, model, action, query = "" }) => {
     const urlTemplate = getUrl(action ? "modelAction" : "modelList");
     let url = urlTemplate.replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model));
     if (action) {
-        url = url.replace(":action_name", action);
+        url = url.replace(":action_name", getServerActionName(action));
     }
     return `${httpOrHttpsHostname}${url}${query}`;
 };
@@ -90,7 +90,7 @@ export const getDetailUrl = ({ app, model, pk, action: action, query = "" }) => 
         .replace(":model", getServerRoutePart(model))
         .replace(":pk", pk);
     if (action) {
-        url = url.replace(":action_name", action);
+        url = url.replace(":action_name", getServerActionName(action));
     }
     return `${httpOrHttpsHostname}${url}${query}`;
 };

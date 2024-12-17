@@ -119,6 +119,16 @@ export const getCRUDName = memoize(({ app, model, view, bulk }) => {
 });
 
 /**
+ * Converts a dashed URL name to an underscored action name and returns it.
+ *
+ * @param {string} params - The url name.
+ * @returns {string} The action name.
+ */
+export function getServerActionName(urlName) {
+    return urlName.replace(/-/g, "_");
+}
+
+/**
  * The CRUD name for detail view
  */
 export const DETAIL_VIEW_CRUD_NAME = "actionrouter.detailview";
