@@ -232,8 +232,8 @@ const maxDateAsDate = computed(() => {
                         :pt="effectivePt"
                         :selection-mode="computedSelectionMode"
                         show-button-bar
-                        show-time
-                        time-only
+                        :show-time="showTime"
+                        :time-only="timeOnly"
                         :today-button-props="{
                             label: `Now`,
                             outlined: true,
