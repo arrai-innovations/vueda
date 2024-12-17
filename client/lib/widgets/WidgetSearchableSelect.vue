@@ -7,7 +7,6 @@ import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
-import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
@@ -102,7 +101,6 @@ const widgetContext = useWidget(props, emit);
 const theme = useWidgetTheme("WidgetSearchableSelect", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
 const listSearch = ref("");
-
 const instanceObjectProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
@@ -130,6 +128,8 @@ const modelListProps = reactive({
     },
     pkKey: toRef(props, "pkKey"),
     listArgs: {
+        [props.pageKey]: fetchedPages,
+        [props.searchKey]: listSearch,
         [props.pkKey]: computed(() => {
             if (!listSearch.value?.length) {
                 return widgetContext.state.combinedValue ?? undefined;
@@ -149,9 +149,6 @@ const callableOptionLabel = computed(() => {
 });
 const modelList = useList({
     props: modelListProps,
-    functions: {
-        list: allPagePaginatedListCrudAdaptor,
-    },
     paged: true,
     keepOldPages: true,
     clearListOnListIntentTriggered: false,
@@ -191,8 +188,26 @@ const placeHolderText = computed(() => {
     return props.placeholder || `Select a ${props.model}`;
 });
 
+const perPage = computed(() => {
+    return modelList.state?.perPage ?? 100;
+});
+const lastScrollerPageTracks = reactive({
+    first: 0,
+    last: 0,
+});
+const onLazyLoad = (event) => {
+    if (event.first === lastScrollerPageTracks.first && event.last === lastScrollerPageTracks.last) {
+        return;
+    }
+    lastScrollerPageTracks.first = event.first;
+    lastScrollerPageTracks.last = event.last;
+    if (event.last >= fetchedPages.value * perPage.value && event.last < modelList.state.totalRecords) {
+        fetchedPages.value += 1;
+    }
+};
+
 const onValueChange = () => {
-    listSearch.value = "";
+    fetchedPages.value = 1;
 };
 const computedLabel = computed(() => {
     return modelList.state.objectsInOrder.find((obj) => obj[props.optionValue] === widgetContext.state.combinedValue)?.[
@@ -228,6 +243,14 @@ const handleHide = () => {
     if (intendToRetrieve.value) {
         selectRef.value.filterValue = "";
         listSearch.value = "";
+    }
+};
+
+const handleShow = () => {
+    if (intendToRetrieve.value) {
+        const searchText = widgetContext.state.valueDetail?.[props.optionLabel] || "";
+        selectRef.value.filterValue = searchText;
+        listSearch.value = searchText;
     }
 };
 const slots = useSlots();
@@ -271,11 +294,22 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :pt="effectivePt"
                         reset-filter-on-clear
                         show-clear
+                        :virtual-scroller-options="{
+                            showSpacer: false,
+                            lazy: true,
+                            onLazyLoad: onLazyLoad,
+                            itemSize: 38,
+                            showLoader: true,
+                            loading: modelList.state.loading,
+                            autoSize: true,
+                            inline: true,
+                        }"
                         @blur="widgetContext.blur"
                         @change="onValueChange"
                         @filter="handleFilter"
                         @focus="handleFocus"
                         @hide="handleHide"
+                        @show="handleShow"
                     />
                 </div>
             </template>
