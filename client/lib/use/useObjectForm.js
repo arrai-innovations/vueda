@@ -166,7 +166,7 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
         life: 10000,
     });
     // noinspection ES6MissingAwait
-    router.push({
+    await router.push({
         name: LIST_VIEW_CRUD_NAME,
         params: { app: state.app, model: state.model, action: "list" },
     });

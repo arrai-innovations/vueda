@@ -35,7 +35,7 @@ export function useLeaveUnload(props) {
         }
     };
     const beforeUnloadListener = (event) => {
-        if (isActive.value && props.modified && !props.loading) {
+        if (isActive.value && props.modified && props.touched && !props.loading) {
             if (import.meta.env.DEV) {
                 // these tend to stack up in auto reloading dev, which is annoying
                 return;
