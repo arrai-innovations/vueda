@@ -19,7 +19,7 @@ import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
  * }} The route configuration.
  * @throws {Error} If parentPk or pk is required but not provided.
  */
-export async function getCRUDForTo({ app, model, pk, view, throwOnUndefinedPk = false }) {
+export async function getCRUDForTo({ app, model, pk, view, throwOnUndefinedPk = false, query = undefined }) {
     // ############################################################################################
     // # don't use useModelInfo here to avoid creating reactive effects outside a component scope #
     // ############################################################################################
@@ -32,10 +32,11 @@ export async function getCRUDForTo({ app, model, pk, view, throwOnUndefinedPk = 
             model,
             action: view,
         },
+        query,
     };
     if (pk) {
         if (Array.isArray(pk)) {
-            returnValue.query = { pk: pk.join(",") };
+            returnValue.query = { pk: pk.join(","), ...(query ?? {}) };
         } else {
             returnValue.params.pk = pk;
             returnValue.name = "actionrouter.detailview";

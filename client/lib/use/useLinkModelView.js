@@ -35,6 +35,7 @@ export const useLinkModelView = (props) => {
                   model: props.model,
                   pk: requiresPK.value && props.pk ? props.pk : undefined,
                   view: props.view,
+                  query: props.query,
               })
             : undefined;
     });
