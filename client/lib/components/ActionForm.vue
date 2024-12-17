@@ -95,6 +95,11 @@ const bulk = computed(() => unref(pks)?.length > 1);
 
 const defaultRunAction = (action) => {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
+    let method = "PUT";
+    if (action === "destroy") {
+        method = "DELETE";
+        action = undefined;
+    }
     const controller = new AbortController();
     const url = unref(bulk)
         ? getListUrl({ app: props.app, model: props.model, action })
@@ -106,7 +111,7 @@ const defaultRunAction = (action) => {
           });
     /** @type {Promise<void> & { cancel: () => Promise<void> }} */
     const returnPromise = fetch(url, {
-        method: "PUT",
+        method,
         headers: {
             "X-CSRFToken": getCSRFValue(),
             "Content-Type": "application/json",
