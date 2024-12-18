@@ -133,7 +133,15 @@ const validAndActive = computed(
         ),
 );
 
-const emit = defineEmits(["object", "loading", "related-object", "calculated-object", "form-object", "form-context"]);
+const emit = defineEmits([
+    "object",
+    "loading",
+    "related-object",
+    "calculated-object",
+    "form-object",
+    "form-context",
+    "form-refresh",
+]);
 
 const viewName = "update";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
@@ -197,6 +205,7 @@ const objectForm = useObjectForm({
     props: objectFormProps,
     formContext,
     instanceObject: instanceObjectForSubmit,
+    emit,
 });
 const computedWidgetProps = computed(() => {
     // TODO: a key for instanceObjectForRetrieve?.state?.calculatedObject

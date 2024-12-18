@@ -33,7 +33,6 @@ import { useRouter } from "vue-router";
  * @property {string} model - The model name.
  * @property {string} verboseName - The verbose name of the model.
  * @property {boolean} modified - Whether the form has changes from the initial values.
- * @property {boolean} touched - Whether the form has been touched.
  */
 
 /**
@@ -156,20 +155,26 @@ export const defaultOnSubmissionError = async ({ error, formContext, toast }) =>
  * @param {import("primevue/toastservice").ToastServiceMethods} options.toast - The toast service.
  * @param {import("vue-router").Router} options.router - The router.
  * @param {ObjectFormState} options.state - The form state.
+ * @param {import('vue').EmitFn} options.emit - The component emit function.
  * @returns {Promise<void>}
  */
-export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, router }) => {
+export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, router, emit }) => {
+    const detailMsg = isUpdate ? "" : "Returning to the list view.";
     toast.add({
         severity: "success",
         summary: `${memoizedStartCase(state.verboseName)} Successfully ${isUpdate ? "Updated" : "Created"}`,
-        detail: "Returning to the list view.",
+        detail: detailMsg,
         life: 10000,
     });
     // noinspection ES6MissingAwait
-    await router.push({
-        name: LIST_VIEW_CRUD_NAME,
-        params: { app: state.app, model: state.model, action: "list" },
-    });
+    if (isUpdate) {
+        emit("form-refresh");
+    } else {
+        await router.push({
+            name: LIST_VIEW_CRUD_NAME,
+            params: { app: state.app, model: state.model, action: "list" },
+        });
+    }
 };
 
 /**
@@ -234,9 +239,10 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
  * @param {ObjectFormProps} options.props - The props object.
  * @param {import('./useForm.js').FormContext} options.formContext - The form context object.
  * @param {import("@arrai-innovations/reactive-helpers").ObjectInstance} options.instanceObject - The object instance.
+ * @param {import('vue').EmitFn} emit - The  component emit function.
  * @returns {ObjectFormInstance} The object form instance.
  */
-export function useObjectForm({ props, formContext, instanceObject }) {
+export function useObjectForm({ props, formContext, instanceObject, emit }) {
     const loadingError = useLoadingError();
     const state = reactive({
         loading: loadingError.loading,
@@ -246,7 +252,6 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         model: computed(() => props.model),
         verboseName: computed(() => props.verboseName),
         modified: computed(() => formContext.state.anyModified),
-        touched: computed(() => formContext.state.anyTouched),
     });
     const returnObject = {
         state,
@@ -329,6 +334,7 @@ export function useObjectForm({ props, formContext, instanceObject }) {
                     router,
                     isUpdate,
                     state,
+                    emit,
                 });
             }
         } catch (e) {

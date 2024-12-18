@@ -550,6 +550,7 @@ const searchSlotProps = reactive({
         </objects-grid>
         <pagination-component
             v-model:current-page="listState.currentPage"
+            :loading="instanceList.state.loading"
             :rows="instanceList.state.perPage"
             :total-records="instanceList.state.totalRecords"
         ></pagination-component>

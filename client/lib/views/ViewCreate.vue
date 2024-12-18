@@ -56,6 +56,7 @@ const props = defineProps({
     },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
+const emit = defineEmits(["form-object", "form-context"]);
 const viewName = "create";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
 const titleStr = computed(() => {
@@ -98,6 +99,7 @@ const objectForm = useObjectForm({
     props: objectFormProps,
     formContext,
     instanceObject,
+    emit,
 });
 const combinedError = computed(() => {
     return modelConfig.error || instanceObject.state.error || objectForm.state.error;
@@ -119,7 +121,6 @@ const combinedFormProps = computed(() => {
     };
 });
 const formId = `form-${props.app}-${props.model}-${viewName}`;
-const emit = defineEmits(["form-object", "form-context"]);
 
 onMounted(() => {
     emit(
