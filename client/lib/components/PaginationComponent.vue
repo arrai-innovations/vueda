@@ -1,7 +1,7 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import Paginator from "primevue/paginator";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 const emit = defineEmits(["update:currentPage"]);
 
@@ -18,6 +18,10 @@ const props = defineProps({
         type: Number,
         required: true,
     },
+    loading: {
+        type: Boolean,
+        default: undefined,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const offset = ref(0);
@@ -25,6 +29,12 @@ const onPaginate = async (page) => {
     emit("update:currentPage", page.first / page.rows + 1);
 };
 const theme = useTheme("PaginationComponent", props);
+const currentPageReportTemplate = computed(() => {
+    if (props.loading) {
+        return "{currentPage} of ?";
+    }
+    return "{currentPage} of {totalPages}";
+});
 </script>
 
 <template>
@@ -32,9 +42,10 @@ const theme = useTheme("PaginationComponent", props);
         <Paginator
             v-model:first="offset"
             :class="theme('paginator')"
-            :rows="rows"
+            :current-page-report-template="currentPageReportTemplate"
+            :rows="loading ? 1 : rows"
             template="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
-            :total-records="totalRecords"
+            :total-records="loading ? 1 : totalRecords"
             @page="onPaginate"
         />
     </div>
