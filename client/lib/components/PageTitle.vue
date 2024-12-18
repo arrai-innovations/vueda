@@ -47,6 +47,7 @@ const theme = useTheme(
                             <loading-spinner-inline v-if="loading" />
                         </template>
                     </h1>
+                    <slot name="title-suffix" />
                 </div>
                 <div :class="theme('buttons')">
                     <slot name="button" />
