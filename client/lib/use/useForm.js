@@ -1,6 +1,7 @@
 import { assignReactiveObject, del, flattenPaths } from "@arrai-innovations/reactive-helpers";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
+import { compact, update } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -256,7 +257,20 @@ const clearModified = (state, name) => {
 };
 
 const formValues = (state) => {
-    return state.anyIgnored ? omit(cloneDeep(state.values), state.ignores) : state.values;
+    if (state.anyIgnored) {
+        const ignoredFields = Object.entries(state.ignored)
+            .filter(([, value]) => value === true)
+            .map(([key]) => key);
+        const values = omit(cloneDeep(state.values), ignoredFields);
+        for (const ignoredField of ignoredFields) {
+            if (ignoredField.match(/.*\[\d+\]$/)) {
+                const arrayField = ignoredField.split("[").slice(0, -1).join("[");
+                update(values, arrayField, (array) => compact(array));
+            }
+        }
+        return values;
+    }
+    return state.values;
 };
 
 const isEmpty = (val) => val === undefined || val === null || val === "";
