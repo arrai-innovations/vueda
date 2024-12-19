@@ -62,7 +62,6 @@ const combinedLabel = computed(() => props.label ?? widgetContext?.state?.combin
 const theme = useWidgetTheme("WidgetLabel", props, widgetContext.state, {
     hidden: toRef(props, "hidden"),
     isCardLayout: toRef(props, "isCardLayout"),
-    invalid: toRef(widgetContext.state.validationState, "invalid"),
     valid: toRef(widgetContext.state.validationState, "valid"),
     required: computed(() => props.required ?? widgetContext.state.required),
     help: computed(() => props.help ?? widgetContext.state.help),
