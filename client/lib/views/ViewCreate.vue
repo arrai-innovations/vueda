@@ -168,6 +168,7 @@ onMounted(() => {
                     :form="formId"
                     label="Submit"
                     :loading="objectForm.state.loading"
+                    :modifed="formContext.state.anyModified"
                     name="submit-button"
                     type="submit"
                 >
