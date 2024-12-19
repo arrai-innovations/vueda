@@ -1,8 +1,21 @@
+import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { VITE_PACKAGE_VERSION } from "@vueda/utils/constants.js";
 import { VersionSymbol } from "@vueda/utils/symbols.js";
+import { getUrl } from "@vueda/utils/urls.js";
 import semvarGT from "semver/functions/gt.js";
-import { computed, inject, provide, readonly, ref } from "vue";
+import { computed, inject, onMounted, provide, readonly, ref } from "vue";
 
+/**
+ * Fetch the server version from server info.
+ *
+ * @returns {Promise<string>} The server version.
+ */
+async function fetchServerVersion() {
+    const serverInfoUrl = `${httpOrHttpsHostname}${getUrl("infoServer")}`;
+    const response = await fetch(serverInfoUrl);
+    const data = await response.json();
+    return data.server_version;
+}
 /**
  * @typedef {Readonly<{
  *     serverVersion: import('vue').Ref<string>,
@@ -27,6 +40,10 @@ export function useVersion() {
         const newClientAvailable = computed(
             () => clientVersion.value && VITE_PACKAGE_VERSION && semvarGT(clientVersion.value, VITE_PACKAGE_VERSION),
         );
+
+        onMounted(async () => {
+            serverVersion.value = await fetchServerVersion();
+        });
         // todo: we have yet to decide how to implement dispatcher
         // const onVersion = (event) => {
         //     const data = event.detail;
