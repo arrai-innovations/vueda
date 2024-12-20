@@ -8,6 +8,7 @@ import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarning
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import Select from "primevue/select";
@@ -90,17 +91,23 @@ const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), r
 const selectRef = ref(null);
 const fetchedPages = ref(1);
 const hasBeenFocused = ref(false);
+const emit = defineEmits([...WIDGET_EMITS]);
+const widgetContext = useWidget(props, emit);
+const listSearch = ref("");
+const prePopulatedSearchText = computed(() => {
+    return widgetContext.state.valueDetail?.[props.optionLabel] || "";
+});
+const isCurrentSearchSameAsValue = computed(() => {
+    return listSearch.value.length > 0 ? listSearch.value === prePopulatedSearchText.value : false;
+});
 const intendToList = computed(() => {
-    return (!widgetContext.state.combinedValue || listSearch.value?.length) && hasBeenFocused.value;
+    return (!widgetContext.state.combinedValue || !isCurrentSearchSameAsValue.value) && hasBeenFocused.value;
 });
 const intendToRetrieve = computed(() => {
     return widgetContext.state.combinedValue;
 });
-const emit = defineEmits([...WIDGET_EMITS]);
-const widgetContext = useWidget(props, emit);
 const theme = useWidgetTheme("WidgetSearchableSelect", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
-const listSearch = ref("");
 const instanceObjectProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
@@ -130,12 +137,6 @@ const modelListProps = reactive({
     listArgs: {
         [props.pageKey]: fetchedPages,
         [props.searchKey]: listSearch,
-        [props.pkKey]: computed(() => {
-            if (!listSearch.value?.length) {
-                return widgetContext.state.combinedValue ?? undefined;
-            }
-            return undefined;
-        }),
         f: [computed(() => modelConfig.info?.pk), "formatted_name"],
     },
     intendToList,
@@ -221,19 +222,36 @@ const handleLabelClick = (e) => {
 };
 
 const computedOptions = computed(() => {
-    if (intendToRetrieve.value && listSearch.value?.length < 1) {
-        return [instanceObject.state.object];
-    } else if (intendToList.value) {
+    if (intendToList.value && !modelList.state.loading) {
         return modelList.state.objectsInOrder;
+    }
+    if (intendToRetrieve.value && !instanceObject.state.loading) {
+        return [instanceObject.state.object];
     }
     return [];
 });
 watch(
     [computedOptions, () => widgetContext.state.combinedValue],
-    ([options, value]) => {
-        if (options.length && value) {
-            const selected = options.find((option) => option[props.optionValue] === value);
-            widgetContext.state.valueDetail = selected;
+    ([newOptions, newValue], [oldOption, oldValue]) => {
+        if (!isEqual(newOptions, oldOption) || !isEqual(newValue, oldValue)) {
+            if (newOptions.length && newValue) {
+                const selected = newOptions?.find((option) => isEqual(option[props.optionValue], newValue));
+                if (selected) {
+                    widgetContext.state.valueDetail = selected;
+                }
+            } else if (!widgetContext.state.combinedValue) {
+                widgetContext.state.valueDetail = null;
+            }
+        }
+    },
+    { immediate: true, deep: true },
+);
+
+watch(
+    prePopulatedSearchText,
+    (value, oldValue) => {
+        if (!isEqual(value, oldValue)) {
+            listSearch.value = value;
         }
     },
     { immediate: true, deep: true },
@@ -241,17 +259,13 @@ watch(
 
 const handleHide = () => {
     if (intendToRetrieve.value) {
-        selectRef.value.filterValue = "";
-        listSearch.value = "";
+        selectRef.value.filterValue = prePopulatedSearchText.value;
+        listSearch.value = prePopulatedSearchText.value;
     }
 };
 
 const handleShow = () => {
-    if (intendToRetrieve.value) {
-        const searchText = widgetContext.state.valueDetail?.[props.optionLabel] || "";
-        selectRef.value.filterValue = searchText;
-        listSearch.value = searchText;
-    }
+    selectRef.value.filterValue = prePopulatedSearchText.value;
 };
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
