@@ -84,6 +84,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    extraListArgs: {
+        type: Object,
+        default: () => ({}),
+    },
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
 });
@@ -125,6 +129,11 @@ const instanceObject = useObject({
     props: instanceObjectProps,
 });
 
+const extraListArgs = computed(() => {
+    return {
+        ...props.extraListArgs,
+    };
+});
 const modelListProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
@@ -138,6 +147,7 @@ const modelListProps = reactive({
         [props.pageKey]: fetchedPages,
         [props.searchKey]: listSearch,
         f: [computed(() => modelConfig.info?.pk), "formatted_name"],
+        ...extraListArgs.value,
     },
     intendToList,
 });
