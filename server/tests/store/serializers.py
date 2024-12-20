@@ -8,9 +8,10 @@ from tests.store import models
 from vueda.core.serializers import VuedaHistorySerializer
 from vueda.core.serializers import VuedaSerializer
 from vueda.user.serializers import UserSerializer
+from vueda.workflow.serializers import HasWorkflowSerializerMixin
 
 
-class CustomerSerializer(VuedaHistorySerializer):
+class CustomerSerializer(HasWorkflowSerializerMixin, VuedaHistorySerializer):
     user = serializers.PrimaryKeyRelatedField(
         queryset=get_user_model().objects.filter(is_system=False),
     )
@@ -19,11 +20,15 @@ class CustomerSerializer(VuedaHistorySerializer):
 
     class Meta(VuedaHistorySerializer.Meta):
         model = models.Customer
-        fields = [
-            "id",
-            "user",
-            "number_of_ordered_products",
-        ] + VuedaHistorySerializer.Meta.fields
+        fields = (
+            [
+                "id",
+                "user",
+                "number_of_ordered_products",
+            ]
+            + VuedaHistorySerializer.Meta.fields
+            + HasWorkflowSerializerMixin.Meta.fields
+        )
         expandable_fields = {
             "user": (
                 UserSerializer,

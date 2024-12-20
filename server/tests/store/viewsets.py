@@ -13,19 +13,18 @@ from vueda.core.decorators import action
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import VuedaHistoryViewSet
 from vueda.core.viewsets import VuedaViewSet
+from vueda.workflow.views import HasWorkflowViewMixin
 
 
-class CustomerViewSet(VuedaHistoryViewSet):
+class CustomerViewSet(HasWorkflowViewMixin, VuedaHistoryViewSet):
     queryset = my_models.Customer.objects.all()
     serializer_class = my_serializers.CustomerSerializer
-    permission_classes = [ObjectPermissions]
     ordering_fields = ["user__email"]
 
 
 class DistributorViewSet(VuedaHistoryViewSet):
     queryset = my_models.Distributor.objects.all()
     serializer_class = my_serializers.DistributorSerializer
-    permission_classes = [ObjectPermissions]
     filterset_class = my_filtersets.DistributorFilterSet
     ordering_fields = ["name"]
 
@@ -33,7 +32,6 @@ class DistributorViewSet(VuedaHistoryViewSet):
 class ProductViewSet(VuedaHistoryViewSet):
     queryset = my_models.Product.objects.all()
     serializer_class = my_serializers.ProductSerializer
-    permission_classes = [ObjectPermissions]
     filterset_class = my_filtersets.ProductFilterSet
     ordering_fields = ["distributor__name", "name", "disabled"]
 
@@ -41,14 +39,12 @@ class ProductViewSet(VuedaHistoryViewSet):
 class OptionTypeViewSet(VuedaViewSet):
     queryset = my_models.OptionType.objects.all()
     serializer_class = my_serializers.OptionTypeSerializer
-    permission_classes = [ObjectPermissions]
     ordering_fields = ["name"]
 
 
 class ProductOptionViewSet(VuedaHistoryViewSet):
     queryset = my_models.ProductOption.objects.all()
     serializer_class = my_serializers.ProductOptionSerializer
-    permission_classes = [ObjectPermissions]
     filterset_class = my_filtersets.ProductOptionFilterSet
     ordering_fields = ["name", "option_type", "sku", "gtin", "price"]
 
@@ -99,14 +95,12 @@ class CartViewSet(VuedaViewSet):
 class CartItemViewSet(VuedaViewSet):
     queryset = my_models.CartItem.objects.all()
     serializer_class = my_serializers.CartItemSerializer
-    permission_classes = [ObjectPermissions]
     ordering_fields = ["product_option__name", "quantity"]
 
 
-class CustomerOrderViewSet(VuedaHistoryViewSet):
+class CustomerOrderViewSet(HasWorkflowViewMixin, VuedaHistoryViewSet):
     queryset = my_models.CustomerOrder.objects.all()
     serializer_class = my_serializers.CustomerOrderSerializer
-    permission_classes = [ObjectPermissions]
     filterset_class = my_filtersets.CustomerOrderFilterSet
     ordering_fields = ["order_number", "customer__user__email", "when", "order_state"]
 
@@ -114,7 +108,6 @@ class CustomerOrderViewSet(VuedaHistoryViewSet):
 class OrderItemViewSet(VuedaViewSet):
     queryset = my_models.OrderItem.objects.all()
     serializer_class = my_serializers.OrderItemSerializer
-    permission_classes = [ObjectPermissions]
     filterset_class = my_filtersets.OrderItemFilterSet
     ordering_fields = ["customer_order__order_number", "product_option__name", "quantity"]
 
@@ -122,14 +115,12 @@ class OrderItemViewSet(VuedaViewSet):
 class InventoryRecordReasonViewSet(VuedaViewSet):
     queryset = my_models.InventoryRecordReason.objects.all()
     serializer_class = my_serializers.InventoryRecordReasonSerializer
-    permission_classes = [ObjectPermissions]
     ordering_fields = ["name"]
 
 
 class InventoryRecordViewSet(VuedaViewSet):
     queryset = my_models.InventoryRecord.objects.all()
     serializer_class = my_serializers.InventoryRecordSerializer
-    permission_classes = [ObjectPermissions]
     filterset_class = my_filtersets.InventoryRecordFilterSet
     ordering_fields = ["when", "reason", "quantity"]
 
@@ -137,5 +128,4 @@ class InventoryRecordViewSet(VuedaViewSet):
 class PackingBoxViewSet(VuedaViewSet):
     queryset = my_models.PackingBox.objects.all()
     serializer_class = my_serializers.PackingBoxSerializer
-    permission_classes = [ObjectPermissions]
     ordering_fields = ["name"]
