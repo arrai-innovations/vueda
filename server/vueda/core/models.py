@@ -14,7 +14,7 @@ class Lookup(models.Model):
         db_persist=True,
     )
 
-    class Meta:
+    class Meta(BaseModelMeta):
         abstract = True
 
     def __str__(self):
