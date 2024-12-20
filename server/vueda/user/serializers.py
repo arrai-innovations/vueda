@@ -60,6 +60,7 @@ class WhoIsSerializer(VuedaSerializer):
         if user != self.instance:
             del fields["groups"]
             del fields["is_superuser"]
+            del fields["available_actions"]
 
         return fields
 

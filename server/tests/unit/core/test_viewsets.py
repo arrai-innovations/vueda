@@ -80,31 +80,31 @@ class TestProductViewSet(BaseTestModelViewSet):
     def update_arguments(self, page_data):
         instance = page_data.first()
         return {
-            "name": "Apple",
             "available_for_sale": True,
             "buzz_words": ["Organic", "Local", "Fresh"],
             "current_history_id": instance.current_history_id,
             "id": instance.id,
+            "name": "Apple",
         }
 
     @pytest.fixture
     def create_arguments(self):
         return {
-            "name": "Apple",
             "available_for_sale": True,
             "buzz_words": ["Organic", "Local"],
+            "name": "Apple",
         }
 
     @pytest.fixture
     def expected_retrieve_response(self, page_data):
         instance = page_data.first()
         return {
-            "name": "Apple",
-            "formatted_name": "Apple",
             "available_for_sale": True,
             "buzz_words": ["Organic", "Local"],
             "current_history_id": instance.current_history_id,
+            "formatted_name": "Apple",
             "id": instance.id,
+            "name": "Apple",
         }
 
     def update_expected_create_response(self, expected_create_response, new_instance):
@@ -171,9 +171,11 @@ class TestProductViewSet(BaseTestModelViewSet):
                 expected_retrieve_response["current_history_id"] = first_history_entry[key]
                 first_history_entry["current_history_id"] = first_history_entry[key]
             del first_history_entry[key]
-        # Now these three dictionaries should be the same.
-        assert first_history_entry == expected_retrieve_response
+        # Now these three dictionaries are mostly the same.
         assert expected_retrieve_response == response.data
+        # Except that there are no available_actions in history.
+        del expected_retrieve_response["available_actions"]
+        assert first_history_entry == expected_retrieve_response
 
     def test_retrieve_with_invalid_expands(self, page_data, authenticated_client, expected_retrieve_response):
         instance = page_data.first()
@@ -283,20 +285,20 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
     def update_arguments(self, page_data):
         instance = page_data.first()
         return {
-            "period_start": datetime.date(2024, 1, 1).strftime("%Y-%m-%d"),
-            "period_end": datetime.date(2024, 1, 15).strftime("%Y-%m-%d"),
-            "employee": self.employee_1.id,
-            "supervisor": self.supervisor_1.id,
             "current_history_id": instance.current_history_id,
+            "employee": self.employee_1.id,
             "id": instance.id,
+            "period_end": datetime.date(2024, 1, 15).strftime("%Y-%m-%d"),
+            "period_start": datetime.date(2024, 1, 1).strftime("%Y-%m-%d"),
+            "supervisor": self.supervisor_1.id,
         }
 
     @pytest.fixture
     def create_arguments(self):
         return {
-            "period_start": datetime.date(2024, 3, 1).strftime("%Y-%m-%d"),
-            "period_end": datetime.date(2024, 3, 15).strftime("%Y-%m-%d"),
             "employee": self.employee_1.id,
+            "period_end": datetime.date(2024, 3, 15).strftime("%Y-%m-%d"),
+            "period_start": datetime.date(2024, 3, 1).strftime("%Y-%m-%d"),
             "supervisor": None,
         }
 
@@ -304,12 +306,12 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
     def expected_retrieve_response(self, page_data):
         instance = page_data.first()
         return {
-            "period_start": datetime.date(2024, 1, 1).strftime("%Y-%m-%d"),
-            "period_end": datetime.date(2024, 1, 15).strftime("%Y-%m-%d"),
-            "employee": self.employee_1.id,
-            "supervisor": None,
             "current_history_id": instance.current_history_id,
             "id": instance.id,
+            "employee": self.employee_1.id,
+            "period_end": datetime.date(2024, 1, 15).strftime("%Y-%m-%d"),
+            "period_start": datetime.date(2024, 1, 1).strftime("%Y-%m-%d"),
+            "supervisor": None,
         }
 
     def update_expected_create_response(self, expected_create_response, new_instance):
@@ -337,7 +339,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         expected_update_response["formatted_name"] = formatted_name
 
     def test_list_with_valid_expands(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "current_history_id", "formatted_name"}.union(self.list_keys_arguments)
+        keys = {"id", "current_history_id", "formatted_name", "available_actions"}.union(self.list_keys_arguments)
 
         # Do we have a workflow?
         if hasattr(self.model, "workflow"):
@@ -391,10 +393,11 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         self.update_expected_retrieve_response(expected_retrieve_response, instance)
         employee = instance.employee
         expected_retrieve_response["employee"] = {
-            "id": employee.id,
-            "user": employee.user_id,
+            "available_actions": [],
             "employee_number": employee.employee_number,
             "formatted_name": str(employee.employee_number),
+            "id": employee.id,
+            "user": employee.user_id,
         }
         period_start = instance.period_start
         period_end = instance.period_end

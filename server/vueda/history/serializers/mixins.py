@@ -203,7 +203,7 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
             for field_name, field in fields.items():
                 if "pk" in field:
                     del field["pk"]
-                if field_name not in ("current_history_id",):
+                if field_name not in {"available_actions", "current_history_id"}:
                     sorted_expandable_data[field_name] = field
 
             if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expandable_field:

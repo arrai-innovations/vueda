@@ -7,6 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from vueda.core.serializers.fields import AvailableActionsField
 from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
 
 
@@ -197,7 +198,6 @@ class VuedaExpandableFieldsSerializerMixin:
                             continue
                         if field_name not in expand_options[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]:
                             del fields[field_name]
-
                         if "many" not in field:
                             field["many"] = False
                         if "read_only" not in field:
@@ -206,6 +206,10 @@ class VuedaExpandableFieldsSerializerMixin:
                             field["required"] = False
                         if "choices" not in field:
                             field["choices"] = False
+
+                # Expandable fields don't need available actions.
+                if "available_actions" in fields:
+                    del fields["available_actions"]
 
                 expand_item[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = fields
 
@@ -299,9 +303,12 @@ class VuedaSerializer(
     FlexFieldsWriteableNestedSerializerMixin,
     serializers.ModelSerializer,
 ):
+
+    available_actions = AvailableActionsField()
+
     class Meta:
         expandable_fields = {}
-        fields = ["formatted_name"]
+        fields = ["formatted_name", "available_actions"]
 
 
 class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):

@@ -233,7 +233,7 @@ class BaseTestListModelViewSet:
 
     # page_data is needed for object creation, even though it isn't used directly in test_list.
     def test_list(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "current_history_id", "formatted_name"}.union(self.list_keys_arguments)
+        keys = {"id", "current_history_id", "formatted_name", "available_actions"}.union(self.list_keys_arguments)
 
         # Do we have a workflow?
         if hasattr(self.model, "workflow"):
@@ -273,8 +273,9 @@ class BaseTestCreateModelViewSet:
     def update_expected_create_response(self, expected_create_response, new_instance):
         expected_create_response.update(
             {
-                "id": new_instance.id,
+                "available_actions": [],
                 "current_history_id": new_instance.history.latest().history_id,
+                "id": new_instance.id,
             }
         )
 
@@ -314,6 +315,7 @@ class BaseTestRetrieveModelViewSet:
         raise NotImplementedError
 
     def update_expected_retrieve_response(self, expected_retrieve_response, instance):
+        expected_retrieve_response["available_actions"] = []
         # Do we have a workflow?
         if hasattr(instance, "workflow") and "workflow_state_code" not in expected_retrieve_response:
             expected_retrieve_response.update(
@@ -356,6 +358,7 @@ class BaseTestUpdateModelViewSet:
 
     def update_expected_update_response(self, expected_update_response, updated_instance):
         expected_update_response["current_history_id"] = updated_instance.history.latest().history_id
+        expected_update_response["available_actions"] = []
 
         # Do we have a workflow?
         if hasattr(updated_instance, "workflow") and "workflow_state_code" not in expected_update_response:
