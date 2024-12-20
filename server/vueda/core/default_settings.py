@@ -196,6 +196,7 @@ def get_defaults(env: Env):
                 "rest_framework.filters.OrderingFilter",
                 "django_filters.rest_framework.DjangoFilterBackend",
             ),
+            "DEFAULT_PERMISSION_CLASSES": ["vueda.core.permissions.ObjectPermissions"],
             "UPLOADED_FILES_USE_URL": True,
             "EXCEPTION_HANDLER": "vueda.core.exceptions.debug_stack_exception_handler",
             "ORDERING_PARAM": "o",

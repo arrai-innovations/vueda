@@ -16,7 +16,6 @@ from rest_framework.utils.model_meta import get_field_info
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import FlexFieldsMixin
 from vueda.info.registration import get_registered_content_types
 from vueda.info.registration import get_registration
@@ -46,7 +45,6 @@ class ModelInfoViewSet(FlexFieldsMixin, ReadOnlyModelViewSet):
     object = None  # type: ContentType
     queryset = ContentType.objects.all()
     serializer_class = ModelInfoSerializer
-    permission_classes = [ObjectPermissions]
 
     def initial(self, request, *args, **kwargs):
         if "app_label" in self.kwargs and "model" in self.kwargs:
