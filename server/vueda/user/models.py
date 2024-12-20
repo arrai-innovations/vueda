@@ -43,7 +43,14 @@ class VUEDAUserManager(UserManager):
 
 class VUEDAUserWithHistoryManager(VUEDAUserManager):
     def get_queryset(self):
-        return super().get_queryset().annotate(current_history_id=models.Max("history_records__history_id"))
+        queryset = super().get_queryset()
+        return queryset.annotate(
+            current_history_id=models.Subquery(
+                queryset.filter(history_records__id=models.OuterRef("pk"))
+                .annotate(current_history_id=models.Max("history_records__history_id"))
+                .values("current_history_id")
+            )
+        )
 
 
 class AbstractVUEDAUserMeta(BaseModelMeta):

@@ -1,4 +1,6 @@
 from django.db.models import Max
+from django.db.models import OuterRef
+from django.db.models import Subquery
 from rest_framework.response import Response
 
 from vueda.core.decorators import action
@@ -18,7 +20,13 @@ class SimpleHistoryViewSetMixin:
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        return queryset.annotate(current_history_id=Max("history_records__history_id"))
+        return queryset.annotate(
+            current_history_id=Subquery(
+                queryset.filter(history_records__id=OuterRef("pk"))
+                .annotate(current_history_id=Max("history_records__history_id"))
+                .values("current_history_id")
+            )
+        )
 
     @action(detail=True)
     def current(self, request, pk=None):

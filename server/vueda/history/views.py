@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db.models import Max
+from django.db.models import OuterRef
+from django.db.models import Subquery
 from rest_framework import status as drf_status
 from rest_framework.response import Response
 
@@ -21,11 +23,14 @@ class WhoIsView(CoreWhoIsView):
     serializer_class = WhoIsSerializer
 
     def get_object(self):
-        return (
-            get_user_model()
-            .objects.annotate(current_history_id=Max("history_records__history_id"))
-            .get(pk=self.request.user.pk)
-        )
+        queryset = get_user_model().objects.filter(pk=self.request.user.pk)
+        return queryset.annotate(
+            current_history_id=Subquery(
+                queryset.filter(history_records__id=OuterRef("pk"))
+                .annotate(current_history_id=Max("history_records__history_id"))
+                .values("current_history_id")
+            )
+        ).get(pk=self.request.user.pk)
 
 
 class GetObjectHistoryView(WorkflowView):
