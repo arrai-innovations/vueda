@@ -6,6 +6,23 @@ import identity from "lodash-es/identity.js";
 import { defineStore } from "pinia";
 
 /**
+ * Configuration mapping actions to the groups allowed to perform them.
+ *
+ * @typedef {{
+ *     [actionName: string]: [groupNames: string][]
+ * }} ActionGroupsConfig
+ */
+
+/**
+ * Configuration for specifying actions available to a model.
+ * Can be either:
+ * - A flat list of action names (e.g., `["list", "create"]`)
+ * - A group-based configuration mapping actions to allowed groups
+ *
+ * @typedef {ActionGroupsConfig|string[]} ActionPermissionConfig
+ */
+
+/**
  * A configuration object for making use of a model client-side.
  *
  * @typedef {object} ModelConfig
@@ -16,7 +33,7 @@ import { defineStore } from "pinia";
  * @property {string[]} submitFields - field names to submit on create/update by default
  * @property {string[]} expands - field names to expand by default
  * @property {string[]} routeActions - actions to configure routes for
- * @property {string[]} actions - actions to display by default
+ * @property {ActionPermissionConfig} actions - actions to display by default
  * @property {string[]} filterables - filters to display in list view
  * @property {string[]} sortables - field names that can be sorted in list view
  * @property {string[]} sorted - the default sort order for list view
@@ -42,7 +59,7 @@ import { defineStore } from "pinia";
  * @property {string[]} [submitFields] - field names to submit on create/update by default
  * @property {string[]} [expands] - field names to expand by default
  * @property {string[]} [routeActions] - actions to configure routes for
- * @property {string[]} [actions] - actions to display by default
+ * @property {ActionPermissionConfig} [actions] - actions to display by default
  * @property {string[]} [filterables] - filters to display in list view
  * @property {string[]} [sortables] - field names that can be sorted in list view
  * @property {string[]} [sorted] - the default sort order for list view

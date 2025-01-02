@@ -5,6 +5,7 @@ import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
+import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -145,6 +146,9 @@ const emit = defineEmits([
 
 const viewName = "update";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
+const filteredActions = useFilteredActions({
+    modelConfigInstance: modelConfig,
+});
 const titleStr = computed(() => {
     return `Update ${memoizedStartCase(modelConfig.config?.verboseName)}` || "Update Item";
 });
@@ -253,35 +257,26 @@ const combinedFormProps = computed(() => {
 });
 const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObjectForRetrieve.state.loading));
 const formId = computed(() => `${props.app}-${props.model}-${props.pk}-update`);
-// const workflow = useWorkflow(toRef(props, "app"), toRef(props, "model"),toRef(props.pk),isActive,validAndActive);
-// const availableTransitions = computed(() => {
-//     const transitions = Object.keys(workflow.objectTransitions)
-//         .find(key => key === props.pk).flatMap(key => workflow.objectTransitions[key])
-//         return transitions;
-//     return []
-// })
 
-const detailedActions = computed(() => {
-    return modelConfig.config?.actions?.filter((n) => {
+const detailActions = computed(() =>
+    (filteredActions.actions || [])?.filter((n) => {
         const a = modelConfig.config?.actionDetails?.[n];
-        // return a && viewName !== n && !a.detail && !a.bulk && availableTransitions?.includes(n);
-        //TODO: needs to have a way to know whether the action is workflow action
         return a && viewName !== n && a.detail;
-    });
-});
+    }),
+);
+const nonDetailActions = computed(() =>
+    (filteredActions.actions || [])?.filter((n) => {
+        const a = modelConfig.config?.actionDetails?.[n];
+        return a && viewName !== n && !a.detail;
+    }),
+);
 useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, toRef(props, "pk"));
 </script>
 <template>
     <div :class="props.class" data-qa="update-view">
         <page-title :loading="pageLoading" :title="titleStr">
             <template #button>
-                <template
-                    v-for="actionName in modelConfig.config?.actions?.filter((n) => {
-                        const a = modelConfig.config?.actionDetails?.[n];
-                        return a && viewName !== n && !a.detail && !a.bulk;
-                    })"
-                    :key="actionName"
-                >
+                <template v-for="actionName in nonDetailActions" :key="actionName">
                     <slot
                         :app="app"
                         :label="memoizedStartCase(actionName)"
@@ -316,7 +311,7 @@ useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, t
                 >
                     <Button :form="formId" label="Submit" :loading="objectForm.state.loading" type="submit" />
                 </slot>
-                <template v-for="actionName in detailedActions" :key="actionName">
+                <template v-for="actionName in detailActions" :key="actionName">
                     <slot
                         :app="app"
                         :label="memoizedStartCase(actionName)"

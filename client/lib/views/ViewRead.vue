@@ -5,6 +5,7 @@ import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
+import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -126,7 +127,9 @@ const validAndActive = computed(
 
 const viewName = "read";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
-
+const filteredActions = useFilteredActions({
+    modelConfigInstance: modelConfig,
+});
 const titleStr = computed(() => {
     return `Read ${memoizedStartCase(modelConfig.info?.verbose_name)}` || "Read Item";
 });
@@ -251,14 +254,14 @@ watch(
 );
 const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObject.state.loading));
 const formId = computed(() => `${props.app}-${props.model}-${props.pk}-read`);
-const detailedActions = computed(() => {
-    return modelConfig.config?.actions?.filter((n) => {
+const detailActions = computed(() =>
+    (filteredActions.actions || [])?.filter((n) => {
         const a = modelConfig.config?.actionDetails?.[n];
         // return a && viewName !== n && !a.detail && !a.bulk && availableTransitions?.includes(n);
         //TODO: needs to have a way to know whether the action is workflow action
         return a && viewName !== n && a.detail;
-    });
-});
+    }),
+);
 </script>
 
 <template>
@@ -296,7 +299,7 @@ const detailedActions = computed(() => {
         </page-title>
         <sticky-bar class="w-full">
             <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="read-action-buttons">
-                <template v-for="actionName in detailedActions" :key="actionName">
+                <template v-for="actionName in detailActions" :key="actionName">
                     <slot
                         :app="app"
                         :label="memoizedStartCase(actionName)"

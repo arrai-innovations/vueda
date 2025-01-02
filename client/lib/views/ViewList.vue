@@ -10,6 +10,7 @@ import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
+import { useFilteredActions } from "@vueda/use/useFilteredActions";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
@@ -361,10 +362,13 @@ const theme = useTheme(
         error,
     }),
 );
+const filteredActions = useFilteredActions({
+    modelConfigInstance: modelConfig,
+});
 const targetlessActionButtonSlotName = useSlotNameResolver(["targetless-action-button", "button"]);
 const bulkActionButtonSlotName = useSlotNameResolver(["bulk-action-button", "button"]);
 const targetlessActions = computed(() => {
-    const actions = modelConfig.config?.actions || [];
+    const actions = filteredActions.actions || [];
     const actionDetails = modelConfig.config?.actionDetails || {};
     return new Set(
         actions.filter((name) => {
@@ -375,7 +379,7 @@ const targetlessActions = computed(() => {
 });
 
 const bulkActions = computed(() => {
-    const actions = modelConfig.config?.actions || [];
+    const actions = filteredActions.actions || [];
     const actionDetails = modelConfig.config?.actionDetails || {};
     return new Set(actions.filter((name) => actionDetails[name]?.bulk));
 });

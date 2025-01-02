@@ -41,6 +41,7 @@ class UserError extends FetchError {
  *       login: (payload: object) => Promise<void>,
  *       logout: () => Promise<void>,
  *       init: () => Promise<void>,
+ *       clearError: () => void,
  *   },
  * >} UserStore
  */
@@ -205,6 +206,10 @@ export const storeUser = defineStore("user", {
             if (this.initializingPromise) {
                 await this.initializingPromise;
             }
+        },
+        clearError() {
+            this.error = null;
+            this.errored = false;
         },
     },
 });

@@ -5,6 +5,7 @@ import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
+import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
@@ -59,6 +60,9 @@ const props = defineProps({
 const emit = defineEmits(["form-object", "form-context"]);
 const viewName = "create";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
+const filteredActions = useFilteredActions({
+    modelConfigInstance: modelConfig,
+});
 const titleStr = computed(() => {
     return `Create ${memoizedStartCase(modelConfig.config?.verboseName)}` || "Create Item";
 });
@@ -129,18 +133,18 @@ onMounted(() => {
     );
     emit("form-context", formContext);
 });
+const nonDetailActions = computed(() =>
+    (filteredActions.actions || [])?.filter((n) => {
+        const a = modelConfig.config?.actionDetails?.[n];
+        return a && viewName !== n && !a.detail;
+    }),
+);
 </script>
 <template>
     <div :class="props.class">
         <page-title :loading="modelConfig.loading" :title="titleStr">
             <template #button>
-                <template
-                    v-for="actionName in modelConfig.config?.actions?.filter((name) => {
-                        const actionDetail = modelConfig.config?.actionDetails?.[name];
-                        return actionDetail && viewName !== name && !actionDetail.detail && !actionDetail.bulk;
-                    })"
-                    :key="actionName"
-                >
+                <template v-for="actionName in nonDetailActions" :key="actionName">
                     <slot
                         :app="app"
                         :label="memoizedStartCase(actionName)"

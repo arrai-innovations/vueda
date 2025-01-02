@@ -26,6 +26,9 @@ import { isRef, reactive, readonly, ref, toRef, unref, watch } from "vue";
  * The raw state for a model config.
  *
  * @typedef {object} ModelConfigRawState
+ * @property {import('vue').Ref<string>|string} app - The app name being used.
+ * @property {import('vue').Ref<string>|string} model - The model name being used.
+ * @property {import('vue').Ref<string>|string|null} view - The view being used, if any.
  * @property {boolean} loading - True if the model config is loading.
  * @property {Error} error - The error that occurred while loading the model config.
  * @property {boolean} errored - True if an error occurred while loading the model config.
@@ -77,6 +80,9 @@ export function useModelConfig(app, model, view) {
     const originalConfig = ref(null);
     let previousKey;
     const returnObject = reactive({
+        app,
+        model,
+        view,
         loading: proxyLoadingError.loading,
         error: proxyLoadingError.error,
         errored: proxyLoadingError.errored,
