@@ -11,3 +11,6 @@ def server_info_view(request):
             "server_version": server_version,
         }
     )
+
+
+server_info_view.cls._ignore_model_permissions = True
