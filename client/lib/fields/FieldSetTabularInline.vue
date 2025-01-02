@@ -18,7 +18,7 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
-import { computed, inject, onBeforeUpdate, reactive, ref, shallowReactive, unref, useSlots, watch } from "vue";
+import { computed, inject, onBeforeUpdate, reactive, ref, unref, useSlots, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -102,12 +102,12 @@ const mergedFormModelProps = reactive({
         .value,
     expands: computed(() => [...(parentFormModel.expands?.map((item) => item.value) || []), ...(props.expands || [])])
         .value,
-    fieldDetails: shallowReactive(merge(cloneDeep(parentFormModel.fieldDetails), props.fieldDetails)),
-    fieldComponents: shallowReactive(merge(cloneDeep(parentFormModel.fieldComponents), props.fieldComponents)),
-    fieldProps: shallowReactive(merge(cloneDeep(parentFormModel.fieldProps), props.fieldProps)),
-    expandDetails: shallowReactive(merge(cloneDeep(parentFormModel.expandDetails), props.expandDetails)),
-    widgetComponents: shallowReactive(merge(cloneDeep(parentFormModel.widgetComponents), props.widgetComponents)),
-    widgetProps: shallowReactive(merge(cloneDeep(parentFormModel.widgetProps), props.widgetProps)),
+    fieldDetails: computed(() => merge(cloneDeep(parentFormModel.fieldDetails), props.fieldDetails)),
+    fieldComponents: computed(() => merge(cloneDeep(parentFormModel.fieldComponents), props.fieldComponents)),
+    fieldProps: computed(() => merge(cloneDeep(parentFormModel.fieldProps), props.fieldProps)),
+    expandDetails: computed(() => merge(cloneDeep(parentFormModel.expandDetails), props.expandDetails)),
+    widgetComponents: computed(() => merge(cloneDeep(parentFormModel.widgetComponents), props.widgetComponents)),
+    widgetProps: computed(() => merge(cloneDeep(parentFormModel.widgetProps), props.widgetProps)),
 });
 
 const theme = useTheme("FieldSetTabularInline", props);
