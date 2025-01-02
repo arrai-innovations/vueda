@@ -245,11 +245,14 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return field_type
 
-    def get_model_fields_data(self, serializer):
+    def get_model_fields_data(self, serializer, *, excluded_fields=frozenset()):
         pk_field = serializer.Meta.model._meta.pk.name
         fields = {}
 
         for field_name, field in serializer().get_fields().items():
+            if field_name in excluded_fields:
+                continue
+
             many = isinstance(field, (serializers.ListField, serializers.ManyRelatedField))
             if many:
                 child_field = field.child if many and hasattr(field, "child") else None
