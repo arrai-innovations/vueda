@@ -1,4 +1,6 @@
 import inspect
+from typing import Dict
+from typing import List
 
 import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
@@ -134,6 +136,21 @@ class ExcludeFieldsSerializerMixin:
 
 
 class VuedaExpandableFieldsSerializerMixin:
+    def _get_expanded_field_names(
+        self,
+        expand_fields: List[str],
+        omit_fields: List[str],
+        sparse_fields: List[str],
+        next_level_omits: Dict[str, List[str]],  # rest_flex_fields says this is List[str], but it's a dictionary.
+    ) -> List[str]:
+        for field_name in expand_fields:
+            if field_name not in next_level_omits:
+                next_level_omits[field_name] = []
+            if "available_actions" not in next_level_omits[field_name]:
+                next_level_omits[field_name].append("available_actions")
+
+        return super()._get_expanded_field_names(expand_fields, omit_fields, sparse_fields, next_level_omits)
+
     def get_expandable_fields(self):
         from vueda.info.serializers import ModelInfoSerializer
 
@@ -189,7 +206,8 @@ class VuedaExpandableFieldsSerializerMixin:
 
                 model_content_type = ContentType.objects.get_for_model(field_meta.model)
                 serializer = ModelInfoSerializer(model_content_type)
-                fields = serializer.get_model_fields_data(field_serializer)
+                # Expandable fields don't need available actions.
+                fields = serializer.get_model_fields_data(field_serializer, excluded_fields={"available_actions"})
 
                 if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expand_options:
                     # We need to call tuple, as we are modifying the dictionary.
@@ -206,10 +224,6 @@ class VuedaExpandableFieldsSerializerMixin:
                             field["required"] = False
                         if "choices" not in field:
                             field["choices"] = False
-
-                # Expandable fields don't need available actions.
-                if "available_actions" in fields:
-                    del fields["available_actions"]
 
                 expand_item[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = fields
 
