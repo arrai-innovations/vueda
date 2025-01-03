@@ -352,6 +352,9 @@ const computedFieldObjects = computed(() => {
     return [...props.extraFieldObjects, ...calculatedDisplayFields.value];
 });
 const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name})`);
+const themeOverride = computed(() => {
+    return props.themeOverride?.["ViewList"];
+});
 const theme = useTheme(
     "ViewList",
     props,
@@ -524,6 +527,7 @@ const searchSlotProps = reactive({
             :sortables="sorting.state.sortables"
             :sorted="sorting.state.sorted"
             :table-breakpoint="tableBreakpoint"
+            :theme-override="themeOverride"
             :variant="objectGridVariant"
             @update:sorted="sorting.updateSorted"
         >
