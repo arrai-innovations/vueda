@@ -58,14 +58,6 @@ const props = defineProps({
         type: Function,
         default: undefined,
     },
-    showTime: {
-        type: Boolean,
-        default: false,
-    },
-    timeOnly: {
-        type: Boolean,
-        default: false,
-    },
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
 });
@@ -99,11 +91,15 @@ const valueUpdated = (value) => {
     }
 };
 const onTodayButtonClick = () => {
+    unvalidatedInput.value = null;
     const newDate = new Date();
-    if (props.showTime || props.timeOnly) {
+    const dpAttrs = unref(datePickerAttrs);
+    const showTime = dpAttrs.showTime ?? false;
+    const timeOnly = dpAttrs.timeOnly ?? false;
+    if (showTime || timeOnly) {
         const min = datepickerRef.value.currentMinute;
         const sec = datepickerRef.value.currentSecond;
-        const hr = datepickerRef.value.currentHour;
+        const hr = datepickerRef.value.convertTo24Hour(datepickerRef.value.currentHour, datepickerRef.value.pm);
         newDate.setHours(hr, min, sec, 0);
     }
     widgetContext.state.combinedValue = newDate;
@@ -232,8 +228,6 @@ const maxDateAsDate = computed(() => {
                         :pt="effectivePt"
                         :selection-mode="computedSelectionMode"
                         show-button-bar
-                        :show-time="showTime"
-                        :time-only="timeOnly"
                         :today-button-props="{
                             label: `Now`,
                             outlined: true,
