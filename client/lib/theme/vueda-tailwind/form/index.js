@@ -213,7 +213,15 @@ export default {
             class: [variant === "simple" ? "mx-2" : "", "my-2"],
         }),
         messages: {
-            class: ["flex flex-col gap-1 md:gap-2 2xl:gap-4"],
+            class: ({ visible, collapsible }) => {
+                const classes = { "flex flex-col gap-1 md:gap-2 2xl:gap-4": true };
+                if (collapsible) {
+                    // classes['hidden'] = !visible;
+                    classes["hidden"] = !visible;
+                }
+                // return classes
+                return { "flex flex-col gap-1 md:gap-2 2xl:gap-4": true };
+            },
         },
         messagesInnerList: {
             class: ["list-disc list-inside"],

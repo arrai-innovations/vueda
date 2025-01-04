@@ -63,7 +63,17 @@ const theme = useTheme("FormChores", props);
                 <slot name="field-error" v-bind="slotProps" />
             </template>
         </form-feedback>
-        <form-feedback :class="theme('item')" :messages="props.warnings" type="message" v-bind="computedAttrsSansClass">
+        <form-feedback
+            :class="theme('item')"
+            v-bind="computedAttrsSansClass"
+            :collapsible="true"
+            :messages="props.warnings"
+            type="message"
+        >
+            <template v-if="$slots[`msg-collapse-icon`]" #msg-collapse-icon="slotProps">
+                <slot name="msg-collapse-icon" v-bind="slotProps"> </slot>
+            </template>
+
             <template v-if="$slots[`field(${computedName})message`]" #default="slotProps">
                 <slot :name="`field(${computedName})message`" v-bind="slotProps" />
             </template>

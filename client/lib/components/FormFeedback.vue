@@ -9,7 +9,7 @@ import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
 import Message from "primevue/message";
-import { inject, reactive, toRef, watch } from "vue";
+import { inject, reactive, ref, toRef, watch } from "vue";
 
 const props = defineProps({
     type: {
@@ -41,6 +41,10 @@ const props = defineProps({
         type: Boolean,
         default: true,
         description: "Allows rendering of messages as HTML if true.",
+    },
+    collapsible: {
+        type: Boolean,
+        default: false,
     },
     ...THEME_OVERRIDE_PROPS,
 });
@@ -85,11 +89,17 @@ watch(
     //  deleted. this leaves empty feedback boxes on the form.
     { immediate: true, deep: true },
 );
+const toggleVisibility = () => {
+    internalVisible.value = !internalVisible.value;
+};
+const internalVisible = ref(true);
 const theme = useTheme(
     "FormFeedback",
     props,
     reactive({
         variant: toRef(props, "variant"),
+        collapsible: toRef(props, "collapsible"),
+        visible: internalVisible,
     }),
 );
 const renderDetail = (data) => {
@@ -123,18 +133,32 @@ const renderDetail = (data) => {
                 >
                     <template #icon="slotProps">
                         <slot name="icon" v-bind="slotProps" />
-                    </template>
-                    <template v-if="isObject(line)">
-                        <div v-if="allowHtml" v-html="renderDetail(line)"></div>
-                        <div v-else v-for="[name, message] of Object.entries(line)" :key="name">
-                            {{ name }}: {{ message }}
+                        <div v-if="collapsible">
+                            <slot
+                                name="msg-collapse-icon"
+                                :toggle-visibility="toggleVisibility"
+                                :visible="internalVisible"
+                            >
+                                <span v-if="internalVisible">⬆️</span>
+                                <span v-else>⬇️</span>
+                            </slot>
                         </div>
                     </template>
-                    <template v-else-if="allowHtml && containsHtml(line)">
-                        <div v-html="line" />
-                    </template>
-                    <template v-else>
-                        {{ line }}
+                    <template #default>
+                        <div v-if="internalVisible">
+                            <div v-if="isObject(line)">
+                                <div v-if="allowHtml" v-html="renderDetail(line)"></div>
+                                <div v-else v-for="[name, msg] of Object.entries(line)" :key="name">
+                                    {{ name }}: {{ msg }}
+                                </div>
+                            </div>
+                            <div v-else-if="allowHtml && containsHtml(line)">
+                                <div v-html="line" />
+                            </div>
+                            <div v-else>
+                                {{ line }}
+                            </div>
+                        </div>
                     </template>
                 </Message>
             </slot>
