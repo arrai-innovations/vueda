@@ -12,6 +12,8 @@ const props = defineProps({
 const isScrollingUp = ref(false);
 const rootThreshold = ref(0);
 const lastScrollY = ref(0);
+const scrollTimeout = ref(null);
+const delay = 300;
 
 const isScrolledPastThreshold = computed(() => lastScrollY.value > rootThreshold.value);
 
@@ -19,6 +21,14 @@ const handleScroll = () => {
     const currentScrollY = window.scrollY;
     isScrollingUp.value = currentScrollY < lastScrollY.value;
     lastScrollY.value = currentScrollY;
+
+    if (scrollTimeout.value) {
+        clearTimeout(scrollTimeout.value);
+    }
+
+    scrollTimeout.value = setTimeout(() => {
+        isScrollingUp.value = true;
+    }, delay);
 };
 
 watch(
@@ -39,6 +49,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
     window.removeEventListener("scroll", handleScroll);
+    if (scrollTimeout.value) {
+        clearTimeout(scrollTimeout.value);
+    }
 });
 
 const theme = useTheme(
