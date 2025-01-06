@@ -1,5 +1,4 @@
 import { assignReactiveObject, del, flattenPaths } from "@arrai-innovations/reactive-helpers";
-import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { compact, update } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -407,8 +406,6 @@ const clearServerError = (state, name) => {
     validateName(name);
     deleteError(state, name, "server");
     deleteMessage(state, name, "server");
-    deleteError(state, NON_FIELD_ERRORS_KEY, "server");
-    deleteMessage(state, NON_FIELD_ERRORS_KEY, "server");
 };
 
 /**
