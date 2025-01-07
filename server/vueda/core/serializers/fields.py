@@ -48,7 +48,7 @@ class AvailableActionsField(serializers.ListField):
                     available_actions.append(http_method)
 
         if hasattr(viewset, "get_allowed_extra_actions"):
-            available_actions.extend(viewset.get_allowed_extra_actions(request))
+            available_actions.extend(sorted(viewset.get_allowed_extra_actions(request)))
 
         return available_actions
 
