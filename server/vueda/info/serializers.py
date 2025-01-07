@@ -11,15 +11,18 @@ from django.contrib.postgres.fields import RangeField
 from django.core import validators
 from django.core.validators import StepValueValidator
 from django.db import connection
+from django.http import Http404
 from django.utils.functional import cached_property
 from django_filters.fields import ChoiceIterator
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers  # noqa F401
 from rest_framework import viewsets  # noqa F401
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.fields import _UnvalidatedField
 
 from vueda.core.open_api import replace_refs_with_schema
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
+from vueda.core.utils import AvailableActionsRequest
 from vueda.info import open_api_tracebacks
 from vueda.info.registration import get_registration
 
@@ -332,6 +335,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
     def get_model_actions(self, instance):
         """
         Get the actions for a model and their own metadata.
+        Actions will be sorted by method action, followed by sorted extra actions.
         """
         # To do this, we'll need to have a canonical viewset for each model
         from vueda.core.viewsets import VuedaViewSet  # noqa F401
@@ -339,6 +343,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         viewset = self.canonical["viewset"]  # type: VuedaViewSet
         if viewset is None:
             return []
+        called_viewset = viewset()
+
+        request = self.context["request"] if "request" in self.context else None
+        user = request.user if request is not None else None
 
         queryset = viewset().get_queryset()
         meta = queryset.model._meta
@@ -347,6 +355,25 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         action_data = []
         for action in ("list", "retrieve", "create", "update", "partial_update", "destroy"):
+            if user is not None:
+                skip_action = False
+                for method_action, method in METHOD_MAPPING.items():
+                    if method_action.lower() == action:
+                        fake_request = AvailableActionsRequest(
+                            authenticators=request.authenticators,
+                            method=method.upper(),
+                            successful_authenticator=request.successful_authenticator,
+                            user=user,
+                        )
+
+                        try:
+                            called_viewset.check_object_permissions(fake_request, None)
+                        except (PermissionDenied, Http404):
+                            skip_action = True
+
+                if skip_action:
+                    continue
+
             action_item_data = {
                 "name": action,
                 "description": f"{action} {app_label}.{model_name}",
@@ -364,7 +391,18 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     action_item_data["parameters"] = parameters
             action_data.append(action_item_data)
 
-        for extra_action in viewset.get_extra_actions():
+        action_data.sort(key=lambda x: x["name"])
+
+        all_extra_actions = []
+        if hasattr(called_viewset, "get_allowed_extra_actions"):
+            allowed_extra_actions = called_viewset.get_allowed_extra_actions(request)
+        else:
+            allowed_extra_actions = None
+        for extra_action in called_viewset.get_extra_actions():
+            # Remove actions you are not allowed to do.
+            if allowed_extra_actions is not None and extra_action.url_name not in allowed_extra_actions:
+                continue
+
             signature = inspect.signature(extra_action)
             parameters = signature.parameters if extra_action.detail else ()
             extra_action_data = {
@@ -378,7 +416,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             if parameters:
                 extra_action_data["parameters"] = parameters
 
-            action_data.append(extra_action_data)
+            all_extra_actions.append(extra_action_data)
+
+        all_extra_actions.sort(key=lambda x: x["name"])
+
+        action_data.extend(all_extra_actions)
 
         return action_data
 

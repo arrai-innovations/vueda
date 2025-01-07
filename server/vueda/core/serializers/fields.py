@@ -47,11 +47,8 @@ class AvailableActionsField(serializers.ListField):
                 if allowed:
                     available_actions.append(http_method)
 
-        if hasattr(viewset, "get_extra_actions"):
-            for extra_action in viewset.get_extra_actions():  # noqa B007
-                # noqa T101 TODO: Loop through these extra actions and figure out if any should be returned.
-                # They include 'submit', 'approve', ...
-                pass
+        if hasattr(viewset, "get_allowed_extra_actions"):
+            available_actions.extend(viewset.get_allowed_extra_actions(request))
 
         return available_actions
 
