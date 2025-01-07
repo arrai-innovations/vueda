@@ -1,15 +1,25 @@
+from typing import TYPE_CHECKING
+
 from django.apps.registry import Apps
-from django.contrib.auth import get_user_model
 
 
-User = get_user_model()
+if TYPE_CHECKING:
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+
+
 DEFAULT = object()
 
 
-def get_system_user(apps: Apps = DEFAULT) -> User:
+def get_system_user(apps: Apps = DEFAULT) -> "User":
+    from django.contrib.auth import get_user_model
+
     if apps is not DEFAULT:
         return apps.get_model("users", "User").objects.get(is_system=True)
-    return User.objects.get(is_system=True)
+
+    user_model = get_user_model()
+    return user_model.objects.get(is_system=True)
 
 
 class AvailableActionsRequest:
