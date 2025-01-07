@@ -78,11 +78,19 @@ class FakeRequest:
 
 
 class FakeView:
-    def __init__(self, request, serializer_class, action=None, queryset=None):
+    def __init__(
+        self,
+        request,
+        serializer_class,
+        action=None,
+        queryset=None,
+        allowed_extra_actions=frozenset(("current", "history-list")),
+    ):
         self.request = request
         self.serializer_class = serializer_class
         self.action = action
         self.queryset = queryset
+        self.allowed_extra_actions = allowed_extra_actions
 
     def get_serializer_class(self):
         return self.serializer_class
@@ -91,6 +99,9 @@ class FakeView:
         if callable(self.queryset):
             return self.queryset()
         return self.queryset
+
+    def get_allowed_extra_actions(self, request):
+        return set(self.allowed_extra_actions)
 
 
 # Because rest framework loads settings on class import there's no way to

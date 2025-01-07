@@ -114,7 +114,15 @@ class TestProductViewSet(BaseTestModelViewSet):
     def update_expected_retrieve_response(self, expected_retrieve_response, instance):
         super().update_expected_retrieve_response(expected_retrieve_response, instance)
         expected_retrieve_response["formatted_name"] = expected_retrieve_response["name"]
-        expected_retrieve_response["available_actions"] = ["DELETE", "GET", "PATCH", "POST", "PUT"]
+        expected_retrieve_response["available_actions"] = [
+            "DELETE",
+            "GET",
+            "PATCH",
+            "POST",
+            "PUT",
+            "current",
+            "history-list",
+        ]
 
     def update_expected_update_response(self, expected_update_response, updated_instance):
         super().update_expected_update_response(expected_update_response, updated_instance)
@@ -330,7 +338,15 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         period_end = instance.period_end
         formatted_name = f" on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
         expected_retrieve_response["formatted_name"] = formatted_name
-        expected_retrieve_response["available_actions"] = ["DELETE", "GET", "PATCH", "POST", "PUT"]
+        expected_retrieve_response["available_actions"] = [
+            "DELETE",
+            "GET",
+            "PATCH",
+            "POST",
+            "PUT",
+            "current",
+            "history-list",
+        ]
 
     def update_expected_update_response(self, expected_update_response, updated_instance):
         super().update_expected_update_response(expected_update_response, updated_instance)

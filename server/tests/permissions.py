@@ -8,4 +8,5 @@ class IsAdminUser(IsAuthenticated):
 
 class IsCartOrOrderCreator(IsAuthenticated):
     def has_object_permission(self, request, view, obj):
-        return request.user == obj.customer.user
+        if hasattr(obj, "customer") and hasattr(obj.customer, "user"):
+            return request.user == obj.customer.user

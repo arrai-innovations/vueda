@@ -19,11 +19,10 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
         "Admin": [
             ("contenttypes", "ContentType", "list"),
             ("contenttypes", "ContentType", "read"),
-            ("store", "Cart", "create"),
             ("store", "Cart", "delete"),
             ("store", "Cart", "list"),
             ("store", "Cart", "read"),
-            ("store", "Cart", "update"),
+            ("store", "CartItem", "delete"),
             ("store", "CartItem", "list"),
             ("store", "CartItem", "read"),
             ("store", "Customer", "list"),
@@ -33,31 +32,66 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "CustomerOrder", "list"),
             ("store", "CustomerOrder", "read"),
             ("store", "CustomerOrder", "update"),
+            ("store", "Distributor", "create"),
+            ("store", "Distributor", "delete"),
             ("store", "Distributor", "list"),
             ("store", "Distributor", "read"),
+            ("store", "Distributor", "update"),
+            ("store", "InventoryRecord", "create"),
+            ("store", "InventoryRecord", "delete"),
             ("store", "InventoryRecord", "list"),
             ("store", "InventoryRecord", "read"),
+            ("store", "InventoryRecord", "update"),
+            ("store", "InventoryRecordReason", "create"),
+            ("store", "InventoryRecordReason", "delete"),
             ("store", "InventoryRecordReason", "list"),
             ("store", "InventoryRecordReason", "read"),
+            ("store", "InventoryRecordReason", "update"),
+            ("store", "OptionType", "create"),
+            ("store", "OptionType", "delete"),
             ("store", "OptionType", "list"),
             ("store", "OptionType", "read"),
+            ("store", "OptionType", "update"),
+            ("store", "OrderItem", "create"),
+            ("store", "OrderItem", "delete"),
             ("store", "OrderItem", "list"),
             ("store", "OrderItem", "read"),
+            ("store", "OrderItem", "update"),
+            ("store", "OrderState", "create"),
+            ("store", "OrderState", "delete"),
             ("store", "OrderState", "list"),
             ("store", "OrderState", "read"),
+            ("store", "OrderState", "update"),
+            ("store", "PackingBox", "create"),
+            ("store", "PackingBox", "delete"),
             ("store", "PackingBox", "list"),
             ("store", "PackingBox", "read"),
-            ("store", "Product", "read"),
+            ("store", "PackingBox", "update"),
+            ("store", "Product", "create"),
+            ("store", "Product", "delete"),
             ("store", "Product", "list"),
             ("store", "Product", "read"),
+            ("store", "Product", "update"),
+            ("store", "ProductOption", "create"),
+            ("store", "ProductOption", "delete"),
             ("store", "ProductOption", "list"),
             ("store", "ProductOption", "read"),
+            ("store", "ProductOption", "update"),
+            ("store", "SpecialCare", "create"),
+            ("store", "SpecialCare", "delete"),
             ("store", "SpecialCare", "list"),
             ("store", "SpecialCare", "read"),
+            ("store", "SpecialCare", "update"),
+            ("store", "TangibleType", "create"),
+            ("store", "TangibleType", "delete"),
             ("store", "TangibleType", "list"),
             ("store", "TangibleType", "read"),
+            ("store", "TangibleType", "update"),
+            ("tests", "User", "create"),
+            ("tests", "User", "delete"),
             ("tests", "User", "list"),
             ("tests", "User", "read"),
+            ("tests", "User", "update"),
         ],
         "Customer": [
             ("contenttypes", "ContentType", "list"),
@@ -66,6 +100,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "Cart", "delete"),
             ("store", "Cart", "read"),
             ("store", "Cart", "update"),
+            ("store", "CartItem", "create"),
             ("store", "CartItem", "delete"),
             ("store", "CartItem", "list"),
             ("store", "CartItem", "read"),
@@ -78,6 +113,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "Distributor", "read"),
             ("store", "OptionType", "list"),
             ("store", "OptionType", "read"),
+            ("store", "OrderItem", "create"),
             ("store", "OrderItem", "list"),
             ("store", "OrderItem", "read"),
             ("store", "OrderState", "list"),
@@ -245,7 +281,55 @@ class TestModelInfoSerializer:
         "app_label, model_name, kwargs",
         EXPECTED_RESULTS,  # pytest likes to dump the whole def, so we move the parameterize details elsewhere
     )
-    def test_info_detail(
+    def test_info_detail_admin(
+        self,
+        test_data,
+        api_client,
+        app_label,
+        model_name,
+        kwargs,
+    ):
+        user = test_data.users["test_admin@example.com"]
+        api_client.force_authenticate(user=user)
+
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    app_label,
+                    model_name,
+                ),
+            ),
+            format="json",
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                    "model_actions",
+                    "model_expands",
+                    "model_fields",
+                    "model_filtering",
+                    "model_ordering",
+                    "model_permissions",
+                ],
+            },
+        )
+
+        assert response.status_code == 200, pformat(response.data)
+        assert response.data["verbose_name"] == kwargs["verbose_name"]
+        assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
+        self.check_model_actions_data(response, kwargs["expected_actions_admin"], app_label, model_name)
+        self.check_model_expands_data(response, kwargs["expected_expands"])
+        self.check_model_fields_data(response, kwargs["expected_fields"])
+        self.check_model_filtering_data(response, kwargs["expected_filtering"])
+        self.check_model_ordering_data(response, kwargs["expected_ordering"])
+        self.check_model_permissions_data(response, kwargs["expected_permissions"])
+
+    @pytest.mark.parametrize(
+        "app_label, model_name, kwargs",
+        EXPECTED_RESULTS,  # pytest likes to dump the whole def, so we move the parameterize details elsewhere
+    )
+    def test_info_detail_customer(
         self,
         test_data,
         api_client,
@@ -282,7 +366,7 @@ class TestModelInfoSerializer:
         assert response.status_code == 200, pformat(response.data)
         assert response.data["verbose_name"] == kwargs["verbose_name"]
         assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
-        self.check_model_actions_data(response, kwargs["expected_actions"], app_label, model_name)
+        self.check_model_actions_data(response, kwargs["expected_actions_customer"], app_label, model_name)
         self.check_model_expands_data(response, kwargs["expected_expands"])
         self.check_model_fields_data(response, kwargs["expected_fields"])
         self.check_model_filtering_data(response, kwargs["expected_filtering"])

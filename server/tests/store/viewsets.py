@@ -21,12 +21,23 @@ class CustomerViewSet(HasWorkflowViewMixin, VuedaHistoryViewSet):
     serializer_class = my_serializers.CustomerSerializer
     ordering_fields = ["user__email"]
 
+    def get_allowed_extra_actions(self, request):
+        # Make 'current' and 'history-list' not allowed for admin or customer.
+        return frozenset()
+
 
 class DistributorViewSet(VuedaHistoryViewSet):
     queryset = my_models.Distributor.objects.all()
     serializer_class = my_serializers.DistributorSerializer
     filterset_class = my_filtersets.DistributorFilterSet
     ordering_fields = ["name"]
+
+    def get_allowed_extra_actions(self, request):
+        # Make 'current' and 'history-list' not allowed for customer.
+        if "Customer" in request.user.groups.values_list("name", flat=True):
+            return frozenset()
+
+        return super().get_allowed_extra_actions(request)
 
 
 class ProductViewSet(VuedaHistoryViewSet):
