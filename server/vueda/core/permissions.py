@@ -56,7 +56,7 @@ class ObjectPermissions(DjangoObjectPermissions):
 
     def has_object_permission(self, request, view, obj):
         # set the view action for use in get_required_object_permissions
-        self.view_action = view.action
+        self.view_action = getattr(view, "action", None)
         return super().has_object_permission(request, view, obj)
 
     def get_required_permissions(self, method, model_cls):
