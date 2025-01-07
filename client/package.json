@@ -15,10 +15,10 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "vitest",
+    "test": "npx --no-install vitest",
     "coverage": "npm run coverage:clean && npm test -- --coverage=true",
     "coverage:clean": "rm -rf coverage",
-    "prepare": "husky || true",
+    "prepare": "npx --no-install husky",
     "docs": "echo \"#todo: setup jsdoc to markdown\""
   },
   "repository": {
