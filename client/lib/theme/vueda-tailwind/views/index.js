@@ -9,7 +9,7 @@ export default {
             ],
         }),
         container: {
-            class: ["flex flex-col gap-1 mt-1"],
+            class: ["flex flex-col gap-1 my-1"],
         },
         titleContainer: {
             class: [
@@ -58,16 +58,17 @@ export default {
             class: [],
         },
         buttons: {
-            class: ["flex flex-col lg:flex-row mx-2 gap-2 mb-2 flex-wrap lg:flex-nowrap"],
+            class: ["flex flex-col lg:flex-row gap-1 md:gap-2 flex-wrap lg:flex-nowrap"],
         },
         list: {
-            class: ["flex flex-col gap-2 max-w-max w-full"],
+            class: ["flex flex-col gap-1 md:gap-2 lg:max-w-max"],
         },
         listItem: {
             class: [],
         },
         nonFieldErrorBlock: {
-            class: ["max-w-full overflow-x-auto p-1 2xs:p-2 2xl:p-4 flex flex-col gap-2"],
+            // class: ["max-w-full overflow-x-auto p-1 2xs:p-2 2xl:p-4 flex flex-col gap-2"],
+            class: "",
         },
     },
     ViewList: {
@@ -92,7 +93,7 @@ export default {
             class: ["w-full"],
         },
         underActionsBar: {
-            class: ["w-full flex flex-col sm:flex-row sm:justify-between gap-1"],
+            class: ["w-full flex flex-col sm:flex-row sm:justify-between gap-1 mb-1"],
         },
         bulkActionsBar: {
             class: ["flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"],
