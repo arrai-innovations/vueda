@@ -1,7 +1,7 @@
 <script setup>
 import { loadingCombine } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
-import FormFeedback from "@vueda/components/FormFeedback.vue";
+import FormChores from "@vueda/components/FormChores.vue";
 import FieldString from "@vueda/fields/FieldString.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
@@ -216,8 +216,7 @@ const handleCancelClick = () => {
     <div :class="theme('root')" data-qa="view-action-root">
         <div :class="theme('inner')" data-qa="view-action-inner">
             <div :class="theme('nonFieldErrorBlock')">
-                <form-feedback type="error" />
-                <form-feedback type="message" />
+                <form-chores :variant="null" />
             </div>
             <div :class="theme('selectedObjects')" data-qa="view-action-selected-objects">
                 <slot :loading="combinedLoading" name="selected-objects" :objects="fetchState?.objects">
@@ -241,8 +240,7 @@ const handleCancelClick = () => {
                                         <slot name="link-item" v-bind="slotProps" />
                                     </template>
                                 </widget-read-only>
-                                <form-feedback type="error" />
-                                <form-feedback type="message" />
+                                <form-chores />
                             </field-string>
                         </li>
                     </ul>
