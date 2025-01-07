@@ -1,44 +1,7 @@
 from django.utils.itercompat import is_iterable
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.settings import api_settings
 
-
-class AvailableActionsRequest:
-    def __init__(self, *, method="GET", user=None, authenticators=(), successful_authenticator=()):
-        self.authenticators = authenticators
-        self.method = method
-        self.successful_authenticator = successful_authenticator
-        self.user = user
-
-
-class AvailableActionsWhoIsView:
-    def __init__(self, request, serializer_class, queryset):
-        self.request = request
-        self.serializer_class = serializer_class
-        self.queryset = queryset
-
-    def get_queryset(self):
-        if callable(self.queryset):
-            return self.queryset()
-        return self.queryset
-
-    def get_permissions(self):
-        """
-        Use the default permission classes.
-        """
-        return [permission() for permission in api_settings.DEFAULT_PERMISSION_CLASSES]
-
-    def check_object_permissions(self, request, obj):
-        """
-        Check if the request should be permitted for a given object.
-        Raises an appropriate exception if the request is not permitted.
-        """
-        for permission in self.get_permissions():
-            if not permission.has_object_permission(request, self, obj):
-                raise PermissionDenied(
-                    detail=getattr(permission, "message", None), code=getattr(permission, "code", None)
-                )
+from vueda.core.utils import AvailableActionsRequest
 
 
 class AvailableActionsField(serializers.ListField):
