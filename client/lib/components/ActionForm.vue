@@ -213,19 +213,22 @@ const handleCancelClick = () => {
 
 <template>
     <error-display :error="combinedError" :errored="combinedErrored" :ignore-form-validation-errors="true" />
-    <div :class="theme('root')" data-qa="view-action-root">
-        <div :class="theme('inner')" data-qa="view-action-inner">
-            <div :class="theme('nonFieldErrorBlock')">
-                <form-chores :variant="null" />
-            </div>
-            <div :class="theme('selectedObjects')" data-qa="view-action-selected-objects">
+    <div :class="theme('root')" data-qa="action-form-root">
+        <div :class="theme('inner')" data-qa="action-form-inner">
+            <form-chores :class="theme('nonFieldErrorBlock')" :variant="null" />
+            <div :class="theme('selectedObjects')" data-qa="action-form-selected-objects">
                 <slot :loading="combinedLoading" name="selected-objects" :objects="fetchState?.objects">
-                    <p>You have selected the following {{ unref(modelVerboseName) }}(s):</p>
+                    <p>You have selected the following {{ unref(modelVerboseName) }}:</p>
                     <div v-if="combinedLoading">
                         <p>Loading objects...</p>
                     </div>
-                    <ul v-else :class="theme('list')">
-                        <li v-for="pk in pksAsString" :key="pk" :class="theme('listItem')">
+                    <ul v-else :class="theme('list')" data-qa="action-form-list">
+                        <li
+                            v-for="pk in pksAsString"
+                            :key="pk"
+                            :class="theme('listItem')"
+                            data-qa="action-form-list-item"
+                        >
                             <field-string :field-value="pk" :label="pk" :name="pk">
                                 <widget-read-only
                                     :app="app"
@@ -246,12 +249,12 @@ const handleCancelClick = () => {
                     </ul>
                 </slot>
             </div>
-            <div :class="theme('message')" data-qa="view-action-message">
+            <div :class="theme('message')" data-qa="action-form-message">
                 <slot name="confirm-message">
                     <p>{{ computedConfirmMessage }}</p>
                 </slot>
             </div>
-            <div :class="theme('buttons')" data-qa="view-action-buttons">
+            <div :class="theme('buttons')" data-qa="action-form-buttons">
                 <slot
                     label="Yes, continue"
                     :loading="combinedLoading"
