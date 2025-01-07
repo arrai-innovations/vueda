@@ -44,9 +44,31 @@ const computedHelp = computed(() => (props.help?.length ? props.help : fieldCont
 const attrs = useAttrs();
 const computedAttrsSansClass = computed(() => omit(attrs, ["class"]));
 const theme = useTheme("FormChores", props);
+const propErrorsForName = computed(() => {
+    const name = computedName.value;
+    return props.errors?.[name] || {};
+});
+const contextErrorsForName = computed(() => {
+    const name = computedName.value;
+    return formContext?.state?.errors?.[name] || {};
+});
+const hasErrors = computed(
+    () => Object.keys(propErrorsForName.value).length > 0 || Object.keys(contextErrorsForName.value).length > 0,
+);
+const propMessagesForName = computed(() => {
+    const name = computedName.value;
+    return props.warnings?.[name] || {};
+});
+const contextMessagesForName = computed(() => {
+    const name = computedName.value;
+    return formContext?.state?.messages?.[name] || {};
+});
+const hasMessages = computed(
+    () => Object.keys(propMessagesForName.value).length > 0 || Object.keys(contextMessagesForName.value).length > 0,
+);
 </script>
 <template>
-    <div :class="theme('root')">
+    <div v-if="hasErrors || hasMessages || computedHelp" :class="theme('root')">
         <form-help-text v-if="computedHelp" :class="theme('item')" :help="computedHelp" v-bind="computedAttrsSansClass">
             <template v-if="$slots[`field(${computedName})help`]" #default="slotProps">
                 <slot :name="`field(${computedName})help`" v-bind="slotProps" />
@@ -55,7 +77,13 @@ const theme = useTheme("FormChores", props);
                 <slot name="field-help" v-bind="slotProps" />
             </template>
         </form-help-text>
-        <form-feedback :class="theme('item')" :messages="props.errors" type="error" v-bind="computedAttrsSansClass">
+        <form-feedback
+            v-if="hasErrors"
+            :class="theme('item')"
+            :messages="props.errors"
+            type="error"
+            v-bind="computedAttrsSansClass"
+        >
             <template v-if="$slots[`field(${computedName})error`]" #default="slotProps">
                 <slot :name="`field(${computedName})error`" v-bind="slotProps" />
             </template>
@@ -63,7 +91,13 @@ const theme = useTheme("FormChores", props);
                 <slot name="field-error" v-bind="slotProps" />
             </template>
         </form-feedback>
-        <form-feedback :class="theme('item')" :messages="props.warnings" type="message" v-bind="computedAttrsSansClass">
+        <form-feedback
+            v-if="hasMessages"
+            :class="theme('item')"
+            :messages="props.warnings"
+            type="message"
+            v-bind="computedAttrsSansClass"
+        >
             <template v-if="$slots[`field(${computedName})message`]" #default="slotProps">
                 <slot :name="`field(${computedName})message`" v-bind="slotProps" />
             </template>
