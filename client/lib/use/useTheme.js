@@ -3,7 +3,7 @@ import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isFunction from "lodash-es/isFunction.js";
 import mergeWith from "lodash-es/mergeWith.js";
-import { computed, effectScope, getCurrentInstance, inject, provide, unref } from "vue";
+import { computed, effectScope, getCurrentInstance, inject, provide, toRef, unref } from "vue";
 import { deepUnref } from "vue-deepunref";
 
 let defaultTheme = vuedaTailwind;
@@ -74,6 +74,30 @@ const getClassValue = (configOrOverride, key, context) => {
 };
 
 /**
+ * Merge a theme object with another theme object and provide the result for child components.
+ *
+ * @param {object|import("vue").Ref<ThemeObject>} localOverride - The override from the current component (e.g. a prop).
+ * @param {object|import("vue").Ref<ThemeObject>|null} configOverride - Optional "base" config (e.g. default config for your component).
+ * @returns {import("vue").ComputedRef<ThemeObject>} A merged override that includes ancestor overrides + local overrides.
+ */
+export function useThemeOverride(localOverride, configOverride = null) {
+    const currentInstance = getCurrentInstance();
+    const injectedOverride = currentInstance ? inject(ThemeOverrideSymbol, null) : null;
+
+    const mergedOverride = computed(() => {
+        const base = deepUnref(configOverride) || {};
+        const ancestor = deepUnref(injectedOverride) || {};
+        const local = deepUnref(localOverride) || {};
+        return mergeTheme(base, ancestor, local);
+    });
+
+    if (currentInstance) {
+        provide(ThemeOverrideSymbol, mergedOverride);
+    }
+    return mergedOverride;
+}
+
+/**
  * The function returned by useTheme.
  * @typedef {(key: string, kwargs?: import('vue').UnwrapNestedRefs<object>) => ThemeObject} UseThemeReturnFunction
  */
@@ -99,18 +123,8 @@ export function useTheme(componentName, props, context, keyFn) {
     if (!config) {
         throw new Error(`No theme config found for ${componentName}`);
     }
-    const currentInstance = getCurrentInstance();
-    const injectedThemeOverride = currentInstance ? inject(ThemeOverrideSymbol, null) : null;
-    const themeOverride = computed(() => {
-        const cTO = deepUnref(config.themeOverride) || {};
-        const iTO = deepUnref(injectedThemeOverride) || {};
-        const pTO = deepUnref(unref(props)?.themeOverride) || {};
-        return iTO ? mergeTheme(cTO, iTO, pTO) : pTO;
-    });
 
-    if (currentInstance) {
-        provide(ThemeOverrideSymbol, themeOverride);
-    }
+    const themeOverride = useThemeOverride(toRef(props, "themeOverride"), config.themeOverride || null);
 
     const returnFn = (key, kwargs = {}) => {
         if (!config[key]) {
