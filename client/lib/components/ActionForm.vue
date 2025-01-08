@@ -181,8 +181,8 @@ const handleConfirm = async () => {
 
 const modelVerboseName = computed(() =>
     unref(bulk)
-        ? modelConfig.info?.verbose_name_plural || getLowerTitle(getPluralizedTitle(props.model))
-        : modelConfig.info?.verbose_name || getLowerTitle(props.model),
+        ? modelConfig.info?.verboseNamePlural || getLowerTitle(getPluralizedTitle(props.model))
+        : modelConfig.info?.verboseName || getLowerTitle(props.model),
 );
 
 const computedActionVerboseNameLowerCase = computed(() => {
@@ -206,8 +206,35 @@ onUnmounted(() => {
         actionPromise.cancel();
     }
 });
-const handleCancelClick = () => {
-    router.back();
+const handleCancelClick = async (e) => {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    // router.back() is not great, as the url could be hit from an email or otherwise off-site.
+    if (unref(bulk)) {
+        // if we are bulk, let's redirect back to the list view for this model.
+        await router.push(
+            await getCRUDForTo({
+                app: props.app,
+                model: props.model,
+                view: "list",
+            }),
+        );
+    } else {
+        // if we are not, let's redirect back to the default detail view for this model, (update).
+        const defaultView = modelConfig.config.defaultView;
+        const pushArgs = {
+            app: props.app,
+            model: props.model,
+            view: defaultView,
+        };
+        const isDetail = modelConfig.info.actions?.find((action) => action.name === defaultView)?.detail;
+        if (isDetail) {
+            pushArgs.pk = pks.value[0];
+        }
+        await router.push(await getCRUDForTo(pushArgs));
+    }
 };
 </script>
 
