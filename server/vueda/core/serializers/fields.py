@@ -1,5 +1,7 @@
+from django.http import Http404
 from django.utils.itercompat import is_iterable
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from vueda.core.utils import AvailableActionsRequest
 
@@ -14,6 +16,8 @@ class AvailableActionsField(serializers.ListField):
         super().__init__(**kwargs)
 
     def get_value(self, dictionary):
+        from vueda.info.serializers import METHOD_MAPPING
+
         request = self.context["request"]
         user = request.user
 
@@ -34,18 +38,18 @@ class AvailableActionsField(serializers.ListField):
             if not is_iterable(instances):
                 instances = (instances,)
 
-            for http_method in ("DELETE", "GET", "PATCH", "POST", "PUT"):
+            for action in ("list", "retrieve", "create", "update", "partial_update", "destroy"):
                 allowed = False
-                fake_request.method = http_method
+                fake_request.method = METHOD_MAPPING[action].upper()
                 for instance in instances:
                     try:
                         check_viewset.check_object_permissions(fake_request, instance)
                         allowed = True
                         break
-                    except Exception:
+                    except (PermissionDenied, Http404):
                         pass
                 if allowed:
-                    available_actions.append(http_method)
+                    available_actions.append(action)
 
         if hasattr(viewset, "get_allowed_extra_actions"):
             available_actions.extend(sorted(viewset.get_allowed_extra_actions(request)))
