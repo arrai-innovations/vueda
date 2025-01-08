@@ -148,8 +148,8 @@ export function defaultValidateRequired(value) {
  *     requiredMessage: string,
  *     label: string,
  *     help: string,
- *     validate: (value: any,name:any) => boolean,
- *     requiredFn: (value: any, name: any) => boolean,
+ *     validate: (value: any, dependencies:any) => boolean,
+ *     requiredFn: (value: any, dependencies: any) => boolean,
  * }>} FieldContextProps
  */
 

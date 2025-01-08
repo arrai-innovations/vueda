@@ -7,7 +7,9 @@ import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
@@ -88,6 +90,20 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    grouped: {
+        type: Boolean,
+        default: false,
+        description:
+            "If true, the options will be grouped by the groupBy field. isLazy is assumed to be true when grouped is true.",
+    },
+    groupBy: {
+        type: String,
+        default: undefined,
+    },
+    isLazy: {
+        type: Boolean,
+        default: true,
+    },
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
 });
@@ -97,12 +113,18 @@ const fetchedPages = ref(1);
 const hasBeenFocused = ref(false);
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const listSearch = ref("");
+const listSearch = computed(() => {
+    if (props.grouped || !props.isLazy) {
+        return "";
+    }
+    return listFilterValue.value;
+});
+const listFilterValue = ref("");
 const prePopulatedSearchText = computed(() => {
     return widgetContext.state.valueDetail?.[props.optionLabel] || "";
 });
 const isCurrentSearchSameAsValue = computed(() => {
-    return listSearch.value.length > 0 ? listSearch.value === prePopulatedSearchText.value : false;
+    return listFilterValue.value.length > 0 ? listFilterValue.value === prePopulatedSearchText.value : false;
 });
 const intendToList = computed(() => {
     return (!widgetContext.state.combinedValue || !isCurrentSearchSameAsValue.value) && hasBeenFocused.value;
@@ -146,7 +168,11 @@ const modelListProps = reactive({
     listArgs: {
         [props.pageKey]: fetchedPages,
         [props.searchKey]: listSearch,
-        f: [computed(() => modelConfig.info?.pk), "formatted_name"],
+        f: [
+            computed(() => modelConfig.info?.pk),
+            "formatted_name",
+            computed(() => (props.grouped ? props.groupBy : "")),
+        ],
         ...extraListArgs.value,
     },
     intendToList,
@@ -158,8 +184,15 @@ const handleFocus = () => {
 const callableOptionLabel = computed(() => {
     return typeof props.optionLabel === "function";
 });
+
+const modelListFunctions = reactive({
+    list: computed(() => {
+        return props.isLazy || !props.grouped ? singlePagePaginatedListCrudAdaptor : allPagePaginatedListCrudAdaptor;
+    }),
+});
 const modelList = useList({
     props: modelListProps,
+    functions: modelListFunctions,
     paged: true,
     keepOldPages: true,
     clearListOnListIntentTriggered: false,
@@ -178,7 +211,7 @@ watch(
                     );
                 }
                 modelListProps.textSearchRules = [props.optionLabel];
-                modelListProps.textSearchValue = listSearch;
+                modelListProps.textSearchValue = listFilterValue;
             }
         } else {
             if (modelListProps.textSearchRules) {
@@ -192,8 +225,11 @@ watch(
     },
 );
 const handleFilter = (event) => {
+    listFilterValue.value = event.value;
+    if (props.grouped || !props.isLazy) {
+        return;
+    }
     fetchedPages.value = 1;
-    listSearch.value = event.value;
 };
 const placeHolderText = computed(() => {
     return props.placeholder || `Select a ${props.model}`;
@@ -231,9 +267,32 @@ const handleLabelClick = (e) => {
     }
 };
 
+const listObjects = computed(() => {
+    if (props.grouped) {
+        const objects = cloneDeep(modelList.state.objectsInOrder);
+        const grouped = objects.reduce((acc, item) => {
+            const groupKey = item[props.groupBy];
+            let group = acc.find((g) => g[props.groupBy] === groupKey);
+            if (!group) {
+                group = { [props.groupBy]: groupKey, items: [] };
+                acc.push(group);
+            }
+            group.items.push({
+                [props.optionValue]: item[props.optionValue],
+                [props.optionLabel]: item[props.optionLabel],
+            });
+            return acc;
+        }, []);
+
+        return grouped;
+    }
+
+    return modelList.state.objectsInOrder;
+});
+
 const computedOptions = computed(() => {
     if (intendToList.value && !modelList.state.loading) {
-        return modelList.state.objectsInOrder;
+        return listObjects.value;
     }
     if (intendToRetrieve.value && !instanceObject.state.loading) {
         return [instanceObject.state.object];
@@ -245,7 +304,8 @@ watch(
     ([newOptions, newValue], [oldOption, oldValue]) => {
         if (!isEqual(newOptions, oldOption) || !isEqual(newValue, oldValue)) {
             if (newOptions.length && newValue) {
-                const selected = newOptions?.find((option) => isEqual(option[props.optionValue], newValue));
+                const options = newOptions.length > 1 && props.grouped ? modelList.state.objectsInOrder : newOptions;
+                const selected = options?.find((option) => isEqual(option[props.optionValue], newValue));
                 if (selected) {
                     widgetContext.state.valueDetail = selected;
                 }
@@ -261,7 +321,7 @@ watch(
     prePopulatedSearchText,
     (value, oldValue) => {
         if (!isEqual(value, oldValue)) {
-            listSearch.value = value;
+            listFilterValue.value = value;
         }
     },
     { immediate: true, deep: true },
@@ -270,9 +330,29 @@ watch(
 const handleHide = () => {
     if (intendToRetrieve.value) {
         selectRef.value.filterValue = prePopulatedSearchText.value;
-        listSearch.value = prePopulatedSearchText.value;
+        if (props.grouped || !props.isLazy) {
+            return;
+        }
+        listFilterValue.value = prePopulatedSearchText.value;
     }
 };
+// const lastScrollTop = ref(0);
+// const handleVirtualScroll = (event) => {
+//     console.log("event",event.target.scrollTop);
+//     const scrollTop = event.target.scrollTop;
+//     const isScrollingUp = scrollTop < lastScrollTop.value;
+//     if (isScrollingUp) {
+//         console.log("scroll",event);
+//
+//         lastScrollTopBeforeLazyLoad.value = 0;
+//     }
+//     lastScrollTop.value = event.target.scrollTop;
+//     if (!isScrollingUp && scrollTop < lastScrollTopBeforeLazyLoad.value && virtualScrollerRef.value) {
+//         console.log("scrollTo: ",lastScrollTopBeforeLazyLoad.value)
+//         virtualScrollerRef.value.scrollTo({ top: lastScrollTopBeforeLazyLoad.value });
+//         lastScrollTop.value = lastScrollTopBeforeLazyLoad.value;
+//     }
+// };
 
 const handleShow = () => {
     selectRef.value.filterValue = prePopulatedSearchText.value;
@@ -311,6 +391,8 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :disabled="widgetContext.state.disabled"
                         filter
                         :invalid="widgetContext.state.validationState.invalid"
+                        :option-group-children="grouped && intendToList ? 'items' : undefined"
+                        :option-group-label="grouped && intendToList ? groupBy : undefined"
                         :option-label="props.optionLabel"
                         :option-value="pkKey"
                         :options="computedOptions"
@@ -319,8 +401,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         reset-filter-on-clear
                         show-clear
                         :virtual-scroller-options="{
-                            showSpacer: false,
-                            lazy: true,
+                            lazy: isLazy || !grouped,
                             onLazyLoad: onLazyLoad,
                             itemSize: 38,
                             showLoader: true,
