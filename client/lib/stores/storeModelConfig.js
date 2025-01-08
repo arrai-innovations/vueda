@@ -89,6 +89,10 @@ const getDefaultFromModelInfo = (modelInfo) => {
     const expandFields = modelInfo.expands.map((e) => e.name);
     const actionDetailsByName = Object.fromEntries(modelInfo.actions.map((a) => [a.name, a]));
     const expandDetailsByName = Object.fromEntries(modelInfo.expands.map((e) => [e.name, e]));
+    const actionNames = modelInfo.actions.map((a) => a.name);
+    const canUpdate = actionNames.includes("update");
+    const canRetrieve = actionNames.includes("retrieve");
+    const canList = actionNames.includes("list");
     return [
         {
             verboseName: modelInfo.verbose_name,
@@ -112,6 +116,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
             fieldProps: {},
             widgetComponents: {},
             widgetProps: {},
+            defaultView: canUpdate ? "update" : canRetrieve ? "retrieve" : canList ? "list" : null,
         },
         {},
     ];
