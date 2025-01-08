@@ -9,14 +9,14 @@ import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
  * @param {string|string[]} [params.pk] - The primary key.
  * @param {string} params.view - The view name.
  * @param {boolean} [params.throwOnUndefinedPk=false] - Whether to throw an error if pk is undefined.
- * @returns {import('vue-router').RouteLocationRaw & {
+ * @returns {Promise<import('vue-router').RouteLocationRaw & {
  *     params: {
  *         pk?: string[] | string,
  *     },
  *     meta: {
  *         pks?: string[],
  *     },
- * }} The route configuration.
+ * }>} The route configuration.
  * @throws {Error} If parentPk or pk is required but not provided.
  */
 export async function getCRUDForTo({ app, model, pk, view, throwOnUndefinedPk = false, query = undefined }) {
