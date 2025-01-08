@@ -129,6 +129,7 @@ const fieldInnerClass = theme("fieldInner");
                     :widget-component="widgetComponent"
                     :widget-props="widgetProps"
                 >
+                    <a :name="fieldValuePath" />
                     <div :class="fieldInnerClass" data-qa="field-renderer-field-inner">
                         <slot
                             :field-class="fieldClass"
