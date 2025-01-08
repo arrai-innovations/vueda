@@ -66,6 +66,11 @@ const props = defineProps({
         type: String,
         default: "formatted_name",
     },
+    selectedOptionLabel: {
+        type: String,
+        default: undefined,
+        description: "The label to display when the value is set.",
+    },
     multiple: {
         type: Boolean,
         default: false,
@@ -172,6 +177,7 @@ const modelListProps = reactive({
             computed(() => modelConfig.info?.pk),
             "formatted_name",
             computed(() => (props.grouped ? props.groupBy : "")),
+            computed(() => props.selectedOptionLabel ?? ""),
         ],
         ...extraListArgs.value,
     },
@@ -415,7 +421,22 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         @focus="handleFocus"
                         @hide="handleHide"
                         @show="handleShow"
-                    />
+                    >
+                        <template #value="slotProps">
+                            <div v-if="slotProps.value">
+                                {{
+                                    widgetContext?.state?.valueDetail
+                                        ? widgetContext.state.valueDetail[
+                                              props.selectedOptionLabel ?? props.optionLabel
+                                          ]
+                                        : slotProps.value
+                                }}
+                            </div>
+                            <span v-else>
+                                {{ slotProps.placeholder }}
+                            </span>
+                        </template>
+                    </Select>
                 </div>
             </template>
         </widget-label>
