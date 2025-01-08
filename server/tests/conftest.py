@@ -271,9 +271,30 @@ class BaseTestCreateModelViewSet:
         return dict(create_arguments)
 
     def update_expected_create_response(self, expected_create_response, new_instance):
+        if self.has_delete_permission:
+            available_actions = [
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+                "current",
+                "history-list",
+            ]
+        else:
+            available_actions = [
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "current",
+                "history-list",
+            ]
         expected_create_response.update(
             {
-                "available_actions": ["DELETE", "GET", "PATCH", "POST", "PUT", "current", "history-list"],
+                "available_actions": available_actions,
                 "current_history_id": new_instance.history.latest().history_id,
                 "id": new_instance.id,
             }
@@ -305,7 +326,7 @@ class BaseTestCreateModelViewSet:
         assert new_instance is not None
         self.update_expected_create_response(expected_create_response, new_instance)
         if status_code == 201:
-            assert expected_create_response == self.convert_response(response)
+            assert self.convert_response(response) == expected_create_response
         self.after_create(new_instance, expected_create_response)
 
 
@@ -315,15 +336,28 @@ class BaseTestRetrieveModelViewSet:
         raise NotImplementedError
 
     def update_expected_retrieve_response(self, expected_retrieve_response, instance):
-        expected_retrieve_response["available_actions"] = [
-            "DELETE",
-            "GET",
-            "PATCH",
-            "POST",
-            "PUT",
-            "current",
-            "history-list",
-        ]
+        if self.has_delete_permission:
+            available_actions = [
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+                "current",
+                "history-list",
+            ]
+        else:
+            available_actions = [
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "current",
+                "history-list",
+            ]
+        expected_retrieve_response["available_actions"] = available_actions
         # Do we have a workflow?
         if hasattr(instance, "workflow") and "workflow_state_code" not in expected_retrieve_response:
             expected_retrieve_response.update(
@@ -338,15 +372,19 @@ class BaseTestRetrieveModelViewSet:
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
         self.update_expected_retrieve_response(expected_retrieve_response, instance)
         assert response.status_code == 200, f"{response.status_code} != 200, response.data: {response.data}"
-        assert expected_retrieve_response == response.data
+        assert response.data == expected_retrieve_response
 
 
 class BaseTestDestroyModelViewSet:
     def test_destroy(self, page_data, authenticated_client):
         pk = page_data.first().id
         response = authenticated_client.delete(self.detail_url(pk))
-        assert response.status_code == 204, f"{response.status_code} != 204, response.data: {response.data}"
-        assert not self.model.objects.filter(pk=pk).exists()
+        if self.has_delete_permission:
+            assert response.status_code == 204, f"{response.status_code} != 204, response.data: {response.data}"
+            assert not self.model.objects.filter(pk=pk).exists()
+        else:
+            assert response.status_code == 403, f"{response.status_code} != 403, response.data: {response.data}"
+            assert self.model.objects.filter(pk=pk).exists()
 
 
 class BaseTestUpdateModelViewSet:
@@ -366,15 +404,29 @@ class BaseTestUpdateModelViewSet:
 
     def update_expected_update_response(self, expected_update_response, updated_instance):
         expected_update_response["current_history_id"] = updated_instance.history.latest().history_id
-        expected_update_response["available_actions"] = [
-            "DELETE",
-            "GET",
-            "PATCH",
-            "POST",
-            "PUT",
-            "current",
-            "history-list",
-        ]
+
+        if self.has_delete_permission:
+            available_actions = [
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+                "current",
+                "history-list",
+            ]
+        else:
+            available_actions = [
+                "list",
+                "retrieve",
+                "create",
+                "update",
+                "partial_update",
+                "current",
+                "history-list",
+            ]
+        expected_update_response["available_actions"] = available_actions
 
         # Do we have a workflow?
         if hasattr(updated_instance, "workflow") and "workflow_state_code" not in expected_update_response:
@@ -408,7 +460,7 @@ class BaseTestUpdateModelViewSet:
         assert updated_instance is not None
         self.update_expected_update_response(expected_update_response, updated_instance)
         if status_code == 200:
-            assert expected_update_response == self.convert_response(response)
+            assert self.convert_response(response) == expected_update_response
         self.after_update(updated_instance, expected_update_response)
 
 
@@ -421,7 +473,7 @@ class BaseTestModelViewSet(
     BaseTestUpdateModelViewSet,
     BaseTestCommonModelViewSet,
 ):
-    pass
+    has_delete_permission = False
 
 
 class BaseTestCallCommand:

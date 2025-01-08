@@ -12,6 +12,7 @@ from tests.models import Timesheet
 @pytest.mark.django_db
 class TestProductViewSet(BaseTestModelViewSet):
     model = Product
+    has_delete_permission = False
 
     groups_to_create = {
         "Admin": [
@@ -19,7 +20,6 @@ class TestProductViewSet(BaseTestModelViewSet):
             ("tests", "Product", "list"),
             ("tests", "Product", "create"),
             ("tests", "Product", "update"),
-            ("tests", "Product", "delete"),
             ("tests", "Product", "manage"),
         ],
     }
@@ -115,11 +115,11 @@ class TestProductViewSet(BaseTestModelViewSet):
         super().update_expected_retrieve_response(expected_retrieve_response, instance)
         expected_retrieve_response["formatted_name"] = expected_retrieve_response["name"]
         expected_retrieve_response["available_actions"] = [
-            "DELETE",
-            "GET",
-            "PATCH",
-            "POST",
-            "PUT",
+            "list",
+            "retrieve",
+            "create",
+            "update",
+            "partial_update",
             "current",
             "history-list",
         ]
@@ -209,6 +209,7 @@ class TestProductViewSet(BaseTestModelViewSet):
 @pytest.mark.django_db
 class TestTimesheetViewSet(BaseTestModelViewSet):
     model = Timesheet
+    has_delete_permission = True
 
     groups_to_create = {
         "Admin": [
@@ -339,11 +340,12 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         formatted_name = f" on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
         expected_retrieve_response["formatted_name"] = formatted_name
         expected_retrieve_response["available_actions"] = [
-            "DELETE",
-            "GET",
-            "PATCH",
-            "POST",
-            "PUT",
+            "list",
+            "retrieve",
+            "create",
+            "update",
+            "partial_update",
+            "destroy",
             "current",
             "history-list",
         ]
