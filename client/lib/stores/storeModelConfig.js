@@ -46,6 +46,8 @@ import { defineStore } from "pinia";
  * @property {object} fieldProps - extra props to pass a field component in a form model
  * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} widgetComponents - overriding components for individual widgets
  * @property {object} widgetProps - extra props to pass a widget component in a form model
+ * @property {string|null} defaultView - the default view to use. default is `"update"` if available, otherwise
+ *  `"retrieve"` if available, otherwise `"`list" if available or `null`.
  */
 
 /**
@@ -72,6 +74,7 @@ import { defineStore } from "pinia";
  * @property {object} [fieldProps] - extra props to pass a field component in a form model
  * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} [widgetComponents] - overriding components for individual widgets
  * @property {object} [widgetProps] - extra props to pass a widget component in a form model
+ * @property {string|null} defaultView - the default view to use.
  */
 
 /**
