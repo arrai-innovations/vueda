@@ -10,9 +10,11 @@ import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import cloneDeep from "lodash-es/cloneDeep.js";
+import debounce from "lodash-es/debounce.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
+import InputText from "primevue/inputtext";
 import Select from "primevue/select";
 import { computed, reactive, ref, toRef, useSlots, watch } from "vue";
 
@@ -95,6 +97,10 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    getExtraListArgs: {
+        type: Function,
+        default: undefined,
+    },
     grouped: {
         type: Boolean,
         default: false,
@@ -118,11 +124,9 @@ const fetchedPages = ref(1);
 const hasBeenFocused = ref(false);
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const listSearch = computed(() => {
-    if (props.grouped || !props.isLazy) {
-        return "";
-    }
-    return listFilterValue.value;
+
+const totalRecords = computed(() => {
+    return modelList?.state?.totalRecords ?? 0;
 });
 const listFilterValue = ref("");
 const prePopulatedSearchText = computed(() => {
@@ -131,8 +135,13 @@ const prePopulatedSearchText = computed(() => {
 const isCurrentSearchSameAsValue = computed(() => {
     return listFilterValue.value.length > 0 ? listFilterValue.value === prePopulatedSearchText.value : false;
 });
+const clearingList = ref(false);
 const intendToList = computed(() => {
-    return (!widgetContext.state.combinedValue || !isCurrentSearchSameAsValue.value) && hasBeenFocused.value;
+    return (
+        (!widgetContext.state.combinedValue || !isCurrentSearchSameAsValue.value) &&
+        hasBeenFocused.value &&
+        !clearingList.value
+    );
 });
 const intendToRetrieve = computed(() => {
     return widgetContext.state.combinedValue;
@@ -157,10 +166,27 @@ const instanceObject = useObject({
 });
 
 const extraListArgs = computed(() => {
+    let baseExtraListArgs = {};
+    if (props.getExtraListArgs) {
+        baseExtraListArgs = props.getExtraListArgs(widgetContext.state.dependencyValues);
+    }
     return {
+        ...baseExtraListArgs,
         ...props.extraListArgs,
     };
 });
+const listArgs = computed(() => ({
+    [props.pageKey]: fetchedPages,
+    [props.searchKey]: listFilterValue,
+    f: [
+        computed(() => modelConfig.info?.pk),
+        "formatted_name",
+        computed(() => (props.grouped ? props.groupBy : "")),
+        computed(() => props.selectedOptionLabel ?? ""),
+    ],
+    ...extraListArgs.value,
+}));
+
 const modelListProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
@@ -170,17 +196,7 @@ const modelListProps = reactive({
         f: toRef(props, "modelFields"),
     },
     pkKey: toRef(props, "pkKey"),
-    listArgs: {
-        [props.pageKey]: fetchedPages,
-        [props.searchKey]: listSearch,
-        f: [
-            computed(() => modelConfig.info?.pk),
-            "formatted_name",
-            computed(() => (props.grouped ? props.groupBy : "")),
-            computed(() => props.selectedOptionLabel ?? ""),
-        ],
-        ...extraListArgs.value,
-    },
+    listArgs,
     intendToList,
 });
 const handleFocus = () => {
@@ -203,6 +219,22 @@ const modelList = useList({
     keepOldPages: true,
     clearListOnListIntentTriggered: false,
 });
+
+watch(
+    [extraListArgs, () => listArgs.value.f, listFilterValue],
+    ([newExtraArgs, newArgs, newSearch], [oldExtraArgs, oldArgs, oldSearch]) => {
+        const IsExtraArgsDiff = isEqual(newExtraArgs, oldExtraArgs);
+        const IsArgsDiff = isEqual(newArgs, oldArgs);
+        const IsSearchDiff = isEqual(newSearch, oldSearch);
+        if (!IsExtraArgsDiff || !IsArgsDiff || !IsSearchDiff) {
+            clearingList.value = true;
+            modelList.clearList();
+            fetchedPages.value = 1;
+            clearingList.value = false;
+        }
+    },
+    { deep: true, immediate: true },
+);
 
 watch(
     [toRef(props, "options")],
@@ -230,13 +262,11 @@ watch(
         immediate: true,
     },
 );
-const handleFilter = (event) => {
-    listFilterValue.value = event.value;
-    if (props.grouped || !props.isLazy) {
-        return;
-    }
+const handleFilter1 = (value) => {
+    listFilterValue.value = value;
     fetchedPages.value = 1;
 };
+const handleFilter = debounce(handleFilter1, 500);
 const placeHolderText = computed(() => {
     return props.placeholder || `Select a ${props.model}`;
 });
@@ -274,26 +304,29 @@ const handleLabelClick = (e) => {
 };
 
 const listObjects = computed(() => {
+    const objects = cloneDeep(modelList.state.objectsInOrder);
     if (props.grouped) {
-        const objects = cloneDeep(modelList.state.objectsInOrder);
-        const grouped = objects.reduce((acc, item) => {
-            const groupKey = item[props.groupBy];
-            let group = acc.find((g) => g[props.groupBy] === groupKey);
-            if (!group) {
-                group = { [props.groupBy]: groupKey, items: [] };
-                acc.push(group);
-            }
-            group.items.push({
-                [props.optionValue]: item[props.optionValue],
-                [props.optionLabel]: item[props.optionLabel],
-            });
-            return acc;
-        }, []);
+        if (objects.length && totalRecords.value) {
+            const grouped = objects.reduce((acc, item) => {
+                const groupKey = item?.[props.groupBy];
+                let group = acc.find((g) => g[props.groupBy] === groupKey);
+                if (!group) {
+                    group = { [props.groupBy]: groupKey, items: [] };
+                    acc.push(group);
+                }
+                group.items.push({
+                    [props.optionValue]: item?.[props.optionValue],
+                    [props.optionLabel]: item?.[props.optionLabel],
+                });
+                return acc;
+            }, []);
 
-        return grouped;
+            return grouped;
+        }
+        return [];
     }
 
-    return modelList.state.objectsInOrder;
+    return objects;
 });
 
 const computedOptions = computed(() => {
@@ -310,8 +343,8 @@ watch(
     ([newOptions, newValue], [oldOption, oldValue]) => {
         if (!isEqual(newOptions, oldOption) || !isEqual(newValue, oldValue)) {
             if (newOptions.length && newValue) {
-                const options = newOptions.length > 1 && props.grouped ? modelList.state.objectsInOrder : newOptions;
-                const selected = options?.find((option) => isEqual(option[props.optionValue], newValue));
+                const options = intendToList.value && props.grouped ? modelList.state.objectsInOrder : newOptions;
+                const selected = options?.find((option) => isEqual(option?.[props.optionValue], newValue));
                 if (selected) {
                     widgetContext.state.valueDetail = selected;
                 }
@@ -335,10 +368,6 @@ watch(
 
 const handleHide = () => {
     if (intendToRetrieve.value) {
-        selectRef.value.filterValue = prePopulatedSearchText.value;
-        if (props.grouped || !props.isLazy) {
-            return;
-        }
         listFilterValue.value = prePopulatedSearchText.value;
     }
 };
@@ -360,9 +389,6 @@ const handleHide = () => {
 //     }
 // };
 
-const handleShow = () => {
-    selectRef.value.filterValue = prePopulatedSearchText.value;
-};
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
@@ -395,7 +421,6 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         v-model="widgetContext.state.combinedValue"
                         :aria-labelledby="widgetContext.state.widgetId"
                         :disabled="widgetContext.state.disabled"
-                        filter
                         :invalid="widgetContext.state.validationState.invalid"
                         :option-group-children="grouped && intendToList ? 'items' : undefined"
                         :option-group-label="grouped && intendToList ? groupBy : undefined"
@@ -404,12 +429,11 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :options="computedOptions"
                         :placeholder="placeHolderText"
                         :pt="effectivePt"
-                        reset-filter-on-clear
                         show-clear
                         :virtual-scroller-options="{
                             lazy: isLazy || !grouped,
                             onLazyLoad: onLazyLoad,
-                            itemSize: 38,
+                            itemSize: 50,
                             showLoader: true,
                             loading: modelList.state.loading,
                             autoSize: true,
@@ -417,10 +441,8 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         }"
                         @blur="widgetContext.blur"
                         @change="onValueChange"
-                        @filter="handleFilter"
                         @focus="handleFocus"
                         @hide="handleHide"
-                        @show="handleShow"
                     >
                         <template #value="slotProps">
                             <div v-if="slotProps.value">
@@ -435,6 +457,16 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             <span v-else>
                                 {{ slotProps.placeholder }}
                             </span>
+                        </template>
+                        <template #header>
+                            <div class="py-1.5 px-2 w-full flex">
+                                <InputText
+                                    class="w-full"
+                                    :model-value="listFilterValue"
+                                    placeholder="Type to Search"
+                                    @update:model-value="handleFilter"
+                                ></InputText>
+                            </div>
                         </template>
                     </Select>
                 </div>

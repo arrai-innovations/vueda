@@ -176,6 +176,9 @@ export function useWidget(props, emit) {
             }),
             required: computed(() => props.required ?? fieldContext?.state.required ?? false),
             help: computed(() => props.help ?? fieldContext?.state.help ?? false),
+            dependencyValues: computed(() => {
+                return fieldContext?.state.dependencyValues ?? {};
+            }),
         }),
         setTouched: () => {
             if (!props.contextless && fieldContext) {
