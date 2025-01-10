@@ -12,6 +12,7 @@ from django.db.models.constants import LOOKUP_SEP
 from django.db.models.functions import Greatest
 from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework
+from ordered_set import OrderedSet
 from rest_framework.filters import SearchFilter
 from rest_framework.settings import api_settings
 
@@ -206,11 +207,13 @@ class VuedaSearchFilterBackend(SearchFilter):
             # remove the similarity annotations, so they don't interfere with the rest of the queryset
             orm_lookups = [field for field in orm_lookups if field not in handled_lookups]
 
-            # also our search fields need to be removed, so they don't interfere with the rest of the queryset
-            # however, they will still have the prefix
-            search_fields = [
-                field for field in search_fields if not field.startswith(SEARCH_LOOKUP_PREFIX)
-            ]
+            # remove the prefixes on search fields, if the field was handled, so must_call_distinct works correctly
+            # it only works on standard django lookups
+            search_fields = list(
+                OrderedSet(search_fields) -
+                OrderedSet(f"{SEARCH_LOOKUP_PREFIX}{field}" for field in handled_fields) |
+                OrderedSet(handled_fields)
+            )
 
         if orm_lookups:
             # there may not be non vueda search conditions
@@ -225,7 +228,8 @@ class VuedaSearchFilterBackend(SearchFilter):
             queryset = queryset.filter(reduce(operator.and_, conditions))
 
         # Remove duplicates from results, if necessary
-        if self.must_call_distinct(queryset, search_fields):
+        mcd = self.must_call_distinct(queryset, search_fields)
+        if mcd:
             # inspired by django.contrib.admin
             # this is more accurate than .distinct form M2M relationship
             # also is cross-database
