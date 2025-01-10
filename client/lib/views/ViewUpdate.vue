@@ -5,7 +5,7 @@ import { useForm } from "@vueda/use/useForm.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { useWarnings } from "@vueda/use/useWarnings.js";
-import { computed, reactive, toRef } from "vue";
+import { computed, reactive, toRef, unref } from "vue";
 
 const props = defineProps({
     app: {
@@ -64,10 +64,23 @@ const formContextProps = reactive({
     initialValues: {},
 });
 const formContext = useForm(formContextProps);
+const arrayFields = computed(() => {
+    const fieldDetails = modelConfig.config.fieldDetails || [];
+    return Object.entries(fieldDetails)
+        .filter(([, field]) => field.many)
+        .map(([fieldName]) => fieldName);
+});
+const firstErrorField = computed(() =>
+    formContext.getFirstErrorField(
+        modelConfig.config?.displayFields || modelConfig.config?.fields || [],
+        unref(arrayFields),
+    ),
+);
 const objectFormProps = reactive({
     app: toRef(props, "app"),
     model: toRef(props, "model"),
     verboseName: computed(() => modelConfig.config?.verboseName),
+    firstErrorField,
 });
 const objectForm = useObjectForm({
     props: objectFormProps,

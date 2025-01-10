@@ -2,7 +2,6 @@ import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
 import { LIST_VIEW_CRUD_NAME, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
-import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
 import { useToast } from "primevue/usetoast";
@@ -102,7 +101,7 @@ export const defaultOnSubmitNotAnyModified = async ({ toast }) => {
  * @param {FormContext} options.formContext
  * @returns {Promise<boolean>} True if the submission should be stopped.
  */
-export const defaultOnSubmitAnyError = async ({ formContext, toast }) => {
+export const defaultOnSubmitAnyError = async ({ state, formContext, toast }) => {
     const nonServerErrors = Object.entries(formContext.state.errors)
         .map(([key, value]) => [key, omit(value, "server")])
         .filter(([, value]) => !isEmpty(value));
@@ -115,10 +114,15 @@ export const defaultOnSubmitAnyError = async ({ formContext, toast }) => {
         // no submission if there are errors
         toast.add({
             severity: "warn",
-            summary: "Submission Blocked",
-            detail: `Please correct the highlighted error${plural ? "s" : ""}.`,
+            summary: "Pre-save Validation Failed",
+            detail: `Please correct the error${plural ? "s" : ""} indicated.`,
             life: 10000,
         });
+        const elementsByName = document.getElementsByName(state.firstErrorField);
+        if (elementsByName.length) {
+            const el = elementsByName[0];
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
         return true;
     }
     return false;
@@ -128,21 +132,28 @@ export const defaultOnSubmitAnyError = async ({ formContext, toast }) => {
  * Default implementation for onSubmissionError hook.
  *
  * @param {object} options
+ * @param {ObjectFormState} options.state - The form state.
  * @param {Error} options.error - The error that occurred.
  * @param {FormContext} options.formContext - The form context.
  * @param {import("primevue/toastservice").ToastServiceMethods} options.toast - The toast service.
  * @returns {Promise<boolean>} - True if the error should be marked as handled. Otherwise it may be displayed.
  */
-export const defaultOnSubmissionError = async ({ error, formContext, toast }) => {
+export const defaultOnSubmissionError = async ({ state, error, formContext, toast }) => {
+    debugger;
     if (error instanceof FormValidationError) {
         formContext.handleServerFormValidationError(error);
         const plural = Object.keys(error.messages).length > 1;
         toast.add({
             severity: "warn",
-            summary: "Server-side Validation Failed",
-            detail: `Please review the new error${plural ? "s" : ""} displayed.`,
+            summary: "Save Validation Failed",
+            detail: `Please review the new error${plural ? "s" : ""} displayed. You have been scrolled to the first error.`,
             life: 10000,
         });
+        // scroll to the anchor we render for each field by path/name.
+        const elementsByName = document.getElementsByName(state.firstErrorField);
+        if (elementsByName.length) {
+            elementsByName[0].scrollIntoView({ behavior: "smooth", block: "center" });
+        }
         return true;
     }
 };
@@ -252,6 +263,7 @@ export function useObjectForm({ props, formContext, instanceObject, emit }) {
         model: computed(() => props.model),
         verboseName: computed(() => props.verboseName),
         modified: computed(() => formContext.state.anyModified),
+        firstErrorField: computed(() => props.firstErrorField),
     });
     const returnObject = {
         state,
@@ -260,8 +272,6 @@ export function useObjectForm({ props, formContext, instanceObject, emit }) {
             if (promises.submit) {
                 return promises.submit;
             }
-            // debug, don't submit, just toast the current state.
-            console.info("state passed to doSubmit", cloneDeep(formContext.state));
             const submitPromise = doSubmit();
             promises.submit = submitPromise;
             return submitPromise;
@@ -289,14 +299,14 @@ export function useObjectForm({ props, formContext, instanceObject, emit }) {
             await nextTick();
             if (!formContext.state.anyModified) {
                 // should we stop if there is nothing changed?
-                const stop = await returnObject.onSubmitNotAnyModified({ formContext, toast });
+                const stop = await returnObject.onSubmitNotAnyModified({ state, formContext, toast });
                 if (stop) {
                     return;
                 }
             }
             if (formContext.state.anyError) {
                 // should we stop for errors?
-                const stop = await returnObject.onSubmitAnyError({ formContext, toast });
+                const stop = await returnObject.onSubmitAnyError({ state, formContext, toast });
                 if (stop) {
                     return;
                 }

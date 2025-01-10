@@ -1,4 +1,5 @@
 import { assignReactiveObject, del, flattenPaths } from "@arrai-innovations/reactive-helpers";
+import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { compact, update } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -488,6 +489,53 @@ const removeIgnore = (state, name) => {
 };
 
 /**
+ * Get the first displayed field with an error.
+ * @param {FormContextState} state - The form context state.
+ * @param {string[]} displayFields - The list of fields being displayed.
+ * @param {string[]} arrayFields - The list of array fields.
+ * @returns {string|null} - The first displayed field with an error, NON_FIELD_ERRORS_KEY, or null if none exist.
+ */
+function getFirstErrorField(state, displayFields, arrayFields) {
+    const allDisplayFields = [NON_FIELD_ERRORS_KEY, ...displayFields];
+
+    const hasErrors = (field) => state.errors[field] && Object.keys(state.errors[field]).length > 0;
+    const getArrayFieldKeys = (baseField, suffix = "") => {
+        const regex = new RegExp(`^${baseField}\\[\\d+\\]${suffix}$`);
+        return Object.keys(state.errors).filter((key) => regex.test(key));
+    };
+
+    // Find the first displayed field with an error
+    for (const field of allDisplayFields) {
+        if (hasErrors(field)) {
+            return field;
+        }
+
+        if (arrayFields.includes(field)) {
+            // Check array-style errors
+            const arrayKeys = getArrayFieldKeys(field);
+            if (arrayKeys.some(hasErrors)) {
+                return arrayKeys.find(hasErrors);
+            }
+        }
+
+        // Check for nested fields (e.g., field__child -> field.child)
+        const fieldSplit = field.split("__");
+        const localFieldName = fieldSplit.pop();
+        const parentField = fieldSplit.join(".");
+        if (parentField.length && arrayFields.includes(parentField)) {
+            const nestedKeys = getArrayFieldKeys(parentField, `.${localFieldName}`);
+            for (const key of nestedKeys) {
+                if (hasErrors(key)) {
+                    return key;
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
  * The form context object, providing methods to update the form's values, errors, messages, touched state, modified
  *  state, and to reset the form.
  *
@@ -518,6 +566,8 @@ const removeIgnore = (state, name) => {
  * @property {(name: string) => void} removeIgnore - remove ignoring a field.
  * @property {(name: string) => void} setModified - mark a field as modified.
  * @property {(name: string) => void} clearModified - clear modified mark of a field.
+ * @property {(displayFields: string[]) => string|null} getFirstErrorField - Get the first displayed field with an error,
+ *  the 'first' error can be the NON_FIELD_ERRORS_KEY if there is a form level error.
  * @property {() => FieldValues} formValues - returns the form values, excluding ignored fields.
  */
 
@@ -657,6 +707,7 @@ export function useForm(props) {
         setModified: setModified.bind(null, state),
         clearModified: clearModified.bind(null, state),
         formValues: formValues.bind(null, state),
+        getFirstErrorField: getFirstErrorField.bind(null, state),
     };
     provide(FormContextSymbol, formContext);
     return formContext;
