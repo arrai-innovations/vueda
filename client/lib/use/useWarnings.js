@@ -80,8 +80,9 @@ function warningsFetch(app, model, action, pk, detailed) {
  * @param {import('./useForm.js').FormContext} options.formContext - The form context object.
  * @param {import('vue').Ref<string>|string} [view] - What you are doing with the model
  * @param {import('vue').Ref<string>|string | string[]} [pk] - The primary key of the object
+ * @param {import('@vueda/use/useObjectForm.js').ObjectFormState|null} [objectFormState] - The reactive state of the object form.
  */
-export function useWarnings(app, model, formContext, view, pk) {
+export function useWarnings(app, model, formContext, view, pk, objectFormState = null) {
     if (!view) {
         view = ref(null);
     } else {
@@ -97,6 +98,7 @@ export function useWarnings(app, model, formContext, view, pk) {
         error: loadingError.error,
         responseData: null,
     });
+    const objectFormLoadingState = objectFormState ? toRef(objectFormState, "loading") : ref(false);
     let promise = null;
     const isActive = useIsActive();
     function retrieveFn(args) {
@@ -125,8 +127,11 @@ export function useWarnings(app, model, formContext, view, pk) {
     }
 
     watch(
-        [isActive, app, model, view, pk],
-        async ([newIsActive, newApp, newModel, newView, newPk], [oldActive, oldApp, oldModel, oldView, oldPk]) => {
+        [isActive, app, model, view, pk, objectFormLoadingState],
+        async (
+            [newIsActive, newApp, newModel, newView, newPk, newFormLoading],
+            [oldActive, oldApp, oldModel, oldView, oldPk, oldFormLoading],
+        ) => {
             if (!newIsActive) {
                 return; // we'll pick up again when the component is active
             }
@@ -135,7 +140,8 @@ export function useWarnings(app, model, formContext, view, pk) {
                 newApp === oldApp &&
                 newModel === oldModel &&
                 newView === oldView &&
-                newPk === oldPk
+                newPk === oldPk &&
+                newFormLoading === oldFormLoading
             ) {
                 return;
             }

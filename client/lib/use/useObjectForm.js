@@ -28,6 +28,7 @@ import { useRouter } from "vue-router";
  * @property {boolean|undefined} loading - Whether the object form is submitting. Does not include object loading.
  * @property {Error|null} error - The error that occurred.
  * @property {boolean} errored - Whether an error occurred.
+ * @property {boolean} submitErrored - Whether an error occurred, regardless of it being handled or not.
  * @property {string} app - The app name.
  * @property {string} model - The model name.
  * @property {string} verboseName - The verbose name of the model.
@@ -166,10 +167,9 @@ export const defaultOnSubmissionError = async ({ state, error, formContext, toas
  * @param {import("primevue/toastservice").ToastServiceMethods} options.toast - The toast service.
  * @param {import("vue-router").Router} options.router - The router.
  * @param {ObjectFormState} options.state - The form state.
- * @param {import('vue').EmitFn} options.emit - The component emit function.
  * @returns {Promise<void>}
  */
-export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, router, emit }) => {
+export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, router }) => {
     const detailMsg = isUpdate ? "" : "Returning to the list view.";
     toast.add({
         severity: "success",
@@ -178,9 +178,7 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
         life: 10000,
     });
     // noinspection ES6MissingAwait
-    if (isUpdate) {
-        emit("form-refresh");
-    } else {
+    if (!isUpdate) {
         await router.push({
             name: LIST_VIEW_CRUD_NAME,
             params: { app: state.app, model: state.model, action: "list" },
@@ -250,15 +248,15 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
  * @param {ObjectFormProps} options.props - The props object.
  * @param {import('./useForm.js').FormContext} options.formContext - The form context object.
  * @param {import("@arrai-innovations/reactive-helpers").ObjectInstance} options.instanceObject - The object instance.
- * @param {import('vue').EmitFn} emit - The  component emit function.
  * @returns {ObjectFormInstance} The object form instance.
  */
-export function useObjectForm({ props, formContext, instanceObject, emit }) {
+export function useObjectForm({ props, formContext, instanceObject }) {
     const loadingError = useLoadingError();
     const state = reactive({
         loading: loadingError.loading,
         error: loadingError.error,
         errored: loadingError.errored,
+        submitErrored: false,
         app: computed(() => props.app),
         model: computed(() => props.model),
         verboseName: computed(() => props.verboseName),
@@ -293,6 +291,8 @@ export function useObjectForm({ props, formContext, instanceObject, emit }) {
             // start 'submitting' right away, makes it useful for disabling the submit button.
             loadingError.clearError();
             loadingError.setLoading();
+            state.submitErrored = false;
+
             // set all fields as touched to show errors
             formContext.setAllTouched();
             // wait for validation watchers to run
@@ -301,6 +301,7 @@ export function useObjectForm({ props, formContext, instanceObject, emit }) {
                 // should we stop if there is nothing changed?
                 const stop = await returnObject.onSubmitNotAnyModified({ state, formContext, toast });
                 if (stop) {
+                    state.submitErrored = true;
                     return;
                 }
             }
@@ -308,6 +309,7 @@ export function useObjectForm({ props, formContext, instanceObject, emit }) {
                 // should we stop for errors?
                 const stop = await returnObject.onSubmitAnyError({ state, formContext, toast });
                 if (stop) {
+                    state.submitErrored = true;
                     return;
                 }
             }
@@ -322,9 +324,10 @@ export function useObjectForm({ props, formContext, instanceObject, emit }) {
             if (isUpdate) {
                 args.id = instanceObject.state.object.id;
             }
-
             await createOrUpdate(args);
             if (instanceObject.state.errored) {
+                state.submitErrored = true;
+
                 const error = instanceObject.state.error;
                 const handled = await returnObject.onSubmissionError({
                     error,
@@ -344,7 +347,6 @@ export function useObjectForm({ props, formContext, instanceObject, emit }) {
                     router,
                     isUpdate,
                     state,
-                    emit,
                 });
             }
         } catch (e) {

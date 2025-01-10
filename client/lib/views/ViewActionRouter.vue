@@ -48,7 +48,6 @@ const getExtraActionComponent = async (action) => {
 };
 /** @type {import('vue').Ref<Promise<import('vue').Component>|()=>import('vue').Component>} */
 const actionComponentRef = ref(() => ViewLoading);
-const timestamp = ref(Date.now());
 watch(
     [() => modelConfig.loading, () => props.action, () => modelConfig.info?.actions],
     async ([loading, actionStr, actionsObj]) => {
@@ -80,14 +79,5 @@ const actionComponent = computedAsync(async () => {
 </script>
 
 <template>
-    <component
-        :is="actionComponent"
-        v-if="actionComponent"
-        :key="timestamp"
-        :action="action"
-        :app="app"
-        :model="model"
-        :pk="pk"
-        @form-refresh="() => (timestamp = Date.now())"
-    />
+    <component :is="actionComponent" v-if="actionComponent" :action="action" :app="app" :model="model" :pk="pk" />
 </template>

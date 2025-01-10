@@ -23,15 +23,7 @@ defineProps({
 });
 const viewName = "read";
 
-const emit = defineEmits([
-    "object",
-    "loading",
-    "related-object",
-    "calculated-object",
-    "form-object",
-    "form-context",
-    "form-refresh",
-]);
+const emit = defineEmits(["object", "loading", "related-object", "calculated-object", "form-object", "form-context"]);
 
 const formContextProps = reactive({
     initialValues: {},

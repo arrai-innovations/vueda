@@ -50,15 +50,7 @@ const instanceObjectForSubmit = useObject({
     props: instanceObjectProps,
 });
 
-const emit = defineEmits([
-    "object",
-    "loading",
-    "related-object",
-    "calculated-object",
-    "form-object",
-    "form-context",
-    "form-refresh",
-]);
+const emit = defineEmits(["object", "loading", "related-object", "calculated-object", "form-object", "form-context"]);
 
 const formContextProps = reactive({
     initialValues: {},
@@ -86,10 +78,9 @@ const objectForm = useObjectForm({
     props: objectFormProps,
     formContext,
     instanceObject: instanceObjectForSubmit,
-    emit,
 });
 
-useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, toRef(props, "pk"));
+useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, toRef(props, "pk"), objectForm.state);
 </script>
 <template>
     <detailed-view

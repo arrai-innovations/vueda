@@ -103,7 +103,6 @@ const objectForm = useObjectForm({
     props: objectFormProps,
     formContext,
     instanceObject,
-    emit,
 });
 const combinedError = computed(() => {
     return modelConfig.error || instanceObject.state.error || objectForm.state.error;

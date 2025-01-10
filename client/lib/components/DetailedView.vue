@@ -9,7 +9,6 @@ import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
-import { useWarnings } from "@vueda/use/useWarnings.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -144,15 +143,11 @@ const validAndActive = computed(
         ),
 );
 
-const emit = defineEmits([
-    "object",
-    "loading",
-    "related-object",
-    "calculated-object",
-    "form-object",
-    "form-context",
-    "form-refresh",
-]);
+const intendToRetrieve = computed(
+    () => validAndActive.value && !props.objectForm?.state?.loading && !props.objectForm?.state?.submitErrored,
+);
+
+const emit = defineEmits(["object", "loading", "related-object", "calculated-object", "form-object", "form-context"]);
 
 /** @type {import("@vueda/use/useForm.js").FormContext|null} */
 const formContext = inject(FormContextSymbol, null);
@@ -180,7 +175,7 @@ const instanceObjectProps = reactive({
         f: computed(() => [modelConfig.info?.pk, fetchFields.value]),
         e: computed(() => modelConfig.config?.expands),
     },
-    intendToRetrieve: validAndActive,
+    intendToRetrieve,
     relatedObjectRules: toRef(props, "relatedObjectRules"),
     calculatedObjectRules: toRef(props, "calculatedObjectRules"),
 });
@@ -268,7 +263,6 @@ const nonDetailActions = computed(() =>
         return a && props.viewName !== n && !a.detail;
     }),
 );
-useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, toRef(props, "viewName"), toRef(props, "pk"));
 </script>
 <template>
     <div :class="props.class" :data-qa="`${viewName}-form-root`">
