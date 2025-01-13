@@ -125,23 +125,18 @@ const hasBeenFocused = ref(false);
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 
-const totalRecords = computed(() => {
-    return modelList?.state?.totalRecords ?? 0;
-});
 const listFilterValue = ref("");
 const prePopulatedSearchText = computed(() => {
     return widgetContext.state.valueDetail?.[props.optionLabel] || "";
 });
-const isCurrentSearchSameAsValue = computed(() => {
-    return listFilterValue.value.length > 0 ? listFilterValue.value === prePopulatedSearchText.value : false;
+const listSearch = computed(() => {
+    if (listFilterValue.value.length > 0 ? listFilterValue.value === prePopulatedSearchText.value : false) {
+        return "";
+    }
+    return listFilterValue.value;
 });
-const clearingList = ref(false);
 const intendToList = computed(() => {
-    return (
-        (!widgetContext.state.combinedValue || !isCurrentSearchSameAsValue.value) &&
-        hasBeenFocused.value &&
-        !clearingList.value
-    );
+    return (!widgetContext.state.combinedValue || listSearch.value.length > 0) && hasBeenFocused.value;
 });
 const intendToRetrieve = computed(() => {
     return widgetContext.state.combinedValue;
@@ -177,7 +172,7 @@ const extraListArgs = computed(() => {
 });
 const listArgs = computed(() => ({
     [props.pageKey]: fetchedPages,
-    [props.searchKey]: listFilterValue,
+    [props.searchKey]: listSearch,
     f: [
         computed(() => modelConfig.info?.pk),
         "formatted_name",
@@ -220,17 +215,78 @@ const modelList = useList({
     clearListOnListIntentTriggered: false,
 });
 
+// const totalRecords = ref(0);
+// const computedTotalRecords = computed(() => {
+//     if (modelList?.state?.loading && totalRecords.value === 0) {
+//         return totalRecords.value;
+//     }
+//     totalRecords.value = modelList?.state?.totalRecords ?? 0;
+//     return totalRecords.value;
+// });
+// const recordsArray = ref(Array(totalRecords.value).fill());
+//
+// // Watch for changes in totalRecords to resize the array
+// watch(computedTotalRecords, (newTotal,oldTotal) => {
+//     console.log("@@newTotal",newTotal);
+//     if (newTotal === oldTotal) {
+//         return;
+//     }
+//     recordsArray.value = Array(newTotal).fill();
+// },    { immediate: true });
+
+// Watch for changes in modelList.state.objectsInOrder to update the array
+// watch(
+//     [
+//         () =>modelList?.state?.loading,
+//         () =>modelList?.state?.totalRecords,
+//         toRef(props, "isLazy"),
+//         toRef(props, "grouped")
+//     ],
+//     ([newLoading,newTotalRecords,newIsLazy,newGrouped],[oldLoading,oldTotalRecords,oldIsLazy,oldGrouped]) => {
+//         const lazyChanged = !isEqual(newIsLazy, oldIsLazy);
+//         const groupedChanged = !isEqual(newGrouped, oldGrouped);
+//         const loadingChanged = !isEqual(newLoading, oldLoading);
+//         const totalRecordsChanged = !isEqual(newTotalRecords, oldTotalRecords);
+//         if (!lazyChanged && !groupedChanged && !loadingChanged && !totalRecordsChanged) {
+//             return;
+//         }
+//
+//         if (loadingChanged && newLoading==false && modelList?.state?.objectsInOrder.length>0) {
+//             if (!isEqual(newTotalRecords,totalRecords.value)) {
+//                 // loading done, and a new totalRecords value is available, resize array
+//                 recordsArray.value = Array(newTotalRecords).fill();
+//                 totalRecords.value = newTotalRecords;
+//                 console.log("%%%%%%%%%%%%%%%CLEARING RECORDS ARRAY")
+//             }
+//         console.log("!!!BEFORE recordsArray",recordsArray.value);
+//
+//             const startIndex = (fetchedPages.value - 1) * modelList?.state?.perPage;
+//             console.log("startIndex",startIndex, "fetchedPages ",fetchedPages);
+//             modelList?.state?.objectsInOrder.forEach((item, index) => {
+//             const targetIndex = startIndex + index;
+//
+//             // Update only within the bounds of recordsArray
+//             if (targetIndex < recordsArray.value.length) {
+//                 recordsArray.value[targetIndex] = cloneDeep(item);
+//             }
+//             });
+//         }
+//     },
+//     { deep: true, immediate: true }
+// );
+
 watch(
-    [extraListArgs, () => listArgs.value.f, listFilterValue],
+    [extraListArgs, () => listArgs.value.f, listSearch],
     ([newExtraArgs, newArgs, newSearch], [oldExtraArgs, oldArgs, oldSearch]) => {
         const IsExtraArgsDiff = isEqual(newExtraArgs, oldExtraArgs);
         const IsArgsDiff = isEqual(newArgs, oldArgs);
         const IsSearchDiff = isEqual(newSearch, oldSearch);
         if (!IsExtraArgsDiff || !IsArgsDiff || !IsSearchDiff) {
-            clearingList.value = true;
             modelList.clearList();
             fetchedPages.value = 1;
-            clearingList.value = false;
+            if (intendToList.value) {
+                modelList.list();
+            }
         }
     },
     { deep: true, immediate: true },
@@ -284,6 +340,9 @@ const onLazyLoad = (event) => {
     }
     lastScrollerPageTracks.first = event.first;
     lastScrollerPageTracks.last = event.last;
+    // if (event.last >= fetchedPages.value * perPage.value && event.last < totalRecords.value) {
+    //     fetchedPages.value += 1;
+    // }
     if (event.last >= fetchedPages.value * perPage.value && event.last < modelList.state.totalRecords) {
         fetchedPages.value += 1;
     }
@@ -306,12 +365,13 @@ const handleLabelClick = (e) => {
 const listObjects = computed(() => {
     const objects = cloneDeep(modelList.state.objectsInOrder);
     if (props.grouped) {
-        if (objects.length && totalRecords.value) {
+        // if (objects.length && totalRecords.value) {
+        if (objects.length && modelList.state.totalRecords) {
             const grouped = objects.reduce((acc, item) => {
                 const groupKey = item?.[props.groupBy];
                 let group = acc.find((g) => g[props.groupBy] === groupKey);
                 if (!group) {
-                    group = { [props.groupBy]: groupKey, items: [] };
+                    group = { [props.groupBy]: groupKey, items: [], [props.optionLabel]: groupKey };
                     acc.push(group);
                 }
                 group.items.push({
@@ -332,6 +392,7 @@ const listObjects = computed(() => {
 const computedOptions = computed(() => {
     if (intendToList.value && !modelList.state.loading) {
         return listObjects.value;
+        // return recordsArray.value;
     }
     if (intendToRetrieve.value && !instanceObject.state.loading) {
         return [instanceObject.state.object];
@@ -371,23 +432,6 @@ const handleHide = () => {
         listFilterValue.value = prePopulatedSearchText.value;
     }
 };
-// const lastScrollTop = ref(0);
-// const handleVirtualScroll = (event) => {
-//     console.log("event",event.target.scrollTop);
-//     const scrollTop = event.target.scrollTop;
-//     const isScrollingUp = scrollTop < lastScrollTop.value;
-//     if (isScrollingUp) {
-//         console.log("scroll",event);
-//
-//         lastScrollTopBeforeLazyLoad.value = 0;
-//     }
-//     lastScrollTop.value = event.target.scrollTop;
-//     if (!isScrollingUp && scrollTop < lastScrollTopBeforeLazyLoad.value && virtualScrollerRef.value) {
-//         console.log("scrollTo: ",lastScrollTopBeforeLazyLoad.value)
-//         virtualScrollerRef.value.scrollTo({ top: lastScrollTopBeforeLazyLoad.value });
-//         lastScrollTop.value = lastScrollTopBeforeLazyLoad.value;
-//     }
-// };
 
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
@@ -433,7 +477,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :virtual-scroller-options="{
                             lazy: isLazy || !grouped,
                             onLazyLoad: onLazyLoad,
-                            itemSize: 50,
+                            itemSize: 38,
                             showLoader: true,
                             loading: modelList.state.loading,
                             autoSize: true,
@@ -444,6 +488,11 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         @focus="handleFocus"
                         @hide="handleHide"
                     >
+                        <template #optiongroup="slotProps">
+                            <div class="flex items-center">
+                                <div v-if="slotProps.option.items">{{ slotProps.option[props.groupBy] }}</div>
+                            </div>
+                        </template>
                         <template #value="slotProps">
                             <div v-if="slotProps.value">
                                 {{
