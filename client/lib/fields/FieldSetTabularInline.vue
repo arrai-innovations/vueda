@@ -217,6 +217,8 @@ const handleSelected = (isSelected, rowIndex) => {
 const removeObject = (index) => {
     fieldSetContext.blur();
     fieldSetContext.state.value = cloneDeep(fieldSetContext.state.value).filter((_, i) => i !== index);
+    fieldSetContext.clearErrors(index);
+    fieldSetContext.clearMessages(index);
 };
 const computedFieldProps = computed(() =>
     merge(formModel.fieldProps[fieldSetContext.state.formModelName], props.fieldProps),

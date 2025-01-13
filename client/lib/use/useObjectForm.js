@@ -103,7 +103,17 @@ export const defaultOnSubmitNotAnyModified = async ({ toast }) => {
  * @returns {Promise<boolean>} True if the submission should be stopped.
  */
 export const defaultOnSubmitAnyError = async ({ state, formContext, toast }) => {
-    const nonServerErrors = Object.entries(formContext.state.errors)
+    let ignoredFields = [];
+    if (formContext.state.anyIgnored) {
+        ignoredFields = Object.entries(formContext.state.ignored)
+            .filter(([, value]) => value === true)
+            .map(([key]) => key);
+    }
+    const errors = Object.entries(formContext.state.errors).filter(
+        ([key]) => !ignoredFields.some((ignored) => key === ignored || key.startsWith(`${ignored}.`)),
+    );
+
+    const nonServerErrors = errors
         .map(([key, value]) => [key, omit(value, "server")])
         .filter(([, value]) => !isEmpty(value));
     // if there are server errors, they should disappear on blur of that field.

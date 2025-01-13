@@ -116,7 +116,9 @@ export function defaultValidateRequired(value) {
  * @property {(value: any) => void} updateInitialValue - Update the field's initial value.
  * @property {() => void} deleteValue - Delete the field's value.
  * @property {(code: string, message: string) => void} updateError - Update the field's error.
+ * @property {([childIndex:number|undefined]) => void} clearErrors - Clear the field's error.
  * @property {(code: string) => void} deleteError - Delete the field's error.
+ * @property {([childIndex:number|undefined]) => void} clearMessages - Clear the field's messages.
  * @property {(code: string, message: string) => void} updateMessage - Update the field's message.
  * @property {(code: string) => void} deleteMessage - Delete the field's message.
  * @property {() => void} calculateModified - Calculate the modified state of the field. The form context object
@@ -365,9 +367,11 @@ export function useField(props, emit, functions) {
     };
     const returnObj = {
         state,
+        clearErrors: ifFormContext((childIndex = undefined) => formContext.clearErrors(state.name, childIndex)),
         updateError: ifFormContext((code, message) => formContext.updateError(state.name, code, message)),
         updateInitialValue: ifFormContext((value) => formContext.updateInitialValue(state.name, value)),
         deleteError: ifFormContext((code) => formContext.deleteError(state.name, code)),
+        clearMessages: ifFormContext((childIndex = undefined) => formContext.clearMessages(state.name, childIndex)),
         updateMessage: ifFormContext((code, message) => formContext.updateMessage(state.name, code, message)),
         deleteMessage: ifFormContext((code) => formContext.deleteMessage(state.name, code)),
         calculateModified: ifFormContext(() => formContext.calculateModified(state.name)),

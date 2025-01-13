@@ -181,6 +181,62 @@ const deleteErrorOrMessage = (kind, state, name, code) => {
 };
 
 /**
+ *
+ * @param {'error'|'message'} kind
+ * @param {FormContextState} state
+ * @param {string} name
+ * @param {number} [childIndex]
+ * @private
+ */
+const clearErrorOrMessage = (kind, state, name, childIndex) => {
+    let didSomething = false;
+    const collection = kind === "error" ? state.errors : state.messages;
+    const anyFlagKey = kind === "error" ? "anyError" : "anyMessage";
+    if (childIndex !== undefined) {
+        const key = `${name}[${childIndex}]`;
+        if (collection[key]) {
+            delete collection[key];
+            didSomething = true;
+        } else {
+            for (const [key] of Object.entries(collection)) {
+                if (key.startsWith(`${name}[${childIndex}]`) && collection[key]) {
+                    delete collection[key];
+                    didSomething = true;
+                }
+            }
+        }
+    } else {
+        if (collection[name]) {
+            delete collection[name];
+            didSomething = true;
+        }
+    }
+    if (didSomething) {
+        state[anyFlagKey] = Object.keys(collection).length > 0;
+    }
+};
+
+/**
+ * @param {FormContextState} state
+ * @param {string} name
+ * @param {number} [childIndex]
+ * @private
+ */
+const clearErrors = (state, name, childIndex) => {
+    clearErrorOrMessage("error", state, name, childIndex);
+};
+
+/**
+ * @param {FormContextState} state
+ * @param {string} name
+ * @param {number} [childIndex]
+ * @private
+ */
+const clearMessages = (state, name, childIndex) => {
+    clearErrorOrMessage("message", state, name, childIndex);
+};
+
+/**
  * @param {FormContextState} state
  * @param {string} name
  * @param {string} code
@@ -547,9 +603,11 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @property {(name: string) => void} deleteValue - Delete a field's value.
  * @property {(name: string, valueDetail: any) => void} updateValueDetails - Update a field's detailed value object.
  * @property {(name: string) => void} deleteValueDetails - Delete a field's detailed value object.
+ * @property {(name: string, childIndex?: number) => void} clearErrors - Clear a field's errors, or a child's errors if childIndex is given.
  * @property {(name: string, code: string, message: string) => void} updateError - Update a field's error.
  * @property {(name: string, code?: string) => void} deleteError - Delete a field's error.
  * @property {(name: string, code: string, message: string) => void} updateMessage - Update a field's message.
+ * @property {(name: string, childIndex?: number) => void} clearMessages - Clear a field's messages, or a child's messages if childIndex is given.
  * @property {(name: string, code?: string) => void} deleteMessage - Delete a field's message.
  * @property {(name: string, dependents: []) => void} calculateModified - Calculate if a field has been modified.
  * @property {() => void} calculateAllModified - Calculate if all fields have been modified.
@@ -681,6 +739,7 @@ export function useForm(props) {
             deep: true,
         },
     );
+    console.log("wtf");
     const formContext = {
         state: readonly(state),
         updateValue: updateValue.bind(null, state),
@@ -688,8 +747,10 @@ export function useForm(props) {
         deleteValue: deleteValue.bind(null, state),
         updateValueDetails: updateValueDetails.bind(null, state),
         deleteValueDetails: deleteValueDetails.bind(null, state),
+        clearErrors: clearErrors.bind(null, state),
         updateError: updateError.bind(null, state),
         deleteError: deleteError.bind(null, state),
+        clearMessages: clearMessages.bind(null, state),
         updateMessage: updateMessage.bind(null, state),
         deleteMessage: deleteMessage.bind(null, state),
         calculateModified: calculateModified.bind(null, state),
