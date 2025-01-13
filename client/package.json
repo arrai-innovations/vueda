@@ -1,6 +1,6 @@
 {
   "name": "@arrai-innovations/vueda",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "Vue.js User Experience for Django Administration (VUEDA) - Client Library\n\n`vueda-client` offers a dynamic Vue.js frontend framework, perfectly tailored\n for seamless integration with Django REST Framework backends and designed to\n complement `vueda-server`. This client library enables rapid development of\n reactive user interfaces in Django-Vue projects. It features components and\n composables for efficient form handling, CRUD operations, and dynamic routing.\n These tools allow client-side configuration and leverage server-supplied model\n and field metadata to drive forms, fields, views, and routes dynamically.\n Prioritizing developer flexibility, `vueda-client` provides extensive\n customization and theming options for its default components. It also includes\n advanced authentication, navigation, and permission management features, all\n meticulously crafted to integrate smoothly with the corresponding backend\n services of `vueda-server`.\n",
   "main": "index.js",
   "type": "module",
