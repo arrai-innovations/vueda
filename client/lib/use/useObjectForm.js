@@ -150,7 +150,6 @@ export const defaultOnSubmitAnyError = async ({ state, formContext, toast }) => 
  * @returns {Promise<boolean>} - True if the error should be marked as handled. Otherwise it may be displayed.
  */
 export const defaultOnSubmissionError = async ({ state, error, formContext, toast }) => {
-    debugger;
     if (error instanceof FormValidationError) {
         formContext.handleServerFormValidationError(error);
         const plural = Object.keys(error.messages).length > 1;
