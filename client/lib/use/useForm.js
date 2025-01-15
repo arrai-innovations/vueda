@@ -739,7 +739,6 @@ export function useForm(props) {
             deep: true,
         },
     );
-    console.log("wtf");
     const formContext = {
         state: readonly(state),
         updateValue: updateValue.bind(null, state),

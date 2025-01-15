@@ -207,73 +207,26 @@ const modelListFunctions = reactive({
         return props.isLazy || !props.grouped ? singlePagePaginatedListCrudAdaptor : allPagePaginatedListCrudAdaptor;
     }),
 });
-const modelList = useList({
+
+const useListParams = reactive({
     props: modelListProps,
     functions: modelListFunctions,
     paged: true,
-    keepOldPages: true,
-    clearListOnListIntentTriggered: false,
+    keepOldPages: computed(() => !props.isLazy),
+    clearListOnListIntentTriggered: computed(() => props.isLazy),
+});
+const modelList = useList({
+    ...useListParams,
 });
 
-// const totalRecords = ref(0);
-// const computedTotalRecords = computed(() => {
-//     if (modelList?.state?.loading && totalRecords.value === 0) {
-//         return totalRecords.value;
-//     }
-//     totalRecords.value = modelList?.state?.totalRecords ?? 0;
-//     return totalRecords.value;
-// });
-// const recordsArray = ref(Array(totalRecords.value).fill());
-//
-// // Watch for changes in totalRecords to resize the array
-// watch(computedTotalRecords, (newTotal,oldTotal) => {
-//     console.log("@@newTotal",newTotal);
-//     if (newTotal === oldTotal) {
-//         return;
-//     }
-//     recordsArray.value = Array(newTotal).fill();
-// },    { immediate: true });
+const totalRecords = ref(0);
 
-// Watch for changes in modelList.state.objectsInOrder to update the array
-// watch(
-//     [
-//         () =>modelList?.state?.loading,
-//         () =>modelList?.state?.totalRecords,
-//         toRef(props, "isLazy"),
-//         toRef(props, "grouped")
-//     ],
-//     ([newLoading,newTotalRecords,newIsLazy,newGrouped],[oldLoading,oldTotalRecords,oldIsLazy,oldGrouped]) => {
-//         const lazyChanged = !isEqual(newIsLazy, oldIsLazy);
-//         const groupedChanged = !isEqual(newGrouped, oldGrouped);
-//         const loadingChanged = !isEqual(newLoading, oldLoading);
-//         const totalRecordsChanged = !isEqual(newTotalRecords, oldTotalRecords);
-//         if (!lazyChanged && !groupedChanged && !loadingChanged && !totalRecordsChanged) {
-//             return;
-//         }
-//
-//         if (loadingChanged && newLoading==false && modelList?.state?.objectsInOrder.length>0) {
-//             if (!isEqual(newTotalRecords,totalRecords.value)) {
-//                 // loading done, and a new totalRecords value is available, resize array
-//                 recordsArray.value = Array(newTotalRecords).fill();
-//                 totalRecords.value = newTotalRecords;
-//                 console.log("%%%%%%%%%%%%%%%CLEARING RECORDS ARRAY")
-//             }
-//         console.log("!!!BEFORE recordsArray",recordsArray.value);
-//
-//             const startIndex = (fetchedPages.value - 1) * modelList?.state?.perPage;
-//             console.log("startIndex",startIndex, "fetchedPages ",fetchedPages);
-//             modelList?.state?.objectsInOrder.forEach((item, index) => {
-//             const targetIndex = startIndex + index;
-//
-//             // Update only within the bounds of recordsArray
-//             if (targetIndex < recordsArray.value.length) {
-//                 recordsArray.value[targetIndex] = cloneDeep(item);
-//             }
-//             });
-//         }
-//     },
-//     { deep: true, immediate: true }
-// );
+const recordsArray = ref(Array(totalRecords.value).fill(undefined));
+
+const lastScrollerPageTracks = reactive({
+    first: 0,
+    last: 0,
+});
 
 watch(
     [extraListArgs, () => listArgs.value.f, listSearch],
@@ -282,11 +235,58 @@ watch(
         const IsArgsDiff = isEqual(newArgs, oldArgs);
         const IsSearchDiff = isEqual(newSearch, oldSearch);
         if (!IsExtraArgsDiff || !IsArgsDiff || !IsSearchDiff) {
-            modelList.clearList();
             fetchedPages.value = 1;
-            if (intendToList.value) {
-                modelList.list();
+
+            if (props.isLazy) {
+                Array(totalRecords.value).fill(undefined);
+                lastScrollerPageTracks.first = 0;
+                lastScrollerPageTracks.last = 0;
+            } else {
+                modelList.clearList();
+                if (intendToList.value) {
+                    modelList.list();
+                }
             }
+            const virtualScrollerRef = selectRef.value?.virtualScroller;
+            if (virtualScrollerRef) {
+                virtualScrollerRef.scrollTo({ top: 0 });
+            }
+        }
+    },
+    { deep: true, immediate: true },
+);
+
+watch(
+    [
+        () => modelList?.state?.loading,
+        () => modelList?.state?.totalRecords,
+        toRef(props, "isLazy"),
+        toRef(props, "grouped"),
+    ],
+    ([newLoading, newTotalRecords, newIsLazy, newGrouped], [oldLoading, oldTotalRecords, oldIsLazy, oldGrouped]) => {
+        const lazyChanged = !isEqual(newIsLazy, oldIsLazy);
+        const groupedChanged = !isEqual(newGrouped, oldGrouped);
+        const loadingChanged = !isEqual(newLoading, oldLoading);
+        const totalRecordsChanged = !isEqual(newTotalRecords, oldTotalRecords);
+        if (!lazyChanged && !groupedChanged && !loadingChanged && !totalRecordsChanged) {
+            return;
+        }
+
+        if (loadingChanged && newLoading === false && modelList?.state?.objectsInOrder.length > 0) {
+            if (!isEqual(newTotalRecords, totalRecords.value)) {
+                recordsArray.value = Array(newTotalRecords).fill(undefined);
+                totalRecords.value = newTotalRecords;
+                lastScrollerPageTracks.first = 0;
+                lastScrollerPageTracks.last = 0;
+            }
+            const startIndex = (fetchedPages.value - 1) * modelList?.state?.perPage;
+            modelList?.state?.objectsInOrder.forEach((item, index) => {
+                const targetIndex = startIndex + index;
+
+                if (targetIndex < recordsArray.value.length) {
+                    recordsArray.value[targetIndex] = cloneDeep(item);
+                }
+            });
         }
     },
     { deep: true, immediate: true },
@@ -318,11 +318,11 @@ watch(
         immediate: true,
     },
 );
-const handleFilter1 = (value) => {
+const handleFilter = debounce((value) => {
     listFilterValue.value = value;
     fetchedPages.value = 1;
-};
-const handleFilter = debounce(handleFilter1, 500);
+}, 500);
+
 const placeHolderText = computed(() => {
     return props.placeholder || `Select a ${props.model}`;
 });
@@ -330,22 +330,24 @@ const placeHolderText = computed(() => {
 const perPage = computed(() => {
     return modelList.state?.perPage ?? 100;
 });
-const lastScrollerPageTracks = reactive({
-    first: 0,
-    last: 0,
-});
+
+watch(
+    [() => modelList.state?.totalPages, perPage, () => modelList?.state?.loading, lastScrollerPageTracks],
+    ([totalPages, perPage, loading, lastScrolled]) => {
+        if (loading && (totalPages === 0 || perPage === 0)) {
+            return;
+        }
+        const newPage = Math.min(Math.ceil(lastScrolled.first / (perPage || 1)) + 1, totalPages ?? 1) || 1;
+        const startIndex = (newPage - 1) * perPage;
+        if (!recordsArray.value[startIndex]) {
+            fetchedPages.value = newPage;
+        }
+    },
+    { immediate: true, deep: true },
+);
 const onLazyLoad = (event) => {
-    if (event.first === lastScrollerPageTracks.first && event.last === lastScrollerPageTracks.last) {
-        return;
-    }
     lastScrollerPageTracks.first = event.first;
     lastScrollerPageTracks.last = event.last;
-    // if (event.last >= fetchedPages.value * perPage.value && event.last < totalRecords.value) {
-    //     fetchedPages.value += 1;
-    // }
-    if (event.last >= fetchedPages.value * perPage.value && event.last < modelList.state.totalRecords) {
-        fetchedPages.value += 1;
-    }
 };
 
 const onValueChange = () => {
@@ -365,7 +367,6 @@ const handleLabelClick = (e) => {
 const listObjects = computed(() => {
     const objects = cloneDeep(modelList.state.objectsInOrder);
     if (props.grouped) {
-        // if (objects.length && totalRecords.value) {
         if (objects.length && modelList.state.totalRecords) {
             const grouped = objects.reduce((acc, item) => {
                 const groupKey = item?.[props.groupBy];
@@ -386,13 +387,12 @@ const listObjects = computed(() => {
         return [];
     }
 
-    return objects;
+    return recordsArray.value;
 });
 
 const computedOptions = computed(() => {
-    if (intendToList.value && !modelList.state.loading) {
+    if (intendToList.value && (!modelList.state.loading || fetchedPages.value > 1)) {
         return listObjects.value;
-        // return recordsArray.value;
     }
     if (intendToRetrieve.value && !instanceObject.state.loading) {
         return [instanceObject.state.object];
@@ -428,6 +428,7 @@ watch(
 );
 
 const handleHide = () => {
+    listFilterValue.value = "";
     if (intendToRetrieve.value) {
         listFilterValue.value = prePopulatedSearchText.value;
     }
@@ -465,6 +466,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         v-model="widgetContext.state.combinedValue"
                         :aria-labelledby="widgetContext.state.widgetId"
                         :disabled="widgetContext.state.disabled"
+                        fluid
                         :invalid="widgetContext.state.validationState.invalid"
                         :option-group-children="grouped && intendToList ? 'items' : undefined"
                         :option-group-label="grouped && intendToList ? groupBy : undefined"
@@ -478,10 +480,12 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             lazy: isLazy || !grouped,
                             onLazyLoad: onLazyLoad,
                             itemSize: 38,
+                            showSpacer: true,
                             showLoader: true,
                             loading: modelList.state.loading,
                             autoSize: true,
                             inline: true,
+                            step: 25,
                         }"
                         @blur="widgetContext.blur"
                         @change="onValueChange"
