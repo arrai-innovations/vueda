@@ -253,9 +253,12 @@ const internalVisible = ref(props.visible ?? isVisibleByDefault.value);
 
 watch(
     () => props.visible,
-    (newVal) => {
-        if (newVal !== undefined) {
-            internalVisible.value = newVal;
+    () => props.hidable,
+    (newVisibleVal, newHidable) => {
+        if (newVisibleVal !== undefined) {
+            internalVisible.value = newVisibleVal;
+        } else if (newHidable == false) {
+            internalVisible.value = isVisibleByDefault.value;
         }
     },
     { immediate: true },
