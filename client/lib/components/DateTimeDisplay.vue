@@ -30,6 +30,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    showRelative: {
+        type: Boolean,
+        default: true,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 
@@ -126,12 +130,12 @@ const tooltipContent = computed(() => {
         <template v-if="props.value && parsedValue.isValid">
             <template v-if="format === 'inline'">
                 <span :class="theme('inline')">{{ absolute }}</span>
-                <span> ({{ relative }})</span>
+                <span v-if="showRelative"> ({{ relative }})</span>
             </template>
             <template v-else-if="format === 'break'">
                 <span :class="theme('break.absolute')">{{ absolute }}</span>
                 <br />
-                <span :class="theme('break.relative')">{{ relative }}</span>
+                <span v-if="showRelative" :class="theme('break.relative')">{{ relative }}</span>
             </template>
             <template v-else-if="format === 'absolute'">
                 <span :class="[theme('absolute'), tooltipTheme]" :title="showTooltip ? relative : undefined">{{
@@ -139,7 +143,7 @@ const tooltipContent = computed(() => {
                 }}</span>
             </template>
             <span
-                v-else-if="format === 'relative'"
+                v-else-if="format === 'relative' && showRelative"
                 :class="[theme('relative'), tooltipTheme]"
                 :title="showTooltip ? absolute : undefined"
             >
