@@ -510,7 +510,7 @@ const handleShow = () => {
                             </div>
                         </template>
                         <template #value="slotProps">
-                            <div v-if="slotProps.value">
+                            <template v-if="slotProps.value">
                                 {{
                                     widgetContext?.state?.valueDetail
                                         ? widgetContext.state.valueDetail[
@@ -518,7 +518,7 @@ const handleShow = () => {
                                           ]
                                         : slotProps.value
                                 }}
-                            </div>
+                            </template>
                             <span v-else>
                                 {{ slotProps.placeholder }}
                             </span>
