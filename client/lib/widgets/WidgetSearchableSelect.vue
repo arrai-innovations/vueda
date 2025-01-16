@@ -17,6 +17,7 @@ import pick from "lodash-es/pick.js";
 import InputText from "primevue/inputtext";
 import Select from "primevue/select";
 import { computed, reactive, ref, toRef, useSlots, watch } from "vue";
+import { deepUnref } from "vue-deepunref";
 
 defineOptions({
     inheritAttrs: false,
@@ -194,10 +195,7 @@ const modelListProps = reactive({
     listArgs,
     intendToList,
 });
-const handleFocus = () => {
-    hasBeenFocused.value = true;
-    widgetContext.focus();
-};
+
 const callableOptionLabel = computed(() => {
     return typeof props.optionLabel === "function";
 });
@@ -219,9 +217,7 @@ const modelList = useList({
     ...useListParams,
 });
 
-const totalRecords = ref(0);
-
-const recordsArray = ref(Array(totalRecords.value).fill(undefined));
+const recordsArray = ref([]);
 
 const lastScrollerPageTracks = reactive({
     first: 0,
@@ -232,13 +228,12 @@ watch(
     [extraListArgs, () => listArgs.value.f, listSearch],
     ([newExtraArgs, newArgs, newSearch], [oldExtraArgs, oldArgs, oldSearch]) => {
         const IsExtraArgsDiff = isEqual(newExtraArgs, oldExtraArgs);
-        const IsArgsDiff = isEqual(newArgs, oldArgs);
+        const IsArgsDiff = isEqual(deepUnref(newArgs), deepUnref(oldArgs));
         const IsSearchDiff = isEqual(newSearch, oldSearch);
         if (!IsExtraArgsDiff || !IsArgsDiff || !IsSearchDiff) {
             fetchedPages.value = 1;
-
             if (props.isLazy) {
-                Array(totalRecords.value).fill(undefined);
+                recordsArray.value = [];
                 lastScrollerPageTracks.first = 0;
                 lastScrollerPageTracks.last = 0;
             } else {
@@ -273,9 +268,8 @@ watch(
         }
 
         if (loadingChanged && newLoading === false && modelList?.state?.objectsInOrder.length > 0) {
-            if (!isEqual(newTotalRecords, totalRecords.value)) {
+            if (!isEqual(newTotalRecords, recordsArray.value.length)) {
                 recordsArray.value = Array(newTotalRecords).fill(undefined);
-                totalRecords.value = newTotalRecords;
                 lastScrollerPageTracks.first = 0;
                 lastScrollerPageTracks.last = 0;
             }
@@ -327,18 +321,25 @@ const placeHolderText = computed(() => {
     return props.placeholder || `Select a ${props.model}`;
 });
 
-const perPage = computed(() => {
-    return modelList.state?.perPage ?? 100;
-});
+const perPage = ref(100);
 
 watch(
-    [() => modelList.state?.totalPages, perPage, () => modelList?.state?.loading, lastScrollerPageTracks],
-    ([totalPages, perPage, loading, lastScrolled]) => {
-        if (loading && (totalPages === 0 || perPage === 0)) {
+    [
+        () => modelList.state?.totalPages,
+        () => modelList.state?.perPage,
+        () => modelList?.state?.loading,
+        lastScrollerPageTracks,
+    ],
+    ([totalPages, numPerPage, loading, lastScrolled]) => {
+        if (numPerPage && numPerPage > 0) {
+            perPage.value = numPerPage;
+        }
+        if (loading && (totalPages === 0 || numPerPage === 0)) {
             return;
         }
-        const newPage = Math.min(Math.ceil(lastScrolled.first / (perPage || 1)) + 1, totalPages ?? 1) || 1;
-        const startIndex = (newPage - 1) * perPage;
+
+        const newPage = Math.min(Math.ceil(lastScrolled.first / (numPerPage || 1)) + 1, totalPages ?? 1) || 1;
+        const startIndex = (newPage - 1) * numPerPage;
         if (!recordsArray.value[startIndex]) {
             fetchedPages.value = newPage;
         }
@@ -351,6 +352,12 @@ const onLazyLoad = (event) => {
 };
 
 const onValueChange = () => {
+    if (!hasBeenFocused.value) {
+        hasBeenFocused.value = true;
+        widgetContext.blur();
+    }
+    recordsArray.value = [];
+
     fetchedPages.value = 1;
 };
 const computedLabel = computed(() => {
@@ -372,7 +379,7 @@ const listObjects = computed(() => {
                 const groupKey = item?.[props.groupBy];
                 let group = acc.find((g) => g[props.groupBy] === groupKey);
                 if (!group) {
-                    group = { [props.groupBy]: groupKey, items: [], [props.optionLabel]: groupKey };
+                    group = { [props.groupBy]: groupKey, items: [] };
                     acc.push(group);
                 }
                 group.items.push({
@@ -436,6 +443,12 @@ const handleHide = () => {
 
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
+
+const handleShow = () => {
+    if (!hasBeenFocused.value) {
+        hasBeenFocused.value = true;
+    }
+};
 </script>
 <template>
     <div :class="theme('root')">
@@ -480,16 +493,15 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             lazy: isLazy || !grouped,
                             onLazyLoad: onLazyLoad,
                             itemSize: 38,
-                            showSpacer: true,
                             showLoader: true,
                             loading: modelList.state.loading,
                             autoSize: true,
-                            inline: true,
-                            step: 25,
+                            step: perPage,
                         }"
+                        @before-show="handleShow"
                         @blur="widgetContext.blur"
                         @change="onValueChange"
-                        @focus="handleFocus"
+                        @focus="widgetContext.focus"
                         @hide="handleHide"
                     >
                         <template #optiongroup="slotProps">
@@ -514,6 +526,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         <template #header>
                             <div class="py-1.5 px-2 w-full flex">
                                 <InputText
+                                    :id="widgetContext.state.widgetId"
                                     class="w-full"
                                     :model-value="listFilterValue"
                                     placeholder="Type to Search"
