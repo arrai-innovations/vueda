@@ -18,7 +18,7 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
-import { computed, inject, onBeforeUpdate, reactive, ref, unref, useSlots, watch } from "vue";
+import { computed, inject, onBeforeUpdate, reactive, ref, toRef, unref, useSlots, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -252,12 +252,11 @@ const userHasToggled = ref(false);
 const internalVisible = ref(props.visible ?? isVisibleByDefault.value);
 
 watch(
-    () => props.visible,
-    () => props.hidable,
-    (newVisibleVal, newHidable) => {
+    () => [toRef(props, "visible"), toRef(props, "hidable")],
+    ([newVisibleVal, newHidable]) => {
         if (newVisibleVal !== undefined) {
             internalVisible.value = newVisibleVal;
-        } else if (newHidable == false) {
+        } else if (newHidable === false) {
             internalVisible.value = isVisibleByDefault.value;
         }
     },
