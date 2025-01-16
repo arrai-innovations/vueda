@@ -92,15 +92,16 @@ const valueUpdated = (value) => {
 };
 const onTodayButtonClick = () => {
     unvalidatedInput.value = null;
-    const newDate = new Date();
     const dpAttrs = unref(datePickerAttrs);
     const showTime = dpAttrs.showTime ?? false;
     const timeOnly = dpAttrs.timeOnly ?? false;
+    const newDate = new Date();
+
     if (showTime || timeOnly) {
-        const min = datepickerRef.value.currentMinute;
-        const sec = datepickerRef.value.currentSecond;
-        const hr = datepickerRef.value.convertTo24Hour(datepickerRef.value.currentHour, datepickerRef.value.pm);
-        newDate.setHours(hr, min, sec, 0);
+        const currentHour = Math.floor(newDate.getHours() / (dpAttrs.stepHour ?? 1)) * (dpAttrs.stepHour ?? 1);
+        const currentMinute = Math.floor(newDate.getMinutes() / (dpAttrs.stepMinute ?? 1)) * (dpAttrs.stepMinute ?? 1);
+        const currentSecond = Math.floor(newDate.getSeconds() / (dpAttrs.stepSecond ?? 1)) * (dpAttrs.stepSecond ?? 1);
+        newDate.setHours(currentHour, currentMinute, currentSecond, 0);
     }
     widgetContext.state.combinedValue = newDate;
 };
