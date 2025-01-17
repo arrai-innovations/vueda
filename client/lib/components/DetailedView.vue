@@ -172,7 +172,7 @@ const instanceObjectProps = reactive({
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     pk: toRef(props, "pk"),
     retrieveArgs: {
-        f: computed(() => [modelConfig.info?.pk, fetchFields.value]),
+        f: computed(() => [modelConfig.info?.pk, fetchFields.value, "available_actions"]),
         e: computed(() => modelConfig.config?.expands),
     },
     intendToRetrieve,
@@ -250,15 +250,18 @@ const combinedFormProps = computed(() => {
 });
 const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObjectForRetrieve.state.loading));
 const formId = computed(() => `${props.app}-${props.model}-${props.pk}-${props.viewName}`);
-
+const availableActions = computed(() => {
+    const objectAvailableActions = instanceObjectForRetrieve.state.object?.available_actions;
+    return (filteredActions.actions || []).filter((n) => objectAvailableActions?.includes(n));
+});
 const detailActions = computed(() =>
-    (filteredActions.actions || [])?.filter((n) => {
+    availableActions.value.filter((n) => {
         const a = modelConfig.config?.actionDetails?.[n];
         return a && props.viewName !== n && a.detail;
     }),
 );
 const nonDetailActions = computed(() =>
-    (filteredActions.actions || [])?.filter((n) => {
+    availableActions.value.filter((n) => {
         const a = modelConfig.config?.actionDetails?.[n];
         return a && props.viewName !== n && !a.detail;
     }),
