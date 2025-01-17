@@ -146,8 +146,14 @@ export default {
         createButton: {
             class: [],
         },
+        inLineCreateButton: {
+            class: ["!w-full h-full"],
+        },
         toggleButton: {
             class: [],
+        },
+        createButtonCard: {
+            class: "border-dashed",
         },
         themeOverride: {
             ObjectsGridBodyCell: {

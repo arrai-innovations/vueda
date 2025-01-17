@@ -351,6 +351,7 @@ watch(
                         </template>
                     </component>
                 </div>
+                <slot :class="[theme('bodyRow')]" name="row-after-objects" />
             </div>
         </div>
     </div>

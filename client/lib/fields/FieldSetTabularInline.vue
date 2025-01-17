@@ -91,7 +91,10 @@ onBeforeUpdate(() => {
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldSetContext = useField(props, emit);
 const parentFormModel = inject(FormModelSymbol, null);
-
+const isTable = ref(true);
+const handleIsTableUpdate = (newValue) => {
+    isTable.value = newValue;
+};
 // merge the props from FieldSetTabularInline, and the props from the formModel
 const mergedFormModelProps = reactive({
     name: props.name,
@@ -287,6 +290,7 @@ const slots = useSlots();
 const slotNames = [
     "toggle-button",
     "create-button",
+    "create-button-inline",
     "destroy-button",
     "destroy-checkbox",
     // todo: implement action-button for non item actions
@@ -347,7 +351,7 @@ const remainingSlotNames = computed(() => {
                 </div>
                 <div :class="theme('actionBar')" data-qa="fieldset-tabular-inline-action-bar">
                     <slot
-                        v-if="!computedFieldProps.readOnly && props.showCreateButton"
+                        v-if="isTable && !computedFieldProps.readOnly && props.showCreateButton"
                         :class="theme('createButton')"
                         :field-props="computedFieldProps"
                         label="Create"
@@ -384,6 +388,7 @@ const remainingSlotNames = computed(() => {
                 :table-breakpoint="$attrs.tableBreakpoint || 'lg'"
                 :variant="props.objectGridVariant"
                 v-bind="omit($attrs, ['class'])"
+                @update:is-table="handleIsTableUpdate"
             >
                 <template
                     v-for="fieldObj in fieldObjects"
@@ -506,6 +511,32 @@ const remainingSlotNames = computed(() => {
                             <slot :name="slotName" v-bind="slotProps" />
                         </template>
                     </field-renderer>
+                </template>
+
+                <template #row-after-objects="slotProps">
+                    <div
+                        v-if="!isTable && !computedFieldProps.readOnly && props.showCreateButton"
+                        key="create-row"
+                        :class="combineClasses(theme('createButtonCard'), slotProps.class)"
+                        data-qa="field-set-tabular-inline-create-row"
+                        role="row"
+                    >
+                        <slot
+                            :class="theme('inLineCreateButton')"
+                            :field-props="computedFieldProps"
+                            label="Create"
+                            :name="resolvedSlotNames['create-button-inline'].name"
+                            verb="createInline"
+                            @click="doCreate"
+                        >
+                            <Button
+                                :class="theme('inLineCreateButton')"
+                                label="Create"
+                                variant="text"
+                                @click="doCreate"
+                            />
+                        </slot>
+                    </div>
                 </template>
             </objects-grid>
         </div>
