@@ -411,7 +411,7 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
 
         return Response({"status": f"{count} objects deleted."}, status=status.HTTP_200_OK)
 
-    def get_allowed_extra_actions(self, request):
+    def get_allowed_extra_actions(self, request, *, instance=None):
         """
         Override this function to change if a user is allowed to do a certain action.
         """

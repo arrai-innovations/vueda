@@ -15,7 +15,7 @@ class AvailableActionsField(serializers.ListField):
         }
         super().__init__(**kwargs)
 
-    def get_value(self, dictionary):
+    def get_value(self, instance):
         from vueda.info.serializers import METHOD_MAPPING
 
         request = self.context["request"]
@@ -32,13 +32,20 @@ class AvailableActionsField(serializers.ListField):
                 successful_authenticator=request.successful_authenticator,
             )
 
-            instances = self.parent.instance
-            if instances is None:
-                instances = self.root.instance
-            if not is_iterable(instances):
-                instances = (instances,)
+            if instance is None:
+                instances = self.parent.instance
+                if instances is None:
+                    instances = self.root.instance
+                if not is_iterable(instances):
+                    instances = (instances,)
+            else:
+                instances = (instance,)
 
             for action in ("list", "retrieve", "create", "update", "partial_update", "destroy"):
+                # Create doesn't make sense on an instance
+                if action == "create" and instance:
+                    continue
+
                 allowed = False
                 fake_request.method = METHOD_MAPPING[action].upper()
                 for instance in instances:
@@ -52,12 +59,12 @@ class AvailableActionsField(serializers.ListField):
                     available_actions.append(action)
 
         if hasattr(viewset, "get_allowed_extra_actions"):
-            available_actions.extend(sorted(viewset.get_allowed_extra_actions(request)))
+            available_actions.extend(sorted(viewset.get_allowed_extra_actions(request, instance=instance)))
 
         return available_actions
 
     def get_attribute(self, instance):
-        return self.get_value(None)
+        return self.get_value(instance)
 
     def to_internal_value(self, data):
         raise NotImplementedError()
