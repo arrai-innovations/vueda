@@ -117,7 +117,6 @@ class TestProductViewSet(BaseTestModelViewSet):
         expected_retrieve_response["available_actions"] = [
             "list",
             "retrieve",
-            "create",
             "update",
             "partial_update",
             "current",
@@ -342,7 +341,6 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         expected_retrieve_response["available_actions"] = [
             "list",
             "retrieve",
-            "create",
             "update",
             "partial_update",
             "destroy",

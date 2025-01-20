@@ -275,7 +275,6 @@ class BaseTestCreateModelViewSet:
             available_actions = [
                 "list",
                 "retrieve",
-                "create",
                 "update",
                 "partial_update",
                 "destroy",
@@ -286,7 +285,6 @@ class BaseTestCreateModelViewSet:
             available_actions = [
                 "list",
                 "retrieve",
-                "create",
                 "update",
                 "partial_update",
                 "current",
@@ -340,7 +338,6 @@ class BaseTestRetrieveModelViewSet:
             available_actions = [
                 "list",
                 "retrieve",
-                "create",
                 "update",
                 "partial_update",
                 "destroy",
@@ -351,7 +348,6 @@ class BaseTestRetrieveModelViewSet:
             available_actions = [
                 "list",
                 "retrieve",
-                "create",
                 "update",
                 "partial_update",
                 "current",
@@ -409,7 +405,6 @@ class BaseTestUpdateModelViewSet:
             available_actions = [
                 "list",
                 "retrieve",
-                "create",
                 "update",
                 "partial_update",
                 "destroy",
@@ -420,7 +415,6 @@ class BaseTestUpdateModelViewSet:
             available_actions = [
                 "list",
                 "retrieve",
-                "create",
                 "update",
                 "partial_update",
                 "current",

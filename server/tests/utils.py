@@ -100,7 +100,7 @@ class FakeView:
             return self.queryset()
         return self.queryset
 
-    def get_allowed_extra_actions(self, request):
+    def get_allowed_extra_actions(self, request, *, instance=None):
         return set(self.allowed_extra_actions)
 
 
