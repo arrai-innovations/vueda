@@ -109,8 +109,8 @@ class VuedaSearchFilterBackend(SearchFilter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if 'similarity_threshold' in kwargs:
-            self.similarity_threshold = kwargs['similarity_threshold']
+        if "similarity_threshold" in kwargs:
+            self.similarity_threshold = kwargs["similarity_threshold"]
 
     def construct_search(self, field_name, queryset):
         """
@@ -118,7 +118,7 @@ class VuedaSearchFilterBackend(SearchFilter):
         """
         for prefix, lookup in self.customized_lookup_prefixes.items():
             if field_name.startswith(prefix):
-                field_name = field_name[len(prefix):]
+                field_name = field_name[len(prefix) :]
                 return f"{field_name}__{lookup}"
         return super().construct_search(field_name, queryset)
 
@@ -134,22 +134,14 @@ class VuedaSearchFilterBackend(SearchFilter):
         if not search_fields or not search_terms:
             return queryset
 
-        orm_lookups = [
-            self.construct_search(str(search_field), queryset)
-            for search_field in search_fields
-        ]
+        orm_lookups = [self.construct_search(str(search_field), queryset) for search_field in search_fields]
         base = queryset
         # /*** original code end
 
         my_fake_lookup = f"__{self.customized_lookup_prefixes[SEARCH_LOOKUP_PREFIX]}"
         # Identify which lookups we should handle. our field prefixes are not converted to orm_lookups
-        handled_lookups = [
-            field for field in orm_lookups if field.endswith(my_fake_lookup)
-        ]
-        handled_fields = [
-            field[:-len(my_fake_lookup)]
-            for field in handled_lookups
-        ]
+        handled_lookups = [field for field in orm_lookups if field.endswith(my_fake_lookup)]
+        handled_fields = [field[: -len(my_fake_lookup)] for field in handled_lookups]
 
         if not handled_fields:
             return super().filter_queryset(request, queryset, view)
@@ -166,7 +158,7 @@ class VuedaSearchFilterBackend(SearchFilter):
             search_vector = SearchVector(*handled_fields)
             search_query = SearchQuery(" ".join(search_terms))
             search_rank = SearchRank(search_vector, search_query)
-            annotations['search_rank'] = search_rank
+            annotations["search_rank"] = search_rank
 
             for index, search_term in enumerate(search_terms):
                 for field in handled_fields:
@@ -178,28 +170,27 @@ class VuedaSearchFilterBackend(SearchFilter):
             regex_pattern = r"(?:^|\y)(?:" + "|".join(regex_patterns) + r")(?:$|\y)"
 
             if len(handled_fields) > 1:
-                annotations['iregex_score'] = Greatest(*[
-                    models.Case(
-                        models.When(**{f"{field}__iregex": regex_pattern, "then": models.Value(1)}),
-                        default=models.Value(0),
-                        output_field=models.IntegerField()
-                    )
-                    for field in handled_fields
-                ])
+                annotations["iregex_score"] = Greatest(
+                    *[
+                        models.Case(
+                            models.When(**{f"{field}__iregex": regex_pattern, "then": models.Value(1)}),
+                            default=models.Value(0),
+                            output_field=models.IntegerField(),
+                        )
+                        for field in handled_fields
+                    ]
+                )
             else:
                 field = handled_fields[0]
-                annotations['iregex_score'] = models.Case(
+                annotations["iregex_score"] = models.Case(
                     models.When(**{f"{field}__iregex": regex_pattern, "then": models.Value(1)}),
                     default=models.Value(0),
-                    output_field=models.IntegerField()
+                    output_field=models.IntegerField(),
                 )
 
-            annotations['combined_rank'] = reduce(operator.add, [models.F(key) for key in annotations.keys()])
+            annotations["combined_rank"] = reduce(operator.add, [models.F(key) for key in annotations.keys()])
 
-            queryset = (
-                queryset.annotate(**annotations)
-                .filter(combined_rank__gte=self.search_threshold)
-            )
+            queryset = queryset.annotate(**annotations).filter(combined_rank__gte=self.search_threshold)
             if not request.query_params.get(api_settings.ORDERING_PARAM):
                 # user did not request a specific ordering, so we order by the combined rank
                 queryset = queryset.order_by("-combined_rank")
@@ -210,9 +201,8 @@ class VuedaSearchFilterBackend(SearchFilter):
             # remove the prefixes on search fields, if the field was handled, so must_call_distinct works correctly
             # it only works on standard django lookups
             search_fields = list(
-                OrderedSet(search_fields) -
-                OrderedSet(f"{SEARCH_LOOKUP_PREFIX}{field}" for field in handled_fields) |
-                OrderedSet(handled_fields)
+                OrderedSet(search_fields) - OrderedSet(f"{SEARCH_LOOKUP_PREFIX}{field}" for field in handled_fields)
+                | OrderedSet(handled_fields)
             )
 
         if orm_lookups:
@@ -220,10 +210,8 @@ class VuedaSearchFilterBackend(SearchFilter):
             # *** original code start (indented)
             # generator which for each term builds the corresponding search
             conditions = (
-                reduce(
-                    operator.or_,
-                    (models.Q(**{orm_lookup: term}) for orm_lookup in orm_lookups)
-                ) for term in search_terms
+                reduce(operator.or_, (models.Q(**{orm_lookup: term}) for orm_lookup in orm_lookups))
+                for term in search_terms
             )
             queryset = queryset.filter(reduce(operator.and_, conditions))
 
@@ -233,7 +221,7 @@ class VuedaSearchFilterBackend(SearchFilter):
             # inspired by django.contrib.admin
             # this is more accurate than .distinct form M2M relationship
             # also is cross-database
-            queryset = queryset.filter(pk=models.OuterRef('pk'))
+            queryset = queryset.filter(pk=models.OuterRef("pk"))
             queryset = base.filter(models.Exists(queryset))
         return queryset
         # /*** original code end
