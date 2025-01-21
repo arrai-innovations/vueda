@@ -16,6 +16,8 @@ from rest_framework.utils.serializer_helpers import ReturnDict
 from rest_framework.utils.serializer_helpers import ReturnList
 from rest_framework.views import exception_handler
 
+from vueda.core.logging_filters import contains_only_warnings
+
 
 logger = logging.getLogger(__name__)
 django_requests_logger = logging.getLogger("django.request")
@@ -35,7 +37,7 @@ def debug_stack_exception_handler(exc, context):
 
     django_requests_logger.exception("Exception in DRF view", extra={"request": context["request"]})
 
-    if not settings.DEBUG and not getattr(settings, "IN_TESTS", False):
+    if not settings.DEBUG and not getattr(settings, "IN_TESTS", False) and not contains_only_warnings(exc):
         # Capture the exception with Sentry
         sentry_sdk.capture_exception(exc)
 

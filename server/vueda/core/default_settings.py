@@ -33,6 +33,11 @@ def get_defaults(env: Env):
         "LOGGING": {
             "version": 1,
             "disable_existing_loggers": False,
+            "filters": {
+                "ignore_validation_warnings": {
+                    "()": "vueda.core.logging_filters.FilterOutVuedaValidationWarnings",
+                }
+            },
             "formatters": {
                 "verbose": {
                     "()": ConditionalExcInfoFormatter,
@@ -57,6 +62,7 @@ def get_defaults(env: Env):
                     "maxBytes": 1024 * 1024 * 100,  # 100 MB
                     "backupCount": 5,
                     "formatter": "verbose",
+                    "filters": ["ignore_validation_warnings"],
                     "delay": True,
                 },
             },
