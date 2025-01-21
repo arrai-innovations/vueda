@@ -1,21 +1,39 @@
 import logging
 
-from django.utils.itercompat import is_iterable
 from rest_framework.exceptions import ValidationError
+
+
+def extract_error_strings(value):
+    results = []
+    if isinstance(value, str):
+        results.append(value)
+
+    elif isinstance(value, dict):
+        for item in value.values():
+            for result in extract_error_strings(item):
+                if result:
+                    results.append(result)
+
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            for result in extract_error_strings(item):
+                if result:
+                    results.append(result)
+
+    return results
 
 
 def contains_only_warnings(exc):
     only_warnings = True
 
     if isinstance(exc, ValidationError):
-        for value in exc.detail.values():
-            if is_iterable(value):
-                for item in value:
-                    # We can't look up the code on the validation error, because rest
-                    # framework has recreated the outer validation error, and the inner
-                    # validation error has been converted to a string because of this.
-                    if "code='warning'" not in item:
-                        only_warnings = False
+        error_strings = extract_error_strings(exc.detail)
+
+        for error_string in error_strings:
+            if not (
+                "code='warning'" in error_string or hasattr(error_string, "code") and error_string.code == "warning"
+            ):
+                only_warnings = False
 
     return only_warnings
 
