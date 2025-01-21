@@ -1,4 +1,5 @@
 import decimal
+from copy import deepcopy
 from pathlib import Path
 
 from environs import Env
@@ -23,9 +24,16 @@ DATABASES = {"default": env.dj_db_url("DATABASE_URL")}
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
 TEST_POSTGRES_DB = env("TEST_POSTGRES_DB")
 
+# Set up a second database connection, which is not atomic, so we can write logging
+# through it when a test fails, so we can validate filtering logging messages.
+DATABASES["db_logging"] = deepcopy(DATABASES["default"])
+DATABASES["db_logging"]["ATOMIC_REQUESTS"] = False
+DATABASES["db_logging"]["CONN_MAX_AGE"] = 0
+
 LOCAL_APPS = [
     "tests.apps.TestsConfig",
     "tests.erring.apps.ErringConfig",
+    "tests.logging.apps.LoggingConfig",
     "tests.store.apps.StoreConfig",
     "tests.workflow_added.apps.WorkflowAddedConfig",
     "tests.workflow_changed.apps.WorkflowChangedConfig",
