@@ -7,8 +7,8 @@ import rest_flex_fields.serializers as flex_serializers
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 
+from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers.fields import AvailableActionsField
 from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
 
@@ -53,7 +53,7 @@ class NoExtraFieldsSerializerMixin:
                 else:
                     errors[extra_key] = [msg]
         if errors:
-            raise ValidationError(errors)
+            raise VuedaValidationError(errors)
         return attrs
 
 
@@ -185,7 +185,7 @@ class VuedaExpandableFieldsSerializerMixin:
 
             # noqa T101 - TODO: Move this into a system check.
             if not inspect.isclass(field_serializer):
-                raise ValidationError(
+                raise VuedaValidationError(
                     "This is not a valid `expandable_fields` definition. It must be a tuple of a Serializer/Field"
                     " class and options, or simply a Serializer/Field Class.",
                     {"name": field_name},
@@ -284,7 +284,7 @@ class VuedaExpandableFieldsSerializerMixin:
                 field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
 
             if not inspect.isclass(field_serializer):
-                raise ValidationError(
+                raise VuedaValidationError(
                     "This is not a valid `expandable_fields` definition. It must be a tuple of a Serializer/Field"
                     " class and options, or simply a Serializer/Field Class.",
                     {"name": field_name},

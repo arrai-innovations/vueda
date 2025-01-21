@@ -1,10 +1,10 @@
 from django import forms
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalChanges
 
+from vueda.core.exceptions import VuedaValidationError
 from vueda.core.fields import form as core_form
 from vueda.workflow import models
 
@@ -103,7 +103,7 @@ class ValidateStateNotUsedForm(forms.ModelForm):
                 errors.append("This state is used by Initial State.  You can delete it at the same time as the state.")
 
             if errors:
-                raise ValidationError({"DELETE": errors})
+                raise VuedaValidationError({"DELETE": errors})
 
         return cleaned_data
 
@@ -129,7 +129,7 @@ class ValidateTransitionNotUsedForm(forms.ModelForm):
                 used_by.append("Transition Sources")
 
             if used_by:
-                raise ValidationError({"DELETE": f"This transition is used by {', '.join(used_by)}"})
+                raise VuedaValidationError({"DELETE": f"This transition is used by {', '.join(used_by)}"})
 
         return cleaned_data
 

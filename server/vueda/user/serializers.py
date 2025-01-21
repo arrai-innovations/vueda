@@ -7,6 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers import VuedaSerializer
 
 
@@ -31,7 +32,7 @@ class LoginSerializer(serializers.Serializer):
 
         if not user:
             msg = _("Invalid email or password, or user is inactive.")
-            raise serializers.ValidationError(msg)
+            raise VuedaValidationError(msg)
 
         attrs["user"] = user
         return attrs
@@ -100,13 +101,13 @@ class UserSerializer(VuedaSerializer):
         try:
             password_validation.validate_password(value, self.instance)
         except ValidationError as err:
-            raise serializers.ValidationError(" ".join(err))
+            raise VuedaValidationError(" ".join(err))
         return value
 
     def validate_password_confirm(self, value):
         password = self.initial_data.get("password")
         if password != value:
-            raise serializers.ValidationError("Password and Confirm Password must be the same.")
+            raise VuedaValidationError("Password and Confirm Password must be the same.")
         return value
 
     def create(self, validated_data):
@@ -149,7 +150,7 @@ class ResetPasswordSerializer(serializers.Serializer):
 
     def validate(self, data):
         if data["password"] > data["password_confirm"]:
-            raise serializers.ValidationError("Password and Confirm Password must be the same.")
+            raise VuedaValidationError("Password and Confirm Password must be the same.")
 
         return data
 
@@ -157,7 +158,7 @@ class ResetPasswordSerializer(serializers.Serializer):
         try:
             password_validation.validate_password(value, self.instance)
         except ValidationError as err:
-            raise serializers.ValidationError(" ".join(err))
+            raise VuedaValidationError(" ".join(err))
         return value
 
 

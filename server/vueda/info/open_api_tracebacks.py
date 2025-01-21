@@ -33,8 +33,8 @@ INFO_INVALID_FIELD = f"""Traceback (most recent call last):
   File "{VUEDA_SERVER_PATH}/vueda/info/viewsets.py", line 217, in get_queryset
     self.validate_queryset(serializer, fields)
   File "{VUEDA_SERVER_PATH}/vueda/info/viewsets.py", line 182, in validate_queryset
-    raise ValidationError(
-rest_framework.exceptions.ValidationError: ["Invalid field \'tangible_type\'. Valid fields with choices are user."]"""
+    raise VuedaValidationError(
+vueda.core.exceptions.VuedaValidationError: ["Invalid field \'tangible_type\'. Valid fields with choices are user."]"""
 
 
 INFO_CHOICES_DENIED = f"""Traceback (most recent call last):
@@ -68,5 +68,5 @@ Traceback (most recent call last):
   File "{VUEDA_SERVER_PATH}/vueda/info/viewsets.py", line 227, in get_queryset
     self.validate_queryset(serializer, fields)
   File "{VUEDA_SERVER_PATH}/vueda/info/viewsets.py", line 192, in validate_queryset
-    raise ValidationError(
-rest_framework.exceptions.ValidationError: ["Invalid field \'tangible_type\'. Valid fields with choices are user."]"""
+    raise VuedaValidationError(
+vueda.core.exceptions.VuedaValidationError: ["Invalid field \'tangible_type\'. Valid fields with choices are user."]"""

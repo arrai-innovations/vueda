@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from tests.fields import RangeField
 from tests.store import models
+from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers import VuedaHistorySerializer
 from vueda.core.serializers import VuedaSerializer
 from vueda.user.serializers import UserSerializer
@@ -164,7 +165,7 @@ class ProductSerializer(VuedaHistorySerializer):
             queryset = queryset.exclude(pk=self.pk)
 
         if queryset.exists():
-            raise serializers.ValidationError("A product with this distributor, option_type, and name already exists.")
+            raise VuedaValidationError("A product with this distributor, option_type, and name already exists.")
 
         return data
 

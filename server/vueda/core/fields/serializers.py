@@ -5,6 +5,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.encoding import smart_str
 from rest_framework import serializers as drf_serializers
 
+from vueda.core.exceptions import VuedaValidationError
+
 
 class ContentTypeField(drf_serializers.RelatedField):
     default_error_messages = {
@@ -35,7 +37,7 @@ class DurationSecondsField(drf_serializers.Field):
             # Ensure the input is an integer or convertible to an integer
             seconds = int(data)
         except (ValueError, TypeError):
-            raise drf_serializers.ValidationError("Duration must be an integer number of seconds.")
+            raise VuedaValidationError("Duration must be an integer number of seconds.")
         return datetime.timedelta(seconds=seconds)
 
     def to_representation(self, value):
@@ -45,7 +47,7 @@ class DurationSecondsField(drf_serializers.Field):
         if isinstance(value, datetime.timedelta):
             total_seconds = int(value.total_seconds())
             return total_seconds
-        raise drf_serializers.ValidationError("Expected a timedelta object.")
+        raise VuedaValidationError("Expected a timedelta object.")
 
 
 class RangeField(drf_serializers.JSONField):
@@ -61,7 +63,7 @@ class RangeField(drf_serializers.JSONField):
             upper = data["upper"]
             return Range(lower, upper)
         except KeyError:
-            raise drf_serializers.ValidationError("Invalid data for RangeField")
+            raise VuedaValidationError("Invalid data for RangeField")
 
 
 class FileField(drf_serializers.FileField):

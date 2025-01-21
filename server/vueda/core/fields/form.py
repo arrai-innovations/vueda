@@ -1,5 +1,6 @@
 from django import forms
 
+from vueda.core.exceptions import VuedaValidationError
 from vueda.core.widgets import BaseArrayWidget
 
 
@@ -56,7 +57,7 @@ class BaseArrayField(forms.Field):
 
     def clean(self, value):
         if value in self.empty_values and self.required:
-            raise forms.ValidationError(self.error_messages["required"], code="required")
+            raise VuedaValidationError(self.error_messages["required"], code="required")
 
         if value is None:
             return None
