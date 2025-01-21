@@ -43,7 +43,7 @@ watch(
 watch(
     [toRef(props, "minValue"), fieldValueRef],
     ([minValue, value]) => {
-        if (fieldValueRef.value !== null && minValue && value < minValue) {
+        if (fieldValueRef.value !== null && minValue !== undefined && value < minValue) {
             fieldContext.updateError("minValue", `Must be ${minValue} or more.`);
         } else {
             fieldContext.deleteError("minValue");

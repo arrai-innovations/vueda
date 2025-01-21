@@ -119,6 +119,25 @@ export default {
         },
         inputRoot: {},
     },
+    WidgetInputNumber: {
+        root: {
+            class: [],
+        },
+        inner: {
+            class: ["flex flex-col gap-2"],
+        },
+        input: {
+            class: ({ invalid, warning }) => {
+                return [
+                    {
+                        "p-inputtext": true,
+                        "p-invalid": invalid,
+                        "p-warning": warning,
+                    },
+                ];
+            },
+        },
+    },
     WidgetMultiSelect: {
         root: {
             class: [],

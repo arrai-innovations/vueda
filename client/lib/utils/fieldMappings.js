@@ -21,13 +21,11 @@ export const defaultFieldMappings = {
     DecimalField: {
         DecimalField: {
             component: availableFields.FieldNumber,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "number" },
+            widget: availableWidgets.WidgetInputNumber,
         },
         PositiveDecimalField: {
             component: availableFields.FieldNumber,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "number" },
+            widget: availableWidgets.WidgetInputNumber,
         },
     },
     DurationSecondsField: {
@@ -57,8 +55,7 @@ export const defaultFieldMappings = {
     FloatField: {
         FloatField: {
             component: availableFields.FieldNumber,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "number" },
+            widget: availableWidgets.WidgetInputNumber,
         },
     },
     ImageField: {
@@ -69,33 +66,27 @@ export const defaultFieldMappings = {
         BigAutoField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput },
         BigIntegerField: {
             component: availableFields.FieldNumber,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "number" },
+            widget: availableWidgets.WidgetInputNumber,
         },
         IntegerField: {
             component: availableFields.FieldNumber,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "number" },
+            widget: availableWidgets.WidgetInputNumber,
         },
         PositiveBigIntegerField: {
             component: availableFields.FieldNumber,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "number" },
+            widget: availableWidgets.WidgetInputNumber,
         },
         PositiveIntegerField: {
             component: availableFields.FieldNumber,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "number" },
+            widget: availableWidgets.WidgetInputNumber,
         },
         PositiveSmallIntegerField: {
             component: availableFields.FieldNumber,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "number" },
+            widget: availableWidgets.WidgetInputNumber,
         },
         SmallIntegerField: {
             component: availableFields.FieldNumber,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "number" },
+            widget: availableWidgets.WidgetInputNumber,
         },
     },
     IPAddressField: {
@@ -118,14 +109,12 @@ export const defaultFieldMappings = {
         },
         FloatRangeField: {
             component: availableFields.FieldSetRange,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "number" },
+            widget: availableWidgets.WidgetInputNumber,
             fieldProps: { boundaryComponent: availableFields.FieldNumber },
         },
         IntegerRangeField: {
             component: availableFields.FieldSetRange,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "number" },
+            widget: availableWidgets.WidgetInputNumber,
             fieldProps: { boundaryComponent: availableFields.FieldNumber },
         },
         TimeRangeField: {
