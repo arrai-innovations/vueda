@@ -41,25 +41,6 @@ def debug_stack_exception_handler(exc, context):
         # Capture the exception with Sentry
         sentry_sdk.capture_exception(exc)
 
-    if isinstance(response.data, list):
-        response_data = {}
-        for data in response.data:
-            if isinstance(data, VuedaValidationError):
-                if isinstance(data.detail, (tuple, list)):
-                    for item in data.detail:
-                        if isinstance(item, str):
-                            response_data[settings.REST_FRAMEWORK["NON_FIELD_ERRORS_KEY"] or "non_field_errors"] = item
-                        elif isinstance(item, dict):
-                            response_data.update(item)
-                elif isinstance(data.detail, dict):
-                    response_data.update(data.detail)
-            else:
-                if isinstance(data, str):
-                    response_data[settings.REST_FRAMEWORK["NON_FIELD_ERRORS_KEY"] or "non_field_errors"] = data
-                elif isinstance(data, dict):
-                    response_data.update(data)
-        response.data = response_data
-
     if settings.DEBUG or getattr(settings, "IN_TESTS", False):
         response.data["serverStack"] = "".join(format_exception(type(exc), exc, exc.__traceback__))
     else:
