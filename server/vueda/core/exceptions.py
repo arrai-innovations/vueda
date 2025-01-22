@@ -37,7 +37,7 @@ def debug_stack_exception_handler(exc, context):
         )
 
     if hasattr(exc, "__traceback__") and format_tb(exc.__traceback__):
-        # Calling logging.exception() when there is no exception, is what causes None in the logs.
+        # Calling logging.exception() when there is no traceback, is what causes None in the logs.
         django_requests_logger.exception("Exception in DRF view", extra={"request": context["request"]})
     else:
         django_requests_logger.error("Exception in DRF view", extra={"request": context["request"]})
