@@ -1,6 +1,7 @@
 import logging
 from traceback import format_exception
 from traceback import format_exception_only
+from traceback import format_tb
 
 import sentry_sdk
 from django.conf import settings
@@ -35,7 +36,11 @@ def debug_stack_exception_handler(exc, context):
             status=500,
         )
 
-    django_requests_logger.exception("Exception in DRF view", extra={"request": context["request"]})
+    if hasattr(exc, "__traceback__") and format_tb(exc.__traceback__):
+        # Calling logging.exception() when there is no exception, is what causes None in the logs.
+        django_requests_logger.exception("Exception in DRF view", extra={"request": context["request"]})
+    else:
+        django_requests_logger.error("Exception in DRF view", extra={"request": context["request"]})
 
     if not settings.DEBUG and not getattr(settings, "IN_TESTS", False) and not contains_only_warnings(exc):
         # Capture the exception with Sentry

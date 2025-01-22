@@ -4,8 +4,6 @@ import os
 from django.db.backends.postgresql.psycopg_any import IsolationLevel
 from environs import Env
 
-from vueda.core.logging_formatters import ConditionalExcInfoFormatter
-
 
 def get_defaults(env: Env):
     """
@@ -40,11 +38,9 @@ def get_defaults(env: Env):
             },
             "formatters": {
                 "verbose": {
-                    "()": ConditionalExcInfoFormatter,
                     "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s",
                 },
                 "simple_verbose": {
-                    "()": ConditionalExcInfoFormatter,
                     "format": "%(levelname)s %(module)s %(thread)d %(message)s",
                 },
                 "simple": {"format": "%(levelname)s %(message)s"},
