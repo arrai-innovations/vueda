@@ -137,6 +137,7 @@ export default {
                 ];
             },
         },
+        formPopoverInner: { class: ["flex flex-col items-center"] },
     },
     WidgetMultiSelect: {
         root: {

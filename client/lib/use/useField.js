@@ -15,6 +15,8 @@ import { computed, inject, provide, reactive, readonly, toRef, unref, watch } fr
  * @property {string} [help] - The help text for the field.
  * @property {any} [modelValue] - The field value. This is used when the field is not part of a form.
  * @property {(value: any) => boolean} [validate] - A custom validation function for the field.
+ * @property {(value: any) => any} [preprocessSet] - A custom function to preprocess the value before updating
+ * @property {(value: any) => any} [preprocessGet] - A custom function to preprocess the value before retrieving
  */
 export const FIELD_PROPS = {
     name: {
@@ -64,6 +66,14 @@ export const FIELD_PROPS = {
     formModelName: {
         type: String,
         default: undefined,
+    },
+    preprocessGet: {
+        type: Function,
+        default: null,
+    },
+    preprocessSet: {
+        type: Function,
+        default: null,
     },
 };
 
@@ -205,22 +215,32 @@ export function useField(props, emit, functions) {
             formContext || props.modelValue !== undefined
                 ? computed({
                       get: () => {
-                          const value =
+                          if (props.name === "timesheet_days[0].lunch") {
+                              // debugger
+                          }
+                          let value =
                               props.modelValue !== undefined
                                   ? props.modelValue
                                   : get(formContext.state.values, props.name);
-                          const returningValue = functions?.preprocessGet ? functions.preprocessGet(value) : value;
-                          if (props.modelValue !== undefined && functions?.preprocessGet) {
-                              emit("update:modelValue", returningValue);
+                          value = functions?.preprocessGet ? functions.preprocessGet(value) : value;
+                          value = props.preprocessGet ? props.preprocessGet(value) : value;
+                          if (props.modelValue !== undefined && (functions?.preprocessGet || props.preprocessGet)) {
+                              emit("update:modelValue", value);
                           }
-                          return returningValue;
+                          return value;
                       },
                       set: (newValue) => {
+                          if (props.name === "timesheet_days[0].lunch") {
+                              // debugger
+                          }
                           if (isEqual(newValue, state.value)) {
                               return;
                           }
                           if (functions?.preprocessSet) {
                               newValue = functions.preprocessSet(newValue);
+                          }
+                          if (props.preprocessSet) {
+                              newValue = props.preprocessSet(newValue);
                           }
                           if (newValue === undefined) {
                               if (formContext) {
