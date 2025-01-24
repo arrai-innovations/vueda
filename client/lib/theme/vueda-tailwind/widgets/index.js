@@ -130,6 +130,7 @@ export default {
             class: ({ invalid, warning }) => {
                 return [
                     {
+                        "w-full flex flex-grow": true,
                         "p-inputtext": true,
                         "p-invalid": invalid,
                         "p-warning": warning,
