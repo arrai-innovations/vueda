@@ -215,9 +215,6 @@ export function useField(props, emit, functions) {
             formContext || props.modelValue !== undefined
                 ? computed({
                       get: () => {
-                          if (props.name === "timesheet_days[0].lunch") {
-                              // debugger
-                          }
                           let value =
                               props.modelValue !== undefined
                                   ? props.modelValue
@@ -230,9 +227,6 @@ export function useField(props, emit, functions) {
                           return value;
                       },
                       set: (newValue) => {
-                          if (props.name === "timesheet_days[0].lunch") {
-                              // debugger
-                          }
                           if (isEqual(newValue, state.value)) {
                               return;
                           }

@@ -188,15 +188,16 @@ watch(
     { deep: true, flush: "post" },
 );
 const doCreate = (_e, defaultValues) => {
-    if (!defaultValues) {
-        defaultValues = emptyFieldObject();
+    let defaultObject = emptyFieldObject();
+    if (defaultValues) {
+        defaultObject = { ...defaultObject, ...defaultValues };
     }
     if (!internalVisible.value) {
         internalVisible.value = true;
         userHasToggled.value = true;
     }
     fieldSetContext.blur();
-    fieldSetContext.state.value = [...cloneDeep(fieldSetContext.state.value), defaultValues];
+    fieldSetContext.state.value = [...cloneDeep(fieldSetContext.state.value), defaultObject];
     focusIndex.value = fieldSetContext.state.value.length - 1;
 };
 
