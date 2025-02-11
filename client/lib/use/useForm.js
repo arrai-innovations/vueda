@@ -36,7 +36,7 @@ import { provide, reactive, readonly, toRef, watch } from "vue";
  * @property {boolean} anyTouched - Whether any field has been blurred.
  * @property {string|undefined} focused - The field currently in focus.
  * @property {{[fieldName: string]: any}} initialValues - The form's initial values.
- * @property {{string[]}} ignored - The ignored fields on the form
+ * @property {{[path: string]: string}} ignored - The ignored fields on the form
  * @property {boolean} anyIgnored - Whether any field has been ignored.
  *
  */
