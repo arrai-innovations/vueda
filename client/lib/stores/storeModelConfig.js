@@ -3,6 +3,7 @@ import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/crudSup
 import { merge } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import identity from "lodash-es/identity.js";
+import omit from "lodash-es/omit.js";
 import { defineStore } from "pinia";
 
 /**
@@ -276,13 +277,41 @@ export const storeModelConfig = defineStore({
                             ...defaultGenericDetails,
                         };
                         const configsInPriorityOrder = [genericDetails, defaultSpecificDetails, specificDetails];
+                        const isExpandDetails = detailName === "expandDetails";
                         for (const overridingConfig of configsInPriorityOrder) {
                             for (const fieldName in overridingConfig) {
                                 if (fieldName in newDetailsObject) {
-                                    newDetailsObject[fieldName] = merge(
-                                        newDetailsObject[fieldName],
-                                        overridingConfig[fieldName],
-                                    );
+                                    if (isExpandDetails) {
+                                        // expandDetails[x].f is an object that contains fieldDetails like objects.
+                                        // we want to merge at that level as well
+                                        newDetailsObject[fieldName] = {
+                                            ...merge(
+                                                omit(newDetailsObject[fieldName], ["f"]),
+                                                omit(overridingConfig[fieldName], ["f"]),
+                                            ),
+                                            f: newDetailsObject[fieldName].f,
+                                        };
+                                        if (overridingConfig[fieldName].f && newDetailsObject[fieldName].f) {
+                                            const commonKeys = Object.keys(newDetailsObject[fieldName].f).filter((k) =>
+                                                Object.keys(overridingConfig[fieldName].f).includes(k),
+                                            );
+                                            for (const commonKey of commonKeys) {
+                                                newDetailsObject[fieldName].f[commonKey] = merge(
+                                                    newDetailsObject[fieldName].f[commonKey],
+                                                    overridingConfig[fieldName].f[commonKey],
+                                                );
+                                            }
+                                            newDetailsObject[fieldName].f = merge(
+                                                newDetailsObject[fieldName].f,
+                                                overridingConfig[fieldName].f,
+                                            );
+                                        }
+                                    } else {
+                                        newDetailsObject[fieldName] = merge(
+                                            newDetailsObject[fieldName],
+                                            overridingConfig[fieldName],
+                                        );
+                                    }
                                 } else {
                                     newDetailsObject[fieldName] = overridingConfig[fieldName];
                                 }
