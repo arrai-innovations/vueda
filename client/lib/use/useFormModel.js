@@ -189,16 +189,42 @@ export function useFormModel(props) {
                         }
                         item.fieldDetail = item.expandDetail.f[item.expandFieldName];
                         if (!item.fieldDetail) {
-                            throw new Error(
-                                `Unknown field ${item.expandFieldName} specified for expand ${item.expandName} on ${props.app}.${props.model}`,
-                            );
+                            if (item.expandFieldName.endsWith("_")) {
+                                item.fieldDetail = {
+                                    name: item.expandFieldName,
+                                    label: "",
+                                    typeDb: "",
+                                    typeModel: "",
+                                    typeSerializer: "",
+                                    many: false,
+                                    readOnly: true,
+                                    required: false,
+                                };
+                            } else {
+                                throw new Error(
+                                    `Unknown field ${item.expandFieldName} specified for expand ${item.expandName} on ${props.app}.${props.model}`,
+                                );
+                            }
                         }
                     }
                     if (item.baseExpanded) {
                         item.expandDetail = expandDetails[fieldName];
                     }
                     if (!item.fieldDetail) {
-                        throw new Error(`Unknown field ${fieldName} specified for ${props.app}.${props.model}`);
+                        if (item.fieldName.endsWith("_")) {
+                            item.fieldDetail = {
+                                name: item.fieldName,
+                                label: "",
+                                typeDb: "",
+                                typeModel: "",
+                                typeSerializer: "",
+                                many: false,
+                                readOnly: true,
+                                required: false,
+                            };
+                        } else {
+                            throw new Error(`Unknown field ${fieldName} specified for ${props.app}.${props.model}`);
+                        }
                     }
                     allFields.push(item);
                 }
