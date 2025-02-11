@@ -2,7 +2,9 @@ import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
+import isString from "lodash-es/isString.js";
 import { computed, inject, provide, reactive, readonly, toRef, unref, watch } from "vue";
+import { deepUnref } from "vue-deepunref";
 
 /**
  * The reactive props we expect fields to receive and pass to useField when creating a field context.
@@ -179,7 +181,25 @@ const returnVoid = () => {};
 export function useField(props, emit, functions) {
     /** @type {import('@vueda/use/useForm.js').FormContext|null} */
     const formContext = inject(FormContextSymbol, null);
-    const requiredFn = computed(() => props.requiredFn || defaultValidateRequired);
+    const requiredFn = computed(() => props.requiredFn ?? defaultValidateRequired);
+    const requiredFnValue = computed(() => {
+        const fn = unref(requiredFn);
+        if (fn) {
+            const value = cloneDeep(unref(state.value));
+            const dependencyValues = cloneDeep(deepUnref(state.dependencyValues));
+            return fn(value, dependencyValues);
+        }
+        return null;
+    });
+    const validateFnResult = computed(() => {
+        const fn = unref(props.validate);
+        if (fn) {
+            const value = cloneDeep(unref(state.value));
+            const dependencyValues = cloneDeep(deepUnref(state.dependencyValues));
+            return fn(value, dependencyValues);
+        }
+        return true; // No validator means it's always valid
+    });
     const requiredMessage = computed(() => {
         return props.requiredMessage || "This field is required.";
     });
@@ -190,7 +210,8 @@ export function useField(props, emit, functions) {
         dependencies: readonly(toRef(props, "dependencies")),
         readOnly: readonly(toRef(props, "readOnly")),
         label: computed(() => (props.label?.length ? props.label : props.name)),
-        required: computed(() => props.required ?? false),
+        // props.required flags 'check the value', requiredFnValue is the result of the check
+        required: computed(() => props.required && !unref(requiredFnValue)),
         help: computed(() => props.help || ""),
         suffix: computed(() => props.rangeSuffix || ""),
         valueDetail: formContext
@@ -294,8 +315,8 @@ export function useField(props, emit, functions) {
             : undefined,
     });
     const checkRequired = () => {
-        if ((props.required || props.requiredFn) && state.touched && formContext && !state.readOnly) {
-            if (!unref(requiredFn)(state.value, state.dependencyValues) || state.ignored) {
+        if (formContext) {
+            if (state.required && state.touched && !state.readOnly && !state.ignored) {
                 formContext.updateError(props.name, "required", requiredMessage.value);
             } else {
                 formContext.deleteError(props.name, "required");
@@ -304,77 +325,75 @@ export function useField(props, emit, functions) {
     };
 
     const checkCustomValidation = () => {
-        if (props.validate && state.touched && formContext) {
-            const result = props.validate(state.value, state.dependencyValues);
-            if (result === true) {
-                formContext.deleteError(props.name, "validate");
+        if (formContext) {
+            const result = unref(validateFnResult);
+            if (!(result === true || !state.touched)) {
+                const message = isString(result) ? result : "Validation Failed";
+                formContext.updateError(props.name, "validate", message);
             } else {
-                formContext.updateError(props.name, "validate", result);
+                formContext.deleteError(props.name, "validate");
             }
         }
     };
 
-    watch(
-        () => cloneDeep(state.value),
-        (newValue, oldValue) => {
-            if (!isEqual(newValue, oldValue)) {
-                if (formContext) {
-                    formContext.calculateModified(props.name, props.dependents);
-                }
-                checkRequired();
-                checkCustomValidation();
-            }
-        },
-        { deep: true },
-    );
-
-    watch(
-        () => state.dependencyValues,
-        (newValue, oldValue) => {
-            if (!isEqual(newValue, oldValue)) {
-                checkRequired();
-                checkCustomValidation();
-            }
-        },
-        { deep: true, immediate: true },
-    );
+    const checkModified = () => {
+        if (formContext) {
+            formContext.calculateModified(props.name, props.dependents);
+        }
+    };
 
     watch(
         [
-            toRef(props, "required"),
+            () => cloneDeep(state.value),
+            () => cloneDeep(state.dependencyValues),
+            toRef(state, "required"),
+            validateFnResult,
             toRef(props, "requiredMessage"),
-            toRef(props, "validate"),
-            requiredFn,
             toRef(state, "touched"),
-            toRef(state, "modified"),
             toRef(state, "ignored"),
         ],
         (
-            [newRequired, newRequiredMessage, newValidate, newRequiredFn, newTouched, newModified, newIgnored],
-            [oldRequired, oldRequiredMessage, oldValidate, oldRequiredfn, oldTouched, oldModified, oldIgnored],
+            [
+                newValue,
+                newDependencyValues,
+                newRequired,
+                newValidateFnResult,
+                newRequiredMessage,
+                newTouched,
+                newIgnored,
+            ],
+            [
+                oldValue,
+                oldDependencyValues,
+                oldRequired,
+                oldValidateFnResult,
+                oldRequiredMessage,
+                oldTouched,
+                oldIgnored,
+            ],
         ) => {
-            const requiredChanged = newRequired !== oldRequired;
-            const requiredMessageChanged = newRequiredMessage !== oldRequiredMessage;
-            const validateChanged = newValidate !== oldValidate;
-            const requiredFnChanged = newRequiredFn !== oldRequiredfn;
-            const touchedChanged = newTouched !== oldTouched;
-            const modifiedChanged = newModified !== oldModified;
-            const ignoredChanged = newIgnored !== oldIgnored;
-            if (
-                requiredChanged ||
-                requiredMessageChanged ||
-                touchedChanged ||
-                modifiedChanged ||
-                requiredFnChanged ||
-                ignoredChanged
-            ) {
+            if (!isEqual(newValue, oldValue) || !isEqual(newDependencyValues, oldDependencyValues)) {
+                checkModified();
                 checkRequired();
-            }
-            if (validateChanged || touchedChanged || modifiedChanged) {
                 checkCustomValidation();
+            } else {
+                const requiredChanged = newRequired !== oldRequired;
+                const requiredMessageChanged = newRequiredMessage !== oldRequiredMessage;
+                const validateFnResultChanged = newValidateFnResult !== oldValidateFnResult;
+                const touchedChanged = newTouched !== oldTouched;
+                const ignoredChanged = newIgnored !== oldIgnored;
+                if (requiredChanged || requiredMessageChanged || touchedChanged || ignoredChanged) {
+                    checkRequired();
+                }
+                if (validateFnResultChanged || touchedChanged) {
+                    checkCustomValidation();
+                }
             }
         },
-        { immediate: true },
+        {
+            deep: true,
+            immediate: true,
+        },
     );
 
     const ifFormContext = (fn) => {
