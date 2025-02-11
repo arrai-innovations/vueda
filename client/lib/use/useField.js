@@ -233,6 +233,10 @@ export function useField(props, emit, functions) {
                           if (functions?.preprocessSet) {
                               newValue = functions.preprocessSet(newValue);
                           }
+                          if (isEqual(newValue, state.value)) {
+                              // only you can prevent over reactivity
+                              return;
+                          }
                           if (props.preprocessSet) {
                               newValue = props.preprocessSet(newValue);
                           }
