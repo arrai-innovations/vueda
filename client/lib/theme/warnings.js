@@ -8,11 +8,11 @@ const warningForComponent = (component) => {
             `
 .p-warning.p-${component},
 .p-warning .p-${component} {
-border-color: ${dt(component + ".warning.borderColor")};
+    border-color: ${dt(component + ".warning.borderColor")};
 }
 .p-warning.p-${component}::placeholder,
 .p-warning .p-${component}::placeholder {
-color: ${dt(component + ".warning.placeholderColor")};
+    color: ${dt(component + ".warning.placeholderColor")};
 }
 `,
     };
