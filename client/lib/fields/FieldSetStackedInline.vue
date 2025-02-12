@@ -1,6 +1,6 @@
 <script setup>
+import FieldSetStackedInlineRow from "@vueda/components/FieldSetStackedInlineRow.vue";
 import FormChores from "@vueda/components/FormChores.vue";
-import InlineRow from "@vueda/components/InlineRow.vue";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -142,7 +142,7 @@ const handleDeleteSingle = (selected_) => {
         <hr :class="theme('hr')" />
         <div :class="theme('inner')">
             <div v-if="!props.many && fieldContext.state.value">
-                <InlineRow
+                <field-set-stacked-inline-row
                     :field-name="fieldContext.state.name"
                     :fields="fieldNames"
                     :pk="fieldContext.state.value.id"
@@ -152,7 +152,7 @@ const handleDeleteSingle = (selected_) => {
                 />
             </div>
             <div v-else v-for="(value, index) in fieldContext.state.value" :key="index" :class="theme('inlineRows')">
-                <InlineRow
+                <field-set-stacked-inline-row
                     :field-name="fieldContext.state.name"
                     :fields="fieldNames"
                     :index="index"
@@ -164,7 +164,7 @@ const handleDeleteSingle = (selected_) => {
                     <template #inline-row-destroy="slotProps">
                         <slot :index="index" name="inline-row-destroy" v-bind="slotProps" />
                     </template>
-                </InlineRow>
+                </field-set-stacked-inline-row>
             </div>
         </div>
     </div>
