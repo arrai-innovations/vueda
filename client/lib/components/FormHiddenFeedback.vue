@@ -91,10 +91,7 @@ onMounted(() => {
     }
 });
 const useFieldContext = computed(() => {
-    return fieldContext && props.name && fieldContext.state.name === props.name;
-});
-const useWidgetContext = computed(() => {
-    return widgetContext && props.name && widgetContext.state.name === props.name;
+    return fieldContext && !widgetContext?.state?.contextless;
 });
 const effectiveRequired = computed(() => props.required ?? fieldContext?.state?.required);
 const effectiveHelp = computed(() => (props.help?.length ? props.help : fieldContext?.state?.help));
@@ -103,16 +100,12 @@ const effectiveErrors = computed(() => ({
     ...(props.errors || {}),
 }));
 const effectiveWarnings = computed(() => ({
-    ...(useFieldContext.value ? fieldContext?.state?.warnings : {}),
+    ...(useFieldContext.value ? fieldContext?.state?.messages : {}),
     ...(props.warnings || {}),
 }));
 const showHelpIcon = computed(() => unref(effectiveHelp).length > 0);
-const showErrorIcon = computed(
-    () => props.invalid ?? (useWidgetContext.value ? widgetContext?.state?.validationState?.invalid : false),
-);
-const showWarnIcon = computed(
-    () => props.warning ?? (useWidgetContext.value ? widgetContext?.state?.validationState?.warning : false),
-);
+const showErrorIcon = computed(() => props.invalid ?? widgetContext?.state?.validationState?.invalid ?? false);
+const showWarnIcon = computed(() => props.warning ?? widgetContext?.state?.validationState?.warning ?? false);
 const hasErrors = computed(() => Object.keys(unref(effectiveErrors)).length > 0);
 const hasWarnings = computed(() => Object.keys(unref(effectiveWarnings)).length > 0);
 const attrs = useAttrs();
@@ -178,7 +171,6 @@ const togglePopover = (e) => {
             </form-help-text>
         </div>
     </popover>
-
     <slot
         :button-class="theme('button')"
         :class="combineClasses(theme('root'), $attrs.class)"
