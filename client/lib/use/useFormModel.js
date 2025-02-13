@@ -102,19 +102,22 @@ const getFieldProps = (field) => {
  */
 
 /**
- * @typedef {object} UseFormModelRawProps
- * @property {string} app - The app name to load form configuration for
- * @property {string} model - The model name to load form configuration for
- * @property {string|undefined} view - The view name if wanting to use view specific configuration.
+ * @typedef {object} UseFormModelRawOverridableProps
  * @property {string[]|undefined} fields - The fields to display, if different from the default
  * @property {string[]|undefined} expands - The fields to expand, if different from the default
- * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').FieldInfo}|undefiend} fieldDetails - The field details to use, if different from the default
- * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').ExpandInfo}|undefined} expandDetails - The expand details to use, if different from the default
  * @property {{[fieldName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}|undefined} fieldComponents - The field components to use, if different from the default, by field path
  * @property {{[fieldName:string]: {[key:string]: any}}|undefined} fieldProps - The field props to use, if different from the default, by field path
  * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}|undefined} widgetComponents - The widget components to use, if different from the default, by field path
  * @property {{[fieldName:string]: {[key:string]: any}}|undefined} widgetProps - The widget props to use, if different from the default, by field path
- * @property {import('@vueda/use/useTheme.js').ThemeObject|undefined} themeOverride - The form-level theme override rules. These are passed to each child component.
+ */
+
+/**
+ * @typedef {UseFormModelRawOverridableProps | import('@vueda/use/useTheme.js').ThemeRawProps} UseFormModelRawProps
+ * @property {string} app - The app name to load form configuration for
+ * @property {string} model - The model name to load form configuration for
+ * @property {string|undefined} view - The view name if wanting to use view specific configuration.
+ * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').FieldInfo}|undefiend} fieldDetails - The field details to use, if different from the default
+ * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').ExpandInfo}|undefined} expandDetails - The expand details to use, if different from the default
  */
 
 /**

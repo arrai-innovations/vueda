@@ -154,6 +154,24 @@ export function defaultValidateRequired(value) {
  */
 
 /**
+ * @typedef {object} FieldContextRawProps
+ * @property {string} name - The name of the field.
+ * @property {boolean} [required=false] - Whether the field is required.
+ * @property {boolean} [readOnly=false] - Whether the field is read only.
+ * @property {string} [requiredMessage="This field is required."] - The message to display if the field is required and empty.
+ * @property {string} [label] - The label for the field.
+ * @property {string} [help] - The help text for the field.
+ * @property {(value: any) => boolean} [validate] - A custom validation function for the field.
+ * @property {(value: any) => boolean} [requiredFn] - A custom function to check if the field is required.
+ * @property {any} [modelValue] - The field value. This is used when the field is not part of a form.
+ * @property {string[]} [dependents] - The dependents for the field.
+ * @property {string[]} [dependencies] - The dependencies for the field.
+ * @property {string} [formModelName] - The name of the form model. This is the lookup name for configuration in a FormModel configuration object related to the field.
+ * @property {(value: any) => any} [preprocessSet] - A custom function to preprocess the value before updating
+ * @property {(value: any) => any} [preprocessGet] - A custom function to preprocess the value before retrieving
+ */
+
+/**
  * The reactive arguments for the useField function. (Matches FIELD_PROPS).
  *
  * @typedef {import('vue').UnwrapNestedRefs<{

@@ -3,7 +3,7 @@ import { useSlots } from "vue";
 import { deepUnref } from "vue-deepunref";
 
 /**
- * @typedef {object} ResolvedSlotName
+ * @typedef {object} ResolvedSlotRawName
  * @property {import('vue').ComputedRef<boolean>} exists - Whether any passed slots will match any of the slot names.
  * @property {import('vue').ComputedRef<string|undefined>} name - The name of the most specific slot that was passed.
  * @example
@@ -41,13 +41,17 @@ import { deepUnref } from "vue-deepunref";
  */
 
 /**
+ * @typedef {import('vue').UnwrapNestedRefs<ResolvedSlotRawName>} ResolvedSlotName - The resolved slot name instance.
+ */
+
+/**
  * Helper to resolve the most specific slot name from a list of candidates in order of precedence.
  *
  * @param {SlotNamesInOrderOfPrecedence} slotNamesInOrderOfPrecedence - The slot names to check for, in order of
  *  precedence.
  * @param {import('vue').Slots|undefined} slots - The slots object to check against. If not provided, the current
  *  instance's slots will be used.
- * @returns {import('vue').UnwrapNestedRefs<ResolvedSlotName>} - The resolved slot name.
+ * @returns {ResolvedSlotName} - The resolved slot name.
  */
 export function useSlotNameResolver(slotNamesInOrderOfPrecedence, slots) {
     if (!slots) {

@@ -101,13 +101,22 @@ export function useThemeOverride(localOverride, configOverride = null) {
  * The function returned by useTheme.
  * @typedef {(key: string, kwargs?: import('vue').UnwrapNestedRefs<object>) => ThemeObject} UseThemeReturnFunction
  */
+
+/**
+ * @typedef {{
+ *     themeOverride: ThemeObject
+ * }} ThemeRawProps
+ */
+
+/**
+ * @typedef {import('vue').UnwrapNestedRefs<ThemeRawProps>|import('vue').ComputedRef<ThemeRawProps>} ThemeProps
+ */
+
 /**
  * A hook to get the classes for a given key and kwargs. Uses computeds for caching.
  *
  * @param {string} componentName - The name of the component.
- * @param {import('vue').UnwrapNestedRefs<{
- *     themeOverride: ThemeObject
- * }>|import('vue').ComputedRef<object>} props - The reactive or computed props to pass to the class function.
+ * @param {ThemeProps} props - The reactive or computed props to pass to the class function.
  * @param {import('vue').UnwrapNestedRefs<object>|import('vue').Ref<object>|object} [context] - The context to pass if the config or config.class is a function.
  * @param {(key: string, kwargs: object) => string} [keyFn] - A function to modify a key based on kwargs.
  * @returns {UseThemeReturnFunction} A function that returns the classes for a given key and kwargs.

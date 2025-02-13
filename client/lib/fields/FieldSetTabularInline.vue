@@ -3,371 +3,101 @@ import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
-import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import { useFormModel } from "@vueda/use/useFormModel.js";
-import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
-import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
+import {
+    FIELD_SET_TABULAR_INLINE_EMITS,
+    FIELD_SET_TABULAR_INLINE_PROPS,
+    useFieldSetTabularInline,
+} from "@vueda/use/useFieldSetTabularInline.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
-import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
-import { useBreakpoints } from "@vueuse/core";
-import { merge } from "lodash-es";
-import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
-import { computed, inject, onBeforeUpdate, reactive, ref, toRef, unref, useSlots, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
 });
-const props = defineProps({
-    ...FIELD_PROPS,
-    fieldComponents: {
-        type: Object,
-        default: undefined,
-        description: "A map of field paths to async fns returning field component, as overrides.",
-    },
-    fieldProps: {
-        type: Object,
-        default: undefined,
-        description: "A map of field paths to props, as overrides.",
-    },
-    widgetComponents: {
-        type: Object,
-        default: undefined,
-        description: "A map of field paths to async fns returning widget component, as overrides.",
-    },
-    widgetProps: {
-        type: Object,
-        default: undefined,
-        description: "A map of field paths to props, as overrides.",
-    },
-    fields: {
-        type: Array,
-        default: undefined,
-        description: "A list of the field names to display for each object.",
-    },
-    expands: {
-        type: Array,
-        default: undefined,
-        description: "A list of the field names to expand.",
-    },
-    objectGridVariant: {
-        type: String,
-        default: "default",
-    },
-    fieldObjects: {
-        type: Array,
-        default: undefined,
-    },
-    visible: {
-        type: Boolean,
-        default: undefined,
-    },
-    hidable: {
-        type: Boolean,
-        default: true,
-    },
-    hiddenByDefault: {
-        type: String,
-        description:
-            "Should the fieldset be hidden by default? Can be 'always', 'never', or a VUEDA breakpoint threshold, at or above the fieldset is shown by default.",
-        validator: (value) => ["always", "never"].includes(value) || Object.keys(breakpointsVueda).includes(value),
-        default: "lg",
-    },
-    showCreateButton: {
-        type: Boolean,
-        default: true,
-    },
-    ...THEME_OVERRIDE_PROPS,
-});
-const itemRefs = ref(null);
-onBeforeUpdate(() => {
-    itemRefs.value = null;
-});
-const emit = defineEmits([...FIELD_EMITS]);
-const fieldSetContext = useField(props, emit);
-const parentFormModel = inject(FormModelSymbol, null);
-const isTable = ref(true);
-const handleIsTableUpdate = (newValue) => {
-    isTable.value = newValue;
-};
-// merge the props from FieldSetTabularInline, and the props from the formModel
-const mergedFormModelProps = reactive({
-    name: props.name,
-    app: parentFormModel.app,
-    model: parentFormModel.model,
-    view: parentFormModel.view,
-    fields: computed(() => [...(parentFormModel.fields?.map((item) => item.value) || []), ...(props.fields || [])])
-        .value,
-    expands: computed(() => [...(parentFormModel.expands?.map((item) => item.value) || []), ...(props.expands || [])])
-        .value,
-    fieldDetails: computed(() => merge(cloneDeep(parentFormModel.fieldDetails), props.fieldDetails)),
-    fieldComponents: computed(() => merge(cloneDeep(parentFormModel.fieldComponents), props.fieldComponents)),
-    fieldProps: computed(() => merge(cloneDeep(parentFormModel.fieldProps), props.fieldProps)),
-    expandDetails: computed(() => merge(cloneDeep(parentFormModel.expandDetails), props.expandDetails)),
-    widgetComponents: computed(() => merge(cloneDeep(parentFormModel.widgetComponents), props.widgetComponents)),
-    widgetProps: computed(() => merge(cloneDeep(parentFormModel.widgetProps), props.widgetProps)),
-});
+const props = defineProps(FIELD_SET_TABULAR_INLINE_PROPS);
 
-const theme = useTheme("FieldSetTabularInline", props);
-const formModel = useFormModel(mergedFormModelProps);
-const fieldNames = computed(() => {
-    if (props.fields) {
-        return props.fields;
-    } else {
-        const fields = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.f;
-        const omitFields = formModel?.expandDetails?.[fieldSetContext.state.formModelName].hidden;
-        // return the fields keys, omitting the hidden fields keys
-        return fields ? Object.keys(omit(fields, omitFields)) : [];
-    }
-});
-
-const fieldObjects = computed(() => {
-    if (props.fieldObjects) {
-        return props.fieldObjects;
-    }
-    const fields = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.f;
-    return fields
-        ? fieldNames.value?.map((name) => {
-              return {
-                  fieldName: name,
-                  name: `${fieldSetContext.state.formModelName}__${name}`,
-                  ...fields[name],
-              };
-          })
-        : [];
-});
-
-const emptyFieldObject = () => {
-    const emptyObject = {};
-    if (Array.isArray(fieldObjects.value)) {
-        fieldObjects.value.forEach((field) => {
-            if (field.fieldName) {
-                emptyObject[field.fieldName] = getFieldInitialValue(field);
-            }
-        });
-    }
-    return emptyObject;
-};
-
-const selected = ref([]);
-
-function focusFirstTabbableElement(element) {
-    if (!element) {
-        return;
-    }
-    const tabbableSelector =
-        "a[href], " +
-        // + "button:not([disabled]), "
-        'input:not([disabled]):not([type="hidden"]), ' +
-        "select:not([disabled]), " +
-        "textarea:not([disabled]), " +
-        '[tabindex]:not([tabindex="-1"])';
-    const firstTabbable = element.querySelector(tabbableSelector);
-    if (firstTabbable) {
-        firstTabbable.focus();
-    }
-}
-
-const focusIndex = ref(null);
-watch(
-    [itemRefs, focusIndex],
-    ([newItemRefs, newFocusIndex]) => {
-        // noinspection EqualityComparisonWithCoercionJS
-        const newItem = newItemRefs?.find?.((el) => el?.dataset?.rowIndex == newFocusIndex);
-        if (newItem) {
-            newItem.scrollIntoView({ behavior: "smooth", block: "center" });
-            focusFirstTabbableElement(newItem.parentNode);
-            focusIndex.value = null;
-        }
-    },
-    { deep: true, flush: "post" },
-);
-const doCreate = (_e, defaultValues) => {
-    let defaultObject = emptyFieldObject();
-    if (defaultValues) {
-        defaultObject = { ...defaultObject, ...defaultValues };
-    }
-    if (!internalVisible.value) {
-        internalVisible.value = true;
-        userHasToggled.value = true;
-    }
-    fieldSetContext.blur();
-    fieldSetContext.state.value = [...cloneDeep(fieldSetContext.state.value), defaultObject];
-    focusIndex.value = fieldSetContext.state.value.length - 1;
-};
-
-const handleSelected = (isSelected, rowIndex) => {
-    if (isSelected) {
-        if (!selected.value.includes(rowIndex)) {
-            selected.value.push(rowIndex);
-            fieldSetContext.ignore(`${fieldSetContext.state.name}[${rowIndex}]`);
-        }
-    } else {
-        selected.value = selected.value.filter((i) => i !== rowIndex);
-        fieldSetContext.removeIgnore(`${fieldSetContext.state.name}[${rowIndex}]`);
-    }
-    if (selected.value.length) {
-        fieldSetContext.setModified();
-    } else {
-        fieldSetContext.clearModified();
-    }
-};
-
-const removeObject = (index) => {
-    fieldSetContext.blur();
-    fieldSetContext.state.value = cloneDeep(fieldSetContext.state.value).filter((_, i) => i !== index);
-    fieldSetContext.clearErrors(index);
-    fieldSetContext.clearMessages(index);
-};
-const computedFieldProps = computed(() =>
-    merge(formModel.fieldProps[fieldSetContext.state.formModelName], props.fieldProps),
-);
-const computedFieldObjects = computed(() => {
-    const objects = [];
-    if (actions.value.length) {
-        objects.push({
-            name: "item-action-bar",
-        });
-    }
-    objects.push(...fieldObjects.value);
-    return objects.filter((field) => !field.action);
-});
-const actions = computed(() => {
-    return [...fieldObjects.value].filter((field) => field.action);
-});
-const breakpoints = useBreakpoints(breakpointsVueda);
-const isVisibleByDefault = computed(() => {
-    if (props.hiddenByDefault === "always") {
-        return false;
-    } else if (props.hiddenByDefault === "never") {
-        return true;
-    } else if (Object.keys(breakpointsVueda).includes(props.hiddenByDefault)) {
-        return breakpoints.greaterOrEqual(props.hiddenByDefault).value;
-    }
-    return true;
-});
-
-const userHasToggled = ref(false);
-const internalVisible = ref(props.visible ?? isVisibleByDefault.value);
-
-watch(
-    () => [toRef(props, "visible"), toRef(props, "hidable")],
-    ([newVisibleVal, newHidable]) => {
-        if (newVisibleVal !== undefined) {
-            internalVisible.value = newVisibleVal;
-        } else if (newHidable === false) {
-            internalVisible.value = isVisibleByDefault.value;
-        }
-    },
-    { immediate: true },
-);
-
-watch(isVisibleByDefault, (newVal) => {
-    if (!userHasToggled.value && props.visible === undefined) {
-        internalVisible.value = newVal;
-    }
-});
-
-const toggleVisibility = () => {
-    if (props.visible !== undefined) {
-        emit("update:visible", !internalVisible.value);
-    } else {
-        internalVisible.value = !internalVisible.value;
-    }
-    userHasToggled.value = true;
-};
-const refFn = (el) => {
-    if (!itemRefs.value) {
-        itemRefs.value = [];
-    }
-    itemRefs.value.push(el);
-};
-const slots = useSlots();
-const slotNames = [
-    "toggle-button",
-    "create-button",
-    "create-button-inline",
-    "destroy-button",
-    "destroy-checkbox",
-    // todo: implement action-button for non item actions
-    // "action-button",
-    "item-action-button",
-];
-const resolvedSlotNames = slotNames.reduce((acc, name) => {
-    acc[name] = useSlotNameResolver(
-        computed(() => [`field(${fieldSetContext.state.formModelName})${name}`, `fieldset-${name}`, name]),
-    );
-    return acc;
-}, {});
-const remainingSlotNames = computed(() => {
-    const slotNames = Object.keys(slots);
-    const knownSlotNames = [
-        "default",
-        `field(${fieldSetContext.state.formModelName})item-action-bar`,
-        ...slotNames.flatMap((name) => unref(resolvedSlotNames?.[name]?.possibleNames)),
-        ...getFormChoresSlotNames(fieldSetContext.state.formModelName),
-    ];
-    return slotNames.filter((slotName) => !knownSlotNames.includes(slotName));
+const emit = defineEmits([...FIELD_SET_TABULAR_INLINE_EMITS]);
+const fieldSetTabularInline = useFieldSetTabularInline({
+    props,
+    emit,
+    slotNames: [
+        "toggle-button",
+        "create-button",
+        "create-button-inline",
+        "destroy-button",
+        "destroy-checkbox",
+        // todo: implement action-button for non item actions
+        // "action-button",
+        "item-action-button",
+    ],
 });
 </script>
 
 <template>
-    <div ref="test" :class="combineClasses(theme('root'), $attrs.class)" data-qa="fieldset-tabular-inline-root">
-        <div :class="theme('inner')" data-qa="fieldset-tabular-inline-inner">
+    <div
+        ref="test"
+        :class="combineClasses(fieldSetTabularInline.theme('root'), $attrs.class)"
+        data-qa="fieldset-tabular-inline-root"
+    >
+        <div :class="fieldSetTabularInline.theme('inner')" data-qa="fieldset-tabular-inline-inner">
             <Divider
                 :pt="{
                     root: {
-                        class: theme('dividerRoot'),
+                        class: fieldSetTabularInline.theme('dividerRoot'),
                     },
                     content: {
-                        class: theme('dividerContent'),
+                        class: fieldSetTabularInline.theme('dividerContent'),
                     },
                 }"
             >
-                <div v-if="hidable" data-qa="fieldset-tabular-inline-header-toggle">
+                <div v-if="fieldSetTabularInline.state.hidable" data-qa="fieldset-tabular-inline-header-toggle">
                     <slot
-                        :class="theme('toggleButton')"
-                        :field-props="computedFieldProps"
-                        :label="internalVisible ? 'Hide' : 'Show'"
-                        :name="resolvedSlotNames['toggle-button'].name"
-                        :verb="internalVisible ? 'collapseDown' : 'collapseUp'"
-                        @click="toggleVisibility"
+                        :class="fieldSetTabularInline.theme('toggleButton')"
+                        :field-props="fieldSetTabularInline.state.computedFieldProps"
+                        :label="fieldSetTabularInline.state.internalVisible ? 'Hide' : 'Show'"
+                        :name="fieldSetTabularInline.resolvedSlotNames['toggle-button'].name"
+                        :verb="fieldSetTabularInline.state.internalVisible ? 'collapseDown' : 'collapseUp'"
+                        @click="fieldSetTabularInline.toggleVisibility"
                     >
                         <Button
-                            :class="theme('toggleButton')"
-                            :label="internalVisible ? 'Hide' : 'Show'"
-                            @click="toggleVisibility"
+                            :class="fieldSetTabularInline.theme('toggleButton')"
+                            :label="fieldSetTabularInline.state.internalVisible ? 'Hide' : 'Show'"
+                            @click="fieldSetTabularInline.toggleVisibility"
                         />
                     </slot>
                 </div>
-                <div :class="theme('title')" data-qa="fieldset-tabular-inline-title">
+                <div :class="fieldSetTabularInline.theme('title')" data-qa="fieldset-tabular-inline-title">
                     <slot name="title">
-                        {{ fieldSetContext.state.label }}
+                        {{ fieldSetTabularInline.fieldSetContext.state.label }}
                     </slot>
                 </div>
-                <div :class="theme('actionBar')" data-qa="fieldset-tabular-inline-action-bar">
+                <div :class="fieldSetTabularInline.theme('actionBar')" data-qa="fieldset-tabular-inline-action-bar">
                     <slot
-                        v-if="isTable && !computedFieldProps.readOnly && props.showCreateButton"
-                        :class="theme('createButton')"
-                        :field-props="computedFieldProps"
+                        v-if="
+                            fieldSetTabularInline.state.isTable &&
+                            !fieldSetTabularInline.state.computedFieldProps.readOnly &&
+                            props.showCreateButton
+                        "
+                        :class="fieldSetTabularInline.theme('createButton')"
+                        :field-props="fieldSetTabularInline.state.computedFieldProps"
                         label="Create"
-                        :name="resolvedSlotNames['create-button'].name"
+                        :name="fieldSetTabularInline.resolvedSlotNames['create-button'].name"
                         verb="createInline"
-                        @click="doCreate"
+                        @click="fieldSetTabularInline.doCreate"
                     >
-                        <Button :class="theme('createButton')" label="Create" @click="doCreate" />
+                        <Button :class="fieldSetTabularInline.theme('createButton')" label="Create" @click="doCreate" />
                     </slot>
                 </div>
             </Divider>
             <slot name="field-set-level-chores">
                 <form-chores :variant="null">
                     <template
-                        v-for="slot in getFormChoresSlotNames(fieldSetContext.state.formModelName)"
+                        v-for="slot in getFormChoresSlotNames(
+                            fieldSetTabularInline.fieldSetContext.state.formModelName,
+                        )"
                         #[slot]="formChoresSlotProps"
                     >
                         <slot :name="slot" v-bind="formChoresSlotProps" />
@@ -376,23 +106,23 @@ const remainingSlotNames = computed(() => {
             </slot>
             <objects-grid
                 :class="
-                    combineClasses(theme('objectsGrid'), {
-                        [theme('objectsGridHidden')]: !internalVisible,
+                    combineClasses(fieldSetTabularInline.theme('objectsGrid'), {
+                        [fieldSetTabularInline.theme('objectsGridHidden')]:
+                            !fieldSetTabularInline.state.internalVisible,
                     })
                 "
                 :empty-text="null"
                 :field-classes="{
                     selected_: 'text-center',
                 }"
-                :fields="computedFieldObjects"
-                :objects-in-order="fieldSetContext.state.value"
+                :fields="fieldSetTabularInline.state.computedFieldObjects"
+                :objects-in-order="fieldSetTabularInline.fieldSetContext.state.value"
                 :table-breakpoint="$attrs.tableBreakpoint || 'lg'"
-                :variant="props.objectGridVariant"
                 v-bind="omit($attrs, ['class'])"
-                @update:is-table="handleIsTableUpdate"
+                @update:is-table="fieldSetTabularInline.handleIsTableUpdate"
             >
                 <template
-                    v-for="fieldObj in fieldObjects"
+                    v-for="fieldObj in fieldSetTabularInline.state.fieldObjects"
                     :key="fieldObj.name"
                     #[`header(${fieldObj.name})`]="headerSlotProps"
                 >
@@ -401,28 +131,34 @@ const remainingSlotNames = computed(() => {
                 <template #[`field(item-action-bar)`]="objectGridFieldSlotProps">
                     <slot name="item-action-bar">
                         <div
-                            v-if="actions?.length"
-                            :class="theme('itemActionBar')"
+                            v-if="fieldSetTabularInline.state.actions?.length"
+                            :class="fieldSetTabularInline.theme('itemActionBar')"
                             data-qa="field-set-tabular-inline-item-action-bar"
                         >
-                            <template v-for="action in actions">
+                            <template v-for="action in fieldSetTabularInline.state.actions">
                                 <template v-if="action.fieldName === 'destroy'">
                                     <slot
                                         v-if="!objectGridFieldSlotProps.pk"
                                         :action="action"
                                         :label="action.label"
-                                        :name="resolvedSlotNames['destroy-button'].name"
+                                        :name="fieldSetTabularInline.resolvedSlotNames['destroy-button'].name"
                                         :row-index="objectGridFieldSlotProps.rowIndex"
-                                        :selected="selected.includes(objectGridFieldSlotProps.rowIndex)"
-                                        :theme="theme"
+                                        :selected="
+                                            fieldSetTabularInline.state.selected.includes(
+                                                objectGridFieldSlotProps.rowIndex,
+                                            )
+                                        "
+                                        :theme="fieldSetTabularInline.theme"
                                         :value="action.value"
                                         verb="destroy"
-                                        @click="removeObject(objectGridFieldSlotProps.rowIndex)"
+                                        @click="fieldSetTabularInline.removeObject(objectGridFieldSlotProps.rowIndex)"
                                     >
                                         <Button
                                             label="Delete"
                                             text
-                                            @click="removeObject(objectGridFieldSlotProps.rowIndex)"
+                                            @click="
+                                                fieldSetTabularInline.removeObject(objectGridFieldSlotProps.rowIndex)
+                                            "
                                         />
                                     </slot>
                                     <slot
@@ -430,8 +166,12 @@ const remainingSlotNames = computed(() => {
                                         :action="action"
                                         :contextless="true"
                                         label="Destroy?"
-                                        :model-value="selected.includes(objectGridFieldSlotProps.rowIndex)"
-                                        :name="resolvedSlotNames['destroy-checkbox'].name"
+                                        :model-value="
+                                            fieldSetTabularInline.state.selected.includes(
+                                                objectGridFieldSlotProps.rowIndex,
+                                            )
+                                        "
+                                        :name="fieldSetTabularInline.resolvedSlotNames['destroy-checkbox'].name"
                                         :required="false"
                                         :row-index="objectGridFieldSlotProps.rowIndex"
                                         :theme="theme"
@@ -439,34 +179,44 @@ const remainingSlotNames = computed(() => {
                                         verb="destroy"
                                         @update:model-value="
                                             (isSelected) =>
-                                                handleSelected(isSelected, objectGridFieldSlotProps.rowIndex)
+                                                fieldSetTabularInline.handleSelected(
+                                                    isSelected,
+                                                    objectGridFieldSlotProps.rowIndex,
+                                                )
                                         "
                                     >
                                         <widget-checkbox
                                             :contextless="true"
                                             :input-id="`selected-row-${objectGridFieldSlotProps.rowIndex}`"
                                             label="Destroy?"
-                                            :model-value="selected.includes(objectGridFieldSlotProps.rowIndex)"
+                                            :model-value="
+                                                fieldSetTabularInline.state.selected.includes(
+                                                    objectGridFieldSlotProps.rowIndex,
+                                                )
+                                            "
                                             name="destroy-checkbox"
                                             :required="false"
                                             size="small"
                                             :value="objectGridFieldSlotProps.rowIndex"
                                             @update:model-value="
                                                 (isSelected) =>
-                                                    handleSelected(isSelected, objectGridFieldSlotProps.rowIndex)
+                                                    fieldSetTabularInline.handleSelected(
+                                                        isSelected,
+                                                        objectGridFieldSlotProps.rowIndex,
+                                                    )
                                             "
                                         />
                                     </slot>
                                 </template>
                                 <template v-else>
                                     <slot
-                                        :name="resolvedSlotNames['item-action-button'].name"
+                                        :name="fieldSetTabularInline.resolvedSlotNames['item-action-button'].name"
                                         v-bind="{
                                             objectGridFieldSlotProps,
                                             action,
-                                            fieldSetContextState: fieldSetContext.state,
-                                            rowValueName: `${fieldSetContext.state.name}[${objectGridFieldSlotProps.rowIndex}]`,
-                                            doCreate,
+                                            fieldSetContextState: fieldSetTabularInline.fieldSetContext.state,
+                                            rowValueName: `${fieldSetTabularInline.fieldSetContext.state.name}[${objectGridFieldSlotProps.rowIndex}]`,
+                                            doCreate: fieldSetTabularInline.doCreate,
                                         }"
                                     >
                                         <Button
@@ -476,10 +226,11 @@ const remainingSlotNames = computed(() => {
                                                     action.action({
                                                         objectGridFieldSlotProps,
                                                         action,
-                                                        fieldSetContextState: fieldSetContext.state,
-                                                        rowValueName: `${fieldSetContext.state.name}[${objectGridFieldSlotProps.rowIndex}]`,
+                                                        fieldSetContextState:
+                                                            fieldSetTabularInline.fieldSetContext.state,
+                                                        rowValueName: `${fieldSetTabularInline.fieldSetContext.state.name}[${objectGridFieldSlotProps.rowIndex}]`,
                                                         event: $event,
-                                                        doCreate,
+                                                        doCreate: fieldSetTabularInline.doCreate,
                                                     })
                                             "
                                         />
@@ -490,25 +241,28 @@ const remainingSlotNames = computed(() => {
                     </slot>
                 </template>
                 <template
-                    v-for="(fieldObj, foIndex) in fieldObjects"
+                    v-for="(fieldObj, foIndex) in fieldSetTabularInline.state.fieldObjects"
                     :key="`${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}-${objectGridFieldSlotProps.columnIndex}`"
                     #[`field(${fieldObj.name})`]="objectGridFieldSlotProps"
                 >
                     <a
                         v-if="foIndex === 0"
                         :id="`fieldset-tabular-inline-anchor-${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}`"
-                        :ref="(el) => refFn(el)"
+                        :ref="(el) => fieldSetTabularInline.refFn(el)"
                         data-qa="fieldset-tabular-inline-anchor"
                         :data-row-index="objectGridFieldSlotProps.rowIndex"
                     />
                     <field-renderer
-                        :field-props="computedFieldProps"
-                        :form-model="formModel"
+                        :field-props="fieldSetTabularInline.state.computedFieldProps"
+                        :form-model="fieldSetTabularInline.formModel"
                         :form-model-name="fieldObj.name"
                         :object-grid-field-slot-props="objectGridFieldSlotProps"
-                        v-bind="{ doCreate }"
+                        v-bind="{ doCreate: fieldSetTabularInline.doCreate }"
                     >
-                        <template v-for="slotName in remainingSlotNames" #[slotName]="slotProps">
+                        <template
+                            v-for="slotName in fieldSetTabularInline.state.remainingSlotNames"
+                            #[slotName]="slotProps"
+                        >
                             <slot :name="slotName" v-bind="slotProps" />
                         </template>
                     </field-renderer>
@@ -516,25 +270,29 @@ const remainingSlotNames = computed(() => {
 
                 <template #row-after-objects="slotProps">
                     <div
-                        v-if="!isTable && !computedFieldProps.readOnly && props.showCreateButton"
+                        v-if="
+                            !fieldSetTabularInline.state.isTable &&
+                            !fieldSetTabularInline.state.computedFieldProps.readOnly &&
+                            fieldSetTabularInline.state.showCreateButton
+                        "
                         key="create-row"
-                        :class="combineClasses(theme('createButtonCard'), slotProps.class)"
+                        :class="combineClasses(fieldSetTabularInline.theme('createButtonCard'), slotProps.class)"
                         data-qa="field-set-tabular-inline-create-row"
                         role="row"
                     >
                         <slot
-                            :class="theme('inLineCreateButton')"
-                            :field-props="computedFieldProps"
+                            :class="fieldSetTabularInline.theme('inLineCreateButton')"
+                            :field-props="fieldSetTabularInline.state.computedFieldProps"
                             label="Create"
-                            :name="resolvedSlotNames['create-button-inline'].name"
+                            :name="fieldSetTabularInline.resolvedSlotNames['create-button-inline'].name"
                             verb="createInline"
-                            @click="doCreate"
+                            @click="fieldSetTabularInline.doCreate"
                         >
                             <Button
-                                :class="theme('inLineCreateButton')"
+                                :class="fieldSetTabularInline.theme('inLineCreateButton')"
                                 label="Create"
                                 variant="text"
-                                @click="doCreate"
+                                @click="fieldSetTabularInline.doCreate"
                             />
                         </slot>
                     </div>
