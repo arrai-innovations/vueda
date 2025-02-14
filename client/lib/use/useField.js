@@ -1,9 +1,10 @@
+import { keyDiff } from "@arrai-innovations/reactive-helpers";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
 import isString from "lodash-es/isString.js";
-import { computed, inject, provide, reactive, readonly, toRef, unref, watch } from "vue";
+import { computed, inject, onUnmounted, provide, reactive, readonly, toRef, unref, watch } from "vue";
 import { deepUnref } from "vue-deepunref";
 
 /**
@@ -92,6 +93,22 @@ export function defaultValidateRequired(value) {
 }
 
 /**
+ * Resolves a `$parent` reference in a field path based on the current field name.
+ * @private
+ * @param {string} fieldPath - The field path (which may include `$parent`).
+ * @param {string} currentFieldPath - The current field's full path.
+ * @returns {string} The resolved field path.
+ */
+const resolveParentPath = (fieldPath, currentFieldPath) => {
+    if (!fieldPath.includes("$parent")) {
+        return fieldPath; // No need to resolve if `$parent` is not used
+    }
+
+    const parentPath = currentFieldPath.split(".").slice(0, -1).join("."); // Extract the parent path
+    return fieldPath.replace("$parent", parentPath);
+};
+
+/**
  * @typedef {object} FieldContextRawState
  * @property {import('vue').ComputedRef<string>} name - The name of the field. This is the path to look up the value of
  *  the field in the form context.
@@ -133,16 +150,12 @@ export function defaultValidateRequired(value) {
  * @property {([childIndex:number|undefined]) => void} clearMessages - Clear the field's messages.
  * @property {(code: string, message: string) => void} updateMessage - Update the field's message.
  * @property {(code: string) => void} deleteMessage - Delete the field's message.
- * @property {() => void} calculateModified - Calculate the modified state of the field. The form context object
- *  calculates modified fields automatically when values change via form methods.
  * @property {() => void} setTouched - Mark the field as touched. The form context object marks blurred
  *  fields as touched automatically.
  * @property {() => void} focus - Focus on the field.
  * @property {() => void} blur - Blur the field.
  * @property {([name:string|undefined]) => void} ignore - Ignore the field.
  * @property {([]name:string|undefined]) => void} removeIgnore - Remove ignoring the field.
- * @property {() => void} setModified - mark a field as modified.
- * @property {() => void} clearModified - clear modified mark of a field.
  */
 
 /**
@@ -186,6 +199,35 @@ export function defaultValidateRequired(value) {
  */
 
 const returnVoid = () => {};
+
+/**
+ * Determines if a value should be considered "empty" in the context of form field modification.
+ *
+ * This function treats `undefined`, `null`, and `""` (empty string) as equivalent empty values.
+ * Unlike Lodash's `isEmpty`, it **does not** consider `false`, `0`, empty arrays `[]`, or empty objects `{}`
+ * as empty values, because:
+ *
+ * - `false` and `0` are **valid form values** and should not be ignored.
+ * - Empty arrays `[]` and objects `{}` may be intentional values and should not trigger "empty" logic.
+ *
+ * | Input               | Description                    | Expected Output |
+ * |---------------------|--------------------------------|-----------------|
+ * | `undefined`         | Explicitly undefined value     | ✅ `true`       |
+ * | `null`              | Null value                     | ✅ `true`       |
+ * | `""` (empty string) | Empty string                   | ✅ `true`       |
+ * | `false`             | Boolean false                  | ❌ `false`      |
+ * | `0`                 | Numeric zero                   | ❌ `false`      |
+ * | `[]` (empty array)  | Empty array                    | ❌ `false`      |
+ * | `{}` (empty object) | Empty object                   | ❌ `false`      |
+ * | `"hello"`           | Non-empty string               | ❌ `false`      |
+ * | `42`                | Non-zero number                | ❌ `false`      |
+ * | `[1, 2, 3]`         | Non-empty array                | ❌ `false`      |
+ * | `{ key: "value" }`  | Object with properties         | ❌ `false`      |
+ *
+ * @param {any} val - The value to check.
+ * @returns {boolean} `true` if the value is `undefined`, `null`, or an empty string, otherwise `false`.
+ */
+const isEmpty = (val) => val === undefined || val === null || val === "";
 
 /**
  * Generate and provide a field context for a field, using the provided props and functions, including methods to update
@@ -306,6 +348,9 @@ export function useField(props, emit, functions) {
                   },
               })
             : undefined,
+        valueIsInitial: computed(() => isEqual(state.value, state.initialValue)),
+        initialValueEmpty: computed(() => isEmpty(state.initialValue)),
+        valueEmpty: computed(() => isEmpty(state.value)),
         messages: formContext ? computed(() => get(formContext.state.messages, props.name)) : {},
         errors: formContext ? computed(() => get(formContext.state.errors, props.name)) : {},
         touched: formContext ? computed(() => formContext.state.touched[props.name]) : false,
@@ -354,12 +399,6 @@ export function useField(props, emit, functions) {
         }
     };
 
-    const checkModified = () => {
-        if (formContext) {
-            formContext.calculateModified(props.name, props.dependents);
-        }
-    };
-
     watch(
         [
             () => cloneDeep(state.value),
@@ -391,7 +430,6 @@ export function useField(props, emit, functions) {
             ],
         ) => {
             if (!isEqual(newValue, oldValue) || !isEqual(newDependencyValues, oldDependencyValues)) {
-                checkModified();
                 checkRequired();
                 checkCustomValidation();
             } else {
@@ -429,7 +467,6 @@ export function useField(props, emit, functions) {
         clearMessages: ifFormContext((childIndex = undefined) => formContext.clearMessages(state.name, childIndex)),
         updateMessage: ifFormContext((code, message) => formContext.updateMessage(state.name, code, message)),
         deleteMessage: ifFormContext((code) => formContext.deleteMessage(state.name, code)),
-        calculateModified: ifFormContext(() => formContext.calculateModified(state.name)),
         setTouched: ifFormContext(() => formContext.setTouched(state.name)),
         clearTouched: ifFormContext(() => formContext.clearTouched(state.name)),
         focus: ifFormContext(() => formContext.focus(state.name)),
@@ -437,9 +474,39 @@ export function useField(props, emit, functions) {
         ignore: ifFormContext((name = state.name) => formContext.ignore(name)),
         removeIgnore: ifFormContext((name = state.name) => formContext.removeIgnore(name)),
         deleteValue: ifFormContext(() => formContext.deleteValue(state.name)),
-        setModified: ifFormContext(() => formContext.setModified(state.name)),
-        clearModified: ifFormContext(() => formContext.clearModified(state.name)),
+        registerIsModifiedHook: ifFormContext((hook) => formContext.registerIsModifiedHook(state.name, hook)),
+        unregisterIsModifiedHook: ifFormContext((id) => formContext.unregisterIsModifiedHook(id)),
     };
     provide(FieldContextSymbol, returnObj);
+    let isModifiedHookId;
+    const registeredDependentIdsByDependent = {};
+    const amIModified = () => {
+        return !state.valueIsInitial && !state.ignored && !(state.initialValueEmpty && state.valueEmpty);
+    };
+    if (formContext) {
+        isModifiedHookId = returnObj.registerIsModifiedHook(amIModified);
+    }
+    onUnmounted(() => {
+        if (isModifiedHookId) {
+            returnObj.unregisterIsModifiedHook(isModifiedHookId);
+        }
+    });
+    watch(
+        () => cloneDeep(state.dependents),
+        (newValue, oldValue) => {
+            const { addedKeys, removedKeys } = keyDiff(newValue, oldValue);
+            for (const dependent of addedKeys) {
+                const resolvedDependent = resolveParentPath(dependent, state.name);
+                registeredDependentIdsByDependent[resolvedDependent] = returnObj.registerIsModifiedHook(amIModified);
+            }
+            for (const dependent of removedKeys) {
+                returnObj.unregisterIsModifiedHook(registeredDependentIdsByDependent[dependent]);
+                delete registeredDependentIdsByDependent[dependent];
+            }
+        },
+        {
+            immediate: true,
+        },
+    );
     return returnObj;
 }

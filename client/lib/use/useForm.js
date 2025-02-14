@@ -1,13 +1,15 @@
 import { assignReactiveObject, del, flattenPaths } from "@arrai-innovations/reactive-helpers";
+import { useReactiveHookRegistry } from "@vueda/use/useReactiveHookRegistry.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { compact, update } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
+import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import set from "lodash-es/set.js";
-import { provide, reactive, readonly, toRef, watch } from "vue";
+import { computed, nextTick, provide, reactive, readonly, toRef, watch } from "vue";
 
 /**
  * @module use/useForm.js - A composable function for handling form state.
@@ -30,8 +32,8 @@ import { provide, reactive, readonly, toRef, watch } from "vue";
  * @property {boolean} anyError - Whether any field has an error.
  * @property {{[path: string]: {[messageCode: string]: string}}} messages - The form's
  *  message messages, per field, by flat path. Form-level messages are stored using `NON_FIELD_ERRORS_KEY`.
- * @property {{[path: string]: boolean}} modified - Whether each field has been modified, by path.
- * @property {boolean} anyModified - Whether any field has been modified.
+ * @property {{[path: string]: import('vue').ComputedRef<boolean>}} modified - Whether each field has been modified, by path.
+ * @property {import('vue').ComputedRef<boolean>} anyModified - Whether any field has been modified.
  * @property {{[path: string]: boolean}} touched - Whether each field has been blurred, by path.
  * @property {boolean} anyTouched - Whether any field has been blurred.
  * @property {string|undefined} focused - The field currently in focus.
@@ -52,9 +54,9 @@ const validateName = (name) => {
 };
 
 /**
- * @param {FormContextState} state
- * @param {string} name
- * @param {any} value
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to update.
+ * @param {any} value - The value to update the field with.
  * @private
  */
 const updateInitialValue = (state, name, value) => {
@@ -65,36 +67,34 @@ const updateInitialValue = (state, name, value) => {
 };
 
 /**
- * @param {FormContextState} state
- * @param {string} name
- * @param {any} value
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to update.
+ * @param {any} value - The value to update the field with.
  * @private
  */
 const updateValue = (state, name, value) => {
     validateName(name);
     if (!isEqual(get(state.values, name), value)) {
         set(state.values, name, value);
-        calculateModified(state, name);
     }
 };
 
 /**
- * @param {FormContextState} state
- * @param {string} name
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to delete.
  * @private
  */
 const deleteValue = (state, name) => {
     validateName(name);
     if (get(state.values, name) !== undefined) {
         del(state.values, name);
-        calculateModified(state, name);
     }
 };
 
 /**
- * @param {FormContextState} state
- * @param {string} name
- * @param {object} valueDetail
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to calculate if it has been modified.
+ * @param {object} valueDetail - The value detail object to update.
  * @private
  */
 const updateValueDetails = (state, name, valueDetail) => {
@@ -105,8 +105,8 @@ const updateValueDetails = (state, name, valueDetail) => {
 };
 
 /**
- * @param {FormContextState} state
- * @param {string} name
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to calculate if it has been modified.
  * @private
  */
 const deleteValueDetails = (state, name) => {
@@ -130,11 +130,11 @@ function validateMessage(message) {
 
 /**
  *
- * @param {'error'|'message'} kind
- * @param {FormContextState} state
- * @param {string} name
- * @param {string} code
- * @param {string} message
+ * @param {'error'|'message'} kind - The kind of error or message to update.
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to calculate if it has been modified.
+ * @param {string} code - The code of the error to update.
+ * @param {string} message - The message to update.
  * @private
  */
 const updateErrorOrMessage = (kind, state, name, code, message) => {
@@ -154,10 +154,10 @@ const updateErrorOrMessage = (kind, state, name, code, message) => {
 
 /**
  *
- * @param {'error'|'message'} kind
- * @param {FormContextState} state
- * @param {string} name
- * @param {string} code
+ * @param {'error'|'message'} kind - The kind of error or message to clear.
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to calculate if it has been modified.
+ * @param {string} code - The code of the error to update.
  * @private
  */
 const deleteErrorOrMessage = (kind, state, name, code) => {
@@ -182,10 +182,10 @@ const deleteErrorOrMessage = (kind, state, name, code) => {
 
 /**
  *
- * @param {'error'|'message'} kind
- * @param {FormContextState} state
- * @param {string} name
- * @param {number} [childIndex]
+ * @param {'error'|'message'} kind - The kind of error or message to clear.
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to calculate if it has been modified.
+ * @param {number} [childIndex] - The index of the child field to calculate if it has been modified.
  * @private
  */
 const clearErrorOrMessage = (kind, state, name, childIndex) => {
@@ -217,9 +217,9 @@ const clearErrorOrMessage = (kind, state, name, childIndex) => {
 };
 
 /**
- * @param {FormContextState} state
- * @param {string} name
- * @param {number} [childIndex]
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to calculate if it has been modified.
+ * @param {number} [childIndex] - The index of the child field to calculate if it has been modified.
  * @private
  */
 const clearErrors = (state, name, childIndex) => {
@@ -227,9 +227,9 @@ const clearErrors = (state, name, childIndex) => {
 };
 
 /**
- * @param {FormContextState} state
- * @param {string} name
- * @param {number} [childIndex]
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to calculate if it has been modified.
+ * @param {number} [childIndex] - The index of the child field to calculate if it has been modified.
  * @private
  */
 const clearMessages = (state, name, childIndex) => {
@@ -237,10 +237,10 @@ const clearMessages = (state, name, childIndex) => {
 };
 
 /**
- * @param {FormContextState} state
- * @param {string} name
- * @param {string} code
- * @param {string} message
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to calculate if it has been modified.
+ * @param {string} code - The code of the error to update.
+ * @param {string} message - The message of the error to update.
  * @private
  */
 const updateError = (state, name, code, message) => {
@@ -248,9 +248,9 @@ const updateError = (state, name, code, message) => {
 };
 
 /**
- * @param {FormContextState} state
- * @param {string} name
- * @param {string} [code]
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to calculate if it has been modified.
+ * @param {string} [code] - The code of the error to delete.
  * @private
  */
 const deleteError = (state, name, code) => {
@@ -258,9 +258,9 @@ const deleteError = (state, name, code) => {
 };
 
 /**
- * @param {FormContextState} state
- * @param {string} name
- * @param {string} code
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to calculate if it has been modified.
+ * @param {string} code - The code of the error to update.
  * @param {string} message
  * @private
  */
@@ -269,47 +269,13 @@ const updateMessage = (state, name, code, message) => {
 };
 
 /**
- * @param {FormContextState} state
- * @param {string} name
- * @param {string} [code]
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to calculate if it has been modified.
+ * @param {string} [code] - The code of the error to delete.
  * @private
  */
 const deleteMessage = (state, name, code) => {
     deleteErrorOrMessage("message", state, name, code);
-};
-
-/**
- * Set a field as modified, indicating that its value has changed from the initial value.
- *
- * @param {FormContextState} state
- * @param {string} name - the name of the field to set as modified
- * @private
- */
-const setModified = (state, name) => {
-    validateName(name);
-    if (!state.modified[name]) {
-        state.modified[name] = true;
-    }
-    if (!state.anyModified) {
-        state.anyModified = true;
-    }
-};
-
-/**
- * Clear a field as modified, indicating that its value has not changed from the initial value.
- *
- * @param {FormContextState} state
- * @param {string} name - the name of the field to clear as modified
- * @private
- */
-const clearModified = (state, name) => {
-    validateName(name);
-    if (state.modified[name]) {
-        delete state.modified[name];
-    }
-    if (state.anyModified && Object.keys(state.modified).length === 0) {
-        state.anyModified = false;
-    }
 };
 
 const formValues = (state) => {
@@ -327,48 +293,6 @@ const formValues = (state) => {
         return values;
     }
     return state.values;
-};
-
-const isEmpty = (val) => val === undefined || val === null || val === "";
-
-/**
- * @param {FormContextState} state
- * @param {string} name
- * @private
- */
-const calculateModified = (state, name, dependents = []) => {
-    validateName(name);
-    const value = get(state.values, name);
-    const initialValue = get(state.initialValues, name);
-    const valueEmpty = isEmpty(value);
-    const initialValueEmpty = isEmpty(initialValue);
-    const bothEmpty = valueEmpty && initialValueEmpty;
-    if (!isEqual(value, initialValue) && !state.ignored[name] && !bothEmpty) {
-        setModified(state, name);
-        if (dependents.length) {
-            for (const dep of dependents) {
-                if (dep.includes("$parent") && name.includes(".")) {
-                    const parent = name.split(".")[0];
-                    const dependent = dep.replace("$parent", parent);
-                    setModified(state, dependent);
-                } else {
-                    setModified(state, dep);
-                }
-            }
-        }
-    } else {
-        clearModified(state, name);
-    }
-};
-
-/**
- * @param {FormContextState} state
- * @private
- */
-const calculateAllModified = (state) => {
-    for (const name in state.values) {
-        calculateModified(state, name);
-    }
 };
 
 /**
@@ -478,10 +402,12 @@ const blur = (state, name, dependents = []) => {
         state.focused = undefined;
     }
     setTouched(state, name);
-    calculateModified(state, name);
-    if (state.modified[name]) {
-        clearServerError(state, name);
-    }
+    // Wait for modified to update reactively
+    nextTick(() => {
+        if (state.modified[name]) {
+            clearServerError(state, name);
+        }
+    });
     if (dependents.length) {
         for (const dep of dependents) {
             if (dep.includes("$parent") && name.includes(".")) {
@@ -505,8 +431,6 @@ const reset = (state) => {
     assignReactiveObject(state.errors, {});
     state.anyError = false;
     assignReactiveObject(state.messages, {});
-    assignReactiveObject(state.modified, {});
-    state.anyModified = false;
     assignReactiveObject(state.touched, {});
     state.anyTouched = false;
     state.focused = undefined;
@@ -609,8 +533,6 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @property {(name: string, code: string, message: string) => void} updateMessage - Update a field's message.
  * @property {(name: string, childIndex?: number) => void} clearMessages - Clear a field's messages, or a child's messages if childIndex is given.
  * @property {(name: string, code?: string) => void} deleteMessage - Delete a field's message.
- * @property {(name: string, dependents: []) => void} calculateModified - Calculate if a field has been modified.
- * @property {() => void} calculateAllModified - Calculate if all fields have been modified.
  * @property {(name: string) => void} setTouched - Set a field as touched.
  * @property {() => void} setAllTouched - Set all fields as touched.
  * @property {(name: string) => void} clearTouched - Clear a field as touched.
@@ -622,11 +544,11 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @property {(name: string, dependents: []) => void} blur - Blur a field.
  * @property {(name: string) => void} ignore - Ignore a field.
  * @property {(name: string) => void} removeIgnore - remove ignoring a field.
- * @property {(name: string) => void} setModified - mark a field as modified.
- * @property {(name: string) => void} clearModified - clear modified mark of a field.
  * @property {(displayFields: string[]) => string|null} getFirstErrorField - Get the first displayed field with an error,
  *  the 'first' error can be the NON_FIELD_ERRORS_KEY if there is a form level error.
  * @property {() => FieldValues} formValues - returns the form values, excluding ignored fields.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundRegisterHook} registerIsModifiedHook - Register a function to contribute to the form's determination of whether it has been modified.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundUnregisterHook} unregisterIsModifiedHook - Unregister a function that was contributing to the form's determination of whether it has been modified.
  */
 
 /**
@@ -710,14 +632,16 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @returns {FormContext}
  */
 export function useForm(props) {
+    const modifiedHookRegistry = useReactiveHookRegistry();
+
     const state = reactive({
         values: {},
         valueDetails: {},
         errors: {},
         anyError: false,
         messages: {},
-        modified: {},
-        anyModified: false,
+        modified: modifiedHookRegistry.computedAggregates,
+        anyModified: computed(() => Object.values(state.modified).some(identity)),
         touched: {},
         anyTouched: false,
         initialValues: toRef(props, "initialValues"),
@@ -752,8 +676,6 @@ export function useForm(props) {
         clearMessages: clearMessages.bind(null, state),
         updateMessage: updateMessage.bind(null, state),
         deleteMessage: deleteMessage.bind(null, state),
-        calculateModified: calculateModified.bind(null, state),
-        calculateAllModified: calculateAllModified.bind(null, state),
         setTouched: setTouched.bind(null, state),
         setAllTouched: setAllTouched.bind(null, state),
         clearTouched: clearTouch.bind(null, state),
@@ -764,10 +686,10 @@ export function useForm(props) {
         reset: reset.bind(null, state),
         ignore: ignore.bind(null, state),
         removeIgnore: removeIgnore.bind(null, state),
-        setModified: setModified.bind(null, state),
-        clearModified: clearModified.bind(null, state),
         formValues: formValues.bind(null, state),
         getFirstErrorField: getFirstErrorField.bind(null, state),
+        registerIsModifiedHook: modifiedHookRegistry.registerHook,
+        unregisterIsModifiedHook: modifiedHookRegistry.unregisterHook,
     };
     provide(FormContextSymbol, formContext);
     return formContext;

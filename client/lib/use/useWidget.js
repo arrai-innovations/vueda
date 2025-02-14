@@ -78,7 +78,6 @@ export const WIDGET_EMITS = ["update:modelValue"];
  * @typedef {object} WidgetContext
  * @property {WidgetState} state - The widget context's reactive state.
  * @property {() => void} setTouched - Set the widget as touched.
- * @property {() => void} calculateModified - Calculate the modified state of the widget.
  * @property {() => void} focus - Focus the widget.
  * @property {() => void} blur - Blur the widget.
  * @property {(value: any) => void} updateInitialValue - Update the initial value of the widget.
@@ -183,11 +182,6 @@ export function useWidget(props, emit) {
         setTouched: () => {
             if (!props.contextless && fieldContext) {
                 fieldContext.setTouched();
-            }
-        },
-        calculateModified: () => {
-            if (!props.contextless && fieldContext) {
-                fieldContext.calculateModified();
             }
         },
         focus: async () => {
