@@ -151,6 +151,11 @@ export const FIELD_SET_TABULAR_INLINE_EMITS = [...FIELD_EMITS];
  */
 
 /**
+ * @callback BoundDoCreate
+ * @param {Event} _e - The triggering event.
+ * @param {object} [defaultValues] - Optional default values to merge.
+ */
+/**
  * Creates a new object in the fieldset.
  *
  * @param {FieldSetTabularInlineState} state - The reactive state for the instance.
@@ -173,6 +178,10 @@ const doCreate = (state, fieldSetContext, _e, defaultValues) => {
 };
 
 /**
+ * @callback BoundHandleIsTableUpdate
+ * @param {boolean} newValue - The new table mode value.
+ */
+/**
  * Updates the table mode state.
  *
  * @param {FieldSetTabularInlineState} state - The reactive state for the instance.
@@ -182,6 +191,11 @@ const handleIsTableUpdate = (state, newValue) => {
     state.isTable = newValue;
 };
 
+/**
+ * @callback BoundHandleSelected
+ * @param {boolean} isSelected - True if the row is selected.
+ * @param {number} rowIndex - The row index.
+ */
 /**
  * Handles selection/deselection of a row.
  *
@@ -208,6 +222,10 @@ const handleSelected = (state, fieldSetContext, isSelected, rowIndex) => {
 };
 
 /**
+ * @callback BoundRefFn
+ * @param {HTMLElement} el - The element reference.
+ */
+/**
  * Adds an element reference to the state's itemRefs array.
  *
  * @param {FieldSetTabularInlineState} state - The reactive state.
@@ -217,6 +235,10 @@ const refFn = (state, el) => {
     state.itemRefs.push(el);
 };
 
+/**
+ * @callback BoundRemoveObject
+ * @param {number} index - The index of the object to remove.
+ */
 /**
  * Removes an object from the fieldset.
  *
@@ -230,6 +252,9 @@ const removeObject = (fieldSetContext, index) => {
     fieldSetContext.clearMessages(index);
 };
 
+/**
+ * @callback BoundToggleVisibility
+ */
 /**
  * Toggles the visibility of the fieldset.
  *
@@ -274,16 +299,6 @@ const toggleVisibility = (state, emit) => {
  */
 
 /**
- * @typedef {object} FieldSetTabularInlineMethods
- * @property {typeof doCreate} doCreate - The method to create a new object in the fieldset.
- * @property {typeof handleIsTableUpdate} handleIsTableUpdate - The method to update the isTable state.
- * @property {typeof handleSelected} handleSelected - The method to handle selected items.
- * @property {typeof refFn} refFn - The method to add a reference to an item.
- * @property {typeof removeObject} removeObject - The method to remove an object from the fieldset.
- * @property {typeof toggleVisibility} toggleVisibility - The method to toggle the visibility of the fieldset.
- */
-
-/**
  * @typedef {object} FieldSetTabularInlineInstance
  * @property {FieldSetTabularInlineState} state - The reactive state of the FieldSetTabularInline.
  * @property {import('@vueuse/core').Breakpoints} breakpoints - The breakpoints object.
@@ -292,13 +307,19 @@ const toggleVisibility = (state, emit) => {
  * @property {{[slotName: string]: import('@vueda/use/useSlotNameResolver.js').ResolvedSlotName}} - The resolved slot
  *  name instances by original slot name.
  * @property {import('@vueda/use/useTheme.js').UseThemeReturnFunction} theme - The theme fn for the FieldSetTabularInline.
+ * @property {BoundDoCreate} doCreate - The method to create a new object in the fieldset.
+ * @property {BoundHandleIsTableUpdate} handleIsTableUpdate - The method to update the isTable state.
+ * @property {BoundHandleSelected} handleSelected - The method to handle selected items.
+ * @property {BoundRefFn} refFn - The method to add a reference to an item.
+ * @property {BoundRemoveObject} removeObject - The method to remove an object from the fieldset.
+ * @property {BoundToggleVisibility} toggleVisibility - The method to toggle the visibility of the fieldset.
  */
 
 /**
  * Composable for handling tabular inline fieldset logic.
  *
  * @param {FieldSetTabularInlineOptions} options - Options containing props, emit, and slotNames.
- * @returns {FieldSetTabularInlineInstance | FieldSetTabularInlineMethods} An object containing reactive state, computed properties, and methods
+ * @returns {FieldSetTabularInlineInstance} An object containing reactive state, computed properties, and methods
  * to manage the tabular inline fieldset.
  */
 export function useFieldSetTabularInline({ props, emit, slotNames }) {
@@ -449,11 +470,23 @@ export function useFieldSetTabularInline({ props, emit, slotNames }) {
         formModel,
         resolvedSlotNames,
         theme,
-        doCreate: (_e, defaultValues) => doCreate(state, fieldSetContext, _e, defaultValues),
-        handleIsTableUpdate: (newValue) => handleIsTableUpdate(state, newValue),
-        handleSelected: (isSelected, rowIndex) => handleSelected(state, fieldSetContext, isSelected, rowIndex),
-        refFn: (el) => refFn(state, el),
-        removeObject: (index) => removeObject(fieldSetContext, index),
-        toggleVisibility: () => toggleVisibility(state, emit),
+        doCreate: (_e, defaultValues) => {
+            doCreate(state, fieldSetContext, _e, defaultValues);
+        },
+        handleIsTableUpdate: (newValue) => {
+            handleIsTableUpdate(state, newValue);
+        },
+        handleSelected: (isSelected, rowIndex) => {
+            handleSelected(state, fieldSetContext, isSelected, rowIndex);
+        },
+        refFn: (el) => {
+            refFn(state, el);
+        },
+        removeObject: (index) => {
+            removeObject(fieldSetContext, index);
+        },
+        toggleVisibility: () => {
+            toggleVisibility(state, emit);
+        },
     };
 }
