@@ -99,10 +99,6 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    objectGridVariant: {
-        type: String,
-        default: "default",
-    },
     listArgs: {
         type: Object,
         default: () => ({}),
@@ -528,7 +524,6 @@ const searchSlotProps = reactive({
             :sorted="sorting.state.sorted"
             :table-breakpoint="tableBreakpoint"
             :theme-override="themeOverride"
-            :variant="objectGridVariant"
             @update:sorted="sorting.updateSorted"
         >
             <template

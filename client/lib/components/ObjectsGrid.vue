@@ -84,10 +84,6 @@ const props = defineProps({
         default: () => [],
         description: "Field names that are sorted. Prefix each with `-` for descending on that field.",
     },
-    variant: {
-        type: String,
-        default: "default",
-    },
     outerClass: {
         type: [String, Array, Object],
         default: () => [],
