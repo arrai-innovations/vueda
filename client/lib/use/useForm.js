@@ -26,14 +26,20 @@ import { computed, nextTick, provide, reactive, readonly, toRef, watch } from "v
 /**
  * @typedef {object} FormContextRawState
  * @property {FieldValues} values - The form's values, referenced by lodash key path.
- * @property {FieldValueDetails} valueDetails - The field value object if the field value is a foreign key to a model, referenced by lodash key path.
+ * @property {FieldValueDetails} valueDetails - The field value object if the field value is a foreign key to a model,
+ *  referenced by lodash key path.
  * @property {{[path: string]: {[errorCode: string]: string}}} errors - The form's error
  *  messages, per field, by path. Form-level errors are stored using `NON_FIELD_ERRORS_KEY`.
  * @property {boolean} anyError - Whether any field has an error.
  * @property {{[path: string]: {[messageCode: string]: string}}} messages - The form's
  *  message messages, per field, by flat path. Form-level messages are stored using `NON_FIELD_ERRORS_KEY`.
- * @property {{[path: string]: import('vue').ComputedRef<boolean>}} modified - Whether each field has been modified, by path.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} modified - Whether each field has been
+ *  modified, by path.
  * @property {import('vue').ComputedRef<boolean>} anyModified - Whether any field has been modified.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} required - Whether each field should
+ *  currently show a required message.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} valid - Whether each field passes
+ *  validation (true), or should show an error message (any string).
  * @property {{[path: string]: boolean}} touched - Whether each field has been blurred, by path.
  * @property {boolean} anyTouched - Whether any field has been blurred.
  * @property {string|undefined} focused - The field currently in focus.
@@ -549,6 +555,10 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @property {() => FieldValues} formValues - returns the form values, excluding ignored fields.
  * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundRegisterHook} registerIsModifiedHook - Register a function to contribute to the form's determination of whether it has been modified.
  * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundUnregisterHook} unregisterIsModifiedHook - Unregister a function that was contributing to the form's determination of whether it has been modified.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundRegisterHook} registerIsRequiredHook - Register a function to contribute to the form's determination of whether it has been modified.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundUnregisterHook} unregisterIsRequiredHook - Unregister a function that was contributing to the form's determination of whether it has been modified.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundRegisterHook} registerValidationHook - Register a function to contribute to the form's validation.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundUnregisterHook} unregisterValidationHook - Unregister a function that was contributing to the form's validation.
  */
 
 /**
@@ -633,6 +643,8 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  */
 export function useForm(props) {
     const modifiedHookRegistry = useReactiveHookRegistry();
+    const requiredHookRegistry = useReactiveHookRegistry();
+    const validationHookRegistry = useReactiveHookRegistry();
 
     const state = reactive({
         values: {},
@@ -642,6 +654,8 @@ export function useForm(props) {
         messages: {},
         modified: modifiedHookRegistry.computedAggregates,
         anyModified: computed(() => Object.values(state.modified).some(identity)),
+        required: requiredHookRegistry.computedAggregates,
+        valid: validationHookRegistry.computedAggregates,
         touched: {},
         anyTouched: false,
         initialValues: toRef(props, "initialValues"),
@@ -690,6 +704,10 @@ export function useForm(props) {
         getFirstErrorField: getFirstErrorField.bind(null, state),
         registerIsModifiedHook: modifiedHookRegistry.registerHook,
         unregisterIsModifiedHook: modifiedHookRegistry.unregisterHook,
+        registerIsRequiredHook: requiredHookRegistry.registerHook,
+        unregisterIsRequiredHook: requiredHookRegistry.unregisterHook,
+        registerIsValidHook: validationHookRegistry.registerHook,
+        unregisterIsValidHook: validationHookRegistry.unregisterHook,
     };
     provide(FormContextSymbol, formContext);
     return formContext;

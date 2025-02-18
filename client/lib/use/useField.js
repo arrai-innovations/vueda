@@ -174,8 +174,12 @@ const resolveParentPath = (fieldPath, currentFieldPath) => {
  * @property {string} [requiredMessage="This field is required."] - The message to display if the field is required and empty.
  * @property {string} [label] - The label for the field.
  * @property {string} [help] - The help text for the field.
- * @property {(value: any) => boolean} [validate] - A custom validation function for the field.
- * @property {(value: any) => boolean} [requiredFn] - A custom function to check if the field is required.
+ * @property {(value: any, dependencies: {[path: string]: [value: any]}|undefined) => boolean} [validate] - A custom
+ *  validation function for the field. This function should return `true` when the field is valid. Otherwise, it should
+ *  return a string with the desired error message.
+ * @property {(value: any, dependencies: {[path: string]: [value: any]}|undefined) => boolean} [requiredFn] - A custom
+ *  function to check if the field is required. This function should return `true` when a required message should be
+ *  shown.
  * @property {any} [modelValue] - The field value. This is used when the field is not part of a form.
  * @property {string[]} [dependents] - The dependents for the field.
  * @property {string[]} [dependencies] - The dependencies for the field.
@@ -229,6 +233,9 @@ const returnVoid = () => {};
  */
 const isEmpty = (val) => val === undefined || val === null || val === "";
 
+const defaultRequiredMessage = "This field is required.";
+const defaultValidationFailedMessage = "Validation Failed";
+
 /**
  * Generate and provide a field context for a field, using the provided props and functions, including methods to update
  *  the field's value, errors, messages, touched state, modified state, and to focus or blur it.
@@ -241,28 +248,25 @@ const isEmpty = (val) => val === undefined || val === null || val === "";
 export function useField(props, emit, functions) {
     /** @type {import('@vueda/use/useForm.js').FormContext|null} */
     const formContext = inject(FormContextSymbol, null);
-    const requiredFn = computed(() => props.requiredFn ?? defaultValidateRequired);
-    const requiredFnValue = computed(() => {
-        const fn = unref(requiredFn);
-        if (fn) {
-            const value = cloneDeep(unref(state.value));
-            const dependencyValues = cloneDeep(deepUnref(state.dependencyValues));
-            return fn(value, dependencyValues);
+    const amIModified = () => {
+        return !state.valueIsInitial && !state.ignored && !(state.initialValueEmpty && state.valueEmpty);
+    };
+    const amIRequired = () => {
+        let required = props.required;
+        if (required === undefined) {
+            const requiredFn = props.requiredFn ?? defaultValidateRequired;
+            required = !requiredFn(cloneDeep(unref(state.value)), cloneDeep(deepUnref(state.dependencyValues)));
         }
-        return null;
-    });
-    const validateFnResult = computed(() => {
-        const fn = unref(props.validate);
-        if (fn) {
-            const value = cloneDeep(unref(state.value));
-            const dependencyValues = cloneDeep(deepUnref(state.dependencyValues));
-            return fn(value, dependencyValues);
+        return required && state.touched && !state.readOnly && !state.ignored;
+    };
+    const amIValid = () => {
+        if (!state.touched || !props.validate) {
+            return true;
         }
-        return true; // No validator means it's always valid
-    });
-    const requiredMessage = computed(() => {
-        return props.requiredMessage || "This field is required.";
-    });
+        const result = props.validate(cloneDeep(unref(state.value)), cloneDeep(deepUnref(state.dependencyValues)));
+        return result === true ? true : isString(result) ? result : defaultValidationFailedMessage;
+    };
+
     const state = reactive({
         name: readonly(toRef(props, "name")),
         formModelName: readonly(toRef(props, "formModelName")),
@@ -270,8 +274,8 @@ export function useField(props, emit, functions) {
         dependencies: readonly(toRef(props, "dependencies")),
         readOnly: readonly(toRef(props, "readOnly")),
         label: computed(() => (props.label?.length ? props.label : props.name)),
-        // props.required flags 'check the value', requiredFnValue is the result of the check
-        required: computed(() => props.required && !unref(requiredFnValue)),
+        required: formContext ? computed(() => formContext.state.modified[props.name]) : computed(amIRequired),
+        valid: formContext ? computed(() => formContext.state.valid[props.name]) : computed(amIValid),
         help: computed(() => props.help || ""),
         suffix: computed(() => props.rangeSuffix || ""),
         valueDetail: formContext
@@ -377,77 +381,40 @@ export function useField(props, emit, functions) {
               })
             : undefined,
     });
-    const checkRequired = () => {
-        if (formContext) {
-            if (state.required && state.touched && !state.readOnly && !state.ignored) {
-                formContext.updateError(props.name, "required", requiredMessage.value);
-            } else {
-                formContext.deleteError(props.name, "required");
-            }
-        }
-    };
-
-    const checkCustomValidation = () => {
-        if (formContext) {
-            const result = unref(validateFnResult);
-            if (!(result === true || !state.touched)) {
-                const message = isString(result) ? result : "Validation Failed";
-                formContext.updateError(props.name, "validate", message);
-            } else {
-                formContext.deleteError(props.name, "validate");
-            }
-        }
-    };
 
     watch(
-        [
-            () => cloneDeep(state.value),
-            () => cloneDeep(state.dependencyValues),
-            toRef(state, "required"),
-            validateFnResult,
-            toRef(props, "requiredMessage"),
-            toRef(state, "touched"),
-            toRef(state, "ignored"),
-        ],
-        (
-            [
-                newValue,
-                newDependencyValues,
-                newRequired,
-                newValidateFnResult,
-                newRequiredMessage,
-                newTouched,
-                newIgnored,
-            ],
-            [
-                oldValue,
-                oldDependencyValues,
-                oldRequired,
-                oldValidateFnResult,
-                oldRequiredMessage,
-                oldTouched,
-                oldIgnored,
-            ],
-        ) => {
-            if (!isEqual(newValue, oldValue) || !isEqual(newDependencyValues, oldDependencyValues)) {
-                checkRequired();
-                checkCustomValidation();
-            } else {
-                const requiredChanged = newRequired !== oldRequired;
-                const requiredMessageChanged = newRequiredMessage !== oldRequiredMessage;
-                const validateFnResultChanged = newValidateFnResult !== oldValidateFnResult;
-                const touchedChanged = newTouched !== oldTouched;
-                const ignoredChanged = newIgnored !== oldIgnored;
-                if (requiredChanged || requiredMessageChanged || touchedChanged || ignoredChanged) {
-                    checkRequired();
-                }
-                if (validateFnResultChanged || touchedChanged) {
-                    checkCustomValidation();
+        [toRef(state, "required"), toRef(props, "requiredMessage")],
+        ([newRequired, newRequiredMessage]) => {
+            if (formContext) {
+                const existingRequired = formContext.state.errors[props.name]?.required;
+                const desiredMessage = newRequiredMessage || defaultRequiredMessage;
+                if (newRequired && existingRequired !== desiredMessage) {
+                    formContext.updateError(props.name, "required", desiredMessage);
+                } else {
+                    formContext.deleteError(props.name, "required");
                 }
             }
         },
         {
-            deep: true,
+            immediate: true,
+        },
+    );
+
+    watch(
+        toRef(state, "valid"),
+        (newValue) => {
+            if (formContext) {
+                if (newValue !== true) {
+                    const oldError = formContext.state.errors[props.name]?.validate;
+                    if (oldError !== newValue) {
+                        formContext.updateError(props.name, "validate", newValue);
+                    }
+                } else {
+                    formContext.deleteError(props.name, "validate");
+                }
+            }
+        },
+        {
             immediate: true,
         },
     );
@@ -476,13 +443,14 @@ export function useField(props, emit, functions) {
         deleteValue: ifFormContext(() => formContext.deleteValue(state.name)),
         registerIsModifiedHook: ifFormContext((hook) => formContext.registerIsModifiedHook(state.name, hook)),
         unregisterIsModifiedHook: ifFormContext((id) => formContext.unregisterIsModifiedHook(id)),
+        registerIsRequiredHook: ifFormContext((hook) => formContext.registerIsRequiredHook(state.name, hook)),
+        unregisterIsRequiredHook: ifFormContext((id) => formContext.unregisterIsRequiredHook(id)),
+        registerIsValidHook: ifFormContext((hook) => formContext.registerIsValidHook(state.name, hook)),
+        unregisterIsValidHook: ifFormContext((id) => formContext.unregisterIsValidHook(id)),
     };
     provide(FieldContextSymbol, returnObj);
     let isModifiedHookId;
     const registeredDependentIdsByDependent = {};
-    const amIModified = () => {
-        return !state.valueIsInitial && !state.ignored && !(state.initialValueEmpty && state.valueEmpty);
-    };
     if (formContext) {
         isModifiedHookId = returnObj.registerIsModifiedHook(amIModified);
     }
@@ -508,5 +476,23 @@ export function useField(props, emit, functions) {
             immediate: true,
         },
     );
+    let isRequiredHookId;
+    if (formContext) {
+        isRequiredHookId = returnObj.registerIsRequiredHook(amIRequired);
+    }
+    onUnmounted(() => {
+        if (isRequiredHookId) {
+            returnObj.unregisterIsRequiredHook(isRequiredHookId);
+        }
+    });
+    let isValidHookId;
+    if (formContext) {
+        isValidHookId = returnObj.registerIsValidHook(amIValid);
+    }
+    onUnmounted(() => {
+        if (isValidHookId) {
+            returnObj.unregisterIsValidHook(isValidHookId);
+        }
+    });
     return returnObj;
 }
