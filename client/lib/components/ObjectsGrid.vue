@@ -188,7 +188,7 @@ const theme = useTheme("ObjectsGrid", props, themeContext, (key, kwargs) => {
 //  single fields by name
 const slots = useSlots();
 const slotNameResolvers = reactive({});
-const fieldNames = computed(() => props.fields.map((field) => field.name));
+const fieldNames = computed(() => props.fields.map((field) => field?.name));
 const slotNameResolverEffectScope = effectScope();
 watch(
     fieldNames,
