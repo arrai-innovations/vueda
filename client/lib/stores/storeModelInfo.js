@@ -233,7 +233,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @param {object} args - The arguments for fetching model info.
  * @param {string} args.app - The app label for the model.
  * @param {string} args.model - The model name.
- * @returns {Promise<ModelInfo>} A promise that resolves to the model information.
+ * @returns {import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelInfo>} A promise that resolves to the model information.
  * @throws {ModelInfoError} Throws an error if the fetch operation fails.
  */
 
@@ -242,7 +242,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  *
  * @returns {import('pinia').Store<{
  *     infos: {[key: string]: ModelInfo},
- *     promises: {[key: string]: Promise<ModelInfo>},
+ *     promises: {[key: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelInfo>},
  *     fetchModelInfo: FetchModelInfo
  * }>}
  */
@@ -254,19 +254,19 @@ export const storeModelInfo = defineStore({
         errors: {},
     }),
     actions: {
-        async fetchModelInfo(args) {
+        fetchModelInfo(args) {
             if (!args.app || !args.model) {
-                throw new Error("storeModelInfo.fetchModelInfo: app and model must be provided");
+                return Promise.reject(new Error("storeModelInfo.fetchModelInfo: app and model must be provided"));
             }
             const key = getAppModelDotName(args);
             const existing = this.infos[key];
             const cachedError = this.errors[key];
             if (existing) {
-                return existing;
+                return Promise.resolve(existing);
             }
             if (cachedError) {
                 // prevent us from self-ddosing the server
-                throw cachedError;
+                return Promise.reject(cachedError);
             }
             if (!this.promises[key]) {
                 const retrieveArgs = {
