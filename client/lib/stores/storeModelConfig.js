@@ -2,7 +2,7 @@ import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/crudSupport.js";
 import { merge } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
-import identity from "lodash-es/identity.js";
+import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
 import { defineStore } from "pinia";
 
@@ -21,6 +21,15 @@ import { defineStore } from "pinia";
  * - A group-based configuration mapping actions to allowed groups
  *
  * @typedef {ActionGroupsConfig|string[]} ActionPermissionConfig
+ */
+
+/**
+ * @typedef {{fieldName: import('@vueda/stores/storeModelInfo.js').FieldInfo}} FieldDetails
+ * @typedef {{expandName: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} ExpandDetails
+ * @typedef {{actionName: import('@vueda/stores/storeModelInfo.js').ActionInfo}} ActionDetails
+ * @typedef {{filterName: import('@vueda/stores/storeModelInfo.js').FilterInfo}} FilterableDetails
+ * @typedef {{[fieldComponentName:string]: import('@vueda/utils/formLookups.js').FieldComponent}} FieldComponents
+ * @typedef {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} WidgetComponents
  */
 
 /**
@@ -126,6 +135,209 @@ const getDefaultFromModelInfo = (modelInfo) => {
     ];
 };
 
+const shallowObjectProperties = ["formProps", "fieldComponents", "widgetComponents"];
+const deepObjectProperties = [
+    "fieldDetails",
+    "actionDetails",
+    "filterableDetails",
+    "sortableDetails",
+    "fieldProps",
+    "widgetProps",
+];
+const nonSimpleProperties = [...shallowObjectProperties, "expandDetails", ...deepObjectProperties];
+
+/**
+ * Merge view-specific and generic configurations for simple properties,
+ * where properties such as displayFields, fetchFields, submitFields, routeActions,
+ * filterables, sortables, and sorted are merged.
+ *
+ * @param {ModelConfig} defaultGenericConfig - The default (generic) configuration.
+ * @param {OverridingModelConfig} customGenericConfig - The view-independent overriding configuration.
+ * @param {OverridingModelConfig} defaultSpecificConfig - The default view-specific configuration.
+ * @param {OverridingModelConfig} customSpecificConfig - The view-specific overriding configuration.
+ * @returns {ModelConfig} The merged configuration for simple properties.
+ */
+const mergeSimpleProperties = (
+    defaultGenericConfig,
+    customGenericConfig,
+    defaultSpecificConfig,
+    customSpecificConfig,
+) => {
+    const configs = [customGenericConfig, defaultSpecificConfig, customSpecificConfig];
+    const mergedConfig = omit(defaultGenericConfig, nonSimpleProperties);
+    for (const config of configs) {
+        for (const [key, value] of Object.entries(config)) {
+            if (!nonSimpleProperties.includes(key)) {
+                mergedConfig[key] = value;
+            }
+        }
+    }
+
+    // use fields if displayFields, fetchFields, and submitFields are not set
+    for (const fieldKey of ["displayFields", "fetchFields", "submitFields"]) {
+        if ((!mergedConfig[fieldKey] || mergedConfig[fieldKey].length === 0) && mergedConfig.fields) {
+            mergedConfig[fieldKey] = mergedConfig.fields;
+        }
+    }
+
+    // merge shallow object properties
+    for (const objectKey of shallowObjectProperties) {
+        mergedConfig[objectKey] = merge({}, defaultGenericConfig[objectKey], ...configs.map((c) => c[objectKey]));
+    }
+
+    return mergedConfig;
+};
+
+/**
+ * Merge and flatten expansion details into fieldDetails using double-underscore keys.
+ *
+ * This function processes expandable field configurations by combining the expandDetails
+ * from various configuration sources and then mapping them into the fieldDetails object.
+ * The process ensures that:
+ *
+ * 1. For each expansion name listed in builtConfig.expands:
+ *    - It deep merges the expansion configuration from:
+ *         • defaultGenericConfig.expandDetails[expandName]
+ *         • customGenericConfig.expandDetails[expandName]
+ *         • defaultSpecificConfig.expandDetails[expandName]
+ *         • customSpecificConfig.expandDetails[expandName]
+ *      Custom settings override defaults on a key-by-key basis.
+ *
+ * 2. The merged expansion configuration is then used to:
+ *    a. Replace the expansion's own entry in fieldDetails (i.e. fieldDetails[expandName])
+ *       with a clone of the merged configuration, omitting the "f" (sub-fields) property.
+ *
+ *    b. Iterate over each sub-field defined in the merged expandDetails.f.
+ *       For each sub-field, a flattened key is created using the pattern
+ *       "expandName__subFieldName". The default configuration for this sub-field comes
+ *       from the merged expandDetails.f, and any custom overrides provided via
+ *       customGenericConfig.fieldDetails or customSpecificConfig.fieldDetails for that key
+ *       are merged in.
+ *
+ * 3. Finally, the builtConfig object is updated with the new fieldDetails (including
+ *    the flattened expansion fields) and the merged expandDetails.
+ *
+ * This approach allows the default expandable field configurations (as provided by
+ * drf-flex-fields) to be customized via expandDetails, while also permitting direct
+ * overrides in fieldDetails for the flattened keys.
+ *
+ * @param {ModelConfig} builtConfig - The built configuration object, which is mutated in place.
+ * @param {ModelConfig} defaultGenericConfig - The default (generic) configuration.
+ * @param {OverridingModelConfig} customGenericConfig - The view-independent overriding configuration.
+ * @param {OverridingModelConfig} defaultSpecificConfig - The default view-specific configuration.
+ * @param {OverridingModelConfig} customSpecificConfig - The view-specific overriding configuration.
+ */
+const flattenExpansionDetails = (
+    builtConfig,
+    defaultGenericConfig,
+    customGenericConfig,
+    defaultSpecificConfig,
+    customSpecificConfig,
+) => {
+    const expanded = builtConfig.expands || [];
+    if (isEmpty(expanded)) {
+        return;
+    }
+
+    const fieldDetails = builtConfig.fieldDetails || {};
+    const expandDetails = builtConfig.expandDetails || {};
+
+    for (const expandName of expanded) {
+        const defaultGenericExpand = defaultGenericConfig.expandDetails?.[expandName] || {};
+        const customGenericExpand = customGenericConfig?.expandDetails?.[expandName] || {};
+        const defaultSpecificExpand = defaultSpecificConfig.expandDetails?.[expandName] || {};
+        const customSpecificExpand = customSpecificConfig?.expandDetails?.[expandName] || {};
+        const newExpandDetails = {
+            ...defaultGenericExpand,
+        };
+        const configsInPriorityOrder = [customGenericExpand, defaultSpecificExpand, customSpecificExpand];
+
+        // merge the expand details
+        // keys of f merge, all other keys replace, as we expect non object values
+
+        for (const overridingConfig of configsInPriorityOrder) {
+            for (const key of Object.keys(overridingConfig)) {
+                if (key === "f") {
+                    if (!newExpandDetails.f) {
+                        newExpandDetails.f = {};
+                    }
+                    for (const fieldName in overridingConfig.f) {
+                        if (fieldName in newExpandDetails.f) {
+                            newExpandDetails.f[fieldName] = merge(
+                                newExpandDetails.f[fieldName],
+                                overridingConfig.f[fieldName],
+                            );
+                        } else {
+                            newExpandDetails.f[fieldName] = overridingConfig.f[fieldName];
+                        }
+                    }
+                } else {
+                    newExpandDetails[key] = overridingConfig[key];
+                }
+            }
+        }
+        expandDetails[expandName] = newExpandDetails;
+        fieldDetails[expandName] = cloneDeep(omit(newExpandDetails, ["f"]));
+
+        for (const [fieldName, expandFDetails] of Object.entries(newExpandDetails.f)) {
+            const expandedFieldName = `${expandName}__${fieldName}`;
+            // any defaults are replaced by the expand details
+            // but custom overrides are still merged
+            const customGenericFieldDetails = customGenericConfig?.fieldDetails?.[expandedFieldName] || {};
+            const customSpecificFieldDetails = customSpecificConfig?.fieldDetails?.[expandedFieldName] || {};
+            fieldDetails[expandedFieldName] = {
+                ...expandFDetails,
+                ...customGenericFieldDetails,
+                ...customSpecificFieldDetails,
+            };
+        }
+    }
+    builtConfig.fieldDetails = fieldDetails;
+    builtConfig.expandDetails = expandDetails;
+};
+
+/**
+ * Merge view-specific and generic configurations for deep (non-simple) properties.
+ *
+ * For each key in nonSimpleProperties, perform a deep merge of the generic config and view-specific config.
+ * Special handling is provided for "expandDetails": rather than a straight merge, this function should
+ * flatten the expansion details (by calling flattenExpansionDetails) and then merge them into the unified field details.
+ *
+ * @param {ModelConfig} builtConfig - The built configuration object, so far. Will be mutated in place.
+ * @param {ModelConfig} defaultGenericConfig - The default (generic) configuration.
+ * @param {OverridingModelConfig} customGenericConfig - The view-independent overriding configuration.
+ * @param {OverridingModelConfig} defaultSpecificConfig - The default view-specific configuration.
+ * @param {OverridingModelConfig} customSpecificConfig - The view-specific overriding configuration.
+ */
+const mergeDeepProperties = (
+    builtConfig,
+    defaultGenericConfig,
+    customGenericConfig,
+    defaultSpecificConfig,
+    customSpecificConfig,
+) => {
+    for (const detailName of deepObjectProperties) {
+        const defaultGenericDetails = defaultGenericConfig[detailName] || {};
+        const genericDetails = customGenericConfig?.[detailName] || {};
+        const defaultSpecificDetails = defaultSpecificConfig[detailName] || {};
+        const specificDetails = customSpecificConfig?.[detailName] || {};
+        const newDetailsObject = {
+            ...defaultGenericDetails,
+        };
+        const configsInPriorityOrder = [genericDetails, defaultSpecificDetails, specificDetails];
+        for (const overridingConfig of configsInPriorityOrder) {
+            for (const fieldName in overridingConfig) {
+                if (fieldName in newDetailsObject) {
+                    newDetailsObject[fieldName] = merge(newDetailsObject[fieldName], overridingConfig[fieldName]);
+                } else {
+                    newDetailsObject[fieldName] = overridingConfig[fieldName];
+                }
+            }
+        }
+        builtConfig[detailName] = newDetailsObject;
+    }
+};
+
 /**
  * A store for model configuration.
  *
@@ -135,7 +347,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
  *         genericConfigs: {[key: string]: ModelConfig},
  *         specificConfigs: {[key: string]: OverridingModelConfig},
  *         builtConfigs: {[key: string]: ModelConfig},
- *         initailized: {[key: string]: Promise<ModelConfig>},
+ *         initailized: {[key: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>},
  *     },
  *     {
  *         setConfig: (
@@ -143,7 +355,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
  *             genericConfig: OverridingModelConfig=null,
  *             specificConfigs: {[view: string]: OverridingModelConfig}=null
  *         ) => void,
- *         getConfig: (app: string, model: string) => Promise<ModelConfig>,
+ *         getConfig: (app: string, model: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>,
  *     }
  * >}
  *
@@ -171,6 +383,15 @@ export const storeModelConfig = defineStore({
                     this.specificConfigs[key] = specificConfig;
                 }
             }
+
+            // Cancel in-flight requests for this model
+            for (const key of Object.keys(this.initialized)) {
+                if (key.startsWith(genericKey) && !this.builtConfigs[key]) {
+                    this.initialized[key]?.cancel?.();
+                    delete this.initialized[key];
+                }
+            }
+
             for (const key of Object.keys(this.builtConfigs)) {
                 // if the builtConfig is for this app/model, we need to rebuild delete it
                 if (key.startsWith(genericKey)) {
@@ -178,9 +399,9 @@ export const storeModelConfig = defineStore({
                 }
             }
         },
-        async getConfig({ app, model, view = null }) {
+        getConfig({ app, model, view = null }) {
             if (!app || !model) {
-                throw new Error("getConfig requires app and model");
+                return Promise.reject(new Error("getConfig requires app and model"));
             }
             const args = { app, model, view };
             const genericKey = getAppModelDotName(args);
@@ -188,140 +409,63 @@ export const storeModelConfig = defineStore({
             const builtKey = specificKey || genericKey;
             // if we have a cached builtConfig, return it
             if (builtKey in this.builtConfigs) {
-                return this.builtConfigs[builtKey];
+                return Promise.resolve(this.builtConfigs[builtKey]);
             }
             // if we are building already for this key, return the promise
             if (builtKey in this.initialized) {
+                // initialized values are already promises, wrapping will clobber the cancel method
                 return this.initialized[builtKey];
             }
+
+            let promiseCancel = null;
+
             // otherwise, build the config and cache the promise
             this.initialized[builtKey] = (async () => {
-                const modelInfoStore = storeModelInfo();
-                const modelInfo = await modelInfoStore.fetchModelInfo(args);
-                const [defaultGenericConfig, defaultSpecificConfigs] = getDefaultFromModelInfo(modelInfo);
-                const defaultSpecificConfig = defaultSpecificConfigs[view] || {};
                 // clone each to avoid mutation of original configs
                 const customGenericConfig = cloneDeep(this.genericConfigs[genericKey] || {});
-                if (
-                    (!customGenericConfig.displayFields || customGenericConfig.displayFields.length === 0) &&
-                    customGenericConfig.fields
-                ) {
-                    customGenericConfig.displayFields = customGenericConfig.fields;
-                }
-
-                if (
-                    (!customGenericConfig.fetchFields || customGenericConfig.fetchFields.length === 0) &&
-                    customGenericConfig.fields
-                ) {
-                    customGenericConfig.fetchFields = customGenericConfig.fields;
-                }
-                if (
-                    (!customGenericConfig.submitFields || customGenericConfig.submitFields.length === 0) &&
-                    customGenericConfig.fetchFields
-                ) {
-                    customGenericConfig.submitFields = customGenericConfig.fetchFields;
-                }
                 const customSpecificConfig = specificKey ? cloneDeep(this.specificConfigs[specificKey]) || {} : {};
-                if (
-                    (!customSpecificConfig.displayFields || customSpecificConfig.displayFields.length === 0) &&
-                    customSpecificConfig.fields
-                ) {
-                    customSpecificConfig.displayFields = customSpecificConfig.fields;
+                // capture custom before async call so in-flight builds aren't updated by subsequent setConfig calls
+                const modelInfoStore = storeModelInfo();
+                const modelInfoPromise = modelInfoStore.fetchModelInfo(args);
+                if (modelInfoPromise.cancel) {
+                    promiseCancel = modelInfoPromise.cancel.bind(modelInfoPromise);
                 }
+                const modelInfo = await modelInfoPromise;
+                const [defaultGenericConfig, defaultSpecificConfigs] = getDefaultFromModelInfo(modelInfo);
+                const defaultSpecificConfig = defaultSpecificConfigs[view] || {};
 
-                if (
-                    (!customSpecificConfig.fetchFields || customSpecificConfig.fetchFields.length === 0) &&
-                    customSpecificConfig.fields
-                ) {
-                    customSpecificConfig.fetchFields = customSpecificConfig.fields;
-                }
-                if (
-                    (!customSpecificConfig.submitFields || customSpecificConfig.submitFields.length === 0) &&
-                    customSpecificConfig.fetchFields
-                ) {
-                    customSpecificConfig.submitFields = customSpecificConfig.fetchFields;
-                }
-                const builtConfig = {
-                    ...defaultGenericConfig,
-                    ...customGenericConfig,
-                    ...defaultSpecificConfig,
-                    ...customSpecificConfig,
-                };
-                for (const objectKeyForMerge of ["formProps", "fieldComponents", "widgetComponents"]) {
-                    builtConfig[objectKeyForMerge] = {
-                        ...(defaultGenericConfig[objectKeyForMerge] || {}),
-                        ...(customGenericConfig[objectKeyForMerge] || {}),
-                        ...(defaultSpecificConfig[objectKeyForMerge] || {}),
-                        ...(customSpecificConfig[objectKeyForMerge] || {}),
-                    };
-                }
-                for (const detailName of [
-                    "fieldDetails",
-                    "expandDetails",
-                    "actionDetails",
-                    "filterableDetails",
-                    "sortableDetails",
-                    "fieldProps",
-                    "widgetProps",
-                ]) {
-                    const defaultGenericDetails = defaultGenericConfig[detailName] || {};
-                    const genericDetails = customGenericConfig?.[detailName] || {};
-                    const defaultSpecificDetails = defaultSpecificConfigs[view]?.[detailName] || {};
-                    const specificDetails = customSpecificConfig?.[detailName] || {};
-                    if (
-                        [defaultGenericDetails, genericDetails, defaultSpecificDetails, specificDetails].filter(
-                            identity,
-                        ).length > 1
-                    ) {
-                        const newDetailsObject = {
-                            ...defaultGenericDetails,
-                        };
-                        const configsInPriorityOrder = [genericDetails, defaultSpecificDetails, specificDetails];
-                        const isExpandDetails = detailName === "expandDetails";
-                        for (const overridingConfig of configsInPriorityOrder) {
-                            for (const fieldName in overridingConfig) {
-                                if (fieldName in newDetailsObject) {
-                                    if (isExpandDetails) {
-                                        // expandDetails[x].f is an object that contains fieldDetails like objects.
-                                        // we want to merge at that level as well
-                                        newDetailsObject[fieldName] = {
-                                            ...merge(
-                                                omit(newDetailsObject[fieldName], ["f"]),
-                                                omit(overridingConfig[fieldName], ["f"]),
-                                            ),
-                                            f: newDetailsObject[fieldName].f,
-                                        };
-                                        if (overridingConfig[fieldName].f && newDetailsObject[fieldName].f) {
-                                            const commonKeys = Object.keys(newDetailsObject[fieldName].f).filter((k) =>
-                                                Object.keys(overridingConfig[fieldName].f).includes(k),
-                                            );
-                                            for (const commonKey of commonKeys) {
-                                                newDetailsObject[fieldName].f[commonKey] = merge(
-                                                    newDetailsObject[fieldName].f[commonKey],
-                                                    overridingConfig[fieldName].f[commonKey],
-                                                );
-                                            }
-                                            newDetailsObject[fieldName].f = merge(
-                                                newDetailsObject[fieldName].f,
-                                                overridingConfig[fieldName].f,
-                                            );
-                                        }
-                                    } else {
-                                        newDetailsObject[fieldName] = merge(
-                                            newDetailsObject[fieldName],
-                                            overridingConfig[fieldName],
-                                        );
-                                    }
-                                } else {
-                                    newDetailsObject[fieldName] = overridingConfig[fieldName];
-                                }
-                            }
-                        }
-                        builtConfig[detailName] = newDetailsObject;
-                    }
-                }
-                return (this.builtConfigs[builtKey] = builtConfig);
+                const builtConfig = mergeSimpleProperties(
+                    defaultGenericConfig,
+                    customGenericConfig,
+                    defaultSpecificConfig,
+                    customSpecificConfig,
+                );
+
+                mergeDeepProperties(
+                    builtConfig,
+                    defaultGenericConfig,
+                    customGenericConfig,
+                    defaultSpecificConfig,
+                    customSpecificConfig,
+                );
+
+                flattenExpansionDetails(
+                    builtConfig,
+                    defaultGenericConfig,
+                    customGenericConfig,
+                    defaultSpecificConfig,
+                    customSpecificConfig,
+                );
+
+                this.builtConfigs[builtKey] = builtConfig;
+                delete this.initialized[builtKey];
+                return builtConfig;
             })();
+            this.initialized[builtKey].cancel = () => {
+                promiseCancel?.();
+                delete this.initialized[builtKey];
+            };
+
             return this.initialized[builtKey];
         },
     },
