@@ -1,6 +1,5 @@
 <script setup>
-import { assignReactiveObject, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
-import { keyDiff, union } from "@arrai-innovations/reactive-helpers";
+import { assignReactiveObject, keyDiff, loadingCombine, union, useList } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FilterGroup from "@vueda/components/FilterGroup.vue";
 import FormFeedback from "@vueda/components/FormFeedback.vue";
@@ -344,8 +343,29 @@ const availableTransitions = computed(() => {
     return [];
 });
 
+const translateExpandedField = (field) => {
+    // model config display fields uses django double underscore notation for expanded fields
+    // but objects-grid expects dot notation
+    // to preserve slot names, we don't want to change the field's 'name'.
+    // but we can override the 'value' to be the dot notation, if not otherwise specified
+    if (field?.name?.includes("__")) {
+        return {
+            ...field,
+            value: field.value || field.name.replace(/__/g, "."),
+        };
+    }
+    return field;
+};
+
 const computedFieldObjects = computed(() => {
-    return [...props.extraFieldObjects, ...calculatedDisplayFields.value];
+    const result = [];
+    for (const field of props.extraFieldObjects) {
+        result.push(translateExpandedField(field));
+    }
+    for (const field of calculatedDisplayFields.value) {
+        result.push(translateExpandedField(field));
+    }
+    return result;
 });
 const specialSlots = props.extraFieldObjects.map((field) => `field(${field.name})`);
 const themeOverride = computed(() => {
