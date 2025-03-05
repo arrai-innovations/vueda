@@ -79,16 +79,16 @@ const updateAggregates = (registryFns, registryGroups, computedAggregates, effec
                     const registryPathEntries = Object.entries(registryGroups).filter(([, path]) => path === group);
                     const ids = registryPathEntries.map(([id]) => id);
                     const hooks = ids.map((id) => registryFns[id]);
-                    return hooks
-                        .map((fn) => {
-                            try {
-                                return fn();
-                            } catch (err) {
-                                console.error("HookFn throw in group", group, fn, err);
-                                return false;
-                            }
-                        })
-                        .some(identity);
+                    let returnValue = hooks.map((fn) => {
+                        try {
+                            return fn();
+                        } catch (err) {
+                            console.error("HookFn throw in group", group, registryFns, ids, hooks, fn, err);
+                            return false;
+                        }
+                    });
+                    returnValue = returnValue.some(identity);
+                    return returnValue;
                 });
             });
             effectScopes[group] = scope;

@@ -4,12 +4,13 @@ import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { compact, update } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
+import escapeRegExp from "lodash-es/escapeRegExp.js";
 import get from "lodash-es/get.js";
 import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import set from "lodash-es/set.js";
-import { computed, nextTick, provide, reactive, readonly, toRef, watch } from "vue";
+import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
 
 /**
  * @module use/useForm.js - A composable function for handling form state.
@@ -25,29 +26,32 @@ import { computed, nextTick, provide, reactive, readonly, toRef, watch } from "v
 
 /**
  * @typedef {object} FormContextRawState
- * @property {FieldValues} values - The form's values, referenced by lodash key path.
- * @property {FieldValueDetails} valueDetails - The field value object if the field value is a foreign key to a model,
- *  referenced by lodash key path.
- * @property {FieldValues} submittingValues -  The form's values after removing ignored fields.
- * @property {{[path: string]: {[errorCode: string]: string}}} errors - The form's error
- *  messages, per field, by path. Form-level errors are stored using `NON_FIELD_ERRORS_KEY`.
- * @property {boolean} anyError - Whether any field has an error.
- * @property {{[path: string]: {[messageCode: string]: string}}} messages - The form's
- *  message messages, per field, by flat path. Form-level messages are stored using `NON_FIELD_ERRORS_KEY`.
- * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} modified - Whether each field has been
- *  modified, by path.
- * @property {import('vue').ComputedRef<boolean>} anyModified - Whether any field has been modified.
- * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} required - Whether each field should
- *  currently show a required message.
- * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} valid - Whether each field passes
- *  validation (true), or should show an error message (any string).
- * @property {{[path: string]: boolean}} touched - Whether each field has been blurred, by path.
- * @property {boolean} anyTouched - Whether any field has been blurred.
- * @property {string|undefined} focused - The field currently in focus.
- * @property {{[fieldName: string]: any}} initialValues - The form's initial values.
- * @property {{[path: string]: string}} ignored - The ignored fields on the form
- * @property {boolean} anyIgnored - Whether any field has been ignored.
  *
+ * // *** Values & Initial State ***
+ * @property {FieldValues} values - The form's values, referenced by lodash key path.
+ * @property {FieldValueDetails} valueDetails - Detailed value objects, for fields using foreign keys.
+ * @property {{[fieldName: string]: any}} initialValues - The form's initial values (used for resets).
+ *
+ * // *** Validation & Errors ***
+ * @property {{[path: string]: {[errorCode: string]: string}}} errors - Per-field validation errors.
+ * @property {boolean} anyError - Whether any field has an error.
+ * @property {{[path: string]: {[messageCode: string]: string}}} messages - Per-field validation messages.
+ * @property {boolean} anyMessage - Whether any field has a message.
+ *
+ * // *** Interaction & Focus ***
+ * @property {{[path: string]: boolean}} touched - Whether each field has been touched (blurred).
+ * @property {boolean} anyTouched - Whether any field has been touched.
+ * @property {string|undefined} focused - The currently focused field (if any).
+ *
+ * // *** Tracking & Modification ***
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} modified - Tracks modified fields.
+ * @property {import('vue').ComputedRef<boolean>} anyModified - Whether any field has been modified.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} required - Tracks required fields.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} valid - Tracks field validity.
+ *
+ * // *** Ignored Fields & Reset Behavior ***
+ * @property {{[path: string]: string}} ignored - Fields ignored in validation/submission.
+ * @property {boolean} anyIgnored - Whether any field has been ignored.
  */
 
 /**
@@ -57,19 +61,6 @@ import { computed, nextTick, provide, reactive, readonly, toRef, watch } from "v
 const validateName = (name) => {
     if (!name) {
         throw new Error("No name provided");
-    }
-};
-
-/**
- * @param {FormContextState} state - The form context state.
- * @param {string} name - The name of the field to update.
- * @param {any} value - The value to update the field with.
- * @private
- */
-const updateInitialValue = (state, name, value) => {
-    validateName(name);
-    if (!isEqual(get(state.initialValues, name), value)) {
-        set(state.initialValues, name, value);
     }
 };
 
@@ -191,8 +182,9 @@ const deleteErrorOrMessage = (kind, state, name, code) => {
  *
  * @param {'error'|'message'} kind - The kind of error or message to clear.
  * @param {FormContextState} state - The form context state.
- * @param {string} name - The name of the field to calculate if it has been modified.
- * @param {number} [childIndex] - The index of the child field to calculate if it has been modified.
+ * @param {string} name - The name (path) of the field whose error or message should be cleared.
+ * @param {number} [childIndex] - If provided, clears only the error/message for a specific item in an array field
+ *  (e.g., `field[1]`). If omitted, clears the error/message for the entire field.
  * @private
  */
 const clearErrorOrMessage = (kind, state, name, childIndex) => {
@@ -201,15 +193,16 @@ const clearErrorOrMessage = (kind, state, name, childIndex) => {
     const anyFlagKey = kind === "error" ? "anyError" : "anyMessage";
     if (childIndex !== undefined) {
         const key = `${name}[${childIndex}]`;
+        // direct
         if (collection[key]) {
             delete collection[key];
             didSomething = true;
-        } else {
-            for (const [key] of Object.entries(collection)) {
-                if (key.startsWith(`${name}[${childIndex}]`) && collection[key]) {
-                    delete collection[key];
-                    didSomething = true;
-                }
+        }
+        // nested
+        for (const potentialNestedKey of Object.keys(collection)) {
+            if (potentialNestedKey.startsWith(`${name}[${childIndex}]`)) {
+                delete collection[potentialNestedKey];
+                didSomething = true;
             }
         }
     } else {
@@ -230,6 +223,7 @@ const clearErrorOrMessage = (kind, state, name, childIndex) => {
  * @private
  */
 const clearErrors = (state, name, childIndex) => {
+    validateName(name);
     clearErrorOrMessage("error", state, name, childIndex);
 };
 
@@ -240,6 +234,7 @@ const clearErrors = (state, name, childIndex) => {
  * @private
  */
 const clearMessages = (state, name, childIndex) => {
+    validateName(name);
     clearErrorOrMessage("message", state, name, childIndex);
 };
 
@@ -371,59 +366,57 @@ const focus = (state, name) => {
  *
  * @param {FormContextState} state
  * @param {string} name
+ * @param {string[]} clearServerErrorDependents
  * @private
  */
-const clearServerError = (state, name) => {
+const clearServerErrors = (state, name, clearServerErrorDependents = []) => {
     validateName(name);
     deleteError(state, name, "server");
     deleteMessage(state, name, "server");
+
+    for (const dep of clearServerErrorDependents) {
+        let resolvedName = dep;
+        if (dep.includes("$parent") && name.includes(".")) {
+            const parent = name.split(".").slice(0, -1).join(".");
+            resolvedName = dep.replace("$parent", parent);
+        }
+        clearServerErrors(state, resolvedName);
+    }
 };
 
 /**
  *
  * @param {FormContextState} state - The form context state.
  * @param {string} name - The name of the field to blur.
- * @param {string[]} dependents - The names of fields that should also be blurred.
  * @private
  */
-const blur = (state, name, dependents = []) => {
+const blur = (state, name) => {
     validateName(name);
     if (state.focused === name) {
-        state.focused = undefined;
+        state.focused = null;
     }
     setTouched(state, name);
-    // Wait for modified to update reactively
-    nextTick(() => {
-        if (state.modified[name]) {
-            clearServerError(state, name);
-        }
-    });
-    if (dependents.length) {
-        for (const dep of dependents) {
-            if (dep.includes("$parent") && name.includes(".")) {
-                const parent = name.split(".")[0];
-                const d = dep.replace("$parent", parent);
-                blur(state, d);
-            } else {
-                blur(state, dep);
-            }
-        }
-    }
 };
 
 /**
  *
  * @param {FormContextState} state
+ * @param {import('vue').Ref<boolean>} hasInitialized
  * @private
  */
-const reset = (state) => {
+const reset = (state, hasInitialized) => {
     state.values = cloneDeep(state.initialValues);
-    assignReactiveObject(state.errors, {});
-    state.anyError = false;
-    assignReactiveObject(state.messages, {});
-    assignReactiveObject(state.touched, {});
-    state.anyTouched = false;
-    state.focused = undefined;
+    if (hasInitialized.value) {
+        // skip resetting the first time for the sake of tests.
+        assignReactiveObject(state.errors, {});
+        state.anyError = false;
+        assignReactiveObject(state.messages, {});
+        assignReactiveObject(state.touched, {});
+        state.anyTouched = false;
+        state.focused = null;
+    } else {
+        hasInitialized.value = true;
+    }
 };
 
 /**
@@ -470,7 +463,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
 
     const hasErrors = (field) => state.errors[field] && Object.keys(state.errors[field]).length > 0;
     const getArrayFieldKeys = (baseField, suffix = "") => {
-        const regex = new RegExp(`^${baseField}\\[\\d+\\]${suffix}$`);
+        const regex = new RegExp(`^${baseField}\\[\\d+\\]${escapeRegExp(suffix)}$`);
         return Object.keys(state.errors).filter((key) => regex.test(key));
     };
 
@@ -506,42 +499,59 @@ function getFirstErrorField(state, displayFields, arrayFields) {
 }
 
 /**
- * The form context object, providing methods to update the form's values, errors, messages, touched state, modified
- *  state, and to reset the form.
+ * The form context object, providing methods to update form values, errors, messages,
+ * touched state, modified state, and form-level behavior.
  *
  * @typedef {object} FormContext
- * @property {FormContextState} state - The form context's reactive state.
+ * @property {FormContextState} state - The reactive form state.
+ *
+ * // *** Form Reset & State Management ***
  * @property {() => void} reset - Reset the form to its initial values.
+ * @property {() => FieldValues} formValues - Returns the form values, excluding ignored fields.
+ * @property {(displayFields: string[]) => string|null} getFirstErrorField - Get the first displayed field with an error.
+ *
+ * // *** Value & Initial Value Handling ***
  * @property {(name: string, value: any) => void} updateValue - Update a field's value.
- * @property {(name: string, value: any) => void} updateInitialValue - Update a field's initial value.
  * @property {(name: string) => void} deleteValue - Delete a field's value.
  * @property {(name: string, valueDetail: any) => void} updateValueDetails - Update a field's detailed value object.
  * @property {(name: string) => void} deleteValueDetails - Delete a field's detailed value object.
- * @property {(name: string, childIndex?: number) => void} clearErrors - Clear a field's errors, or a child's errors if childIndex is given.
+ *
+ * // *** Error & Message Handling ***
  * @property {(name: string, code: string, message: string) => void} updateError - Update a field's error.
  * @property {(name: string, code?: string) => void} deleteError - Delete a field's error.
  * @property {(name: string, code: string, message: string) => void} updateMessage - Update a field's message.
- * @property {(name: string, childIndex?: number) => void} clearMessages - Clear a field's messages, or a child's messages if childIndex is given.
+ * @property {(name: string, childIndex?: number) => void} clearMessages - Clear a field's messages, or a child's
+ *  messages if childIndex is given.
  * @property {(name: string, code?: string) => void} deleteMessage - Delete a field's message.
- * @property {(name: string) => void} setTouched - Set a field as touched.
- * @property {() => void} setAllTouched - Set all fields as touched.
- * @property {(name: string) => void} clearTouched - Clear a field as touched.
- * @property {() => void} clearAllTouched - Clear all fields as touched.
+ * @property {(error: FormValidationError) => void} handleServerFormValidationError - Handle a server validation error.
+ * @property {(name: string, dependants: string[]|undefined) => void} clearServerErrors - clear errors and messages for
+ *  the named field and optionally dependants
  *
- * @property {(error: FormValidationError) => void} handleServerFormValidationError - Handle a server form validation
- *  error.
+ * // *** Touch & Focus Management ***
+ * @property {(name: string) => void} setTouched - Mark a field as touched.
+ * @property {() => void} setAllTouched - Mark all fields as touched.
+ * @property {(name: string) => void} clearTouched - Clear the touched state of a field.
+ * @property {() => void} clearAllTouched - Clear the touched state of all fields.
  * @property {(name: string) => void} focus - Focus on a field.
- * @property {(name: string, dependents: []) => void} blur - Blur a field.
- * @property {(name: string) => void} ignore - Ignore a field.
- * @property {(name: string) => void} removeIgnore - remove ignoring a field.
- * @property {(displayFields: string[]) => string|null} getFirstErrorField - Get the first displayed field with an error,
- *  the 'first' error can be the NON_FIELD_ERRORS_KEY if there is a form level error.
- * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundRegisterHook} registerIsModifiedHook - Register a function to contribute to the form's determination of whether it has been modified.
- * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundUnregisterHook} unregisterIsModifiedHook - Unregister a function that was contributing to the form's determination of whether it has been modified.
- * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundRegisterHook} registerIsRequiredHook - Register a function to contribute to the form's determination of whether it has been modified.
- * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundUnregisterHook} unregisterIsRequiredHook - Unregister a function that was contributing to the form's determination of whether it has been modified.
- * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundRegisterHook} registerValidationHook - Register a function to contribute to the form's validation.
- * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundUnregisterHook} unregisterValidationHook - Unregister a function that was contributing to the form's validation.
+ * @property {(name: string) => void} blur - Blur a field.
+ *
+ * // *** Ignore State Management ***
+ * @property {(name: string) => void} ignore - Mark a field as ignored.
+ * @property {(name: string) => void} removeIgnore - Remove the ignored state from a field.
+ *
+ * // *** Hook Registrations ***
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundRegisterHook} registerIsModifiedHook -
+ *  Register a function to track modification.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundUnregisterHook} unregisterIsModifiedHook -
+ *  Unregister a modification tracking function.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundRegisterHook} registerIsRequiredHook -
+ *  Register a function to track required state.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundUnregisterHook} unregisterIsRequiredHook -
+ *  Unregister a required state tracking function.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundRegisterHook} registerIsValidHook -
+ *  Register a function to track validation.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundUnregisterHook} unregisterIsValidHook -
+ *  Unregister a validation tracking function.
  */
 
 /**
@@ -625,11 +635,13 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @returns {FormContext}
  */
 export function useForm(props) {
+    const hasInitialized = ref(false);
     const modifiedHookRegistry = useReactiveHookRegistry();
     const requiredHookRegistry = useReactiveHookRegistry();
     const validationHookRegistry = useReactiveHookRegistry();
 
     const state = reactive({
+        // *** Values & Initial State ***
         values: {},
         submittingValues: computed(() => {
             if (state.anyIgnored) {
@@ -648,27 +660,55 @@ export function useForm(props) {
             return state.values;
         }),
         valueDetails: {},
+        initialValues: {},
+
+        // *** Validation & Errors ***
         errors: {},
         anyError: false,
         messages: {},
+        anyMessage: false,
+
+        // *** Interaction & Focus ***
+        touched: {},
+        anyTouched: false,
+        focused: null,
+
+        // *** Tracking & Modification ***
         modified: modifiedHookRegistry.computedAggregates,
         anyModified: computed(() => Object.values(state.modified).some(identity)),
         required: requiredHookRegistry.computedAggregates,
         valid: validationHookRegistry.computedAggregates,
-        touched: {},
-        anyTouched: false,
-        initialValues: toRef(props, "initialValues"),
-        focused: undefined,
+
+        // *** Ignored Fields & Reset Behavior ***
         ignored: {},
         anyIgnored: false,
     });
+    // Allow controlled test manipulation
+    /* v8 ignore start */
+    if (import.meta.env.MODE === "test") {
+        if (props.testErrors) {
+            state.errors = cloneDeep(props.testErrors);
+            state.anyError = !!Object.keys(state.errors).length;
+        }
+        if (props.testMessages) {
+            state.messages = cloneDeep(props.testMessages);
+            state.anyMessage = !!Object.keys(state.messages).length;
+        }
+        if (props.testTouched) {
+            state.touched = cloneDeep(props.testTouched);
+            state.anyTouched = !!Object.keys(state.touched).length;
+        }
+    }
+    /* v8 ignore end */
+
     watch(
-        toRef(state, "initialValues"),
-        (initialValues) => {
+        toRef(props, "initialValues"),
+        (newInitialValues) => {
             // todo: do we need a trigger for this? I could see initial values changing, but not
             //  wanting to reset the form
-            if (initialValues && !isEqual(state.values, initialValues)) {
-                reset(state);
+            if (newInitialValues && !isEqual(state.initialValues, newInitialValues)) {
+                state.initialValues = cloneDeep(newInitialValues);
+                reset(state, hasInitialized);
             }
         },
         {
@@ -676,30 +716,43 @@ export function useForm(props) {
             deep: true,
         },
     );
+    /** @type{FormContext} */
     const formContext = {
         state: readonly(state),
+
+        // *** Form Reset & State Management ***
+        reset: reset.bind(null, state, hasInitialized),
+        getFirstErrorField: getFirstErrorField.bind(null, state),
+
+        // *** Value & Initial Value Handling ***
         updateValue: updateValue.bind(null, state),
-        updateInitialValue: updateInitialValue.bind(null, state),
         deleteValue: deleteValue.bind(null, state),
         updateValueDetails: updateValueDetails.bind(null, state),
         deleteValueDetails: deleteValueDetails.bind(null, state),
+
+        // *** Error & Message Handling ***
         clearErrors: clearErrors.bind(null, state),
         updateError: updateError.bind(null, state),
         deleteError: deleteError.bind(null, state),
         clearMessages: clearMessages.bind(null, state),
         updateMessage: updateMessage.bind(null, state),
         deleteMessage: deleteMessage.bind(null, state),
+        handleServerFormValidationError: handleServerFormValidationError.bind(null, state),
+        clearServerErrors: clearServerErrors.bind(null, state),
+
+        // *** Touch & Focus Management ***
         setTouched: setTouched.bind(null, state),
         setAllTouched: setAllTouched.bind(null, state),
         clearTouched: clearTouch.bind(null, state),
         clearAllTouched: clearAllTouched.bind(null, state),
-        handleServerFormValidationError: handleServerFormValidationError.bind(null, state),
         focus: focus.bind(null, state),
         blur: blur.bind(null, state),
-        reset: reset.bind(null, state),
+
+        // *** Ignore State Management ***
         ignore: ignore.bind(null, state),
         removeIgnore: removeIgnore.bind(null, state),
-        getFirstErrorField: getFirstErrorField.bind(null, state),
+
+        // *** Hook Registrations ***
         registerIsModifiedHook: modifiedHookRegistry.registerHook,
         unregisterIsModifiedHook: modifiedHookRegistry.unregisterHook,
         registerIsRequiredHook: requiredHookRegistry.registerHook,

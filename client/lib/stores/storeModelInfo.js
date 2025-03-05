@@ -246,8 +246,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  *     fetchModelInfo: FetchModelInfo
  * }>}
  */
-export const storeModelInfo = defineStore({
-    id: "modelInfo",
+export const storeModelInfo = defineStore("modelInfo", {
     state: () => ({
         infos: {},
         promises: {},

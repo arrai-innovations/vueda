@@ -10,6 +10,18 @@
 
   - [About](#about)
   - [Install](#install)
+  - [Usage](#usage)
+    - [JSDocs](#jsdocs)
+    - [Forms](#forms)
+    - [CRUD Operation Views](#crud-operation-views)
+    - [Dynamic Routing](#dynamic-routing)
+    - [Authentication](#authentication)
+    - [Navigation](#navigation)
+    - [Permissions](#permissions)
+    - [Theming](#theming)
+    - [Customization](#customization)
+  - [Development](#development)
+    - [Environment](#environment)
     - [Running Locally](#running-locally)
 - [todo: test these instructions when the examples exist](#todo-test-these-instructions-when-the-examples-exist)
     - [Testing](#testing)
@@ -43,8 +55,6 @@ services of [vueda-server].
 1.  ```console
     $ npm install @arrai-innovations/vueda
     ```
-
-````
 
 2.  (optional) Strip test attributes from production builds, by installing the `rollup-plugin-strip` plugin and adding it to your `vite.config.js`:
 
@@ -108,7 +118,7 @@ Clone the repository and install the dependencies:
 $ git clone git://github.com/arrai-innovations/vueda-client.git
 $ cd vueda-client
 [vueda-client]$ npm install --include=dev
-````
+```
 
 Installing without dev dependencies will not work as husky is a dev dependency and is called in prepare.
 

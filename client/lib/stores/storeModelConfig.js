@@ -57,7 +57,7 @@ import { defineStore } from "pinia";
  * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} widgetComponents - overriding components for individual widgets
  * @property {object} widgetProps - extra props to pass a widget component in a form model
  * @property {string|null} defaultView - the default view to use. default is `"update"` if available, otherwise
- *  `"retrieve"` if available, otherwise `"`list" if available or `null`.
+ *  `"read"` if available, otherwise `"`list" if available or `null`.
  */
 
 /**
@@ -129,7 +129,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
             fieldProps: {},
             widgetComponents: {},
             widgetProps: {},
-            defaultView: canUpdate ? "update" : canRetrieve ? "retrieve" : canList ? "list" : null,
+            defaultView: canUpdate ? "update" : canRetrieve ? "read" : canList ? "list" : null,
         },
         {},
     ];
@@ -371,8 +371,7 @@ const mergeDeepProperties = (
  * >}
  *
  */
-export const storeModelConfig = defineStore({
-    id: "modelConfig",
+export const storeModelConfig = defineStore("modelConfig", {
     state: () => ({
         genericConfigs: {}, // view-independent config overrides
         specificConfigs: {}, // view-specific config overrides

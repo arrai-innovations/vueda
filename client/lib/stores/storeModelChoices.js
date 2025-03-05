@@ -64,8 +64,7 @@ const modelFilterChoicesUrl = (app, model, field) =>
  *
  * }>}
  */
-export const storeModelChoices = defineStore({
-    id: "modelChoices",
+export const storeModelChoices = defineStore("modelChoices", {
     state: () => ({
         choices: {},
         filterChoices: {},

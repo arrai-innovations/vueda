@@ -16,8 +16,7 @@
   },
   "scripts": {
     "test": "npx --no-install vitest",
-    "coverage": "npm run coverage:clean && npm test -- --coverage=true",
-    "coverage:clean": "rm -rf coverage",
+    "coverage": "npm test -- run --coverage",
     "prepare": "npx --no-install husky",
     "docs": "echo \"#todo: setup jsdoc to markdown\""
   },
@@ -32,16 +31,17 @@
   },
   "homepage": "https://github.com/arrai-innovations/vueda-client#readme",
   "devDependencies": {
-    "@arrai-innovations/commitlint-config": "^1.1.0",
-    "@commitlint/cli": "^18.4.3",
+    "@arrai-innovations/commitlint-config": "^2.0.0",
+    "@commitlint/cli": "^19.8.0",
     "@rollup/plugin-strip": "^3.0.4",
-    "@testing-library/jest-dom": "^6.1.4",
-    "@testing-library/user-event": "^14.5.1",
-    "@testing-library/vue": "^8.0.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/user-event": "^14.6.1",
+    "@testing-library/vue": "^8.1.0",
     "@trivago/prettier-plugin-sort-imports": "^4.3.0",
-    "@vitejs/plugin-vue": "^4.5.0",
-    "@vitest/coverage-v8": "^0.34.6",
-    "@vue/test-utils": "^2.4.3",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vitest/coverage-v8": "^3.0.8",
+    "@vue/test-utils": "^2.4.6",
+    "del-cli": "^6.0.0",
     "doctoc": "^2.1.0",
     "eslint": "^8.54.0",
     "eslint-config-prettier": "^9.0.0",
@@ -52,6 +52,7 @@
     "eslint-plugin-vitest": "^0.3.10",
     "eslint-plugin-vitest-globals": "^1.4.0",
     "eslint-plugin-vue": "^9.18.1",
+    "flush-promises": "^1.0.2",
     "glob-promise": "^6.0.5",
     "husky": "^9.1.7",
     "jsdoc": "^4.0.2",
@@ -60,25 +61,24 @@
     "msw": "^2.0.9",
     "pinst": "^3.0.0",
     "prettier": "^3.2.5",
-    "vite": "^5.0.4",
+    "vite": "^6.2.2",
     "vite-plugin-circular-dependency": "^0.2.1",
-    "vitest": "^0.34.6"
+    "vitest": "^3.0.8"
   },
   "peerDependencies": {
     "@arrai-innovations/pro-duotone-svg-icons": "^6.6.0",
-    "@arrai-innovations/reactive-helpers": "^17.0.2",
+    "@arrai-innovations/reactive-helpers": "^18.0.0",
     "@arrai-innovations/vue-fontawesome": "^3.0.8",
     "@floating-ui/vue": "^1.0.2",
-    "@sentry/tracing": "^7.53.1",
-    "@sentry/vue": "^7.53.1",
-    "@vueuse/core": "^12.4.0",
+    "@sentry/vue": "^9.5.0",
+    "@vueuse/core": "^13.0.0",
     "lodash-es": "^4.17.21",
-    "luxon": "^3.4.4",
-    "pinia": "^2.2.6",
+    "luxon": "^3.5.0",
+    "pinia": "^3.0.1",
     "primevue": "^4.2.5",
-    "vue": "^3.4.0",
+    "vue": "^3.5.13",
     "vue-deepunref": "^1.0.1",
-    "vue-router": "^4.2.5"
+    "vue-router": "^4.5.0"
   },
   "dependencies": {
     "@tiptap/extension-text-align": "^2.1.13",
@@ -90,7 +90,7 @@
     "p-limit": "^5.0.0",
     "platform-detect": "^3.0.1",
     "pluralize": "^8.0.0",
-    "semver": "^7.6.2",
+    "semver": "^7.7.1",
     "string-similarity-js": "^2.1.4"
   }
 }

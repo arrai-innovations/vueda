@@ -36,8 +36,7 @@ const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
  *
  * @returns {DarkModeStore} The store for dark mode.
  */
-export const storeDarkMode = defineStore({
-    id: "darkMode",
+export const storeDarkMode = defineStore("darkMode", {
     state: () => ({
         isDark: false,
     }),

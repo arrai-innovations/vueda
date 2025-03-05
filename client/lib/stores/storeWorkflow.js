@@ -143,8 +143,7 @@ const executeTransitionUrl = (result) => {
  * ```
  * @returns {WorkflowStore} The store for workflow.
  */
-export const storeWorkflow = defineStore({
-    id: "workflow",
+export const storeWorkflow = defineStore("workflow", {
     state: () => {
         const createErrorPromiseStructure = () => ({
             objectStates: {},

@@ -1,24 +1,16 @@
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
+import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
-import { computed, inject, provide, reactive, readonly, ref } from "vue";
+import { computed, inject, provide, reactive, readonly, ref, toRef, unref, watch } from "vue";
 
-/**
- * The reactive props we expect widgets to receive and pass to useWidget when creating a widget context.
- *
- * @typedef {object} WIDGET_PROPS
- * @property {string} [name] - The name of the widget.
- * @property {any} [modelValue] - The model value of the widget.
- * @property {string} [label] - The label of the widget.
- */
 export const WIDGET_PROPS = {
+    // *** Identification & Metadata ***
     name: {
         type: String,
         default: undefined,
     },
-    modelValue: {
-        type: [String, Number, Boolean, Array, Object],
-        default: undefined,
-    },
+
+    // *** Display ***
     label: {
         type: String,
         default: undefined,
@@ -27,10 +19,20 @@ export const WIDGET_PROPS = {
         type: String,
         default: undefined,
     },
+
+    // *** Validation ***
     required: {
         type: Boolean,
         default: undefined, // let the default from field context take over
     },
+
+    // *** Value Handling ***
+    modelValue: {
+        type: [String, Number, Boolean, Array, Object],
+        default: undefined,
+    },
+
+    // *** Disabled Behavior ***
     disabled: {
         type: Boolean,
         default: false,
@@ -39,6 +41,8 @@ export const WIDGET_PROPS = {
         type: Function,
         default: null,
     },
+
+    // *** Field Context Behavior ***
     contextless: {
         type: Boolean,
         default: false,
@@ -49,155 +53,317 @@ export const WIDGET_PROPS = {
 export const WIDGET_EMITS = ["update:modelValue"];
 
 /**
- * The widget context's raw reactive state.
+ * The raw prop arguments for the useWidget function. (Matches WIDGET_PROPS).
  *
- * @typedef {object} WidgetRawState
+ * @typedef {object} WidgetContextRawProps
+ *
+ * // *** Identification & Metadata ***
+ * @property {string} [name] - The name of the widget.
+ *
+ * // *** Display ***
+ * @property {string} [label] - The label to display next to the widget.
+ * @property {string} [help] - The help text for the widget.
+ *
+ * // *** Validation ***
+ * @property {boolean} [required] - Whether the widget is required. Inherits from field context if undefined.
+ *
+ * // *** Value Handling ***
+ * @property {any} [modelValue] - The widget’s bound value (v-model).
+ *
+ * // *** Disabled Behavior ***
+ * @property {boolean} [disabled=false] - Whether the widget is disabled.
+ * @property {() => boolean} [disabledFn=null] - A function that returns a boolean indicating disabled state.
+ *
+ * // *** Field Context Behavior ***
+ * @property {boolean} [contextless=false] - If true, the widget ignores surrounding context like field or form.
+ */
+
+/**
+ * The reactive prop arguments for the useWidget function. (Matches WIDGET_PROPS).
+ *
+ * @typedef {import('vue').UnwrapNestedRefs<WidgetContextRawProps>} WidgetContextProps
+ */
+
+/**
+ * The raw reactive state for the useWidget function.
+ *
+ * @typedef {object} WidgetContextRawState
+ *
+ * // *** Identification & Metadata ***
  * @property {Readonly<import('vue').Ref<string>>} widgetId - A unique identifier for the widget.
- * @property {import('vue').WritableComputedRef<any>} combinedValue - The combined value of the widget, either from the model or
- * the field context.
- * @property {import('vue').WritableComputedRef<any>} valueDetail - The value detail of the widget.
- * @property {import('vue').ComputedRef<string>} combinedName - The combined name of the widget, either from the props
- * or the field context.
- * @property {import('vue').ComputedRef<string>} combinedLabel - The combined label of the widget, either from the props
- * @property {import('vue').ComputedRef<boolean>} disabled - Whether the widget is disabled.
- * @property {import('vue').ComputedRef<{invalid:boolean,warning:boolean}>} validationState - The validation state of the widget.
- * @property {import('vue').ComputedRef<boolean>} focused - Whether the widget is focused.
- * @property {import('vue').ComputedRef<boolean>} required - Whether the widget is required.
- * @property {import('vue').ComputedRef<boolean>} help - The help text.
- */
-
-/**
- * The widget context's reactive state.
+ * @property {import('vue').ComputedRef<string>} combinedName - The effective name of the widget, from props or field context.
+ * @property {import('vue').ComputedRef<string>} [formModelName] - The form model name from the field context.
  *
- * @typedef {import('vue').UnwrapNestedRefs<WidgetRawState>} WidgetState
+ * // *** Display ***
+ * @property {import('vue').ComputedRef<string>} combinedLabel - The effective label of the widget.
+ * @property {import('vue').ComputedRef<string>} help - The help text, from props or field context.
+ *
+ * // *** Validation ***
+ * @property {import('vue').ComputedRef<boolean>} required - Whether the widget is required.
+ * @property {import('vue').ComputedRef<{invalid: boolean, warning: boolean}>} validationState - Validation state flags.
+ *
+ * // *** Value Handling ***
+ * @property {import('vue').WritableComputedRef<any>} combinedValue - The widget’s effective value (local or contextual).
+ * @property {import('vue').WritableComputedRef<any>} valueDetail - Value detail object for richer data interaction.
+ *
+ * // *** Interaction & State Tracking ***
+ * @property {import('vue').ComputedRef<boolean>} touched - Whether the widget has been interacted with.
+ * @property {import('vue').ComputedRef<boolean>} focused - Whether the widget is currently focused.
+ *
+ * // *** Disabled Behavior ***
+ * @property {import('vue').ComputedRef<boolean>} disabled - Whether the widget is disabled.
+ *
+ * // *** Dependency Management ***
+ * @property {import('vue').ComputedRef<{[path: string]: any}>} [dependencyValues] - Dependency values from context, if any.
  */
 
 /**
- * The widget context object.
+ * The reactive state for the useWidget function.
+ *
+ * @typedef {import('vue').UnwrapNestedRefs<WidgetContextRawState>} WidgetContextState
+ */
+
+/**
+ * The widget context object, a useWidget instance.
  *
  * @typedef {object} WidgetContext
- * @property {WidgetState} state - The widget context's reactive state.
+ * @property {WidgetContextState} state - The widget context's reactive state.
+ *
+ * // *** Field Interactions ***
  * @property {() => void} setTouched - Set the widget as touched.
+ * @property {() => void} clearTouched - Clear the widget's touched state.
  * @property {() => void} focus - Focus the widget.
  * @property {() => void} blur - Blur the widget.
- * @property {(value: any) => void} updateInitialValue - Update the initial value of the widget.
  */
 
 /**
  * Generate and provide a widget context for a widget, using the provided props and emit function, including methods to
  *  update the widget's value, touch state, force modified recalculation, and focus or blur it.
  *
- * @param {import('vue').UnwrapRef<WIDGET_PROPS>} props - The widget context's reactive props.
+ * @param {WidgetContextProps} props - The widget context's reactive props.
  * @param {import('vue').EmitFn} emit - The widget context's component emit function.
  * @return {WidgetContext} The widget context object.
  */
 export function useWidget(props, emit) {
     /** @type {import('@vueda/use/useField.js').FieldContext|null} */
-    const fieldContext = inject(FieldContextSymbol, null);
-    const widgetContext = {
-        state: reactive({
-            widgetId: readonly(
-                ref(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)),
-            ),
-            valueDetail: computed({
-                get: () => {
-                    if (fieldContext) {
-                        return fieldContext.state.valueDetail;
-                    }
-                    return undefined;
-                },
-                set: (value) => {
-                    if (fieldContext) {
-                        if (isEqual(value, fieldContext.state.valueDetail)) {
-                            return;
-                        }
-                        fieldContext.state.valueDetail = value;
-                    }
-                },
-            }),
-            combinedValue: computed({
-                get: () => {
-                    if (props.contextless || props.modelValue !== undefined) {
-                        return props.modelValue;
-                    }
-                    if (fieldContext) {
-                        return fieldContext.state.value;
-                    }
-                    return undefined;
-                },
-                set: (value) => {
-                    if (props.contextless || props.modelValue !== undefined) {
-                        emit("update:modelValue", value);
-                        return;
-                    }
-                    if (fieldContext) {
-                        if (isEqual(value, fieldContext.state.value)) {
-                            return;
-                        }
-                        fieldContext.state.value = value;
-                    }
-                },
-            }),
-            combinedName: computed(() => {
-                return props.name?.length ? props.name : fieldContext.state.name;
-            }),
-            formModelName: computed(() => {
-                return fieldContext?.state.formModelName;
-            }),
-            combinedLabel: computed(() => {
-                return props.label?.length ? props.label : fieldContext.state.label;
-            }),
-            disabled: computed(() => {
-                if (props.disabled) {
-                    return props.disabledFn ? props.disabledFn() : true;
+    const rawFieldContext = inject(FieldContextSymbol, null);
+    const fieldContext = computed(() => (!props.contextless ? unref(rawFieldContext) : null));
+
+    // When no in context, or contextless, take over some functionality normally provided by field context
+    const localFieldContext = reactive({
+        localValue: null,
+        localValueDetail: null,
+        focused: false,
+        touched: false,
+        errors: {},
+        messages: {},
+    });
+
+    // allow local field context to be directly set for testing
+    /* v8 ignore start */
+    if (import.meta.env.MODE === "test") {
+        if (props.testFocused) {
+            localFieldContext.focused = props.testFocused;
+        }
+        if (props.testTouched) {
+            localFieldContext.touched = props.testTouched;
+        }
+    }
+    /* v8 ignore end */
+
+    watch(
+        [toRef(props, "modelValue"), fieldContext],
+        ([newValue, newFc]) => {
+            if (!newFc) {
+                if (!isEqual(newValue, localFieldContext.localValue)) {
+                    localFieldContext.localValue = newValue;
                 }
-                return false;
-            }),
-            validationState: computed(() => {
-                if (!props.contextless && fieldContext) {
-                    const hasErrors = Object.keys(fieldContext.state.errors || {}).length > 0;
-                    const hasMessages = Object.keys(fieldContext.state.messages || {}).length > 0;
-                    return {
-                        invalid: hasErrors,
-                        warning: hasMessages && !hasErrors,
-                    };
+            } else {
+                if (localFieldContext.localValue !== newValue) {
+                    localFieldContext.localValue = newValue;
                 }
-                return {
-                    invalid: false,
-                    warning: false,
-                };
-            }),
-            focused: computed(() => {
-                if (!props.contextless && fieldContext) {
-                    return fieldContext.state.focused;
-                }
-                return false;
-            }),
-            required: computed(() => props.required ?? fieldContext?.state.required ?? false),
-            help: computed(() => props.help ?? fieldContext?.state.help ?? false),
-            dependencyValues: computed(() => {
-                return fieldContext?.state.dependencyValues ?? {};
-            }),
-        }),
-        setTouched: () => {
-            if (!props.contextless && fieldContext) {
-                fieldContext.setTouched();
             }
         },
-        focus: async () => {
-            if (!props.contextless && fieldContext) {
-                fieldContext.focus();
+        {
+            immediate: true,
+            deep: true,
+        },
+    );
+
+    /** @type {WidgetContextState} */
+    const state = reactive({
+        // *** Identification & Metadata ***
+        widgetId: readonly(
+            ref(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)),
+        ),
+        combinedName: computed(() => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                return fc.state.name;
+            }
+            return props.name || "";
+        }),
+        formModelName: computed(() => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                return fc.state.formModelName;
+            }
+            return null;
+        }),
+
+        // *** Display ***
+        combinedLabel: computed(() => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                return fc.state.label;
+            }
+            return props.label || "";
+        }),
+        help: computed(() => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                return fc.state.help;
+            }
+            return props.help || "";
+        }),
+
+        // *** Validation ***
+        required: computed(() => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                return fc.state.required;
+            }
+            return !!props.required;
+        }),
+        validationState: computed(() => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                const hasErrors = Object.keys(fc.state.errors || {}).length > 0;
+                const hasMessages = Object.keys(fc.state.messages || {}).length > 0;
+                return {
+                    invalid: hasErrors,
+                    warning: hasMessages && !hasErrors,
+                };
+            }
+            return {
+                invalid: false,
+                warning: false,
+            };
+        }),
+
+        // *** Value Handling ***
+        combinedValue: computed({
+            get: () => {
+                const fc = unref(fieldContext);
+                if (fc) {
+                    return fc.state.value;
+                }
+                return localFieldContext.localValue;
+            },
+            set: (value) => {
+                const fc = unref(fieldContext);
+                if (fc) {
+                    if (!isEqual(value, fc.state.value)) {
+                        fc.state.value = value;
+                    }
+                } else {
+                    if (props.modelValue !== undefined && props.modelValue !== value) {
+                        emit("update:modelValue", value);
+                    } else if (!isEqual(value, localFieldContext.localValue)) {
+                        localFieldContext.localValue = value;
+                    }
+                }
+            },
+        }),
+        valueDetail: computed({
+            get: () => {
+                const fc = unref(fieldContext);
+                if (fc) {
+                    return fc.state.valueDetail;
+                }
+                return cloneDeep(localFieldContext.localValueDetail);
+            },
+            set: (value) => {
+                const fc = unref(fieldContext);
+                if (fc) {
+                    if (!isEqual(value, fc.state.valueDetail)) {
+                        fc.state.valueDetail = value;
+                    }
+                } else {
+                    localFieldContext.localValueDetail = value;
+                }
+            },
+        }),
+
+        // *** Interaction & State Tracking ***
+        touched: computed(() => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                return fc.state.touched;
+            }
+            return localFieldContext.touched;
+        }),
+        focused: computed(() => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                return fc.state.focused;
+            }
+            return localFieldContext.focused;
+        }),
+
+        // *** Disabled Behavior ***
+        disabled: computed(() => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                return fc.state.disabled;
+            }
+            return props.disabledFn ? props.disabledFn() : props.disabled;
+        }),
+
+        // *** Dependency Management ***
+        dependencyValues: computed(() => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                return fc.state.dependencyValues;
+            }
+            return {};
+        }),
+    });
+    /** @type {WidgetContext} */
+    const widgetContext = {
+        state,
+
+        // *** Field Interactions ***
+        setTouched: () => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                fc.setTouched();
+            } else {
+                localFieldContext.touched = true;
+            }
+        },
+        clearTouched: () => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                fc.clearTouched();
+            } else {
+                localFieldContext.touched = false;
+            }
+        },
+        focus: () => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                fc.focus();
+            } else {
+                localFieldContext.focused = true;
             }
         },
         blur: () => {
-            if (!props.contextless && fieldContext) {
-                fieldContext.blur();
-                // FormContext handles setting touched
-            }
-        },
-        updateInitialValue: (value) => {
-            if (!props.contextless && fieldContext) {
-                fieldContext.updateInitialValue(value);
+            const fc = unref(fieldContext);
+            if (fc) {
+                fc.blur();
+            } else {
+                localFieldContext.focused = false;
             }
         },
     };

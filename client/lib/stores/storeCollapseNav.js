@@ -36,8 +36,7 @@ const collapseNavLocalStorageKey = "collapseNav";
  *
  * @returns {CollapseNavStore} The store for collapse nav.
  */
-export const storeCollapseNav = defineStore({
-    id: "collapseNav",
+export const storeCollapseNav = defineStore("collapseNav", {
     state: () => ({
         isCollapsed: false,
     }),
