@@ -275,15 +275,28 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                 )
 
         elif hasattr(field, "queryset"):
-            queryset = field.queryset
+            queryset = field.get_queryset()
             if hasattr(field, "slug_field"):
-                choices = []
-                for key in field.choices.keys():
-                    choices.append(
-                        {
-                            "label": key,
-                            "value": key,
-                        }
+                key_field = field.slug_field
+                if hasattr(queryset.model, "get_formatted_name"):
+                    choices = []
+                    for instance in queryset:
+                        choices.append(
+                            {
+                                "label": instance.get_formatted_name(),
+                                "value": instance.key_field,
+                            }
+                        )
+
+                else:
+                    formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(queryset)
+                    choices = (
+                        queryset.annotate(
+                            label=F(formatted_name_lookup_expression),
+                            value=Cast(F(key_field), output_field=CharField()),
+                        )
+                        .order_by("label")
+                        .values("label", "value")
                     )
 
             else:
