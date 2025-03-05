@@ -274,7 +274,7 @@ export function useField(props, emit, functions) {
         dependencies: readonly(toRef(props, "dependencies")),
         readOnly: readonly(toRef(props, "readOnly")),
         label: computed(() => (props.label?.length ? props.label : props.name)),
-        required: formContext ? computed(() => formContext.state.modified[props.name]) : computed(amIRequired),
+        required: formContext ? computed(() => formContext.state.required[props.name]) : computed(amIRequired),
         valid: formContext ? computed(() => formContext.state.valid[props.name]) : computed(amIValid),
         help: computed(() => props.help || ""),
         suffix: computed(() => props.rangeSuffix || ""),
