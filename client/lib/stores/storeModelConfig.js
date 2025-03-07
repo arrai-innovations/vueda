@@ -164,7 +164,12 @@ const mergeSimpleProperties = (
     customSpecificConfig,
 ) => {
     const configs = [customGenericConfig, defaultSpecificConfig, customSpecificConfig];
-    const mergedConfig = omit(defaultGenericConfig, nonSimpleProperties);
+    const mergedConfig = omit(defaultGenericConfig, [
+        ...nonSimpleProperties,
+        "displayFields",
+        "fetchFields",
+        "submitFields",
+    ]);
     for (const config of configs) {
         for (const [key, value] of Object.entries(config)) {
             if (!nonSimpleProperties.includes(key)) {
@@ -173,10 +178,14 @@ const mergeSimpleProperties = (
         }
     }
 
-    // use fields if displayFields, fetchFields, and submitFields are not set
     for (const fieldKey of ["displayFields", "fetchFields", "submitFields"]) {
-        if ((!mergedConfig[fieldKey] || mergedConfig[fieldKey].length === 0) && mergedConfig.fields) {
-            mergedConfig[fieldKey] = mergedConfig.fields;
+        // use fields if displayFields, fetchFields, and submitFields are not set
+        if (!mergedConfig[fieldKey] || mergedConfig[fieldKey].length === 0) {
+            if (mergedConfig.fields) {
+                mergedConfig[fieldKey] = mergedConfig.fields;
+            } else if (defaultGenericConfig[fieldKey]) {
+                mergedConfig[fieldKey] = defaultGenericConfig[fieldKey];
+            }
         }
     }
 
@@ -244,10 +253,12 @@ const flattenExpansionDetails = (
 
     for (const expandName of expanded) {
         const defaultGenericExpand = defaultGenericConfig.expandDetails?.[expandName] || {};
+        const defaultGenericFieldDetail = defaultGenericConfig.fieldDetails?.[expandName] || {};
         const customGenericExpand = customGenericConfig?.expandDetails?.[expandName] || {};
         const defaultSpecificExpand = defaultSpecificConfig.expandDetails?.[expandName] || {};
         const customSpecificExpand = customSpecificConfig?.expandDetails?.[expandName] || {};
         const newExpandDetails = {
+            ...defaultGenericFieldDetail,
             ...defaultGenericExpand,
         };
         const configsInPriorityOrder = [customGenericExpand, defaultSpecificExpand, customSpecificExpand];
@@ -279,7 +290,7 @@ const flattenExpansionDetails = (
         expandDetails[expandName] = newExpandDetails;
         fieldDetails[expandName] = cloneDeep(omit(newExpandDetails, ["f"]));
 
-        for (const [fieldName, expandFDetails] of Object.entries(newExpandDetails.f)) {
+        for (const [fieldName, expandFDetails] of Object.entries(newExpandDetails.f || {})) {
             const expandedFieldName = `${expandName}__${fieldName}`;
             // any defaults are replaced by the expand details
             // but custom overrides are still merged
