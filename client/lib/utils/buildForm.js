@@ -170,7 +170,11 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 const customField =
                     props.fieldComponents?.[fieldName] ||
                     modelConfig?.config?.fieldComponents?.[fieldName] ||
-                    (baseExpanded ? availableFields.FieldSetStackedInline : getFieldComponent(detailObject));
+                    (baseExpanded
+                        ? detailObject.many
+                            ? availableFields.FieldSetStackedInline
+                            : availableFields.FieldSetSingularStackedInline
+                        : getFieldComponent(detailObject));
                 if (typeof customField === "function") {
                     // If it's a function, it's a component reference wrapped in a fn to avoid reactivity issues
                     return customField();
@@ -198,6 +202,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
                     themeOverride: fieldLevelThemeOverride,
                     name: key,
+                    readOnly: computedFields.includes(fieldName) || props.view === "read",
                 };
             });
         });
@@ -208,7 +213,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         let widget = undefined;
         es.run(() => {
             widget = computed(() => {
-                if (computedFields.includes(fieldName)) {
+                if (computedFields.includes(fieldName) || props.view === "read") {
                     return availableWidgets.WidgetReadOnly;
                 }
                 if (baseExpanded) {

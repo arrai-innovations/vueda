@@ -14,6 +14,10 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    fieldsetStackedInlineProps: {
+        type: Object,
+        default: () => ({}),
+    },
     formModelName: {
         type: String,
         required: true,
@@ -29,6 +33,10 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    hidden: {
+        type: Boolean,
+        default: undefined,
+    },
 });
 
 const attrs = useAttrs();
@@ -41,11 +49,18 @@ const slots = useSlots();
 const relativeFieldName = computed(() =>
     !fieldSetContext ? props.formModelName : props.formModelName.replace(`${fieldSetContext.state.name}__`, ""),
 );
-const fieldValuePath = computed(() =>
-    !fieldSetContext
-        ? props.formModelName
-        : `${fieldSetContext.state.name}[${props.objectGridFieldSlotProps.rowIndex}].${unref(relativeFieldName)}`,
-);
+const fieldValuePath = computed(() => {
+    if (!fieldSetContext) {
+        return props.formModelName;
+    } else {
+        if (props.objectGridFieldSlotProps.rowIndex !== undefined) {
+            return `${fieldSetContext.state.name}[${props.objectGridFieldSlotProps.rowIndex}].${unref(relativeFieldName)}`;
+        } else if (props.fieldsetStackedInlineProps.index !== undefined) {
+            return `${fieldSetContext.state.name}[${props.fieldsetStackedInlineProps.index}].${unref(relativeFieldName)}`;
+        }
+    }
+    return `${fieldSetContext.state.name}.${unref(relativeFieldName)}`;
+});
 const fieldSlotName = computed(() => `field(${props.formModelName})`);
 const fieldDefaultSlotName = computed(() => `${unref(fieldSlotName)}default`);
 const widgetSlotName = computed(() => `widget(${props.formModelName})`);
@@ -72,11 +87,17 @@ const fieldProps = computed(() => ({
     modelValue: props.objectGridFieldSlotProps?.value,
     themeOverride: mergeTheme(props.formModel.fieldProps[props.formModelName]?.themeOverride, props.themeOverride),
 }));
+const computedHidden = computed(() => {
+    if (props.hidden !== undefined) {
+        return props.hidden;
+    }
+    return !!fieldSetContext;
+});
 const widgetProps = computed(() => ({
     ...props.objectGridFieldSlotProps,
     ...omit(props.formModel.widgetProps[props.formModelName], ["themeOverride"]),
     ...omit(attrs, ["class"]),
-    hidden: !!fieldSetContext,
+    hidden: computedHidden.value,
     themeOverride: mergeTheme(
         props.formModel.fieldProps[props.formModelName]?.themeOverride,
         props.formModel.widgetProps[props.formModelName]?.themeOverride,

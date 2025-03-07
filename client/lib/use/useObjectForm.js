@@ -324,7 +324,7 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             }
             const isUpdate = !!instanceObject.state.pk;
             const createOrUpdate = isUpdate ? instanceObject.update : instanceObject.create;
-            const formValues = formContext.formValues();
+            const formValues = formContext.state.submittingValues;
             const args = {
                 object: {
                     ...formValues,

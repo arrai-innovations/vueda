@@ -12,13 +12,36 @@ import Divider from "primevue/divider";
 const props = defineProps(FIELD_SET_INLINE_PROPS);
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldSetContext = useField(props, emit);
+const theme = useTheme("FieldSetStackedInline", props);
+defineOptions({
+    inheritAttrs: false,
+});
 const fieldSetInline = useFieldSetInline({
     props,
     emit,
     slotNames: ["create-button", "toggle-button", "field-set-level-chores", "title"],
     fieldSetContext,
 });
-const theme = useTheme("FieldSetStackedInline", props);
+
+const addInline = () => {
+    fieldSetContext.blur();
+    fieldSetContext.state.value = fieldSetInline.getEmptyFieldObject();
+};
+
+const clearField = () => {
+    fieldSetContext.blur();
+    fieldSetContext.state.value = null;
+};
+
+const handleDeleteSingle = (selected_) => {
+    if (selected_.length) {
+        fieldSetContext.ignore();
+    } else {
+        fieldSetContext.removeIgnore();
+    }
+    fieldSetContext.blur();
+    fieldSetInline.state.selected.value = selected_;
+};
 </script>
 
 <template>
@@ -34,7 +57,7 @@ const theme = useTheme("FieldSetStackedInline", props);
                     },
                 }"
             >
-                <div v-if="fieldSetInline.state.hidable" data-qa="fieldset-stacked-inline-header-toggle">
+                <div v-if="fieldSetInline.state.hidable" data-qa="fieldset-singular-stacked-inline-header-toggle">
                     <slot
                         :class="theme('toggleButton')"
                         :field-props="fieldSetInline.state.computedFieldProps"
@@ -50,22 +73,22 @@ const theme = useTheme("FieldSetStackedInline", props);
                         />
                     </slot>
                 </div>
-                <div :class="theme('title')" data-qa="fieldset-stacked-inline-title">
+                <div :class="theme('title')" data-qa="fieldset-singular-stacked-inline-title">
                     <slot name="title">
                         {{ fieldSetContext.state.label }}
                     </slot>
                 </div>
-                <div :class="fieldSetInline.theme('actionBar')" data-qa="fieldset-tabular-inline-action-bar">
+                <div :class="theme('actionBar')" data-qa="fieldset-singular-stacked-inline-action-bar">
                     <slot
-                        v-if="fieldSetInline.state.showCreateButton"
+                        v-if="fieldSetInline.state.showCreateButton && !fieldSetContext.state.value"
                         :class="theme('createButton')"
                         :field-props="fieldSetInline.state.computedFieldProps"
                         label="Create"
                         :name="fieldSetInline.resolvedSlotNames['create-button'].name"
                         verb="createInline"
-                        @click="fieldSetInline.doCreate"
+                        @click="addInline"
                     >
-                        <Button :class="theme('createButton')" label="Create" @click="fieldSetInline.doCreate" />
+                        <Button :class="theme('createButton')" label="Create" @click="addInline" />
                     </slot>
                 </div>
             </Divider>
@@ -79,21 +102,22 @@ const theme = useTheme("FieldSetStackedInline", props);
                     </template>
                 </form-chores>
             </slot>
-            <div v-for="(value, index) in fieldSetContext.state.value" :key="index" :class="theme('inlineRows')">
-                <field-set-stacked-inline-row
-                    :field-name="fieldSetContext.state.name"
-                    :fields="fieldSetContext.state.fieldNames"
-                    :index="index"
-                    :pk="value.id"
-                    :read-only="props.readOnly"
-                    :selected="fieldSetContext.state.selected"
-                    @destroy-row="fieldSetContext.removeObject(index)"
-                    @update:selected="fieldSetContext.handleSelected($event.value, index)"
-                >
-                    <template v-for="slotName in fieldSetContext.state.remainingSlotNames" #[slotName]="slotProps">
-                        <slot :name="slotName" v-bind="slotProps" />
-                    </template>
-                </field-set-stacked-inline-row>
+            <div :class="{ hidden: !fieldSetInline.state.internalVisible }">
+                <div v-if="fieldSetContext.state.value" :class="theme('inlineRows')">
+                    <field-set-stacked-inline-row
+                        :field-name="fieldSetContext.state.name"
+                        :fields="fieldSetInline.state.fieldNames"
+                        :pk="fieldSetContext.state.value.id"
+                        :read-only="props.readOnly"
+                        :selected="fieldSetInline.state.selected"
+                        @destroy-row="clearField"
+                        @update:selected="handleDeleteSingle"
+                    >
+                        <template v-for="slotName in fieldSetInline.state.remainingSlotNames" #[slotName]="slotProps">
+                            <slot :name="slotName" v-bind="slotProps" />
+                        </template>
+                    </field-set-stacked-inline-row>
+                </div>
             </div>
         </div>
     </div>

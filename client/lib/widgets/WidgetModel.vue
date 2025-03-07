@@ -81,5 +81,9 @@ const widgetComponent = computed(() => widgetComponents[props.type]);
         :options="modelChoices.choices?.results || []"
         v-bind="omit($attrs, 'value')"
         @update:model-value="emit('update:modelValue', $event)"
-    />
+    >
+        <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+            <slot :name="slot" v-bind="slotProps || {}" />
+        </template>
+    </component>
 </template>

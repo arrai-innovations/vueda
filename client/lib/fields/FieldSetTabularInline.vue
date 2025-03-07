@@ -88,7 +88,11 @@ const fieldSetTabularInline = useFieldSetTabularInline({
                         verb="createInline"
                         @click="fieldSetTabularInline.doCreate"
                     >
-                        <Button :class="fieldSetTabularInline.theme('createButton')" label="Create" @click="doCreate" />
+                        <Button
+                            :class="fieldSetTabularInline.theme('createButton')"
+                            label="Create"
+                            @click="fieldSetTabularInline.doCreate"
+                        />
                     </slot>
                 </div>
             </Divider>
@@ -118,7 +122,7 @@ const fieldSetTabularInline = useFieldSetTabularInline({
                 :fields="fieldSetTabularInline.state.computedFieldObjects"
                 :objects-in-order="fieldSetTabularInline.fieldSetContext.state.value"
                 :table-breakpoint="$attrs.tableBreakpoint || 'lg'"
-                v-bind="omit($attrs, ['class'])"
+                v-bind="omit($attrs, ['class', 'hidden'])"
                 @update:is-table="fieldSetTabularInline.handleIsTableUpdate"
             >
                 <template
@@ -174,7 +178,7 @@ const fieldSetTabularInline = useFieldSetTabularInline({
                                         :name="fieldSetTabularInline.resolvedSlotNames['destroy-checkbox'].name"
                                         :required="false"
                                         :row-index="objectGridFieldSlotProps.rowIndex"
-                                        :theme="theme"
+                                        :theme="fieldSetTabularInline.theme"
                                         :value="action.value"
                                         verb="destroy"
                                         @update:model-value="

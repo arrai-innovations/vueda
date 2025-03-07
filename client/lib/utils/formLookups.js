@@ -13,6 +13,9 @@ export const availableFields = {
     FieldSetStackedInline: defineAsyncComponent(
         async () => (await import("@vueda/fields/FieldSetStackedInline.vue")).default,
     ),
+    FieldSetSingularStackedInline: defineAsyncComponent(
+        async () => (await import("@vueda/fields/FieldSetSingularStackedInline.vue")).default,
+    ),
     FieldSetTabularInline: defineAsyncComponent(
         async () => (await import("@vueda/fields/FieldSetTabularInline.vue")).default,
     ),

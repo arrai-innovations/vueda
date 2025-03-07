@@ -1,11 +1,11 @@
 <script setup>
-import FormFeedback from "@vueda/components/FormFeedback.vue";
-import FormHelpText from "@vueda/components/FormHelpText.vue";
+import FieldRenderer from "@vueda/components/FieldRenderer.vue";
+import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
-import { inject } from "vue";
+import { computed, inject, unref, useSlots } from "vue";
 
 const props = defineProps({
     index: {
@@ -29,29 +29,13 @@ const props = defineProps({
         default: undefined,
         description: "A list of the field names to display for each object.",
     },
-    fieldComponents: {
-        type: Object,
-        default: undefined,
-        description: "A map of field paths to async fns returning field component, as overrides.",
-    },
-    fieldProps: {
-        type: Object,
-        default: undefined,
-        description: "A map of field paths to props, as overrides.",
-    },
-    widgetComponents: {
-        type: Object,
-        default: undefined,
-        description: "A map of field paths to async fns returning widget component, as overrides.",
-    },
-    widgetProps: {
-        type: Object,
-        default: undefined,
-        description: "A map of field paths to props, as overrides.",
-    },
     selected: {
         type: Array,
         default: () => [],
+    },
+    readOnly: {
+        type: Boolean,
+        default: false,
     },
     ...THEME_OVERRIDE_PROPS,
 });
@@ -64,19 +48,28 @@ const onDelete = () => emit("destroy-row", props.index);
 const getFieldName = (fieldName) => {
     return `${props.fieldName}__${fieldName}`;
 };
-const getFieldPath = (fieldName) => {
-    if (props.index === undefined) {
-        return `${props.fieldName}.${fieldName}`;
-    }
-    return `${props.fieldName}[${props.index}].${fieldName}`;
-};
+
+const slots = useSlots();
+const slotNames = ["before-fields", "after-fields", "destroy-button", "destroy-checkbox"];
+const fieldSetSlotNames = slotNames.reduce((acc, name) => {
+    acc[name] = useSlotNameResolver(
+        computed(() => [`fieldset-${name}`, name]),
+        slots,
+    );
+    return acc;
+}, {});
+const remainingSlotNames = computed(() => {
+    const slotNames = Object.keys(slots);
+    const knownSlotNames = ["default", ...slotNames.flatMap((name) => unref(fieldSetSlotNames?.[name]?.possibleNames))];
+    return slotNames.filter((slotName) => !knownSlotNames.includes(slotName));
+});
 </script>
 <template>
     <div v-if="formModel.expands?.length" :class="theme('root')">
-        <div v-if="$slots['before-fields']" :class="theme('beforeFields')">
+        <div v-if="fieldSetSlotNames['before-fields'].name" :class="theme('beforeFields')">
             <slot name="before-fields" />
         </div>
-        <div v-bind="$attrs">
+        <div v-bind="$attrs" :class="theme('fields')">
             <slot
                 :all-widget-props="formModel.widgetProps"
                 :field-components="formModel.fieldComponents"
@@ -87,53 +80,32 @@ const getFieldPath = (fieldName) => {
                 :widget-components="formModel.widgetComponents"
             >
                 <template v-for="field in props.fields" :key="field">
-                    <slot
-                        :field-class="theme('field')"
-                        :field-component="formModel.fieldComponents[getFieldName(field)]"
-                        :field-detail="formModel.fieldDetails[getFieldName(field)]"
-                        :field-inner-class="theme('fieldInner')"
-                        :field-props="formModel.fieldProps[getFieldName(field)]"
-                        :name="`field(${getFieldPath(field)})`"
-                        :theme="theme"
-                        :widget-component="formModel.widgetComponents[getFieldName(field)]"
-                        :widget-props="formModel.widgetProps[getFieldName(field)]"
+                    <field-renderer
+                        :fieldset-stacked-inline-props="{
+                            index: props.index,
+                        }"
+                        :form-model="formModel"
+                        :form-model-name="getFieldName(field)"
+                        :hidden="false"
                     >
-                        <component
-                            :is="formModel.fieldComponents[getFieldName(field)]"
-                            v-if="formModel.fieldComponents[getFieldName(field)]"
-                            :class="theme('field')"
-                            v-bind="formModel.fieldProps[getFieldName(field)]"
-                            :name="getFieldPath(field)"
-                        >
-                            <div :class="theme('fieldInner')">
-                                <slot
-                                    :field-details="formModel.fieldDetails[getFieldName(field)]"
-                                    :name="`widget(${getFieldPath(field)})`"
-                                    :theme="theme"
-                                    :widget-component="formModel.widgetComponents[getFieldName(field)]"
-                                    :widget-props="formModel.widgetProps[getFieldName(field)]"
-                                >
-                                    <component
-                                        :is="formModel.widgetComponents[getFieldName(field)]"
-                                        v-if="formModel.widgetComponents[getFieldName(field)]"
-                                        v-bind="formModel.widgetProps[getFieldName(field)]"
-                                    />
-                                </slot>
-                                <form-help-text />
-                                <form-feedback type="error" />
-                                <form-feedback type="message" />
-                            </div>
-                        </component>
-                    </slot>
+                        <template v-for="slotName in remainingSlotNames" #[slotName]="slotProps">
+                            <slot :name="slotName" v-bind="slotProps" />
+                        </template>
+                    </field-renderer>
                 </template>
             </slot>
         </div>
-        <div v-if="$slots['after-fields']" :class="theme('afterFields')">
+        <div v-if="fieldSetSlotNames['after-fields'].name" :class="theme('afterFields')">
             <slot name="after-fields" />
         </div>
-        <div :class="theme('destroyOuter')">
+        <div v-if="!props.readOnly" :class="theme('destroyOuter')">
             <div v-if="pk" class="flex items-center">
-                <slot :input-id="`selected-inline-${pk}`" name="selected" :selected="selected" :value="index">
+                <slot
+                    :input-id="`selected-inline-${pk}`"
+                    :name="fieldSetSlotNames['destroy-checkbox'].name"
+                    :selected="selected"
+                    :value="index"
+                >
                     <Checkbox
                         :input-id="`selected-inline-${pk}`"
                         :model-value="selected"
@@ -145,7 +117,13 @@ const getFieldPath = (fieldName) => {
                 </slot>
             </div>
             <div v-else>
-                <slot label="Delete" name="inline-row-destroy" size="small" verb="destroy" @click="onDelete">
+                <slot
+                    label="Delete"
+                    :name="fieldSetSlotNames['destroy-button'].name"
+                    size="small"
+                    verb="destroy"
+                    @click="onDelete"
+                >
                     <Button label="Delete" size="small" @click="onDelete" />
                 </slot>
             </div>

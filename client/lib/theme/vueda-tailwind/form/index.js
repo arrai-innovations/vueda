@@ -49,7 +49,54 @@ export default {
             class: [],
         },
         inner: {
-            class: ["divide-y divide-dashed hover:divide-solid"],
+            class: ["flex flex-col"],
+        },
+        dividerRoot: {
+            class: "!my-1",
+        },
+        dividerContent: {
+            class: ["flex flex-row items-baseline justify-between gap-1 2xs:gap-2 2xl:gap-4"],
+        },
+        hr: {
+            class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2 my-2",
+        },
+        titleBar: {
+            class: "ml-2 leading-7 flex items-baseline gap-1 2xs:gap-2 2xl:gap-4",
+        },
+        title: {
+            class: ["text-surface-900 dark:text-white"],
+        },
+        field: {
+            class: [
+                // "rounded", "px-1 lg:px-2 py-1 lg:py-2",
+                "min-w-1",
+            ],
+        },
+        inlineRows: {
+            class: [],
+        },
+        inLineCreateButton: {
+            class: ["!w-full h-full"],
+        },
+        toggleButton: {
+            class: [],
+        },
+        actionBar: {
+            class: "grow-0 flex gap-1 2xs:gap-2 2xl:gap-4",
+        },
+        itemActionBar: {
+            class: "flex gap-1 2xs:gap-2 2xl:gap-4 items-baseline",
+        },
+        createButton: {
+            class: "grow",
+        },
+    },
+    FieldSetSingularStackedInline: {
+        root: {
+            class: [],
+        },
+        label: {
+            calss: [],
         },
         outer: {
             class: ["flex items-baseline gap-2"],
@@ -57,21 +104,40 @@ export default {
         header: {
             class: "ml-2 leading-7",
         },
-        title: {
-            class: "text-surface-900 dark:text-white",
+        actionBar: {
+            class: "grow-0 flex gap-1 2xs:gap-2 2xl:gap-4",
+        },
+        itemActionBar: {
+            class: "flex gap-1 2xs:gap-2 2xl:gap-4 items-baseline",
+        },
+        fieldInner: {
+            class: [],
+        },
+        inner: {
+            class: ["flex flex-col"],
+        },
+        dividerRoot: {
+            class: "!my-1",
+        },
+        dividerContent: {
+            class: ["flex flex-row items-baseline justify-between gap-1 2xs:gap-2 2xl:gap-4"],
         },
         hr: {
             class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2 my-2",
         },
+        titleBar: {
+            class: "ml-2 leading-7 flex items-baseline gap-1 2xs:gap-2 2xl:gap-4",
+        },
+        title: {
+            class: ["text-surface-900 dark:text-white"],
+        },
         inlineRows: {
             class: [],
         },
-        field: {
-            class: [
-                // "rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"
-            ],
+        inLineCreateButton: {
+            class: ["!w-full h-full"],
         },
-        fieldInner: {
+        toggleButton: {
             class: [],
         },
         createButton: {
