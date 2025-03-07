@@ -122,6 +122,7 @@ const resolveParentPath = (fieldPath, currentFieldPath) => {
  * @property {import('vue').ComputedRef<string>} suffix - The suffix for the field.
  * @property {import('vue').WritableComputedRef<any>} value - The current value of the field.
  * @property {import('vue').WritableComputedRef<any>} valueDetail - The current detail value object of the field.
+ * @property {import('vue').WritableComputedRef<any>} submittingValue -The current value of the field whilte accounting for ignored fields.
  * @property {import('vue').ComputedRef<any>} initialValue - The initial value of the field.
  * @property {import('vue').ComputedRef<{[code: string]: string}>} messages - The messages for the field.
  * @property {import('vue').ComputedRef<{[code: string]: string}>} errors - The errors for the field.
@@ -253,11 +254,11 @@ export function useField(props, emit, functions) {
     };
     const amIRequired = () => {
         let required = props.required;
-        if (required === undefined) {
-            const requiredFn = props.requiredFn ?? defaultValidateRequired;
+        if (required === undefined && props.requiredFn) {
+            const requiredFn = props.requiredFn;
             required = !requiredFn(cloneDeep(unref(state.value)), cloneDeep(deepUnref(state.dependencyValues)));
         }
-        return required && state.touched && !state.readOnly && !state.ignored;
+        return required && !state.readOnly && !state.ignored;
     };
     const amIValid = () => {
         if (!state.touched || !props.validate) {
@@ -295,7 +296,13 @@ export function useField(props, emit, functions) {
                   },
               })
             : undefined,
-
+        submittingValue: formContext
+            ? computed(() => {
+                  let value = get(formContext.state.submittingValues, props.name);
+                  value = functions?.preprocessGet ? functions.preprocessGet(value) : value;
+                  return props.preprocessGet ? props.preprocessGet(value) : value;
+              })
+            : undefined,
         value:
             formContext || props.modelValue !== undefined
                 ? computed({
@@ -352,7 +359,7 @@ export function useField(props, emit, functions) {
                   },
               })
             : undefined,
-        valueIsInitial: computed(() => isEqual(state.value, state.initialValue)),
+        valueIsInitial: computed(() => isEqual(state.submittingValue, state.initialValue)),
         initialValueEmpty: computed(() => isEmpty(state.initialValue)),
         valueEmpty: computed(() => isEmpty(state.value)),
         messages: formContext ? computed(() => get(formContext.state.messages, props.name)) : {},
@@ -383,12 +390,12 @@ export function useField(props, emit, functions) {
     });
 
     watch(
-        [toRef(state, "required"), toRef(props, "requiredMessage")],
-        ([newRequired, newRequiredMessage]) => {
-            if (formContext) {
+        [toRef(state, "required"), toRef(props, "requiredMessage"), toRef(state, "touched"), toRef(state, "value")],
+        ([newRequired, newRequiredMessage, newTouched, newValue]) => {
+            if (formContext && newTouched) {
                 const existingRequired = formContext.state.errors[props.name]?.required;
                 const desiredMessage = newRequiredMessage || defaultRequiredMessage;
-                if (newRequired && existingRequired !== desiredMessage) {
+                if (newRequired && !defaultValidateRequired(newValue) && existingRequired !== desiredMessage) {
                     formContext.updateError(props.name, "required", desiredMessage);
                 } else {
                     formContext.deleteError(props.name, "required");

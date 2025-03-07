@@ -28,6 +28,7 @@ import { computed, nextTick, provide, reactive, readonly, toRef, watch } from "v
  * @property {FieldValues} values - The form's values, referenced by lodash key path.
  * @property {FieldValueDetails} valueDetails - The field value object if the field value is a foreign key to a model,
  *  referenced by lodash key path.
+ * @property {FieldValues} submittingValues -  The form's values after removing ignored fields.
  * @property {{[path: string]: {[errorCode: string]: string}}} errors - The form's error
  *  messages, per field, by path. Form-level errors are stored using `NON_FIELD_ERRORS_KEY`.
  * @property {boolean} anyError - Whether any field has an error.
@@ -284,23 +285,6 @@ const deleteMessage = (state, name, code) => {
     deleteErrorOrMessage("message", state, name, code);
 };
 
-const formValues = (state) => {
-    if (state.anyIgnored) {
-        const ignoredFields = Object.entries(state.ignored)
-            .filter(([, value]) => value === true)
-            .map(([key]) => key);
-        const values = omit(cloneDeep(state.values), ignoredFields);
-        for (const ignoredField of ignoredFields) {
-            if (ignoredField.match(/.*\[\d+\]$/)) {
-                const arrayField = ignoredField.split("[").slice(0, -1).join("[");
-                update(values, arrayField, (array) => compact(array));
-            }
-        }
-        return values;
-    }
-    return state.values;
-};
-
 /**
  *
  * @param {FormContextState} state
@@ -552,7 +536,6 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @property {(name: string) => void} removeIgnore - remove ignoring a field.
  * @property {(displayFields: string[]) => string|null} getFirstErrorField - Get the first displayed field with an error,
  *  the 'first' error can be the NON_FIELD_ERRORS_KEY if there is a form level error.
- * @property {() => FieldValues} formValues - returns the form values, excluding ignored fields.
  * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundRegisterHook} registerIsModifiedHook - Register a function to contribute to the form's determination of whether it has been modified.
  * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundUnregisterHook} unregisterIsModifiedHook - Unregister a function that was contributing to the form's determination of whether it has been modified.
  * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundRegisterHook} registerIsRequiredHook - Register a function to contribute to the form's determination of whether it has been modified.
@@ -648,6 +631,22 @@ export function useForm(props) {
 
     const state = reactive({
         values: {},
+        submittingValues: computed(() => {
+            if (state.anyIgnored) {
+                const ignoredFields = Object.entries(state.ignored)
+                    .filter(([, value]) => value === true)
+                    .map(([key]) => key);
+                const values = omit(cloneDeep(state.values), ignoredFields);
+                for (const ignoredField of ignoredFields) {
+                    if (ignoredField.match(/.*\[\d+\]$/)) {
+                        const arrayField = ignoredField.split("[").slice(0, -1).join("[");
+                        update(values, arrayField, (array) => compact(array));
+                    }
+                }
+                return values;
+            }
+            return state.values;
+        }),
         valueDetails: {},
         errors: {},
         anyError: false,
@@ -700,7 +699,6 @@ export function useForm(props) {
         reset: reset.bind(null, state),
         ignore: ignore.bind(null, state),
         removeIgnore: removeIgnore.bind(null, state),
-        formValues: formValues.bind(null, state),
         getFirstErrorField: getFirstErrorField.bind(null, state),
         registerIsModifiedHook: modifiedHookRegistry.registerHook,
         unregisterIsModifiedHook: modifiedHookRegistry.unregisterHook,
