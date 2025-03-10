@@ -73,8 +73,9 @@ export default {
             ],
         },
         inlineRows: {
-            class: [],
+            class: [" divide-y divide-solid"],
         },
+        inlineRow: {},
         inLineCreateButton: {
             class: ["!w-full h-full"],
         },
@@ -161,6 +162,9 @@ export default {
             class: [
                 // "rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"
             ],
+        },
+        fields: {
+            class: [],
         },
         destroyOuter: {
             class: ["flex py-2"],

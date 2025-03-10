@@ -9,6 +9,9 @@ import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
 
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps(FIELD_SET_INLINE_PROPS);
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldSetContext = useField(props, emit);
@@ -55,7 +58,7 @@ const theme = useTheme("FieldSetStackedInline", props);
                         {{ fieldSetContext.state.label }}
                     </slot>
                 </div>
-                <div :class="fieldSetInline.theme('actionBar')" data-qa="fieldset-tabular-inline-action-bar">
+                <div :class="theme('actionBar')" data-qa="fieldset-tabular-inline-action-bar">
                     <slot
                         v-if="fieldSetInline.state.showCreateButton"
                         :class="theme('createButton')"
@@ -79,21 +82,28 @@ const theme = useTheme("FieldSetStackedInline", props);
                     </template>
                 </form-chores>
             </slot>
-            <div v-for="(value, index) in fieldSetContext.state.value" :key="index" :class="theme('inlineRows')">
-                <field-set-stacked-inline-row
-                    :field-name="fieldSetContext.state.name"
-                    :fields="fieldSetContext.state.fieldNames"
-                    :index="index"
-                    :pk="value.id"
-                    :read-only="props.readOnly"
-                    :selected="fieldSetContext.state.selected"
-                    @destroy-row="fieldSetContext.removeObject(index)"
-                    @update:selected="fieldSetContext.handleSelected($event.value, index)"
+            <div :class="theme('inlineRows')" data-qa="field-set-stacked-inline-inline-rows">
+                <div
+                    v-for="(value, index) in fieldSetContext.state.value"
+                    :key="index"
+                    :class="theme('inlineRow')"
+                    data-qa="field-set-stacked-inline-inline-rows"
                 >
-                    <template v-for="slotName in fieldSetContext.state.remainingSlotNames" #[slotName]="slotProps">
-                        <slot :name="slotName" v-bind="slotProps" />
-                    </template>
-                </field-set-stacked-inline-row>
+                    <field-set-stacked-inline-row
+                        :field-name="fieldSetContext.state.name"
+                        :fields="fieldSetInline.state.fieldNames"
+                        :index="index"
+                        :pk="value.id"
+                        :read-only="props.readOnly"
+                        :selected="fieldSetInline.state.selected"
+                        @destroy-row="fieldSetInline.removeObject(index)"
+                        @update:selected="fieldSetInline.handleSelected($event.value, index)"
+                    >
+                        <template v-for="slotName in fieldSetInline.state.remainingSlotNames" #[slotName]="slotProps">
+                            <slot :name="slotName" v-bind="slotProps" />
+                        </template>
+                    </field-set-stacked-inline-row>
+                </div>
             </div>
         </div>
     </div>

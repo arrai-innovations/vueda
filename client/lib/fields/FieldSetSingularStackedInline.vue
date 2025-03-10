@@ -102,8 +102,15 @@ const handleDeleteSingle = (selected_) => {
                     </template>
                 </form-chores>
             </slot>
-            <div :class="{ hidden: !fieldSetInline.state.internalVisible }">
-                <div v-if="fieldSetContext.state.value" :class="theme('inlineRows')">
+            <div
+                :class="{ hidden: !fieldSetInline.state.internalVisible }"
+                data-qa="field-set-stacked-inline-inline-rows"
+            >
+                <div
+                    v-if="fieldSetContext.state.value"
+                    :class="theme('inlineRows')"
+                    data-qa="field-set-stacked-inline-inline-row"
+                >
                     <field-set-stacked-inline-row
                         :field-name="fieldSetContext.state.name"
                         :fields="fieldSetInline.state.fieldNames"
