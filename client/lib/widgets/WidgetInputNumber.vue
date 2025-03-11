@@ -194,8 +194,15 @@ watch([inputValue, currentUnit], ([value, unit], [oldValue, oldUnit]) => {
                             @paste="onPaste"
                         />
                         <InputGroupAddon v-if="currentUnit">
-                            <Button :label="currentUnit.label" unstyled variant="text" @click="doToggle"> </Button
-                        ></InputGroupAddon>
+                            <Button
+                                v-if="currentUnit.label"
+                                :label="currentUnit.label"
+                                unstyled
+                                variant="text"
+                                @click="doToggle"
+                            />
+                            <span v-else>{{ currentUnit }}</span>
+                        </InputGroupAddon>
                         <Popover v-if="currentUnit?.label" ref="popoverRef">
                             <div :class="theme('formPopoverInner')">
                                 <slot name="prev-button" @click="onPrevButtonClicked">
