@@ -157,7 +157,7 @@ const inputValue = ref(null);
 
 watch([inputValue, currentUnit], ([value, unit], [oldValue, oldUnit]) => {
     if (!isEqual(value, oldValue) || !isEqual(unit, oldUnit)) {
-        if (unit) {
+        if (isObject(unit)) {
             widgetContext.state.combinedValue = { value: value, unit: unit.value };
         } else {
             widgetContext.state.combinedValue = value;
