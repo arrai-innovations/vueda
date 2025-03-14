@@ -8,8 +8,15 @@ import { useTheme } from "@vueda/use/useTheme.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
+import { onMounted } from "vue";
 
-const props = defineProps(FIELD_SET_INLINE_PROPS);
+const props = defineProps({
+    ...FIELD_SET_INLINE_PROPS,
+    autoCreateWhenEmpty: {
+        type: Boolean,
+        default: true,
+    },
+});
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldSetContext = useField(props, emit);
 const theme = useTheme("FieldSetStackedInline", props);
@@ -27,6 +34,12 @@ const addInline = () => {
     fieldSetContext.blur();
     fieldSetContext.state.value = fieldSetInline.getEmptyFieldObject();
 };
+
+onMounted(() => {
+    if (props.autoCreateWhenEmpty && !fieldSetContext.state.value) {
+        addInline();
+    }
+});
 
 const clearField = () => {
     fieldSetContext.blur();
