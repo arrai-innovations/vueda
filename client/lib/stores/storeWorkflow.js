@@ -1,14 +1,28 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
+import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
 import { getUrl } from "@vueda/utils/urls.js";
-import get from "lodash-es/get.js";
-import set from "lodash-es/set.js";
 import { defineStore } from "pinia";
 import { unref } from "vue";
+
+let usingVuedaWorkFlow = true;
+
+/**
+ * Set the usingVuedaWorkFlow value.
+ *
+ * @param {boolean} value - The value to set usingVuedaWorkFlow to.
+ */
+export function setUsingVuedaWorkFlow(value) {
+    usingVuedaWorkFlow = value;
+}
+
+export function getUsingVuedaWorkFlow() {
+    return usingVuedaWorkFlow;
+}
 
 /**
  * An error for use from the model info store.
@@ -79,7 +93,6 @@ const fetchHelper = async (url, options = {}, messagePrefix, emptyResponseValue)
     return responseData;
 };
 
-const makeModelKey = (app, model) => `${memoizedSnakeCase(app)}.${memoizedSnakeCase(model)}`;
 const makeResultObject = (app, model, pk) => ({
     app: unref(app),
     model: unref(model),
@@ -179,8 +192,8 @@ export const storeWorkflow = defineStore({
         async fetchWorkflowTransition(app, model) {
             this.loading = true;
             try {
-                const key = makeModelKey(app, model);
-                const existing = get(this.workflowTransitions, key);
+                const key = getAppModelDotName({ app, model });
+                const existing = this.workflowTransitions[key];
                 if (existing) {
                     return existing;
                 }
@@ -196,8 +209,8 @@ export const storeWorkflow = defineStore({
                     if (!data.results.length) {
                         return;
                     }
-                    set(this.workflowTransitions, key, data.results[0]);
-                    return get(this.workflowTransitions, key);
+                    this.workflowTransitions[key] = data.results[0].transitions;
+                    return this.workflowTransitions[key];
                 }
             } finally {
                 this.loading = false;
@@ -206,8 +219,8 @@ export const storeWorkflow = defineStore({
         async fetchModelStates(app, model) {
             this.loading = true;
             try {
-                const key = makeModelKey(app, model);
-                const existing = get(this.modelStates, key);
+                const key = getAppModelDotName({ app, model });
+                const existing = this.modelStates[key];
                 if (existing) {
                     return existing;
                 }
@@ -220,7 +233,7 @@ export const storeWorkflow = defineStore({
                     "marker",
                 );
                 if (data !== "marker") {
-                    set(this.modelStates, key, data);
+                    this.modelStates[key] = data;
                 }
             } finally {
                 this.loading = false;
@@ -229,7 +242,7 @@ export const storeWorkflow = defineStore({
         async fetchObjectState(app, model, objectPk) {
             this.loading = true;
             try {
-                const key = makeModelKey(app, model);
+                const key = getAppModelDotName({ app, model });
                 const result = makeResultObject(app, model, objectPk);
                 const data = await fetchHelper(
                     objectStatesUrl(result),
@@ -241,7 +254,7 @@ export const storeWorkflow = defineStore({
                 if (data === "Object does not have a workflow.") {
                     return result;
                 }
-                set(this.objectStates, `${key}.${objectPk}`, data);
+                this.objectStates[key][objectPk] = data;
             } finally {
                 this.loading = false;
             }
@@ -249,7 +262,11 @@ export const storeWorkflow = defineStore({
         async fetchObjectTransitions(app, model, objectPk) {
             this.loading = true;
             try {
-                const key = makeModelKey(app, model);
+                const key = getAppModelDotName({ app, model });
+                const existing = this.objectTransitions[key][objectPk];
+                if (existing) {
+                    return existing;
+                }
                 const result = makeResultObject(app, model, objectPk);
                 const data = await fetchHelper(
                     objectTransitionsUrl(result),
@@ -262,7 +279,7 @@ export const storeWorkflow = defineStore({
                 if (data === "Object does not have a workflow.") {
                     return result;
                 }
-                set(this.objectTransitions, `${key}.${objectPk}`, data);
+                this.objectTransitions[key][objectPk] = data;
             } finally {
                 this.loading = false;
             }
@@ -270,7 +287,7 @@ export const storeWorkflow = defineStore({
         async fetchObjectHistory(app, model, objectPk) {
             this.loading = true;
             try {
-                const key = makeModelKey(app, model);
+                const key = getAppModelDotName({ app, model });
                 const result = makeResultObject(app, model, objectPk);
                 const data = await fetchHelper(
                     objectHistoriesUrl(result),
@@ -283,7 +300,7 @@ export const storeWorkflow = defineStore({
                 if (data === "Object does not have a workflow.") {
                     return result;
                 }
-                set(this.objectHistories, `${key}.${objectPk}`, data);
+                this.objectHistories[key][objectPk] = data;
             } finally {
                 this.loading = false;
             }
@@ -318,6 +335,10 @@ export const storeWorkflow = defineStore({
             }
             // I don't remember why I was returning result here
             // return result;
+        },
+        initializeObjectTransitions(app, model) {
+            const key = getAppModelDotName({ app, model });
+            this.objectTransitions[key] = {};
         },
     },
 });

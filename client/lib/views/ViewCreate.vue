@@ -66,6 +66,17 @@ const filteredActions = useFilteredActions({
 const titleStr = computed(() => {
     return `Create ${memoizedStartCase(modelConfig.config?.verboseName)}` || "Create Item";
 });
+
+const modelInitialValues = useModelInitialValues(
+    toRef(props, "app"),
+    toRef(props, "model"),
+    toRef(() => modelConfig.config?.displayFields),
+);
+
+const formContextProps = reactive({
+    initialValues: modelInitialValues,
+});
+const formContext = useForm(formContextProps);
 const instanceObjectProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
@@ -77,23 +88,19 @@ const instanceObjectProps = reactive({
         f: computed(() => {
             return [...(props.submitFields ?? modelConfig.config?.submitFields ?? [])];
         }),
-        e: computed(() => modelConfig.config?.expands),
+        e: computed(() => {
+            const expands = modelConfig.config?.expands || [];
+            return expands.filter(
+                (expand) =>
+                    formContext.state?.values[expand] !== undefined && formContext.state.values[expand] !== null,
+            );
+        }),
     },
     intendToRetrieve: false,
 });
 const instanceObject = useObject({
     props: instanceObjectProps,
 });
-const modelInitialValues = useModelInitialValues(
-    toRef(props, "app"),
-    toRef(props, "model"),
-    toRef(() => modelConfig.config?.displayFields),
-);
-
-const formContextProps = reactive({
-    initialValues: modelInitialValues,
-});
-const formContext = useForm(formContextProps);
 const objectFormProps = reactive({
     app: toRef(props, "app"),
     model: toRef(props, "model"),

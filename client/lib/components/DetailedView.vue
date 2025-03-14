@@ -9,6 +9,7 @@ import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
+import { useObjectsWorkflowTransitions } from "@vueda/use/useObjectsWorkflowTransitions.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -164,7 +165,12 @@ const titleStr = computed(() => {
     );
 });
 const fetchFields = computed(() => props.fetchFields ?? modelConfig.config?.fetchFields);
-
+const objectTransitions = useObjectsWorkflowTransitions(
+    toRef(props, "app"),
+    toRef(props, "model"),
+    toRef(props, "pk"),
+    isActive,
+);
 const instanceObjectProps = reactive({
     crudArgs: {
         app: toRef(props, "app"),
@@ -258,6 +264,10 @@ const availableActions = computed(() => {
     const objectAvailableActions = instanceObjectForRetrieve.state.object?.available_actions;
     return (filteredActions.actions || []).filter((n) => objectAvailableActions?.includes(n));
 });
+
+const availableTransitions = computed(() => {
+    return objectTransitions.transitions.map((t) => t.name);
+});
 const detailActions = computed(() =>
     availableActions.value.filter((n) => {
         const a = modelConfig.config?.actionDetails?.[n];
@@ -331,6 +341,26 @@ const nonDetailActions = computed(() =>
                             :pk="pk"
                             severity="secondary"
                             :view="actionName"
+                        />
+                    </slot>
+                </template>
+                <template v-for="transition in availableTransitions" :key="transition">
+                    <slot
+                        :app="app"
+                        :label="memoizedStartCase(transition)"
+                        :model="model"
+                        name="transition-button"
+                        :pk="pk"
+                        :view="transition"
+                    >
+                        <link-model-view
+                            :app="app"
+                            button
+                            :label="memoizedStartCase(transition)"
+                            :model="model"
+                            :pk="pk"
+                            severity="secondary"
+                            :view="transition"
                         />
                     </slot>
                 </template>

@@ -1,6 +1,7 @@
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { getActionName } from "@vueda/use/useActionMap.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
 import { computedAsync } from "@vueuse/core";
 import { computed, toRef } from "vue";
 import { useRouter } from "vue-router";
@@ -20,12 +21,13 @@ import { useRouter } from "vue-router";
  */
 export const useLinkModelView = (props) => {
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
+    const workflow = useWorkflowTransitions(toRef(props, "app"), toRef(props, "model"));
     const actionName = computed(() => getActionName(props.view));
     const requiresPK = computed(
         () =>
             Object.entries(modelConfig.config?.actionDetails || {}).some(
                 ([n, d]) => n === actionName.value && (d.detail || d.bulk),
-            ) || actionName.value === "transition",
+            ) || workflow.transitions.map((t) => t.name).includes(actionName.value),
     );
     const pkValid = computed(() => (requiresPK.value && props.pk) || !requiresPK.value);
     const toRouteArgs = computedAsync(async () => {

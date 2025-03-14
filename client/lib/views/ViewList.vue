@@ -14,7 +14,7 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { useWorkflow } from "@vueda/use/useWorkflow.js";
+import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -137,7 +137,7 @@ const validAndActive = computed(() => !!(isActive.value && props.app && props.mo
 const viewName = "list";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
 const selectedObjects = ref([]);
-const workflow = useWorkflow(toRef(props, "app"), toRef(props, "model"), selectedObjects, isActive, validAndActive);
+const workflow = useWorkflowTransitions(toRef(props, "app"), toRef(props, "model"), isActive);
 const router = useRouter();
 const route = useRoute();
 const sorting = reactive({
@@ -334,13 +334,7 @@ onMounted(() => {
 });
 
 const availableTransitions = computed(() => {
-    if (selectedObjects.value.length) {
-        const transitions = Object.keys(workflow.objectTransitions)
-            .filter((key) => selectedObjects.value.includes(Number(key)))
-            .flatMap((key) => workflow.objectTransitions[key]);
-        return transitions;
-    }
-    return [];
+    return new Set(workflow.transitions.map((transition) => transition.name));
 });
 
 const translateExpandedField = (field) => {
@@ -386,6 +380,7 @@ const filteredActions = useFilteredActions({
 });
 const targetlessActionButtonSlotName = useSlotNameResolver(["targetless-action-button", "button"]);
 const bulkActionButtonSlotName = useSlotNameResolver(["bulk-action-button", "button"]);
+const workflowActionButtonSlotName = useSlotNameResolver(["workflow-action-button", "button"]);
 const targetlessActions = computed(() => {
     const actions = filteredActions.actions || [];
     const actionDetails = modelConfig.config?.actionDetails || {};
@@ -406,16 +401,17 @@ const bulkActions = computed(() => {
 const buttonSlotProps = reactive({});
 const bspEffectScope = effectScope();
 watch(
-    [bulkActions, targetlessActions],
-    ([newBulkActions, newTargetlessActions]) => {
+    [bulkActions, targetlessActions, availableTransitions],
+    ([newBulkActions, newTargetlessActions, newTransitions]) => {
         const bulkActionSet = newBulkActions || new Set();
         const targetlessActionSet = newTargetlessActions || new Set();
+        const availableTransitionsSet = newTransitions || new Set();
         const { addedKeys, removedKeys } = keyDiff(
-            union(bulkActionSet, targetlessActionSet),
+            union(union(bulkActionSet, targetlessActionSet), availableTransitionsSet),
             Object.keys(buttonSlotProps),
         );
         for (const addedKey of addedKeys) {
-            const isBulk = bulkActionSet.has(addedKey);
+            const isBulk = bulkActionSet.has(addedKey) || availableTransitionsSet.has(addedKey);
             bspEffectScope.run(() => {
                 buttonSlotProps[addedKey] = {
                     app: toRef(props, "app"),
@@ -424,7 +420,7 @@ watch(
                     label: memoizedStartCase(addedKey),
                     click: isBulk ? detailActionOnClick(addedKey) : undefined,
                     selectedObjects: isBulk ? selectedObjects : undefined,
-                    disabled: isBulk ? computed(() => !availableTransitions.value.includes(addedKey)) : undefined,
+                    disabled: isBulk ? computed(() => (!addedKey) in availableTransitions.value) : undefined,
                     class: isBulk ? theme("bulkActionButton") : theme("targetlessActionButton"),
                 };
             });
@@ -467,9 +463,18 @@ const searchSlotProps = reactive({
             </template>
             <template #under-actions>
                 <div :class="theme('underActionsBar')" data-qa="view-list-under-actions">
-                    <div :class="theme('bulkActionsBar')" data-qa="view-list-bulk-actions">
+                    <div :class="theme('actionButtonGroupBar')" data-qa="view-list-action-buttons">
                         <template v-for="actionName in bulkActions" :key="actionName">
                             <slot :name="bulkActionButtonSlotName.name" v-bind="buttonSlotProps[actionName]">
+                                <link-model-view
+                                    button
+                                    :pk="buttonSlotProps[actionName].selectedObjects"
+                                    v-bind="omit(buttonSlotProps[actionName], ['selectedObjects'])"
+                                />
+                            </slot>
+                        </template>
+                        <template v-for="actionName in availableTransitions" :key="actionName">
+                            <slot :name="workflowActionButtonSlotName.name" v-bind="buttonSlotProps[actionName]">
                                 <link-model-view
                                     button
                                     :pk="buttonSlotProps[actionName].selectedObjects"

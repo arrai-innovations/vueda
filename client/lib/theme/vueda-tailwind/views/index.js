@@ -95,7 +95,7 @@ export default {
         underActionsBar: {
             class: ["w-full flex flex-col sm:flex-row sm:justify-between gap-1 mb-1"],
         },
-        bulkActionsBar: {
+        actionButtonGroupBar: {
             class: ["flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"],
         },
     },
