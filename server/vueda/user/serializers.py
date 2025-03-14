@@ -115,10 +115,7 @@ class UserSerializer(VuedaSerializer):
             validated_data.pop("password_confirm")
         # todo: if there are groups the user shouldn't be able to add, we should validate that before here.
         user = User.objects.create_user(**validated_data)
-        # the queryset can have additional directives that change the result of the instance,
-        #  vs the user instance we got from create_user.
-        # if this returns None, check get_queryset filters / joins; it is not related to django caching.
-        return self.context["view"].get_queryset().filter(id=user.id).first()
+        return user
 
     def update(self, instance, validated_data):
         if "password" in validated_data:
