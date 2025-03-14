@@ -243,6 +243,7 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
 
     def return_annotated_instance(self, instance):
         # return annotated instance for current_history_id
+        # todo: the instance won't get properly annotated if the field is nested.
         annotated_instance = self.context["view"].get_queryset().filter(id=instance.id).first()
         # nested writable reuses the same serializer class for creating and updating nested models.
         return annotated_instance if type(annotated_instance) is type(instance) else instance
