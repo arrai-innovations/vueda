@@ -79,6 +79,14 @@ class FlexFieldsWriteableNestedSerializerMixin(
             if "view" in self.context and isinstance(self, self.context["view"].get_serializer_class()):
                 self.apply_flex_fields(self.fields, self._flex_options_rep_only)
                 self._flex_fields_rep_applied = True
+
+        # Django REST Framework does not automatically pass `initial_data` to nested serializers.
+        # Some nested serializers may need access to `initial_data` for validation,
+        # so this loop explicitly assigns it to ensure it is available.
+        initial_data = self.get_initial()
+        for field_name, field in self.fields.items():
+            if isinstance(field, serializers.BaseSerializer) and field_name in initial_data:
+                field.initial_data = initial_data[field_name]
         return super().to_internal_value(data)
 
     def update_or_create_direct_relations(self, attrs, relations):
