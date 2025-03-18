@@ -207,7 +207,8 @@ export const storeWorkflow = defineStore({
                 );
                 if (data !== "marker") {
                     if (!data.results.length) {
-                        return;
+                        this.workflowTransitions[key] = [];
+                        return [];
                     }
                     this.workflowTransitions[key] = data.results[0].transitions;
                     return this.workflowTransitions[key];

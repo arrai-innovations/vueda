@@ -35,7 +35,7 @@ const usingVuedaWorkFlow = getUsingVuedaWorkFlow();
  * @param {import('vue').Ref<string>} model - A ref containing the model name that is being watched.
  * @param {import('vue').Ref<string|string[]>} pks - A ref containing the list of primary keys that is being watched.
  * @param {import('@vueda/use/useIsActive.js').IsActive|undefined} [isActive] - An IsActive instance, if one can be reused.
- * @returns {useWorkflow} An object containing objectTransitions.
+ * @returns {useWorkflowRaw} An object containing objectTransitions.
  */
 export function useObjectsWorkflowTransitions(app, model, pks, isActive) {
     if (!usingVuedaWorkFlow) {
@@ -72,6 +72,12 @@ export function useObjectsWorkflowTransitions(app, model, pks, isActive) {
             }
             if (oldActive === active && app === oldApp && model === oldModel && pks === oldPks) {
                 return; // no change, no need to update
+            }
+            if (app && model && !returnObject.loading) {
+                const transitions = await workflowStore.fetchWorkflowTransition(app, model);
+                if (!transitions || transitions.length < 1) {
+                    return;
+                }
             }
             if (app && model && pks && !returnObject.loading) {
                 workflowStore.initializeObjectTransitions(app, model);

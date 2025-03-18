@@ -2,7 +2,9 @@
 import { crudComponents } from "@vueda/router/routerComponent.js";
 import { getActionName } from "@vueda/use/useActionMap.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
 import { getPascalCaseName } from "@vueda/utils/crudSupport.js";
+import ViewAction from "@vueda/views/ViewAction.vue";
 import ViewActionNotFound from "@vueda/views/ViewActionNotFound.vue";
 import ViewLoading from "@vueda/views/ViewLoading.vue";
 import ViewWorkFlowTransition from "@vueda/views/ViewWorkFlowTransition.vue";
@@ -28,6 +30,7 @@ const props = defineProps({
     },
 });
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+const workflow = useWorkflowTransitions(toRef(props, "app"), toRef(props, "model"));
 const getExtraActionComponent = async (action) => {
     try {
         // by app, model and action
@@ -42,25 +45,26 @@ const getExtraActionComponent = async (action) => {
             return (await import(`@/views/ViewAction${getPascalCaseName(action)}.vue`)).default;
         } catch (e) {
             // no extra action component found
-            return ViewActionNotFound;
+            return ViewAction;
         }
     }
 };
 /** @type {import('vue').Ref<Promise<import('vue').Component>|()=>import('vue').Component>} */
 const actionComponentRef = ref(() => ViewLoading);
 watch(
-    [() => modelConfig.loading, () => props.action, () => modelConfig.info?.actions],
-    async ([loading, actionStr, actionsObj]) => {
+    [() => modelConfig.loading, () => props.action, () => modelConfig.info?.actions, () => workflow.transitions],
+    async ([loading, actionStr, actionsObj, transitionObjects]) => {
         const actionName = getActionName(actionStr);
         if (loading) {
             actionComponentRef.value = () => ViewLoading;
         } else if (actionName === "transition") {
             actionComponentRef.value = () => ViewWorkFlowTransition;
-        } else if (!actionsObj) {
+        } else if (!actionsObj && !transitionObjects) {
             actionComponentRef.value = () => ViewActionNotFound;
-        } else if (actionsObj?.length) {
+        } else if (actionsObj?.length || transitionObjects?.length) {
             const action = actionsObj.find((action) => action.name === actionName);
-            if (!action) {
+            const transition = transitionObjects.find((transition) => transition.name === actionName);
+            if (!action && !transition) {
                 actionComponentRef.value = () => ViewActionNotFound;
             }
             if (Object.keys(crudComponents).includes(actionStr)) {

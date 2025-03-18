@@ -41,7 +41,13 @@ const instanceObjectProps = reactive({
     pk: toRef(props, "pk"),
     retrieveArgs: {
         f: computed(() => [modelConfig.info?.pk, submitFields.value]),
-        e: computed(() => modelConfig.config?.expands),
+        e: computed(() => {
+            const expands = modelConfig.config?.expands || [];
+            return expands.filter(
+                (expand) =>
+                    formContext.state?.values[expand] !== undefined && formContext.state.values[expand] !== null,
+            );
+        }),
     },
     intendToRetrieve: false,
 });

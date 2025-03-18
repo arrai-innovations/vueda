@@ -1,6 +1,7 @@
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { ModelInfoError, storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { getActionName } from "@vueda/use/useActionMap.js";
 import isEmpty from "lodash-es/isEmpty.js";
 
@@ -24,18 +25,20 @@ export async function waitForInitialising(pinia) {
  * @param app {string} The app name.
  * @param model {string} The model name.
  * @param pinia {import('pinia').Pinia} The Pinia instance.
- * @returns {Promise<[import('@vueda/stores/storeModelInfo.js').ModelInfo, import('@vueda/stores/storeModelConfig.js').ModelConfig]>}
+ * @returns {Promise<[import('@vueda/stores/storeModelInfo.js').ModelInfo, import('@vueda/stores/storeModelConfig.js').ModelConfig,import('@vueda/stores/storeworkflow.js').workflowTransitions]>}
  */
-export async function waitForStoreInfoLoad(app, model, pinia) {
+export async function waitForModelStoreLoad(app, model, pinia) {
     // ##############################################################################################################
     // # don't use useModelInfo or useModelConfig here to avoid creating reactive effects outside a component scope #
     // ##############################################################################################################
     const args = { app, model };
+    const modelWorkflowStore = storeWorkflow(pinia);
+    const transitions = await modelWorkflowStore.fetchWorkflowTransition(app, model);
     const modelInfoStore = storeModelInfo(pinia);
     const infoStore = await modelInfoStore.fetchModelInfo(args);
     const modelConfig = storeModelConfig(pinia);
     const configStore = await modelConfig.getConfig(args);
-    return [infoStore, configStore];
+    return [infoStore, configStore, transitions];
 }
 
 /**
@@ -216,20 +219,27 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to,
  * Require model info to be loaded before accessing the route.
  *
  * @param {import('vue').App} instance - The Vue app instance.
- * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if model info not found.
+ * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if model info not found or action not allowed.
  * @param {import('vue-router').RouteLocationNormalizedLoaded} to - The target route.
  * @param {import('vue-router').Router} router - The router instance.
  * @param {import('pinia').Pinia} pinia - The Pinia instance.
- * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} True if model info exists, or redirect route.
+ * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} True if model info exists and action allowed, or redirect route.
  */
 export async function requireModelInfo(instance, redirectTo, to, router, pinia) {
     const toast = instance.config.globalProperties.$toast;
     /** @type {import('primevue/toastservice').ToastServiceMethods} */
     try {
-        const [infoStore, configStore] = await waitForStoreInfoLoad(to.params.app, to.params.model, pinia);
+        const [infoStore, configStore, transitionStore] = await waitForModelStoreLoad(
+            to.params.app,
+            to.params.model,
+            pinia,
+        );
         let actions = infoStore.actions.map((action) => action.name);
         if (configStore.routerActions) {
             actions = actions.filter((action) => configStore.routerActions.includes(action));
+        }
+        if (transitionStore) {
+            actions = actions.concat(transitionStore.map((t) => t.name));
         }
         const actionName = getActionName(to.params.action);
         if (actions.length && actions.includes(actionName)) {
