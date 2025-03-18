@@ -64,6 +64,13 @@ workflows:
                       branches:
                           only:
                               - main
+            - run_pipeline:
+                  name: run-wayfinders-client-pipeline-main
+                  project: wayfinders-client
+                  filters:
+                      branches:
+                          only:
+                              - main
             - npm/publish:
                   name: publish
                   context: arrai-private-package-publishing
@@ -87,6 +94,16 @@ workflows:
                   requires:
                       - release_on_github
                   project: sems-client
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore: /.*/
+            - run_pipeline:
+                  name: run-wayfinders-client-pipeline-tag
+                  requires:
+                      - release_on_github
+                  project: wayfinders-client
                   filters:
                       tags:
                           only: /.*/
