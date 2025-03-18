@@ -102,6 +102,16 @@ workflows:
                       branches:
                           only:
                               - main
+
+            - run_pipeline:
+                  name: run-wayfinders-server-pipeline-main
+                  requires:
+                      - pytest
+                  project: wayfinders-server
+                  filters:
+                      branches:
+                          only:
+                              - main
             # todo: docs?
             - build:
                   name: build
@@ -138,6 +148,16 @@ workflows:
                   requires:
                       - publish
                   project: sems-server
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore: /.*/
+            - run_pipeline:
+                  name: run-wayfinders-server-pipeline-tag
+                  requires:
+                      - publish
+                  project: wayfinders-server
                   filters:
                       tags:
                           only: /.*/

@@ -388,8 +388,8 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
             historical_permission_content_type_model_name=permission.content_type.model,
         )
 
-        if not obj_is_used:
-            group.delete()
+        # if not obj_is_used:
+        #     group.delete()
 
         return JsonResponse(
             {
