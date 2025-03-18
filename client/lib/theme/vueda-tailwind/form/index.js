@@ -166,7 +166,7 @@ export default {
         fields: {
             class: [],
         },
-        destroyOuter: {
+        actionBarOuter: {
             class: ["flex py-2"],
         },
     },

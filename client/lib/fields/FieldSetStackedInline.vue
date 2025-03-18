@@ -91,11 +91,10 @@ const theme = useTheme("FieldSetStackedInline", props);
                 >
                     <field-set-stacked-inline-row
                         :field-name="fieldSetContext.state.name"
-                        :fields="fieldSetInline.state.fieldNames"
+                        :field-set-context-state="fieldSetInline.state"
                         :index="index"
                         :pk="value.id"
                         :read-only="props.readOnly"
-                        :selected="fieldSetInline.state.selected"
                         @destroy-row="fieldSetInline.removeObject(index)"
                         @update:selected="fieldSetInline.handleSelected($event.value, index)"
                     >

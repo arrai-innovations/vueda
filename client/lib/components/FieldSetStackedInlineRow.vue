@@ -3,8 +3,8 @@ import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
+import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import Button from "primevue/button";
-import Checkbox from "primevue/checkbox";
 import { computed, inject, unref, useSlots } from "vue";
 
 const props = defineProps({
@@ -24,25 +24,20 @@ const props = defineProps({
         type: String,
         default: "default",
     },
-    fields: {
-        type: Array,
-        default: undefined,
-        description: "A list of the field names to display for each object.",
-    },
-    selected: {
-        type: Array,
-        default: () => [],
-    },
     readOnly: {
         type: Boolean,
         default: false,
+    },
+    fieldSetContextState: {
+        type: Object,
+        required: true,
     },
     ...THEME_OVERRIDE_PROPS,
 });
 const formModel = inject(FormModelSymbol, null);
 const theme = useTheme("FieldSetStackedInlineRow", props);
 
-const emit = defineEmits(["destroy-row", "update:selected"]);
+const emit = defineEmits(["destroy-row", "update:selected", "update:model-value"]);
 const onDelete = () => emit("destroy-row", props.index);
 
 const getFieldName = (fieldName) => {
@@ -50,7 +45,7 @@ const getFieldName = (fieldName) => {
 };
 
 const slots = useSlots();
-const slotNames = ["before-fields", "after-fields", "destroy-button", "destroy-checkbox"];
+const slotNames = ["before-fields", "after-fields", "destroy-button", "destroy-checkbox", "item-action-button"];
 const fieldSetSlotNames = slotNames.reduce((acc, name) => {
     acc[name] = useSlotNameResolver(
         computed(() => [`fieldset-${name}`, name]),
@@ -79,7 +74,7 @@ const remainingSlotNames = computed(() => {
                 :theme="theme"
                 :widget-components="formModel.widgetComponents"
             >
-                <template v-for="field in props.fields" :key="field">
+                <template v-for="field in fieldSetContextState.fieldNames" :key="field">
                     <field-renderer
                         :fieldset-stacked-inline-props="{
                             index: props.index,
@@ -98,36 +93,71 @@ const remainingSlotNames = computed(() => {
         <div v-if="fieldSetSlotNames['after-fields'].name" :class="theme('afterFields')">
             <slot name="after-fields" />
         </div>
-        <div v-if="!props.readOnly" :class="theme('destroyOuter')">
-            <div v-if="pk" class="flex items-center">
-                <slot
-                    :input-id="`selected-inline-${pk}`"
-                    :name="fieldSetSlotNames['destroy-checkbox'].name"
-                    :selected="selected"
-                    :value="index"
-                >
-                    <Checkbox
-                        :input-id="`selected-inline-${pk}`"
-                        :model-value="selected"
-                        name="selected"
-                        :value="index !== undefined ? index : pk"
-                        @update:model-value="emit('update:selected', $event)"
-                    />
-                    <label class="ml-2" for="`selected-inline-${pk}`"> Delete? </label>
-                </slot>
+        <slot name="item-action-bar">
+            <div
+                v-if="fieldSetContextState.actions.length"
+                :class="theme('actionBarOuter')"
+                data-qa="field-set-tabular-inline-item-action-bar"
+            >
+                <template v-for="action in fieldSetContextState.actions">
+                    <template v-if="action.fieldName === 'destroy'">
+                        <slot
+                            v-if="!pk"
+                            :action="action"
+                            :label="action.label"
+                            :name="fieldSetSlotNames['destroy-checkbox'].name"
+                            :row-index="index"
+                            :selected="fieldSetContextState?.selected.includes(index)"
+                            :theme="theme"
+                            :value="action.value"
+                            verb="destroy"
+                            @click="onDelete"
+                        >
+                            <Button label="Delete" text @click="onDelete" />
+                        </slot>
+                        <slot
+                            v-else
+                            :action="action"
+                            :contextless="true"
+                            label="Destroy?"
+                            :model-value="fieldSetContextState.selected.includes(index)"
+                            :name="fieldSetSlotNames['destroy-checkbox'].name"
+                            :required="false"
+                            :row-index="index"
+                            :theme="theme"
+                            :value="action.value"
+                            verb="destroy"
+                            @update:model-value="emit('update:selected', $event)"
+                        >
+                            <widget-checkbox
+                                :contextless="true"
+                                :input-id="`selected-inline-row-${index}`"
+                                label="Destroy?"
+                                :model-value="fieldSetContextState?.selected.includes(index)"
+                                name="destroy-checkbox"
+                                :required="false"
+                                size="small"
+                                :value="index"
+                                @update:model-value="emit('update:selected', $event)"
+                            />
+                        </slot>
+                    </template>
+                    <template v-else>
+                        <slot
+                            :name="fieldSetSlotNames['item-action-button'].name"
+                            v-bind="{
+                                action,
+                                fieldSetContextState: fieldSetContextState,
+                                rowValueName: `${fieldName}[${index}]`,
+                            }"
+                            @update:model-value="emit('update:model-value', $event)"
+                        >
+                            <Button :label="action.label" @update:model-value="emit('update:model-value', $event)" />
+                        </slot>
+                    </template>
+                </template>
             </div>
-            <div v-else>
-                <slot
-                    label="Delete"
-                    :name="fieldSetSlotNames['destroy-button'].name"
-                    size="small"
-                    verb="destroy"
-                    @click="onDelete"
-                >
-                    <Button label="Delete" size="small" @click="onDelete" />
-                </slot>
-            </div>
-        </div>
+        </slot>
     </div>
 </template>
 

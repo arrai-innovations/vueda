@@ -36,7 +36,7 @@ const addInline = () => {
 };
 
 onMounted(() => {
-    if (props.autoCreateWhenEmpty && !fieldSetContext.state.value) {
+    if ((props.autoCreateWhenEmpty || props.required) && !fieldSetContext.state.value) {
         addInline();
     }
 });
@@ -126,10 +126,9 @@ const handleDeleteSingle = (selected_) => {
                 >
                     <field-set-stacked-inline-row
                         :field-name="fieldSetContext.state.name"
-                        :fields="fieldSetInline.state.fieldNames"
+                        :field-set-context-state="fieldSetInline.state"
                         :pk="fieldSetContext.state.value.id"
                         :read-only="props.readOnly"
-                        :selected="fieldSetInline.state.selected"
                         @destroy-row="clearField"
                         @update:selected="handleDeleteSingle"
                     >
