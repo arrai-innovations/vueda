@@ -40,10 +40,6 @@ const theme = useTheme("FieldSetStackedInlineRow", props);
 const emit = defineEmits(["destroy-row", "update:selected", "update:model-value"]);
 const onDelete = () => emit("destroy-row", props.index);
 
-const getFieldName = (fieldName) => {
-    return `${props.fieldName}__${fieldName}`;
-};
-
 const slots = useSlots();
 const slotNames = ["before-fields", "after-fields", "destroy-button", "destroy-checkbox", "item-action-button"];
 const fieldSetSlotNames = slotNames.reduce((acc, name) => {
@@ -74,13 +70,16 @@ const remainingSlotNames = computed(() => {
                 :theme="theme"
                 :widget-components="formModel.widgetComponents"
             >
-                <template v-for="field in fieldSetContextState.fieldNames" :key="field">
+                <template
+                    v-for="(fieldObj, foIndex) in fieldSetContextState.fieldObjects.filter((field) => !field.action)"
+                    :key="`${fieldObj.name}-${foIndex}`"
+                >
                     <field-renderer
                         :fieldset-stacked-inline-props="{
                             index: props.index,
                         }"
                         :form-model="formModel"
-                        :form-model-name="getFieldName(field)"
+                        :form-model-name="fieldObj.name"
                         :hidden="false"
                     >
                         <template v-for="slotName in remainingSlotNames" #[slotName]="slotProps">
