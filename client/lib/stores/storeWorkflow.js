@@ -190,6 +190,9 @@ export const storeWorkflow = defineStore({
     }),
     actions: {
         async fetchWorkflowTransition(app, model) {
+            if (!usingVuedaWorkFlow) {
+                return [];
+            }
             this.loading = true;
             try {
                 const key = getAppModelDotName({ app, model });
@@ -218,6 +221,9 @@ export const storeWorkflow = defineStore({
             }
         },
         async fetchModelStates(app, model) {
+            if (!usingVuedaWorkFlow) {
+                return [];
+            }
             this.loading = true;
             try {
                 const key = getAppModelDotName({ app, model });
@@ -241,6 +247,9 @@ export const storeWorkflow = defineStore({
             }
         },
         async fetchObjectState(app, model, objectPk) {
+            if (!usingVuedaWorkFlow) {
+                return [];
+            }
             this.loading = true;
             try {
                 const key = getAppModelDotName({ app, model });
@@ -261,6 +270,9 @@ export const storeWorkflow = defineStore({
             }
         },
         async fetchObjectTransitions(app, model, objectPk) {
+            if (!usingVuedaWorkFlow) {
+                return [];
+            }
             this.loading = true;
             try {
                 const key = getAppModelDotName({ app, model });
@@ -286,6 +298,9 @@ export const storeWorkflow = defineStore({
             }
         },
         async fetchObjectHistory(app, model, objectPk) {
+            if (!usingVuedaWorkFlow) {
+                return [];
+            }
             this.loading = true;
             try {
                 const key = getAppModelDotName({ app, model });
@@ -307,6 +322,9 @@ export const storeWorkflow = defineStore({
             }
         },
         async executeTransition(app, model, objectPk, transition_code, router, stateToRoute = undefined) {
+            if (!usingVuedaWorkFlow) {
+                return;
+            }
             let result;
             if (Array.isArray(objectPk)) {
                 result = {
