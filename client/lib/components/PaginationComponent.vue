@@ -45,7 +45,7 @@ const currentPageReportTemplate = computed(() => {
             :current-page-report-template="currentPageReportTemplate"
             :rows="loading ? 1 : rows"
             template="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
-            :total-records="loading ? 1 : totalRecords"
+            :total-records="loading ? offset + 1 : totalRecords"
             @page="onPaginate"
         />
     </div>
