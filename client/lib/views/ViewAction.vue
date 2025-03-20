@@ -40,6 +40,10 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
+    initialFormValues: {
+        type: Object,
+        default: undefined,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const actionTitleText = computed(() => {
@@ -49,6 +53,9 @@ const actionTitleText = computed(() => {
 });
 const router = useRouter();
 const initialValues = computed(() => {
+    if (props.initialFormValues) {
+        return props.initialFormValues;
+    }
     const initialValues = {};
     if (isArray(props.pk)) {
         props.pk.forEach((pk) => {

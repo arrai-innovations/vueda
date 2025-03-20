@@ -60,6 +60,10 @@ const props = defineProps({
         type: Object,
         default: () => ({ errored: false, error: null, loading: undefined }),
     },
+    submitFormValues: {
+        type: Function,
+        default: undefined,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const toast = useToast();
@@ -101,6 +105,11 @@ const defaultRunAction = (action) => {
         action = undefined;
     }
     const controller = new AbortController();
+    let body = props.submitFormValues ? props.submitFormValues(formContext.state.submittingValues) : undefined;
+
+    if (unref(bulk)) {
+        body = { pks: unref(pks), ...(body || {}) };
+    }
     const url = unref(bulk)
         ? getListUrl({ app: props.app, model: props.model, action })
         : getDetailUrl({
@@ -117,7 +126,7 @@ const defaultRunAction = (action) => {
             "Content-Type": "application/json",
         },
         credentials: "include",
-        body: unref(bulk) ? JSON.stringify({ pks: unref(pks) }) : undefined,
+        body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
     }).then(async (response) => {
         const responseData = await getJsonOrText(response);
@@ -148,6 +157,11 @@ const handleConfirm = async () => {
     actionState.errored = false;
     actionState.error = null;
     try {
+        formContext.setAllTouched();
+        if (formContext.state.anyError) {
+            return;
+        }
+
         actionPromise = unref(runAction)(props.action);
         await actionPromise;
         toast.add({
@@ -244,7 +258,13 @@ const handleCancelClick = async (e) => {
         <div :class="theme('inner')" data-qa="action-form-inner">
             <form-chores :class="theme('nonFieldErrorBlock')" :variant="null" />
             <div :class="theme('selectedObjects')" data-qa="action-form-selected-objects">
-                <slot :loading="combinedLoading" name="selected-objects" :objects="fetchState?.objects">
+                <slot
+                    :loading="combinedLoading"
+                    name="selected-objects"
+                    :objects="fetchState?.objects"
+                    :pks="pksAsString"
+                    :theme="theme"
+                >
                     <p>You have selected the following {{ unref(modelVerboseName) }}:</p>
                     <div v-if="combinedLoading">
                         <p>Loading objects...</p>

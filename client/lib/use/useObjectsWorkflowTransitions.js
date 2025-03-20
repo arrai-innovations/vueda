@@ -44,7 +44,7 @@ export function useObjectsWorkflowTransitions(app, model, pks, isActive) {
             error: ref(null),
             errored: ref(false),
             clearError: () => {},
-            transitions: ref([]),
+            transitions: undefined,
         };
     }
     const loadingError = useLoadingError();
