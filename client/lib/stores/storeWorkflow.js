@@ -1,9 +1,8 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
-import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
-import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
@@ -49,48 +48,14 @@ class WorkflowError extends FetchError {
  * @private
  */
 const updateState = (target, source) => {
-    const index = target.findIndex(
-        (state) => state.pk === source.pk && state.app === source.app && state.model === source.model,
-    );
-    if (index === -1) {
-        target.push(source);
-    } else {
-        assignReactiveObject(target[index], source);
-    }
-};
-
-/**
- * A Fetch helper function to handle common fetch tasks, including setting headers and handling errors.
- *
- * @param {string} url - The url to fetch.
- * @param {object} [options] - The fetch options.
- * @param {string} [messagePrefix] - The prefix for error messages.
- * @param {object|string} [emptyResponseValue] - The value to return if the response is 403.
- * @returns {Promise<object|string>} The response data.
- * @private
- */
-const fetchHelper = async (url, options = {}, messagePrefix, emptyResponseValue) => {
-    const nonGetDefaultHeaders = {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCSRFValue(),
-    };
-    const headers = { ...(options.method !== "GET" ? nonGetDefaultHeaders : {}), ...options.headers };
-    const response = await fetch(url, {
-        ...options,
-        headers,
-        credentials: "include",
-    });
-    const responseData = await getJsonOrText(response);
-    if (!response.ok) {
-        // if the user is not logged in, or is and does not have permission to transition the object, the response will be 403
-        if (response.status === 403 && emptyResponseValue) {
-            return emptyResponseValue;
-        }
-        throw new WorkflowError(messagePrefix, response, responseData);
+    const key = getAppModelDotName({ app: source.app, model: source.model });
+    if (!target[key]) {
+        return;
     }
 
-    // Return the response data
-    return responseData;
+    if (target[key][source.pk]) {
+        assignReactiveObject(target[key][source.pk], source);
+    }
 };
 
 const makeResultObject = (app, model, pk) => ({
@@ -137,11 +102,11 @@ const executeTransitionUrl = (result) => {
  *     },
  *     {},
  *     {
- *         fetchModelStates: (app: string, model: string) => Promise<object[]>,
- *         fetchObjectState: (app: string, model: string, objectPk: string) => Promise<{app: string, model: string, pk: string, state: object}>,
- *         fetchObjectTransitions: (app: string, model: string, objectPk: string) => Promise<{app: string, model: string, pk: string, transitions: object[]}>,
- *         fetchObjectHistory: (app: string, model: string, objectPk: string) => Promise<{app: string, model: string, pk: string, history: object[]}>,
- *         executeTransition: (app: string, model: string, objectPk: string, transition_code: string, router: import('vue-router').Router, stateToRoute: object) => Promise<{app: string, model: string, pk: string}>,
+ *         fetchModelStates: (app: string, model: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<object[]>
+ *         fetchObjectState: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<{app: string, model: string, pk: string, state: object}>,
+ *         fetchObjectTransitions: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<{app: string, model: string, pk: string, transitions: object[]}>,
+ *         fetchObjectHistory: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<{app: string, model: string, pk: string, history: object[]}>,
+ *         executeTransition: (app: string, model: string, objectPk: string, transition_code: string, router: import('vue-router').Router, stateToRoute: object) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<{app: string, model: string, pk: string}>,
  *     }
  * >} WorkflowStore
  */
@@ -180,151 +145,273 @@ const executeTransitionUrl = (result) => {
  */
 export const storeWorkflow = defineStore({
     id: "workflow",
-    state: () => ({
-        loading: false,
-        objectStates: {},
-        objectTransitions: {},
-        objectHistories: {},
-        modelStates: {},
-        workflowTransitions: {},
-    }),
+    state: () => {
+        const createErrorPromiseStructure = () => ({
+            objectStates: {},
+            objectTransitions: {},
+            objectHistories: {},
+            modelStates: {},
+            workflowTransitions: {},
+        });
+
+        return {
+            errors: createErrorPromiseStructure(),
+            promises: createErrorPromiseStructure(),
+            objectStates: {},
+            objectTransitions: {},
+            objectHistories: {},
+            modelStates: {},
+            workflowTransitions: {},
+        };
+    },
     actions: {
-        async fetchWorkflowTransition(app, model) {
-            if (!usingVuedaWorkFlow) {
-                return [];
+        fetchWorkflowTransition(app, model) {
+            if (!app || !model) {
+                return Promise.reject(
+                    new Error("storeWorkflow.fetchWorkflowTransition: app and model must be provided"),
+                );
             }
-            this.loading = true;
-            try {
-                const key = getAppModelDotName({ app, model });
-                const existing = this.workflowTransitions[key];
-                if (existing) {
-                    return existing;
-                }
-                const data = await fetchHelper(
+            if (!usingVuedaWorkFlow) {
+                return Promise.resolve([]);
+            }
+            const key = getAppModelDotName({ app, model });
+            const existing = this.workflowTransitions[key];
+            const cachedError = this.errors.workflowTransitions[key];
+
+            if (existing) {
+                return Promise.resolve(existing);
+            }
+            if (cachedError) {
+                return Promise.reject(cachedError);
+            }
+            if (!this.promises.workflowTransitions[key]) {
+                this.promises.workflowTransitions[key] = fetchHelper(
                     workflowListTransitionUrl(app, model),
                     {
                         method: "GET",
                     },
                     "Failed to fetch workflow transitions for model",
+                    WorkflowError,
+                    undefined,
                     "marker",
-                );
-                if (data !== "marker") {
-                    if (!data.results.length) {
-                        this.workflowTransitions[key] = [];
-                        return [];
-                    }
-                    this.workflowTransitions[key] = data.results[0].transitions;
-                    return this.workflowTransitions[key];
-                }
-            } finally {
-                this.loading = false;
+                )
+                    .then((data) => {
+                        if (data !== "marker") {
+                            if (!data.results.length) {
+                                this.workflowTransitions[key] = [];
+                                return [];
+                            }
+                            this.workflowTransitions[key] = data.results[0].transitions;
+                            return this.workflowTransitions[key];
+                        }
+                    })
+                    .catch((e) => {
+                        this.errors.workflowTransitions[key] = e;
+                        throw e;
+                    })
+                    .finally(() => {
+                        delete this.promises.workflowTransitions[key];
+                    });
             }
+            return this.promises.workflowTransitions[key];
         },
-        async fetchModelStates(app, model) {
-            if (!usingVuedaWorkFlow) {
-                return [];
+        fetchModelStates(app, model) {
+            if (!app || !model) {
+                return Promise.reject(new Error("storeWorkflow.fetchModelStates: app and model must be provided"));
             }
-            this.loading = true;
-            try {
-                const key = getAppModelDotName({ app, model });
-                const existing = this.modelStates[key];
-                if (existing) {
-                    return existing;
-                }
-                const data = await fetchHelper(
-                    modelStatesUrl(key),
+            if (!usingVuedaWorkFlow) {
+                return Promise.resolve([]);
+            }
+            const key = getAppModelDotName({ app, model });
+            const existing = this.modelStates[key];
+            const cachedError = this.errors.modelStates[key];
+
+            if (existing) {
+                return Promise.resolve(existing);
+            }
+            if (cachedError) {
+                return Promise.reject(cachedError);
+            }
+            if (!this.promises.modelStates[key]) {
+                this.promises.modelStates[key] = fetchHelper(
+                    modelStatesUrl(app, model),
                     {
                         method: "GET",
                     },
                     "Failed to fetch states for model",
+                    WorkflowError,
+                    undefined,
                     "marker",
-                );
-                if (data !== "marker") {
-                    this.modelStates[key] = data;
-                }
-            } finally {
-                this.loading = false;
+                )
+                    .then((data) => {
+                        if (data !== "marker") {
+                            this.modelStates[key] = data;
+                            return this.modelStates[key];
+                        }
+                    })
+                    .catch((e) => {
+                        this.errors.modelStates[key] = e;
+                        throw e;
+                    })
+                    .finally(() => {
+                        delete this.promises.modelStates[key];
+                    });
             }
+            return this.promises.modelStates[key];
         },
-        async fetchObjectState(app, model, objectPk) {
-            if (!usingVuedaWorkFlow) {
-                return [];
+        fetchObjectState(app, model, objectPk) {
+            if (!app || !model || !objectPk) {
+                return Promise.reject(
+                    new Error("storeWorkflow.fetchObjectState: app,model and objectPk must all be provided"),
+                );
             }
-            this.loading = true;
-            try {
-                const key = getAppModelDotName({ app, model });
+            if (!usingVuedaWorkFlow) {
+                return Promise.resolve([]);
+            }
+            const key = getAppModelDotName({ app, model });
+            const existing = this.objectStates[key][objectPk];
+            const cachedError = this.errors.objectStates[key]?.[objectPk];
+            if (existing) {
+                return Promise.resolve(existing);
+            }
+            if (cachedError) {
+                return Promise.reject(cachedError);
+            }
+            if (!this.promises.objectStates[key][objectPk]) {
                 const result = makeResultObject(app, model, objectPk);
-                const data = await fetchHelper(
+                this.promises.objectStates[key][objectPk] = fetchHelper(
                     objectStatesUrl(result),
                     {
                         method: "GET",
                     },
                     "Failed to fetch object state",
-                );
-                if (data === "Object does not have a workflow.") {
-                    return result;
-                }
-                this.objectStates[key][objectPk] = data;
-            } finally {
-                this.loading = false;
+                    WorkflowError,
+                    undefined,
+                    "marker",
+                )
+                    .then((data) => {
+                        if (data === "Object does not have a workflow.") {
+                            return result;
+                        }
+                        this.objectStates[key][objectPk] = data;
+                    })
+                    .catch((e) => {
+                        this.errors.objectStates[key][objectPk] = e;
+                        throw e;
+                    })
+                    .finally(() => {
+                        delete this.promises.objectStates[key][objectPk];
+                    });
             }
+            return this.promises.objectStates[key][objectPk];
         },
-        async fetchObjectTransitions(app, model, objectPk) {
-            if (!usingVuedaWorkFlow) {
-                return [];
+        fetchObjectTransitions(app, model, objectPk) {
+            if (!app || !model || !objectPk) {
+                return Promise.reject(
+                    new Error("storeWorkflow.fetchObjectState: app,model and objectPk must all be provided"),
+                );
             }
-            this.loading = true;
-            try {
-                const key = getAppModelDotName({ app, model });
-                const existing = this.objectTransitions[key][objectPk];
-                if (existing) {
-                    return existing;
-                }
+            if (!usingVuedaWorkFlow) {
+                return Promise.resolve([]);
+            }
+
+            const key = getAppModelDotName({ app, model });
+            const existing = this.objectTransitions[key][objectPk];
+            const cachedError = this.errors.objectTransitions[key]?.[objectPk];
+            if (existing) {
+                return Promise.resolve(existing);
+            }
+            if (cachedError) {
+                return Promise.reject(cachedError);
+            }
+            if (!this.promises.objectTransitions[key][objectPk]) {
                 const result = makeResultObject(app, model, objectPk);
-                const data = await fetchHelper(
+                this.promises.objectTransitions[key][objectPk] = fetchHelper(
                     objectTransitionsUrl(result),
                     {
                         method: "GET",
                     },
                     "Failed to fetch object transitions",
-                    [],
-                );
-                if (data === "Object does not have a workflow.") {
-                    return result;
-                }
-                this.objectTransitions[key][objectPk] = data;
-            } finally {
-                this.loading = false;
+                    WorkflowError,
+                    undefined,
+                    "marker",
+                )
+                    .then((data) => {
+                        if (data === "Object does not have a workflow.") {
+                            return result;
+                        }
+                        this.objectTransitions[key][objectPk] = data;
+                    })
+                    .catch((e) => {
+                        this.errors.objectTransitions[key][objectPk] = e;
+                        throw e;
+                    })
+                    .finally(() => {
+                        delete this.promises.objectStates[key][objectPk];
+                    });
             }
+            return this.promises.objectTransitions[key][objectPk];
         },
-        async fetchObjectHistory(app, model, objectPk) {
-            if (!usingVuedaWorkFlow) {
-                return [];
+        fetchObjectHistory(app, model, objectPk) {
+            if (!app || !model || !objectPk) {
+                return Promise.reject(
+                    new Error("storeWorkflow.fetchObjectState: app,model and objectPk must all be provided"),
+                );
             }
-            this.loading = true;
-            try {
-                const key = getAppModelDotName({ app, model });
+            if (!usingVuedaWorkFlow) {
+                return Promise.resolve([]);
+            }
+            const key = getAppModelDotName({ app, model });
+            const existing = this.objectHistories[key][objectPk];
+            const cachedError = this.errors.objectHistories[key]?.[objectPk];
+            if (existing) {
+                return Promise.resolve(existing);
+            }
+            if (cachedError) {
+                // prevent us from self-ddosing the server
+                return Promise.reject(cachedError);
+            }
+            if (!this.promises.objectHistories[key][objectPk]) {
                 const result = makeResultObject(app, model, objectPk);
-                const data = await fetchHelper(
+
+                this.promises.objectHistories[key][objectPk] = fetchHelper(
                     objectHistoriesUrl(result),
                     {
                         method: "GET",
                     },
-                    "Failed to fetch object transitions",
-                    [],
-                );
-                if (data === "Object does not have a workflow.") {
-                    return result;
-                }
-                this.objectHistories[key][objectPk] = data;
-            } finally {
-                this.loading = false;
+                    "Failed to fetch object histories",
+                    WorkflowError,
+                    undefined,
+                    "marker",
+                )
+                    .then((data) => {
+                        if (data === "Object does not have a workflow.") {
+                            return result;
+                        }
+                        this.objectHistories[key][objectPk] = data;
+                    })
+                    .catch((e) => {
+                        this.errors.objectHistories[key][objectPk] = e;
+                        throw e;
+                    })
+                    .finally(() => {
+                        delete this.promises.objectHistories[key][objectPk];
+                    });
             }
+            return this.promises.objectHistories[key][objectPk];
         },
-        async executeTransition(app, model, objectPk, transition_code, router, stateToRoute = undefined) {
-            if (!usingVuedaWorkFlow) {
-                return;
+        executeTransition(app, model, objectPk, transition_code, router, stateToRoute = undefined) {
+            if (!app || !model || !objectPk || !transition_code) {
+                return Promise.reject(
+                    new Error(
+                        "storeWorkflow.fetchObjectState: app, model,objectPk and transition_code must all be provided",
+                    ),
+                );
             }
+            if (!usingVuedaWorkFlow) {
+                return Promise.resolve([]);
+            }
+            const body = { transition_code };
             let result;
             if (Array.isArray(objectPk)) {
                 result = {
@@ -335,29 +422,35 @@ export const storeWorkflow = defineStore({
             } else {
                 result = makeResultObject(app, model, objectPk);
             }
-            let body = { transition_code };
-            if (Array.isArray(objectPk)) {
-                body = { transition_code, object_ids: objectPk };
-            }
-            const data = await fetchHelper(
+            let responseData;
+
+            const returningPromise = fetchHelper(
                 executeTransitionUrl(result),
                 {
                     method: "PATCH",
                     body: JSON.stringify(body),
                 },
                 "Failed to execute transition",
-            );
-            updateState(this.objectStates, { ...result, ...data.new_state });
-            updateState(this.objectTransitions, { ...result, transitions: data.new_transitions });
-            if (router && stateToRoute && data.new_state.state.code in stateToRoute) {
-                router.push(stateToRoute[data.new_state.state.code]);
-            }
-            // I don't remember why I was returning result here
-            // return result;
+                WorkflowError,
+            )
+                .then((data) => {
+                    responseData = data;
+                    updateState(this.objectStates, { ...result, ...data.new_state });
+                    updateState(this.objectTransitions, { ...result, transitions: data.new_transitions });
+                })
+                .finally(() => {
+                    if (router && stateToRoute && responseData?.new_state?.state?.code in stateToRoute) {
+                        router.push(stateToRoute[responseData.new_state.state.code]);
+                    }
+                });
+
+            return returningPromise;
         },
         initializeObjectTransitions(app, model) {
             const key = getAppModelDotName({ app, model });
             this.objectTransitions[key] = {};
+            this.promises.objectTransitions[key] = {};
+            this.errors.objectTransitions[key] = {};
         },
     },
 });
