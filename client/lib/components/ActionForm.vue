@@ -7,7 +7,12 @@ import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
 import { defaultOnSubmissionError } from "@vueda/use/useObjectForm.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/crudSupport.js";
+import {
+    DETAIL_VIEW_CRUD_NAME,
+    LIST_VIEW_CRUD_NAME,
+    getLowerTitle,
+    getPluralizedTitle,
+} from "@vueda/utils/crudSupport.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
@@ -169,13 +174,7 @@ const handleConfirm = async () => {
             summary: actionSuccessSummary,
             life: 5000,
         });
-        await router.push(
-            await getCRUDForTo({
-                app: props.app,
-                model: props.model,
-                view: "list",
-            }),
-        );
+        await goBack();
     } catch (error) {
         const handled = await defaultOnSubmissionError({ error, formContext, toast });
         if (!handled) {
@@ -212,12 +211,12 @@ const theme = useTheme("ActionForm", props);
 
 onDeactivated(() => {
     if (actionPromise) {
-        actionPromise.cancel();
+        actionPromise.cancel?.();
     }
 });
 onUnmounted(() => {
     if (actionPromise) {
-        actionPromise.cancel();
+        actionPromise.cancel?.();
     }
 });
 const handleCancelClick = async (e) => {
@@ -236,18 +235,21 @@ const handleCancelClick = async (e) => {
             }),
         );
     } else {
-        // if we are not, let's redirect back to the default detail view for this model, (update).
-        const defaultView = modelConfig.config.defaultView;
-        const pushArgs = {
-            app: props.app,
-            model: props.model,
-            view: defaultView,
-        };
-        const isDetail = modelConfig.info.actions?.find((action) => action.name === defaultView)?.detail;
-        if (isDetail) {
-            pushArgs.pk = pks.value[0];
-        }
-        await router.push(await getCRUDForTo(pushArgs));
+        await goBack();
+    }
+};
+
+const goBack = async () => {
+    if (unref(bulk)) {
+        await router.push({
+            name: LIST_VIEW_CRUD_NAME,
+            params: { app: props.app, model: props.model, action: "list" },
+        });
+    } else {
+        await router.push({
+            name: DETAIL_VIEW_CRUD_NAME,
+            params: { app: props.app, model: props.model, action: modelConfig.config.defaultView, pk: pks.value[0] },
+        });
     }
 };
 </script>
