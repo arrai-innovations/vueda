@@ -188,6 +188,7 @@ const handleConfirm = async () => {
             });
         }
     } finally {
+        actionPromise = null;
         actionState.loading = false;
     }
 };
