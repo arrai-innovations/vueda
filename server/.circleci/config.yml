@@ -173,7 +173,6 @@ workflows:
                       branches:
                           only:
                               - main
-                  wd: ./
             - ruff/ruff:
                   name: ruff-no-badge
                   executor: python311-base
@@ -182,7 +181,6 @@ workflows:
                       branches:
                           ignore:
                               - main
-                  wd: ./
     audit:
         jobs:
             - safety/safety_fixed_ip:
