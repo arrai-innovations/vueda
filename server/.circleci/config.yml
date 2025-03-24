@@ -1,9 +1,9 @@
 version: 2.1
 orbs:
-    flake8: arrai/flake8@20.0.3
     github: arrai/github@3.0.0
     pypi: arrai/pypi@3.1.0
     pytest: arrai/pytest@8.1.5
+    ruff: arrai/ruff@1.0.0
     safety: arrai/safety@3.0.4
     utils: arrai/utils@1.16.3
 executors:
@@ -165,8 +165,8 @@ workflows:
                           ignore: /.*/
     lint:
         jobs:
-            - flake8/flake8_pipenv_fixed_ip:
-                  name: flake8
+            - ruff/ruff_fixed_ip:
+                  name: ruff
                   context: arrai-global
                   executor: python311-base
                   filters:
@@ -174,8 +174,8 @@ workflows:
                           only:
                               - main
                   wd: ./
-            - flake8/flake8_pipenv:
-                  name: flake8-no-badge
+            - ruff/ruff:
+                  name: ruff-no-badge
                   executor: python311-base
                   create_badges: false
                   filters:

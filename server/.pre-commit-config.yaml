@@ -27,42 +27,15 @@ repos:
           - id: circleci-config-validate
             files: ^.circleci/config.yml$
 
-    - repo: https://github.com/psf/black
-      rev: 24.8.0 # sync with pipenv Pipfile
+    - repo:
+          https://github.com/astral-sh/ruff-pre-commit
+          # sync with Pipfile
+      rev: v0.11.2
       hooks:
-          - id: black
-
-    - repo: https://github.com/pycqa/isort
-      rev: 5.13.2
-      hooks:
-          - id: isort
-
-    - repo: https://github.com/pycqa/flake8
-      rev: 7.1.1 # sync with pipenv Pipfile
-      hooks:
-          - id: flake8
-            args: ["--toml-config", "pyproject.toml"]
-            # sync with pipenv Pipfile
-            additional_dependencies:
-                [
-                    "dlint==0.15.0",
-                    "flake8==7.1.1",
-                    "flake8-assertive==2.1.0",
-                    "flake8-black==0.3.6",
-                    "flake8-broken-line==1.0.0",
-                    "flake8-bugbear==24.8.19",
-                    "flake8-builtins==2.5.0",
-                    "flake8-comprehensions==3.15.0",
-                    "flake8-debugger==4.1.2",
-                    "flake8-fixme==1.1.1",
-                    "flake8-logging-format==0.9.0",
-                    "flake8-pep3101==2.1.0",
-                    "flake8-print==5.0.0",
-                    "flake8-pyproject==1.2.3",
-                    "flake8-tidy-imports==4.10.0",
-                    "pep8-naming==0.14.1",
-                    "pylint-django==2.5.5",
-                ]
+        # Run the linter.
+        - id: ruff
+        # Run the formatter.
+        - id: ruff-format
 
     - repo: https://github.com/frnmst/md-toc
       rev: 8.2.2
