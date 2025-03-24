@@ -74,6 +74,8 @@ select = [
     "G",
     # isort: https://docs.astral.sh/ruff/rules/#isort-i
     "I",
+    # pep8-naming: https://docs.astral.sh/ruff/rules/#pep8-naming-n
+    "N",
     # pylint: https://docs.astral.sh/ruff/rules/#pylint-pl
     "PLC",
     "PLE",

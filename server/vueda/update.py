@@ -34,7 +34,7 @@ def get_tag():
     return tag_sp
 
 
-class ExitWithCode(Exception):
+class ExitWithCode(Exception):  # noqa N818
     def __init__(self, *args, code=1):
         super().__init__(*args)
         self.code = code
