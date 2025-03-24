@@ -2,7 +2,7 @@
 
 ![VUEDA Logo - Vue.js User Experience for Django Admin](/VUEDA.png)
 
-[![code style: black][]][black] [![code style: prettier][]][prettier] ![pytest status][] ![coverage status][] ![flake8 status][] ![safety status][]
+[![code style: black][]][black] [![code style: prettier][]][prettier] ![pytest status][] ![coverage status][] ![ruff status][] ![safety status][]
 
 <!--prettier-ignore-start-->
 <!--TOC-->
@@ -370,7 +370,7 @@ Coverage will be generated in circleci, but you can do so locally if you don't w
 [prettier]: https://github.com/prettier/prettier
 [pytest status]: https://docs.arrai.dev/vueda-server/artifacts/main/pytest.svg
 [coverage status]: https://docs.arrai.dev/vueda-server/artifacts/main/pytest.coverage.svg
-[flake8 status]: https://docs.arrai.dev/vueda-server/artifacts/main/flake8.svg
+[ruff status]: https://docs.arrai.dev/vueda-server/artifacts/main/ruff.svg
 [pipenv]: https://github.com/pypa/pipenv
 [safety status]: https://docs.arrai.dev/vueda-server/artifacts/main/safety.svg
 [django-filter]: https://github.com/carltongibson/django-filter
