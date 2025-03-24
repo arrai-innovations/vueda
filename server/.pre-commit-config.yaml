@@ -32,10 +32,10 @@ repos:
           # sync with Pipfile
       rev: v0.11.2
       hooks:
-        # Run the linter.
-        - id: ruff
-        # Run the formatter.
-        - id: ruff-format
+          # Run the linter.
+          - id: ruff
+          # Run the formatter.
+          - id: ruff-format
 
     - repo: https://github.com/frnmst/md-toc
       rev: 8.2.2
