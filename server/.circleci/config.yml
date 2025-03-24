@@ -4,7 +4,7 @@ orbs:
     pypi: arrai/pypi@3.1.0
     pytest: arrai/pytest@8.1.5
     ruff: arrai/ruff@1.0.0
-    safety: arrai/safety@3.0.4
+    safety: arrai/safety@4.0.0
     utils: arrai/utils@1.16.3
 executors:
     base:
