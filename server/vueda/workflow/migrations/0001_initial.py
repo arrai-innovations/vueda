@@ -20,7 +20,6 @@ with open(sql_location, mode="r") as f:
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [

@@ -21,7 +21,7 @@ changed_data = [
             "historical_app_label": "store",
             "historical_model": "customerorder",
             "id": {"code": "order_fulfillment"},
-            "name": "Order " "Fulfillment",
+            "name": "Order Fulfillment",
         },
         "history_date": datetime.datetime(2024, 8, 12, 16, 25, 8, 618729, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -75,7 +75,7 @@ changed_data = [
         "changes": {
             "code": "on_hold",
             "id": {"code": "on_hold", "workflow_id": {"code": "order_fulfillment"}},
-            "name": "On " "Hold",
+            "name": "On Hold",
             "workflow_id": {"code": "order_fulfillment"},
         },
         "history_date": datetime.datetime(2024, 8, 12, 16, 25, 13, 618729, tzinfo=datetime.timezone.utc),
@@ -110,7 +110,7 @@ changed_data = [
         "changes": {
             "code": "cancel_order",
             "id": {"code": "cancel_order", "workflow_id": {"code": "order_fulfillment"}},
-            "name": "Cancel " "Order",
+            "name": "Cancel Order",
             "target_id": {"code": "cancelled", "workflow_id": {"code": "order_fulfillment"}},
             "workflow_id": {"code": "order_fulfillment"},
         },
@@ -122,7 +122,7 @@ changed_data = [
         "changes": {
             "code": "hold_order",
             "id": {"code": "hold_order", "workflow_id": {"code": "order_fulfillment"}},
-            "name": "Hold " "Order",
+            "name": "Hold Order",
             "target_id": {"code": "on_hold", "workflow_id": {"code": "order_fulfillment"}},
             "workflow_id": {"code": "order_fulfillment"},
         },
@@ -134,7 +134,7 @@ changed_data = [
         "changes": {
             "code": "pack_order",
             "id": {"code": "pack_order", "workflow_id": {"code": "order_fulfillment"}},
-            "name": "Pack " "Order",
+            "name": "Pack Order",
             "target_id": {"code": "packed", "workflow_id": {"code": "order_fulfillment"}},
             "workflow_id": {"code": "order_fulfillment"},
         },
@@ -146,7 +146,7 @@ changed_data = [
         "changes": {
             "code": "return_order",
             "id": {"code": "return_order", "workflow_id": {"code": "order_fulfillment"}},
-            "name": "Return " "Order",
+            "name": "Return Order",
             "target_id": {"code": "returned", "workflow_id": {"code": "order_fulfillment"}},
             "workflow_id": {"code": "order_fulfillment"},
         },
@@ -158,7 +158,7 @@ changed_data = [
         "changes": {
             "code": "ship_order",
             "id": {"code": "ship_order", "workflow_id": {"code": "order_fulfillment"}},
-            "name": "Ship " "Order",
+            "name": "Ship Order",
             "target_id": {"code": "shipped", "workflow_id": {"code": "order_fulfillment"}},
             "workflow_id": {"code": "order_fulfillment"},
         },
@@ -1276,7 +1276,6 @@ def get_id_values_from_dict(id_data, reversing=False):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("store", "0001_initial"),
         ("vueda_workflow", "0002_statepermission_historical_group_name_and_more"),

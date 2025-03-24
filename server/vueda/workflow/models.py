@@ -253,7 +253,7 @@ class Transition(SimpleHistoryModelMixin):
             deleted_state = True
             state = State.history.filter(id=self.target_id).latest()
 
-        return f"name: {self.name}, code: {self.code}, " f"{'deleted ' if deleted_state else ''}target: {state}"
+        return f"name: {self.name}, code: {self.code}, {'deleted ' if deleted_state else ''}target: {state}"
 
 
 class TransitionPermission(SimpleHistoryModelMixin):

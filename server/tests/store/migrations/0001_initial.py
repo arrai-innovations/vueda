@@ -22,7 +22,6 @@ def make_sure_permissions_exist(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [

@@ -318,9 +318,9 @@ class BaseTestCreateModelViewSet:
         qs = f"?{urlencode(detail_querystring, doseq=True)}" if detail_querystring else ""
         response = authenticated_client.post(self.list_url() + qs, data=create_arguments, format="json")
         new_instance = self.model.objects.latest("pk")
-        assert (
-            response.status_code == status_code
-        ), f"{response.status_code} != {status_code}, response.data: {response.data}"
+        assert response.status_code == status_code, (
+            f"{response.status_code} != {status_code}, response.data: {response.data}"
+        )
         assert new_instance is not None
         self.update_expected_create_response(expected_create_response, new_instance)
         if status_code == 201:
@@ -448,9 +448,9 @@ class BaseTestUpdateModelViewSet:
             self.detail_url(page_data.first().id) + qs, data=update_arguments, format="json"
         )
         updated_instance = self.model.objects.all().first()
-        assert (
-            response.status_code == status_code
-        ), f"{response.status_code} != {status_code}, response.data: {response.data}"
+        assert response.status_code == status_code, (
+            f"{response.status_code} != {status_code}, response.data: {response.data}"
+        )
         assert updated_instance is not None
         self.update_expected_update_response(expected_update_response, updated_instance)
         if status_code == 200:

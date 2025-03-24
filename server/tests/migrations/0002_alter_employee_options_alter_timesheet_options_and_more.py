@@ -6,7 +6,6 @@ from django.db import models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("tests", "0001_initial"),
         ("vueda_user", "0001_initial"),

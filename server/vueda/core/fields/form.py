@@ -45,9 +45,9 @@ class BaseArrayField(forms.Field):
             return widget
 
         # complain since we are unable to reconstruct widget instances
-        assert isinstance(
-            widget, type
-        ), f"'{self.__class__.__name__}.widget' must be a widget class, not {repr(widget)}."
+        assert isinstance(widget, type), (
+            f"'{self.__class__.__name__}.widget' must be a widget class, not {repr(widget)}."
+        )
 
         bases = (
             self.base_widget_class,

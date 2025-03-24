@@ -6,7 +6,6 @@ from django.db import models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("tests", "0003_product_alter_timesheetentry_options_and_more"),
     ]

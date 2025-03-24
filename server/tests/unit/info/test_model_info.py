@@ -14,7 +14,6 @@ from vueda import info
 
 
 class TestData(BaseTestUserMixin, BaseTestGroupMixin):
-
     groups_to_create = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
@@ -182,13 +181,13 @@ class TestModelInfoSerializer:
         for model_action in data:
             for expected_model_action in expected_data:
                 if model_action["name"] == expected_model_action["name"]:
-                    assert frozenset(model_action) == frozenset(
-                        expected_model_action
-                    ), f'expected_actions -> "name": "{model_action["name"]}" -> {{keys}}'
+                    assert frozenset(model_action) == frozenset(expected_model_action), (
+                        f'expected_actions -> "name": "{model_action["name"]}" -> {{keys}}'
+                    )
                     for key, value in model_action.items():
-                        assert (
-                            value == expected_model_action[key]
-                        ), f'expected_actions -> "name": "{model_action["name"]}" -> {key}'
+                        assert value == expected_model_action[key], (
+                            f'expected_actions -> "name": "{model_action["name"]}" -> {key}'
+                        )
 
     def check_model_expands_data(self, response_data, expected_data):
         data = response_data.data["model_expands"]
@@ -196,9 +195,9 @@ class TestModelInfoSerializer:
         for model_expand in data:
             for expected_model_expand in expected_data:
                 if model_expand["name"] == expected_model_expand["name"]:
-                    assert frozenset(model_expand) == frozenset(
-                        expected_model_expand
-                    ), f'expected_expands -> "name": "{model_expand["name"]}" -> {{keys}}'
+                    assert frozenset(model_expand) == frozenset(expected_model_expand), (
+                        f'expected_expands -> "name": "{model_expand["name"]}" -> {{keys}}'
+                    )
                     for key, value in model_expand.items():
                         if key == settings.REST_FLEX_FIELDS["FIELDS_PARAM"]:
                             self.check_model_fields(
@@ -207,9 +206,9 @@ class TestModelInfoSerializer:
                                 f'expected_expands -> "name": "{model_expand["name"]}"',
                             )
                             continue
-                        assert (
-                            value == expected_model_expand[key]
-                        ), f'expected_expands -> "name": "{model_expand["name"]}" -> {key}'
+                        assert value == expected_model_expand[key], (
+                            f'expected_expands -> "name": "{model_expand["name"]}" -> {key}'
+                        )
 
     def check_model_fields(self, data, expected_data, extra_key=None):
         if extra_key is not None:

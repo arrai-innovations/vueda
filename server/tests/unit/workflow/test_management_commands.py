@@ -216,9 +216,9 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
         skip_some_migrations_forward_env_name = "migration_skip_workflow_added"
         os.environ[skip_some_migrations_forward_env_name] = "true"
 
-        assert not models.Workflow.objects.filter(
-            code="added_workflow"
-        ).exists(), "'added_workflow' appears to exist when it should not."
+        assert not models.Workflow.objects.filter(code="added_workflow").exists(), (
+            "'added_workflow' appears to exist when it should not."
+        )
 
         # Run migration 0003 forwards
         succeeded, results = self.call_command("migrate", "workflow_added", "0003")
@@ -378,24 +378,24 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
         assert models.Workflow.objects.filter(code="added_workflow").first() is None, models.Workflow.objects.filter(
             code="added_workflow"
         ).values()
-        assert (
-            models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).first() is None
-        ), models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).values()
+        assert models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).first() is None, (
+            models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).values()
+        )
         assert models.State.objects.filter(workflow_id=workflow_pk).first() is None, models.State.objects.filter(
             workflow_id=workflow_pk
         ).values()
-        assert (
-            models.StatePermission.objects.filter(state__workflow_id=workflow_pk).first() is None
-        ), models.StatePermission.objects.filter(state__workflow_id=workflow_pk).values()
-        assert (
-            models.Transition.objects.filter(workflow_id=workflow_pk).first() is None
-        ), models.Transition.objects.filter(workflow_id=workflow_pk).values()
-        assert (
-            models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).first() is None
-        ), models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).values()
-        assert (
-            models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).first() is None
-        ), models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).values()
+        assert models.StatePermission.objects.filter(state__workflow_id=workflow_pk).first() is None, (
+            models.StatePermission.objects.filter(state__workflow_id=workflow_pk).values()
+        )
+        assert models.Transition.objects.filter(workflow_id=workflow_pk).first() is None, (
+            models.Transition.objects.filter(workflow_id=workflow_pk).values()
+        )
+        assert models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).first() is None, (
+            models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).values()
+        )
+        assert models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).first() is None, (
+            models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).values()
+        )
 
 
 class TestManagementCommandWorkflowChanged(BaseTestCallCommand):
@@ -1095,9 +1095,9 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand):
         skip_some_migrations_forward_env_name = "migration_skip_workflow_deleted"
         os.environ[skip_some_migrations_forward_env_name] = "true"
 
-        assert models.Workflow.objects.filter(
-            code="deleted_workflow"
-        ).exists(), "'deleted_workflow' should exist when it does not."
+        assert models.Workflow.objects.filter(code="deleted_workflow").exists(), (
+            "'deleted_workflow' should exist when it does not."
+        )
 
         # Run migration 0005 forwards
         succeeded, results = self.call_command("migrate", "workflow_deleted", "0005")
@@ -1109,24 +1109,24 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand):
         assert models.Workflow.objects.filter(code="deleted_workflow").first() is None, models.Workflow.objects.filter(
             code="deleted_workflow"
         ).values()
-        assert (
-            models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).first() is None
-        ), models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).values()
+        assert models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).first() is None, (
+            models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).values()
+        )
         assert models.State.objects.filter(workflow_id=workflow_pk).first() is None, models.State.objects.filter(
             workflow_id=workflow_pk
         ).values()
-        assert (
-            models.StatePermission.objects.filter(state__workflow_id=workflow_pk).first() is None
-        ), models.StatePermission.objects.filter(state__workflow_id=workflow_pk).values()
-        assert (
-            models.Transition.objects.filter(workflow_id=workflow_pk).first() is None
-        ), models.Transition.objects.filter(workflow_id=workflow_pk).values()
-        assert (
-            models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).first() is None
-        ), models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).values()
-        assert (
-            models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).first() is None
-        ), models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).values()
+        assert models.StatePermission.objects.filter(state__workflow_id=workflow_pk).first() is None, (
+            models.StatePermission.objects.filter(state__workflow_id=workflow_pk).values()
+        )
+        assert models.Transition.objects.filter(workflow_id=workflow_pk).first() is None, (
+            models.Transition.objects.filter(workflow_id=workflow_pk).values()
+        )
+        assert models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).first() is None, (
+            models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).values()
+        )
+        assert models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).first() is None, (
+            models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).values()
+        )
 
         # Run migration 0005 backwards
         succeeded, results = self.call_command("migrate", "workflow_deleted", "0004")

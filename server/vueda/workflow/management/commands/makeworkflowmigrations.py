@@ -1595,7 +1595,7 @@ class Command(BaseCommand):
                 backwards = "\n".join(backwards)
 
             copied_code = [
-                f'''{NEWLINE}history_change_reason = "Workflow Migration - {migration_name.replace('.py', '')}"''',
+                f'''{NEWLINE}history_change_reason = "Workflow Migration - {migration_name.replace(".py", "")}"''',
                 f"{NEWLINE}keep_history_date = {self.keep_history_date}",
                 f'{NEWLINE}migration_app_label = "{app_label}"',
                 # Pretty Print is not formatted as nice as black.  At least a small width is better than nothing.
@@ -1646,8 +1646,7 @@ class Command(BaseCommand):
                         f"import handle_workflow{NEWLINE}",
                         "from vueda.workflow.management.commands.makeworkflowmigrations "
                         f"import handle_workflow_permission{NEWLINE}",
-                        "from vueda.workflow.management.commands.makeworkflowmigrations "
-                        f"import handle_state{NEWLINE}",
+                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_state{NEWLINE}",
                         "from vueda.workflow.management.commands.makeworkflowmigrations "
                         f"import handle_state_permission{NEWLINE}",
                         "from vueda.workflow.management.commands.makeworkflowmigrations "

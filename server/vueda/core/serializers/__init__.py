@@ -325,7 +325,6 @@ class VuedaSerializer(
     FlexFieldsWriteableNestedSerializerMixin,
     serializers.ModelSerializer,
 ):
-
     available_actions = AvailableActionsField()
 
     class Meta:

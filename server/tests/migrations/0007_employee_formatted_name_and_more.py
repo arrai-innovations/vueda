@@ -8,7 +8,6 @@ from django.db import models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("tests", "0006_user_gin_email_idx_user_gin_name_idx"),
     ]

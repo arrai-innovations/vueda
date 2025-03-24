@@ -135,7 +135,6 @@ def create_tangible_types(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("store", "0002_workflow_migrations_2024_08_13"),
     ]

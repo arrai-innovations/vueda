@@ -17,7 +17,6 @@ with open(os.path.join(sql_path, reverse_sql_filename), mode="r") as f:
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("store", "0010_remove_cartitem_formatted_name_and_more"),
     ]

@@ -13,7 +13,6 @@ with open(os.path.join(sql_path, forward_sql_filename), mode="r") as f:
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("store", "0004_cartdata_cartitemdata_customerdata_and_more"),
     ]
