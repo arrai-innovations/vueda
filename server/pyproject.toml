@@ -72,6 +72,8 @@ select = [
     "FIX",
     # flake8-logging-format: https://docs.astral.sh/ruff/rules/#flake8-logging-format-g
     "G",
+    # isort: https://docs.astral.sh/ruff/rules/#isort-i
+    "I",
     # pylint: https://docs.astral.sh/ruff/rules/#pylint-pl
     "PLC",
     "PLE",

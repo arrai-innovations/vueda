@@ -6,12 +6,12 @@ import sys
 import typing
 from collections import OrderedDict
 from contextlib import contextmanager
-from test.support.os_helper import EnvironmentVarGuard
 from traceback import format_exception
 
 from argparse_color_formatter import ColorHelpFormatter
 from argparse_color_formatter import ColorTextWrapper
 from django.conf import settings
+from test.support.os_helper import EnvironmentVarGuard
 
 from vueda.cli import NoExitArgumentParser
 from vueda.cli import blue_color
