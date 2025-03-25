@@ -349,7 +349,10 @@ export function useField(props, emit, functions) {
         initialValue: formContext
             ? computed({
                   get: () => {
-                      return get(formContext.state.initialValues, props.name);
+                      let value = get(formContext.state.initialValues, props.name);
+                      value = functions?.preprocessGet ? functions.preprocessGet(value) : value;
+                      value = props.preprocessGet ? props.preprocessGet(value) : value;
+                      return value;
                   },
                   set: (newValue) => {
                       if (isEqual(newValue, state.valueDetail)) {
