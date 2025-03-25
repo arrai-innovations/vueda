@@ -28,7 +28,6 @@ def delete_system_user(apps, scheme_editor):
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [

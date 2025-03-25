@@ -146,9 +146,9 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert "supervisor" in response.data, f"response.data: {response.data}"
         assert len(response.data["supervisor"]) == 1, f"supervisor data: {response.data['supervisor']}"
         assert "message" in response.data["supervisor"][0], f"supervisor data: {response.data['supervisor'][0]}"
-        assert (
-            str(response.data["supervisor"][0]["message"]) == "Invalid expands. No expands are permitted."
-        ), f"supervisor message: {response.data['supervisor'][0]['message']}"
+        assert str(response.data["supervisor"][0]["message"]) == "Invalid expands. No expands are permitted.", (
+            f"supervisor message: {response.data['supervisor'][0]['message']}"
+        )
 
     def test_retrieve_with_valid_expands(self, page_data, authenticated_client, expected_retrieve_response):
         instance = page_data.first()
@@ -192,12 +192,12 @@ class TestProductViewSet(BaseTestModelViewSet):
 
         assert response.status_code == 400, f"{response.status_code} != 400, response.data: {response.data}"
         assert "second_history_entry" in response.data, f"response.data: {response.data}"
-        assert (
-            len(response.data["second_history_entry"]) == 1
-        ), f"second_history_entry data: {response.data['second_history_entry']}"
-        assert (
-            "message" in response.data["second_history_entry"][0]
-        ), f"second_history_entry data: {response.data['second_history_entry'][0]}"
+        assert len(response.data["second_history_entry"]) == 1, (
+            f"second_history_entry data: {response.data['second_history_entry']}"
+        )
+        assert "message" in response.data["second_history_entry"][0], (
+            f"second_history_entry data: {response.data['second_history_entry'][0]}"
+        )
         assert (
             str(response.data["second_history_entry"][0]["message"])
             == "Invalid expands. Permitted expands are history, first_history_entry, last_history_entry."

@@ -5,7 +5,6 @@ from django.db import models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("store", "0012_delete_cartdata_remove_specialcare_formatted_name"),
     ]

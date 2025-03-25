@@ -9,7 +9,6 @@ SKIPPABLE_ENV_VARIABLE = "migration_skip_workflow_changed"
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow_changed", "0003_workflow_migrations_2024_05_14"),
     ]

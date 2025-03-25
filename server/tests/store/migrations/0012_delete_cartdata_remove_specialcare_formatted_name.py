@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("store", "0011_switch_cart_formatted_name_to_a_function"),
     ]

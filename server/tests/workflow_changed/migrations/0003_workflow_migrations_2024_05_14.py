@@ -21,7 +21,7 @@ changed_data = [
             "historical_app_label": "workflow_changed",
             "historical_model": "workflowchanged",
             "id": {"code": "changed_workflow"},
-            "name": "Changed " "Workflow",
+            "name": "Changed Workflow",
         },
         "history_date": datetime.datetime(2024, 5, 14, 21, 22, 51, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -73,7 +73,7 @@ changed_data = [
         "changes": {
             "code": "state_1",
             "id": {"code": "state_1", "workflow_id": {"code": "changed_workflow"}},
-            "name": "State " "1",
+            "name": "State 1",
             "workflow_id": {"code": "changed_workflow"},
         },
         "history_date": datetime.datetime(2024, 5, 14, 21, 22, 54, tzinfo=datetime.timezone.utc),
@@ -84,7 +84,7 @@ changed_data = [
         "changes": {
             "code": "state_2",
             "id": {"code": "state_2", "workflow_id": {"code": "changed_workflow"}},
-            "name": "State " "2",
+            "name": "State 2",
             "workflow_id": {"code": "changed_workflow"},
         },
         "history_date": datetime.datetime(2024, 5, 14, 21, 22, 55, tzinfo=datetime.timezone.utc),
@@ -95,7 +95,7 @@ changed_data = [
         "changes": {
             "code": "state_3",
             "id": {"code": "state_3", "workflow_id": {"code": "changed_workflow"}},
-            "name": "State " "3",
+            "name": "State 3",
             "workflow_id": {"code": "changed_workflow"},
         },
         "history_date": datetime.datetime(2024, 5, 14, 21, 22, 56, tzinfo=datetime.timezone.utc),
@@ -197,7 +197,7 @@ changed_data = [
         "changes": {
             "code": "go_to_state_1",
             "id": {"code": "go_to_state_1", "workflow_id": {"code": "changed_workflow"}},
-            "name": "Go " "To " "State " "1",
+            "name": "Go To State 1",
             "target_id": {"code": "state_1", "workflow_id": {"code": "changed_workflow"}},
             "workflow_id": {"code": "changed_workflow"},
         },
@@ -209,7 +209,7 @@ changed_data = [
         "changes": {
             "code": "go_to_state_2",
             "id": {"code": "go_to_state_2", "workflow_id": {"code": "changed_workflow"}},
-            "name": "Go " "To " "State " "2",
+            "name": "Go To State 2",
             "target_id": {"code": "state_2", "workflow_id": {"code": "changed_workflow"}},
             "workflow_id": {"code": "changed_workflow"},
         },
@@ -221,7 +221,7 @@ changed_data = [
         "changes": {
             "code": "go_to_state_3",
             "id": {"code": "go_to_state_3", "workflow_id": {"code": "changed_workflow"}},
-            "name": "Go " "To " "State " "3",
+            "name": "Go To State 3",
             "target_id": {"code": "state_3", "workflow_id": {"code": "changed_workflow"}},
             "workflow_id": {"code": "changed_workflow"},
         },
@@ -1139,7 +1139,6 @@ class SkippableRunSQL(migrations.RunSQL):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow_changed", "0002_create_workflow_changed_permissions"),
     ]

@@ -6,7 +6,6 @@ import vueda.user.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("tests", "0004_historicalproduct_buzz_words_product_buzz_words"),
     ]

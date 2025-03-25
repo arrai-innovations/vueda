@@ -325,7 +325,6 @@ class VuedaSerializer(
     FlexFieldsWriteableNestedSerializerMixin,
     serializers.ModelSerializer,
 ):
-
     available_actions = AvailableActionsField()
 
     class Meta:
@@ -361,7 +360,7 @@ class MakeReadonly(serializers.SerializerMetaclass):
 
         out_cls.__getattribute__ = __getattribute__
 
-        def __dir__(self):
+        def __dir__(self):  # noqa N807
             return sorted((set(dir(out_cls)) | set(self.__dict__.keys())) - set(cls_dict["__excluded__"]))
 
         out_cls.__dir__ = __dir__

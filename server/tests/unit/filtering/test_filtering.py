@@ -103,9 +103,9 @@ class TestModelInfoChoices:
         )
 
         for err in response.data["distributor"]:
-            assert (
-                str(err) == "Select a valid choice. Tasty Treats is not one of the available choices."
-            ), f"response.data: {response.data}"
+            assert str(err) == "Select a valid choice. Tasty Treats is not one of the available choices.", (
+                f"response.data: {response.data}"
+            )
 
         response = api_client.get(
             reverse("store.cart-list"),
@@ -136,6 +136,6 @@ class TestModelInfoChoices:
         )
 
         for err in response.data["product_quantity"]:
-            assert (
-                str(err) == "Select a valid choice. 24 is not one of the available choices."
-            ), f"response.data: {response.data}"
+            assert str(err) == "Select a valid choice. 24 is not one of the available choices.", (
+                f"response.data: {response.data}"
+            )

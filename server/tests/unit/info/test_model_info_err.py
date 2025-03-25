@@ -38,14 +38,12 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
 
 @pytest.mark.django_db
 class TestModelInfoErrs:
-
     @pytest.fixture
     def test_data(self):
         return TestData()
 
     @staticmethod
     def setup_router_and_registry():
-
         erring_router = IncludeAppInRouteNameRouter()
         erring_router.register("no_expandable_fields_data", err_viewsets.NoExpandableFieldsDataViewSet)
         erring_router.register("related_objects_are_missing_data", err_viewsets.RelatedObjectsAreMissingDataViewSet)

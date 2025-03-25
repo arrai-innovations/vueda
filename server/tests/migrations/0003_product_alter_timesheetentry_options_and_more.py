@@ -8,7 +8,6 @@ from django.db import models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("tests", "0002_alter_employee_options_alter_timesheet_options_and_more"),
     ]

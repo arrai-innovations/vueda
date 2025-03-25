@@ -37,13 +37,13 @@ def postprocess_schema_components(result, generator, **kwargs):
                     match schema_key:
                         case "Login":
                             schema["properties"]["email"]["example"] = "user@example.com"
-                            schema["properties"]["email"][
-                                "description"
-                            ] = "The email address of a user, which is used to log in."
+                            schema["properties"]["email"]["description"] = (
+                                "The email address of a user, which is used to log in."
+                            )
                             schema["properties"]["password"]["example"] = "A long phrase that only you know!!!"
-                            schema["properties"]["password"][
-                                "description"
-                            ] = "The secret phrase or characters that must be used to log in."
+                            schema["properties"]["password"]["description"] = (
+                                "The secret phrase or characters that must be used to log in."
+                            )
                             schema["properties"]["password"]["format"] = "password"
 
                         case (

@@ -1,10 +1,10 @@
 version: 2.1
 orbs:
-    flake8: arrai/flake8@20.0.3
     github: arrai/github@3.0.0
     pypi: arrai/pypi@3.1.0
     pytest: arrai/pytest@8.1.5
-    safety: arrai/safety@3.0.4
+    ruff: arrai/ruff@1.0.0
+    safety: arrai/safety@4.0.0
     utils: arrai/utils@1.16.3
 executors:
     base:
@@ -13,7 +13,7 @@ executors:
     python311:
         docker:
             - image: cimg/python:3.11
-            - image: cimg/postgres:15.6
+            - image: cimg/postgres:15.12
             - image: cimg/redis:6.2
     python311-base:
         docker:
@@ -165,24 +165,22 @@ workflows:
                           ignore: /.*/
     lint:
         jobs:
-            - flake8/flake8_pipenv_fixed_ip:
-                  name: flake8
+            - ruff/ruff_fixed_ip:
+                  name: ruff
                   context: arrai-global
                   executor: python311-base
                   filters:
                       branches:
                           only:
                               - main
-                  wd: ./
-            - flake8/flake8_pipenv:
-                  name: flake8-no-badge
+            - ruff/ruff:
+                  name: ruff-no-badge
                   executor: python311-base
                   create_badges: false
                   filters:
                       branches:
                           ignore:
                               - main
-                  wd: ./
     audit:
         jobs:
             - safety/safety_fixed_ip:

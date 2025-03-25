@@ -61,7 +61,6 @@ def clean_migrations(which_app=None):
 
 class FakeRequest:
     def __init__(self, query_params=None, data=None, method="GET", user=None):
-
         if query_params is None:
             query_params = {}
 
