@@ -96,7 +96,7 @@ const theme = useTheme("FieldSetStackedInline", props);
                         :pk="value.id"
                         :read-only="props.readOnly"
                         @destroy-row="fieldSetInline.removeObject(index)"
-                        @update:selected="fieldSetInline.handleSelected($event.value, index)"
+                        @update:selected="fieldSetInline.handleSelected($event, index)"
                     >
                         <template v-for="slotName in fieldSetInline.state.remainingSlotNames" #[slotName]="slotProps">
                             <slot :name="slotName" v-bind="slotProps" />
