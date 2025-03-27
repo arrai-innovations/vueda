@@ -14,7 +14,7 @@ import Button from "primevue/button";
 import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
 import Popover from "primevue/popover";
-import { computed, onMounted, ref, toRef, useSlots, useTemplateRef, watch } from "vue";
+import { computed, ref, toRef, useSlots, useTemplateRef, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -109,25 +109,20 @@ const doToggle = (event) => {
     }
 };
 const currentUnit = ref(null);
-onMounted(() => {
-    inputValue.value = widgetContext.state.combinedValue;
-    if (props.unit) {
-        if (Array.isArray(props.unit)) {
-            currentUnit.value = props.unit[0];
-        } else {
-            currentUnit.value = props.unit;
+
+watch(
+    toRef(props, "unit"),
+    (newVal, oldVal) => {
+        if (newVal && !isEqual(newVal, oldVal)) {
+            if (Array.isArray(newVal)) {
+                currentUnit.value = newVal[0];
+            } else {
+                currentUnit.value = newVal;
+            }
         }
-    }
-});
-watch(toRef(props, "unit"), (newVal, oldVal) => {
-    if (newVal && !isEqual(newVal, oldVal)) {
-        if (Array.isArray(newVal)) {
-            currentUnit.value = newVal[0];
-        } else {
-            currentUnit.value = newVal;
-        }
-    }
-});
+    },
+    { immediate: true, deep: true },
+);
 
 const onPrevButtonClicked = () => {
     const currentUnitValue = currentUnit.value?.value;
@@ -164,6 +159,16 @@ watch([inputValue, currentUnit], ([value, unit], [oldValue, oldUnit]) => {
         }
     }
 });
+
+watch(
+    toRef(widgetContext.state, "combinedValue"),
+    (val) => {
+        if (inputValue.value == null && val) {
+            inputValue.value = val;
+        }
+    },
+    { immediate: true, deep: true },
+);
 </script>
 
 <template>
