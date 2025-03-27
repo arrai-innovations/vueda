@@ -69,6 +69,10 @@ const props = defineProps({
         type: Function,
         default: undefined,
     },
+    requestMethod: {
+        type: String,
+        default: "PUT",
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const toast = useToast();
@@ -104,7 +108,7 @@ const bulk = computed(() => unref(pks)?.length > 1);
 
 const defaultRunAction = (action) => {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
-    let method = "PUT";
+    let method = props.requestMethod;
     if (action === "destroy") {
         method = "DELETE";
         action = undefined;
