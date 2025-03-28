@@ -411,16 +411,10 @@ export const storeWorkflow = defineStore({
             if (!usingVuedaWorkFlow) {
                 return Promise.resolve([]);
             }
-            const body = { transition_code };
-            let result;
+            let body = { transition_code };
+            const result = makeResultObject(app, model, objectPk);
             if (Array.isArray(objectPk)) {
-                result = {
-                    app: unref(app),
-                    model: unref(model),
-                    pk: objectPk,
-                };
-            } else {
-                result = makeResultObject(app, model, objectPk);
+                body = { ...body, object_ids: objectPk };
             }
             let responseData;
 
