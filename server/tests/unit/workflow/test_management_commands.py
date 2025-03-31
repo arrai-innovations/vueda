@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 from importlib import import_module
+from importlib import reload
 
 import pytest
 from django.db.migrations.recorder import MigrationRecorder
@@ -1217,6 +1218,9 @@ class TestManagementCommandWorkflowMulti(BaseTestCallCommand):
         migration = import_module(
             f"tests.workflow_multi.migrations.0003_workflow_migrations_{now().date().strftime('%Y_%m_%d')}"
         )
+        # If something has imported this module it may need to be reloaded
+        # for the additional functions and variables to be discovered.
+        reload(migration)
 
         assert len(migration.changed_data) == 10, migration.changed_data
 
