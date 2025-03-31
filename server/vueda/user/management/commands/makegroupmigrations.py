@@ -261,7 +261,7 @@ class Command(BaseCommand):
 
         return False
 
-    def _create_and_get_empty_migration(self, app_name):
+    def _create_and_get_empty_migration(self, app_label):
         self.stdout.write(f"{NEWLINE}Creating empty migration for group permission changes.")
 
         # Force the migration to have a RunPython operations that we can easily find/replace.
@@ -278,7 +278,7 @@ class Command(BaseCommand):
 
         date_string = datetime.datetime.now().date().isoformat().replace("-", "_")
         results = self._call_command(
-            "makemigrations", app_name, "--empty", f"--name=group_permission_migrations_{date_string}", "--noinput"
+            "makemigrations", app_label, "--empty", f"--name=group_permission_migrations_{date_string}", "--noinput"
         )
         migrations.Migration.operations = []  # Reset the operations in the class.
 
@@ -353,7 +353,8 @@ class Command(BaseCommand):
                 f"{NEWLINE}{NEWLINE}{step}",
                 f"{NEWLINE}{NEWLINE}{forwards}",
                 f"{NEWLINE}{NEWLINE}{backwards}",
-                f"{NEWLINE}{NEWLINE}{perms_exist}" f"{NEWLINE}{NEWLINE}",
+                f"{NEWLINE}{NEWLINE}{perms_exist}",
+                f"{NEWLINE}{NEWLINE}",
             ]
 
             # Migration Modified Comment and Imports
@@ -385,7 +386,11 @@ class Command(BaseCommand):
         app_label = meta.app_label
         app_name = meta.app_config.name
 
-        migration_data = {"app_name": app_name, "migrations_path": os.path.join(meta.app_config.path, "migrations")}
+        migration_data = {
+            "app_name": app_name,
+            "app_label": app_label,
+            "migrations_path": os.path.join(meta.app_config.path, "migrations"),
+        }
 
         migration_names = self._get_migration_names_from_show_migrations(app_label)
 
@@ -472,9 +477,9 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.ERROR(
                         f"{NEWLINE}Group changes detected, but we can't make a migration yet.  Do one of the following:"
-                        f"""{NEWLINE}{NEWLINE}1. Delete migration "{migration_data['last_migration_name']}", if """
+                        f"""{NEWLINE}{NEWLINE}1. Delete migration "{migration_data["last_migration_name"]}", if """
                         "uncommitted."
-                        f"""{NEWLINE}2. Fake migration "{migration_data['last_migration_name']}"."""
+                        f"""{NEWLINE}2. Fake migration "{migration_data["last_migration_name"]}"."""
                         f'{NEWLINE}{NEWLINE}Once done, run "makegroupmigrations" again.'
                     )
                 )
@@ -484,7 +489,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"{NEWLINE}No group changes detected."))
                 return
 
-        migration_name = self._create_and_get_empty_migration(migration_data["app_name"])
+        migration_name = self._create_and_get_empty_migration(migration_data["app_label"])
         if migration_name is None:
             raise RuntimeError("Unable to find the name of the newly created migration.")
 
@@ -504,7 +509,6 @@ class Command(BaseCommand):
         )
         self.stdout.write(
             self.style.NOTICE(
-                f"{NEWLINE}NOTE: You will need to fake this migration, "
-                f"because you already have the changes.{NEWLINE}"
+                f"{NEWLINE}NOTE: You will need to fake this migration, because you already have the changes.{NEWLINE}"
             )
         )
