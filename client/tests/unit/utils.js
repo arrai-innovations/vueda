@@ -121,3 +121,68 @@ export function testWatches(vue, props, pos, neg = false, deep = false) {
  * @returns {string} The expected error message substring.
  */
 export const expectReadOnlyFor = (name) => `'set' on proxy: trap returned falsish for property '${name}'`;
+
+export const mockVueRouterLifecycle = (vi) => {
+    const leaveFns = [];
+    const updateFns = [];
+
+    const mockedOnBeforeRouteLeave = vi
+        .fn()
+        .mockName("mockedBeforeRouteLeave")
+        .mockImplementation((fn) => leaveFns.push(fn));
+
+    const mockedOnBeforeRouteUpdate = vi
+        .fn()
+        .mockName("mockedBeforeRouteUpdate")
+        .mockImplementation((fn) => updateFns.push(fn));
+
+    return {
+        leaveFns,
+        updateFns,
+        mockedOnBeforeRouteLeave,
+        mockedOnBeforeRouteUpdate,
+        runLeaveHooks: () => {
+            for (const fn of leaveFns) {
+                fn();
+            }
+        },
+        runUpdateHooks: () => {
+            for (const fn of updateFns) {
+                fn();
+            }
+        },
+        clearLeave: () => {
+            leaveFns.length = 0;
+        },
+        clearUpdate: () => {
+            updateFns.length = 0;
+        },
+    };
+};
+
+export const mockEventListener = (vi) => {
+    const eventListeners = [];
+    const mockedAddEventListener = vi
+        .fn()
+        .mockName("mockedAddEventListener")
+        .mockImplementation((event, fn) => {
+            eventListeners.push({ event, fn });
+        });
+    const mockedRemoveEventListener = vi
+        .fn()
+        .mockName("mockedRemoveEventListener")
+        .mockImplementation((event, fn) => {
+            const index = eventListeners.findIndex((el) => el.event === event && el.fn === fn);
+            if (index !== -1) {
+                eventListeners.splice(index, 1);
+            }
+        });
+    return {
+        eventListeners,
+        mockedAddEventListener,
+        mockedRemoveEventListener,
+        clear: () => {
+            eventListeners.length = 0;
+        },
+    };
+};
