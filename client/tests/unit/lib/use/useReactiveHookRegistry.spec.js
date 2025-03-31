@@ -120,4 +120,37 @@ describe("useReactiveHookRegistry", () => {
             expect(stopSpy).toHaveBeenCalled();
         });
     });
+
+    describe("unregisterHook edge cases", () => {
+        it("returns false if the hook ID does not exist", async () => {
+            const result = registry.unregisterHook("some-bogus-id");
+            expect(result).toBe(false);
+        });
+    });
+
+    describe("updateAggregates error handling", () => {
+        it("catches errors thrown by a hook and logs them", async () => {
+            const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+            registry.registerHook("fieldThrow", () => {
+                throw new Error("test error");
+            });
+            registry.registerHook("fieldThrow", () => true);
+            await flushPromises();
+            expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+            expect(registry.computedAggregates.fieldThrow).toBe(true);
+            consoleErrorSpy.mockRestore();
+        });
+
+        it("catches errors thrown by a hook and the group is false if all hooks throw or return false", async () => {
+            const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+            registry.registerHook("fieldThrowAll", () => {
+                throw new Error("test error #1");
+            });
+            registry.registerHook("fieldThrowAll", () => false);
+            await flushPromises();
+            expect(registry.computedAggregates.fieldThrowAll).toBe(false);
+            expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+            consoleErrorSpy.mockRestore();
+        });
+    });
 });
