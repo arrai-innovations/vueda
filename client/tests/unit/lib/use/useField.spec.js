@@ -1137,7 +1137,6 @@ describe("lib/use/useField.js", () => {
                     expect(fc.updateValueDetails).toHaveBeenCalledWith("testField", { extraData: "test" });
                     // do what updateValueDetails would do;
                     set(fc.state.valueDetails, "testField", { extraData: "test" });
-                    console.log(fc.state.valueDetails, field.state.valueDetail);
                     expect(field.state.valueDetail).toEqual({ extraData: "test" });
 
                     // same value should not have more than one update

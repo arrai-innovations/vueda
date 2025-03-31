@@ -6,7 +6,7 @@ vi.mock("@vueda/utils/unifiedGet.js", () => ({
     unifiedGet: vi.fn(),
 }));
 
-describe("useObjectGridCell", () => {
+describe("lib/use/useObjectGridCell.js", () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });

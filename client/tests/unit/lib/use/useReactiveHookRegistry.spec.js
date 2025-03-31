@@ -2,7 +2,7 @@ import { useReactiveHookRegistry } from "@vueda/use/useReactiveHookRegistry.js";
 import flushPromises from "flush-promises";
 import { ref, unref } from "vue";
 
-describe("lib/use/useReactiveHookRegistry", () => {
+describe("lib/use/useReactiveHookRegistry.js", () => {
     let registry;
 
     beforeEach(() => {
