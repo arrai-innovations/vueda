@@ -6,6 +6,7 @@ import importlib
 import inspect
 import io
 import os
+import sys
 from pathlib import Path
 from pprint import pformat
 
@@ -207,13 +208,16 @@ class Command(BaseCommand):
         # Do it here, so we don't need to know which calls require it, and which don't.
         importlib.invalidate_caches()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            call_command(*args)
+            try:
+                call_command(*args)
+            except SystemExit:
+                pass
 
         # Did an error occur?
         if err.tell():
             err.seek(0)
             self.stdout.write(self.style.ERROR(err.read()))
-            return False
+            sys.exit(2)
 
         # Return the results.
         out.seek(0)
