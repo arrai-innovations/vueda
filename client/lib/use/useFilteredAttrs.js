@@ -55,10 +55,10 @@ export function useFilteredAttrs(pickList, omitList, attrs = null) {
         filteredAttrs = Object.fromEntries(
             Object.entries(filteredAttrs).map(([key, value]) => [camelCase(key), value]),
         );
-        if (pickList?.length) {
+        if (pickList?.length || pickList?.size) {
             filteredAttrs = pick(filteredAttrs, pickList);
         }
-        if (omitList?.length) {
+        if (omitList?.length || omitList?.size) {
             filteredAttrs = omit(filteredAttrs, omitList);
         }
         return filteredAttrs;
