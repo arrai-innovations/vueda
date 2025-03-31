@@ -1,8 +1,8 @@
 <script setup>
 import { crudComponents } from "@vueda/router/routerComponent.js";
-import { getActionName } from "@vueda/use/useActionMap.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
+import { getActionName } from "@vueda/utils/actionMap.js";
 import { getPascalCaseName } from "@vueda/utils/crudSupport.js";
 import ViewAction from "@vueda/views/ViewAction.vue";
 import ViewActionNotFound from "@vueda/views/ViewActionNotFound.vue";

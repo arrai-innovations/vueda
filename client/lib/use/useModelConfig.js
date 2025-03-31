@@ -1,8 +1,8 @@
 import { assignReactiveObject, useLoadingError, useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
-import { getActionName } from "@vueda/use/useActionMap.js";
 import { useIsActive } from "@vueda/use/useIsActive";
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
+import { getActionName } from "@vueda/utils/actionMap.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/crudSupport.js";
 import isEqual from "lodash-es/isEqual.js";
 import { isRef, reactive, readonly, ref, toRef, unref, watch } from "vue";

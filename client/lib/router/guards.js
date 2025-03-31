@@ -2,7 +2,7 @@ import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { ModelInfoError, storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
-import { getActionName } from "@vueda/use/useActionMap.js";
+import { getActionName } from "@vueda/utils/actionMap.js";
 import isEmpty from "lodash-es/isEmpty.js";
 
 /**

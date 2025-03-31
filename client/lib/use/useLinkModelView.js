@@ -1,7 +1,7 @@
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
-import { getActionName } from "@vueda/use/useActionMap.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
+import { getActionName } from "@vueda/utils/actionMap.js";
 import { computedAsync } from "@vueuse/core";
 import { computed, toRef } from "vue";
 import { useRouter } from "vue-router";
