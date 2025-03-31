@@ -1,5 +1,5 @@
 import { useIsActive } from "@vueda/use/useIsActive.js";
-import { onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted, unref } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 
 /**
@@ -25,7 +25,7 @@ export function useLeaveUnload(props) {
     const isActive = useIsActive();
 
     const beforeRouteLeaveListener = () => {
-        if (isActive.value && props.modified && !props.loading) {
+        if (isActive.value && unref(props.modified) && !unref(props.loading)) {
             const answer = window.confirm("You have unsaved changes, are you sure to leave?");
             // cancel the navigation and stay on the same page
             if (!answer) {
@@ -34,7 +34,7 @@ export function useLeaveUnload(props) {
         }
     };
     const beforeUnloadListener = (event) => {
-        if (isActive.value && props.modified && !props.loading) {
+        if (isActive.value && unref(props.modified) && !unref(props.loading)) {
             if (import.meta.env.DEV) {
                 // these tend to stack up in auto reloading dev, which is annoying
                 return;
