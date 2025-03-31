@@ -372,13 +372,7 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
         group_name = group.name
         permission.group_set.remove(group)
 
-        obj_is_used = False
-        for field in group._meta.get_fields():
-            get_accessor_name_func = getattr(field, "get_accessor_name", None)
-            if get_accessor_name_func is not None:
-                related_field = getattr(group, get_accessor_name_func(), None)
-                if related_field is not None and related_field.exists():
-                    obj_is_used = True
+        obj_is_used = group.permissions.exists()
 
         GroupChange.objects.create(
             group_name=group_name,
@@ -391,12 +385,7 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
         if not obj_is_used:
             group.delete()
 
-        return JsonResponse(
-            {
-                "state": "succeeded",
-                "group_deleted": not obj_is_used,
-            }
-        )
+        return JsonResponse({"state": "succeeded"})
 
 
 class PermissionSaveView(PermissionRequiredMixin, View):
@@ -482,43 +471,50 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                 historical_permission_content_type_model_name=permission.content_type.model,
             )
 
-        else:
-            group = Group.objects.filter(pk=group_id).first()
-            if group is None:
+            return JsonResponse(
+                {
+                    "state": "succeeded",
+                    "group_id": str(group.pk),
+                }
+            )
+
+        group = Group.objects.filter(pk=group_id).first()
+        if group is None:
+            return JsonResponse(
+                {
+                    "state": "erred",
+                    "errors": ["Unable to find the group to change."],
+                }
+            )
+        group_name_old = group.name
+        group.name = group_name
+        if group_name != group_name_old:
+            if Permission.objects.filter(group__name=group_name, pk=permission.pk).exists():
                 return JsonResponse(
                     {
                         "state": "erred",
-                        "errors": ["Unable to find the group to change."],
+                        "errors": [
+                            f"You already have an association between &quot;{group_name}&quot; and this permission."
+                        ],
                     }
                 )
-            group_name_old = group.name
-            group.name = group_name
-            if group_name != group_name_old:
-                if Permission.objects.filter(group__name=group_name, pk=permission.pk).exists():
-                    return JsonResponse(
-                        {
-                            "state": "erred",
-                            "errors": [
-                                f"You already have an association between &quot;{group_name}&quot; and this permission."
-                            ],
-                        }
-                    )
 
-                group.save()
-                permission.group_set.add(group)
+            group.save()
+            permission.group_set.add(group)
 
-                GroupChange.objects.create(
-                    group_name=group_name,
-                    group_name_old=group_name_old,
-                    change_type=GroupChange.CHANGED,
-                    historical_permission_codename=permission.codename,
-                    historical_permission_content_type_app_label=permission.content_type.app_label,
-                    historical_permission_content_type_model_name=permission.content_type.model,
-                )
+            GroupChange.objects.create(
+                group_name=group_name,
+                group_name_old=group_name_old,
+                change_type=GroupChange.CHANGED,
+                historical_permission_codename=permission.codename,
+                historical_permission_content_type_app_label=permission.content_type.app_label,
+                historical_permission_content_type_model_name=permission.content_type.model,
+            )
 
         return JsonResponse(
             {
                 "state": "succeeded",
                 "group_id": str(group.pk),
+                "new_name": group_name,
             }
         )
