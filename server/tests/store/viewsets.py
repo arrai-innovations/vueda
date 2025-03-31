@@ -95,7 +95,7 @@ class CartViewSet(VuedaViewSet):
 
     @action(detail=False, methods=["get"], permission_classes=(IsAdminUser,))
     def abandoned_carts_count(self, request):
-        if not request.user.has_perm("store_customer_read"):
+        if not request.user.has_perm("store.read_customer"):
             raise PermissionDenied
 
         queryset = self.get_queryset()
