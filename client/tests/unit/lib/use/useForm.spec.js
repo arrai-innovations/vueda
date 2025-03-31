@@ -1,4 +1,4 @@
-import { mockProvideInject, mockUnmounted, testWatches } from "@tests/unit/utils.js";
+import { mockLifecycle, mockProvideInject, testWatches } from "@tests/unit/utils.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
@@ -7,7 +7,7 @@ import omit from "lodash-es/omit.js";
 
 const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 const { mockedProvide, mockedInject } = mockProvideInject(vi);
-const { mockedOnUnmounted } = mockUnmounted(vi);
+const { mockedOnUnmounted } = mockLifecycle(vi);
 vi.mock("vue", async () => {
     const original = await vi.importActual("vue");
     return {

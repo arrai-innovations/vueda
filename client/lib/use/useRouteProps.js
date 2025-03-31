@@ -6,8 +6,9 @@ export function useRouteProps() {
     const route = useRoute();
 
     return computed(() => {
-        return isFunction(route.matched?.[0].props.default)
-            ? route.matched?.[0].props.default(route)
-            : route.matched?.[0].props.default;
+        const matched = route.matched?.[0];
+        const props = matched?.props?.default;
+
+        return isFunction(props) ? props(route) : props;
     });
 }

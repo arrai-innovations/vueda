@@ -1,6 +1,10 @@
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 
+export function mockUseRoute(vi) {
+    return vi.fn().mockName("mockedUseRoute");
+}
+
 export function mockProvideInject(vi) {
     const provideStore = new Map();
     const mockedProvide = vi
@@ -14,19 +18,75 @@ export function mockProvideInject(vi) {
     return { provideStore, mockedProvide, mockedInject };
 }
 
-export function mockUnmounted(vi) {
-    const unmountFunctions = [];
+export function mockLifecycle(vi) {
+    const mountedFunctions = [];
+    const unmountedFunctions = [];
+    const activatedFunctions = [];
+    const deactivatedFunctions = [];
+
+    const mockedOnMounted = vi
+        .fn()
+        .mockName("mockedOnMounted")
+        .mockImplementation((fn) => mountedFunctions.push(fn));
+
     const mockedOnUnmounted = vi
         .fn()
         .mockName("mockedOnUnmounted")
-        .mockImplementation((fn) => {
-            unmountFunctions.push(fn);
-        });
+        .mockImplementation((fn) => unmountedFunctions.push(fn));
+
+    const mockedOnActivated = vi
+        .fn()
+        .mockName("mockedOnActivated")
+        .mockImplementation((fn) => activatedFunctions.push(fn));
+
+    const mockedOnDeactivated = vi
+        .fn()
+        .mockName("mockedOnDeactivated")
+        .mockImplementation((fn) => deactivatedFunctions.push(fn));
+
     return {
-        unmountFunctions,
+        mountedFunctions,
+        unmountedFunctions,
+        activatedFunctions,
+        deactivatedFunctions,
+
+        mockedOnMounted,
         mockedOnUnmounted,
+        mockedOnActivated,
+        mockedOnDeactivated,
+
+        runMountedHooks: () => {
+            for (const fn of mountedFunctions) {
+                fn();
+            }
+        },
+        runUnmountedHooks: () => {
+            for (const fn of unmountedFunctions) {
+                fn();
+            }
+        },
+        runActivatedHooks: () => {
+            for (const fn of activatedFunctions) {
+                fn();
+            }
+        },
+        runDeactivatedHooks: () => {
+            for (const fn of deactivatedFunctions) {
+                fn();
+            }
+        },
+
+        clearMounted: () => {
+            mountedFunctions.length = 0;
+        },
         clearUnmounted: () => {
-            unmountFunctions.length = 0;
+            unmountedFunctions.length = 0;
+        },
+        clearActivated: () => {
+            activatedFunctions.length = 0;
+        },
+        clearDeactivated: () => {
+            deactivatedFunctions.length = 0;
         },
     };
 }
@@ -49,4 +109,15 @@ export function testWatches(vue, props, pos, neg = false, deep = false) {
     return [stop, posFn, neg ? negFn : undefined];
 }
 
+/**
+ * Expected error message string for attempting to assign to a readonly proxy.
+ *
+ * This works when Vue **throws** (e.g. assigning to a readonly `reactive` object's top-level property),
+ * but not when Vue only **warns** (e.g. setting `.value` of a `readonly(ref)`).
+ *
+ * In those cases, use a `console.warn` spy instead of `toThrow()`.
+ *
+ * @param {string} name - The name of the property being set.
+ * @returns {string} The expected error message substring.
+ */
 export const expectReadOnlyFor = (name) => `'set' on proxy: trap returned falsish for property '${name}'`;

@@ -2,7 +2,7 @@ import { useReactiveHookRegistry } from "@vueda/use/useReactiveHookRegistry.js";
 import flushPromises from "flush-promises";
 import { ref, unref } from "vue";
 
-describe("useReactiveHookRegistry", () => {
+describe("lib/use/useReactiveHookRegistry", () => {
     let registry;
 
     beforeEach(() => {
@@ -136,6 +136,7 @@ describe("useReactiveHookRegistry", () => {
             });
             registry.registerHook("fieldThrow", () => true);
             await flushPromises();
+            registry.computedAggregates.fieldThrow;
             expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
             expect(registry.computedAggregates.fieldThrow).toBe(true);
             consoleErrorSpy.mockRestore();

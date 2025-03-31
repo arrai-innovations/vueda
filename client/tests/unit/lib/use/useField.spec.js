@@ -1,5 +1,5 @@
 import { del } from "@arrai-innovations/reactive-helpers";
-import { expectReadOnlyFor, mockProvideInject, mockUnmounted, testWatches } from "@tests/unit/utils.js";
+import { expectReadOnlyFor, mockLifecycle, mockProvideInject, testWatches } from "@tests/unit/utils.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 import capitalize from "lodash-es/capitalize.js";
@@ -7,7 +7,7 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import set from "lodash-es/set.js";
 
 const { provideStore, mockedProvide, mockedInject } = mockProvideInject(vi);
-const { clearUnmounted, unmountFunctions, mockedOnUnmounted } = mockUnmounted(vi);
+const { clearUnmounted, unmountedFunctions, mockedOnUnmounted } = mockLifecycle(vi);
 vi.mock("vue", async () => {
     const original = await vi.importActual("vue");
     return {
@@ -1424,6 +1424,9 @@ describe("lib/use/useField.js", () => {
                             values: {
                                 testField: "initial",
                             },
+                            submittingValues: {
+                                testField: "initial",
+                            },
                         },
                         {
                             name: "testField",
@@ -1439,6 +1442,8 @@ describe("lib/use/useField.js", () => {
                     expect(fc.registerIsModifiedHook.mock.calls[0][0]).toEqual(field.state.name);
                     const hookFn = fc.registerIsModifiedHook.mock.calls[0][1];
                     expect(hookFn).toBeTypeOf("function");
+                    expect(field.state.valueIsInitial).toBe(true);
+                    expect(hookFn()).toBe(false);
                     // fake modified hook form implementation
                     fc.state.modified[field.state.name] = vue.computed(() => hookFn());
                     await flushPromises();
@@ -1446,6 +1451,8 @@ describe("lib/use/useField.js", () => {
 
                     // Change the value
                     fc.state.values.testField = "changed";
+                    // fake form updates to submittingValues
+                    fc.state.submittingValues.testField = "changed";
                     await flushPromises();
                     expect(field.state.modified).toBe(true);
                 });
@@ -1907,7 +1914,7 @@ describe("lib/use/useField.js", () => {
                 expect(fc.registerIsValidHook).toHaveBeenCalledWith(props.name, expect.any(Function));
 
                 // fake unmount
-                for (const unmountFn of unmountFunctions) {
+                for (const unmountFn of unmountedFunctions) {
                     unmountFn();
                 }
 
