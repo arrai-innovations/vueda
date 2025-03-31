@@ -1,9 +1,30 @@
 import { useList } from "@arrai-innovations/reactive-helpers";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { isArray } from "lodash-es";
-import { computed, reactive, shallowReactive, toRef } from "vue";
+import isArray from "lodash-es/isArray.js";
+import { computed, reactive, toRef } from "vue";
 
+/**
+ * @typedef {object} ViewDestroyState
+ *
+ * @property {boolean} validAndActive - Whether the current context has a valid app/model/pk and is active.
+ * @property {import('@vueda/use/useModelConfig.js').ModelConfig} modelConfig - The model config for the current app/model.
+ * @property {import('@arrai-innovations/reactive-helpers/use/useList.js').ListManager} instanceList - The list context of instances to destroy.
+ * @property {() => Promise<void>} handleDelete - Attempts to delete the instance(s). Throws on failure.
+ */
+
+/**
+ * Provides instance deletion support for a view screen.
+ *
+ * Internally loads the instance(s) matching the provided `pk`, then exposes a
+ * `handleDelete` function that can perform bulk deletion and report errors.
+ *
+ * @param {object} props - The reactive props object.
+ * @param {string} props.app - The app label for the model.
+ * @param {string} props.model - The model name to use.
+ * @param {string|string[]} props.pk - The primary key(s) identifying the instance(s) to retrieve and delete.
+ * @returns {ViewDestroyState} An object containing reactive state and the `handleDelete` function.
+ */
 export function useViewDestroy(props) {
     const isActive = useIsActive();
     const validAndActive = computed(
@@ -21,7 +42,10 @@ export function useViewDestroy(props) {
             f: {},
         },
         listArgs: {
-            id: isArray(toRef(props, "pk")) ? toRef(props, "pk") : [toRef(props, "pk")],
+            id: computed(() => {
+                const pk = props.pk;
+                return isArray(pk) ? pk : [pk];
+            }),
         },
         intendToList: validAndActive,
     });
@@ -38,10 +62,10 @@ export function useViewDestroy(props) {
             throw instanceList.state.error;
         }
     };
-    return shallowReactive({
+    return {
         validAndActive,
         modelConfig,
         instanceList,
         handleDelete,
-    });
+    };
 }
