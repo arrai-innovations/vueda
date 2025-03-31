@@ -1102,7 +1102,10 @@ class Command(BaseCommand):
         # Do it here, so we don't need to know which calls require it, and which don't.
         importlib.invalidate_caches()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            call_command(*args)
+            try:
+                call_command(*args)
+            except SystemExit:
+                pass
 
         # Did an error occur?
         if err.tell():
