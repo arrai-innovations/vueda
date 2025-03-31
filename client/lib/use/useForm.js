@@ -2,14 +2,15 @@ import { assignReactiveObject, del, flattenPaths } from "@arrai-innovations/reac
 import { useReactiveHookRegistry } from "@vueda/use/useReactiveHookRegistry.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
-import { compact, update } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
+import compact from "lodash-es/compact.js";
 import escapeRegExp from "lodash-es/escapeRegExp.js";
 import get from "lodash-es/get.js";
 import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import set from "lodash-es/set.js";
+import update from "lodash-es/update.js";
 import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
 
 /**

@@ -3,7 +3,7 @@ import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
-import { isObject } from "lodash-es";
+import isObject from "lodash-es/isObject.js";
 import { defineStore } from "pinia";
 
 /**

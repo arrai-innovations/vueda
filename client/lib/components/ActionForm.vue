@@ -19,7 +19,7 @@ import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
-import { isObject } from "lodash-es";
+import isObject from "lodash-es/isObject.js";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 import { computed, inject, onDeactivated, onUnmounted, reactive, toRef, unref } from "vue";

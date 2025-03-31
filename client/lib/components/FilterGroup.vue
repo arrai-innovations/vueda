@@ -1,9 +1,9 @@
 <script setup>
 import FilterComponent from "@vueda/components/FilterComponent.vue";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
-import { isObject } from "lodash-es";
 import isArray from "lodash-es/isArray.js";
 import isEqual from "lodash-es/isEqual.js";
+import isObject from "lodash-es/isObject.js";
 import Button from "primevue/button";
 import { computed, readonly, ref, watch } from "vue";
 import { useRoute } from "vue-router";

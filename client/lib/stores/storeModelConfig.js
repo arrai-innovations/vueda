@@ -1,8 +1,8 @@
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/crudSupport.js";
-import { merge } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
+import merge from "lodash-es/merge.js";
 import omit from "lodash-es/omit.js";
 import { defineStore } from "pinia";
 

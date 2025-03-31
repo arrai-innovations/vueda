@@ -8,7 +8,7 @@ import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl } from "@vueda/utils/urls.js";
-import { isArray } from "lodash-es";
+import isArray from "lodash-es/isArray.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import { computed, reactive, toRef } from "vue";
 

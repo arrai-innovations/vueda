@@ -1,6 +1,6 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import { isObject } from "lodash-es";
+import isObject from "lodash-es/isObject.js";
 import isString from "lodash-es/isString.js";
 import omit from "lodash-es/omit.js";
 

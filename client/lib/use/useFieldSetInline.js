@@ -7,8 +7,8 @@ import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import { useBreakpoints } from "@vueuse/core";
-import { merge } from "lodash-es";
 import cloneDeep from "lodash-es/cloneDeep.js";
+import merge from "lodash-es/merge.js";
 import omit from "lodash-es/omit.js";
 import { computed, inject, onBeforeUpdate, reactive, readonly, toRef, unref, useSlots, watch } from "vue";
 

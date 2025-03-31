@@ -6,7 +6,7 @@ import { useForm } from "@vueda/use/useForm.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useWarnings } from "@vueda/use/useWarnings.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
-import { isArray } from "lodash-es";
+import isArray from "lodash-es/isArray.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import { computed, toRef } from "vue";

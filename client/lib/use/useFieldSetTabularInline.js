@@ -3,7 +3,7 @@ import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSe
 import { useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
-import { merge } from "lodash-es";
+import merge from "lodash-es/merge.js";
 import { computed, reactive, readonly, toRef } from "vue";
 
 export const FIELD_SET_TABULAR_INLINE_PROPS = { ...FIELD_SET_INLINE_PROPS };
