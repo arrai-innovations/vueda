@@ -3,7 +3,7 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { computedAsync } from "@vueuse/core";
-import { computed, toRef } from "vue";
+import { computed, toRef, unref } from "vue";
 import { useRouter } from "vue-router";
 
 /**
@@ -23,15 +23,24 @@ export const useLinkModelView = (props) => {
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
     const workflow = useWorkflowTransitions(toRef(props, "app"), toRef(props, "model"));
     const actionName = computed(() => getActionName(props.view));
-    const requiresPK = computed(
-        () =>
-            Object.entries(modelConfig.config?.actionDetails || {}).some(
-                ([n, d]) => n === actionName.value && (d.detail || d.bulk),
-            ) || workflow.transitions.map((t) => t.name).includes(actionName.value),
-    );
-    const pkValid = computed(() => (requiresPK.value && props.pk) || !requiresPK.value);
+    const requiresPK = computed(() => {
+        const localActionName = unref(actionName);
+        // Check action details
+        for (const [key, details] of Object.entries(modelConfig.config?.actionDetails || {})) {
+            if (key === localActionName && (details.detail || details.bulk)) {
+                return true;
+            }
+        }
+        // Check workflow transitions
+        return (workflow.transitions || []).some((t) => t.name === localActionName);
+    });
+
+    const pkValid = computed(() => {
+        const localRequiresPK = unref(requiresPK);
+        return (localRequiresPK && props.pk) || !localRequiresPK;
+    });
     const toRouteArgs = computedAsync(async () => {
-        return pkValid.value && props.view
+        return unref(pkValid) && props.view
             ? await getCRUDForTo({
                   app: props.app,
                   model: props.model,
@@ -41,9 +50,16 @@ export const useLinkModelView = (props) => {
               })
             : undefined;
     });
-    const actionDisabled = computed(
-        () => props.disabled || (requiresPK.value && (!props.pk || (Array.isArray(props.pk) && props.pk.length === 0))),
-    );
+    const actionDisabled = computed(() => {
+        if (props.disabled) {
+            return true;
+        }
+        const needsPK = unref(requiresPK);
+        const pk = props.pk;
+        const missingPK = pk === undefined || pk === null || (Array.isArray(pk) && pk.length === 0);
+        return needsPK && missingPK;
+    });
+
     const router = useRouter();
     const toRoute = computed(() =>
         router.hasRoute(toRouteArgs.value?.name) ? router.resolve(toRouteArgs.value) : undefined,
