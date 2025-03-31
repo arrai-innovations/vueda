@@ -335,7 +335,7 @@ changed_data = [
 
 
 def forwards_migrate_workflow(apps, schema_editor):
-    for changed_item in copy.deepcopy(changed_data):  # Copied, so tests can migrate fowards and backwards.
+    for changed_item in copy.deepcopy(changed_data):  # Copied, so tests can migrate forwards and backwards.
         match changed_item["model_name"]:
             case "workflow":
                 handle_workflow(apps, changed_item)
@@ -364,7 +364,7 @@ def forwards_migrate_workflow(apps, schema_editor):
 
 def backwards_migrate_workflow(apps, schema_editor):
     # Make sure we go through the changed_data in reverse order, so we undo things correctly.
-    for changed_item in reversed(copy.deepcopy(changed_data)):  # Copied, so tests can migrate fowards and backwards.
+    for changed_item in reversed(copy.deepcopy(changed_data)):  # Copied, so tests can migrate forwards and backwards.
         match changed_item["history_type"]:
             case "added":
                 changed_item["history_type"] = "deleted"

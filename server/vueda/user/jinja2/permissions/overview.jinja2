@@ -18,17 +18,17 @@
                     <div class="flex">
                         <h1>{{ category }} Permissions</h1>
                         <div class="control">
-                            <button id="toggle-historical-models">Toggle historical</button>
+                            <button class="toggle-historical-models">Toggle historical</button>
                         </div>
                         <div class="control">
                             {{ logout }}
                         </div>
                         <div class="control">
-                            <button id="back-to-top">Back to top</button>
+                            <button class="back-to-top">Back to top</button>
                         </div>
                     </div>
                 </div>
-                <div class="apps" id="apps">
+                <div class="apps">
                     {% for app, models in apps.items() %}
                         <div class="app">
                             <div class="sticky sticky-2">
@@ -99,6 +99,14 @@
                 group.classList.remove('erred');
                 group.classList.remove('dirty');
                 group.classList.add('saved');
+
+                if (result.new_name) {
+                    const group_divs = document.querySelectorAll('div[data-group_id="' + groupId + '"]');
+                    for (const group_div of group_divs) {
+                        const input = group_div.querySelector("input");
+                        input.value = result.new_name;
+                    }
+                }
             } else {
                 group.classList.add('erred');
                 const err = group.querySelector('.group-error');
@@ -175,9 +183,9 @@
                 break;
             case 'save':
                 input = e.target.previousElementSibling;
-                target.classList.remove('dirty');
-                target.classList.remove('saved');
                 group = e.target.closest('.group');
+                group.classList.remove('dirty');
+                group.classList.remove('saved');
                 groups = group.closest('.groups');
                 groupId = group.dataset.group_id;
                 permissionId = groups.dataset.permission_id;
@@ -197,7 +205,6 @@
                 break;
         }
     }
-    document.getElementById('apps').addEventListener('click', appsClick);
 
     function appsInput(e) {
         let target = e.target;
@@ -205,11 +212,10 @@
             case 'input':
                 const group = e.target.closest('.group');
                 let button = group.querySelector('.button-save');
-                button.classList.add('dirty');
-                button.classList.remove('saved');
+                group.classList.add('dirty');
+                group.classList.remove('saved');
         }
     }
-    document.getElementById('apps').addEventListener('input', appsInput);
 
     function appsKeyup(e) {
         let target = e.target;
@@ -219,7 +225,13 @@
             button.click();
         }
     }
-    document.getElementById('apps').addEventListener('keyup', appsKeyup);
+
+    const apps = document.getElementsByClassName('apps');
+    for (const container of apps) {
+        container.addEventListener('click', appsClick);
+        container.addEventListener('input', appsInput);
+        container.addEventListener('keyup', appsKeyup);
+    }
 
     // collapse historic models
     let historicModels = document.querySelectorAll('.model.historic');
@@ -235,13 +247,19 @@
         }
     }
 
-    document.getElementById('toggle-historical-models').addEventListener('click', toggleHistoricModels);
+    const historical_buttons = document.getElementsByClassName('toggle-historical-models');
+    for (const button of historical_buttons) {
+        button.addEventListener('click', toggleHistoricModels);
+    }
 
     function backToTop() {
         window.scrollTo(0, 0);
     }
 
-    document.getElementById('back-to-top').addEventListener('click', backToTop);
+    const back_to_top_buttons = document.getElementsByClassName('back-to-top');
+    for (const button of back_to_top_buttons) {
+        button.addEventListener('click', backToTop);
+    }
 </script>
 </body>
 </html>
