@@ -192,11 +192,13 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
             if valid_fieldnames:
                 raise Http404(
-                    f"Invalid field '{self.choices_field}'. Valid fields with choices are {', '.join(sorted(valid_fieldnames))}."
+                    f"Invalid field '{self.choices_field}'. "
+                    f"Valid fields with choices are {', '.join(sorted(valid_fieldnames))}."
                 )
             else:
                 raise Http404(
-                    f"Invalid field '{self.choices_field}'. No choice fields found on {serializer.Meta.model._meta.label}."
+                    f"Invalid field '{self.choices_field}'. "
+                    f"No choice fields found on {serializer.Meta.model._meta.label}."
                 )
 
     def get_queryset(self):
