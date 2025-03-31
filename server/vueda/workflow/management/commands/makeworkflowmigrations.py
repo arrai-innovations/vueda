@@ -75,6 +75,7 @@ CHANGED = "changed"
 DELETED = "deleted"
 
 NEWLINE = os.linesep
+INDENT8 = "        "
 
 GUARDED_TEXT = """    if os.environ.get("skip_migration_when_setting_up_db", "").lower() == "true":  # For testing.
         return
@@ -1133,6 +1134,14 @@ class Command(BaseCommand):
         created_date = datetime.datetime.strptime(f"{date_string}:00 +0000", "%Y-%m-%d %H:%M:%S %z")
         return created_date.astimezone()
 
+    def _get_migration_names_from_show_migrations(self, app_label):
+        show_migration_results = self._call_command("showmigrations", app_label)
+
+        if not show_migration_results:  # Erred.  The reason will be printed to the console via the command.
+            return None
+
+        return self._parse_migrations_from_show_migrations(show_migration_results)
+
     def _get_generated_date_for_vueda_generated_migration(self, app_name, migration_name):
         # Return the date created in the django comment.
         django_comment = None
@@ -1551,9 +1560,11 @@ class Command(BaseCommand):
 
         return return_value
 
-    def _rewrite_migration(self, migration_file, changed_data, app_label, migration_name):
+    def _rewrite_migration(self, migration_file, changed_data, app_label, migration_name, dependencies):
         with open(migration_file, "r+", encoding="utf-8") as f:
-            generated_index = class_index = p_forwards_index = p_reverse_index = forwards_index = reverse_index = 0
+            generated_index = class_index = dependencies_index = p_forwards_index = p_reverse_index = forwards_index = (
+                reverse_index
+            ) = 0
 
             lines = f.readlines()
             for line_no, line in enumerate(lines):
@@ -1563,6 +1574,9 @@ class Command(BaseCommand):
 
                 elif line.startswith("class Migration"):
                     class_index = line_no
+
+                elif line.find("dependencies = [") != -1:
+                    dependencies_index = line_no
 
                 # Separate tests, so code=dict and reverse_code=type are fine if they are on the same line.
                 if line.find("code=dict") != -1:
@@ -1587,6 +1601,16 @@ class Command(BaseCommand):
             forwards = inspect.getsource(forwards_migrate_workflow)
             backwards = inspect.getsource(backwards_migrate_workflow)
 
+            # Add Dependencies
+
+            dependency_data = [
+                f"{INDENT8}migrations.swappable_dependency(settings.AUTH_USER_MODEL),{NEWLINE}",
+            ]
+            for app_name, migration_name in dependencies.items():
+                dependency_data.append(f'{INDENT8}("{app_name}", "{migration_name}"),{NEWLINE}')
+
+            lines[dependencies_index + 1 : dependencies_index + 1] = dependency_data
+
             if self.env_guarded_operations:
                 forwards = forwards.split("\n")
                 forwards[1:1] = [GUARDED_TEXT]
@@ -1605,12 +1629,12 @@ class Command(BaseCommand):
                 f"{forwards}{NEWLINE}{NEWLINE}",
                 f"{backwards}{NEWLINE}{NEWLINE}",
                 f"{inspect.getsource(SkippableRunSQL)}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(make_sure_permissions_exist)}{NEWLINE}{NEWLINE}",
             ]
 
             if not self.import_instead:
                 copied_code.extend(
                     [
+                        f"{inspect.getsource(make_sure_permissions_exist)}{NEWLINE}{NEWLINE}",
                         f"{inspect.getsource(handle_workflow)}{NEWLINE}{NEWLINE}",
                         f"{inspect.getsource(handle_workflow_permission)}{NEWLINE}{NEWLINE}",
                         f"{inspect.getsource(handle_state)}{NEWLINE}{NEWLINE}",
@@ -1637,8 +1661,13 @@ class Command(BaseCommand):
                 f"{NEWLINE}import datetime",
                 f"{NEWLINE}import os",
                 f"{NEWLINE}{NEWLINE}",
-                f"from django.apps import apps as django_apps{NEWLINE}",
-                f"from django.contrib.auth.management import create_permissions{NEWLINE}",
+                "" if self.import_instead else f"from django.apps import apps as django_apps{NEWLINE}",
+                f"from django.conf import settings{NEWLINE}",
+                (
+                    ""
+                    if self.import_instead
+                    else f"from django.contrib.auth.management import create_permissions{NEWLINE}"
+                ),
             ]
 
             if self.import_instead:
@@ -1693,7 +1722,10 @@ class Command(BaseCommand):
             changes = sorted(app_data["changes"], key=lambda x: x["history_date"])
 
             if not self.dry_run:
-                self._rewrite_migration(migration_file, changes, app_label, migration_name)
+                # Get the last vueda workflow migration name, for dependencies.
+                dependency_names = self._get_migration_names_from_show_migrations("vueda_workflow")
+                dependencies = {"vueda_workflow": dependency_names[-1]}
+                self._rewrite_migration(migration_file, changes, app_label, migration_name, dependencies)
 
             self.stdout.write(
                 self.style.SUCCESS(
