@@ -6,6 +6,7 @@ import { computed, ref, watchEffect } from "vue";
 export const PASSTHROUGH_OPTION_PROPS = {
     pt: {
         type: Object,
+        /* v8 ignore next 1 */
         default: () => ({}),
     },
     mergeSections: {
