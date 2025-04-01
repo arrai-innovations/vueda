@@ -1,6 +1,5 @@
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import { createPinia, setActivePinia } from "pinia";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const dummyModelInfo = {
     app_label: "tim",
@@ -203,7 +202,7 @@ const dummyModelInfo = {
     default_ordering: ["week_start"],
 };
 
-describe("storeModelConfig", () => {
+describe("lib/store/storeModelConfig.js", () => {
     let mockedFetchModelInfo, storeModelConfigModule, storeModelConfig;
     beforeEach(async () => {
         // Reset Pinia before each test.

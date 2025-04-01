@@ -23,7 +23,7 @@ vi.mock("vue", async () => {
     };
 });
 
-describe("useWindowShortcut", () => {
+describe("lib/use/useWindowShortcut.js", () => {
     let useWindowShortcut, vue;
     beforeEach(async () => {
         useWindowShortcut = (await import("@vueda/use/useWindowShortcut.js")).useWindowShortcut;

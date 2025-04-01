@@ -14,7 +14,7 @@ vi.mock("@vueda/use/useIsActive.js", () => ({
     useIsActive: vi.fn(),
 }));
 
-describe("useViewDestroy", () => {
+describe("lib/use/useViewDestroy.js", () => {
     let mockModelConfig, mockInstanceList, props;
 
     beforeEach(() => {

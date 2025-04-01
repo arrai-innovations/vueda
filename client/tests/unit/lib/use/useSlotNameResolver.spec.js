@@ -12,7 +12,7 @@ vi.mock("vue", async () => {
     };
 });
 
-describe("useSlotNameResolver", () => {
+describe("lib/use/useSlotNameResolver.js", () => {
     it("returns the first matching slot name", () => {
         const slots = {
             foo: () => h("div", "foo"),

@@ -11,7 +11,7 @@ vi.mock("vue", async () => {
     };
 });
 
-describe("useFilteredAttrs", () => {
+describe("lib/use/useFilteredAttrs.js", () => {
     let useFilteredAttrs, vue;
 
     beforeEach(async () => {

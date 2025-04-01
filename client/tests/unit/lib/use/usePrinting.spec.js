@@ -1,6 +1,5 @@
 import { mockLifecycle } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockedOnUnmounted, unmountedFunctions, clearUnmounted } = mockLifecycle(vi);
 

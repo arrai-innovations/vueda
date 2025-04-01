@@ -42,7 +42,7 @@ vi.mock("@vueda/use/useIsActive.js", () => ({
     useIsActive: vi.fn(() => ref(true)),
 }));
 
-describe("useModelInfo", () => {
+describe("lib/use/useModelInfo.js", () => {
     const app = ref("myApp");
     const model = ref("myModel");
     const key = getAppModelDotName({ app: unref(app), model: unref(model) });

@@ -43,7 +43,7 @@ vi.mock("@vueda/use/useIsActive.js", () => ({
     useIsActive: vi.fn(() => ref(true)),
 }));
 
-describe("useWorkflowTransitions", () => {
+describe("lib/use/useWorkflowTransitions.js", () => {
     const app = ref("myApp");
     const model = ref("myModel");
     let useWorkflowTransitions;

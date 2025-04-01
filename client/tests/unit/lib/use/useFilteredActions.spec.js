@@ -14,7 +14,7 @@ vi.mock("@arrai-innovations/reactive-helpers", () => ({
     useProxyLoadingError: vi.fn(),
 }));
 
-describe("useFilteredActions", () => {
+describe("lib/use/useFilteredActions.js", () => {
     let useModelConfig, storeUser, useProxyLoadingError;
     let modelConfig, userStore, mockedModelConfig;
 
