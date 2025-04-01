@@ -1,10 +1,8 @@
-import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
-import cloneDeep from "lodash-es/cloneDeep.js";
-import isEqual from "lodash-es/isEqual.js";
-import { reactive, readonly, ref, toRef, unref, watch } from "vue";
+import { reactive, readonly, toRef, watch } from "vue";
 
 /**
  * The raw instance of a useModelChoices object.
@@ -45,8 +43,13 @@ export function useModelChoices(app, model, field, isActive, intendToFetch, isFi
     }
     const modelChoicesStore = storeModelChoices();
     modelChoicesStore.initializeChoice(app.value, model.value, isFilter.value);
-    /** @type {import('vue').Ref<null|import('vue').Ref<object>>} */
-    const originalChoices = ref(null);
+    const internalState = reactive({
+        app,
+        model,
+        field,
+        intendToFetch,
+        isFilter,
+    });
     const returnObject = reactive(
         /** @type {UseModelChoicesRaw} */ {
             loading: loadingError.loading,
@@ -59,41 +62,36 @@ export function useModelChoices(app, model, field, isActive, intendToFetch, isFi
 
     // update originalChoices when app, model, field, or isActive changes
     watch(
-        [isActive, app, model, field, intendToFetch, isFilter],
-        async (
-            [active, app, model, field, intendToFetch, isFilter],
-            [oldActive, oldApp, oldModel, oldField, oldIntendToFetch, oldIsFilter],
-        ) => {
+        [
+            isActive,
+            toRef(internalState, "app"),
+            toRef(internalState, "model"),
+            toRef(internalState, "field"),
+            toRef(internalState, "intendToFetch"),
+            toRef(internalState, "isFilter"),
+        ],
+        async ([active, app, model, field, intendToFetch, isFilter]) => {
             if (!active) {
                 return; // we'll pick up again when the component is active
             }
-            if (
-                oldActive === active &&
-                app === oldApp &&
-                model === oldModel &&
-                field === oldField &&
-                intendToFetch === oldIntendToFetch &&
-                isFilter === oldIsFilter
-            ) {
-                return; // no change, no need to update
-            }
+            // we don't need to check if active, app, model, field, intendToFetch, or isFilter have changed, vue
+            //  does that checking for us because they are refs to immutable primitive values
             // todo: we could look at implementing cancelling of fetches if the app/model/field changes while loading
             if (app && model && field && !returnObject.loading && intendToFetch) {
+                const key = getAppModelDotName({ app, model });
                 loadingError.clearError();
                 loadingError.setLoading();
                 try {
                     if (isFilter) {
-                        originalChoices.value = toRef(
-                            modelChoicesStore.filterChoices[getAppModelDotName({ app, model })],
-                            field,
-                        );
                         await modelChoicesStore.fetchFilterChoices(app, model, field);
+                        // WARNING: by assigning after awaiting, we KNOW the key is there, so there is no
+                        //  reactivity issues not working when the key is not there initially
+                        returnObject.choices = toRef(modelChoicesStore.filterChoices, key);
                     } else {
-                        originalChoices.value = toRef(
-                            modelChoicesStore.choices[getAppModelDotName({ app, model })],
-                            field,
-                        );
                         await modelChoicesStore.fetchChoices(app, model, field);
+                        // WARNING: by assigning after awaiting, we KNOW the key is there, so there is no
+                        //  reactivity issues not working when the key is not there initially
+                        returnObject.choices = toRef(modelChoicesStore.choices, key);
                     }
                 } catch (e) {
                     loadingError.setError(e);
@@ -103,21 +101,6 @@ export function useModelChoices(app, model, field, isActive, intendToFetch, isFi
             }
         },
         { immediate: true },
-    );
-
-    // update returnObject.choices when originalChoices changes
-    watch(
-        () => unref(unref(originalChoices)),
-        (theValue) => {
-            if (!theValue) {
-                returnObject.choices = {};
-            } else {
-                if (!isEqual(theValue, returnObject.choices)) {
-                    assignReactiveObject(returnObject.choices, cloneDeep(theValue));
-                }
-            }
-        },
-        { immediate: true, deep: true },
     );
 
     return readonly(returnObject);
