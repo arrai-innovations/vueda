@@ -24,6 +24,51 @@ export function getUsingVuedaWorkFlow() {
 }
 
 /**
+ * @typedef {object} WorkflowTransition
+ * @property {string} code - The transition code.
+ * @property {string} name - The transition display name.
+ */
+
+/**
+ * @typedef {object} WorkflowState
+ * @property {string} code - The state code.
+ * @property {string} name - The state display name.
+ */
+
+/**
+ * @typedef {object} WorkflowHistoryEntry
+ * @property {string} [code] - The code of the workflow state.
+ * @property {string} [name] - The name of the workflow state.
+ * @property {string} [timestamp] - The timestamp of the history entry.
+ * @property {string} [user] - The user who made the change.
+ * @property {string} [message] - The message associated with the history entry.
+ */
+
+/**
+ * @typedef {object} WorkflowObjectStateEntry
+ * @property {string} app - The object's app name.
+ * @property {string} model - The object's model name.
+ * @property {string} pk - The object's primary key.
+ * @property {WorkflowState} state - The current workflow state of the object.
+ */
+
+/**
+ * @typedef {object} WorkflowObjectTransitionsEntry
+ * @property {string} app - The object's app name.
+ * @property {string} model - The object's model name.
+ * @property {string} pk - The object's primary key.
+ * @property {WorkflowTransition[]} transitions - The available transitions for the object.
+ */
+
+/**
+ * @typedef {object} WorkflowObjectHistoryEntry
+ * @property {string} app - The object's app name.
+ * @property {string} model - The object's model name.
+ * @property {string} pk - The object's primary key.
+ * @property {WorkflowHistoryEntry[]} history - The workflow history of the object.
+ */
+
+/**
  * An error for use from the model info store.
  * @extends {FetchError}
  */
@@ -58,6 +103,13 @@ const updateState = (target, source) => {
     }
 };
 
+/**
+ * @param {import('vue').Ref<string>|string} app
+ * @param {import('vue').Ref<string>|string} model
+ * @param {import('vue').Ref<string>|string} pk
+ * @returns {{ app: string, model: string, pk: string }}
+ * @private
+ */
 const makeResultObject = (app, model, pk) => ({
     app: unref(app),
     model: unref(model),
@@ -91,22 +143,31 @@ const executeTransitionUrl = (result) => {
     }
     return `${httpOrHttpsHostname}${urlWithVariables}`;
 };
+
 /**
  * @typedef {import('pinia').Store<
  *     'workflow',
  *     {
- *         objectStates: {app: string, model: string, pk: string, state: object}[],
- *         objectTransitions: {app: string, model: string, pk: string, transitions: object[]}[],
- *         objectHistories: {app: string, model: string, pk: string, history: object[]}[],
- *         modelStates: {[key: string]: object[]},
+ *         objectStates: { [string]: {[key: string]: WorkflowObjectStateEntry} },
+ *         objectTransitions: { [string]: {[key: string]: WorkflowObjectTransitionsEntry} },
+ *         objectHistories: { [string]: {[key: string]: WorkflowObjectHistoryEntry} },
+ *         modelStates: {[key: string]: WorkflowState[]},
+ *         workflowTransitions: {[key: string]: WorkflowTransition[]}
  *     },
  *     {},
  *     {
- *         fetchModelStates: (app: string, model: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<object[]>
- *         fetchObjectState: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<{app: string, model: string, pk: string, state: object}>,
- *         fetchObjectTransitions: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<{app: string, model: string, pk: string, transitions: object[]}>,
- *         fetchObjectHistory: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<{app: string, model: string, pk: string, history: object[]}>,
- *         executeTransition: (app: string, model: string, objectPk: string, transition_code: string, router: import('vue-router').Router, stateToRoute: object) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<{app: string, model: string, pk: string}>,
+ *         fetchModelStates: (app: string, model: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<WorkflowState[]>,
+ *         fetchObjectState: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<WorkflowObjectStateEntry>,
+ *         fetchObjectTransitions: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<WorkflowObjectTransitionsEntry>,
+ *         fetchObjectHistory: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<WorkflowObjectHistoryEntry>,
+ *         executeTransition: (
+ *             app: string,
+ *             model: string,
+ *             objectPk: string | string[],
+ *             transition_code: string,
+ *             router?: import('vue-router').Router,
+ *             stateToRoute?: Record<string, any>,
+ *         ) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<any>
  *     }
  * >} WorkflowStore
  */
@@ -171,6 +232,7 @@ export const storeWorkflow = defineStore("workflow", {
                 );
             }
             if (!usingVuedaWorkFlow) {
+                /** @type {Promise<WorkflowTransition[]>} */
                 return Promise.resolve([]);
             }
             const key = getAppModelDotName({ app, model });
@@ -178,6 +240,7 @@ export const storeWorkflow = defineStore("workflow", {
             const cachedError = this.errors.workflowTransitions[key];
 
             if (existing) {
+                /** @type {Promise<WorkflowTransition[]>} */
                 return Promise.resolve(existing);
             }
             if (cachedError) {
@@ -212,6 +275,7 @@ export const storeWorkflow = defineStore("workflow", {
                         delete this.promises.workflowTransitions[key];
                     });
             }
+            /** @type {Promise<WorkflowTransition[]>} */
             return this.promises.workflowTransitions[key];
         },
         fetchModelStates(app, model) {
