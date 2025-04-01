@@ -1,10 +1,8 @@
-import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
-import cloneDeep from "lodash-es/cloneDeep.js";
-import isEqual from "lodash-es/isEqual.js";
-import { isRef, reactive, readonly, ref, toRef, unref, watch } from "vue";
+import { reactive, readonly, ref, toRef, watch } from "vue";
 
 /**
  * The raw instance of a useModelInfo object.
@@ -14,7 +12,7 @@ import { isRef, reactive, readonly, ref, toRef, unref, watch } from "vue";
  * @property {Error} error - The error that occurred while loading the model info.
  * @property {boolean} errored - True if an error occurred while loading the model info.
  * @property {()=>void} clearError - Clear the error.
- * @property {import('@vueda/stores/storeModelInfo.js').ModelInfo} info - The model info.
+ * @property {import('vue').Ref<import('@vueda/stores/storeModelInfo.js').ModelInfo>} info - The model info.
  */
 
 /**
@@ -42,70 +40,56 @@ export function useModelInfo(app, model, isActive) {
     if (!isActive) {
         isActive = useIsActive();
     }
-    // makes the watch work for view in cases of hardcoded or falsy values
-    // work with hardcoded view values
-    if (!isRef(app)) {
-        app = ref(app);
-    }
-    if (!isRef(model)) {
-        model = ref(model);
-    }
     const modelInfoStore = storeModelInfo();
-    /** @tupe {import('vue').Ref<null|import('vue').Ref<object>>}>} */
-    const originalInfo = ref(null);
+    const internalState = reactive({
+        app,
+        model,
+        lastFetchKey: null,
+    });
     const returnObject = reactive(
         /** @type {UseModelInfoRaw} */ {
             loading: loadingError.loading,
             error: loadingError.error,
             errored: loadingError.errored,
             clearError: loadingError.clearError,
-            info: {},
+            info: ref({}),
         },
     );
 
     // update originalInfo when app, model, or isActive changes
     watch(
-        [isActive, app, model],
-        async ([newActive, newApp, newModel], [oldActive, oldApp, oldModel]) => {
+        [isActive, toRef(internalState, "app"), toRef(internalState, "model")],
+        ([newActive, app, model]) => {
             if (!newActive) {
                 return; // we'll pick up again when the component is active
             }
-            if (oldActive === newActive && newApp === oldApp && newModel === oldModel) {
-                return; // no change, no need to update
+            if (!app || !model) {
+                returnObject.info = {};
+                return;
             }
+            // we don't need to check if app and model have changed, vue does that checking for us
+            //  on immutable primitive values
             // todo: we could look at implementing cancelling of fetches if the app/model changes while loading
-            if (newApp && newModel && !returnObject.loading) {
+            if (app && model && !returnObject.loading) {
                 loadingError.clearError();
                 loadingError.setLoading();
-                try {
-                    const args = { app: newApp, model: newModel };
-                    originalInfo.value = toRef(modelInfoStore.infos, getAppModelDotName(args));
-                    await modelInfoStore.fetchModelInfo(args);
-                } catch (e) {
-                    loadingError.setError(e);
-                } finally {
-                    loadingError.clearLoading();
-                }
+                const args = { app, model };
+                modelInfoStore
+                    .fetchModelInfo(args)
+                    .then(() => {
+                        // WARNING: by assigning after awaiting, we KNOW the key is there, so there is no
+                        //  reactivity issues not working when the key is not there initially
+                        returnObject.info = toRef(modelInfoStore.infos, getAppModelDotName(args));
+                    })
+                    .catch((e) => {
+                        loadingError.setError(e);
+                    })
+                    .finally(() => {
+                        loadingError.clearLoading();
+                    });
             }
         },
         { immediate: true },
     );
-
-    // update returnObject.info when originalInfo changes
-    watch(
-        // ref of ref to object we want to watch deeply
-        () => unref(unref(originalInfo)),
-        (theValue) => {
-            if (!theValue) {
-                assignReactiveObject(returnObject.info, {});
-            } else {
-                if (!isEqual(theValue, returnObject.info)) {
-                    assignReactiveObject(returnObject.info, cloneDeep(theValue));
-                }
-            }
-        },
-        { immediate: true, deep: true },
-    );
-
     return readonly(returnObject);
 }
