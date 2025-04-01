@@ -1,59 +1,60 @@
-import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { getUsingVuedaWorkFlow, storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
-import cloneDeep from "lodash-es/cloneDeep.js";
-import isEqual from "lodash-es/isEqual.js";
 import { reactive, readonly, ref, toRef, unref, watch } from "vue";
 
-const usingVuedaWorkFlow = getUsingVuedaWorkFlow();
-
 /**
- * The raw instance of a useWorkflowTransitions object.
- *
- * @typedef {object} useWorkflowTransitionsRaw
- * @property {boolean} loading - True if the model choices are loading.
- * @property {Error} error - The error that occurred while loading the model choices.
- * @property {boolean} errored - True if an error occurred while loading the model choices.
- * @property {()=>void} clearError - Clear the error.
- * @property {array} transitions - The list of workflow transitions.
+ * @typedef {object} WorkflowTransitionsRawState
+ * @property {import('vue').Ref<boolean>} loading - True if loading is in progress.
+ * @property {import('vue').Ref<Error|null>} error - The error encountered, if any.
+ * @property {import('vue').Ref<boolean>} errored - Whether an error has occurred.
+ * @property {() => void} clearError - Clears the error.
+ * @property {import('vue').Ref<import('@vueda/stores/storeWorkflow.js').WorkflowTransition[]>} transitions - The list of transitions for the model.
  */
 
 /**
- * The reactive useModelChoices instance.
+ * The useWorkflowTransitions instance.
  *
- * @typedef {import('vue').DeepReadonly<import('vue').UnwrapNestedRefs<useWorkflowTransitionsRaw>>} useWorkflowTransitions
+ * @typedef {import('vue').DeepReadonly<import('vue').UnwrapNestedRefs<WorkflowTransitionsRawState>>} WorkflowTransitions
  */
 
 /**
- * Provides a reactive object for a given app, model, and pks. This composition function is designed to preserve deep references
- * within the `objectTransitions` object, preventing them from breaking when the app, model, or field changes.
- *
+ * Provides a reactive list of workflow transitions for a given app and model.
  *
  * @param {import('vue').Ref<string>} app - A ref containing the app name that is being watched.
  * @param {import('vue').Ref<string>} model - A ref containing the model name that is being watched.
- * @param {import('vue').Ref<string|string[]>} pks - A ref containing the list of primary keys that is being watched.
  * @param {import('@vueda/use/useIsActive.js').IsActive|undefined} [isActive] - An IsActive instance, if one can be reused.
- * @returns {useWorkflowTransitions} An object containing transitions.
+ * @returns {WorkflowTransitions} An object containing transitions.
  */
 export function useWorkflowTransitions(app, model, isActive) {
-    if (!usingVuedaWorkFlow) {
-        return {
-            loading: ref(false),
-            error: ref(null),
-            errored: ref(false),
-            clearError: () => {},
-            transitions: ref([]),
-        };
+    if (!getUsingVuedaWorkFlow()) {
+        // for testing purposes, check at setup time.
+        return readonly(
+            reactive({
+                loading: ref(false),
+                error: ref(null),
+                errored: ref(false),
+                /* v8 ignore next 1 */
+                clearError: () => {},
+                transitions: ref([]),
+            }),
+        );
     }
     const loadingError = useLoadingError();
     if (!isActive) {
         isActive = useIsActive();
     }
     const workflowStore = storeWorkflow();
-    const origionalWorkflowTransitions = ref(null);
+    const internalState = reactive({
+        app: app,
+        model: model,
+        lastSetKey: ref(null),
+        lastFetchedKey: ref(null),
+        workflowTransitions: toRef(workflowStore, "workflowTransitions"),
+    });
     const returnObject = reactive(
-        /** @type {useWorkflowRaw} */ {
+        /** @type {WorkflowTransitionsRawState} */ {
             loading: loadingError.loading,
             error: loadingError.error,
             errored: loadingError.errored,
@@ -61,41 +62,49 @@ export function useWorkflowTransitions(app, model, isActive) {
             transitions: [],
         },
     );
-
     watch(
-        [isActive, app, model],
-        async ([active, app, model], [oldActive, oldApp, oldModel]) => {
-            if (!active) {
-                return; // we'll pick up again when the component is active
+        [isActive, toRef(internalState, "app"), toRef(internalState, "model")],
+        ([isActive, app, model]) => {
+            if (!isActive) {
+                return;
             }
-            if (oldActive === active && app === oldApp && model === oldModel) {
-                return; // no change, no need to update
+            if (!app || !model) {
+                return;
             }
-            if (app && model && !returnObject.loading) {
+            const key = getAppModelDotName({ app, model });
+            if (internalState.lastFetchedKey !== key && !returnObject.loading) {
                 loadingError.clearError();
                 loadingError.setLoading();
-                try {
-                    const key = getAppModelDotName({ app, model });
-                    origionalWorkflowTransitions.value = toRef(workflowStore.workflowTransitions, key);
-                    await workflowStore.fetchWorkflowTransition(app, model);
-                } catch (e) {
-                    loadingError.setError(e);
-                } finally {
-                    loadingError.clearLoading();
-                }
+                workflowStore
+                    .fetchWorkflowTransition(unref(app), unref(model))
+                    .then(() => {
+                        internalState.lastFetchedKey = key;
+                    })
+                    .catch((e) => {
+                        loadingError.setError(e);
+                    })
+                    .finally(() => {
+                        loadingError.clearLoading();
+                    });
             }
         },
         { immediate: true },
     );
 
     watch(
-        () => unref(unref(origionalWorkflowTransitions)),
-        (theValue) => {
-            if (!theValue) {
-                returnObject.transitions = [];
-            } else {
-                if (!isEqual(theValue, returnObject.transitions)) {
-                    assignReactiveObject(returnObject.transitions, cloneDeep(theValue));
+        [toRef(internalState, "app"), toRef(internalState, "model"), toRef(internalState, "workflowTransitions")],
+        ([app, model]) => {
+            if (!app || !model) {
+                return;
+            }
+            const key = getAppModelDotName({ app, model });
+            if (key !== internalState.lastSetKey) {
+                if (key && internalState.workflowTransitions[key]) {
+                    returnObject.transitions = toRef(internalState.workflowTransitions, key);
+                    internalState.lastSetKey = key;
+                } else {
+                    returnObject.transitions = ref([]);
+                    internalState.lastSetKey = null;
                 }
             }
         },
