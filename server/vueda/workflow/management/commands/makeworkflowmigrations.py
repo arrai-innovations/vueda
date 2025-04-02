@@ -1111,7 +1111,7 @@ class Command(BaseCommand):
         if err.tell():
             err.seek(0)
             self.stdout.write(self.style.ERROR(err.read()))
-            return False
+            sys.exit(2)
 
         # Return the results.
         out.seek(0)
@@ -1220,17 +1220,19 @@ class Command(BaseCommand):
             migration_names = self._parse_migrations_from_show_migrations(show_migration_results)
 
             history_change_reasons = []
-            workflow_migration_dates = []
+            workflow_migration_dates = {}
             for migration_name in migration_names:
                 django_date = self._get_generated_date_for_vueda_generated_migration(app_name, migration_name)
                 if django_date:
                     history_change_reasons.append(f"Workflow Migration - {migration_name}")
-                    workflow_migration_dates.append(django_date)
+                    workflow_migration_dates[django_date] = migration_name
 
             if workflow_migration_dates:
+                max_date = max(workflow_migration_dates)
                 migrations_by_content_type[content_type_ids] = {
                     "history_change_reasons": history_change_reasons,
-                    "last_migration_date": max(workflow_migration_dates),
+                    "last_migration_date": max_date,
+                    "name": workflow_migration_dates[max_date],
                 }
 
         return migrations_by_content_type
@@ -1710,6 +1712,36 @@ class Command(BaseCommand):
 
     def _create_migration_per_app(self, changes_by_app):
         for app_label, app_data in changes_by_app.items():
+            if "last_migration_path" in app_data:
+                # Compare the last migration with the changes data we have.  If they are the same, then
+                # you tried to makegroupmigrations multiple times, without faking the last created one.
+                # It is also possible that the current changes could contain the last migrations changes, and some more.
+                # In this case we need to let the user know they need to delete and try again, or fake and try again.
+                spec = importlib.util.spec_from_file_location("migration", app_data["last_migration_path"])
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                previous_changed_data = {data["history_date"]: data for data in module.changed_data}
+
+                similarity = set()
+                for current_change in app_data["changes"]:
+                    similarity.add(current_change["history_date"] in previous_changed_data)
+
+                if True in similarity and False in similarity:
+                    self.stdout.write(
+                        self.style.ERROR(
+                            f"{NEWLINE}Group changes detected, but we can't make a migration yet.  Do one of the following:"
+                            f"""{NEWLINE}{NEWLINE}1. Delete migration "{app_data["last_migration_name"]}", if """
+                            "uncommitted."
+                            f"""{NEWLINE}2. Fake migration "{app_data["last_migration_name"]}"."""
+                            f'{NEWLINE}{NEWLINE}Once done, run "makeworkflowmigrations" again.'
+                        )
+                    )
+                    return
+
+                elif True in similarity:
+                    self.stdout.write(self.style.SUCCESS(f"{NEWLINE}No group changes detected."))
+                    return
+
             migrations_path = Path(app_data["migrations_path"])
 
             migration_name = self._create_and_get_empty_migration(app_label)
@@ -1786,14 +1818,28 @@ class Command(BaseCommand):
                 model = content_type.model_class()
                 model_meta = model._meta
                 app_label = model_meta.app_label
+                app_name = model_meta.app_config.name
 
                 if app_label not in changes_by_app:
                     migrations_path = os.path.join(model_meta.app_config.path, "migrations")
 
                     changes_by_app[app_label] = {
+                        "app_name": app_name,
+                        "app_label": app_label,
                         "migrations_path": migrations_path,
                         "changes": [],
                     }
+
+                    if migrated_data:
+                        changes_by_app[app_label].update(
+                            {
+                                "last_migration_date": migrated_data["last_migration_date"],
+                                "last_migration_name": migrated_data["name"],
+                                "last_migration_path": os.path.join(
+                                    *app_name.split("."), "migrations", f"{migrated_data['name']}.py"
+                                ),
+                            }
+                        )
 
                 if migrated_data is None:
                     last_migrated_date = None
