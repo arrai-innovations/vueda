@@ -243,13 +243,12 @@ class WorkflowEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, 
                     saved_pks = [obj.pk for obj in saved_objects]
 
                     for form in formset:
-                        if form.instance.pk in saved_pks:
-                            if form.data[f"{form.prefix}-id"] == "":
-                                form.data._mutable = True
-                                form.data[f"{form.prefix}-id"] = form.instance.pk
-                                # We need to subtract the extra form, or we end up with 1 too many.
-                                form.data[f"{formset.management_form.prefix}-INITIAL_FORMS"] = len(formset) - 1
-                                form.data._mutable = False
+                        if form.instance.pk in saved_pks and form.data[f"{form.prefix}-id"] == "":
+                            form.data._mutable = True
+                            form.data[f"{form.prefix}-id"] = form.instance.pk
+                            # We need to subtract the extra form, or we end up with 1 too many.
+                            form.data[f"{formset.management_form.prefix}-INITIAL_FORMS"] = len(formset) - 1
+                            form.data._mutable = False
 
                 else:
                     is_valid &= False

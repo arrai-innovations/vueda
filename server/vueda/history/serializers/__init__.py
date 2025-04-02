@@ -8,7 +8,7 @@ class DynamicHistoricalSerializer(HistoricalModelSerializerMixin):
 
     def __init__(self, *args, **kwargs):
         self.model_serializer = kwargs.pop("model_serializer_class")
-        historical_instance = kwargs.get("instance", None)
+        historical_instance = kwargs.get("instance")
         self.different_fields = kwargs.pop("different_fields", [])
 
         super(DynamicHistoricalSerializer, self).__init__(*args, **kwargs)

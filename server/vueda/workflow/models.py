@@ -593,9 +593,7 @@ class HasWorkflowModelMixin(models.Model):
         # to guard auto transitions even from superusers
         if not transition_permissions:
             return False
-        if user.has_perms(transition_permissions, obj=self):
-            return True
-        return False
+        return user.has_perms(transition_permissions, obj=self)
 
     def allow_transition(self, transition: Transition, user: Optional[User] = None) -> Union[bool, str]:
         """

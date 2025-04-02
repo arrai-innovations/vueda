@@ -188,7 +188,7 @@ class VuedaSearchFilterBackend(SearchFilter):
                     output_field=models.IntegerField(),
                 )
 
-            annotations["combined_rank"] = reduce(operator.add, [models.F(key) for key in annotations.keys()])
+            annotations["combined_rank"] = reduce(operator.add, [models.F(key) for key in annotations])
 
             queryset = queryset.annotate(**annotations).filter(combined_rank__gte=self.search_threshold)
             if not request.query_params.get(api_settings.ORDERING_PARAM):

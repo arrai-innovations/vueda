@@ -83,6 +83,8 @@ select = [
     "PLE",
     # flake8-quotes: https://docs.astral.sh/ruff/rules/#flake8-quotes-q
     "Q",
+    # flake8-simplify: https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
+    "SIM",
     # flake8-debugger: https://docs.astral.sh/ruff/rules/#flake8-debugger-t10
     "T10",
     # flake8-print: https://docs.astral.sh/ruff/rules/#flake8-print-t20
@@ -99,12 +101,18 @@ ignore = [
     "FIX002",
     # ruff: don't care about annotations
     "RUF012",
+    # flake8-simplify: try-except-pass is fine
+    "SIM105",
+    # flake8-simplify: developers are a better judge as to when to use ternaries
+    "SIM108",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = [
     # django-flake8: don't care about missing __str__
     "DJ008",
+    # flake8-sim: don't care about code simplification in tests
+    "SIM",
     # flake8-print: allow print() in tests
     "T201"
 ]

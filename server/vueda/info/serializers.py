@@ -345,7 +345,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             return []
         called_viewset = viewset()
 
-        request = self.context["request"] if "request" in self.context else None
+        request = self.context.get("request", None)
         user = request.user if request is not None else None
 
         queryset = viewset().get_queryset()
@@ -525,7 +525,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 meta = field.queryset.model._meta
             elif hasattr(field, "child_relation") and hasattr(field.child_relation, "queryset"):
                 meta = field.child_relation.queryset.model._meta
-        elif hasattr(field, "choices") and choices:
+        elif hasattr(field, "choices") and choices:  # noqa SIM102
             # non queryset choices
             if hasattr(obj, "model"):  # AllValuesFilter, AllValuesMultipleFilter
                 meta = obj.model._meta

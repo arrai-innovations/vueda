@@ -75,7 +75,7 @@ class FlexFieldsWriteableNestedSerializerMixin(
         serializer, because it should already have the flex fields applied.
         Double applying flex fields to the serializer fields will cause an error.
         """
-        if not self._flex_fields_rep_applied:
+        if not self._flex_fields_rep_applied:  # noqa SIM102
             if "view" in self.context and isinstance(self, self.context["view"].get_serializer_class()):
                 self.apply_flex_fields(self.fields, self._flex_options_rep_only)
                 self._flex_fields_rep_applied = True
