@@ -1,11 +1,10 @@
-import { assignReactiveObject, useLoadingError, useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
+import { useLoadingError, useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { useIsActive } from "@vueda/use/useIsActive";
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/crudSupport.js";
-import isEqual from "lodash-es/isEqual.js";
-import { isRef, reactive, readonly, ref, toRef, unref, watch } from "vue";
+import { reactive, readonly, toRef, watch } from "vue";
 
 /**
  * A view-specific configuration object for making use of a model client-side.
@@ -56,33 +55,15 @@ export function useModelConfig(app, model, view) {
     if (!app || !model) {
         throw new Error("app and model must be provided");
     }
-    // makes the watch work for view in cases of hardcoded or falsy values
-    // work with hardcoded view values
-    if (!view) {
-        view = ref(null);
-    } else {
-        if (!isRef(view)) {
-            view = ref(view);
-        }
-    }
-    if (!isRef(app)) {
-        app = ref(app);
-    }
-    if (!isRef(model)) {
-        model = ref(model);
-    }
     const loadingError = useLoadingError();
     const isActive = useIsActive();
     const modelInfo = useModelInfo(app, model, isActive);
     const modelConfigStore = storeModelConfig();
     const proxyLoadingError = useProxyLoadingError([loadingError, modelInfo]);
-    /** @type {import('vue').Ref<null|import('vue').Ref<object>>} */
-    const originalConfig = ref(null);
-    let previousKey;
     const returnObject = reactive({
         app,
         model,
-        view,
+        view: view || null,
         loading: proxyLoadingError.loading,
         error: proxyLoadingError.error,
         errored: proxyLoadingError.errored,
@@ -91,50 +72,36 @@ export function useModelConfig(app, model, view) {
         config: {},
     });
 
-    // update returnObject.config when originalConfig changes
-    watch(
-        [() => unref(unref(originalConfig)), view],
-        ([theValue]) => {
-            if (!theValue) {
-                assignReactiveObject(returnObject.config, {});
-            } else {
-                if (!isEqual(theValue, returnObject.config)) {
-                    assignReactiveObject(returnObject.config, theValue);
-                }
-            }
-        },
-        { deep: true },
-    );
-
     // update originalConfig when app, model, or isActive changes
     watch(
-        [isActive, app, model, view],
-        async ([newIsActive, newApp, newModel, newView], [oldActive, oldApp, oldModel, oldView]) => {
-            if (!newIsActive) {
+        [isActive, toRef(returnObject, "app"), toRef(returnObject, "model"), toRef(returnObject, "view")],
+        ([active, app, model, view]) => {
+            if (!active) {
                 return; // we'll pick up again when the component is active
             }
-            if (oldActive === newIsActive && newApp === oldApp && newModel === oldModel && newView === oldView) {
-                return; // no change, no need to update
-            }
+            // we don't need to check if app and model have changed, vue does that checking for us
+            //  on immutable primitive values
             // todo: we could look at implementing cancelling of fetches if the app/model changes while loading
-            if (newApp && newModel) {
+            if (app && model) {
                 loadingError.clearError();
                 loadingError.setLoading();
-                const actionName = getActionName(newView);
-                try {
-                    const args = { app: newApp, model: newModel, view: actionName };
-                    const key = actionName ? getAppModelViewDotName(args) : getAppModelDotName(args);
-                    if (previousKey !== key) {
-                        originalConfig.value = toRef(modelConfigStore.builtConfigs, key);
-                        previousKey = key;
-                    }
-                    await modelConfigStore.getConfig(args);
-                } catch (e) {
-                    loadingError.setError(e);
-                    console.error("useModelConfig: error fetching config", e);
-                } finally {
-                    loadingError.clearLoading();
-                }
+                const actionName = getActionName(view);
+                const args = { app, model, view: actionName };
+                const key = actionName ? getAppModelViewDotName(args) : getAppModelDotName(args);
+                modelConfigStore
+                    .getConfig(args)
+                    .then(() => {
+                        // WARNING: by assigning after awaiting, we KNOW the key is there, so there is no
+                        //  reactivity issues not working when the key is not there initially
+                        returnObject.config = toRef(modelConfigStore.builtConfigs, key);
+                    })
+                    .catch((e) => {
+                        loadingError.setError(e);
+                        console.error("useModelConfig: error fetching config", e);
+                    })
+                    .finally(() => {
+                        loadingError.clearLoading();
+                    });
             }
         },
         { immediate: true },
