@@ -184,21 +184,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
     serializer_class = ModelInfoChoicesSerializer
 
     def validate_queryset(self, serializer, fields):
-        if self.choices_field not in fields:
-            valid_fieldnames = []
-            for field_name, field in fields.items():
-                if hasattr(field, "choices") and field.choices:
-                    valid_fieldnames.append(field_name)
-            if valid_fieldnames:
-                raise Http404(
-                    f"Invalid field '{self.choices_field}'. Valid fields with choices are {', '.join(sorted(valid_fieldnames))}."
-                )
-            else:
-                raise Http404(
-                    f"Invalid field '{self.choices_field}'. No choice fields found on {serializer.Meta.model._meta.label}."
-                )
-
-        elif not hasattr(fields[self.choices_field], "choices"):
+        if self.choices_field not in fields or not hasattr(fields[self.choices_field], "choices"):
             valid_fieldnames = []
             for field_name, field in fields.items():
                 if hasattr(field, "choices") and field.choices:
@@ -206,11 +192,13 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
             if valid_fieldnames:
                 raise Http404(
-                    f"Invalid field '{self.choices_field}'. Valid fields with choices are {', '.join(sorted(valid_fieldnames))}."
+                    f"Invalid field '{self.choices_field}'. "
+                    f"Valid fields with choices are {', '.join(sorted(valid_fieldnames))}."
                 )
             else:
                 raise Http404(
-                    f"Invalid field '{self.choices_field}'. No choice fields found on {serializer.Meta.model._meta.label}."
+                    f"Invalid field '{self.choices_field}'. "
+                    f"No choice fields found on {serializer.Meta.model._meta.label}."
                 )
 
     def get_queryset(self):

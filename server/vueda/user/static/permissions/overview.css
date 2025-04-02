@@ -123,10 +123,6 @@ body {
 .permissions {
     background-color: #404040;
     color: #e0e0e0;
-    /* there are generally 5 permissions per model */
-    display: flex;
-    flex-wrap: wrap;
-    justify-items: center;
     text-align: center;
 }
 

@@ -6,6 +6,7 @@ import importlib
 import inspect
 import io
 import os
+import sys
 from pathlib import Path
 from pprint import pformat
 
@@ -207,13 +208,16 @@ class Command(BaseCommand):
         # Do it here, so we don't need to know which calls require it, and which don't.
         importlib.invalidate_caches()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            call_command(*args)
+            try:
+                call_command(*args)
+            except SystemExit:
+                pass
 
         # Did an error occur?
         if err.tell():
             err.seek(0)
             self.stdout.write(self.style.ERROR(err.read()))
-            return False
+            sys.exit(2)
 
         # Return the results.
         out.seek(0)
@@ -380,7 +384,7 @@ class Command(BaseCommand):
 
         return self._parse_migrations_from_show_migrations(show_migration_results)
 
-    def _get_vueda_generated_migration_data_for_auth_user_model(self, selected_apps=()):
+    def _get_vueda_generated_migration_data_for_auth_user_model(self):
         model = django_apps.get_model(settings.AUTH_USER_MODEL)
         meta = model._meta
         app_label = meta.app_label
