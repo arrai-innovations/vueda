@@ -1257,7 +1257,8 @@ class Command(BaseCommand):
 
         return history_record
 
-    def _parse_related_fields_into_changes_data(self, history_diff, change, field_name, ct):
+    # This function is a complexity of 25, but is much cleaner as a single function.
+    def _parse_related_fields_into_changes_data(self, history_diff, change, field_name, ct):  # noqa C901
         new = change.new
         old = change.old
 

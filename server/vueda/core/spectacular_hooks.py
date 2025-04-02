@@ -29,7 +29,8 @@ def register_cart_with_model_info(endpoints):
     return endpoints
 
 
-def postprocess_schema_components(result, generator, **kwargs):
+# Since this is only used to create the schema, keep the complexity of 30, because it looks nicer as a single function.
+def postprocess_schema_components(result, generator, **kwargs):  # noqa C901
     for component_key, component in result["components"].items():
         match component_key:
             case "schemas":
