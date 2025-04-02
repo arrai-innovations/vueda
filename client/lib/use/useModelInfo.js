@@ -29,8 +29,8 @@ import { reactive, readonly, ref, toRef, watch } from "vue";
  * This function deeply mirrors (watches and clones) the model information, which assumes that the model info has low churn.
  * Frequent updates could have performance implications due to the deep cloning process.
  *
- * @param {import('vue').Ref<string>} app - A ref containing the app name that is being watched.
- * @param {import('vue').Ref<string>} model - A ref containing the model name that is being watched.
+ * @param {import('vue').Ref<string>|string} app - A ref containing the app name that is being watched.
+ * @param {import('vue').Ref<string>|string} model - A ref containing the model name that is being watched.
  * @param {import('@vueda/use/useIsActive.js').IsActive|undefined} [isActive] - An IsActive instance, if one can be
  *  reused.
  * @returns {UseModelInfo} An object containing reactive fields and actions for model info.
