@@ -86,6 +86,7 @@ select = [
     # flake8-quotes: https://docs.astral.sh/ruff/rules/#flake8-quotes-q
     "Q",
     # ruff: https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+    "RUF010",
     "RUF100",
     # flake8-simplify: https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
     "SIM",
