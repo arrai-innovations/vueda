@@ -61,6 +61,8 @@ select = [
     "B0",
     # flake8-comprehensions: https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
     "C4",
+    # mccabe: https://docs.astral.sh/ruff/rules/#mccabe-c90
+    "C90",
     # flake8-django: https://docs.astral.sh/ruff/rules/#flake8-django-dj
     "DJ",
     # pycodestyle: https://docs.astral.sh/ruff/rules/#pycodestyle-e-w
