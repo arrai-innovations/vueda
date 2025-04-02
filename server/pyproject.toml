@@ -83,6 +83,8 @@ select = [
     "PLE",
     # flake8-quotes: https://docs.astral.sh/ruff/rules/#flake8-quotes-q
     "Q",
+    # ruff: https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+    "RUF100",
     # flake8-simplify: https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
     "SIM",
     # flake8-debugger: https://docs.astral.sh/ruff/rules/#flake8-debugger-t10

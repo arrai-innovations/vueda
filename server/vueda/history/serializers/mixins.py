@@ -225,7 +225,7 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
     def get_schema_expandable_fields(self):  # pragma: no cover
         expandable_fields = super().get_schema_expandable_fields()
 
-        # noqa T101 TODO: Add first_history_entry, history, and last_history_entry to the list of expandable fields.
+        # TODO: Add first_history_entry, history, and last_history_entry to the list of expandable fields.
 
         return expandable_fields
 

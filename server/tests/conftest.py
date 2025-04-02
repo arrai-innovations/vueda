@@ -58,7 +58,7 @@ def suffix_each_test(request):
     db.connections.close_all()
 
     template_name = settings.DATABASES.get("default").get("NAME")
-    suffix = hashlib.sha1(request.function.__name__.encode("utf-8")).hexdigest()  # noqa: DUO130
+    suffix = hashlib.sha1(request.function.__name__.encode("utf-8")).hexdigest()
     db_name = "{}_{}".format(template_name, suffix)
     # PostgreSQL has a limit of 63 characters on db names.
     if len(db_name) > 63:

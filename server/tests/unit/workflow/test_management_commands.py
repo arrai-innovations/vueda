@@ -65,7 +65,7 @@ from vueda.workflow import models
 SUBPROCESS_EXCEPTION_TEXT = "\n\nException when calling pytest through subprocess:\n\n"
 
 
-# TODO: When there is time, a good test to have, would be one where we run # noqa T101
+# TODO: When there is time, a good test to have, would be one where we run
 # "makeworkflowmigrations" twice, so we can confirm that works correctly.
 
 

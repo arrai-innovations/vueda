@@ -43,7 +43,7 @@ class Timesheet(VuedaHistoryBaseModel):
         "Employee", on_delete=models.CASCADE, null=True, related_name="timesheet_supervisors"
     )
 
-    # noqa T101 - TODO: Add 'employee__employee_number' to the beginning of the generated field.
+    # TODO: Add 'employee__employee_number' to the beginning of the generated field.
     formatted_name = models.GeneratedField(
         expression=Concat(
             Value(" on "),

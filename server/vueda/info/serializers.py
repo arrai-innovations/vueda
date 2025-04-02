@@ -15,7 +15,7 @@ from django.http import Http404
 from django.utils.functional import cached_property
 from django_filters.fields import ChoiceIterator
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
-from rest_framework import serializers  # noqa F401
+from rest_framework import serializers
 from rest_framework import viewsets  # noqa F401
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.fields import _UnvalidatedField
