@@ -1,5 +1,8 @@
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
+import { it, vitest } from "vitest";
+
+// WARNING: do not import vue here. it will cause issues when mocking vue in a test
 
 export function mockUseRoute(vi) {
     return vi.fn().mockName("mockedUseRoute");
@@ -184,5 +187,99 @@ export const mockEventListener = (vi) => {
         clear: () => {
             eventListeners.length = 0;
         },
+    };
+};
+
+/**
+ * Run a test in a Vue effect scope.
+ * @param {string} name - The name of the test.
+ * @param {() => Promise<void>|void} fn - The test function.
+ * @param {number} [timeout] - The timeout for the test.
+ */
+export const scopedIt = (name, fn, timeout) => {
+    // eslint-disable-next-line vitest/expect-expect
+    it(
+        // eslint-disable-next-line vitest/valid-title
+        name,
+        async () => {
+            const { effectScope } = await vitest.importActual("vue");
+            const scope = effectScope();
+            try {
+                await scope.run(fn);
+            } finally {
+                scope.stop();
+            }
+        },
+        timeout,
+    );
+};
+["only", "skip", "concurrent", "sequential", "fails"].forEach((method) => {
+    scopedIt[method] = (name, fn, timeout) => {
+        it[method](
+            name,
+            async () => {
+                const { effectScope } = await vitest.importActual("vue");
+                const scope = effectScope();
+                try {
+                    await scope.run(fn);
+                } finally {
+                    scope.stop();
+                }
+            },
+            timeout,
+        );
+    };
+});
+/**
+ * Run a test in a Vue effect scope.
+ * @param {string} name - The name of the test.
+ */
+scopedIt.todo = (name) => {
+    // eslint-disable-next-line vitest/valid-title
+    it.todo(name);
+};
+/**
+ * Run a test in a Vue effect scope with multiple cases.
+ * @param {Array} cases - The cases to run the test with.
+ */
+scopedIt.each = (cases) => {
+    const eachFn = it.each(cases);
+    return (name, fn, timeout) => {
+        eachFn(
+            name,
+            async (...args) => {
+                const { effectScope } = await vitest.importActual("vue");
+                const scope = effectScope();
+                try {
+                    await scope.run(() => fn(...args));
+                } finally {
+                    scope.stop();
+                }
+            },
+            timeout,
+        );
+    };
+};
+/**
+ * Run a test in a Vue effect scope with multiple cases.
+ * @param {Array} cases - The cases to run the test with.
+ */
+scopedIt.for = (cases) => {
+    const forFn = it.for(cases);
+    return (name, maybeOptionsOrFn, maybeFnOrNothing) => {
+        const isOptionsFirst = typeof maybeOptionsOrFn === "object" && typeof maybeFnOrNothing === "function";
+
+        const options = isOptionsFirst ? maybeOptionsOrFn : { timeout: maybeFnOrNothing };
+        const fn = isOptionsFirst ? maybeFnOrNothing : maybeOptionsOrFn;
+
+        forFn(name, options, async (arg, context) => {
+            const vue = await vitest.importActual("vue");
+            const scope = vue.effectScope();
+            try {
+                await scope.run(() => fn(arg, context));
+            } finally {
+                scope.stop();
+            }
+        });
     };
 };
