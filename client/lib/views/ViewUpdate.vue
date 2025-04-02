@@ -40,7 +40,7 @@ const instanceObjectProps = reactive({
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     pk: toRef(props, "pk"),
     retrieveArgs: {
-        f: computed(() => [modelConfig.info?.pk, submitFields.value]),
+        f: computed(() => [modelConfig.info?.pk, ...(submitFields.value ?? [])]),
         e: computed(() => {
             const expands = modelConfig.config?.expands || [];
             return expands.filter(
@@ -95,6 +95,7 @@ useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, t
         :model="model"
         :object-form="objectForm"
         :pk="pk"
+        :submit-fields="submitFields"
         :view-name="viewName"
         v-bind="$attrs"
         @form-context="emit('form-context', $event)"
