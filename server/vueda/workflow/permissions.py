@@ -27,8 +27,8 @@ class WorkflowObjectPermissions(DjangoObjectPermissions):
         # Local import, so we can modify the perms_map before the apps are ready.
         from django.contrib.contenttypes.models import ContentType
 
-        app_label = view.kwargs.get("app_label")
-        model = view.kwargs.get("model")
+        app_label = view.kwargs.get("app_label") or view.request.GET.get("app_label")
+        model = view.kwargs.get("model") or view.request.GET.get("model")
         content_type = get_object_or_404(ContentType, app_label=app_label, model=model.replace("_", ""))
         model_class = content_type.model_class()
         return model_class.objects.all()

@@ -11,6 +11,7 @@ from vueda.core.decorators import action
 from vueda.workflow.filtersets import WorkflowFilterSet
 from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import Workflow
+from vueda.workflow.permissions import WorkflowObjectPermissions
 from vueda.workflow.serializers import WorkflowSerializer
 
 
@@ -21,6 +22,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     serializer_class = WorkflowSerializer
     filterset_class = WorkflowFilterSet
     permit_list_expands = ["states", "transitions"]
+    permission_classes = [WorkflowObjectPermissions]
 
     # Moved 'Workflow.objects.all()' to the function, so we can specify a model for workflow actions during open api docs generation.
     def get_queryset(self):
