@@ -1730,10 +1730,11 @@ class Command(BaseCommand):
                 if True in similarity and False in similarity:
                     self.stdout.write(
                         self.style.ERROR(
-                            f"{NEWLINE}Group changes detected, but we can't make a migration yet.  Do one of the following:"
-                            f"""{NEWLINE}{NEWLINE}1. Delete migration "{app_data["last_migration_name"]}", if """
+                            f"""{NEWLINE}Workflow changes detected in app "{app_label}", """
+                            "but we can't make a migration yet.  Do one of the following:"
+                            f"""{NEWLINE}{NEWLINE}1. Delete migration "{app_data["last_migration_path"]}", if """
                             "uncommitted."
-                            f"""{NEWLINE}2. Fake migration "{app_data["last_migration_name"]}"."""
+                            f"""{NEWLINE}2. Fake migration "{app_data["last_migration_path"]}"."""
                             f'{NEWLINE}{NEWLINE}Once done, run "makeworkflowmigrations" again.'
                         )
                     )
