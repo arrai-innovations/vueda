@@ -58,7 +58,7 @@ class TestModelInfoErrs:
             err_serializers.RelatedObjectsAreMissingDataSerializer, err_viewsets.RelatedObjectsAreMissingDataViewSet
         )
 
-    # noqa T101 - TODO: Add tests that use settings with specific apps that cause system check errors.
+    # TODO: Add tests that use settings with specific apps that cause system check errors.
 
     def test_no_formatted_name(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]

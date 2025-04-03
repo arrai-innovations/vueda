@@ -69,7 +69,7 @@ class ObjectPermissions(DjangoObjectPermissions):
             raise exceptions.MethodNotAllowed(method)
 
         called = [perm(self.view_action) if callable(perm) else perm for perm in self.perms_map[method]]
-        return [perm % kwargs for perm in called if perm]  # noqa: S001
+        return [perm % kwargs for perm in called if perm]
 
     def get_required_object_permissions(self, method, model_cls):
         """

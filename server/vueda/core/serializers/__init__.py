@@ -75,7 +75,7 @@ class FlexFieldsWriteableNestedSerializerMixin(
         serializer, because it should already have the flex fields applied.
         Double applying flex fields to the serializer fields will cause an error.
         """
-        if not self._flex_fields_rep_applied:
+        if not self._flex_fields_rep_applied:  # noqa SIM102
             if "view" in self.context and isinstance(self, self.context["view"].get_serializer_class()):
                 self.apply_flex_fields(self.fields, self._flex_options_rep_only)
                 self._flex_fields_rep_applied = True
@@ -174,11 +174,11 @@ class VuedaExpandableFieldsSerializerMixin:
                 "many": False,
             }
 
-            # noqa T101 - TODO: We need to do something when the field is a SerializerMethodField, and
+            # TODO: We need to do something when the field is a SerializerMethodField, and
             #   get_expandable_fields hasn't been overridden on the serializer to return custom data.
             #   But, would an error here be good, or can it be figured out in a system check?
 
-            # noqa T101 - TODO: Move this into a system check.
+            # TODO: Move this into a system check.
             if isinstance(field_data, tuple):  # flex fields only deals with tuples, not lists.
                 field_serializer, expand_options = field_data
             else:
@@ -191,7 +191,7 @@ class VuedaExpandableFieldsSerializerMixin:
             if type(field_serializer) == str:  # noqa E721
                 field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
 
-            # noqa T101 - TODO: Move this into a system check.
+            # TODO: Move this into a system check.
             if not inspect.isclass(field_serializer):
                 raise VuedaValidationError(
                     "This is not a valid `expandable_fields` definition. It must be a tuple of a Serializer/Field"
@@ -278,7 +278,7 @@ class VuedaExpandableFieldsSerializerMixin:
                 "name": field_name,
             }
 
-            # noqa T101 - TODO: Do a system check for the expandable fields syntax.
+            # TODO: Do a system check for the expandable fields syntax.
             if isinstance(field_data, tuple):  # flex fields only deals with tuples, not lists.
                 field_serializer, expand_options = field_data
             else:
@@ -344,7 +344,7 @@ class VuedaLookupSerializer(VuedaSerializer):
         fields = ["code", "name", "formatted_name"] + VuedaSerializer.Meta.fields
 
 
-# noqa T101 - TODO: Create a test that uses the readonly serializers
+# TODO: Create a test that uses the readonly serializers
 class MakeReadonly(serializers.SerializerMetaclass):
     # __new__ is taken from https://stackoverflow.com
     #   /questions/23181442/how-to-hide-remove-some-methods-in-inherited-class-in-python#answer-23182583

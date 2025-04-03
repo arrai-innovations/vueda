@@ -221,7 +221,7 @@ class NoExtraFieldsForViewSetMixin:
                     fields.add(f"{filter_name}__{filter_obj.lookup_expr}")
             # pagination and expanding are allowed
             fields.update(self.get_extra_allowed_fields())
-            for key in request.query_params.keys():
+            for key in request.query_params:
                 if key not in fields:
                     return Response(
                         {"detail": f"Invalid query parameter: '{key}'"},

@@ -188,7 +188,7 @@ def echo_and_eval(
         if extra_env:
             for key, value in extra_env.items():
                 env[key] = value
-        sp = subprocess.run(command, shell=shell)  # noqa: DUO116
+        sp = subprocess.run(command, shell=shell)
     if sp.returncode != 0:
         print(
             wrap_text(f"{error_color('Error')}: {command_for_display} failed with code {sp.returncode}"),

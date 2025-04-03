@@ -9,7 +9,7 @@ import decimal
 import os
 from pathlib import Path
 
-from environs import Env  # noqa
+from environs import Env
 
 from vueda.core.default_settings import get_defaults
 
@@ -39,7 +39,7 @@ LOCAL_APPS = [
 ]
 
 # noinspection PyUnresolvedReferences
-INSTALLED_APPS = DJANGO_APPS + VUEDA_APPS + THIRD_PARTY_APPS + LOCAL_APPS  # noqa: F405, F821
+INSTALLED_APPS = DJANGO_APPS + VUEDA_APPS + THIRD_PARTY_APPS + LOCAL_APPS  # noqa: F821
 
 AUTH_USER_MODEL = "tests.User"
 IN_TESTS = True
