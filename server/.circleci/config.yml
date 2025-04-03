@@ -82,8 +82,9 @@ jobs:
             - run:
                   name: Bundle Documentation
                   command: |
-                      mkdir -p -m 0750 docs/dev/
-                      mv redoc-static.html docs/dev/index.html
+                      rm -rf docs/
+                      mkdir -p -m 0750 docs/$GIT_TAG/
+                      mv redoc-static.html docs/$GIT_TAG/index.html
             - utils/rsync_folder:
                   when: on_success
                   folder: ~/project/docs/
@@ -155,7 +156,7 @@ workflows:
                       tags:
                           only: /.*/
                       branches:
-                          only: /.*/
+                          ignore: /.*/
             - build:
                   name: build
                   requires:
