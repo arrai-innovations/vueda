@@ -18,6 +18,9 @@ executors:
     python311-base:
         docker:
             - image: cimg/python:3.11
+    python311-node:
+        docker:
+            - image: cimg/python:3.11-node
 jobs:
     build:
         executor: python311-base
@@ -52,6 +55,37 @@ jobs:
                   paths:
                       - ~/project/dist
                   key: build-{{ arch }}-{{ .Environment.CIRCLE_WORKFLOW_ID }}
+    docs:
+        executor: python311-node
+        resource_class: small
+        circleci_ip_ranges: true
+        steps:
+            - checkout
+            - utils/add_ssh_config:
+                  hostname: tools.arrai.dev
+                  host: tools.arrai.dev
+            - add_ssh_keys:
+                  fingerprints:
+                      - "SHA256:e+v8NQ5Y014IPQ28fRUTNgaFyHA8K0stDUFYNcUDTp0"
+            - run:
+                  name: Install Dependencies
+                  command: pipenv sync --dev
+            - run:
+                  name: Generate Schema
+                  command: pipenv run python manage.py spectacular --color --file schema.yml
+            - run:
+                  name: Generate Documentation
+                  command: npx -y @redocly/cli build-docs schema.yml
+            - run:
+                  name: Bundle Documentation
+                  command: |
+                      mkdir -p -m 0750 docs/dev/
+                      mv redoc-static.html docs/dev/index.html
+            - utils/rsync_folder:
+                  when: on_success
+                  folder: ~/project/docs/
+                  remote_folder: /
+                  host: tools.arrai.dev
     run_pipeline:
         parameters:
             vcs:
@@ -102,7 +136,6 @@ workflows:
                       branches:
                           only:
                               - main
-
             - run_pipeline:
                   name: run-wayfinders-server-pipeline-main
                   requires:
@@ -112,7 +145,14 @@ workflows:
                       branches:
                           only:
                               - main
-            # todo: docs?
+            - docs:
+                  name: docs
+                  context: arrai-global
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          only: /.*/
             - build:
                   name: build
                   requires:
