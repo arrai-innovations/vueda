@@ -71,6 +71,9 @@ jobs:
                   name: Install Dependencies
                   command: pipenv sync --dev
             - run:
+                  name: Copy Configuration
+                  command: cp .env.circleci .env.local
+            - run:
                   name: Generate Schema
                   command: pipenv run python manage.py spectacular --color --file schema.yml
             - run:
