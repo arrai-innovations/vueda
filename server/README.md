@@ -296,11 +296,13 @@ pre-commit installed at .git/hooks/commit-msg
 
 ### API Documentation Generation
 
-With the dev packages installed, you can call the following two commands:
+API documentation is generated automatically as part of the CI process when tags are pushed. The versioned documentation is made available on the [documentation server][api-docs].
+
+To manually generate the documentation, make sure dev packages are installed and call the following two commands:
 
 ```console
 (vueda-server)[vueda-server]$ python manage.py spectacular --color --file schema.yml
-(vueda-server)[vueda-server]$ npx @redocly/cli build-docs schema.yml
+(vueda-server)[vueda-server]$ npx -y @redocly/cli build-docs schema.yml
 ```
 
 The first command will generate the `schema.yml` file.
@@ -379,3 +381,4 @@ Coverage will be generated in circleci, but you can do so locally if you don't w
 [django-simple-history]: https://github.com/jazzband/django-simple-history
 [vueda-client]: https://github.com/arrai-innovations/vueda-client
 [vueda-server]: https://github.com/arrai-innovations/vueda-server
+[api-docs]: https://docs.arrai.dev/vueda-server/documentation/
