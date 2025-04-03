@@ -77,7 +77,10 @@ class WorkflowPermission(SimpleHistoryModelMixin):
             workflow = self.workflow
         except ObjectDoesNotExist:
             deleted_workflow = True
-            workflow = Workflow.history.filter(id=self.workflow_id).latest()
+            if self.workflow_id is not None:
+                workflow = Workflow.history.filter(id=self.workflow_id).latest()
+            else:
+                workflow = None
 
         deleted_permission = False
         try:
@@ -155,7 +158,10 @@ class StatePermission(SimpleHistoryModelMixin):
             state = self.state
         except ObjectDoesNotExist:
             deleted_state = True
-            state = State.history.filter(id=self.state_id).latest()
+            if self.state_id is not None:
+                state = State.history.filter(id=self.state_id).latest()
+            else:
+                state = None
 
         deleted_permission = False
         try:
@@ -206,14 +212,20 @@ class InitialState(SimpleHistoryModelMixin):
             workflow = self.workflow
         except ObjectDoesNotExist:
             deleted_workflow = True
-            workflow = Workflow.history.filter(id=self.workflow_id).latest()
+            if self.workflow_id is not None:
+                workflow = Workflow.history.filter(id=self.workflow_id).latest()
+            else:
+                workflow = None
 
         deleted_state = False
         try:
             state = self.state
         except ObjectDoesNotExist:
             deleted_state = True
-            state = State.history.filter(id=self.state_id).latest()
+            if self.state_id is not None:
+                state = State.history.filter(id=self.state_id).latest()
+            else:
+                state = None
 
         return (
             f"{'deleted ' if deleted_workflow else ''}workflow: {workflow}, "
@@ -251,7 +263,10 @@ class Transition(SimpleHistoryModelMixin):
             state = self.target
         except ObjectDoesNotExist:
             deleted_state = True
-            state = State.history.filter(id=self.target_id).latest()
+            if self.target_id is not None:
+                state = State.history.filter(id=self.target_id).latest()
+            else:
+                state = None
 
         return f"name: {self.name}, code: {self.code}, {'deleted ' if deleted_state else ''}target: {state}"
 
@@ -289,7 +304,10 @@ class TransitionPermission(SimpleHistoryModelMixin):
             transition = self.transition
         except ObjectDoesNotExist:
             deleted_transition = True
-            transition = Transition.history.filter(id=self.transition_id).latest()
+            if self.transition_id is not None:
+                transition = Transition.history.filter(id=self.transition_id).latest()
+            else:
+                transition = None
 
         deleted_permission = False
         try:
@@ -342,14 +360,20 @@ class TransitionSource(SimpleHistoryModelMixin):
             transition = self.transition
         except ObjectDoesNotExist:
             deleted_transition = True
-            transition = Transition.history.filter(id=self.transition_id).latest()
+            if self.transition_id is not None:
+                transition = Transition.history.filter(id=self.transition_id).latest()
+            else:
+                transition = None
 
         deleted_state = False
         try:
             state = self.source
         except ObjectDoesNotExist:
             deleted_state = True
-            state = State.history.filter(id=self.source_id).latest()
+            if self.source_id is not None:
+                state = State.history.filter(id=self.source_id).latest()
+            else:
+                state = None
 
         return (
             f"{'deleted ' if deleted_transition else ''}transition: {transition}, "

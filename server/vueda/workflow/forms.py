@@ -16,7 +16,8 @@ class WorkflowAddForm(forms.ModelForm):
             pk__in=[
                 content_type.pk
                 for content_type in ContentType.objects.all()
-                if issubclass(content_type.model_class(), HistoricalChanges)
+                if content_type.model_class() is not None
+                and issubclass(content_type.model_class(), HistoricalChanges)
                 or content_type.app_label in ("workflow", "auth", "contenttypes", "sessions", "sites")
             ]
         ).order_by("app_label", "model"),
@@ -50,7 +51,7 @@ class RemoveHistoricalPermissionsForm(forms.ModelForm):
             content_type_id__in=[
                 content_type.pk
                 for content_type in ContentType.objects.all()
-                if issubclass(content_type.model_class(), HistoricalChanges)
+                if content_type.model_class() is not None and issubclass(content_type.model_class(), HistoricalChanges)
             ]
         ).order_by("content_type__app_label", "content_type__model", "codename")
     )

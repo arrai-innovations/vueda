@@ -979,6 +979,9 @@ def get_history_diff_other_models(historical_queryset, last_migrated_date, last_
                 history_date__gt=old_history_record.history_date,
             )
 
+        if last_migrated_date:
+            old_history_records_by_pk = old_history_records_by_pk.filter(history_date__gte=last_migrated_date)
+
         previous_history_record = old_history_record
         for history_record in old_history_records_by_pk.order_by("history_date"):
             history_type, history_diff = get_history_diff(previous_history_record, history_record)
@@ -1730,10 +1733,11 @@ class Command(BaseCommand):
                 if True in similarity and False in similarity:
                     self.stdout.write(
                         self.style.ERROR(
-                            f"{NEWLINE}Group changes detected, but we can't make a migration yet.  Do one of the following:"
-                            f"""{NEWLINE}{NEWLINE}1. Delete migration "{app_data["last_migration_name"]}", if """
+                            f"""{NEWLINE}Workflow changes detected in app "{app_label}", """
+                            "but we can't make a migration yet.  Do one of the following:"
+                            f"""{NEWLINE}{NEWLINE}1. Delete migration "{app_data["last_migration_path"]}", if """
                             "uncommitted."
-                            f"""{NEWLINE}2. Fake migration "{app_data["last_migration_name"]}"."""
+                            f"""{NEWLINE}2. Fake migration "{app_data["last_migration_path"]}"."""
                             f'{NEWLINE}{NEWLINE}Once done, run "makeworkflowmigrations" again.'
                         )
                     )
