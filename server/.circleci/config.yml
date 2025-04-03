@@ -57,7 +57,7 @@ jobs:
                   key: build-{{ arch }}-{{ .Environment.CIRCLE_WORKFLOW_ID }}
     docs:
         executor: python311-node
-        resource_class: small
+        resource_class: medium
         circleci_ip_ranges: true
         steps:
             - checkout
