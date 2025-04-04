@@ -23,7 +23,7 @@ import isObject from "lodash-es/isObject.js";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 import { computed, inject, onDeactivated, onUnmounted, reactive, toRef, unref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 defineOptions({
     inheritAttrs: false,
@@ -46,6 +46,10 @@ const props = defineProps({
         default: undefined,
     },
     runAction: {
+        type: Function,
+        default: undefined,
+    },
+    handleActionCompletion: {
         type: Function,
         default: undefined,
     },
@@ -178,7 +182,11 @@ const handleConfirm = async () => {
             summary: actionSuccessSummary,
             life: 5000,
         });
-        await goBack();
+        if (props.handleActionCompletion) {
+            await props.handleActionCompletion();
+        } else {
+            await goBack();
+        }
     } catch (error) {
         const handled = await defaultOnSubmissionError({ error, formContext, toast });
         if (!handled) {
@@ -243,8 +251,13 @@ const handleCancelClick = async (e) => {
         await goBack();
     }
 };
-
+const route = useRoute();
 const goBack = async () => {
+    const returnPath = route.query?.returnPath;
+    if (returnPath && typeof returnPath === "string") {
+        await router.push(returnPath);
+        return;
+    }
     if (unref(bulk)) {
         await router.push({
             name: LIST_VIEW_CRUD_NAME,
