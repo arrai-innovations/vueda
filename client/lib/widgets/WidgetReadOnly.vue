@@ -130,7 +130,7 @@ const textItemResolvedSlotNames = useSlotNameResolver(
                                 :model="model"
                                 :name="linkItemResolvedSlotNames.name"
                                 :pk="pkValue"
-                                view="update"
+                                view="read"
                             >
                                 <span v-if="prefix" :class="theme('linkItemPrefix')">{{ prefix }}</span>
                                 <link-model-view
@@ -139,7 +139,7 @@ const textItemResolvedSlotNames = useSlotNameResolver(
                                     :label="readonlyValue"
                                     :model="model"
                                     :pk="pkValue"
-                                    view="update"
+                                    view="read"
                                 />
                                 <span v-if="suffix" :class="theme('linkItemSuffix')">{{ suffix }}</span>
                             </slot>
