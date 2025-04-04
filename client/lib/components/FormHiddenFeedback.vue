@@ -93,8 +93,12 @@ onMounted(() => {
 const useFieldContext = computed(() => {
     return fieldContext && !widgetContext?.state?.contextless;
 });
-const effectiveRequired = computed(() => props.required ?? fieldContext?.state?.required);
-const effectiveHelp = computed(() => (props.help?.length ? props.help : fieldContext?.state?.help));
+const effectiveRequired = computed(() =>
+    (props.required ?? useFieldContext.value) ? fieldContext?.state?.required : false,
+);
+const effectiveHelp = computed(() =>
+    props.help?.length ? props.help : useFieldContext.value ? fieldContext?.state?.help : false,
+);
 const effectiveErrors = computed(() => ({
     ...(useFieldContext.value ? fieldContext?.state?.errors : {}),
     ...(props.errors || {}),
