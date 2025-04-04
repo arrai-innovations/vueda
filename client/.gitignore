@@ -2,7 +2,8 @@
 logs
 *.log
 *.log*
-
+Pipfile
+Pipfile.lock
 node_modules
 dist
 *.local
