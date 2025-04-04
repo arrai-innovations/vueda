@@ -121,6 +121,7 @@ workflows:
                   name: pytest
                   executor: python311
                   context: arrai-global
+                  pytest_args: --cov -n2
                   pipenv_cache_key_version: "2"
                   config:
                       - run:
