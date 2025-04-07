@@ -50,6 +50,7 @@ class GroupChangeTypes(enum.Enum):
 
 
 def migrate_step(
+    content_types,
     groups,
     permissions,
     group_name,
@@ -83,10 +84,13 @@ def migrate_step(
 
             if permission is None:
                 # Hopefully this doesn't happen, but if it does, we should add the permission.
+                content_type = content_types.objects.get(
+                    app_label=historical_permission_content_type_app_label,
+                    model=historical_permission_content_type_model_name,
+                )
                 permission = permissions.objects.create(
                     codename=historical_permission_codename,
-                    content_type__app_label=historical_permission_content_type_app_label,
-                    content_type__model=historical_permission_content_type_model_name,
+                    content_type=content_type,
                     name=historical_permission_name,
                 )
 
@@ -101,6 +105,10 @@ def migrate_step(
 
 
 def forwards_migrate_groups(apps, schema_editor):
+    content_types = apps.get_model("contenttypes", "ContentType")
+    groups = apps.get_model("auth", "Group")
+    permissions = apps.get_model("auth", "Permission")
+
     # Copied, so tests can migrate forwards and then backwards.
     for changed_item in copy.deepcopy(changed_data):
         group_name = changed_item["group_name"]
@@ -111,10 +119,8 @@ def forwards_migrate_groups(apps, schema_editor):
         historical_permission_content_type_model_name = changed_item["historical_permission_content_type_model_name"]
         historical_permission_name = changed_item["historical_permission_name"]
 
-        groups = apps.get_model("auth", "Group")
-        permissions = apps.get_model("auth", "Permission")
-
         migrate_step(
+            content_types,
             groups,
             permissions,
             group_name,
@@ -128,6 +134,10 @@ def forwards_migrate_groups(apps, schema_editor):
 
 
 def backwards_migrate_groups(apps, schema_editor):
+    content_types = apps.get_model("contenttypes", "ContentType")
+    groups = apps.get_model("auth", "Group")
+    permissions = apps.get_model("auth", "Permission")
+
     # Copied and reversed, so tests can migrate backwards and then forwards.
     for changed_item in reversed(copy.deepcopy(changed_data)):
         group_name = changed_item["group_name"]
@@ -137,9 +147,6 @@ def backwards_migrate_groups(apps, schema_editor):
         historical_permission_content_type_app_label = changed_item["historical_permission_content_type_app_label"]
         historical_permission_content_type_model_name = changed_item["historical_permission_content_type_model_name"]
         historical_permission_name = changed_item["historical_permission_name"]
-
-        groups = apps.get_model("auth", "Group")
-        permissions = apps.get_model("auth", "Permission")
 
         # Reverse everything
         match change_type:
@@ -157,6 +164,7 @@ def backwards_migrate_groups(apps, schema_editor):
                 change_type = GroupChangeTypes.ADDED.value
 
         migrate_step(
+            content_types,
             groups,
             permissions,
             group_name,
