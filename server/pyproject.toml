@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=69.0.3", "wheel"]
+requires = ["setuptools>=78.1.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -21,15 +21,14 @@ extended in your application, ensuring both control and adaptability.
 """
 readme = "README.md"
 requires-python = ">=3.11"
-license = { file = "LICENSE" }
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 authors = [
     { name = "Arrai Innovations", email = "support@arrai.com" }
 ]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Programming Language :: Python :: 3.11",
-    "License :: OSI Approved :: BSD License",
-    "License :: OSI Approved :: The 3-Clause BSD License (BSD-3-Clause)",
     "Environment :: Console",
     "Framework :: Django",
     "Framework :: Django :: 5.0",
