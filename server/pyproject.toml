@@ -1,38 +1,24 @@
 [build-system]
-requires = ["setuptools>=69.0.3", "wheel"]
+requires = ["setuptools>=78.1.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "vueda"
-description = """\
-Vue.js User Experience for Django Administration (VUEDA) - Server Library
-
-`vueda-server`, the counterpart to `vueda-client`, is designed for projects that
-integrate Vue.js frontends with Django REST Framework backends. This server
-library enhances Django's native authentication and permissions systems
-with default DRF classes and optimizes integration with `django-filters`,
-`drf-flex-fields`, and `drf-writable-nested`. It offers essential out-of-the-box
-functionalities such as custom workflow management, audit trails (with DRF
-support for `django-simple-history`), and both row-level and field-level
-permissions. Additionally, `vueda-server` provides DRF classes to expose Django
-model details to the frontend, filtered by user permissions. It is built with
-customization in mind, offering most features as base classes that can be
-extended in your application, ensuring both control and adaptability.
-"""
+description = "Vue.js User Experience for Django Administration (VUEDA) - Server Library"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { file = "LICENSE" }
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 authors = [
     { name = "Arrai Innovations", email = "support@arrai.com" }
 ]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Programming Language :: Python :: 3.11",
-    "License :: OSI Approved :: BSD License",
-    "License :: OSI Approved :: The 3-Clause BSD License (BSD-3-Clause)",
+    "Programming Language :: Python :: 3.12",
     "Environment :: Console",
     "Framework :: Django",
-    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
     "Intended Audience :: Developers",
 ]
 dynamic = ["dependencies", "version"]
