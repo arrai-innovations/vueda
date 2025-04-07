@@ -4,21 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vueda"
-description = """\
-Vue.js User Experience for Django Administration (VUEDA) - Server Library
-
-`vueda-server`, the counterpart to `vueda-client`, is designed for projects that
-integrate Vue.js frontends with Django REST Framework backends. This server
-library enhances Django's native authentication and permissions systems
-with default DRF classes and optimizes integration with `django-filters`,
-`drf-flex-fields`, and `drf-writable-nested`. It offers essential out-of-the-box
-functionalities such as custom workflow management, audit trails (with DRF
-support for `django-simple-history`), and both row-level and field-level
-permissions. Additionally, `vueda-server` provides DRF classes to expose Django
-model details to the frontend, filtered by user permissions. It is built with
-customization in mind, offering most features as base classes that can be
-extended in your application, ensuring both control and adaptability.
-"""
+description = "Vue.js User Experience for Django Administration (VUEDA) - Server Library"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "BSD-3-Clause"
