@@ -23,6 +23,7 @@ from vueda.user import models as vueda_models
 
 
 NEWLINE = os.linesep
+INDENT8 = "        "
 
 
 # Add a comment right after the Django generated comment, to help find our created migrations.
@@ -307,7 +308,7 @@ class Command(BaseCommand):
 
         return return_value
 
-    def _rewrite_migration(self, migration_file, changes, migration_name, auth_migration_name):
+    def _rewrite_migration(self, migration_file, changes, migration_name, dependencies):
         with open(migration_file, "r+", encoding="utf-8") as f:
             generated_index = class_index = dependencies_index = p_forwards_index = p_reverse_index = forwards_index = (
                 reverse_index
@@ -353,9 +354,8 @@ class Command(BaseCommand):
 
             # Add Dependencies
             lines[dependencies_index + 1 : dependencies_index + 1] = [
-                f"        migrations.swappable_dependency(settings.AUTH_USER_MODEL),{NEWLINE}",
-                f'        ("auth", "{auth_migration_name}"),{NEWLINE}',
-            ]
+                f"{INDENT8}migrations.swappable_dependency(settings.AUTH_USER_MODEL),{NEWLINE}",
+            ] + dependencies
 
             # Changed data and forwards/reverse functions.
             lines[class_index - 1 : class_index] = [
@@ -391,6 +391,24 @@ class Command(BaseCommand):
             return None
 
         return self._parse_migrations_from_show_migrations(show_migration_results)
+
+    def _get_project_dependency_migration_names_from_show_migrations(self, exclude):
+        exclude = exclude.split(".")[0]  # make sure we don't have .py in the name.
+        project_dependency_migration_names = []
+        for app in django_apps.get_app_configs():
+            app_path = Path(app.path)
+            if "site-packages" not in app_path.parts:
+                app_label = app.label
+                app_migrations = self._get_migration_names_from_show_migrations(app_label)
+                if app_migrations:
+                    # Exclude the migration we just created.
+                    if app_migrations[-1] == exclude:
+                        continue
+                    project_dependency_migration_names.append(
+                        f'{INDENT8}("{app_label}", "{app_migrations[-1]}"),{NEWLINE}'
+                    )
+
+        return sorted(project_dependency_migration_names)
 
     def _get_vueda_generated_migration_data_for_auth_user_model(self):
         model = django_apps.get_model(settings.AUTH_USER_MODEL)
@@ -512,7 +530,9 @@ class Command(BaseCommand):
 
         if not self.dry_run:
             auth_migration_names = self._get_migration_names_from_show_migrations("auth")
-            self._rewrite_migration(migration_file, changes, migration_name, auth_migration_names[-1])
+            dependencies = [f'{INDENT8}("auth", "{auth_migration_names[-1]}"),{NEWLINE}']
+            dependencies += self._get_project_dependency_migration_names_from_show_migrations(exclude=migration_name)
+            self._rewrite_migration(migration_file, changes, migration_name, dependencies)
 
         self.stdout.write(
             self.style.SUCCESS(
