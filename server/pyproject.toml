@@ -15,9 +15,10 @@ authors = [
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Environment :: Console",
     "Framework :: Django",
-    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
     "Intended Audience :: Developers",
 ]
 dynamic = ["dependencies", "version"]
