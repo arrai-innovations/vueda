@@ -12,6 +12,9 @@ build/
 vueda.egg-info/
 dist/
 
+redoc-static.html
+schema.yml
+
 .idea
 .vscode/*
 !.vscode/extensions.json
