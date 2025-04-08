@@ -1615,8 +1615,8 @@ class Command(BaseCommand):
             dependency_data = [
                 f"{INDENT8}migrations.swappable_dependency(settings.AUTH_USER_MODEL),{NEWLINE}",
             ]
-            for app_name, migration_name in dependencies.items():
-                dependency_data.append(f'{INDENT8}("{app_name}", "{migration_name}"),{NEWLINE}')
+            for app_name, app_migration_name in dependencies.items():
+                dependency_data.append(f'{INDENT8}("{app_name}", "{app_migration_name}"),{NEWLINE}')
 
             lines[dependencies_index + 1 : dependencies_index + 1] = dependency_data
 

@@ -91,6 +91,7 @@ def strip_database_creation_and_deletion_from_stderr(stderr, db_name):
 
 
 class TestManagementCommandWorkflow(BaseTestCallCommand):
+    @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_no_app_label_specified(self):
         succeeded, results = self.call_command("makeworkflowmigrations", "--dry-run")
@@ -110,6 +111,7 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
         # Delete test created migrations, for workflow added.
         clean_migrations("workflow_added")
 
+    @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_added(self):
         succeeded, results = self.call_command(
@@ -405,6 +407,7 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand):
         # Delete test created migrations, for workflow changed.
         clean_migrations("workflow_changed")
 
+    @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_changed(self):
         succeeded, results = self.call_command(
@@ -851,6 +854,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand):
         # Delete test created migrations, for workflow deleted.
         clean_migrations("workflow_deleted")
 
+    @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_deleted(self):
         succeeded, results = self.call_command(
@@ -1197,6 +1201,7 @@ class TestManagementCommandWorkflowMulti(BaseTestCallCommand):
         # Delete test created migrations, for workflow multi.
         clean_migrations("workflow_multi")
 
+    @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_multi(self):
         succeeded, results = self.call_command(
