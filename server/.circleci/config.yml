@@ -83,8 +83,8 @@ jobs:
                   name: Bundle Documentation
                   command: |
                       rm -rf docs/
-                      mkdir -p -m 0750 docs/$GIT_TAG/
-                      mv redoc-static.html docs/$GIT_TAG/index.html
+                      mkdir -p -m 0750 docs/$CIRCLE_TAG/
+                      mv redoc-static.html docs/$CIRCLE_TAG/index.html
             - utils/rsync_folder:
                   when: on_success
                   folder: ~/project/docs/
