@@ -51,9 +51,8 @@ export function useVersion() {
     if (version === null) {
         const vuedaServerVersion = ref("");
         const projectServerVersion = ref("");
-        const clientVersion = ref("");
         const newClientAvailable = computed(
-            () => clientVersion.value && VITE_PACKAGE_VERSION && semvarGT(clientVersion.value, VITE_PACKAGE_VERSION),
+            () => vuedaClientVersion && VITE_PACKAGE_VERSION && semvarGT(vuedaClientVersion, VITE_PACKAGE_VERSION),
         );
 
         onMounted(async () => {
