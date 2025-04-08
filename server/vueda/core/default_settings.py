@@ -156,6 +156,7 @@ def get_defaults(env: Env):
                 "vueda.info",
                 "vueda.user",
                 "vueda.workflow",
+                "vueda.release",
             ],
         ),
         "THIRD_PARTY_APPS": env.list(
