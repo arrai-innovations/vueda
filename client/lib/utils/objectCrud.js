@@ -44,7 +44,7 @@ const makeSearchParamsString = (searchParams) => {
 const getFormData = (object) => {
     const formData = new FormData();
     for (const key in object) {
-        if (object[key] && object[key] !== {} && object[key] !== []) {
+        if (object[key]) {
             if (Array.isArray(object[key])) {
                 const o = unref(object[key]);
                 o.forEach((value, i) => {

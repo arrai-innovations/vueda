@@ -21,7 +21,9 @@
     "test": "npx --no-install vitest",
     "coverage": "npm test -- run --coverage",
     "prepare": "npx --no-install husky",
-    "docs": "echo \"#todo: setup jsdoc to markdown\""
+    "docs": "echo \"#todo: setup jsdoc to markdown\"",
+    "lint": "npx eslint --fix .",
+    "prettier": "npx prettier --write ."
   },
   "repository": {
     "type": "git",
