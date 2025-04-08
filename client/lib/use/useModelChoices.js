@@ -41,7 +41,7 @@ export function useModelChoices(app, model, field, isActive, intendToFetch, isFi
     if (!isActive) {
         isActive = useIsActive();
     }
-    let modelChoicesStore;
+    let modelChoicesStore = null;
     const internalState = reactive({
         app,
         model,
