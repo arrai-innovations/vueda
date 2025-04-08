@@ -5,7 +5,7 @@ orbs:
     pytest: arrai/pytest@8.1.5
     ruff: arrai/ruff@1.0.0
     safety: arrai/safety@4.0.0
-    utils: arrai/utils@1.16.3
+    utils: arrai/utils@1.18.0
 executors:
     base:
         docker:
@@ -89,6 +89,7 @@ jobs:
                   when: on_success
                   folder: ~/project/docs/
                   remote_folder: /
+                  delete: false
                   host: tools.arrai.dev
     run_pipeline:
         parameters:
