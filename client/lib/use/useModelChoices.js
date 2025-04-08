@@ -41,8 +41,7 @@ export function useModelChoices(app, model, field, isActive, intendToFetch, isFi
     if (!isActive) {
         isActive = useIsActive();
     }
-    const modelChoicesStore = storeModelChoices();
-    modelChoicesStore.initializeChoice(app.value, model.value, isFilter.value);
+    let modelChoicesStore;
     const internalState = reactive({
         app,
         model,
@@ -76,6 +75,10 @@ export function useModelChoices(app, model, field, isActive, intendToFetch, isFi
             }
             // we don't need to check if active, app, model, field, intendToFetch, or isFilter have changed, vue
             //  does that checking for us because they are refs to immutable primitive values
+            if (!modelChoicesStore) {
+                modelChoicesStore = storeModelChoices();
+                modelChoicesStore.initializeChoice(app.value, model.value, isFilter.value);
+            }
             // todo: we could look at implementing cancelling of fetches if the app/model/field changes while loading
             if (app && model && field && !returnObject.loading && intendToFetch) {
                 const key = getAppModelDotName({ app, model });
