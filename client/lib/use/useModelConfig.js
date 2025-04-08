@@ -58,7 +58,7 @@ export function useModelConfig(app, model, view) {
     const loadingError = useLoadingError();
     const isActive = useIsActive();
     const modelInfo = useModelInfo(app, model, isActive);
-    const modelConfigStore = storeModelConfig();
+    let modelConfigStore = null;
     const proxyLoadingError = useProxyLoadingError([loadingError, modelInfo]);
     const returnObject = reactive({
         app,
@@ -72,7 +72,6 @@ export function useModelConfig(app, model, view) {
         config: {},
     });
 
-    // update originalConfig when app, model, or isActive changes
     watch(
         [isActive, toRef(returnObject, "app"), toRef(returnObject, "model"), toRef(returnObject, "view")],
         ([active, app, model, view]) => {
@@ -81,6 +80,9 @@ export function useModelConfig(app, model, view) {
             }
             // we don't need to check if app and model have changed, vue does that checking for us
             //  on immutable primitive values
+            if (!modelConfigStore) {
+                modelConfigStore = storeModelConfig();
+            }
             // todo: we could look at implementing cancelling of fetches if the app/model changes while loading
             if (app && model) {
                 loadingError.clearError();

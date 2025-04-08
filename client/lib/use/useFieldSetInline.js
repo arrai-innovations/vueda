@@ -275,6 +275,9 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
     }, {});
 
     const parentFormModel = inject(FormModelSymbol, null);
+    if (!parentFormModel) {
+        throw new Error("useFieldSetInline must be used within a FormModel context.");
+    }
     // merge the props from FieldSetInline, and the props from the formModel
     const mergedFormModelProps = reactive({
         name: props.name,

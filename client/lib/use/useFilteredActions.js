@@ -1,5 +1,6 @@
 import { useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import isArray from "lodash-es/isArray.js";
 import isObject from "lodash-es/isObject.js";
@@ -47,28 +48,58 @@ import { reactive, toRef, watch } from "vue";
  * @returns {FilteredActionsState} An object containing reactive state for filtered actions and related metadata.
  */
 export function useFilteredActions({ app, model, view = null, modelConfigInstance = null }) {
-    if (!modelConfigInstance) {
-        modelConfigInstance = useModelConfig(app, model, view);
-    }
-    const userStore = storeUser();
-    const proxyLoadingError = useProxyLoadingError([userStore, modelConfigInstance]);
+    const isActive = useIsActive();
 
-    const returnObject = reactive({
-        app: toRef(modelConfigInstance, "app"),
-        model: toRef(modelConfigInstance, "model"),
-        view: toRef(modelConfigInstance, "view"),
-        loading: proxyLoadingError.loading,
-        error: proxyLoadingError.error,
-        errored: proxyLoadingError.errored,
-        clearError: proxyLoadingError.clearError,
-        info: toRef(modelConfigInstance, "info"),
-        config: toRef(modelConfigInstance, "config"),
+    let localModelConfigInstance = null;
+    let localUserStore = null;
+    let localProxyLoadingError = null;
+
+    const internalState = reactive({
         actions: [],
+        groups: [],
+    });
+    const returnObject = reactive({
+        app: "",
+        model: "",
+        view: null,
+        loading: undefined,
+        error: null,
+        errored: false,
+        clearError: () => {},
+        info: {},
+        config: {},
+        actions: [],
+    });
+
+    watch(isActive, (active) => {
+        if (active) {
+            if (!localModelConfigInstance) {
+                localModelConfigInstance = modelConfigInstance || useModelConfig(app, model, view);
+                returnObject.app = toRef(localModelConfigInstance, "app");
+                returnObject.model = toRef(localModelConfigInstance, "model");
+                returnObject.view = toRef(localModelConfigInstance, "view");
+                returnObject.info = toRef(localModelConfigInstance, "info");
+                returnObject.config = toRef(localModelConfigInstance, "config");
+                internalState.actions = toRef(localModelConfigInstance.config, "actions");
+            }
+
+            if (!localUserStore) {
+                localUserStore = storeUser();
+                internalState.groups = toRef(localUserStore.loggedInUser, "groups");
+            }
+            if (localModelConfigInstance && localUserStore && !localProxyLoadingError) {
+                localProxyLoadingError = useProxyLoadingError([localUserStore, localModelConfigInstance]);
+                returnObject.loading = localProxyLoadingError.loading;
+                returnObject.error = localProxyLoadingError.error;
+                returnObject.errored = localProxyLoadingError.errored;
+                returnObject.clearError = localProxyLoadingError.clearError;
+            }
+        }
     });
 
     // watch for our view's actions to change as the model config changes
     watch(
-        [() => modelConfigInstance.config?.actions, () => userStore.loggedInUser?.groups || []],
+        [() => internalState.actions, () => internalState.groups || []],
         ([actions, groups]) => {
             if (isArray(actions)) {
                 // if actions are already a flat list, use directly

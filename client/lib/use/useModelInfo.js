@@ -40,7 +40,7 @@ export function useModelInfo(app, model, isActive) {
     if (!isActive) {
         isActive = useIsActive();
     }
-    const modelInfoStore = storeModelInfo();
+    let modelInfoStore = null;
     const internalState = reactive({
         app,
         model,
@@ -66,6 +66,9 @@ export function useModelInfo(app, model, isActive) {
             if (!app || !model) {
                 returnObject.info = {};
                 return;
+            }
+            if (!modelInfoStore) {
+                modelInfoStore = storeModelInfo();
             }
             // we don't need to check if app and model have changed, vue does that checking for us
             //  on immutable primitive values
