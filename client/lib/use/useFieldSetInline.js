@@ -319,9 +319,9 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
             const prefix = `${fieldSetContext.state.formModelName}__`;
             const hidden = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.hidden || [];
 
-            return deepUnref(formModel.fields).reduce((acc, full) => {
-                if (full?.startsWith?.(prefix)) {
-                    const field = full.slice(prefix.length);
+            return deepUnref(formModel.fields).reduce((acc, fullFieldName) => {
+                if (fullFieldName?.startsWith?.(prefix)) {
+                    const field = fullFieldName.slice(prefix.length);
                     if (!hidden.includes(field)) {
                         acc.push(field);
                     }
