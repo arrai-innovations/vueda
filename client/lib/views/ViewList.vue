@@ -565,8 +565,13 @@ const searchSlotProps = reactive({
                 </slot>
             </template>
             <template v-for="field in extraFieldObjects" :key="field.name" #[`field(${field.name})`]="slotProps">
-                <slot :name="`field(${field.name})`" v-bind="slotProps">
+                <slot
+                    v-bind="slotProps"
+                    :has-selectable-actions="bulkActions.size || availableTransitions.size"
+                    :name="`field(${field.name})`"
+                >
                     <Checkbox
+                        v-if="bulkActions.size || availableTransitions.size"
                         v-model="selectedObjects"
                         :input-id="`selected-row-${slotProps.pk}`"
                         name="selected"
