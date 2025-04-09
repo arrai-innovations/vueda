@@ -9,8 +9,8 @@ import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import { useBreakpoints } from "@vueuse/core";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import merge from "lodash-es/merge.js";
-import omit from "lodash-es/omit.js";
 import { computed, inject, onBeforeUpdate, reactive, readonly, toRef, unref, useSlots, watch } from "vue";
+import { deepUnref } from "vue-deepunref";
 
 /**
  * Helper function to focus the first descendant element that can be focused.
@@ -315,12 +315,19 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
         fieldNames: computed(() => {
             if (props.fields) {
                 return props.fields;
-            } else {
-                const fields = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.f;
-                const omitFields = formModel?.expandDetails?.[fieldSetContext.state.formModelName].hidden;
-                // return the fields keys, omitting the hidden fields keys
-                return fields ? Object.keys(omit(fields, omitFields)) : [];
             }
+            const prefix = `${fieldSetContext.state.formModelName}__`;
+            const hidden = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.hidden || [];
+
+            return deepUnref(formModel.fields).reduce((acc, full) => {
+                if (full?.startsWith?.(prefix)) {
+                    const field = full.slice(prefix.length);
+                    if (!hidden.includes(field)) {
+                        acc.push(field);
+                    }
+                }
+                return acc;
+            }, []);
         }),
         fieldObjects: computed(() => {
             if (props.fieldObjects) {
