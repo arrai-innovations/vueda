@@ -87,15 +87,13 @@
     "vue-router": "^4.5.0"
   },
   "dependencies": {
-    "@tiptap/extension-text-align": "^2.1.13",
-    "@tiptap/starter-kit": "^2.1.13",
-    "@tiptap/vue-3": "^2.1.13",
     "browser-util-inspect": "^0.2.0",
     "dompurify": "^3.2.0",
     "js-cookie": "^3.0.5",
     "p-limit": "^5.0.0",
     "platform-detect": "^3.0.1",
     "pluralize": "^8.0.0",
+    "quill": "^2.0.3",
     "semver": "^7.7.1",
     "string-similarity-js": "^2.1.4"
   }
