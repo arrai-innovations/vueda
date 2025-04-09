@@ -1,7 +1,7 @@
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import VuedaViewSet
 from vueda.release.filtersets import ReleaseNoteFilterSet
-from vueda.release.model import ReleaseNote
+from vueda.release.models import ReleaseNote
 from vueda.release.serializers import ReleaseNoteSerializer
 
 

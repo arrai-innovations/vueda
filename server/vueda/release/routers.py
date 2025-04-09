@@ -3,5 +3,5 @@ from vueda.release.viewsets import ReleaseNoteViewSet
 
 
 router = VuedaRouter()
-router.register(r"release", ReleaseNoteViewSet)
+router.register(r"releasenote", ReleaseNoteViewSet)
 urlpatterns = router.urls

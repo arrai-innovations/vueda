@@ -1,5 +1,5 @@
 from vueda.core.filters import VuedaFilterSet
-from vueda.release.model import ReleaseNote
+from vueda.release.models import ReleaseNote
 
 
 class ReleaseNoteFilterSet(VuedaFilterSet):
