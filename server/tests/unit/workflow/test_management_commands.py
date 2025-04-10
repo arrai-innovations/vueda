@@ -90,6 +90,15 @@ def strip_database_creation_and_deletion_from_stderr(stderr, db_name):
     return stderr
 
 
+def strip_registered_info_from_stderr(stderr):
+    for msg in stderr.split("\n"):
+        if msg.startswith("INFO Registered") and " with <" in msg and "> and <" in msg:
+            stderr = stderr.replace(msg + "\n", "")
+        elif msg.startswith("INFO Registered") and " with <" in msg:
+            stderr = stderr.replace(msg + "\n", "")
+    return stderr
+
+
 class TestManagementCommandWorkflow(BaseTestCallCommand):
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
@@ -156,6 +165,8 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
 
         # Database creation and deletion are added to stderr.  We don't want those messages in stderr.
         stderr = strip_database_creation_and_deletion_from_stderr(results.stderr.decode("utf-8"), test_db_name)
+        # Also Registered info messages end up in stderr.  We don't want those messages in stderr.
+        stderr = strip_registered_info_from_stderr(stderr)
 
         if stderr:
             pytest.fail(SUBPROCESS_EXCEPTION_TEXT + stderr, pytrace=False)
@@ -452,6 +463,8 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand):
 
         # Database creation and deletion are added to stderr.  We don't want those messages in stderr.
         stderr = strip_database_creation_and_deletion_from_stderr(results.stderr.decode("utf-8"), test_db_name)
+        # Also Registered info messages end up in stderr.  We don't want those messages in stderr.
+        stderr = strip_registered_info_from_stderr(stderr)
 
         if stderr:
             pytest.fail(SUBPROCESS_EXCEPTION_TEXT + stderr, pytrace=False)
@@ -899,6 +912,8 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand):
 
         # Database creation and deletion are deleted to stderr.  We don't want those messages in stderr.
         stderr = strip_database_creation_and_deletion_from_stderr(results.stderr.decode("utf-8"), test_db_name)
+        # Also Registered info messages end up in stderr.  We don't want those messages in stderr.
+        stderr = strip_registered_info_from_stderr(stderr)
 
         if stderr:
             pytest.fail(SUBPROCESS_EXCEPTION_TEXT + stderr, pytrace=False)
