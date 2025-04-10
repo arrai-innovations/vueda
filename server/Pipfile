@@ -27,6 +27,7 @@ pytest-sugar = ">=0.9.7"
 pytest-xdist = ">=3.5.0"
 # test requirements
 psycopg = {extras = ["c"], version = ">=3.1.15,<4"}
+python-dateutil = ">=2.8.2,<3"
 # Workflow / Permissions Views
 gunicorn = ">=21.2.0"
 jinja2 = ">=3.1.2"
