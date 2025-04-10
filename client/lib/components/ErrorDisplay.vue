@@ -3,7 +3,6 @@ import * as Sentry from "@sentry/vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import { formatError } from "@vueda/utils/formatError.js";
-import isArray from "lodash-es/isArray.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import Message from "primevue/message";
 import { computed, ref, toRef, useAttrs, watch } from "vue";
@@ -73,7 +72,7 @@ watch(
         if (ignoredError(error)) {
             return;
         }
-        if (isArray(error)) {
+        if (Array.isArray(error)) {
             if (isEmpty(error)) {
                 return;
             }

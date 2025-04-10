@@ -1,7 +1,6 @@
 <script setup>
 import FilterComponent from "@vueda/components/FilterComponent.vue";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
-import isArray from "lodash-es/isArray.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
 import Button from "primevue/button";
@@ -55,11 +54,11 @@ watch(
         for (const filter of newAddedFilters) {
             let filterValue = filter.value;
             if (filter.isValueRawObject) {
-                isArray(filterValue)
+                Array.isArray(filterValue)
                     ? (filterValue = filterValue.map((value) => value.value))
                     : (filterValue = filterValue.value);
             }
-            if (isArray(filter.param)) {
+            if (Array.isArray(filter.param)) {
                 filter.param.forEach((p) => {
                     if (isObject(filter.value)) {
                         const parts = p.split("_");

@@ -5,7 +5,6 @@ import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { containsHtml, sanitizeMessages } from "@vueda/utils/html.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import get from "lodash-es/get.js";
-import isArray from "lodash-es/isArray.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
 import Message from "primevue/message";
@@ -113,7 +112,7 @@ const renderDetail = (data) => {
         >
             <slot :name="type" v-bind="{ message, type, attrs: $attrs }">
                 <Message
-                    v-for="line in isArray(message) ? message : [message]"
+                    v-for="line in Array.isArray(message) ? message : [message]"
                     :key="line"
                     v-bind="$attrs"
                     :closable="false"

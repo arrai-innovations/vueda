@@ -4,7 +4,6 @@ import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
-import isArray from "lodash-es/isArray.js";
 import Button from "primevue/button";
 import { computed, toRef, useAttrs, watch } from "vue";
 
@@ -21,7 +20,7 @@ const preprocessGet = (value) => {
     if (value === undefined || value === null) {
         return value;
     }
-    return isArray(value) ? value : [value];
+    return Array.isArray(value) ? value : [value];
 };
 
 const emit = defineEmits([...FIELD_EMITS]);
@@ -30,7 +29,7 @@ const fieldContext = useField(props, emit, { preprocessGet });
 
 const fieldProps = computed(() => {
     const values = fieldContext.state.value;
-    const indexes = isArray(values) && values.length ? values.map((_, index) => index) : [0];
+    const indexes = Array.isArray(values) && values.length ? values.map((_, index) => index) : [0];
     return indexes.map((index) => ({
         ...props,
         ...attrs,

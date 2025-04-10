@@ -1,6 +1,5 @@
 import { flattenPaths } from "@arrai-innovations/reactive-helpers";
 import get from "lodash-es/get.js";
-import isArray from "lodash-es/isArray.js";
 
 /**
  * Combine errors into a single array of errors.
@@ -16,7 +15,7 @@ import isArray from "lodash-es/isArray.js";
 export function combineErrors(errors) {
     // errors could be an Error or an array of Errors, or an array of arrays of Errors
     // return a single array of Errors
-    if (isArray(errors)) {
+    if (Array.isArray(errors)) {
         return errors.flat();
     }
     if (!errors) {

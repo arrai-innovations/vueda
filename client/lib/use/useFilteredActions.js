@@ -2,7 +2,6 @@ import { useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import isArray from "lodash-es/isArray.js";
 import isObject from "lodash-es/isObject.js";
 import { reactive, toRef, watch } from "vue";
 
@@ -101,7 +100,7 @@ export function useFilteredActions({ app, model, view = null, modelConfigInstanc
     watch(
         [() => internalState.actions, () => internalState.groups || []],
         ([actions, groups]) => {
-            if (isArray(actions)) {
+            if (Array.isArray(actions)) {
                 // if actions are already a flat list, use directly
                 returnObject.actions = actions;
             } else if (isObject(actions)) {
@@ -110,7 +109,7 @@ export function useFilteredActions({ app, model, view = null, modelConfigInstanc
                     const allowedGroups = actions[action];
                     return (
                         allowedGroups === true ||
-                        (isArray(allowedGroups) && allowedGroups.some((group) => groups.includes(group)))
+                        (Array.isArray(allowedGroups) && allowedGroups.some((group) => groups.includes(group)))
                     );
                 });
             } else {

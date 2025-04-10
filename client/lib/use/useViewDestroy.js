@@ -1,7 +1,6 @@
 import { useList } from "@arrai-innovations/reactive-helpers";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import isArray from "lodash-es/isArray.js";
 import { computed, reactive, toRef } from "vue";
 
 /**
@@ -44,7 +43,7 @@ export function useViewDestroy(props) {
         listArgs: {
             id: computed(() => {
                 const pk = props.pk;
-                return isArray(pk) ? pk : [pk];
+                return Array.isArray(pk) ? pk : [pk];
             }),
         },
         intendToList: validAndActive,

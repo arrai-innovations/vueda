@@ -3,7 +3,6 @@ import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
-import isArray from "lodash-es/isArray.js";
 import isObject from "lodash-es/isObject.js";
 import { unref } from "vue";
 import { deepUnref } from "vue-deepunref";
@@ -18,7 +17,7 @@ const makeSearchParamsString = (searchParams) => {
     }
     const usp = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
-        if (isArray(value)) {
+        if (Array.isArray(value)) {
             // Filter out undefined values and join array elements into a comma-separated string
             const filteredValues = value.filter((v) => v !== undefined).join(",");
             if (filteredValues) {

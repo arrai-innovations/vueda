@@ -1,4 +1,3 @@
-import isArray from "lodash-es/isArray.js";
 import os from "platform-detect/os.mjs";
 import { effectScope, onActivated, onDeactivated, onMounted, toRef, unref, watchEffect } from "vue";
 
@@ -61,9 +60,9 @@ export function useWindowShortcut(props) {
             for (const trigger of unref(triggers)) {
                 let processedMods = os.macos ? trigger.macOsModifiers : trigger.modifiers;
                 if (processedMods) {
-                    processedMods = isArray(processedMods) ? processedMods : [processedMods];
+                    processedMods = Array.isArray(processedMods) ? processedMods : [processedMods];
                 }
-                const processedKeys = (isArray(trigger.keys) ? trigger.keys : [trigger.keys]).map((key) => {
+                const processedKeys = (Array.isArray(trigger.keys) ? trigger.keys : [trigger.keys]).map((key) => {
                     if (processedMods?.includes("shiftKey")) {
                         return key.toUpperCase();
                     }

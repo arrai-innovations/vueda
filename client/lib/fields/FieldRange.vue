@@ -1,6 +1,5 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import isArray from "lodash-es/isArray.js";
 import isObject from "lodash-es/isObject.js";
 import omit from "lodash-es/omit.js";
 
@@ -43,7 +42,7 @@ const preprocessGet = (value) => {
     return value;
 };
 const preprocessSet = (value) => {
-    if (isArray(value) && props.rangeSuffix) {
+    if (Array.isArray(value) && props.rangeSuffix) {
         return {
             [props.rangeSuffix[0]]: value[0],
             [props.rangeSuffix[1]]: value[1],

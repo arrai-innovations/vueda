@@ -3,7 +3,6 @@ import { getUsingVuedaWorkFlow, storeWorkflow } from "@vueda/stores/storeWorkflo
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
-import isArray from "lodash-es/isArray.js";
 import isEqual from "lodash-es/isEqual.js";
 import { reactive, readonly, ref, toRef, unref, watch } from "vue";
 
@@ -85,7 +84,7 @@ export function useObjectsWorkflowTransitions(app, model, pks, isActive) {
                 loadingError.setLoading();
                 try {
                     const key = getAppModelDotName({ app, model });
-                    if (isArray(pks)) {
+                    if (Array.isArray(pks)) {
                         // TODO: back end needs to be able to handle mutiple pks
                         for (const pk of pks) {
                             await workflowStore.fetchObjectTransitions(app, model, pk);

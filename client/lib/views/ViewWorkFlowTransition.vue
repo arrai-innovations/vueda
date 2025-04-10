@@ -5,7 +5,6 @@ import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import { computedAsync } from "@vueuse/core";
-import isArray from "lodash-es/isArray.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import Button from "primevue/button";
 import RadioButton from "primevue/radiobutton";
@@ -56,7 +55,7 @@ const modelWorkFlowTransitions = computedAsync(
 );
 
 const availableTransitions = computed(() => {
-    if (isArray(props.pk)) {
+    if (Array.isArray(props.pk)) {
         let commonTransitions = [];
         props.pk.forEach((id, index) => {
             const pkTransitions = workflow.objectTransitions.find((t) => t.id === id)?.transitions || [];
@@ -84,7 +83,7 @@ watch(
         if (isEmpty(pk)) {
             return;
         }
-        if (isArray(pk)) {
+        if (Array.isArray(pk)) {
             for (const id of pk) {
                 await workflow.fetchObjectTransitions(props.app, props.model, id);
             }

@@ -1,6 +1,5 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import isArray from "lodash-es/isArray.js";
 import omit from "lodash-es/omit.js";
 
 defineOptions({
@@ -14,13 +13,13 @@ const preprocessGet = (value) => {
     if (value === undefined || value === null) {
         return value;
     }
-    return isArray(value) ? value.join("\n") : value;
+    return Array.isArray(value) ? value.join("\n") : value;
 };
 const preprocessSet = (value) => {
     if (value === undefined || value === null) {
         return value;
     }
-    return isArray(value) ? value : value.split("\n");
+    return Array.isArray(value) ? value : value.split("\n");
 };
 
 useField(props, emit, { preprocessGet, preprocessSet });

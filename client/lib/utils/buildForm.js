@@ -2,7 +2,6 @@ import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { mergeTheme, useTheme } from "@vueda/use/useTheme.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
-import isArray from "lodash-es/isArray.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
@@ -316,7 +315,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                         ...srcValue,
                     };
                 }
-                if (isArray(objValue) && isArray(srcValue)) {
+                if (Array.isArray(objValue) && Array.isArray(srcValue)) {
                     return [...objValue, ...srcValue];
                 }
                 return undefined;

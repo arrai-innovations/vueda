@@ -2,7 +2,6 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import isArray from "lodash-es/isArray.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
@@ -124,16 +123,18 @@ const displayFilterValue = computed(() => {
                 const options = props.filterFormValues.options?.length
                     ? props.filterFormValues.options
                     : props.filterDetails.choices;
-                if (isArray(filterValue)) {
+                if (Array.isArray(filterValue)) {
                     labelValue = filterValue.map((option) =>
-                        isArray(options) ? options.find((choice) => choice.value === option)?.label : "",
+                        Array.isArray(options) ? options.find((choice) => choice.value === option)?.label : "",
                     );
                 } else {
-                    labelValue = isArray(options) ? options.find((choice) => choice.value == filterValue)?.label : "";
+                    labelValue = Array.isArray(options)
+                        ? options.find((choice) => choice.value == filterValue)?.label
+                        : "";
                 }
             }
             labelValue = labelValue ?? filter.value;
-            if (isArray(labelValue)) {
+            if (Array.isArray(labelValue)) {
                 return labelValue.join(",");
             } else if (isObject(labelValue)) {
                 if (filter.is_range) {
@@ -251,7 +252,7 @@ watch(
         }
         if (!isEqual(newQuery, props.listArgs)) {
             let queryHasFilter = false;
-            if (isArray(lookupExpressionsToParams.value)) {
+            if (Array.isArray(lookupExpressionsToParams.value)) {
                 lookupExpressionsToParams.value.forEach((param) => {
                     if (newQuery[param]) {
                         queryHasFilter = true;
