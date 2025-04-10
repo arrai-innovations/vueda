@@ -330,7 +330,7 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
                 return acc;
             }, []);
 
-            if (reduced.length > 0) {
+            if (reduced.length) {
                 return reduced;
             }
 
