@@ -33,6 +33,19 @@ jobs:
                            --request POST "https://circleci.com/api/v2/project/<<parameters.vcs>>/<<parameters.org>>/<<parameters.project>>/pipeline" \
                            --header 'Content-Type: application/json' \
                            --user "<<parameters.token>>:"
+    verify_release_version:
+        executor: base
+        resource_class: small
+        steps:
+            - checkout
+            - run:
+                  name: Check that the tag version matches the release.
+                  command: |
+                      PACKAGE_VERSION=$(jq -r '.version' package.json)
+                      if [ "$CIRCLE_TAG" != "v$PACKAGE_VERSION" ]; then
+                          echo "Git tag ($CIRCLE_TAG) does not match the package version (v$PACKAGE_VERSION)"
+                          exit 1
+                      fi
 workflows:
     test:
         jobs:
@@ -71,9 +84,18 @@ workflows:
                       branches:
                           only:
                               - main
+            - verify_release_version:
+                  name: verify-release-version
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore: /.*/
             - npm/publish:
                   name: publish
                   context: arrai-private-package-publishing
+                  requires:
+                      - verify-release-version
                   filters:
                       tags:
                           only: /.*/
