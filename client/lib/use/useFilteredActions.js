@@ -3,7 +3,17 @@ import { storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import isObject from "lodash-es/isObject.js";
-import { reactive, toRef, watch } from "vue";
+import { computed, effectScope, reactive, toRef, watch } from "vue";
+
+/**
+ * @typedef {object} FilteredActionsInternalRawState
+ * @property {string[]|import('vue').Ref<string[]>} actions - The actions that the user can perform.
+ * @property {string[]|import('vue').ComputedRef<string[]>} groups - The groups that the user belongs to.
+ */
+
+/**
+ * @typedef {import('vue').UnwrapNestedRefs<FilteredActionsInternalRawState>} FilteredActionsInternalState
+ */
 
 /**
  * The raw return object for useFilteredActions.
@@ -12,19 +22,21 @@ import { reactive, toRef, watch } from "vue";
  * @property {import('vue').Ref<string>|string} app - The app name being used.
  * @property {import('vue').Ref<string>|string} model - The model name being used.
  * @property {import('vue').Ref<string>|string|null} view - The view being used, if any.
- * @property {boolean} loading - True if the model config is loading.
- * @property {Error} error - The error that occurred while loading the model config.
- * @property {boolean} errored - True if an error occurred while loading the model config.
- * @property {()=>void} clearError - Clear the error.
- * @property {import('@vueda/stores/storeModelInfo.js').ModelInfo} info - The model info.
- * @property {import('@vueda/stores/storeModelConfig.js').ModelConfig} config - The model config.
+ * @property {import('vue').Ref<import('@vueda/stores/storeModelInfo.js').ModelInfo>|object} info - The model info.
+ * @property {import('vue').Ref<import('@vueda/stores/storeModelConfig.js').ModelConfig>|object} config - The model config.
  * @property {string[]} actions - The actions that the user can perform.
  */
 
 /**
  * The return object for useFilteredActions.
  *
- * @typedef {import('vue').DeepReadonly<import('vue').UnwrapNestedRefs<FilteredActionsRawState>>} FilteredActionsState
+ * @typedef {import('vue').UnwrapNestedRefs<FilteredActionsRawState | import('@arrai-innovations/reactive-helpers').LoadingErrorStatus>} FilteredActionsState
+ */
+
+/**
+ * The useFilteredActions return object.
+ *
+ * @typedef {import('vue').DeepReadonly<FilteredActionsState>} FilteredActionsInstance
  */
 
 /**
@@ -44,19 +56,22 @@ import { reactive, toRef, watch } from "vue";
  * Provides a reactive list of actions filtered based on the user's groups.
  *
  * @param {UseFilteredActionsParams} params - The parameters for the function
- * @returns {FilteredActionsState} An object containing reactive state for filtered actions and related metadata.
+ * @returns {FilteredActionsInstance} An object containing reactive state for filtered actions and related metadata.
  */
 export function useFilteredActions({ app, model, view = null, modelConfigInstance = null }) {
+    const es = effectScope();
     const isActive = useIsActive();
 
     let localModelConfigInstance = null;
     let localUserStore = null;
     let localProxyLoadingError = null;
 
+    /** @type {FilteredActionsInternalState} */
     const internalState = reactive({
         actions: [],
         groups: [],
     });
+    /** @type {FilteredActionsState} */
     const returnObject = reactive({
         app: "",
         model: "",
@@ -84,7 +99,11 @@ export function useFilteredActions({ app, model, view = null, modelConfigInstanc
 
             if (!localUserStore) {
                 localUserStore = storeUser();
-                internalState.groups = toRef(localUserStore.loggedInUser, "groups");
+                // Use a computed instead of toRef because `loggedInUser` may be null initially,
+                //  and we want reactivity to respond to replacing it, not just its properties.
+                es.run(() => {
+                    internalState.groups = computed(() => localUserStore.loggedInUser?.groups || []);
+                });
             }
             if (localModelConfigInstance && localUserStore && !localProxyLoadingError) {
                 localProxyLoadingError = useProxyLoadingError([localUserStore, localModelConfigInstance]);

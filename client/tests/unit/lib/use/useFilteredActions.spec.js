@@ -14,11 +14,16 @@ vi.mock("@arrai-innovations/reactive-helpers", () => ({
     useProxyLoadingError: vi.fn(),
 }));
 
+vi.mock("@vueda/use/useIsActive.js", () => ({
+    useIsActive: vi.fn(),
+}));
+
 describe("lib/use/useFilteredActions.js", () => {
-    let useModelConfig, storeUser, useProxyLoadingError;
-    let modelConfig, userStore, mockedModelConfig;
+    let useModelConfig, storeUser, useProxyLoadingError, isActive;
+    let modelConfig, userStore, mockedModelConfig, useIsActive;
 
     beforeEach(async () => {
+        useIsActive = (await import("@vueda/use/useIsActive")).useIsActive;
         useModelConfig = (await import("@vueda/use/useModelConfig")).useModelConfig;
         storeUser = (await import("@vueda/stores/storeUser.js")).storeUser;
         useProxyLoadingError = (await import("@arrai-innovations/reactive-helpers")).useProxyLoadingError;
@@ -46,26 +51,38 @@ describe("lib/use/useFilteredActions.js", () => {
             errored: ref(false),
             clearError: vi.fn(),
         });
+        isActive = ref(false);
+        useIsActive.mockReturnValue(isActive);
     });
 
     afterEach(() => {
         vi.clearAllMocks();
     });
-    it("creates model config if none provided", () => {
-        useFilteredActions({ app: "foo", model: "bar" });
 
+    const activate = async () => {
+        isActive.value = true;
+        await flushPromises();
+    };
+
+    it("creates model config if none provided", async () => {
+        useFilteredActions({ app: "foo", model: "bar" });
+        expect(useModelConfig).not.toHaveBeenCalled();
+        await activate();
         expect(useModelConfig).toHaveBeenCalledWith("foo", "bar", null);
     });
-    it("uses provided modelConfigInstance", () => {
+    it("uses provided modelConfigInstance", async () => {
         useFilteredActions({ modelConfigInstance: modelConfig });
-
+        expect(useModelConfig).not.toHaveBeenCalled();
+        await activate();
         expect(useModelConfig).not.toHaveBeenCalled();
     });
     it("returns flat array of actions if config.actions is an array", async () => {
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
         mockedModelConfig.config.actions = ["create", "update", "delete"];
         await flushPromises();
+        expect(state.actions).toEqual([]);
 
+        await activate();
         expect(state.actions).toEqual(["create", "update", "delete"]);
     });
     it("filters object-based actions based on user groups", async () => {
@@ -77,7 +94,9 @@ describe("lib/use/useFilteredActions.js", () => {
             audit: true,
         };
         await flushPromises();
+        expect(state.actions).toEqual([]);
 
+        await activate();
         expect(state.actions).toEqual(["create", "update", "audit"]);
     });
     it("returns empty actions if config.actions is invalid", async () => {
@@ -90,7 +109,7 @@ describe("lib/use/useFilteredActions.js", () => {
         await flushPromises();
         expect(state.actions).toEqual([]);
     });
-    it("reflects loading, error, and error clearing", () => {
+    it("reflects loading, error, and error clearing", async () => {
         const clearError = vi.fn();
         useProxyLoadingError.mockReturnValue({
             loading: ref(true),
@@ -99,6 +118,13 @@ describe("lib/use/useFilteredActions.js", () => {
             clearError,
         });
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
+        expect(state.loading).toBeUndefined();
+        expect(state.errored).toBe(false);
+        expect(state.error).toBeNull();
+        expect(state.clearError).toEqual(expect.any(Function));
+        expect(state.clearError).not.toBe(clearError); // the default placeholder
+
+        await activate();
         expect(state.loading).toBe(true);
         expect(state.errored).toBe(true);
         expect(state.error).toBeInstanceOf(Error);
@@ -111,6 +137,9 @@ describe("lib/use/useFilteredActions.js", () => {
             audit: true,
         };
         await flushPromises();
+        expect(state.actions).toEqual([]);
+
+        await activate();
         expect(state.actions).toEqual(["create", "audit"]);
 
         mockedModelConfig.config.actions = ["a", "b", "c"];
@@ -121,6 +150,9 @@ describe("lib/use/useFilteredActions.js", () => {
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
         mockedModelConfig.config.actions = ["valid"];
         await flushPromises();
+        expect(state.actions).toEqual([]);
+
+        await activate();
         expect(state.actions).toEqual(["valid"]);
 
         mockedModelConfig.config.actions = null;
@@ -135,6 +167,9 @@ describe("lib/use/useFilteredActions.js", () => {
             audit: true,
         };
         await flushPromises();
+        expect(state.actions).toEqual([]);
+
+        await activate();
         expect(state.actions).toEqual(["create", "audit"]);
 
         // now change user groups to ["managers"]
@@ -149,6 +184,9 @@ describe("lib/use/useFilteredActions.js", () => {
             onlyForAdmins: ["admins"],
         };
         await flushPromises();
+        expect(state.actions).toEqual([]);
+
+        await activate();
         expect(state.actions).toEqual(["onlyForAdmins"]);
 
         // update actions object reactively without replacing it
@@ -164,6 +202,9 @@ describe("lib/use/useFilteredActions.js", () => {
             audit: true,
         };
         await flushPromises();
+        expect(state.actions).toEqual([]);
+
+        await activate();
         expect(state.actions).toEqual(["create", "audit"]);
 
         userStore.loggedInUser.groups = null;
@@ -177,6 +218,9 @@ describe("lib/use/useFilteredActions.js", () => {
             public: true,
         };
         await flushPromises();
+        expect(state.actions).toEqual([]);
+
+        await activate();
         expect(state.actions).toEqual(["adminOnly", "public"]);
 
         userStore.loggedInUser = null;
