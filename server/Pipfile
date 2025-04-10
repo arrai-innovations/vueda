@@ -12,7 +12,7 @@ vueda = {path = ".", editable = true}
 ruff = "==0.11.2"
 # build related
 wheel = ">=0.42.0,<1"
-django_extensions = "==3.2.3"
+django_extensions = "==4.0.0"
 django-view-manager = "1.0.4"
 coverage = ">=7.3.3"
 ipdb = ">=0.13.13"
