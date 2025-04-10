@@ -86,6 +86,10 @@ const handleIsTableUpdate = (state, newValue) => {
  */
 
 /**
+ * @typedef {import('vue').UnwrapNestedRefs<FieldSetTabularInlineRawState>} FieldSetTabularInlineState
+ */
+
+/**
  * @typedef {object} FieldSetTabularInlineInstance
  * @property {FieldSetTabularInlineState} state - The reactive state of the FieldSetTabularInline.
  * @property {import('@vueuse/core').Breakpoints} breakpoints - The breakpoints object.
