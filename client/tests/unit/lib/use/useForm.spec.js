@@ -694,7 +694,7 @@ describe("lib/use/useForm.js", () => {
                     }
                 });
             });
-            describe("deleteValue", async () => {
+            describe("deleteValue", () => {
                 it("should result in the value being undefined, reactively", async () => {
                     const { formContext } = getForm({
                         initialValues: {
