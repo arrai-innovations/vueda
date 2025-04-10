@@ -60,7 +60,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
         <widget-label
             :id="`${widgetContext.state.widgetId}-label`"
             :label-class="theme('optionLabel')"
-            tag="div"
+            label-tag="div"
             v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
         >
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
@@ -68,7 +68,12 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             </template>
             <template #default="{ class: labelControlClass }">
                 <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-radio-inner">
-                    <ul :aria-labelledby="`${widgetContext.state.widgetId}-label`" :class="theme('options')">
+                    <ul
+                        role="radiogroup"
+                        :aria-labelledby="`${widgetContext.state.widgetId}-label`"
+                        :aria-required="widgetContext.state.required && widgetContext.state.combinedValue === null"
+                        :class="theme('options')"
+                    >
                         <li v-for="option in computedOptions" :key="option.value" :class="theme('option')">
                             <slot
                                 :id="`${widgetContext.state.combinedName}-${option.value}-${widgetContext.state.widgetId}`"

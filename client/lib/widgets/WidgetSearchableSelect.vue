@@ -454,7 +454,7 @@ const handleShow = () => {
     <div :class="theme('root')">
         <widget-label
             :id="widgetContext.state.widgetId"
-            tag="div"
+            label-tag="div"
             v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
             @click="handleLabelClick"
         >
@@ -503,6 +503,7 @@ const handleShow = () => {
                         @change="onValueChange"
                         @focus="widgetContext.focus"
                         @hide="handleHide"
+                        :aria-required="widgetContext.state.required"
                     >
                         <template #optiongroup="slotProps">
                             <div class="flex items-center">

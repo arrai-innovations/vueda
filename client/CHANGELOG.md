@@ -22,12 +22,16 @@
         - `vue` `^3.4.0` → `^3.5.13`
 - **Renamed**
     - Moved `@vueda/use/useActionMap` to `@vueda/utils/actionMap`, as it contains no composable function.
+- **Widgets**
+    - Fields will no longer show the required icon in the feedback button.
 
 ---
 
 ### Features
 
 - `useFilteredAttrs` now supports `Set` for it's `pickList` and `omitList` props.
+- **Widgets**:
+    - Widget Labels now display the `required` state via a leading asterisk, overridable using the `required` slot or the `required` theme property.
 
 ---
 

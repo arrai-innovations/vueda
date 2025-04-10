@@ -46,6 +46,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         type="checkbox"
                         @blur="widgetContext.blur"
                         @focus="widgetContext.focus"
+                        :aria-required="widgetContext.state.required && widgetContext.state.value === null"
                     />
                 </template>
             </widget-label>

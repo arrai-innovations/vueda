@@ -202,6 +202,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         @complete="search"
                         @focus="cancelBlurIfFocused"
                         @update:model-value="(selected) => valueUpdated(selected)"
+                        :aria-required="widgetContext.state.required"
                     />
                 </div>
             </template>

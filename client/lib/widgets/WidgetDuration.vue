@@ -102,7 +102,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
     <div :class="theme('root')">
         <widget-label
             :id="`${widgetContext.state.widgetId}-label`"
-            tag="div"
+            label-tag="div"
             v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
             @click="focusFirstInput"
         >
@@ -128,6 +128,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             suffix=" days"
                             v-bind="omit($attrs, 'value')"
                             @update:model-value="(newValue) => updateDay(newValue)"
+                            :aria-required="widgetContext.state.required"
                         />
                     </div>
                     <div v-if="showHours" :class="theme('innerItem')">
@@ -143,6 +144,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             suffix=" hours"
                             v-bind="omit($attrs, 'value')"
                             @update:model-value="(newValue) => updateHour(newValue)"
+                            :aria-required="widgetContext.state.required"
                         />
                     </div>
                     <div v-if="showMinutes" :class="theme('innerItem')">
@@ -158,6 +160,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             suffix=" minutes"
                             v-bind="omit($attrs, 'value')"
                             @update:model-value="(newValue) => updateMinute(newValue)"
+                            :aria-required="widgetContext.state.required"
                         />
                     </div>
                     <div v-if="showSeconds" :class="theme('innerItem')">
@@ -173,6 +176,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             suffix=" seconds"
                             v-bind="omit($attrs, 'value')"
                             @update:model-value="(newValue) => updateSecond(newValue)"
+                            :aria-required="widgetContext.state.required"
                         />
                     </div>
                 </div>

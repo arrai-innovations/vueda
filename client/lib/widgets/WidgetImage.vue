@@ -38,7 +38,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
     <div :class="theme('root')">
         <widget-label
             :id="widgetContext.state.widgetId"
-            tag="div"
+            label-tag="div"
             v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
         >
             <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
@@ -61,6 +61,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             mode="basic"
                             name="demo[]"
                             @uploader="upload"
+                            :aria-required="widgetContext.state.required"
                         />
                     </div>
                 </div>

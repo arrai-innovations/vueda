@@ -108,7 +108,7 @@ const textItemResolvedSlotNames = useSlotNameResolver(
 <template>
     <div :class="theme('root')" data-qa="widget-read-only-root">
         <div :class="theme('inner')" data-qa="widget-read-only-inner">
-            <widget-label :id="widgetContext.state.widgetId" tag="div" v-bind="widgetLabelProps">
+            <widget-label :id="widgetContext.state.widgetId" label-tag="div" v-bind="widgetLabelProps">
                 <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
                     <slot :name="slotName" v-bind="slotProps" />
                 </template>

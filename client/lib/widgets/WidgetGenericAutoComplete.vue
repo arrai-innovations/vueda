@@ -187,7 +187,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
     <div :class="theme('root')">
         <widget-label
             :id="widgetContext.state.widgetId"
-            tag="div"
+            label-tag="div"
             v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
             @click="handleLabelClick"
         >
@@ -229,6 +229,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             @complete="search"
                             @focus="widgetContext.focus"
                             @update:model-value="(selected) => objectUpdated(selected)"
+                            :aria-required="widgetContext.state.required"
                         />
                     </div>
                 </div>

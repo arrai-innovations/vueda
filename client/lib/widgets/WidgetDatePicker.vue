@@ -239,6 +239,7 @@ const maxDateAsDate = computed(() => {
                         @input="onInput"
                         @today-click="onTodayButtonClick"
                         @update:model-value="(value) => valueUpdated(value)"
+                        :aria-required="widgetContext.state.required"
                     />
                 </div>
             </template>

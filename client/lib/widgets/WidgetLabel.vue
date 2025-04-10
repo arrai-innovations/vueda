@@ -50,9 +50,13 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
-    tag: {
+    labelTag: {
         type: String,
         default: "label",
+    },
+    requiredTag: {
+        type: String,
+        default: "span",
     },
 });
 
@@ -71,9 +75,24 @@ const availableFeedbackSlotNames = getFormHiddenFeedbackSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-label-root">
-        <component :is="$props.tag" :id="id" :class="theme('label')" v-bind="$attrs" :for="$props.for">
-            <slot :id="id" :class="theme('label')" :for="$props.for" v-bind="$attrs" :label="combinedLabel" name="label"
-                >{{ combinedLabel }}
+        <component :is="$props.labelTag" :id="id" :class="theme('label')" v-bind="$attrs" :for="$props.for">
+            <component
+                :is="$props.requiredTag"
+                v-if="widgetContext.required"
+                :class="theme('required')"
+                aria-hidden="true"
+            >
+                <slot :class="theme('required')" name="required" aria-hidden="true" title="Required"> * </slot>
+            </component>
+            <slot
+                :id="id"
+                :class="theme('label')"
+                :for="$props.for"
+                v-bind="$attrs"
+                :label="combinedLabel"
+                name="label"
+            >
+                {{ combinedLabel }}
             </slot>
         </component>
         <slot :class="theme('control')"></slot>

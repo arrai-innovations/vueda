@@ -287,5 +287,8 @@ export default {
                 },
             };
         },
+        required: {
+            class: ["text-red-500 dark:text-red-400", "ml-1", "cursor-help"],
+        },
     },
 };

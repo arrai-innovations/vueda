@@ -2,10 +2,6 @@
 import { computed } from "vue";
 
 export const FORM_HIDDEN_FEEDBACK_PROPS = {
-    required: {
-        type: Boolean,
-        default: undefined,
-    },
     help: {
         type: String,
         default: undefined,
@@ -40,7 +36,6 @@ export const FORM_HIDDEN_FEEDBACK_PROPS = {
     },
 };
 export const FORM_HIDDEN_FEEDBACK_SLOTS = [
-    "feedback-required-icon",
     "feedback-help-icon",
     "feedback-error-icon",
     "feedback-warning-icon",
@@ -93,9 +88,6 @@ onMounted(() => {
 const useFieldContext = computed(() => {
     return fieldContext && !widgetContext?.state?.contextless;
 });
-const effectiveRequired = computed(() =>
-    (props.required ?? useFieldContext.value) ? fieldContext?.state?.required : false,
-);
 const effectiveHelp = computed(() =>
     props.help?.length ? props.help : useFieldContext.value ? fieldContext?.state?.help : false,
 );
@@ -153,19 +145,6 @@ const togglePopover = (e) => {
                     </slot>
                 </template>
             </form-feedback>
-            <form-help-text
-                v-if="effectiveRequired"
-                :class="theme('popoverItem')"
-                help="This field is required."
-                severity="error"
-                v-bind="attrs"
-            >
-                <template #icon="slotProps">
-                    <slot name="feedback-required-icon" v-bind="slotProps">
-                        <span :class="[theme('icon'), slotProps.class]">*️⃣</span>
-                    </slot>
-                </template>
-            </form-help-text>
             <form-help-text v-if="showHelpIcon" :class="theme('popoverItem')" :help="effectiveHelp" v-bind="attrs">
                 <template #icon="slotProps">
                     <slot name="feedback-help-icon" v-bind="slotProps">
@@ -182,12 +161,11 @@ const togglePopover = (e) => {
         :has-help="showHelpIcon"
         :has-warnings="hasWarnings"
         name="feedback-button"
-        :required="effectiveRequired"
         v-bind="omit($attrs, ['class'])"
         @click="togglePopover"
     >
         <div
-            v-if="effectiveRequired || showHelpIcon || showErrorIcon || showWarnIcon"
+            v-if="showHelpIcon || showErrorIcon || showWarnIcon"
             :class="combineClasses(theme('root'), $attrs.class)"
             v-bind="attrs"
             data-qa="form-hidden-feedback-root"
@@ -200,7 +178,6 @@ const togglePopover = (e) => {
                 variant="outlined"
                 @click="togglePopover"
             >
-                <span v-if="effectiveRequired" :class="[theme('icon'), theme('required')]">*️⃣</span>
                 <span v-if="showErrorIcon" :class="[theme('icon'), theme('errors')]">☠️</span>
                 <span v-if="showWarnIcon" :class="[theme('icon'), theme('warnings')]">⚠️</span>
                 <span v-if="showHelpIcon" :class="[theme('icon'), theme('help')]">ℹ️</span>

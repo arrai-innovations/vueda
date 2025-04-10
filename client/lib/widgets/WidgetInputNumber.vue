@@ -197,6 +197,7 @@ watch(
                             @focus="widgetContext.focus"
                             @keydown="onInputKeyDown"
                             @paste="onPaste"
+                            :aria-required="widgetContext.state.required"
                         />
                         <InputGroupAddon v-if="currentUnit">
                             <Button
