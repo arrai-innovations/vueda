@@ -128,7 +128,7 @@ export default [
     // tests
     {
         name: "tests",
-        files: ["**/*.{test,spec}.?(c|m)[jt]s?(x)"],
+        files: ["tests/**/*.{test,spec}.?(c|m)[jt]s?(x)", "tests/unit/utils.js"],
         plugins: { vitest },
         languageOptions: {
             globals: {
