@@ -6,6 +6,7 @@ import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
@@ -164,9 +165,10 @@ const computedCalculatedObjects = computed(() => {
 const evenColumn = (obj) => {
     return obj.parent_row % 2 === 0;
 };
+const theme = useTheme("ViewHistoryList");
 </script>
 <template>
-    <div :class="formModel.theme('root')">
+    <div :class="theme('root')">
         <page-title :loading="instanceList.state.loading" :title="titleStr">
             <template #button>
                 <Button outlined text @click="router.back()"> Back </Button>
@@ -197,7 +199,7 @@ const evenColumn = (obj) => {
                             :is="formModel.fieldComponents[`history__${field}`]"
                             v-if="formModel.fieldComponents[`history__${field}`]"
                             v-bind="formModel.fieldProps[`history__${field}`]"
-                            :field-value="obj[field]"
+                            :model-value="obj[field]"
                             :name="`${field}`"
                         >
                             <div>
@@ -217,7 +219,7 @@ const evenColumn = (obj) => {
                                 :is="formModel.fieldComponents[changed.field]"
                                 v-if="formModel.fieldComponents[changed.field]"
                                 v-bind="formModel.fieldProps[changed.field]"
-                                :field-value="changed.new"
+                                :model-value="changed.new"
                                 :name="`${changed.field}_new`"
                             >
                                 <div>
@@ -232,7 +234,7 @@ const evenColumn = (obj) => {
                             :is="formModel.fieldComponents[obj.field]"
                             v-else-if="formModel.fieldComponents[obj.field]"
                             v-bind="formModel.fieldProps[obj.field]"
-                            :field-value="obj.new"
+                            :model-value="obj.new"
                             :name="`${obj.field}_new`"
                         >
                             <div>
@@ -252,7 +254,7 @@ const evenColumn = (obj) => {
                                 :is="formModel.fieldComponents[changed.field]"
                                 v-if="formModel.fieldComponents[changed.field]"
                                 v-bind="formModel.fieldProps[changed.field]"
-                                :field-value="changed.old"
+                                :model-value="changed.old"
                                 :name="`${changed.field}_old`"
                             >
                                 <div>
@@ -267,7 +269,7 @@ const evenColumn = (obj) => {
                             :is="formModel.fieldComponents[obj.field]"
                             v-else-if="formModel.fieldComponents[obj.field]"
                             v-bind="formModel.fieldProps[obj.field]"
-                            :field-value="obj.old"
+                            :model-value="obj.old"
                             :name="`${obj.field}_old`"
                         >
                             <div>
