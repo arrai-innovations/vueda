@@ -9,6 +9,7 @@ import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import { useBreakpoints } from "@vueuse/core";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import merge from "lodash-es/merge.js";
+import omit from "lodash-es/omit.js";
 import { computed, inject, onBeforeUpdate, reactive, readonly, toRef, unref, useSlots, watch } from "vue";
 import { deepUnref } from "vue-deepunref";
 
@@ -319,7 +320,7 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
             const prefix = `${fieldSetContext.state.formModelName}__`;
             const hidden = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.hidden || [];
 
-            return deepUnref(formModel.fields).reduce((acc, fullFieldName) => {
+            const reduced = deepUnref(formModel.fields).reduce((acc, fullFieldName) => {
                 if (fullFieldName?.startsWith?.(prefix)) {
                     const field = fullFieldName.slice(prefix.length);
                     if (!hidden.includes(field)) {
@@ -328,6 +329,14 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
                 }
                 return acc;
             }, []);
+
+            if (reduced.length > 0) {
+                return reduced;
+            }
+
+            const fields = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.f;
+            const omitFields = formModel?.expandDetails?.[fieldSetContext.state.formModelName].hidden;
+            return fields ? Object.keys(omit(fields, omitFields)) : [];
         }),
         fieldObjects: computed(() => {
             if (props.fieldObjects) {
