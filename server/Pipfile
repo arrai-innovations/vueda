@@ -9,7 +9,7 @@ vueda = {path = ".", editable = true}
 
 [dev-packages]
 # lint related, sync with .pre-commit-config.yaml
-ruff = "==0.11.2"
+ruff = "==0.11.4"
 # build related
 wheel = ">=0.42.0,<1"
 django_extensions = "==4.0.0"
@@ -33,7 +33,7 @@ gunicorn = ">=21.2.0"
 jinja2 = ">=3.1.2"
 redis = ">=5.2.1"
 # API document creation
-drf-spectacular = ">=0.27.2,<0.28"
+drf-spectacular = ">=0.28.0,<0.29"
 
 [requires]
 python_version = "3.11"
