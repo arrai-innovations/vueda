@@ -230,14 +230,6 @@
             "markers": "python_version >= '3.9'",
             "version": "==25.1"
         },
-        "django-phonenumber-field": {
-            "hashes": [
-                "sha256:bc6eaa49d1f9d870944f5280258db511e3a1ba5e2fbbed255488dceacae45d06",
-                "sha256:f9cdb3de085f99c249328293a3b93d4e5fa440c0c8e3b99eb0d0f54748629797"
-            ],
-            "markers": "python_version >= '3.8'",
-            "version": "==7.3.0"
-        },
         "django-private-storage": {
             "hashes": [
                 "sha256:9e8f9e88818b04895cf4be6c86f1255c4befa5466f7d25e1be3a7c2784e9b275",
@@ -348,13 +340,6 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==24.2"
-        },
-        "phonenumberslite": {
-            "hashes": [
-                "sha256:3daa107c7d89576effa8ecc0ed17f0e8845055836590a96fa5f1fdac5dd475e0",
-                "sha256:b961bb36d32688bcf28ec308f8f11f502353c9aa5f9fb18261b215c6b0e6b898"
-            ],
-            "version": "==8.13.55"
         },
         "pwned-passwords-django": {
             "hashes": [
