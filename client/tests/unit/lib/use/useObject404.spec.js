@@ -1,3 +1,4 @@
+import { scopedIt } from "@tests/unit/utils.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
 import { LIST_VIEW_CRUD_NAME } from "@vueda/utils/crudSupport.js";
 import { nextTick, reactive, ref } from "vue";
@@ -32,7 +33,7 @@ describe("lib/use/useObject404.js", () => {
         errorRef = ref(null);
     });
 
-    it("sets an error when a 404 is detected", async () => {
+    scopedIt("sets an error when a 404 is detected", async () => {
         useObject404(props, instance, modelConfig, errorRef);
 
         instance.state.error = {
@@ -50,7 +51,7 @@ describe("lib/use/useObject404.js", () => {
         expect(errorRef.value.redirectTitle).toBe("Return to the Model Title list view.");
     });
 
-    it("does not set an error when status is not 404", async () => {
+    scopedIt("does not set an error when status is not 404", async () => {
         useObject404(props, instance, modelConfig, errorRef);
 
         instance.state.error = {
@@ -63,7 +64,7 @@ describe("lib/use/useObject404.js", () => {
         expect(errorRef.value).toBeNull();
     });
 
-    it("does nothing if error is null", async () => {
+    scopedIt("does nothing if error is null", async () => {
         useObject404(props, instance, modelConfig, errorRef);
 
         instance.state.error = null;

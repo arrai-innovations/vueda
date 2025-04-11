@@ -1,4 +1,5 @@
 import { useList } from "@arrai-innovations/reactive-helpers";
+import { scopedIt } from "@tests/unit/utils.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useViewDestroy } from "@vueda/use/useViewDestroy.js";
@@ -47,7 +48,7 @@ describe("lib/use/useViewDestroy.js", () => {
         vi.clearAllMocks();
     });
 
-    it("sets up model config and list with expected parameters", async () => {
+    scopedIt("sets up model config and list with expected parameters", async () => {
         const result = useViewDestroy(props);
 
         expect(useModelConfig).toHaveBeenCalledWith(expect.any(Object), expect.any(Object));
@@ -69,7 +70,7 @@ describe("lib/use/useViewDestroy.js", () => {
         expect(result.validAndActive.value).toBe(true);
     });
 
-    it("handleDelete calls bulkDelete and throws if errored", async () => {
+    scopedIt("handleDelete calls bulkDelete and throws if errored", async () => {
         const result = useViewDestroy(props);
         const spy = vi.spyOn(mockInstanceList, "bulkDelete");
 
@@ -84,13 +85,13 @@ describe("lib/use/useViewDestroy.js", () => {
         await expect(result.handleDelete()).rejects.toThrow("delete failed");
     });
 
-    it("validAndActive is false if isActive is false", async () => {
+    scopedIt("validAndActive is false if isActive is false", async () => {
         useIsActive.mockReturnValue(ref(false));
         const result = useViewDestroy(props);
         expect(result.validAndActive.value).toBe(false);
     });
 
-    it("validAndActive is false if pk or model is missing", async () => {
+    scopedIt("validAndActive is false if pk or model is missing", async () => {
         props.pk = null;
         const result = useViewDestroy(props);
         expect(result.validAndActive.value).toBe(false);
@@ -101,7 +102,7 @@ describe("lib/use/useViewDestroy.js", () => {
         expect(result.validAndActive.value).toBe(false);
     });
 
-    it("falls back to 'id' if modelConfig.info.pk is missing", () => {
+    scopedIt("falls back to 'id' if modelConfig.info.pk is missing", () => {
         delete mockModelConfig.info.pk;
         useViewDestroy(props);
         const listProps = useList.mock.calls[0][0].props;

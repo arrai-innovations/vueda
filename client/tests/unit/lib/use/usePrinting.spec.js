@@ -1,4 +1,4 @@
-import { mockLifecycle } from "@tests/unit/utils.js";
+import { mockLifecycle, scopedIt } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
 
 const { mockedOnUnmounted, unmountedFunctions, clearUnmounted } = mockLifecycle(vi);
@@ -24,7 +24,7 @@ describe("lib/use/usePrinting.js", () => {
         vi.clearAllMocks();
     });
 
-    it("reflects the initial media query state", async () => {
+    scopedIt("reflects the initial media query state", async () => {
         const addEventListenerSpy = vi.fn();
         const removeEventListenerSpy = vi.fn();
         const mediaQueryList = {
@@ -40,7 +40,7 @@ describe("lib/use/usePrinting.js", () => {
         expect(printingRef.value).toBe(true);
     });
 
-    it("updates when media query changes", async () => {
+    scopedIt("updates when media query changes", async () => {
         const addEventListenerSpy = vi.fn();
         const removeEventListenerSpy = vi.fn();
         const mediaQueryList = {
@@ -58,7 +58,7 @@ describe("lib/use/usePrinting.js", () => {
         expect(printingRef.value).toBe(true);
     });
 
-    it("removes event listener on unmount", async () => {
+    scopedIt("removes event listener on unmount", async () => {
         const addEventListenerSpy = vi.fn();
         const removeEventListenerSpy = vi.fn();
         const mediaQueryList = {
@@ -74,7 +74,7 @@ describe("lib/use/usePrinting.js", () => {
         expect(removeEventListenerSpy).toHaveBeenCalledWith("change", expect.any(Function));
     });
 
-    it("returns a read-only ref", async () => {
+    scopedIt("returns a read-only ref", async () => {
         vi.spyOn(window, "matchMedia").mockReturnValue({
             matches: false,
             addEventListener: vi.fn(),

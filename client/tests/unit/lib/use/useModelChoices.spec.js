@@ -1,5 +1,6 @@
+import { scopedIt } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, vi } from "vitest";
 import { effectScope, reactive, readonly, ref } from "vue";
 
 const mockStoreFn = vi.fn(() => storeMock);
@@ -57,7 +58,7 @@ describe("useModelChoices", () => {
         scope.stop();
     });
 
-    it("fetches normal choices on mount", async () => {
+    scopedIt("fetches normal choices on mount", async () => {
         const app = ref("blog");
         const model = ref("article");
         const field = ref("status");
@@ -78,7 +79,7 @@ describe("useModelChoices", () => {
         expect(result.choices.status).toEqual(["draft", "published"]);
     });
 
-    it("fetches filter choices when isFilter is true", async () => {
+    scopedIt("fetches filter choices when isFilter is true", async () => {
         const app = ref("blog");
         const model = ref("article");
         const field = ref("status");
@@ -100,7 +101,7 @@ describe("useModelChoices", () => {
         expect(result.choices.status).toEqual(["open", "closed"]);
     });
 
-    it("does not fetch when inactive", async () => {
+    scopedIt("does not fetch when inactive", async () => {
         const app = ref("a");
         const model = ref("b");
         const field = ref("x");
@@ -116,7 +117,7 @@ describe("useModelChoices", () => {
         expect(storeMock.fetchChoices).not.toHaveBeenCalled();
     });
 
-    it("does not fetch when intendToFetch is false", async () => {
+    scopedIt("does not fetch when intendToFetch is false", async () => {
         const app = ref("a");
         const model = ref("b");
         const field = ref("x");
@@ -131,7 +132,7 @@ describe("useModelChoices", () => {
         expect(storeMock.fetchChoices).not.toHaveBeenCalled();
     });
 
-    it("avoids redundant fetches with identical inputs", async () => {
+    scopedIt("avoids redundant fetches with identical inputs", async () => {
         const app = ref("app");
         const model = ref("model");
         const field = ref("field");
@@ -156,7 +157,7 @@ describe("useModelChoices", () => {
         expect(storeMock.fetchChoices).toHaveBeenCalledTimes(1); // still 1
     });
 
-    it("handles an error from fetchChoices", async () => {
+    scopedIt("handles an error from fetchChoices", async () => {
         const app = ref("blog");
         const model = ref("post");
         const field = ref("status");

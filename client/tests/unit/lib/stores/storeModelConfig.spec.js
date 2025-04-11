@@ -1,3 +1,4 @@
+import { scopedIt } from "@tests/unit/utils.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import { createPinia, setActivePinia } from "pinia";
 
@@ -223,7 +224,7 @@ describe("lib/store/storeModelConfig.js", () => {
         vi.resetModules();
     });
 
-    it("builds a default config from modelInfo with flattened expansion details", async () => {
+    scopedIt("builds a default config from modelInfo with flattened expansion details", async () => {
         const store = storeModelConfig();
         // Clear any caches.
         store.builtConfigs = {};
@@ -289,7 +290,7 @@ describe("lib/store/storeModelConfig.js", () => {
         expect(store.builtConfigs).toHaveProperty(genericKey);
     });
 
-    it("applies generic custom config overrides", async () => {
+    scopedIt("applies generic custom config overrides", async () => {
         const store = storeModelConfig();
         // Clear caches
         store.builtConfigs = {};
@@ -310,7 +311,7 @@ describe("lib/store/storeModelConfig.js", () => {
         expect(store.builtConfigs).toHaveProperty(genericKey);
     });
 
-    it("applies view-specific custom config overrides", async () => {
+    scopedIt("applies view-specific custom config overrides", async () => {
         const store = storeModelConfig();
         store.builtConfigs = {};
         store.initialized = {};
@@ -332,7 +333,7 @@ describe("lib/store/storeModelConfig.js", () => {
         expect(config.widgetProps.default).toEqual({ size: "medium", color: "blue" });
     });
 
-    it("merges shallow and deep properties correctly", async () => {
+    scopedIt("merges shallow and deep properties correctly", async () => {
         const store = storeModelConfig();
         store.builtConfigs = {};
         store.initialized = {};
@@ -371,7 +372,7 @@ describe("lib/store/storeModelConfig.js", () => {
         });
     });
 
-    it("flattens expansion details and applies custom overrides", async () => {
+    scopedIt("flattens expansion details and applies custom overrides", async () => {
         const store = storeModelConfig();
         store.builtConfigs = {};
         store.initialized = {};
@@ -413,13 +414,13 @@ describe("lib/store/storeModelConfig.js", () => {
         expect(config.fieldDetails["employee__username"].placeholder).toBe("Specific placeholder");
     });
 
-    it("throws an error if app or model is missing", async () => {
+    scopedIt("throws an error if app or model is missing", async () => {
         const store = storeModelConfig();
         await expect(store.getConfig({ app: null, model: "testModel" })).rejects.toThrow();
         await expect(() => store.setConfig({ app: "", model: "testModel" })).toThrow();
     });
 
-    it("caches the built configuration", async () => {
+    scopedIt("caches the built configuration", async () => {
         const store = storeModelConfig();
         store.builtConfigs = {};
         store.initialized = {};
@@ -431,7 +432,7 @@ describe("lib/store/storeModelConfig.js", () => {
         expect(config2.customCacheTest).toBe(true);
     });
 
-    it("handles incomplete modelInfo data gracefully", async () => {
+    scopedIt("handles incomplete modelInfo data gracefully", async () => {
         const store = storeModelConfig();
         store.builtConfigs = {};
         store.initialized = {};
@@ -457,7 +458,7 @@ describe("lib/store/storeModelConfig.js", () => {
         });
     });
 
-    it("handles errors from fetchModelInfo", async () => {
+    scopedIt("handles errors from fetchModelInfo", async () => {
         const store = storeModelConfig();
         store.builtConfigs = {};
         store.initialized = {};
@@ -468,7 +469,7 @@ describe("lib/store/storeModelConfig.js", () => {
         await expect(store.getConfig({ app: "errorApp", model: "errorModel" })).rejects.toThrow(errorMessage);
     });
 
-    it("invalidates cache after updating configuration with setConfig", async () => {
+    scopedIt("invalidates cache after updating configuration with setConfig", async () => {
         const store = storeModelConfig();
         store.builtConfigs = {};
         store.initialized = {};
@@ -485,7 +486,7 @@ describe("lib/store/storeModelConfig.js", () => {
         expect(config2.verboseName).toBe("Updated Timesheet");
     });
 
-    it("returns the same promise for concurrent getConfig calls", async () => {
+    scopedIt("returns the same promise for concurrent getConfig calls", async () => {
         const store = storeModelConfig();
         store.builtConfigs = {};
         store.initialized = {};
@@ -497,7 +498,7 @@ describe("lib/store/storeModelConfig.js", () => {
         expect(config1).toBe(config2);
     });
 
-    it("caches fetch failures so subsequent getConfig calls return the same error", async () => {
+    scopedIt("caches fetch failures so subsequent getConfig calls return the same error", async () => {
         const store = storeModelConfig();
         store.builtConfigs = {};
         store.initialized = {};
@@ -513,7 +514,7 @@ describe("lib/store/storeModelConfig.js", () => {
         expect(mockedFetchModelInfo).toHaveBeenCalledTimes(1);
     });
 
-    it("does not apply setConfig if a config is in flight", async () => {
+    scopedIt("does not apply setConfig if a config is in flight", async () => {
         const store = storeModelConfig();
         store.builtConfigs = {};
         store.initialized = {};
@@ -533,7 +534,7 @@ describe("lib/store/storeModelConfig.js", () => {
         expect(config.verboseName).toBe("timesheet");
     });
 
-    it("cancels the in-flight promise when setConfig is called", async () => {
+    scopedIt("cancels the in-flight promise when setConfig is called", async () => {
         const store = storeModelConfig();
         store.builtConfigs = {};
         store.initialized = {};

@@ -1,3 +1,4 @@
+import { scopedIt } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
 
 vi.mock("@vueda/use/useModelConfig", () => ({
@@ -50,7 +51,7 @@ describe("lib/use/useLinkModelView.js", () => {
         vi.clearAllMocks();
     });
 
-    it("generates href and allows navigation when PK is valid", async () => {
+    scopedIt("generates href and allows navigation when PK is valid", async () => {
         const props = vue.ref({
             app: "foo",
             model: "bar",
@@ -68,7 +69,7 @@ describe("lib/use/useLinkModelView.js", () => {
         expect(push).toHaveBeenCalledWith({ name: "route-detail", href: "/app/model/detail" });
     });
 
-    it("disables action if PK is required but missing", async () => {
+    scopedIt("disables action if PK is required but missing", async () => {
         const props = vue.ref({
             app: "foo",
             model: "bar",
@@ -83,7 +84,7 @@ describe("lib/use/useLinkModelView.js", () => {
         expect(actionDisabled.value).toBe(true);
     });
 
-    it("disables action if PK is an empty array", async () => {
+    scopedIt("disables action if PK is an empty array", async () => {
         const props = vue.ref({
             app: "foo",
             model: "bar",
@@ -97,7 +98,7 @@ describe("lib/use/useLinkModelView.js", () => {
         expect(actionDisabled.value).toBe(true);
     });
 
-    it("returns undefined href if router doesn't recognize route", async () => {
+    scopedIt("returns undefined href if router doesn't recognize route", async () => {
         hasRoute.mockReturnValueOnce(false);
 
         const props = vue.ref({
@@ -113,7 +114,7 @@ describe("lib/use/useLinkModelView.js", () => {
         expect(href.value).toBeUndefined();
     });
 
-    it("does nothing when navigate called and route is undefined", async () => {
+    scopedIt("does nothing when navigate called and route is undefined", async () => {
         hasRoute.mockReturnValueOnce(false);
         const props = vue.ref({
             app: "foo",
@@ -127,7 +128,7 @@ describe("lib/use/useLinkModelView.js", () => {
 
         expect(push).not.toHaveBeenCalled();
     });
-    it("does not require PK when actionDetails is missing and transitions don't match", async () => {
+    scopedIt("does not require PK when actionDetails is missing and transitions don't match", async () => {
         vi.doMock("@vueda/use/useModelConfig", () => ({
             useModelConfig: vi.fn(() => ({
                 config: {
@@ -149,7 +150,7 @@ describe("lib/use/useLinkModelView.js", () => {
         expect(actionDisabled.value).toBe(false); // PK not required
     });
 
-    it("does not require PK when actionDetails is empty and transitions don't match", async () => {
+    scopedIt("does not require PK when actionDetails is empty and transitions don't match", async () => {
         const props = vue.ref({
             app: "foo",
             model: "bar",
@@ -163,7 +164,7 @@ describe("lib/use/useLinkModelView.js", () => {
         expect(actionDisabled.value).toBe(false); // no PK required = not disabled
     });
 
-    it("disables action when PK is required but not provided", async () => {
+    scopedIt("disables action when PK is required but not provided", async () => {
         const props = vue.ref({
             app: "foo",
             model: "bar",
@@ -176,7 +177,7 @@ describe("lib/use/useLinkModelView.js", () => {
 
         expect(actionDisabled.value).toBe(true); // PK required but missing
     });
-    it("falls back to empty object when actionDetails is undefined", async () => {
+    scopedIt("falls back to empty object when actionDetails is undefined", async () => {
         vi.doMock("@vueda/use/useModelConfig", () => ({
             useModelConfig: vi.fn(() => ({
                 config: {}, // actionDetails missing
@@ -199,7 +200,7 @@ describe("lib/use/useLinkModelView.js", () => {
 
         expect(actionDisabled.value).toBe(false);
     });
-    it("falls back to empty array when workflow.transitions is undefined", async () => {
+    scopedIt("falls back to empty array when workflow.transitions is undefined", async () => {
         vi.doMock("@vueda/use/useWorkflowTransitions", () => ({
             useWorkflowTransitions: vi.fn(() => ({})), // no transitions key
         }));
@@ -220,7 +221,7 @@ describe("lib/use/useLinkModelView.js", () => {
 
         expect(actionDisabled.value).toBe(false);
     });
-    it("disables action when props.disabled is true", async () => {
+    scopedIt("disables action when props.disabled is true", async () => {
         const props = vue.ref({
             app: "foo",
             model: "bar",

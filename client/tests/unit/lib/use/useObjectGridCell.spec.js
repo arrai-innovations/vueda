@@ -1,3 +1,4 @@
+import { scopedIt } from "@tests/unit/utils.js";
 import { useObjectGridCell } from "@vueda/use/useObjectGridCell.js";
 import { unifiedGet } from "@vueda/utils/unifiedGet.js";
 import { nextTick, reactive } from "vue";
@@ -11,7 +12,7 @@ describe("lib/use/useObjectGridCell.js", () => {
         vi.clearAllMocks();
     });
 
-    it("calls unifiedGet correctly for both formatted and value computed properties", async () => {
+    scopedIt("calls unifiedGet correctly for both formatted and value computed properties", async () => {
         const props = reactive({
             obj: { id: 1 },
             relatedObject: { id: 2 },
@@ -40,7 +41,7 @@ describe("lib/use/useObjectGridCell.js", () => {
         expect(unifiedGet).toHaveBeenCalledWith(props.obj, props.relatedObject, props.calculatedObject, "fieldValue");
     });
 
-    it("falls back to field.value or field.name when field.formatted is not provided", async () => {
+    scopedIt("falls back to field.value or field.name when field.formatted is not provided", async () => {
         const props = reactive({
             obj: {},
             relatedObject: {},
@@ -72,7 +73,7 @@ describe("lib/use/useObjectGridCell.js", () => {
         );
     });
 
-    it("reacts to prop changes", async () => {
+    scopedIt("reacts to prop changes", async () => {
         const props = reactive({
             obj: { name: "A" },
             relatedObject: {},

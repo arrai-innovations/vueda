@@ -1,3 +1,4 @@
+import { scopedIt } from "@tests/unit/utils.js";
 import { reactive } from "vue";
 
 vi.mock("primevue/passthrough", () => ({
@@ -41,7 +42,7 @@ describe("lib/use/useWarningClass.js", () => {
         vi.clearAllMocks();
     });
 
-    it("returns base passthrough if no props.pt given", () => {
+    scopedIt("returns base passthrough if no props.pt given", () => {
         const props = { pt: {}, mergeSections: true, mergeProps: true };
         const widgetState = {
             validationState: {
@@ -65,7 +66,7 @@ describe("lib/use/useWarningClass.js", () => {
         expect(pt.value).toStrictEqual(mockBasePt);
     });
 
-    it("returns merged passthrough if props.pt is provided", () => {
+    scopedIt("returns merged passthrough if props.pt is provided", () => {
         const props = {
             pt: { root: { class: "external-class" } },
             mergeSections: false,
@@ -89,7 +90,7 @@ describe("lib/use/useWarningClass.js", () => {
         expect(pt.value).toStrictEqual(mockMergedPt);
     });
 
-    it("reacts to warning state changes", async () => {
+    scopedIt("reacts to warning state changes", async () => {
         const props = { pt: {}, mergeSections: true, mergeProps: true };
         const widgetState = reactive({
             validationState: {
@@ -103,7 +104,7 @@ describe("lib/use/useWarningClass.js", () => {
         expect(pt.value).toStrictEqual(mockBasePt);
     });
 
-    it('generates a class with "p-warning" based on validationState.warning', () => {
+    scopedIt('generates a class with "p-warning" based on validationState.warning', () => {
         const props = { pt: {}, mergeSections: true, mergeProps: true };
         const widgetState = reactive({
             validationState: {

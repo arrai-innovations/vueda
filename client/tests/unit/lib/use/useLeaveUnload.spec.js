@@ -1,4 +1,4 @@
-import { mockEventListener, mockLifecycle, mockVueRouterLifecycle } from "@tests/unit/utils.js";
+import { mockEventListener, mockLifecycle, mockVueRouterLifecycle, scopedIt } from "@tests/unit/utils.js";
 
 const mockedLifecycle = mockLifecycle(vi);
 
@@ -60,7 +60,7 @@ describe("lib/use/useLeaveUnload.js", () => {
         mockedVueRouterLifecycle.clearUpdate();
         mockedEventListeners.clear();
     });
-    it("registers and cleans up beforeunload listener", () => {
+    scopedIt("registers and cleans up beforeunload listener", () => {
         mountLeaveUnload();
 
         expect(window.addEventListener).toHaveBeenCalledWith("beforeunload", expect.any(Function));
@@ -68,7 +68,7 @@ describe("lib/use/useLeaveUnload.js", () => {
         mockedLifecycle.runUnmountedHooks();
         expect(window.removeEventListener).toHaveBeenCalledWith("beforeunload", expect.any(Function));
     });
-    it("triggers preventDefault on beforeunload when modified and not loading", async () => {
+    scopedIt("triggers preventDefault on beforeunload when modified and not loading", async () => {
         const modified = vue.ref(true);
         const loading = vue.ref(false);
 
@@ -89,7 +89,7 @@ describe("lib/use/useLeaveUnload.js", () => {
 
         import.meta.env.DEV = originalEnv;
     });
-    it("does nothing in DEV mode", () => {
+    scopedIt("does nothing in DEV mode", () => {
         const modified = vue.ref(true);
         const loading = vue.ref(false);
         mountLeaveUnload(modified, loading);
@@ -102,7 +102,7 @@ describe("lib/use/useLeaveUnload.js", () => {
         listener(event);
         expect(event.preventDefault).not.toHaveBeenCalled();
     });
-    it("does nothing if not modified or loading", () => {
+    scopedIt("does nothing if not modified or loading", () => {
         const modified = vue.ref(false);
         const loading = vue.ref(false);
         mountLeaveUnload(modified, loading);
@@ -120,7 +120,7 @@ describe("lib/use/useLeaveUnload.js", () => {
         listener(event);
         expect(event.preventDefault).not.toHaveBeenCalled();
     });
-    it("triggers confirm() on route leave if modified and not loading", () => {
+    scopedIt("triggers confirm() on route leave if modified and not loading", () => {
         const modified = vue.ref(true);
         const loading = vue.ref(false);
         mountLeaveUnload(modified, loading);
@@ -133,7 +133,7 @@ describe("lib/use/useLeaveUnload.js", () => {
         expect(confirm).toHaveBeenCalledWith("You have unsaved changes, are you sure to leave?");
         expect(result).toBeUndefined();
     });
-    it("does nothing on route leave if not modified or loading", () => {
+    scopedIt("does nothing on route leave if not modified or loading", () => {
         const modified = vue.ref(false);
         const loading = vue.ref(true);
         mountLeaveUnload(modified, loading);
@@ -144,7 +144,7 @@ describe("lib/use/useLeaveUnload.js", () => {
         expect(confirm).not.toHaveBeenCalled();
         expect(result).toBeUndefined(); // your guard probably returns nothing in this case
     });
-    it("cancels route leave if confirm() returns false", () => {
+    scopedIt("cancels route leave if confirm() returns false", () => {
         const modified = vue.ref(true);
         const loading = vue.ref(false);
         mountLeaveUnload(modified, loading);

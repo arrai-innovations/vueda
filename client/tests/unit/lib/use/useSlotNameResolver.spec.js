@@ -1,3 +1,4 @@
+import { scopedIt } from "@tests/unit/utils.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { h, ref } from "vue";
 
@@ -13,7 +14,7 @@ vi.mock("vue", async () => {
 });
 
 describe("lib/use/useSlotNameResolver.js", () => {
-    it("returns the first matching slot name", () => {
+    scopedIt("returns the first matching slot name", () => {
         const slots = {
             foo: () => h("div", "foo"),
             bar: () => h("div", "bar"),
@@ -25,7 +26,7 @@ describe("lib/use/useSlotNameResolver.js", () => {
         expect(result.name).toBe("bar"); // first match wins
     });
 
-    it("returns undefined if no slots match", () => {
+    scopedIt("returns undefined if no slots match", () => {
         const slots = {
             foo: () => h("div", "foo"),
         };
@@ -36,7 +37,7 @@ describe("lib/use/useSlotNameResolver.js", () => {
         expect(result.name).toBe(undefined);
     });
 
-    it("reacts to changes in ref-based slot names", () => {
+    scopedIt("reacts to changes in ref-based slot names", () => {
         const slots = {
             foo: () => h("div", "foo"),
             bar: () => h("div", "bar"),
@@ -49,7 +50,7 @@ describe("lib/use/useSlotNameResolver.js", () => {
         expect(result.name).toBe("foo");
     });
 
-    it("supports Ref<Ref<string>[]>, unwrapping properly", () => {
+    scopedIt("supports Ref<Ref<string>[]>, unwrapping properly", () => {
         const slots = {
             alpha: () => h("div", "alpha"),
         };
@@ -60,7 +61,7 @@ describe("lib/use/useSlotNameResolver.js", () => {
         expect(result.name).toBe("alpha");
     });
 
-    it("uses injected useSlots() when no slots passed", () => {
+    scopedIt("uses injected useSlots() when no slots passed", () => {
         const result = useSlotNameResolver(["baz", "bar", "foo"]);
         expect(result.exists).toBe(true);
         expect(result.name).toBe("bar"); // based on mocked useSlots()

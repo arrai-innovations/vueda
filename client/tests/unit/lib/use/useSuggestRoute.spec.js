@@ -1,4 +1,4 @@
-import { mockLifecycle } from "@tests/unit/utils.js";
+import { mockLifecycle, scopedIt } from "@tests/unit/utils.js";
 
 const mockedLifecycle = mockLifecycle(vi);
 
@@ -33,7 +33,7 @@ describe("lib/use/useSuggestRoute.js", () => {
         scope.stop();
     });
 
-    it("returns the best matching route when activated", async () => {
+    scopedIt("returns the best matching route when activated", async () => {
         mockedUseRouter.mockImplementation(() => ({
             currentRoute: { value: { path: "/blog/article/42/edit" } },
             options: {
@@ -58,7 +58,7 @@ describe("lib/use/useSuggestRoute.js", () => {
             params: { pk: "42" },
         });
     });
-    it("resolves best match from nested route children", async () => {
+    scopedIt("resolves best match from nested route children", async () => {
         mockedUseRouter.mockImplementation(() => ({
             currentRoute: { value: { path: "/users/123/view" } },
             options: {

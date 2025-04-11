@@ -1,3 +1,4 @@
+import { scopedIt } from "@tests/unit/utils.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import flushPromises from "flush-promises";
 import { effectScope, isReactive, reactive, readonly, ref, unref } from "vue";
@@ -58,7 +59,7 @@ describe("lib/use/useWorkflowTransitions.js", () => {
         model.value = "myModel";
     });
 
-    it("returns inert state when getUsingVuedaWorkFlow is false", () => {
+    scopedIt("returns inert state when getUsingVuedaWorkFlow is false", () => {
         workflowStoreFnMocks.getUsingVuedaWorkFlow.mockReturnValue(false);
         const result = useWorkflowTransitions(app, model);
         expect(isReactive(result)).toBe(true);
@@ -67,7 +68,7 @@ describe("lib/use/useWorkflowTransitions.js", () => {
         expect(result.error).toBe(null);
     });
 
-    it("fetches transitions on mount when active", async () => {
+    scopedIt("fetches transitions on mount when active", async () => {
         const transitions = [{ code: "one", name: "One" }];
         workflowStoreMock.workflowTransitions[getAppModelDotName({ app: unref(app), model: unref(model) })] =
             transitions;
@@ -85,7 +86,7 @@ describe("lib/use/useWorkflowTransitions.js", () => {
         es.stop();
     });
 
-    it("updates transitions reactively", async () => {
+    scopedIt("updates transitions reactively", async () => {
         const transRef = ref([{ code: "init", name: "Init" }]);
         workflowStoreMock.workflowTransitions[getAppModelDotName({ app: unref(app), model: unref(model) })] = transRef;
 
@@ -100,7 +101,7 @@ describe("lib/use/useWorkflowTransitions.js", () => {
         expect(result.transitions).toEqual([{ code: "next", name: "Next" }]);
     });
 
-    it("sets error state if fetch throws", async () => {
+    scopedIt("sets error state if fetch throws", async () => {
         const error = new Error("fetch failed");
         workflowStoreMock.fetchWorkflowTransition.mockRejectedValue(error);
 
@@ -110,7 +111,7 @@ describe("lib/use/useWorkflowTransitions.js", () => {
         expect(mockedUseLoadingErrorInstance.setError).toHaveBeenCalledWith(error);
     });
 
-    it("does not fetch if isActive is false", async () => {
+    scopedIt("does not fetch if isActive is false", async () => {
         const isActive = ref(false);
         const result = useWorkflowTransitions(app, model, isActive);
         expect(isReactive(result)).toBe(true);
@@ -118,7 +119,7 @@ describe("lib/use/useWorkflowTransitions.js", () => {
         expect(workflowStoreMock.fetchWorkflowTransition).not.toHaveBeenCalled();
     });
 
-    it("does not fetch if key is falsy", async () => {
+    scopedIt("does not fetch if key is falsy", async () => {
         const app = ref("");
         const model = ref("someModel");
         const result = useWorkflowTransitions(app, model);

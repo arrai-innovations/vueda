@@ -1,5 +1,5 @@
 import { del } from "@arrai-innovations/reactive-helpers";
-import { expectReadOnlyFor, mockLifecycle, mockProvideInject } from "@tests/unit/utils.js";
+import { expectReadOnlyFor, mockLifecycle, mockProvideInject, scopedIt } from "@tests/unit/utils.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 import capitalize from "lodash-es/capitalize.js";
@@ -154,7 +154,7 @@ describe("lib/use/useField.js", () => {
 
     describe("props", () => {
         describe("name", () => {
-            it("should populate into state.name, reactively", async () => {
+            scopedIt("should populate into state.name, reactively", async () => {
                 const { field, props } = mountFieldNoContext({ name: "someName" });
 
                 expect(field.state.name).toEqual("someName");
@@ -165,7 +165,7 @@ describe("lib/use/useField.js", () => {
             });
         });
         describe("formModelName", () => {
-            it("should populate into state.formModelName, reactively", async () => {
+            scopedIt("should populate into state.formModelName, reactively", async () => {
                 const { field, props } = mountFieldNoContext({ formModelName: "someName" });
 
                 expect(field.state.formModelName).toEqual("someName");
@@ -176,7 +176,7 @@ describe("lib/use/useField.js", () => {
             });
         });
         describe("clearServerErrorDependents", () => {
-            it("should populate into state.clearServerErrorDependents, reactively", async () => {
+            scopedIt("should populate into state.clearServerErrorDependents, reactively", async () => {
                 const { field, props } = mountFieldNoContext({
                     clearServerErrorDependents: ["someOtherFieldName"],
                 });
@@ -189,7 +189,7 @@ describe("lib/use/useField.js", () => {
             });
         });
         describe("validationDependencies", () => {
-            it("should populate into state.clearServerErrorDependents, reactively", async () => {
+            scopedIt("should populate into state.clearServerErrorDependents, reactively", async () => {
                 const { field, props: props } = mountFieldNoContext({
                     validationDependencies: ["someOtherFieldName"],
                 });
@@ -200,65 +200,71 @@ describe("lib/use/useField.js", () => {
                 await flushPromises();
                 expect(field.state.validationDependencies).toEqual(["someOtherFieldName", "someNewOtherFieldName"]);
             });
-            it("should do nothing when contextless", async () => {
+            scopedIt("should do nothing when contextless", async () => {
                 const { field } = mountFieldNoContext({
                     validationDependencies: ["$parent.anotherField", "field2"],
                 });
                 await flushPromises();
                 expect(field.state.dependencyValues).toBeUndefined();
             });
-            it("should not throw when trying to use dependencyValues and not passing validationDependencies", async () => {
-                const { field } = mountFieldNoContext({});
-                await flushPromises();
-                expect(field.state.dependencyValues).toBeUndefined();
-            });
-            it("should populate state.dependencyValues resolving, based on $parent and non-$parent validationDependencies", async () => {
-                const fc = getFormContextMock(vue);
-                mockedProvide(FormContextSymbol, fc);
-                fc.state.initialValues = {
-                    field1: "fieldValue1",
-                    field2: "fieldValue2",
-                    field3: "fieldValue3",
-                    fieldSet1: [{ field: "value1" }, { field: "value2" }, { field: "value3" }],
-                    fieldSet2: [
-                        { otherField: "otherValue1", anotherField: "anotherValue1", thirdField: "thirdValue1" },
-                        { otherField: "otherValue2", anotherField: "anotherValue2", thirdField: "thirdValue2" },
-                        { otherField: "otherValue3", anotherField: "anotherValue3", thirdField: "thirdValue3" },
-                    ],
-                };
-                fc.state.values = cloneDeep(fc.state.initialValues);
+            scopedIt(
+                "should not throw when trying to use dependencyValues and not passing validationDependencies",
+                async () => {
+                    const { field } = mountFieldNoContext({});
+                    await flushPromises();
+                    expect(field.state.dependencyValues).toBeUndefined();
+                },
+            );
+            scopedIt(
+                "should populate state.dependencyValues resolving, based on $parent and non-$parent validationDependencies",
+                async () => {
+                    const fc = getFormContextMock(vue);
+                    mockedProvide(FormContextSymbol, fc);
+                    fc.state.initialValues = {
+                        field1: "fieldValue1",
+                        field2: "fieldValue2",
+                        field3: "fieldValue3",
+                        fieldSet1: [{ field: "value1" }, { field: "value2" }, { field: "value3" }],
+                        fieldSet2: [
+                            { otherField: "otherValue1", anotherField: "anotherValue1", thirdField: "thirdValue1" },
+                            { otherField: "otherValue2", anotherField: "anotherValue2", thirdField: "thirdValue2" },
+                            { otherField: "otherValue3", anotherField: "anotherValue3", thirdField: "thirdValue3" },
+                        ],
+                    };
+                    fc.state.values = cloneDeep(fc.state.initialValues);
 
-                const props = getDefaultProps(vue, "fieldSet2[1].otherField");
-                props.validationDependencies = ["$parent.anotherField", "field2"];
-                const field = useField(vue.readonly(props), emit);
-                await flushPromises();
+                    const props = getDefaultProps(vue, "fieldSet2[1].otherField");
+                    props.validationDependencies = ["$parent.anotherField", "field2"];
+                    const field = useField(vue.readonly(props), emit);
+                    await flushPromises();
 
-                // initial state
-                expect(field.state.dependencyValues).toEqual({
-                    "$parent.anotherField": "anotherValue2",
-                    field2: "fieldValue2",
-                });
+                    // initial state
+                    expect(field.state.dependencyValues).toEqual({
+                        "$parent.anotherField": "anotherValue2",
+                        field2: "fieldValue2",
+                    });
 
-                await flushPromises();
+                    await flushPromises();
 
-                // test reactive changes
-                fc.state.values.fieldSet2[1].anotherField = "";
-                fc.state.values.field2 = "";
-                await flushPromises();
-                expect(field.state.dependencyValues).toEqual({
-                    "$parent.anotherField": "",
-                    field2: "",
-                });
+                    // test reactive changes
+                    fc.state.values.fieldSet2[1].anotherField = "";
+                    fc.state.values.field2 = "";
+                    await flushPromises();
+                    expect(field.state.dependencyValues).toEqual({
+                        "$parent.anotherField": "",
+                        field2: "",
+                    });
 
-                // test partial reactive changes
-                fc.state.values.field2 = "fieldValue2";
-                await flushPromises();
-                expect(field.state.dependencyValues).toEqual({
-                    "$parent.anotherField": "",
-                    field2: "fieldValue2",
-                });
-            });
-            it("should deal with bad deps, reactively", async () => {
+                    // test partial reactive changes
+                    fc.state.values.field2 = "fieldValue2";
+                    await flushPromises();
+                    expect(field.state.dependencyValues).toEqual({
+                        "$parent.anotherField": "",
+                        field2: "fieldValue2",
+                    });
+                },
+            );
+            scopedIt("should deal with bad deps, reactively", async () => {
                 const fc = getFormContextMock(vue);
                 mockedProvide(FormContextSymbol, fc);
                 fc.state.initialValues = {
@@ -290,7 +296,7 @@ describe("lib/use/useField.js", () => {
                 await flushPromises();
                 expect(field.state.dependencyValues).toEqual({ norAField: "" });
             });
-            it("should ignore $parent without errors when field is not nested", async () => {
+            scopedIt("should ignore $parent without errors when field is not nested", async () => {
                 const fc = getFormContextMock(vue);
                 mockedProvide(FormContextSymbol, fc);
                 fc.state.initialValues = {
@@ -328,7 +334,7 @@ describe("lib/use/useField.js", () => {
             });
         });
         describe("readOnly", () => {
-            it("should populate into state.readOnly, reactively", async () => {
+            scopedIt("should populate into state.readOnly, reactively", async () => {
                 const { field, props } = mountFieldNoContext({ readOnly: false });
 
                 expect(field.state.readOnly).toBe(false);
@@ -339,7 +345,7 @@ describe("lib/use/useField.js", () => {
             });
         });
         describe("required", () => {
-            it("should populate into state.required, reactively", async () => {
+            scopedIt("should populate into state.required, reactively", async () => {
                 const { field, props } = mountFieldNoContext({ required: false });
 
                 expect(field.state.required).toBe(false);
@@ -354,7 +360,7 @@ describe("lib/use/useField.js", () => {
             });
         });
         describe("requiredMessage", () => {
-            it("should update error message reactively when requiredMessage changes", async () => {
+            scopedIt("should update error message reactively when requiredMessage changes", async () => {
                 const props = getDefaultProps(vue, "someName");
                 props.required = true;
                 props.requiredMessage = "Initial required message.";
@@ -380,7 +386,7 @@ describe("lib/use/useField.js", () => {
             });
         });
         describe("shouldRequireFn", () => {
-            it("should affect state.required, reactively on outside refs", async () => {
+            scopedIt("should affect state.required, reactively on outside refs", async () => {
                 const someRef = vue.ref(false);
                 const someOtherRef = vue.ref(false);
                 const shouldRequireFn = () => {
@@ -410,7 +416,7 @@ describe("lib/use/useField.js", () => {
                 await flushPromises();
                 expect(field.state.required).toBe(false);
             });
-            it("should affect state.required, reactively based on validationDependencies", async () => {
+            scopedIt("should affect state.required, reactively based on validationDependencies", async () => {
                 const fc = getFormContextMock(vue);
                 mockedProvide(FormContextSymbol, fc);
                 fc.state.initialValues = {
@@ -463,7 +469,7 @@ describe("lib/use/useField.js", () => {
             });
         });
         describe("isRequiredViolation", () => {
-            it("should use defaultIsRequiredViolation when no custom function is provided", async () => {
+            scopedIt("should use defaultIsRequiredViolation when no custom function is provided", async () => {
                 const { field, props } = mountFieldNoContext({
                     modelValue: undefined,
                 });
@@ -484,21 +490,24 @@ describe("lib/use/useField.js", () => {
                 await flushPromises();
                 expect(field.state.valueRequiredViolation).toBe(false);
             });
-            it("should use a custom isRequiredViolation function when provided, without form context", async () => {
-                const customIsRequiredViolation = (value) => value !== "valid";
-                const { field, props } = mountFieldNoContext({
-                    isRequiredViolation: customIsRequiredViolation,
-                    modelValue: "invalid",
-                });
-                await flushPromises();
-                expect(field.state.valueRequiredViolation).toBe(true);
+            scopedIt(
+                "should use a custom isRequiredViolation function when provided, without form context",
+                async () => {
+                    const customIsRequiredViolation = (value) => value !== "valid";
+                    const { field, props } = mountFieldNoContext({
+                        isRequiredViolation: customIsRequiredViolation,
+                        modelValue: "invalid",
+                    });
+                    await flushPromises();
+                    expect(field.state.valueRequiredViolation).toBe(true);
 
-                // clear the violation
-                props.modelValue = "valid";
-                await flushPromises();
-                expect(field.state.valueRequiredViolation).toBe(false);
-            });
-            it("should use a custom isRequiredViolation function when provided, with form context", async () => {
+                    // clear the violation
+                    props.modelValue = "valid";
+                    await flushPromises();
+                    expect(field.state.valueRequiredViolation).toBe(false);
+                },
+            );
+            scopedIt("should use a custom isRequiredViolation function when provided, with form context", async () => {
                 const customIsRequiredViolation = (value) => value !== "valid";
                 const { field, fc } = mountFieldInContext(
                     {
@@ -559,7 +568,7 @@ describe("lib/use/useField.js", () => {
             //     const field = useField(vue.readonly(props), emit);
             //     return { field, props };
             // };
-            it("should validate correctly when not using a form context", async () => {
+            scopedIt("should validate correctly when not using a form context", async () => {
                 const isValid = (value) => {
                     if (value === "invalid") {
                         return "The value is invalid.";
@@ -591,7 +600,7 @@ describe("lib/use/useField.js", () => {
                 });
                 expect(field.state.valid).toBe("The value is invalid.");
             });
-            it("should validate correctly when using a form context, with dependency values", async () => {
+            scopedIt("should validate correctly when using a form context, with dependency values", async () => {
                 const isValid = (value, validationDependencies) => {
                     if (value === "invalid") {
                         return "The value is invalid.";
@@ -725,7 +734,7 @@ describe("lib/use/useField.js", () => {
             });
         });
         describe("label", () => {
-            it("should default to the field name when no label is provided", async () => {
+            scopedIt("should default to the field name when no label is provided", async () => {
                 // Create a field with only a name (label is null by default)
                 const { field } = mountFieldNoContext({ name: "testField" });
                 await flushPromises();
@@ -734,7 +743,7 @@ describe("lib/use/useField.js", () => {
                 expect(field.state.label).toEqual("testField");
             });
 
-            it("should use the provided label when it is set", async () => {
+            scopedIt("should use the provided label when it is set", async () => {
                 const { field, props } = mountFieldNoContext({ name: "testField" });
 
                 // Set a custom label
@@ -743,7 +752,7 @@ describe("lib/use/useField.js", () => {
                 expect(field.state.label).toEqual("Custom Label");
             });
 
-            it("should update reactively when the label prop changes", async () => {
+            scopedIt("should update reactively when the label prop changes", async () => {
                 const { field, props } = mountFieldNoContext({ name: "testField" });
 
                 // Initially set a custom label
@@ -763,7 +772,7 @@ describe("lib/use/useField.js", () => {
             });
         });
         describe("help", () => {
-            it("should populate into state.help, reactively", async () => {
+            scopedIt("should populate into state.help, reactively", async () => {
                 const { field, props } = mountFieldNoContext({
                     help: "Some help message.",
                 });
@@ -776,30 +785,36 @@ describe("lib/use/useField.js", () => {
             });
         });
         describe("modelValue", () => {
-            it("should initialize state.value from props.modelValue when no form context is provided", async () => {
-                const { field } = mountFieldNoContext({
-                    modelValue: "initial value",
-                });
-                await flushPromises();
+            scopedIt(
+                "should initialize state.value from props.modelValue when no form context is provided",
+                async () => {
+                    const { field } = mountFieldNoContext({
+                        modelValue: "initial value",
+                    });
+                    await flushPromises();
 
-                // Without a form context, state.value should be equal to modelValue.
-                expect(field.state.value).toEqual("initial value");
-            });
+                    // Without a form context, state.value should be equal to modelValue.
+                    expect(field.state.value).toEqual("initial value");
+                },
+            );
 
-            it("should update state.value reactively when props.modelValue changes in contextless mode", async () => {
-                const { field, props } = mountFieldNoContext({
-                    modelValue: "initial value",
-                });
-                await flushPromises();
-                expect(field.state.value).toEqual("initial value");
+            scopedIt(
+                "should update state.value reactively when props.modelValue changes in contextless mode",
+                async () => {
+                    const { field, props } = mountFieldNoContext({
+                        modelValue: "initial value",
+                    });
+                    await flushPromises();
+                    expect(field.state.value).toEqual("initial value");
 
-                // Changing the modelValue prop should update the computed state.value.
-                props.modelValue = "updated value";
-                await flushPromises();
-                expect(field.state.value).toEqual("updated value");
-            });
+                    // Changing the modelValue prop should update the computed state.value.
+                    props.modelValue = "updated value";
+                    await flushPromises();
+                    expect(field.state.value).toEqual("updated value");
+                },
+            );
 
-            it("should emit update:modelValue when state.value is set in contextless mode", async () => {
+            scopedIt("should emit update:modelValue when state.value is set in contextless mode", async () => {
                 const { field } = mountFieldNoContext({
                     modelValue: "initial value",
                 });
@@ -811,7 +826,7 @@ describe("lib/use/useField.js", () => {
                 expect(emit).toHaveBeenCalledWith("update:modelValue", "new value");
             });
 
-            it("should not emit update:modelValue if the new value equals the current state.value", async () => {
+            scopedIt("should not emit update:modelValue if the new value equals the current state.value", async () => {
                 const { field } = mountFieldNoContext({
                     modelValue: "same value",
                 });
@@ -823,7 +838,7 @@ describe("lib/use/useField.js", () => {
                 expect(emit).not.toHaveBeenCalled();
             });
 
-            it("should delegate value handling to the form context when one is provided", async () => {
+            scopedIt("should delegate value handling to the form context when one is provided", async () => {
                 const { field, fc } = mountFieldInContext(
                     {
                         values: {
@@ -848,7 +863,7 @@ describe("lib/use/useField.js", () => {
         describe.skip("preprocessSet", () => {});
         describe.skip("preprocessGet", () => {});
         describe("contextless", () => {
-            it("should not use FormContextSymbol when contextless is true", async () => {
+            scopedIt("should not use FormContextSymbol when contextless is true", async () => {
                 const { field } = mountFieldNoContext({
                     contextless: true,
                 });
@@ -858,7 +873,7 @@ describe("lib/use/useField.js", () => {
                 expect(field.state.value).toBeUndefined(); // No form context, so value is from modelValue
             });
 
-            it("should use FormContextSymbol when contextless is false", async () => {
+            scopedIt("should use FormContextSymbol when contextless is false", async () => {
                 const { field } = mountFieldInContext(
                     {
                         values: {
@@ -879,7 +894,7 @@ describe("lib/use/useField.js", () => {
     describe("state", () => {
         describe("Identification & Metadata", () => {
             describe("name", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldNoContext({ name: "someName" });
                     expect(field.state.name).toEqual("someName");
 
@@ -887,7 +902,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("formModelName", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldNoContext({ formModelName: "someFormModelName" });
                     expect(field.state.formModelName).toEqual("someFormModelName");
 
@@ -897,7 +912,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("clearServerErrorDependents", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldNoContext({
                         clearServerErrorDependents: ["someDependentName"],
                     });
@@ -911,7 +926,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("validationDependencies", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldNoContext({
                         validationDependencies: ["someDependencyName"],
                     });
@@ -925,7 +940,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("readOnly", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldNoContext({ readOnly: true });
                     expect(field.state.readOnly).toBe(true);
 
@@ -935,7 +950,7 @@ describe("lib/use/useField.js", () => {
         });
         describe("Validation", () => {
             describe("required", () => {
-                it("should derive from the form context when available", async () => {
+                scopedIt("should derive from the form context when available", async () => {
                     const { field, fc } = mountFieldInContext(
                         {},
                         {
@@ -951,7 +966,7 @@ describe("lib/use/useField.js", () => {
                     await flushPromises();
                     expect(field.state.required).toBe(false);
                 });
-                it("should respect explicit boolean values", async () => {
+                scopedIt("should respect explicit boolean values", async () => {
                     const { field, props } = mountFieldNoContext({
                         required: false,
                     });
@@ -969,25 +984,28 @@ describe("lib/use/useField.js", () => {
                     expect(field.state.required).toBe(false);
                     expect(field.state.valueRequiredViolation).toBe(false);
                 });
-                it("should computed as if requiredFn was defaultValidateRequired when props.required and props.requiredFn is null", async () => {
-                    const { field, props } = mountFieldNoContext({
-                        required: null,
-                    });
-                    // modelValue as undefined
-                    expect(field.state.required).toBe(true);
-                    expect(field.state.valueRequiredViolation).toBe(true);
+                scopedIt(
+                    "should computed as if requiredFn was defaultValidateRequired when props.required and props.requiredFn is null",
+                    async () => {
+                        const { field, props } = mountFieldNoContext({
+                            required: null,
+                        });
+                        // modelValue as undefined
+                        expect(field.state.required).toBe(true);
+                        expect(field.state.valueRequiredViolation).toBe(true);
 
-                    props.modelValue = null;
-                    await flushPromises();
-                    expect(field.state.required).toBe(true);
-                    expect(field.state.valueRequiredViolation).toBe(true);
+                        props.modelValue = null;
+                        await flushPromises();
+                        expect(field.state.required).toBe(true);
+                        expect(field.state.valueRequiredViolation).toBe(true);
 
-                    props.modelValue = "someValue";
-                    await flushPromises();
-                    expect(field.state.required).toBe(true);
-                    expect(field.state.valueRequiredViolation).toBe(false);
-                });
-                it("should update reactively with ignored or readOnly state changes", async () => {
+                        props.modelValue = "someValue";
+                        await flushPromises();
+                        expect(field.state.required).toBe(true);
+                        expect(field.state.valueRequiredViolation).toBe(false);
+                    },
+                );
+                scopedIt("should update reactively with ignored or readOnly state changes", async () => {
                     const { field, props } = mountFieldNoContext({
                         required: true,
                     });
@@ -1021,66 +1039,72 @@ describe("lib/use/useField.js", () => {
                     expect(field.state.required).toBe(true);
                     expect(field.state.valueRequiredViolation).toBe(true);
                 });
-                it("should update and clear required errors in form context based on required violation", async () => {
-                    const { field, fc } = mountFieldInContext(
-                        {
-                            required: {
-                                testField: true,
+                scopedIt(
+                    "should update and clear required errors in form context based on required violation",
+                    async () => {
+                        const { field, fc } = mountFieldInContext(
+                            {
+                                required: {
+                                    testField: true,
+                                },
                             },
-                        },
-                        {
-                            name: "testField",
-                            required: true,
-                            requiredMessage: "Field is required",
-                            modelValue: "",
-                        },
-                    );
-                    await flushPromises();
-                    expect(fc.state.errors).toEqual({});
-                    expect(field.state.required).toBe(true);
-                    expect(field.state.valueRequiredViolation).toBe(true);
+                            {
+                                name: "testField",
+                                required: true,
+                                requiredMessage: "Field is required",
+                                modelValue: "",
+                            },
+                        );
+                        await flushPromises();
+                        expect(fc.state.errors).toEqual({});
+                        expect(field.state.required).toBe(true);
+                        expect(field.state.valueRequiredViolation).toBe(true);
 
-                    fc.state.touched.testField = true;
-                    await flushPromises();
-                    expect(fc.updateError).toHaveBeenCalledWith("testField", "required", "Field is required");
-                    set(fc.state.errors, "testField.required", "Field is required");
-                    expect(fc.state.errors).toEqual({ testField: { required: "Field is required" } });
+                        fc.state.touched.testField = true;
+                        await flushPromises();
+                        expect(fc.updateError).toHaveBeenCalledWith("testField", "required", "Field is required");
+                        set(fc.state.errors, "testField.required", "Field is required");
+                        expect(fc.state.errors).toEqual({ testField: { required: "Field is required" } });
 
-                    fc.state.values.testField = "new value";
-                    await flushPromises();
-                    expect(fc.deleteError).toHaveBeenCalledWith("testField", "required");
-                    del(fc.state.errors, "testField");
-                    expect(field.state.errors).toEqual({});
-                });
+                        fc.state.values.testField = "new value";
+                        await flushPromises();
+                        expect(fc.deleteError).toHaveBeenCalledWith("testField", "required");
+                        del(fc.state.errors, "testField");
+                        expect(field.state.errors).toEqual({});
+                    },
+                );
             });
             describe("valid", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldNoContext({
                         valid: true,
                     });
 
                     expect(() => (field.state.valid = false)).toThrow(expectReadOnlyFor("valid"));
                 });
-                it("should clear validation error when valid changes from false to true without form context", async () => {
-                    const { field, props } = mountFieldNoContext({
-                        modelValue: "invalid",
-                        validate: (value) => (value === "valid" ? true : "Invalid value"),
-                    });
-                    await flushPromises();
+                scopedIt(
+                    "should clear validation error when valid changes from false to true without form context",
+                    async () => {
+                        const { field, props } = mountFieldNoContext({
+                            modelValue: "invalid",
+                            validate: (value) => (value === "valid" ? true : "Invalid value"),
+                        });
+                        await flushPromises();
 
-                    field.setTouched();
-                    await flushPromises();
-                    expect(field.state.errors).toEqual({ validate: "Invalid value" });
+                        field.setTouched();
+                        await flushPromises();
+                        expect(field.state.errors).toEqual({ validate: "Invalid value" });
 
-                    props.modelValue = "valid";
-                    await flushPromises();
-                    expect(field.state.errors).toEqual({});
-                });
+                        props.modelValue = "valid";
+                        await flushPromises();
+                        expect(field.state.errors).toEqual({});
+                    },
+                );
             });
         });
         describe("Display", () => {
             describe("label", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldNoContext({
                         label: "Some Label",
                     });
@@ -1089,7 +1113,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("help", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldNoContext({});
 
                     expect(() => (field.state.help = "some help")).toThrow(expectReadOnlyFor("help"));
@@ -1098,7 +1122,7 @@ describe("lib/use/useField.js", () => {
         });
         describe("Value Handling", () => {
             describe("value", () => {
-                it("should call fc deleteValue when setting to undefined", async () => {
+                scopedIt("should call fc deleteValue when setting to undefined", async () => {
                     const { field, fc } = mountFieldInContext(
                         {
                             values: {
@@ -1119,7 +1143,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("submittingValue", () => {
-                it("should return the value from fc when provided", async () => {
+                scopedIt("should return the value from fc when provided", async () => {
                     const { field } = mountFieldInContext(
                         {
                             submittingValues: { testField: "context-submitting" },
@@ -1133,7 +1157,7 @@ describe("lib/use/useField.js", () => {
                     expect(field.state.submittingValue).toEqual("context-submitting");
                 });
 
-                it("should return undefined when the entire field is ignored (contextless mode)", async () => {
+                scopedIt("should return undefined when the entire field is ignored (contextless mode)", async () => {
                     const { field } = mountFieldInContext(
                         {
                             submittingValues: { testField: "context-submitting" },
@@ -1152,7 +1176,7 @@ describe("lib/use/useField.js", () => {
                     expect(field.state.submittingValue).toBeUndefined();
                 });
 
-                it("should filter out ignored elements from an array (contextless mode)", async () => {
+                scopedIt("should filter out ignored elements from an array (contextless mode)", async () => {
                     const { field } = mountFieldInContext(
                         {},
                         {
@@ -1171,7 +1195,7 @@ describe("lib/use/useField.js", () => {
                     expect(field.state.submittingValue).toEqual(["a", "c"]);
                 });
 
-                it("should omit ignored keys from an object (contextless mode)", async () => {
+                scopedIt("should omit ignored keys from an object (contextless mode)", async () => {
                     const { field } = mountFieldInContext(
                         {},
                         {
@@ -1190,7 +1214,7 @@ describe("lib/use/useField.js", () => {
                     expect(field.state.submittingValue).toEqual({ key1: "val1" });
                 });
 
-                it("should return a primitive value directly (contextless mode)", async () => {
+                scopedIt("should return a primitive value directly (contextless mode)", async () => {
                     const { field } = mountFieldInContext(
                         {},
                         {
@@ -1205,7 +1229,7 @@ describe("lib/use/useField.js", () => {
             });
             describe.skip("initialValue", () => {});
             describe("valueIsInitial", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
 
                     expect(() => (field.state.valueIsInitial = "some value")).toThrow(
@@ -1214,7 +1238,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("initialValueUnset", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
 
                     expect(() => (field.state.initialValueUnset = "some value")).toThrow(
@@ -1223,14 +1247,14 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("valueUnset", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
 
                     expect(() => (field.state.valueUnset = "some value")).toThrow(expectReadOnlyFor("valueUnset"));
                 });
             });
             describe("valueRequiredViolation", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
 
                     expect(() => (field.state.valueRequiredViolation = "some value")).toThrow(
@@ -1241,7 +1265,7 @@ describe("lib/use/useField.js", () => {
         });
         describe("Messages & Errors", () => {
             describe("messages", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
 
                     expect(() => (field.state.messages = { code: "some other message" })).toThrow();
@@ -1251,7 +1275,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("errors", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
 
                     expect(() => (field.state.errors = { code: "some other error" })).toThrow();
@@ -1259,78 +1283,87 @@ describe("lib/use/useField.js", () => {
                     field.state.errors.code = "some error";
                     expect(field.state.errors).toEqual({});
                 });
-                it("handles the case where fc.state.errors[props.name] is not undefined when checking existingRequired", async () => {
-                    const { fc, props } = mountFieldInContext(
-                        {
-                            errors: {
-                                testField: {
-                                    required: "Test is required",
+                scopedIt(
+                    "handles the case where fc.state.errors[props.name] is not undefined when checking existingRequired",
+                    async () => {
+                        const { fc, props } = mountFieldInContext(
+                            {
+                                errors: {
+                                    testField: {
+                                        required: "Test is required",
+                                    },
                                 },
+                                touched: {},
+                                values: { testField: "non-violation value" },
                             },
-                            touched: {},
-                            values: { testField: "non-violation value" },
-                        },
-                        {
-                            name: "testField",
-                            required: true,
-                            requiredMessage: "Test is required",
-                        },
-                    );
-                    fc.state.required.testField = true; // this would be a computed
-                    expect(fc.state.errors.testField).toEqual({
-                        required: "Test is required",
-                    });
+                            {
+                                name: "testField",
+                                required: true,
+                                requiredMessage: "Test is required",
+                            },
+                        );
+                        fc.state.required.testField = true; // this would be a computed
+                        expect(fc.state.errors.testField).toEqual({
+                            required: "Test is required",
+                        });
 
-                    props.requiredMessage = "Test is super required";
-                    fc.state.values.testField = ""; // now a violation
-                    fc.state.touched.testField = true;
-                    await flushPromises();
-                    expect(fc.updateError).toHaveBeenCalledWith("testField", "required", "Test is super required");
-                });
+                        props.requiredMessage = "Test is super required";
+                        fc.state.values.testField = ""; // now a violation
+                        fc.state.touched.testField = true;
+                        await flushPromises();
+                        expect(fc.updateError).toHaveBeenCalledWith("testField", "required", "Test is super required");
+                    },
+                );
             });
         });
         describe("Interaction & State Tracking", () => {
             describe("touched", () => {
-                it("should update touched state when setTouched and clearTouched are called, contextless", async () => {
-                    const { field } = mountFieldNoContext();
+                scopedIt(
+                    "should update touched state when setTouched and clearTouched are called, contextless",
+                    async () => {
+                        const { field } = mountFieldNoContext();
 
-                    // Initially untouched
-                    expect(field.state.touched).toBe(false);
+                        // Initially untouched
+                        expect(field.state.touched).toBe(false);
 
-                    // Set touched
-                    field.setTouched();
-                    await flushPromises();
-                    expect(field.state.touched).toBe(true);
+                        // Set touched
+                        field.setTouched();
+                        await flushPromises();
+                        expect(field.state.touched).toBe(true);
 
-                    // Clear touched
-                    field.clearTouched();
-                    await flushPromises();
-                    expect(field.state.touched).toBe(false);
-                });
-                it("should update touched state when setTouched and clearTouched are called, in form context", async () => {
-                    const { field, fc } = mountFieldInContext();
+                        // Clear touched
+                        field.clearTouched();
+                        await flushPromises();
+                        expect(field.state.touched).toBe(false);
+                    },
+                );
+                scopedIt(
+                    "should update touched state when setTouched and clearTouched are called, in form context",
+                    async () => {
+                        const { field, fc } = mountFieldInContext();
 
-                    // Initially untouched
-                    expect(field.state.touched).toBe(false);
+                        // Initially untouched
+                        expect(field.state.touched).toBe(false);
 
-                    // Set touched
-                    field.setTouched();
-                    await flushPromises();
-                    expect(fc.setTouched).toBeCalledWith(field.state.name);
-                    fc.state.touched[field.state.name] = true;
-                    await flushPromises();
-                    expect(field.state.touched).toBe(true);
+                        // Set touched
+                        field.setTouched();
+                        await flushPromises();
+                        expect(fc.setTouched).toBeCalledWith(field.state.name);
+                        fc.state.touched[field.state.name] = true;
+                        await flushPromises();
+                        expect(field.state.touched).toBe(true);
 
-                    // Clear touched
-                    field.clearTouched();
-                    await flushPromises();
-                    expect(fc.clearTouched).toBeCalledWith(field.state.name);
-                    delete fc.state.touched[field.state.name];
-                    expect(field.state.touched).toBe(false);
-                });
+                        // Clear touched
+                        field.clearTouched();
+                        await flushPromises();
+                        expect(fc.clearTouched).toBeCalledWith(field.state.name);
+                        delete fc.state.touched[field.state.name];
+                        expect(field.state.touched).toBe(false);
+                    },
+                );
             });
             describe("modified", () => {
-                it("should update modified state when the field's value changes, contextless", async () => {
+                scopedIt("should update modified state when the field's value changes, contextless", async () => {
                     const { field, props } = mountFieldInContext(
                         {},
                         {
@@ -1351,7 +1384,7 @@ describe("lib/use/useField.js", () => {
                     await flushPromises();
                     expect(field.state.modified).toBe(true);
                 });
-                it("should update modified state when the field's value changes, in form context", async () => {
+                scopedIt("should update modified state when the field's value changes, in form context", async () => {
                     const { field, fc } = mountFieldInContext(
                         {
                             initialValues: {
@@ -1392,7 +1425,7 @@ describe("lib/use/useField.js", () => {
                     await flushPromises();
                     expect(field.state.modified).toBe(true);
                 });
-                it("should be modified when value becomes unset while initial value remains set", async () => {
+                scopedIt("should be modified when value becomes unset while initial value remains set", async () => {
                     const { field, props } = mountFieldNoContext({
                         modelValue: "initial value",
                     });
@@ -1412,7 +1445,7 @@ describe("lib/use/useField.js", () => {
                     expect(field.state.valueUnset).toBe(true);
                     expect(field.state.modified).toBe(true);
                 });
-                it("should not be modified when both initialValueUnset and valueUnset are true", async () => {
+                scopedIt("should not be modified when both initialValueUnset and valueUnset are true", async () => {
                     const { field, props } = mountFieldNoContext({
                         modelValue: "",
                     });
@@ -1432,23 +1465,26 @@ describe("lib/use/useField.js", () => {
             });
 
             describe("ignored", () => {
-                it("should update ignored state when ignore and removeIgnore are called, contextless", async () => {
-                    const { field } = mountFieldNoContext({});
+                scopedIt(
+                    "should update ignored state when ignore and removeIgnore are called, contextless",
+                    async () => {
+                        const { field } = mountFieldNoContext({});
 
-                    // Initially not ignored
-                    expect(field.state.ignored).toBe(false);
+                        // Initially not ignored
+                        expect(field.state.ignored).toBe(false);
 
-                    // Mark as ignored
-                    field.ignore();
-                    await flushPromises();
-                    expect(field.state.ignored).toBe(true);
+                        // Mark as ignored
+                        field.ignore();
+                        await flushPromises();
+                        expect(field.state.ignored).toBe(true);
 
-                    // Remove ignored status
-                    field.removeIgnore();
-                    await flushPromises();
-                    expect(field.state.ignored).toBe(false);
-                });
-                it("should contribute to modified when valueIsInitial is false", async () => {
+                        // Remove ignored status
+                        field.removeIgnore();
+                        await flushPromises();
+                        expect(field.state.ignored).toBe(false);
+                    },
+                );
+                scopedIt("should contribute to modified when valueIsInitial is false", async () => {
                     const { field, props } = mountFieldNoContext({});
 
                     // in order to reach ignored in amIModified, valueIsInitial must be false.
@@ -1473,7 +1509,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("focused", () => {
-                it("should update focused state when focus and blur are called, contextless", async () => {
+                scopedIt("should update focused state when focus and blur are called, contextless", async () => {
                     const { field } = mountFieldNoContext({});
 
                     // Initially not focused
@@ -1493,7 +1529,7 @@ describe("lib/use/useField.js", () => {
         });
         describe("Dependency Management", () => {
             describe("dependencyValues", () => {
-                it("should not allow updates", async () => {
+                scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldNoContext({
                         validationDependencies: ["some", "thing"],
                     });
@@ -1507,14 +1543,31 @@ describe("lib/use/useField.js", () => {
     });
     describe("methods", () => {
         describe("Value Management", () => {
+            describe("updateValue", () => {
+                scopedIt("should call fc.updateValue from updateValue()", async () => {
+                    const { fc, field } = mountFieldInContext({}, { name: "testField" });
+                    field.updateValue("newVal");
+                    expect(fc.updateValue).toHaveBeenCalledWith("testField", "newVal");
+                });
+                scopedIt("should emit when called without a context", async () => {
+                    const { field } = mountFieldNoContext({
+                        modelValue: "something",
+                    });
+                    await flushPromises();
+
+                    field.updateValue("newVal");
+                    expect(emit).toHaveBeenCalledTimes(1);
+                    expect(emit).toHaveBeenCalledWith("update:modelValue", "newVal");
+                });
+            });
             describe("deleteValue", () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field.deleteValue();
                     expect(fc.deleteValue).toHaveBeenCalledTimes(1);
                     expect(fc.deleteValue).toHaveBeenCalledWith("testField");
                 });
-                it("should emit when called without a context", async () => {
+                scopedIt("should emit when called without a context", async () => {
                     const { field } = mountFieldNoContext({
                         modelValue: "something",
                     });
@@ -1526,13 +1579,13 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("updateInitialValue", () => {
-                it("should call fc.updateInitialValue from updateInitialValue()", async () => {
+                scopedIt("should call fc.updateInitialValue from updateInitialValue()", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field.updateInitialValue("newVal");
                     expect(fc.updateInitialValue).toHaveBeenCalledTimes(1);
                     expect(fc.updateInitialValue).toHaveBeenCalledWith("testField", "newVal");
                 });
-                it("should work when called without a context", async () => {
+                scopedIt("should work when called without a context", async () => {
                     const { field } = mountFieldNoContext({
                         modelValue: "something",
                     });
@@ -1544,13 +1597,13 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("deleteInitialValue", () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field.deleteInitialValue();
                     expect(fc.deleteInitialValue).toHaveBeenCalledTimes(1);
                     expect(fc.deleteInitialValue).toHaveBeenCalledWith("testField");
                 });
-                it("should emit when called without a context", async () => {
+                scopedIt("should emit when called without a context", async () => {
                     const { field } = mountFieldNoContext({
                         modelValue: "something",
                     });
@@ -1580,13 +1633,13 @@ describe("lib/use/useField.js", () => {
         ])("$label", ({ label, updateMethod, deleteMethod, clearMethod, stateKey }) => {
             const labelLower = label.toLowerCase();
             describe(`${clearMethod}`, () => {
-                it("should call the fc's method with args, in context", async () => {
+                scopedIt("should call the fc's method with args, in context", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field[clearMethod](99);
                     expect(fc[clearMethod]).toHaveBeenCalledTimes(1);
                     expect(fc[clearMethod]).toHaveBeenCalledWith("testField", 99);
                 });
-                it("should call the fc's method with args, contextless", async () => {
+                scopedIt("should call the fc's method with args, contextless", async () => {
                     const { fc, field } = mountFieldInContext(
                         {},
                         {
@@ -1601,7 +1654,7 @@ describe("lib/use/useField.js", () => {
                     expect(fc[clearMethod]).toHaveBeenCalledTimes(0);
                     expect(field.state[stateKey]).toEqual({}); // should clear the state
                 });
-                it("should call the fc's method with args, no context", async () => {
+                scopedIt("should call the fc's method with args, no context", async () => {
                     const { field } = mountFieldNoContext({
                         name: "testField",
                         [`test${capitalize(stateKey)}`]: {
@@ -1613,13 +1666,13 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe(`${updateMethod}`, () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field[updateMethod]("someCode", "someMessage");
                     expect(fc[updateMethod]).toHaveBeenCalledTimes(1);
                     expect(fc[updateMethod]).toHaveBeenCalledWith("testField", "someCode", "someMessage");
                 });
-                it(`should set a new ${labelLower} if one did not exist before`, async () => {
+                scopedIt(`should set a new ${labelLower} if one did not exist before`, async () => {
                     const { field } = mountFieldNoContext();
                     await flushPromises();
 
@@ -1629,7 +1682,7 @@ describe("lib/use/useField.js", () => {
                     expect(field.state[stateKey]).toEqual({ info: expectedMessage });
                 });
 
-                it(`should do nothing if the ${labelLower} is already the same`, async () => {
+                scopedIt(`should do nothing if the ${labelLower} is already the same`, async () => {
                     const { field } = mountFieldNoContext();
                     await flushPromises();
 
@@ -1644,7 +1697,7 @@ describe("lib/use/useField.js", () => {
                     expect(field.state[stateKey]).toBe(before); // object reference should be the same
                 });
 
-                it(`should update the ${labelLower} if the ${labelLower} changes`, async () => {
+                scopedIt(`should update the ${labelLower} if the ${labelLower} changes`, async () => {
                     const { field } = mountFieldNoContext();
                     await flushPromises();
 
@@ -1658,7 +1711,7 @@ describe("lib/use/useField.js", () => {
                     expect(field.state[stateKey]).toEqual({ info: after });
                 });
 
-                it(`should remove the ${labelLower} if passed undefined`, async () => {
+                scopedIt(`should remove the ${labelLower} if passed undefined`, async () => {
                     const { field } = mountFieldNoContext();
                     await flushPromises();
 
@@ -1671,13 +1724,13 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe(`${deleteMethod}`, () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field[deleteMethod]("someCode");
                     expect(fc[deleteMethod]).toHaveBeenCalledTimes(deleteMethod === "deleteError" ? 2 : 1);
                     expect(fc[deleteMethod]).toHaveBeenCalledWith("testField", "someCode");
                 });
-                it(`should delete ${labelLower} without form context`, async () => {
+                scopedIt(`should delete ${labelLower} without form context`, async () => {
                     const { field } = mountFieldNoContext();
                     await flushPromises();
 
@@ -1695,7 +1748,7 @@ describe("lib/use/useField.js", () => {
         });
         describe("Field Interactions", () => {
             describe("setTouched", () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field.setTouched();
                     expect(fc.setTouched).toHaveBeenCalledTimes(1);
@@ -1703,7 +1756,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("clearTouched", () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { field, fc } = mountFieldInContext({}, { name: "testField" });
                     field.clearTouched();
                     expect(fc.clearTouched).toHaveBeenCalledTimes(1);
@@ -1711,7 +1764,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("focus", () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field.focus();
                     expect(fc.focus).toHaveBeenCalledTimes(1);
@@ -1719,7 +1772,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("blur", () => {
-                it("should remove focus when in a form context, and clear server errors", async () => {
+                scopedIt("should remove focus when in a form context, and clear server errors", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     // Initially no focus
                     expect(field.state.focused).toBe(false);
@@ -1742,45 +1795,48 @@ describe("lib/use/useField.js", () => {
                     delete fc.state.focused;
                     expect(field.state.focused).toBe(false);
                 });
-                it("should remove focus when in a form context, clear server errors for the field and it's clearServerErrorDependents", async () => {
-                    const { fc, field } = mountFieldInContext(
-                        {
-                            values: {
-                                testField: "initial",
-                                otherField: "initial",
+                scopedIt(
+                    "should remove focus when in a form context, clear server errors for the field and it's clearServerErrorDependents",
+                    async () => {
+                        const { fc, field } = mountFieldInContext(
+                            {
+                                values: {
+                                    testField: "initial",
+                                    otherField: "initial",
+                                },
                             },
-                        },
-                        {
-                            name: "testField",
-                            clearServerErrorDependents: ["otherField"],
-                        },
-                    );
-                    // Initially no focus
-                    expect(field.state.focused).toBe(false);
-                    await flushPromises();
+                            {
+                                name: "testField",
+                                clearServerErrorDependents: ["otherField"],
+                            },
+                        );
+                        // Initially no focus
+                        expect(field.state.focused).toBe(false);
+                        await flushPromises();
 
-                    field.focus();
-                    await flushPromises();
-                    expect(fc.focus).toBeCalledTimes(1);
-                    expect(fc.focus).toBeCalledWith(field.state.name);
-                    fc.state.focused = field.state.name;
-                    expect(field.state.focused).toBe(true);
+                        field.focus();
+                        await flushPromises();
+                        expect(fc.focus).toBeCalledTimes(1);
+                        expect(fc.focus).toBeCalledWith(field.state.name);
+                        fc.state.focused = field.state.name;
+                        expect(field.state.focused).toBe(true);
 
-                    // Change the value
-                    field.blur();
-                    await flushPromises();
-                    expect(fc.blur).toBeCalledTimes(1);
-                    expect(fc.blur).toBeCalledWith(field.state.name);
-                    expect(fc.clearServerErrors).toBeCalledTimes(1);
-                    expect(fc.clearServerErrors).toBeCalledWith(field.state.name, ["otherField"]);
-                    delete fc.state.focused;
-                    expect(field.state.focused).toBe(false);
-                });
+                        // Change the value
+                        field.blur();
+                        await flushPromises();
+                        expect(fc.blur).toBeCalledTimes(1);
+                        expect(fc.blur).toBeCalledWith(field.state.name);
+                        expect(fc.clearServerErrors).toBeCalledTimes(1);
+                        expect(fc.clearServerErrors).toBeCalledWith(field.state.name, ["otherField"]);
+                        delete fc.state.focused;
+                        expect(field.state.focused).toBe(false);
+                    },
+                );
             });
         });
         describe("Field Ignoring", () => {
             describe("ignore", () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field.ignore();
                     expect(fc.ignore).toHaveBeenCalledTimes(1);
@@ -1788,7 +1844,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("removeIgnore", () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field.removeIgnore();
                     expect(fc.removeIgnore).toHaveBeenCalledTimes(1);
@@ -1798,7 +1854,7 @@ describe("lib/use/useField.js", () => {
         });
         describe("Hook Registration", () => {
             describe("registerIsModifiedHook", () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field.registerIsModifiedHook();
                     expect(fc.registerIsModifiedHook).toHaveBeenCalledTimes(2);
@@ -1806,7 +1862,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("unregisterIsModifiedHook", () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field.unregisterIsModifiedHook();
                     expect(fc.unregisterIsModifiedHook).toHaveBeenCalledTimes(1);
@@ -1814,7 +1870,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("registerIsRequiredHook", () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field.registerIsRequiredHook();
                     expect(fc.registerIsRequiredHook).toHaveBeenCalledTimes(2);
@@ -1822,7 +1878,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("unregisterIsRequiredHook", () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field.unregisterIsRequiredHook();
                     expect(fc.unregisterIsRequiredHook).toHaveBeenCalledTimes(1);
@@ -1830,7 +1886,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("registerIsValidHook", () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field.registerIsValidHook();
                     expect(fc.registerIsValidHook).toHaveBeenCalledTimes(2);
@@ -1838,7 +1894,7 @@ describe("lib/use/useField.js", () => {
                 });
             });
             describe("unregisterIsValidHook", () => {
-                it("should call the fc's method with args", async () => {
+                scopedIt("should call the fc's method with args", async () => {
                     const { fc, field } = mountFieldInContext({}, { name: "testField" });
                     field.unregisterIsValidHook();
                     expect(fc.unregisterIsValidHook).toHaveBeenCalledTimes(1);
@@ -1849,7 +1905,7 @@ describe("lib/use/useField.js", () => {
     });
     describe("integration", () => {
         describe("FieldContextSymbol", () => {
-            it("should provide the field context to the form context", async () => {
+            scopedIt("should provide the field context to the form context", async () => {
                 const { field } = mountFieldInContext();
 
                 expect(mockedProvide).toHaveBeenCalledWith(FieldContextSymbol, field);
@@ -1858,7 +1914,7 @@ describe("lib/use/useField.js", () => {
     });
     describe("lifecycle", () => {
         describe("onUnmounted", () => {
-            it("should let form know it wants to unregister hooks", async () => {
+            scopedIt("should let form know it wants to unregister hooks", async () => {
                 const { fc, props } = mountFieldInContext(
                     {
                         initialValues: {

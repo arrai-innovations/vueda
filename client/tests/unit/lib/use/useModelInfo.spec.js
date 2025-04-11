@@ -1,3 +1,4 @@
+import { scopedIt } from "@tests/unit/utils.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import flushPromises from "flush-promises";
 import { effectScope, isReactive, reactive, readonly, ref, unref } from "vue";
@@ -62,7 +63,7 @@ describe("lib/use/useModelInfo.js", () => {
         es.stop();
     });
 
-    it("fetches model info on mount", async () => {
+    scopedIt("fetches model info on mount", async () => {
         const info = { label: "My Label" };
         modelInfoStoreMock.infos[key] = info;
         modelInfoStoreMock.fetchModelInfo.mockResolvedValue(info);
@@ -78,7 +79,7 @@ describe("lib/use/useModelInfo.js", () => {
         expect(result.info).toEqual(info);
     });
 
-    it("reactively updates deep info changes", async () => {
+    scopedIt("reactively updates deep info changes", async () => {
         let result;
         es.run(() => {
             result = useModelInfo(app, model);
@@ -94,7 +95,7 @@ describe("lib/use/useModelInfo.js", () => {
         expect(result.info.foo).toBe("baz");
     });
 
-    it("sets error if fetch fails", async () => {
+    scopedIt("sets error if fetch fails", async () => {
         const error = new Error("bad fetch");
         modelInfoStoreMock.fetchModelInfo.mockRejectedValue(error);
 
@@ -107,7 +108,7 @@ describe("lib/use/useModelInfo.js", () => {
         expect(result.errored).toBe(false); // still false unless you internally track it
     });
 
-    it("does not fetch if isActive is false", async () => {
+    scopedIt("does not fetch if isActive is false", async () => {
         const isActive = ref(false);
         es.run(() => {
             useModelInfo(app, model, isActive);
@@ -116,7 +117,7 @@ describe("lib/use/useModelInfo.js", () => {
         expect(modelInfoStoreMock.fetchModelInfo).not.toHaveBeenCalled();
     });
 
-    it("avoids redundant fetches if app/model/isActive haven't changed", async () => {
+    scopedIt("avoids redundant fetches if app/model/isActive haven't changed", async () => {
         const spy = vi.spyOn(modelInfoStoreMock, "fetchModelInfo").mockResolvedValue({});
         const isActive = ref(true);
 
@@ -133,7 +134,7 @@ describe("lib/use/useModelInfo.js", () => {
         expect(spy).toHaveBeenCalledTimes(1);
     });
 
-    it("handles hardcoded string arguments", async () => {
+    scopedIt("handles hardcoded string arguments", async () => {
         let result;
         es.run(() => {
             result = useModelInfo("staticApp", "staticModel");
@@ -143,7 +144,7 @@ describe("lib/use/useModelInfo.js", () => {
         expect(isReactive(result)).toBe(true);
     });
 
-    it("fetches model info when app changes but model and isActive stay the same", async () => {
+    scopedIt("fetches model info when app changes but model and isActive stay the same", async () => {
         const isActive = ref(true);
         es.run(() => {
             useModelInfo(app, model, isActive);
@@ -156,7 +157,7 @@ describe("lib/use/useModelInfo.js", () => {
         expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalled();
     });
 
-    it("fetches model info when model changes but app and isActive stay the same", async () => {
+    scopedIt("fetches model info when model changes but app and isActive stay the same", async () => {
         const isActive = ref(true);
         es.run(() => {
             useModelInfo(app, model, isActive);
@@ -169,7 +170,7 @@ describe("lib/use/useModelInfo.js", () => {
         expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalled();
     });
 
-    it("does not fetch and clears info if app is falsey", async () => {
+    scopedIt("does not fetch and clears info if app is falsey", async () => {
         const app = ref("");
         const model = ref("someModel");
 
@@ -183,7 +184,7 @@ describe("lib/use/useModelInfo.js", () => {
         expect(modelInfoStoreMock.fetchModelInfo).not.toHaveBeenCalled();
         expect(result.info).toEqual({});
     });
-    it("does not fetch and clears info if model is falsey", async () => {
+    scopedIt("does not fetch and clears info if model is falsey", async () => {
         const app = ref("someApp");
         const model = ref(null);
 

@@ -1,3 +1,4 @@
+import { scopedIt } from "@tests/unit/utils.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { computed, isReactive, reactive } from "vue";
@@ -13,7 +14,7 @@ describe("lib/use/useWidgetTheme.js", () => {
         vi.clearAllMocks();
     });
 
-    it("calls useTheme with minimal context and returns its result", () => {
+    scopedIt("calls useTheme with minimal context and returns its result", () => {
         const mockThemeReturn = vi.fn().mockReturnValue("some-class");
         useTheme.mockReturnValue(mockThemeReturn);
 
@@ -36,7 +37,7 @@ describe("lib/use/useWidgetTheme.js", () => {
         expect(themeContext.required).toBe(true);
     });
 
-    it("uses computed values from widgetContextState", () => {
+    scopedIt("uses computed values from widgetContextState", () => {
         const mockThemeReturn = vi.fn();
         useTheme.mockReturnValue(mockThemeReturn);
 
@@ -58,7 +59,7 @@ describe("lib/use/useWidgetTheme.js", () => {
         expect(themeContext.warning).toBe(true);
     });
 
-    it("merges additionalContext into themeContext", () => {
+    scopedIt("merges additionalContext into themeContext", () => {
         const mockThemeReturn = vi.fn();
         useTheme.mockReturnValue(mockThemeReturn);
 
@@ -75,7 +76,7 @@ describe("lib/use/useWidgetTheme.js", () => {
         expect(themeContext.dynamicMessage).toBe("hello world");
     });
 
-    it("passes keyFn through to useTheme", () => {
+    scopedIt("passes keyFn through to useTheme", () => {
         const mockThemeReturn = vi.fn();
         useTheme.mockReturnValue(mockThemeReturn);
 

@@ -1,3 +1,4 @@
+import { scopedIt } from "@tests/unit/utils.js";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import flushPromises from "flush-promises";
 import { reactive, readonly, ref } from "vue";
@@ -64,19 +65,19 @@ describe("lib/use/useFilteredActions.js", () => {
         await flushPromises();
     };
 
-    it("creates model config if none provided", async () => {
+    scopedIt("creates model config if none provided", async () => {
         useFilteredActions({ app: "foo", model: "bar" });
         expect(useModelConfig).not.toHaveBeenCalled();
         await activate();
         expect(useModelConfig).toHaveBeenCalledWith("foo", "bar", null);
     });
-    it("uses provided modelConfigInstance", async () => {
+    scopedIt("uses provided modelConfigInstance", async () => {
         useFilteredActions({ modelConfigInstance: modelConfig });
         expect(useModelConfig).not.toHaveBeenCalled();
         await activate();
         expect(useModelConfig).not.toHaveBeenCalled();
     });
-    it("returns flat array of actions if config.actions is an array", async () => {
+    scopedIt("returns flat array of actions if config.actions is an array", async () => {
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
         mockedModelConfig.config.actions = ["create", "update", "delete"];
         await flushPromises();
@@ -85,7 +86,7 @@ describe("lib/use/useFilteredActions.js", () => {
         await activate();
         expect(state.actions).toEqual(["create", "update", "delete"]);
     });
-    it("filters object-based actions based on user groups", async () => {
+    scopedIt("filters object-based actions based on user groups", async () => {
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
         mockedModelConfig.config.actions = {
             create: ["admins"],
@@ -99,7 +100,7 @@ describe("lib/use/useFilteredActions.js", () => {
         await activate();
         expect(state.actions).toEqual(["create", "update", "audit"]);
     });
-    it("returns empty actions if config.actions is invalid", async () => {
+    scopedIt("returns empty actions if config.actions is invalid", async () => {
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
         mockedModelConfig.config.actions = null;
         await flushPromises();
@@ -109,7 +110,7 @@ describe("lib/use/useFilteredActions.js", () => {
         await flushPromises();
         expect(state.actions).toEqual([]);
     });
-    it("reflects loading, error, and error clearing", async () => {
+    scopedIt("reflects loading, error, and error clearing", async () => {
         const clearError = vi.fn();
         useProxyLoadingError.mockReturnValue({
             loading: ref(true),
@@ -130,7 +131,7 @@ describe("lib/use/useFilteredActions.js", () => {
         expect(state.error).toBeInstanceOf(Error);
         expect(state.clearError).toBe(clearError);
     });
-    it("updates actions when config.actions changes to flat array", async () => {
+    scopedIt("updates actions when config.actions changes to flat array", async () => {
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
         mockedModelConfig.config.actions = {
             create: ["admins"],
@@ -146,7 +147,7 @@ describe("lib/use/useFilteredActions.js", () => {
         await flushPromises();
         expect(state.actions).toEqual(["a", "b", "c"]);
     });
-    it("clears actions when config.actions becomes invalid", async () => {
+    scopedIt("clears actions when config.actions becomes invalid", async () => {
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
         mockedModelConfig.config.actions = ["valid"];
         await flushPromises();
@@ -159,7 +160,7 @@ describe("lib/use/useFilteredActions.js", () => {
         await flushPromises();
         expect(state.actions).toEqual([]);
     });
-    it("updates filtered actions when user groups change", async () => {
+    scopedIt("updates filtered actions when user groups change", async () => {
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
         mockedModelConfig.config.actions = {
             create: ["admins"],
@@ -177,7 +178,7 @@ describe("lib/use/useFilteredActions.js", () => {
         await flushPromises();
         expect(state.actions).toEqual(["update", "audit"]);
     });
-    it("reacts to deep change in group-restricted actions", async () => {
+    scopedIt("reacts to deep change in group-restricted actions", async () => {
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
         // start with only one action allowed
         mockedModelConfig.config.actions = {
@@ -194,7 +195,7 @@ describe("lib/use/useFilteredActions.js", () => {
         await flushPromises();
         expect(state.actions).toEqual(["onlyForAdmins", "newAction"]);
     });
-    it("uses empty array when groups is falsy", async () => {
+    scopedIt("uses empty array when groups is falsy", async () => {
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
         mockedModelConfig.config.actions = {
             create: ["admins"],
@@ -211,7 +212,7 @@ describe("lib/use/useFilteredActions.js", () => {
         await flushPromises();
         expect(state.actions).toEqual(["audit"]);
     });
-    it("uses empty array when loggedInUser is null", async () => {
+    scopedIt("uses empty array when loggedInUser is null", async () => {
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
         mockedModelConfig.config.actions = {
             adminOnly: ["admins"],

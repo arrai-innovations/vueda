@@ -1,4 +1,4 @@
-import { mockLifecycle } from "@tests/unit/utils.js";
+import { mockLifecycle, scopedIt } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
 
 const lifecycleMocks = mockLifecycle(vi);
@@ -29,7 +29,7 @@ describe("lib/use/useIsActive.js", () => {
         lifecycleMocks.clearDeactivated();
     });
 
-    it("should initially be false until onMounted runs", async () => {
+    scopedIt("should initially be false until onMounted runs", async () => {
         const isActive = useIsActive();
 
         expect(isActive.value).toBe(false);
@@ -39,7 +39,7 @@ describe("lib/use/useIsActive.js", () => {
         expect(isActive.value).toBe(true);
     });
 
-    it("should become true onActivated and false onDeactivated", async () => {
+    scopedIt("should become true onActivated and false onDeactivated", async () => {
         const isActive = useIsActive();
 
         expect(isActive.value).toBe(false);
@@ -57,7 +57,7 @@ describe("lib/use/useIsActive.js", () => {
         expect(isActive.value).toBe(true);
     });
 
-    it("should not change when attempting to set isActive.value", async () => {
+    scopedIt("should not change when attempting to set isActive.value", async () => {
         const isActive = useIsActive();
 
         lifecycleMocks.runMountedHooks();

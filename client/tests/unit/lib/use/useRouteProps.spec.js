@@ -1,4 +1,4 @@
-import { mockUseRoute } from "@tests/unit/utils.js";
+import { mockUseRoute, scopedIt } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
 import { ref } from "vue";
 
@@ -33,7 +33,7 @@ describe("lib/use/useRouteProps.js", () => {
         vi.clearAllMocks();
     });
 
-    it("should return the props.default object when not a function", async () => {
+    scopedIt("should return the props.default object when not a function", async () => {
         const result = useRouteProps();
         expect(result.value).toEqual({ someProp: "initialValue" });
 
@@ -43,7 +43,7 @@ describe("lib/use/useRouteProps.js", () => {
         expect(result.value).toEqual({ someProp: "newValue" });
     });
 
-    it("should call props.default(route) if it is a function", async () => {
+    scopedIt("should call props.default(route) if it is a function", async () => {
         const propsFn = vi.fn((route) => ({ derived: route.matched[0].props.meta }));
         routeRef.value.matched[0].props = {
             default: propsFn,
@@ -55,13 +55,13 @@ describe("lib/use/useRouteProps.js", () => {
         expect(propsFn).toHaveBeenCalledWith(routeRef.value);
     });
 
-    it("should return undefined when route.matched is empty", async () => {
+    scopedIt("should return undefined when route.matched is empty", async () => {
         routeRef.value.matched = [];
         const result = useRouteProps();
         expect(result.value).toBeUndefined();
     });
 
-    it("should return undefined when route.matched[0] or .props is missing", async () => {
+    scopedIt("should return undefined when route.matched[0] or .props is missing", async () => {
         routeRef.value.matched = [null];
         const result1 = useRouteProps();
         expect(result1.value).toBeUndefined();

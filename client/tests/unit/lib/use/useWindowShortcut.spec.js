@@ -1,4 +1,4 @@
-import { mockEventListener, mockLifecycle } from "@tests/unit/utils.js";
+import { mockEventListener, mockLifecycle, scopedIt } from "@tests/unit/utils.js";
 
 const mockedLifecycle = mockLifecycle(vi);
 const mockedEventListener = mockEventListener(vi);
@@ -39,7 +39,7 @@ describe("lib/use/useWindowShortcut.js", () => {
         os.default.windows = true;
     });
 
-    it("attaches keydown listener on mounted and activated", () => {
+    scopedIt("attaches keydown listener on mounted and activated", () => {
         const props = vue.ref({
             triggers: [],
         });
@@ -53,7 +53,7 @@ describe("lib/use/useWindowShortcut.js", () => {
         expect(mockedEventListener.mockedAddEventListener).toHaveBeenCalledWith("keydown", expect.any(Function));
     });
 
-    it("removes keydown listener on deactivated", () => {
+    scopedIt("removes keydown listener on deactivated", () => {
         const props = vue.ref({
             triggers: [],
         });
@@ -64,7 +64,7 @@ describe("lib/use/useWindowShortcut.js", () => {
         expect(mockedEventListener.mockedRemoveEventListener).toHaveBeenCalledWith("keydown", expect.any(Function));
     });
 
-    it("calls trigger fn when key and modifiers match", async () => {
+    scopedIt("calls trigger fn when key and modifiers match", async () => {
         const fn = vi.fn();
         const props = vue.ref({
             triggers: [
@@ -87,7 +87,7 @@ describe("lib/use/useWindowShortcut.js", () => {
         expect(fn).toHaveBeenCalled();
     });
 
-    it("does not call trigger fn if repeat is true", () => {
+    scopedIt("does not call trigger fn if repeat is true", () => {
         const fn = vi.fn();
         const props = vue.ref({
             triggers: [
@@ -110,7 +110,7 @@ describe("lib/use/useWindowShortcut.js", () => {
         expect(fn).not.toHaveBeenCalled();
     });
 
-    it("handles shiftKey by uppercasing key", async () => {
+    scopedIt("handles shiftKey by uppercasing key", async () => {
         const fn = vi.fn();
         const props = vue.ref({
             triggers: [
@@ -133,7 +133,7 @@ describe("lib/use/useWindowShortcut.js", () => {
         expect(fn).toHaveBeenCalled();
     });
 
-    it("uses macOsModifiers on macOS", async () => {
+    scopedIt("uses macOsModifiers on macOS", async () => {
         vi.mocked(await import("platform-detect/os.mjs")).default.macos = true;
 
         const fn = vi.fn();
@@ -158,7 +158,7 @@ describe("lib/use/useWindowShortcut.js", () => {
 
         expect(fn).toHaveBeenCalled();
     });
-    it("does not call fn when no modifier key is pressed", () => {
+    scopedIt("does not call fn when no modifier key is pressed", () => {
         const fn = vi.fn();
         const props = vue.ref({
             triggers: [{ keys: "s", modifiers: ["ctrlKey"], fn }],
@@ -173,7 +173,7 @@ describe("lib/use/useWindowShortcut.js", () => {
 
         expect(fn).not.toHaveBeenCalled(); // hits the early modifier bailout
     });
-    it("calls fn when no modifiers are defined (modifiers.every skipped)", () => {
+    scopedIt("calls fn when no modifiers are defined (modifiers.every skipped)", () => {
         const fn = vi.fn();
         const props = vue.ref({
             triggers: [{ keys: "s", fn }],
@@ -193,7 +193,7 @@ describe("lib/use/useWindowShortcut.js", () => {
 
         expect(fn).toHaveBeenCalled(); // modifiers.every skipped
     });
-    it("does not call fn when key does not match any trigger", () => {
+    scopedIt("does not call fn when key does not match any trigger", () => {
         const fn = vi.fn();
         const props = vue.ref({
             triggers: [{ keys: "a", modifiers: ["ctrlKey"], fn }],
@@ -213,7 +213,7 @@ describe("lib/use/useWindowShortcut.js", () => {
 
         expect(fn).not.toHaveBeenCalled(); // fall-through case
     });
-    it("normalizes single string modifier to array", () => {
+    scopedIt("normalizes single string modifier to array", () => {
         const fn = vi.fn();
         const props = vue.ref({
             triggers: [{ keys: "s", modifiers: "ctrlKey", fn }],
@@ -233,7 +233,7 @@ describe("lib/use/useWindowShortcut.js", () => {
 
         expect(fn).toHaveBeenCalled(); // confirms that "ctrlKey" was normalized to ["ctrlKey"]
     });
-    it("normalizes keys from string to array", () => {
+    scopedIt("normalizes keys from string to array", () => {
         const fn = vi.fn();
         const props = vue.ref({
             triggers: [{ keys: "s", modifiers: ["ctrlKey"], fn }],
@@ -253,7 +253,7 @@ describe("lib/use/useWindowShortcut.js", () => {
 
         expect(fn).toHaveBeenCalled(); // hits keys normalization
     });
-    it("calls fn when event.key matches one of multiple keys", () => {
+    scopedIt("calls fn when event.key matches one of multiple keys", () => {
         const fn = vi.fn();
         const props = vue.ref({
             triggers: [
@@ -279,7 +279,7 @@ describe("lib/use/useWindowShortcut.js", () => {
 
         expect(fn).toHaveBeenCalled();
     });
-    it("handles single string modifier instead of array", () => {
+    scopedIt("handles single string modifier instead of array", () => {
         const fn = vi.fn();
         const props = vue.ref({
             triggers: [

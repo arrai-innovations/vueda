@@ -1,3 +1,5 @@
+import { scopedIt } from "@tests/unit/utils.js";
+
 vi.mock("vue", async () => {
     const actual = await vi.importActual("vue");
     return {
@@ -22,7 +24,7 @@ describe("lib/use/useFilteredAttrs.js", () => {
         vi.clearAllMocks();
     });
 
-    it("filters attrs from useAttrs with pickList", () => {
+    scopedIt("filters attrs from useAttrs with pickList", () => {
         const pickList = ["dataId", "foo"];
         const result = useFilteredAttrs(pickList, []);
         expect(result.value).toEqual({
@@ -31,7 +33,7 @@ describe("lib/use/useFilteredAttrs.js", () => {
         });
     });
 
-    it("filters attrs from useAttrs with omitList", () => {
+    scopedIt("filters attrs from useAttrs with omitList", () => {
         const omitList = ["foo", "customProp"];
         const result = useFilteredAttrs([], omitList);
         expect(result.value).toEqual({
@@ -40,7 +42,7 @@ describe("lib/use/useFilteredAttrs.js", () => {
         });
     });
 
-    it("applies pickList and then omitList", () => {
+    scopedIt("applies pickList and then omitList", () => {
         const pickList = ["dataId", "foo", "customProp"];
         const omitList = ["foo"];
         const result = useFilteredAttrs(pickList, omitList);
@@ -50,7 +52,7 @@ describe("lib/use/useFilteredAttrs.js", () => {
         });
     });
 
-    it("accepts Sets as pick and omit lists", () => {
+    scopedIt("accepts Sets as pick and omit lists", () => {
         const pickSet = new Set(["foo", "customProp"]);
         const omitSet = new Set(["customProp"]);
         const result = useFilteredAttrs(pickSet, omitSet);
@@ -59,7 +61,7 @@ describe("lib/use/useFilteredAttrs.js", () => {
         });
     });
 
-    it("normalizes kebab-case to camelCase in keys", () => {
+    scopedIt("normalizes kebab-case to camelCase in keys", () => {
         const pickList = ["ariaLabel", "dataId"];
         const result = useFilteredAttrs(pickList, []);
         expect(result.value).toEqual({
@@ -68,7 +70,7 @@ describe("lib/use/useFilteredAttrs.js", () => {
         });
     });
 
-    it("works with explicitly passed reactive attrs", () => {
+    scopedIt("works with explicitly passed reactive attrs", () => {
         const attrs = vue.ref({
             "some-attr": "value",
             other: "thing",
