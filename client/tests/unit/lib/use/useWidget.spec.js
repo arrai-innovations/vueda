@@ -62,7 +62,6 @@ const getFieldContextMock = (vue) => {
             messages: {},
             focused: false,
             value: "valueFromContext",
-            valueDetail: "valueDetailFromContext",
             dependencyValues: {},
         }),
         deleteValue: vi.fn(),
@@ -464,36 +463,6 @@ describe("lib/use/useWidget.js", () => {
 
                     expect(emit).not.toHaveBeenCalledWith("update:modelValue", "foo");
                     expect(widget.state.combinedValue).toBe("foo");
-                });
-            });
-            describe("valueDetail", () => {
-                it("updates fieldContext.state.valueDetail if context is present", () => {
-                    const { widget, fc } = mountWidgetInContext({ valueDetail: "originalDetail" }, {});
-                    expect(widget.state.valueDetail).toBe("originalDetail");
-
-                    widget.state.valueDetail = { some: "newDetail" };
-                    expect(fc.state.valueDetail).toEqual({ some: "newDetail" });
-                });
-
-                it("uses localFieldContext if no context is present", () => {
-                    const { widget } = mountWidgetNoContext();
-                    expect(widget.state.valueDetail).toBeNull();
-
-                    widget.state.valueDetail = { local: "stuff" };
-                    // With no context, we store it in localFieldContext
-                    expect(widget.state.valueDetail).toEqual({ local: "stuff" });
-                });
-
-                it("does not update if new detail is isEqual to old detail (context mode)", () => {
-                    const { widget, fc } = mountWidgetInContext({ valueDetail: { nested: true } });
-
-                    const [stop, watchSpy] = testWatches(vue, fc.state, "valueDetail", false, true);
-                    try {
-                        widget.state.valueDetail = { nested: true };
-                        expect(watchSpy).not.toHaveBeenCalled();
-                    } finally {
-                        stop();
-                    }
                 });
             });
         });

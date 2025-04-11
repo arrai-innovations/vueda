@@ -87,16 +87,6 @@ const widgetLabelProps = computed(() => {
     wlp.help = undefined;
     return wlp;
 });
-
-watch(
-    [toRef(props, "foreignKeyObj"), instanceObject.state.object],
-    ([foreignKeyObj, stateObject]) => {
-        if (foreignKeyObj || stateObject[props.pkKey]) {
-            widgetContext.state.valueDetail = foreignKeyObj || stateObject;
-        }
-    },
-    { immediate: true },
-);
 const linkItemResolvedSlotNames = useSlotNameResolver(
     computed(() => [`widget-read-only(${widgetContext.state.formModelName})link-item`, "link-item"]),
 );

@@ -1,5 +1,5 @@
 import { del } from "@arrai-innovations/reactive-helpers";
-import { expectReadOnlyFor, mockLifecycle, mockProvideInject, testWatches } from "@tests/unit/utils.js";
+import { expectReadOnlyFor, mockLifecycle, mockProvideInject } from "@tests/unit/utils.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 import capitalize from "lodash-es/capitalize.js";
@@ -56,7 +56,6 @@ const getFormContextMock = (vue) => {
             // *** Values & Initial State ***
             values: {},
             initialValues: {},
-            valueDetails: {},
 
             // *** Validation & Errors ***
             messages: {},
@@ -79,8 +78,6 @@ const getFormContextMock = (vue) => {
         // *** Value & Initial Value Handling ***
         updateValue: vi.fn(),
         deleteValue: vi.fn(),
-        updateValueDetails: vi.fn(),
-        deleteValueDetails: vi.fn(),
 
         // *** Error & Message Handling ***
         clearErrors: vi.fn(),
@@ -1117,68 +1114,6 @@ describe("lib/use/useField.js", () => {
                     await flushPromises();
                     expect(fc.deleteValue).toBeCalledTimes(1);
                     expect(fc.deleteValue).toBeCalledWith("someName");
-                });
-            });
-            describe("valueDetail", () => {
-                it("should update and delete valueDetail in form context", async () => {
-                    const { field, fc } = mountFieldInContext(
-                        {
-                            valueDetail: {},
-                        },
-                        {
-                            name: "testField",
-                        },
-                    );
-                    await flushPromises();
-
-                    // Set valueDetail
-                    field.state.valueDetail = { extraData: "test" };
-                    await flushPromises();
-                    expect(fc.updateValueDetails).toHaveBeenCalledWith("testField", { extraData: "test" });
-                    // do what updateValueDetails would do;
-                    set(fc.state.valueDetails, "testField", { extraData: "test" });
-                    expect(field.state.valueDetail).toEqual({ extraData: "test" });
-
-                    // same value should not have more than one update
-                    field.state.valueDetail = { extraData: "test" };
-                    await flushPromises();
-                    expect(field.state.valueDetail).toEqual({ extraData: "test" });
-
-                    // Delete valueDetail
-                    field.state.valueDetail = undefined;
-                    await flushPromises();
-                    expect(fc.deleteValueDetails).toHaveBeenCalledWith("testField");
-                    // do what deleteValueDetails would do
-                    delete fc.state.valueDetails["testField"];
-                    expect(field.state.valueDetail).toBeUndefined();
-                });
-                it("should update and delete valueDetail not in form context", async () => {
-                    const { field } = mountFieldNoContext({
-                        name: "testField",
-                    });
-                    await flushPromises();
-
-                    const [stop, watchSpy] = testWatches(vue, field.state, "valueDetail", false, true);
-                    try {
-                        // Set valueDetail
-                        field.state.valueDetail = { extraData: "test" };
-                        await flushPromises();
-                        expect(watchSpy).toHaveBeenCalledTimes(1);
-                        expect(watchSpy).toHaveBeenCalledWith({ extraData: "test" }, undefined, expect.any(Function));
-
-                        // same value should not have more than one update
-                        field.state.valueDetail = { extraData: "test" };
-                        await flushPromises();
-                        expect(watchSpy).toHaveBeenCalledTimes(1);
-
-                        // Delete valueDetail
-                        field.state.valueDetail = undefined;
-                        await flushPromises();
-                        expect(watchSpy).toHaveBeenCalledTimes(2);
-                        expect(watchSpy).toHaveBeenCalledWith(undefined, { extraData: "test" }, expect.any(Function));
-                    } finally {
-                        stop();
-                    }
                 });
             });
             describe("submittingValue", () => {

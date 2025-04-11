@@ -22,15 +22,10 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  */
 
 /**
- * @typedef {{[fieldName: object]: FieldValueDetails|any}} FieldValueDetails
- */
-
-/**
  * @typedef {object} FormContextRawState
  *
  * // *** Values & Initial State ***
  * @property {FieldValues} values - The form's values, referenced by lodash key path.
- * @property {FieldValueDetails} valueDetails - Detailed value objects, for fields using foreign keys.
  * @property {{[fieldName: string]: any}} initialValues - The form's initial values (used for resets).
  *
  * // *** Validation & Errors ***
@@ -87,31 +82,6 @@ const deleteValue = (state, name) => {
     validateName(name);
     if (get(state.values, name) !== undefined) {
         del(state.values, name);
-    }
-};
-
-/**
- * @param {FormContextState} state - The form context state.
- * @param {string} name - The name of the field to calculate if it has been modified.
- * @param {object} valueDetail - The value detail object to update.
- * @private
- */
-const updateValueDetails = (state, name, valueDetail) => {
-    validateName(name);
-    if (!isEqual(get(state.valueDetails, name), valueDetail)) {
-        set(state.valueDetails, name, valueDetail);
-    }
-};
-
-/**
- * @param {FormContextState} state - The form context state.
- * @param {string} name - The name of the field to calculate if it has been modified.
- * @private
- */
-const deleteValueDetails = (state, name) => {
-    validateName(name);
-    if (get(state.valueDetails, name) !== undefined) {
-        del(state.valueDetails, name);
     }
 };
 
@@ -514,8 +484,6 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * // *** Value & Initial Value Handling ***
  * @property {(name: string, value: any) => void} updateValue - Update a field's value.
  * @property {(name: string) => void} deleteValue - Delete a field's value.
- * @property {(name: string, valueDetail: any) => void} updateValueDetails - Update a field's detailed value object.
- * @property {(name: string) => void} deleteValueDetails - Delete a field's detailed value object.
  *
  * // *** Error & Message Handling ***
  * @property {(name: string, code: string, message: string) => void} updateError - Update a field's error.
@@ -660,7 +628,6 @@ export function useForm(props) {
             }
             return state.values;
         }),
-        valueDetails: {},
         initialValues: {},
 
         // *** Validation & Errors ***
@@ -728,8 +695,6 @@ export function useForm(props) {
         // *** Value & Initial Value Handling ***
         updateValue: updateValue.bind(null, state),
         deleteValue: deleteValue.bind(null, state),
-        updateValueDetails: updateValueDetails.bind(null, state),
-        deleteValueDetails: deleteValueDetails.bind(null, state),
 
         // *** Error & Message Handling ***
         clearErrors: clearErrors.bind(null, state),

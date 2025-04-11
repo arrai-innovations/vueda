@@ -1,5 +1,4 @@
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
-import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
 import { computed, inject, provide, reactive, readonly, ref, toRef, unref, watch } from "vue";
 
@@ -104,7 +103,6 @@ export const WIDGET_EMITS = ["update:modelValue"];
  *
  * // *** Value Handling ***
  * @property {import('vue').WritableComputedRef<any>} combinedValue - The widget’s effective value (local or contextual).
- * @property {import('vue').WritableComputedRef<any>} valueDetail - Value detail object for richer data interaction.
  *
  * // *** Interaction & State Tracking ***
  * @property {import('vue').ComputedRef<boolean>} touched - Whether the widget has been interacted with.
@@ -152,7 +150,6 @@ export function useWidget(props, emit) {
     // When no in context, or contextless, take over some functionality normally provided by field context
     const localFieldContext = reactive({
         localValue: null,
-        localValueDetail: null,
         focused: false,
         touched: false,
         errors: {},
@@ -272,25 +269,6 @@ export function useWidget(props, emit) {
                     } else if (!isEqual(value, localFieldContext.localValue)) {
                         localFieldContext.localValue = value;
                     }
-                }
-            },
-        }),
-        valueDetail: computed({
-            get: () => {
-                const fc = unref(fieldContext);
-                if (fc) {
-                    return fc.state.valueDetail;
-                }
-                return cloneDeep(localFieldContext.localValueDetail);
-            },
-            set: (value) => {
-                const fc = unref(fieldContext);
-                if (fc) {
-                    if (!isEqual(value, fc.state.valueDetail)) {
-                        fc.state.valueDetail = value;
-                    }
-                } else {
-                    localFieldContext.localValueDetail = value;
                 }
             },
         }),

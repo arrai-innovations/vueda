@@ -70,7 +70,6 @@ export function defaultIsRequiredViolation(value) {
  *
  * // *** Value Handling ***
  * @property {import('vue').WritableComputedRef<any>} value - The current value of the field.
- * @property {import('vue').WritableComputedRef<any>} valueDetail - The current detail value object of the field.
  * @property {import('vue').WritableComputedRef<any>} submittingValue -The current value of the field while accounting for ignored fields.
  * @property {import('vue').ComputedRef<any>} initialValue - The initial value of the field.
  * @property {import('vue').ComputedRef<boolean>} valueIsInitial - Whether the current value matches the initial value.
@@ -240,7 +239,6 @@ export function useField(props, emit /*, functions*/) {
         ignored: {},
         initialValue: cloneDeep(props.modelValue),
         focused: false,
-        valueDetail: undefined,
     });
     // Message cache workaround:
     // - Ensures `errors` & `messages` are readonly, sourced from either the formContext or local state.
@@ -299,34 +297,6 @@ export function useField(props, emit /*, functions*/) {
                     } else {
                         if (props.modelValue !== newValue) {
                             emit("update:modelValue", newValue);
-                        }
-                    }
-                },
-            }),
-            valueDetail: computed({
-                get: () => {
-                    const fc = unref(formContext);
-                    return fc ? fc.state.valueDetails[state.name] : localFormContext.valueDetail;
-                },
-                set: (newValue) => {
-                    const fc = unref(formContext);
-                    if (fc) {
-                        if (isEqual(newValue, fc.state.valueDetails[state.name])) {
-                            return;
-                        }
-                        if (newValue === undefined) {
-                            fc.deleteValueDetails(state.name);
-                        } else {
-                            fc.updateValueDetails(state.name, newValue);
-                        }
-                    } else {
-                        if (isEqual(newValue, localFormContext.valueDetail)) {
-                            return;
-                        }
-                        if (newValue === undefined) {
-                            delete localFormContext.valueDetail;
-                        } else {
-                            localFormContext.valueDetail = newValue;
                         }
                     }
                 },

@@ -128,7 +128,7 @@ const widgetContext = useWidget(props, emit);
 
 const listFilterValue = ref("");
 const prePopulatedSearchText = computed(() => {
-    return widgetContext.state.valueDetail?.[props.optionLabel] || "";
+    return selectedOption.value?.[props.optionLabel] || "";
 });
 const listSearch = computed(() => {
     if (listFilterValue.value.length > 0 ? listFilterValue.value === prePopulatedSearchText.value : false) {
@@ -159,6 +159,23 @@ const instanceObjectProps = reactive({
 });
 const instanceObject = useObject({
     props: instanceObjectProps,
+});
+
+const computedOptions = computed(() => {
+    if (intendToList.value && (!modelList.state.loading || fetchedPages.value > 1)) {
+        return listObjects.value;
+    }
+    if (intendToRetrieve.value && !instanceObject.state.loading) {
+        return [instanceObject.state.object];
+    }
+    return [];
+});
+const selectedOption = computed(() => {
+    const flatOptions = props.grouped
+        ? computedOptions.value.flatMap((group) => group.items || [])
+        : computedOptions.value;
+
+    return flatOptions.find((option) => isEqual(option?.[props.optionValue], widgetContext.state.combinedValue));
 });
 
 const extraListArgs = computed(() => {
@@ -397,33 +414,6 @@ const listObjects = computed(() => {
     return recordsArray.value;
 });
 
-const computedOptions = computed(() => {
-    if (intendToList.value && (!modelList.state.loading || fetchedPages.value > 1)) {
-        return listObjects.value;
-    }
-    if (intendToRetrieve.value && !instanceObject.state.loading) {
-        return [instanceObject.state.object];
-    }
-    return [];
-});
-watch(
-    [computedOptions, () => widgetContext.state.combinedValue],
-    ([newOptions, newValue], [oldOption, oldValue]) => {
-        if (!isEqual(newOptions, oldOption) || !isEqual(newValue, oldValue)) {
-            if (newOptions.length && newValue) {
-                const options = intendToList.value && props.grouped ? modelList.state.objectsInOrder : newOptions;
-                const selected = options?.find((option) => isEqual(option?.[props.optionValue], newValue));
-                if (selected) {
-                    widgetContext.state.valueDetail = selected;
-                }
-            } else if (!widgetContext.state.combinedValue) {
-                widgetContext.state.valueDetail = null;
-            }
-        }
-    },
-    { immediate: true, deep: true },
-);
-
 watch(
     prePopulatedSearchText,
     (value, oldValue) => {
@@ -513,11 +503,7 @@ const handleShow = () => {
                         <template #value="slotProps">
                             <template v-if="slotProps.value">
                                 {{
-                                    widgetContext?.state?.valueDetail
-                                        ? widgetContext.state.valueDetail[
-                                              props.selectedOptionLabel ?? props.optionLabel
-                                          ]
-                                        : slotProps.value
+                                    selectedOption?.[props.selectedOptionLabel ?? props.optionLabel] ?? slotProps.value
                                 }}
                             </template>
                             <span v-else>
