@@ -281,6 +281,17 @@ export function useField(props, emit /*, functions*/) {
         focused: false,
     });
 
+    // ⚠️ Do not assign computed() directly to state.messages/errors.
+    // Vue unwraps computed refs inside reactive(), allowing silent deep mutation:
+    //   e.g. state.errors.code = '...' will not throw, and allow mutation of the cached value, until the computed reruns.
+    //
+    // Instead, use readonly(toRef(...)) in a separate object and expose that.
+    // This preserves immutability and throws if you try to set deep properties.
+    const readonlyMessageProxy = reactive({
+        errors: {},
+        messages: {},
+    });
+
     /* v8 ignore start */
     // Allow controlled test manipulation
     if (import.meta.env.MODE === "test") {
@@ -407,8 +418,8 @@ export function useField(props, emit /*, functions*/) {
             ),
 
             // *** Messages & Errors ***
-            messages: {},
-            errors: {},
+            messages: readonly(toRef(readonlyMessageProxy, "messages")),
+            errors: readonly(toRef(readonlyMessageProxy, "errors")),
 
             // *** Interaction & State Tracking **
             touched: computed(() => {
@@ -452,11 +463,11 @@ export function useField(props, emit /*, functions*/) {
             }),
         },
     );
-    state.errors = computed(() => {
+    readonlyMessageProxy.errors = computed(() => {
         const fc = unref(formContext);
         return fc ? fc.state.errors[state.name] || {} : localFormContext.errors;
     });
-    state.messages = computed(() => {
+    readonlyMessageProxy.messages = computed(() => {
         const fc = unref(formContext);
         return fc ? fc.state.messages[state.name] || {} : localFormContext.messages;
     });
