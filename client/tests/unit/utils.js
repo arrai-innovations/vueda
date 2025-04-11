@@ -1,6 +1,5 @@
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
-import { it, vitest } from "vitest";
 
 // WARNING: do not import vue here. it will cause issues when mocking vue in a test
 
@@ -202,7 +201,7 @@ export const scopedIt = (name, fn, timeout) => {
         // eslint-disable-next-line vitest/valid-title
         name,
         async () => {
-            const { effectScope } = await vitest.importActual("vue");
+            const { effectScope } = await vi.importActual("vue");
             const scope = effectScope();
             try {
                 await scope.run(fn);
@@ -218,7 +217,7 @@ export const scopedIt = (name, fn, timeout) => {
         it[method](
             name,
             async () => {
-                const { effectScope } = await vitest.importActual("vue");
+                const { effectScope } = await vi.importActual("vue");
                 const scope = effectScope();
                 try {
                     await scope.run(fn);
@@ -248,7 +247,7 @@ scopedIt.each = (cases) => {
         eachFn(
             name,
             async (...args) => {
-                const { effectScope } = await vitest.importActual("vue");
+                const { effectScope } = await vi.importActual("vue");
                 const scope = effectScope();
                 try {
                     await scope.run(() => fn(...args));
@@ -273,7 +272,7 @@ scopedIt.for = (cases) => {
         const fn = isOptionsFirst ? maybeFnOrNothing : maybeOptionsOrFn;
 
         forFn(name, options, async (arg, context) => {
-            const vue = await vitest.importActual("vue");
+            const vue = await vi.importActual("vue");
             const scope = vue.effectScope();
             try {
                 await scope.run(() => fn(arg, context));

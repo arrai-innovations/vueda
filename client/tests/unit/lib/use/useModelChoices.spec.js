@@ -1,6 +1,5 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
-import { beforeEach, describe, expect, vi } from "vitest";
 import { effectScope, reactive, readonly, ref } from "vue";
 
 const mockStoreFn = vi.fn(() => storeMock);
