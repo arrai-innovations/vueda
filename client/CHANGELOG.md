@@ -6,7 +6,6 @@
 
 - **`useForm`/`useField`/`useWidget` Composables Overhaul**
     - `valueDetails` & `valueDetail` were removed. Dependencies for validation should only need formValues. If those form values need to be looked up into objects, that is an implementation detail of the custom validation.
-    - `updateInitialValue()` removed, which violated idiomatic Vue 3 patterns. ("props down, events up")
     - `blur()` no longer clears server errors automatically. If your validation workflows depended on that behavior, manually call `formContext.clearServerErrors(fieldName, dependents)`
     - `reset()` on `useForm` now skips error clearing on initial call.
     - `contextless` mode improved for `useField` and added for `useWidget`, to emulate a parent for holding state.

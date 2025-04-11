@@ -812,6 +812,107 @@ describe("lib/use/useForm.js", () => {
                     }
                 });
             });
+            describe("updateInitialValue", () => {
+                it("should update the initial value for a top-level field", async () => {
+                    const { formContext } = getForm({
+                        initialValues: { name: "John", age: 30 },
+                    });
+
+                    expect(formContext.state.initialValues.name).toBe("John");
+                    formContext.updateInitialValue("name", "Jane");
+                    expect(formContext.state.initialValues.name).toBe("Jane");
+                });
+
+                it("should update the initial value for a nested path", async () => {
+                    const { formContext } = getForm({
+                        initialValues: {
+                            profile: {
+                                bio: "dev",
+                            },
+                        },
+                    });
+
+                    formContext.updateInitialValue("profile.bio", "engineer");
+                    expect(formContext.state.initialValues.profile.bio).toBe("engineer");
+                });
+
+                it("should not update if the value is equal", async () => {
+                    const { formContext } = getForm({
+                        initialValues: {
+                            name: "Same",
+                        },
+                    });
+
+                    const initial = formContext.state.initialValues;
+                    formContext.updateInitialValue("name", "Same");
+                    expect(formContext.state.initialValues).toBe(initial); // should be the same object
+                });
+
+                it("should throw if no name is passed", () => {
+                    const { formContext } = getForm({});
+                    expect(() => formContext.updateInitialValue()).toThrow("No name provided");
+                });
+
+                it("should trigger a watcher when initial value changes", async () => {
+                    const { formContext } = getForm({
+                        initialValues: { counter: 0 },
+                    });
+                    const [stop, spy] = testWatches(vue, formContext.state.initialValues, "counter");
+
+                    try {
+                        formContext.updateInitialValue("counter", 1);
+                        await flushPromises();
+                        expect(spy).toHaveBeenCalled();
+                    } finally {
+                        stop();
+                    }
+                });
+            });
+            describe("deleteInitialValue", () => {
+                it("should delete a top-level initial value", () => {
+                    const { formContext } = getForm({
+                        initialValues: { name: "John", age: 42 },
+                    });
+                    expect(formContext.state.initialValues).toHaveProperty("name", "John");
+
+                    formContext.deleteInitialValue("name");
+
+                    expect(formContext.state.initialValues).not.toHaveProperty("name");
+                    expect(formContext.state.initialValues).toEqual({ age: 42 });
+                });
+
+                it("should delete a nested initial value", () => {
+                    const { formContext } = getForm({
+                        initialValues: {
+                            profile: {
+                                bio: "Hello",
+                                skills: ["vue", "js"],
+                            },
+                        },
+                    });
+                    expect(formContext.state.initialValues.profile).toHaveProperty("bio");
+
+                    formContext.deleteInitialValue("profile.bio");
+
+                    expect(formContext.state.initialValues.profile).not.toHaveProperty("bio");
+                    expect(formContext.state.initialValues.profile.skills).toEqual(["vue", "js"]);
+                });
+
+                it("should do nothing if the value is already undefined", () => {
+                    const { formContext } = getForm({
+                        initialValues: { name: "John" },
+                    });
+
+                    formContext.deleteInitialValue("nonexistent");
+
+                    expect(formContext.state.initialValues).toEqual({ name: "John" });
+                });
+
+                it("should throw if no name is passed", () => {
+                    const { formContext } = getForm({});
+                    expect(() => formContext.deleteInitialValue()).toThrow("No name provided");
+                });
+            });
         });
         describe("Error & Message Handling", () => {
             describe.each([

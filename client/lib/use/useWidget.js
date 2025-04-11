@@ -311,6 +311,28 @@ export function useWidget(props, emit) {
     const widgetContext = {
         state,
 
+        // *** Value Management ***
+        updateValue: (value) => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                fc.state.value = value;
+            } else {
+                if (!isEqual(localFieldContext.localValue, value)) {
+                    localFieldContext.localValue = value;
+                    emit("update:modelValue", value);
+                }
+            }
+        },
+        deleteValue: () => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                fc.deleteValue?.(); // safe optional in case field context doesn't expose deleteValue
+            } else {
+                localFieldContext.localValue = undefined;
+                emit("update:modelValue", undefined);
+            }
+        },
+
         // *** Field Interactions ***
         setTouched: () => {
             const fc = unref(fieldContext);

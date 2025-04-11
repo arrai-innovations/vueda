@@ -66,6 +66,31 @@ const validateName = (name) => {
  * @param {any} value - The value to update the field with.
  * @private
  */
+const updateInitialValue = (state, name, value) => {
+    validateName(name);
+    if (!isEqual(get(state.initialValues, name), value)) {
+        set(state.initialValues, name, value);
+    }
+};
+
+/**
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to delete.
+ * @private
+ */
+const deleteInitialValue = (state, name) => {
+    validateName(name);
+    if (get(state.initialValues, name) !== undefined) {
+        del(state.initialValues, name);
+    }
+};
+
+/**
+ * @param {FormContextState} state - The form context state.
+ * @param {string} name - The name of the field to update.
+ * @param {any} value - The value to update the field with.
+ * @private
+ */
 const updateValue = (state, name, value) => {
     validateName(name);
     if (!isEqual(get(state.values, name), value)) {
@@ -484,6 +509,8 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * // *** Value & Initial Value Handling ***
  * @property {(name: string, value: any) => void} updateValue - Update a field's value.
  * @property {(name: string) => void} deleteValue - Delete a field's value.
+ * @property {(name: string, value: any) => void} updateInitialValue - Update a field's initial value.
+ * @property {(name: string) => void} deleteInitialValue - Delete a field's initial value.
  *
  * // *** Error & Message Handling ***
  * @property {(name: string, code: string, message: string) => void} updateError - Update a field's error.
@@ -695,6 +722,8 @@ export function useForm(props) {
         // *** Value & Initial Value Handling ***
         updateValue: updateValue.bind(null, state),
         deleteValue: deleteValue.bind(null, state),
+        updateInitialValue: updateInitialValue.bind(null, state),
+        deleteInitialValue: deleteInitialValue.bind(null, state),
 
         // *** Error & Message Handling ***
         clearErrors: clearErrors.bind(null, state),

@@ -77,8 +77,8 @@ export function defaultIsRequiredViolation(value) {
  * @property {import('vue').ComputedRef<boolean>} valueUnset - Whether the current value is considered empty.
  *
  * // *** Messages & Errors ***
- * @property {import('vue').ComputedRef<{[code: string]: string}>} messages - The messages for the field.
- * @property {import('vue').ComputedRef<{[code: string]: string}>} errors - The errors for the field.
+ * @property {import('vue').ComputedRef<{[code: string]: string}>|{[code: string]: string}} messages - The messages for the field.
+ * @property {import('vue').ComputedRef<{[code: string]: string}>|{[code: string]: string}} errors - The errors for the field.
  *
  * // *** Interaction & State Tracking ***
  * @property {import('vue').ComputedRef<boolean>} touched - Whether the field has been touched.
@@ -101,7 +101,10 @@ export function defaultIsRequiredViolation(value) {
  * @property {FieldContextState} state - The reactive state of the field.
  *
  * // *** Value Management ***
+ * @property {(newValue: any) => void} updateValue - Updates the field's value.
  * @property {() => void} deleteValue - Deletes the field's value, resetting it.
+ * @property {(newValue: any) => void} updateInitialValue - Updates the field's initial value.
+ * @property {() => void} deleteInitialValue - Deletes the field's initial value.
  *
  * // *** Error Handling ***
  * @property {(code: string, message: string) => void} updateError - Updates the error message for a given code.
@@ -197,6 +200,43 @@ export function isUnsetValue(value) {
 const defaultRequiredMessage = "This field is required.";
 const defaultValidationFailedMessage = "Validation Failed";
 
+/* v8 ignore start */
+/**
+ * Additional test-only props for controlling local form context.
+ *
+ * @typedef {object} FieldContextTestProps
+ * @property {{[code: string]: string}} [testErrors]
+ * @property {{[code: string]: string}} [testMessages]
+ * @property {boolean} [testTouched]
+ * @property {boolean} [testFocused]
+ * @property {{[name: string]: boolean}} [testIgnored]
+ * @property {any} [testInitialValue]
+ * @private
+ */
+/**
+ * Sets up the field props for testing.
+ * @param {FieldContextTestProps} props - The field context's reactive props.
+ * @param {import('vue').UnwrapNestedRefs<FieldContextRawState>} localFormContext - The local form context.
+ * @private
+ */
+const setupFieldPropsForTest = (props, localFormContext) => {
+    if (import.meta.env.MODE === "test") {
+        for (const [propKey, contextKey] in [
+            ["testErrors", "errors"],
+            ["testMessages", "messages"],
+            ["testTouched", "touched"],
+            ["testFocused", "focused"],
+            ["testIgnored", "ignored"],
+            ["testInitialValue", "initialValue"],
+        ]) {
+            if (props[propKey]) {
+                localFormContext[contextKey] = props[propKey];
+            }
+        }
+    }
+};
+/* v8 ignore end */
+
 /**
  * Generate and provide a field context for a field.
  *
@@ -240,11 +280,13 @@ export function useField(props, emit /*, functions*/) {
         initialValue: cloneDeep(props.modelValue),
         focused: false,
     });
-    // Message cache workaround:
-    // - Ensures `errors` & `messages` are readonly, sourced from either the formContext or local state.
-    // - Defaults to an empty object when missing in formContext.
-    // - Avoids making `state` fully readonly, since it contains writable computed properties.
-    const messageCache = reactive({});
+
+    /* v8 ignore start */
+    // Allow controlled test manipulation
+    if (import.meta.env.MODE === "test") {
+        setupFieldPropsForTest(props, localFormContext);
+    }
+    /* v8 ignore end */
 
     const state = reactive(
         /** @type {FieldContextRawState} */
@@ -324,9 +366,33 @@ export function useField(props, emit /*, functions*/) {
 
                 return rawValue;
             }),
-            initialValue: computed(() => {
-                const fc = unref(formContext);
-                return fc ? get(fc.state.initialValues, props.name) : localFormContext.initialValue;
+            initialValue: computed({
+                get: () => {
+                    const fc = unref(formContext);
+                    return fc ? get(fc.state.initialValues, props.name) : localFormContext.initialValue;
+                },
+                set: (newValue) => {
+                    const fc = unref(formContext);
+                    if (fc) {
+                        if (isEqual(newValue, fc.state.initialValues[props.name])) {
+                            return;
+                        }
+                        if (newValue === undefined) {
+                            fc.deleteInitialValue(state.name);
+                        } else {
+                            fc.updateInitialValue(state.name, newValue);
+                        }
+                    } else {
+                        if (isEqual(newValue, localFormContext.initialValue)) {
+                            return;
+                        }
+                        if (newValue === undefined) {
+                            delete localFormContext.initialValue;
+                        } else {
+                            localFormContext.initialValue = newValue;
+                        }
+                    }
+                },
             }),
             // todo: Investigate why valueIsInitial uses submittingValue instead of value
             valueIsInitial: computed(() => isEqual(state.submittingValue, state.initialValue)),
@@ -341,8 +407,8 @@ export function useField(props, emit /*, functions*/) {
             ),
 
             // *** Messages & Errors ***
-            messages: readonly(toRef(messageCache, "messages")),
-            errors: readonly(toRef(messageCache, "errors")),
+            messages: {},
+            errors: {},
 
             // *** Interaction & State Tracking **
             touched: computed(() => {
@@ -386,11 +452,11 @@ export function useField(props, emit /*, functions*/) {
             }),
         },
     );
-    messageCache.errors = computed(() => {
+    state.errors = computed(() => {
         const fc = unref(formContext);
         return fc ? fc.state.errors[state.name] || {} : localFormContext.errors;
     });
-    messageCache.messages = computed(() => {
+    state.messages = computed(() => {
         const fc = unref(formContext);
         return fc ? fc.state.messages[state.name] || {} : localFormContext.messages;
     });
@@ -463,6 +529,16 @@ export function useField(props, emit /*, functions*/) {
     const returnObj = {
         state,
         // *** Value Management ***
+        updateValue: (newValue) => {
+            const fc = unref(formContext);
+            if (fc) {
+                fc.updateValue(state.name, newValue);
+            } else {
+                if (props.modelValue !== newValue) {
+                    emit("update:modelValue", newValue);
+                }
+            }
+        },
         deleteValue: () => {
             const fc = unref(formContext);
             if (fc) {
@@ -470,6 +546,31 @@ export function useField(props, emit /*, functions*/) {
             } else {
                 if (props.modelValue !== undefined) {
                     emit("update:modelValue", undefined);
+                }
+            }
+        },
+        updateInitialValue: (newValue) => {
+            const fc = unref(formContext);
+            if (fc) {
+                fc.updateInitialValue(state.name, newValue);
+            } else {
+                if (isEqual(newValue, localFormContext.initialValue)) {
+                    return;
+                }
+                if (newValue === undefined) {
+                    delete localFormContext.initialValue;
+                } else {
+                    localFormContext.initialValue = newValue;
+                }
+            }
+        },
+        deleteInitialValue: () => {
+            const fc = unref(formContext);
+            if (fc) {
+                fc.deleteInitialValue(state.name);
+            } else {
+                if (localFormContext.initialValue) {
+                    delete localFormContext.initialValue;
                 }
             }
         },

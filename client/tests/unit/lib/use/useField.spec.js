@@ -78,6 +78,8 @@ const getFormContextMock = (vue) => {
         // *** Value & Initial Value Handling ***
         updateValue: vi.fn(),
         deleteValue: vi.fn(),
+        updateInitialValue: vi.fn(),
+        deleteInitialValue: vi.fn(),
 
         // *** Error & Message Handling ***
         clearErrors: vi.fn(),
@@ -1521,6 +1523,42 @@ describe("lib/use/useField.js", () => {
                     field.deleteValue();
                     expect(emit).toHaveBeenCalledTimes(1);
                     expect(emit).toHaveBeenCalledWith("update:modelValue", undefined);
+                });
+            });
+            describe("updateInitialValue", () => {
+                it("should call fc.updateInitialValue from updateInitialValue()", async () => {
+                    const { fc, field } = mountFieldInContext({}, { name: "testField" });
+                    field.updateInitialValue("newVal");
+                    expect(fc.updateInitialValue).toHaveBeenCalledTimes(1);
+                    expect(fc.updateInitialValue).toHaveBeenCalledWith("testField", "newVal");
+                });
+                it("should work when called without a context", async () => {
+                    const { field } = mountFieldNoContext({
+                        modelValue: "something",
+                    });
+                    await flushPromises();
+                    expect(field.state.initialValue).toEqual("something");
+
+                    field.updateInitialValue("newVal");
+                    expect(field.state.initialValue).toEqual("newVal");
+                });
+            });
+            describe("deleteInitialValue", () => {
+                it("should call the fc's method with args", async () => {
+                    const { fc, field } = mountFieldInContext({}, { name: "testField" });
+                    field.deleteInitialValue();
+                    expect(fc.deleteInitialValue).toHaveBeenCalledTimes(1);
+                    expect(fc.deleteInitialValue).toHaveBeenCalledWith("testField");
+                });
+                it("should emit when called without a context", async () => {
+                    const { field } = mountFieldNoContext({
+                        modelValue: "something",
+                    });
+                    await flushPromises();
+                    expect(field.state.initialValue).toEqual("something");
+
+                    field.deleteInitialValue();
+                    expect(field.state.initialValue).toBeUndefined();
                 });
             });
         });
