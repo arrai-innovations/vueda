@@ -1,4 +1,4 @@
-import { computed, reactive } from "vue";
+import { computed, reactive, readonly } from "vue";
 import { useSlots } from "vue";
 import { deepUnref } from "vue-deepunref";
 
@@ -41,7 +41,7 @@ import { deepUnref } from "vue-deepunref";
  */
 
 /**
- * @typedef {import('vue').UnwrapNestedRefs<ResolvedSlotRawName>} ResolvedSlotName - The resolved slot name instance.
+ * @typedef {import('vue').DeepReadonly<import('vue').UnwrapNestedRefs<ResolvedSlotRawName>>} ResolvedSlotName - The resolved slot name instance.
  */
 
 /**
@@ -49,7 +49,7 @@ import { deepUnref } from "vue-deepunref";
  *
  * @param {SlotNamesInOrderOfPrecedence} slotNamesInOrderOfPrecedence - The slot names to check for, in order of
  *  precedence.
- * @param {import('vue').Slots|undefined} slots - The slots object to check against. If not provided, the current
+ * @param {{[slotName: string]: any}|undefined} slots - The slots object to check against. If not provided, the current
  *  instance's slots will be used.
  * @returns {ResolvedSlotName} - The resolved slot name.
  */
@@ -60,5 +60,5 @@ export function useSlotNameResolver(slotNamesInOrderOfPrecedence, slots) {
     const possibleNames = computed(() => deepUnref(slotNamesInOrderOfPrecedence));
     const exists = computed(() => possibleNames.value.some((slotName) => !!slots[slotName]));
     const name = computed(() => possibleNames.value.find((slotName) => slots[slotName]));
-    return reactive({ exists, name, possibleNames });
+    return readonly(reactive({ exists, name, possibleNames }));
 }
