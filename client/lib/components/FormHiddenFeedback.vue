@@ -85,18 +85,18 @@ onMounted(() => {
         );
     }
 });
-const useFieldContext = computed(() => {
+const shouldUseFieldContext = computed(() => {
     return fieldContext && !widgetContext?.state?.contextless;
 });
 const effectiveHelp = computed(() =>
-    props.help?.length ? props.help : useFieldContext.value ? fieldContext?.state?.help : false,
+    props.help?.length ? props.help : unref(shouldUseFieldContext) ? fieldContext?.state?.help : false,
 );
 const effectiveErrors = computed(() => ({
-    ...(useFieldContext.value ? fieldContext?.state?.errors : {}),
+    ...(unref(shouldUseFieldContext) ? fieldContext?.state?.errors : {}),
     ...(props.errors || {}),
 }));
 const effectiveWarnings = computed(() => ({
-    ...(useFieldContext.value ? fieldContext?.state?.messages : {}),
+    ...(unref(shouldUseFieldContext) ? fieldContext?.state?.messages : {}),
     ...(props.warnings || {}),
 }));
 const showHelpIcon = computed(() => unref(effectiveHelp).length > 0);
