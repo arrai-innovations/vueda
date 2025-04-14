@@ -175,7 +175,11 @@ const selectedOption = computed(() => {
         ? computedOptions.value.flatMap((group) => group.items || [])
         : computedOptions.value;
 
-    return flatOptions.find((option) => isEqual(option?.[props.optionValue], widgetContext.state.combinedValue));
+    const fromList = flatOptions.find((option) =>
+        isEqual(option?.[props.optionValue], widgetContext.state.combinedValue),
+    );
+
+    return fromList || instanceObject.state.object;
 });
 
 const extraListArgs = computed(() => {
