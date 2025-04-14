@@ -8,17 +8,15 @@ import { reactive, readonly, ref, toRef, watch } from "vue";
  * The raw instance of a useModelInfo object.
  *
  * @typedef {object} UseModelInfoRaw
- * @property {boolean} loading - True if the model config is loading.
- * @property {Error} error - The error that occurred while loading the model info.
- * @property {boolean} errored - True if an error occurred while loading the model info.
- * @property {()=>void} clearError - Clear the error.
  * @property {import('vue').Ref<import('@vueda/stores/storeModelInfo.js').ModelInfo>} info - The model info.
  */
 
 /**
  * The reactive useModelInfo instance.
  *
- * @typedef {import('vue').DeepReadonly<import('vue').UnwrapNestedRefs<UseModelInfoRaw>>} UseModelInfo
+ * @typedef {import('vue').DeepReadonly<import('vue').UnwrapNestedRefs<
+ *     UseModelInfoRaw & import('@arrai-innovations/reactive-helpers').LoadingErrorStatus
+ * >>} UseModelInfo
  */
 
 /**
