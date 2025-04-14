@@ -193,19 +193,25 @@ const slotNameResolverEffectScope = effectScope();
 watch(
     fieldNames,
     (newFieldNames) => {
-        slotNameResolverEffectScope.run(() => {
-            const { addedKeys } = keyDiff(newFieldNames, Object.keys(slotNameResolvers));
-            for (const key of addedKeys) {
-                if (!slotNameResolvers[key]) {
+        const { addedKeys, removedKeys } = keyDiff(newFieldNames, Object.keys(slotNameResolvers));
+        for (const key of addedKeys) {
+            if (!slotNameResolvers[key]) {
+                slotNameResolverEffectScope.run(() => {
                     slotNameResolvers[key] = {};
                     slotNameResolvers[key]["field"] = useSlotNameResolver([`field(${key})`, "field"], slots);
                     slotNameResolvers[key]["header"] = useSlotNameResolver([`header(${key})`, "header"], slots);
                     slotNameResolvers[key]["sortIcon"] = useSlotNameResolver([`sort-icon(${key})`, "sort-icon"], slots);
-                }
+                });
             }
-            // we don't delete. the effectScope will clean up when we unmount.
-            //  if you re-add, the name is all that matters, so existing resolvers can be reused.
-        });
+        }
+        for (const key of removedKeys) {
+            if (slotNameResolvers[key]) {
+                slotNameResolvers[key].field.stop();
+                slotNameResolvers[key].header.stop();
+                slotNameResolvers[key].sortIcon.stop();
+                delete slotNameResolvers[key];
+            }
+        }
     },
     {
         immediate: true,

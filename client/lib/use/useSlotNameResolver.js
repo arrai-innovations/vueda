@@ -1,4 +1,4 @@
-import { computed, reactive, readonly } from "vue";
+import { computed, effectScope, reactive, readonly } from "vue";
 import { useSlots } from "vue";
 import { deepUnref } from "vue-deepunref";
 
@@ -6,6 +6,31 @@ import { deepUnref } from "vue-deepunref";
  * @typedef {object} ResolvedSlotRawName
  * @property {import('vue').ComputedRef<boolean>} exists - Whether any passed slots will match any of the slot names.
  * @property {import('vue').ComputedRef<string|undefined>} name - The name of the most specific slot that was passed.
+ * @property {import('vue').ComputedRef<string[]>} possibleNames - The slot names that were passed.
+ * @property {function():void} stop - A function to stop the effect scope.
+ */
+
+/**
+ * @typedef {
+ *     string[]|
+ *     import('vue').Ref<string[]>|
+ *     import('vue').Ref<import('vue').Ref<string>[]>|
+ *     import('vue').Ref<string>[]
+ * } SlotNamesInOrderOfPrecedence - The slot names to check for, in order of precedence.
+ */
+
+/**
+ * @typedef {import('vue').DeepReadonly<import('vue').UnwrapNestedRefs<ResolvedSlotRawName>>} ResolvedSlotName - The resolved slot name instance.
+ */
+
+/**
+ * Helper to resolve the most specific slot name from a list of candidates in order of precedence.
+ *
+ * @param {SlotNamesInOrderOfPrecedence} slotNamesInOrderOfPrecedence - The slot names to check for, in order of
+ *  precedence.
+ * @param {{[slotName: string]: any}|undefined} slots - The slots object to check against. If not provided, the current
+ *  instance's slots will be used.
+ * @returns {ResolvedSlotName} - The resolved slot name.
  * @example
  * ```vue
  * <script setup>
@@ -30,35 +55,20 @@ import { deepUnref } from "vue-deepunref";
  * </template>
  * ```
  */
-
-/**
- * @typedef {
- *     string[]|
- *     import('vue').Ref<string[]>|
- *     import('vue').Ref<import('vue').Ref<string>[]>|
- *     import('vue').Ref<string>[]
- * } SlotNamesInOrderOfPrecedence - The slot names to check for, in order of precedence.
- */
-
-/**
- * @typedef {import('vue').DeepReadonly<import('vue').UnwrapNestedRefs<ResolvedSlotRawName>>} ResolvedSlotName - The resolved slot name instance.
- */
-
-/**
- * Helper to resolve the most specific slot name from a list of candidates in order of precedence.
- *
- * @param {SlotNamesInOrderOfPrecedence} slotNamesInOrderOfPrecedence - The slot names to check for, in order of
- *  precedence.
- * @param {{[slotName: string]: any}|undefined} slots - The slots object to check against. If not provided, the current
- *  instance's slots will be used.
- * @returns {ResolvedSlotName} - The resolved slot name.
- */
 export function useSlotNameResolver(slotNamesInOrderOfPrecedence, slots) {
     if (!slots) {
         slots = useSlots();
     }
-    const possibleNames = computed(() => deepUnref(slotNamesInOrderOfPrecedence));
-    const exists = computed(() => possibleNames.value.some((slotName) => !!slots[slotName]));
-    const name = computed(() => possibleNames.value.find((slotName) => slots[slotName]));
-    return readonly(reactive({ exists, name, possibleNames }));
+    const es = effectScope();
+    let returnObject = {};
+    es.run(() => {
+        const possibleNames = computed(() => deepUnref(slotNamesInOrderOfPrecedence));
+        const exists = computed(() => possibleNames.value.some((slotName) => !!slots[slotName]));
+        const name = computed(() => possibleNames.value.find((slotName) => slots[slotName]));
+        returnObject = { exists, name, possibleNames };
+    });
+    returnObject.stop = () => {
+        es.stop();
+    };
+    return readonly(reactive(returnObject));
 }

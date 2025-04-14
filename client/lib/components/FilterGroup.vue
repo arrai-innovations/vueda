@@ -1,10 +1,11 @@
 <script setup>
+import { keyDiff } from "@arrai-innovations/reactive-helpers";
 import FilterComponent from "@vueda/components/FilterComponent.vue";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
 import Button from "primevue/button";
-import { computed, readonly, ref, watch } from "vue";
+import { computed, effectScope, reactive, readonly, ref, useSlots, watch } from "vue";
 import { useRoute } from "vue-router";
 
 const listArgs = defineModel({
@@ -82,17 +83,38 @@ watch(
         deep: true,
     },
 );
+// watch computedFilters, and maintain a map to useSlotNameResolver instances
+const slots = useSlots();
+const resolversEffectScope = effectScope();
+const resolvers = reactive({});
+watch(
+    computedFilters,
+    (newFilters) => {
+        const { addedKeys, removedKeys } = keyDiff(newFilters, Object.keys(resolvers));
+        for (const key of addedKeys) {
+            resolversEffectScope.run(() => {
+                resolvers[key] = useSlotNameResolver([`filter-component(${key})`, "filter-component"], slots);
+            });
+        }
+        for (const key of removedKeys) {
+            resolvers[key].stop();
+            delete resolvers[key];
+        }
+    },
+    { immediate: true, deep: true },
+);
 </script>
 
 <template>
     <div class="flex flex-wrap gap-1 mt-1">
         <template v-for="(filter, index) in computedFilters" :key="index">
             <slot
+                v-if="resolvers[filter]"
                 :filter="filter"
                 :filter-details="props.filterableDetails[filter]"
                 :index="index"
                 :model-value="addedFilters"
-                :name="useSlotNameResolver([`filter-component(${filter})`, 'filter-component'])"
+                :name="resolvers[filter]?.name"
                 @hide-filter-form="emit('hide-filter-form', $event)"
             >
                 <filter-component
