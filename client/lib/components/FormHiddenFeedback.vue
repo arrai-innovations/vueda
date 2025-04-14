@@ -89,7 +89,7 @@ const shouldUseFieldContext = computed(() => {
     return fieldContext && !widgetContext?.state?.contextless;
 });
 const effectiveHelp = computed(() =>
-    props.help?.length ? props.help : unref(shouldUseFieldContext) ? fieldContext?.state?.help : false,
+    props.help?.length ? props.help : unref(shouldUseFieldContext) ? fieldContext?.state?.help : "",
 );
 const effectiveErrors = computed(() => ({
     ...(unref(shouldUseFieldContext) ? fieldContext?.state?.errors : {}),
@@ -99,7 +99,7 @@ const effectiveWarnings = computed(() => ({
     ...(unref(shouldUseFieldContext) ? fieldContext?.state?.messages : {}),
     ...(props.warnings || {}),
 }));
-const showHelpIcon = computed(() => unref(effectiveHelp).length > 0);
+const showHelpIcon = computed(() => unref(effectiveHelp)?.length > 0);
 const showErrorIcon = computed(() => props.invalid ?? widgetContext?.state?.validationState?.invalid ?? false);
 const showWarnIcon = computed(() => props.warning ?? widgetContext?.state?.validationState?.warning ?? false);
 const hasErrors = computed(() => Object.keys(unref(effectiveErrors)).length > 0);
