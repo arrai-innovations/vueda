@@ -16,17 +16,22 @@ import { computed, effectScope, nextTick, reactive } from "vue";
 /**
  * Registers a hook for a given group name.
  *
- * @param {import('vue').UnwrapNestedRefs<{[key: string]: Function}>} registryFns - The registry of hook functions.
+ * @param {{[group: string]: [id:string][]}} groupToIds - A map of group names to their corresponding IDs.
+ * @param {{[key: string]: Function}} registryFns - The registry of hook functions.
  * @param {import('vue').UnwrapNestedRefs<{[key: string]: string}>} registryGroups - The registry of group names.
  * @param {() => void} scheduleUpdate - A function to schedule an update of the computed values.
  * @param {string} group - The key linking like hooks.
  * @param {() => boolean} hookFn - A function returning a boolean, suitable for use in a computed value.
  * @returns {string} A unique registration ID.
  */
-const registerHook = (registryFns, registryGroups, scheduleUpdate, group, hookFn) => {
+const registerHook = (groupToIds, registryFns, registryGroups, scheduleUpdate, group, hookFn) => {
     const id = getFakePk(registryFns);
     registryFns[id] = hookFn;
     registryGroups[id] = group;
+    if (!groupToIds[group]) {
+        groupToIds[group] = [];
+    }
+    groupToIds[group].push(id);
     scheduleUpdate();
     return id;
 };
@@ -39,14 +44,20 @@ const registerHook = (registryFns, registryGroups, scheduleUpdate, group, hookFn
 /**
  * Unregisters a hook given its unique ID.
  *
- * @param {import('vue').UnwrapNestedRefs<{[key: string]: Function}>} registryFns - The registry of hook functions.
+ * @param {{[group: string]: [id:string][]}} groupToIds - A map of group names to their corresponding IDs.
+ * @param {{[key: string]: Function}} registryFns - The registry of hook functions.
  * @param {import('vue').UnwrapNestedRefs<{[key: string]: string}>} registryGroups - The registry of group names.
  * @param {() => void} scheduleUpdate - A function to schedule an update of the computed values.
  * @param {string} registryId - The ID returned at registration.
  * @returns {boolean} True if successfully unregistered.
  */
-const unregisterHook = (registryFns, registryGroups, scheduleUpdate, registryId) => {
+const unregisterHook = (groupToIds, registryFns, registryGroups, scheduleUpdate, registryId) => {
     if (registryFns[registryId]) {
+        const group = registryGroups[registryId];
+        groupToIds[group] = groupToIds[group]?.filter((gid) => gid !== registryId);
+        if (groupToIds[group]?.length === 0) {
+            delete groupToIds[group];
+        }
         delete registryFns[registryId];
         delete registryGroups[registryId];
         scheduleUpdate();
@@ -63,7 +74,8 @@ const unregisterHook = (registryFns, registryGroups, scheduleUpdate, registryId)
  * Updates the computed aggregates based on the current registry.
  *
  * @private
- * @param {import('vue').UnwrapNestedRefs<{[key: string]: Function}>} registryFns - The registry of hook functions.
+ * @param {{[group: string]: [id:string][]}} groupToIds - A map of group names to their corresponding IDs.
+ * @param {{[key: string]: Function}} registryFns - The registry of hook functions.
  * @param {import('vue').UnwrapNestedRefs<{[key: string]: string}>} registryGroups - The registry of group names.
  * @param {ComputedAggregates} computedAggregates - The computed aggregate values.
  * @param {{[key: string]: import('vue').EffectScope}} effectScopes - The effect scopes for each group.
@@ -71,6 +83,7 @@ const unregisterHook = (registryFns, registryGroups, scheduleUpdate, registryId)
  * @param {AggregatorFn} aggregatorFn - The function to aggregate the values of the hooks.
  */
 const updateAggregates = (
+    groupToIds,
     registryFns,
     registryGroups,
     computedAggregates,
@@ -88,8 +101,7 @@ const updateAggregates = (
             const scope = effectScope();
             scope.run(() => {
                 computedAggregates[group] = computed(() => {
-                    const registryPathEntries = Object.entries(registryGroups).filter(([, path]) => path === group);
-                    const ids = registryPathEntries.map(([id]) => id);
+                    const ids = groupToIds[group] || [];
                     const hooks = ids.map((id) => registryFns[id]);
                     let returnValue = hooks.map((fn) => {
                         try {
@@ -141,7 +153,8 @@ export function useReactiveHookRegistry(aggregatorFn) {
     if (!aggregatorFn) {
         aggregatorFn = (values) => values.some(identity);
     }
-    const registryFns = reactive({});
+    const groupToIds = {};
+    const registryFns = {};
     const registryGroups = reactive({});
     /** @type {ComputedAggregates} */
     const computedAggregates = reactive({});
@@ -156,6 +169,7 @@ export function useReactiveHookRegistry(aggregatorFn) {
             nextTick(() => {
                 pendingUpdate = false;
                 updateAggregates(
+                    groupToIds,
                     registryFns,
                     registryGroups,
                     computedAggregates,
@@ -169,8 +183,8 @@ export function useReactiveHookRegistry(aggregatorFn) {
 
     return {
         computedAggregates,
-        registerHook: registerHook.bind(null, registryFns, registryGroups, scheduleUpdate),
-        unregisterHook: unregisterHook.bind(null, registryFns, registryGroups, scheduleUpdate),
+        registerHook: registerHook.bind(null, groupToIds, registryFns, registryGroups, scheduleUpdate),
+        unregisterHook: unregisterHook.bind(null, groupToIds, registryFns, registryGroups, scheduleUpdate),
         stop: mainEffectScope.stop,
     };
 }
