@@ -5,6 +5,7 @@
 ### Breaking Changes
 
 - **`useForm`/`useField`/`useWidget` Composables Overhaul**
+    - `dependencies` and `dependents` props for `useField` have been **renamed** to `validationDependencies` and `clearServerErrorDependents`, respectively. Update your `<field>` props accordingly.
     - `valueDetails` & `valueDetail` were removed. Dependencies for validation should only need formValues. If those form values need to be looked up into objects, that is an implementation detail of the custom validation.
     - `blur()` no longer clears server errors automatically. If your validation workflows depended on that behavior, manually call `formContext.clearServerErrors(fieldName, dependents)`
     - `reset()` on `useForm` now skips error clearing on initial call.
