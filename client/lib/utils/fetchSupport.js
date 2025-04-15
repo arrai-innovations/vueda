@@ -1,4 +1,3 @@
-import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 
 /**
@@ -54,17 +53,11 @@ export const fetchHelper = (
     emptyResponseCodes = new Set([204]),
     emptyResponseValue = undefined,
 ) => {
-    const defaultHeaders = {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCSRFValue(),
-    };
-    const headers = { ...defaultHeaders, ...options.headers };
     const controller = new AbortController();
 
     const promise = new Promise((resolve, reject) => {
         fetch(url, {
             ...options,
-            headers,
             credentials: "include",
             signal: controller.signal,
         })

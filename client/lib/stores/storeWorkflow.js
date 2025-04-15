@@ -1,6 +1,7 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
+import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
@@ -484,6 +485,10 @@ export const storeWorkflow = defineStore("workflow", {
             const returningPromise = fetchHelper(
                 executeTransitionUrl(result),
                 {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCSRFValue(),
+                    },
                     method: "PATCH",
                     body: JSON.stringify(body),
                 },
