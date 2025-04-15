@@ -10,7 +10,7 @@ import { computed, effectScope, nextTick, reactive } from "vue";
 /**
  * @callback BoundRegisterHook
  * @param {string} group - The key linking like hooks.
- * @param {Function} hookFn - A function returning a boolean, suitable for use in a computed value.
+ * @param {() => boolean} hookFn - A function returning a boolean, suitable for use in a computed value.
  * @returns {string} A unique registration ID.
  */
 /**
@@ -18,9 +18,9 @@ import { computed, effectScope, nextTick, reactive } from "vue";
  *
  * @param {import('vue').UnwrapNestedRefs<{[key: string]: Function}>} registryFns - The registry of hook functions.
  * @param {import('vue').UnwrapNestedRefs<{[key: string]: string}>} registryGroups - The registry of group names.
- * @param {Function} scheduleUpdate - A function to schedule an update of the computed values.
+ * @param {() => void} scheduleUpdate - A function to schedule an update of the computed values.
  * @param {string} group - The key linking like hooks.
- * @param {Function} hookFn - A function returning a boolean, suitable for use in a computed value.
+ * @param {() => boolean} hookFn - A function returning a boolean, suitable for use in a computed value.
  * @returns {string} A unique registration ID.
  */
 const registerHook = (registryFns, registryGroups, scheduleUpdate, group, hookFn) => {
@@ -41,7 +41,7 @@ const registerHook = (registryFns, registryGroups, scheduleUpdate, group, hookFn
  *
  * @param {import('vue').UnwrapNestedRefs<{[key: string]: Function}>} registryFns - The registry of hook functions.
  * @param {import('vue').UnwrapNestedRefs<{[key: string]: string}>} registryGroups - The registry of group names.
- * @param {Function} scheduleUpdate - A function to schedule an update of the computed values.
+ * @param {() => void} scheduleUpdate - A function to schedule an update of the computed values.
  * @param {string} registryId - The ID returned at registration.
  * @returns {boolean} True if successfully unregistered.
  */
@@ -56,6 +56,10 @@ const unregisterHook = (registryFns, registryGroups, scheduleUpdate, registryId)
 };
 
 /**
+ * @typedef {(values: any[], group: string) => any} AggregatorFn
+ */
+
+/**
  * Updates the computed aggregates based on the current registry.
  *
  * @private
@@ -64,8 +68,16 @@ const unregisterHook = (registryFns, registryGroups, scheduleUpdate, registryId)
  * @param {ComputedAggregates} computedAggregates - The computed aggregate values.
  * @param {{[key: string]: import('vue').EffectScope}} effectScopes - The effect scopes for each group.
  * @param {import('vue').EffectScope} mainEffectScope - The main effect scope, that contains the other effect scopes.
+ * @param {AggregatorFn} aggregatorFn - The function to aggregate the values of the hooks.
  */
-const updateAggregates = (registryFns, registryGroups, computedAggregates, effectScopes, mainEffectScope) => {
+const updateAggregates = (
+    registryFns,
+    registryGroups,
+    computedAggregates,
+    effectScopes,
+    mainEffectScope,
+    aggregatorFn,
+) => {
     const { addedKeys: addedGroups, removedKeys: removedGroups } = keyDiff(
         Object.values(registryGroups),
         Object.keys(computedAggregates),
@@ -87,7 +99,7 @@ const updateAggregates = (registryFns, registryGroups, computedAggregates, effec
                             return false;
                         }
                     });
-                    returnValue = returnValue.some(identity);
+                    returnValue = aggregatorFn(returnValue, group);
                     return returnValue;
                 });
             });
@@ -106,7 +118,7 @@ const updateAggregates = (registryFns, registryGroups, computedAggregates, effec
 };
 
 /**
- * @typedef {import('vue').UnwrapNestedRefs<{[key: string]: import('vue').ComputedRef<boolean>}>} ComputedAggregates
+ * @typedef {import('vue').Reactive<{[key: string]: import('vue').ComputedRef<boolean>}>} ComputedAggregates
  */
 
 /**
@@ -122,9 +134,13 @@ const updateAggregates = (registryFns, registryGroups, computedAggregates, effec
  * It aggregates these hooks and provides a computed value for each field path, indicating whether any of the hooks
  *  return true.
  *
+ * @param {AggregatorFn} aggregatorFn - A function that aggregates the values of the hooks.
  * @returns {ReactiveHookRegistry} The reactive hook registry.
  */
-export function useReactiveHookRegistry() {
+export function useReactiveHookRegistry(aggregatorFn) {
+    if (!aggregatorFn) {
+        aggregatorFn = (values) => values.some(identity);
+    }
     const registryFns = reactive({});
     const registryGroups = reactive({});
     /** @type {ComputedAggregates} */
@@ -136,9 +152,17 @@ export function useReactiveHookRegistry() {
     const scheduleUpdate = () => {
         if (!pendingUpdate) {
             pendingUpdate = true;
+            // noinspection JSIgnoredPromiseFromCall
             nextTick(() => {
                 pendingUpdate = false;
-                updateAggregates(registryFns, registryGroups, computedAggregates, effectScopes, mainEffectScope);
+                updateAggregates(
+                    registryFns,
+                    registryGroups,
+                    computedAggregates,
+                    effectScopes,
+                    mainEffectScope,
+                    aggregatorFn,
+                );
             });
         }
     };
