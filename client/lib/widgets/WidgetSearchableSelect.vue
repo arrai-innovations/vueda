@@ -16,7 +16,7 @@ import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import InputText from "primevue/inputtext";
 import Select from "primevue/select";
-import { computed, reactive, ref, toRef, useSlots, watch } from "vue";
+import { computed, reactive, readonly, ref, toRef, useSlots, watch } from "vue";
 import { deepUnref } from "vue-deepunref";
 
 defineOptions({
@@ -181,11 +181,11 @@ const selectedOption = computed(() => {
 
     return fromList || instanceObject.state.object;
 });
-
+const readOnlyDependencyValues = readonly(widgetContext.state.dependencyValues);
 const extraListArgs = computed(() => {
     let baseExtraListArgs = {};
     if (props.getExtraListArgs) {
-        baseExtraListArgs = props.getExtraListArgs(widgetContext.state.dependencyValues);
+        baseExtraListArgs = props.getExtraListArgs(readOnlyDependencyValues);
     }
     return {
         ...baseExtraListArgs,

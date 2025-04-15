@@ -442,24 +442,8 @@ export function useField(props, emit /*, functions*/) {
             // *** Dependency Management ***
             dependencyValues: computed(() => {
                 const fc = unref(formContext);
-                let fcValues = {};
-                if (fc) {
-                    fcValues = fc.state.values;
-                }
-                const returnValue = {};
-                for (const dep of state.validationDependencies) {
-                    let resolvedPath = dep;
-                    if (resolvedPath.startsWith("$parent")) {
-                        // drop the last segment to get parent path.
-                        const parentPath = state.name.split(".").slice(0, -1).join(".");
-                        resolvedPath = resolvedPath.replace("$parent", parentPath);
-                    }
-                    const value = get(fcValues, resolvedPath);
-                    if (value !== undefined) {
-                        returnValue[dep] = value;
-                    }
-                }
-                return Object.keys(returnValue).length ? returnValue : undefined;
+                // not sure that it makes sense to have non-form context dependencies
+                return fc ? fc.state.dependencyValues[props.name] : {};
             }),
         },
     );
@@ -781,6 +765,18 @@ export function useField(props, emit /*, functions*/) {
     onUnmounted(() => {
         if (isValidHookId) {
             returnObj.unregisterIsValidHook(isValidHookId);
+        }
+    });
+    let dependencyValuesId;
+    if (unref(formContext)) {
+        dependencyValuesId = unref(formContext).registerDependencyValues(
+            toRef(state, "name"),
+            toRef(state, "validationDependencies"),
+        );
+    }
+    onUnmounted(() => {
+        if (dependencyValuesId) {
+            unref(formContext).unregisterDependencyValues(dependencyValuesId);
         }
     });
     return returnObj;

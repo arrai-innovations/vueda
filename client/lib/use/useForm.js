@@ -1,4 +1,5 @@
 import { assignReactiveObject, del, flattenPaths } from "@arrai-innovations/reactive-helpers";
+import { useFieldDependencyValuesRegistry } from "@vueda/use/useFieldDependencyValuesRegistry.js";
 import { useReactiveHookRegistry } from "@vueda/use/useReactiveHookRegistry.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
@@ -401,7 +402,8 @@ const blur = (state, name) => {
  * @private
  */
 const reset = (state, hasInitialized) => {
-    state.values = cloneDeep(state.initialValues);
+    // WARNING: do not replace state.values, existing refs will be lost
+    assignReactiveObject(state.values, cloneDeep(state.initialValues));
     if (hasInitialized.value) {
         // skip resetting the first time for the sake of tests.
         assignReactiveObject(state.errors, {});
@@ -677,7 +679,12 @@ export function useForm(props) {
         // *** Ignored Fields & Reset Behavior ***
         ignored: {},
         anyIgnored: false,
+
+        // *** Dependency Management ***
+        dependencyValues: {},
     });
+    const dependencyRegistry = useFieldDependencyValuesRegistry(state.values);
+    state.dependencyValues = dependencyRegistry.dependencyValues;
     // Allow controlled test manipulation
     /* v8 ignore start */
     if (import.meta.env.MODE === "test") {
@@ -702,7 +709,8 @@ export function useForm(props) {
             // todo: do we need a trigger for this? I could see initial values changing, but not
             //  wanting to reset the form
             if (newInitialValues && !isEqual(state.initialValues, newInitialValues)) {
-                state.initialValues = cloneDeep(newInitialValues);
+                // WARNING: do not replace state.initialValues, existing refs will be lost
+                assignReactiveObject(state.initialValues, cloneDeep(newInitialValues));
                 reset(state, hasInitialized);
             }
         },
@@ -754,6 +762,8 @@ export function useForm(props) {
         unregisterIsRequiredHook: requiredHookRegistry.unregisterHook,
         registerIsValidHook: validationHookRegistry.registerHook,
         unregisterIsValidHook: validationHookRegistry.unregisterHook,
+        registerDependencyValues: dependencyRegistry.register,
+        unregisterDependencyValues: dependencyRegistry.unregister,
     };
     provide(FormContextSymbol, formContext);
     return formContext;
