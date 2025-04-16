@@ -1,5 +1,6 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { ThemeOverrideSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isFunction from "lodash-es/isFunction.js";
 import mergeWith from "lodash-es/mergeWith.js";
@@ -7,8 +8,6 @@ import { computed, effectScope, getCurrentInstance, inject, provide, toRef, unre
 import { deepUnref } from "vue-deepunref";
 
 let defaultTheme = vuedaTailwind;
-
-export const ThemeOverrideSymbol = Symbol("ThemeOverride");
 
 export const THEME_OVERRIDE_PROPS = {
     themeOverride: {
@@ -185,9 +184,9 @@ export function setTheme(newTheme) {
  * @param partialTheme {ThemeObject} - The partial theme to patch the default theme with.
  */
 export function patchTheme(partialTheme) {
-    const pt = cloneDeep(partialTheme);
-    for (const componentName in pt) {
-        defaultTheme[componentName] = mergeTheme(defaultTheme[componentName], pt[componentName]);
+    // mergeTheme clones, so we don't need to clone input here
+    for (const componentName in partialTheme) {
+        defaultTheme[componentName] = mergeTheme(defaultTheme[componentName], partialTheme[componentName]);
     }
 }
 
@@ -216,6 +215,16 @@ const mergeWithCb = (objValue, srcValue, key) => {
 };
 
 /**
+ * @private
+ */
+const mergeThemeReduce = (acc, theme) => {
+    if (!theme) {
+        return acc;
+    }
+    return mergeWith(acc, theme, mergeWithCb);
+};
+
+/**
  * Custom merge function for merging theme objects, ensuring classes are combined.
  *
  * @param {...ThemeObject} themes - List of ThemeObjects to merge.
@@ -231,10 +240,5 @@ export function mergeTheme(...themes) {
 
     const [initialTheme, ...restThemes] = themes;
 
-    return restThemes.reduce((acc, theme) => {
-        if (!theme) {
-            return acc;
-        }
-        return mergeWith(acc, theme, mergeWithCb);
-    }, cloneDeep(initialTheme));
+    return restThemes.reduce(mergeThemeReduce, cloneDeep(initialTheme));
 }
