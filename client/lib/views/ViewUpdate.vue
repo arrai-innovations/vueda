@@ -5,6 +5,7 @@ import { useForm } from "@vueda/use/useForm.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { useWarnings } from "@vueda/use/useWarnings.js";
+import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { computed, reactive, toRef, unref } from "vue";
 
 const props = defineProps({
@@ -40,8 +41,8 @@ const instanceObjectProps = reactive({
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     pk: toRef(props, "pk"),
     retrieveArgs: {
-        f: computed(() => [modelConfig.info?.pk, ...(submitFields.value ?? [])]),
-        e: computed(() => {
+        [FIELDS_PARAM]: computed(() => [modelConfig.info?.pk, ...(submitFields.value ?? [])]),
+        [EXPAND_PARAM]: computed(() => {
             const expands = modelConfig.config?.expands || [];
             return expands.filter(
                 (expand) =>

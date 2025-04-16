@@ -7,6 +7,7 @@ import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
@@ -62,7 +63,7 @@ const instanceObjectProps = reactive({
     pkKey: toRef(props, "pkKey"),
     pk: toRef(widgetContext.state, "combinedValue"),
     retrieveArgs: {
-        f: [],
+        [FIELDS_PARAM]: [],
     },
     intendToRetrieve: validAndActive,
 });

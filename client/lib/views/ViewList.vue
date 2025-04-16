@@ -15,6 +15,7 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
+import { EXPAND_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -37,14 +38,6 @@ const props = defineProps({
     model: {
         type: String,
         required: true,
-    },
-    pageKey: {
-        type: String,
-        default: "p",
-    },
-    searchKey: {
-        type: String,
-        default: "s",
     },
     listFields: {
         type: Array,
@@ -178,9 +171,9 @@ const listState = reactive({
     currentPage: 1,
     search: "",
     listArgs: {
-        o: toRef(sorting.state, "sorted"),
-        f: calculatedListFields,
-        e: computed(() => modelConfig.config?.expands),
+        [ORDERING_PARAM]: toRef(sorting.state, "sorted"),
+        [FIELDS_PARAM]: calculatedListFields,
+        [EXPAND_PARAM]: computed(() => modelConfig.config?.expands),
     },
     filterArgs: {},
 });
@@ -216,17 +209,17 @@ watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, 
         }
     }
     if (newPage === 1) {
-        delete listState.listArgs[props.pageKey];
+        delete listState.listArgs[PAGE_PARAM];
     } else {
-        listState.listArgs[props.pageKey] = newPage;
+        listState.listArgs[PAGE_PARAM] = newPage;
     }
     if (!newSearch) {
-        delete listState.listArgs[props.searchKey];
-        const routeQuery = omit(route.query, [props.searchKey]);
+        delete listState.listArgs[SEARCH_PARAM];
+        const routeQuery = omit(route.query, [SEARCH_PARAM]);
         router.push({ query: routeQuery });
     } else {
-        listState.listArgs[props.searchKey] = newSearch;
-        const routeQuery = { ...route.query, [props.searchKey]: newSearch };
+        listState.listArgs[SEARCH_PARAM] = newSearch;
+        const routeQuery = { ...route.query, [SEARCH_PARAM]: newSearch };
         if (!isEqual(routeQuery, route.query)) {
             router.push({ query: routeQuery });
         }
@@ -235,7 +228,7 @@ watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, 
 watch(
     () => route.query,
     (newQuery) => {
-        const searchQuery = newQuery[props.searchKey] || "";
+        const searchQuery = newQuery[SEARCH_PARAM] || "";
         if (!isEqual(searchQuery, listState.search)) {
             listSearch.value = searchQuery;
             listState.search = searchQuery;
@@ -263,12 +256,12 @@ watch(
         assignReactiveObject(listState.listArgs, listState.filterArgs, [
             ...Object.keys(props.listArgs),
             ...alwaysListArgsKeys,
-            props.searchKey,
+            SEARCH_PARAM,
         ]);
-        const filterQuery = omit(route.query, [props.searchKey]);
+        const filterQuery = omit(route.query, [SEARCH_PARAM]);
         if (!isEqual(newFilter, filterQuery)) {
             const routeQuery = {
-                [props.searchKey]: route.query[props.searchKey],
+                [SEARCH_PARAM]: route.query[SEARCH_PARAM],
                 ...newFilter,
             };
             router.push({ query: routeQuery });

@@ -1,4 +1,5 @@
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
+import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
@@ -269,7 +270,7 @@ export const storeModelInfo = defineStore("modelInfo", {
             }
             if (!this.promises[key]) {
                 const retrieveArgs = {
-                    f: [
+                    [FIELDS_PARAM]: [
                         "app_label",
                         "model",
                         "verbose_name",
@@ -281,7 +282,7 @@ export const storeModelInfo = defineStore("modelInfo", {
                         "model_filtering",
                         "model_permissions",
                     ],
-                    e: [
+                    [EXPAND_PARAM]: [
                         "model_fields",
                         "model_actions",
                         "model_expands",
@@ -323,7 +324,7 @@ export const storeModelInfo = defineStore("modelInfo", {
                                         key,
                                         v.map((expand) => ({
                                             ...expand,
-                                            f: expand.f
+                                            [FIELDS_PARAM]: expand.f
                                                 ? Object.fromEntries(
                                                       Object.entries(expand.f).map(([k, v]) => [k, camelCaseObject(v)]),
                                                   )

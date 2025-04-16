@@ -7,6 +7,7 @@ import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import { EXPAND_PARAM, FIELDS_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -53,10 +54,6 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    searchKey: {
-        type: String,
-        default: "s",
-    },
     options: {
         type: Array,
         default: undefined,
@@ -81,10 +78,6 @@ const props = defineProps({
     placeholder: {
         type: String,
         default: undefined,
-    },
-    pageKey: {
-        type: String,
-        default: "p",
     },
     pkKey: {
         type: String,
@@ -152,8 +145,8 @@ const instanceObjectProps = reactive({
     pkKey: toRef(props, "pkKey"),
     pk: computed(() => widgetContext.state.combinedValue),
     retrieveArgs: {
-        f: toRef(props, "modelFields"),
-        e: toRef(props, "modelExpandFields"),
+        [FIELDS_PARAM]: toRef(props, "modelFields"),
+        [EXPAND_PARAM]: toRef(props, "modelExpandFields"),
     },
     intendToRetrieve,
 });
@@ -193,9 +186,9 @@ const extraListArgs = computed(() => {
     };
 });
 const listArgs = computed(() => ({
-    [props.pageKey]: fetchedPages,
-    [props.searchKey]: listSearch,
-    f: [
+    [PAGE_PARAM]: fetchedPages,
+    [SEARCH_PARAM]: listSearch,
+    [FIELDS_PARAM]: [
         computed(() => modelConfig.info?.pk),
         "formatted_name",
         computed(() => (props.grouped ? props.groupBy : "")),
@@ -210,7 +203,7 @@ const modelListProps = reactive({
         model: toRef(props, "model"),
     },
     retrieveArgs: {
-        f: toRef(props, "modelFields"),
+        [FIELDS_PARAM]: toRef(props, "modelFields"),
     },
     pkKey: toRef(props, "pkKey"),
     listArgs,

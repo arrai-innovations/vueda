@@ -6,6 +6,7 @@ import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import { SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import get from "lodash-es/get.js";
@@ -31,10 +32,6 @@ const props = defineProps({
     modelFields: {
         type: Array,
         default: () => [],
-    },
-    searchKey: {
-        type: String,
-        default: "s",
     },
     optionLabel: {
         type: String,
@@ -95,7 +92,7 @@ const modelListArgs = computed(() => {
         f,
     };
     if (listSearch.value) {
-        listArgs[props.searchKey] = listSearch.value;
+        listArgs[SEARCH_PARAM] = listSearch.value;
     } else if (widgetContext.state.combinedValue) {
         listArgs[unref(computedOptionValue)] = widgetContext.state.combinedValue;
     }

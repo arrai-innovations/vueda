@@ -10,6 +10,7 @@ import { useForm } from "@vueda/use/useForm.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
+import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import Button from "primevue/button";
 import { computed, onMounted, reactive, toRef } from "vue";
@@ -85,10 +86,10 @@ const instanceObjectProps = reactive({
     pk: null,
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     retrieveArgs: {
-        f: computed(() => {
+        [FIELDS_PARAM]: computed(() => {
             return [...(props.submitFields ?? modelConfig.config?.submitFields ?? [])];
         }),
-        e: computed(() => {
+        [EXPAND_PARAM]: computed(() => {
             const expands = modelConfig.config?.expands || [];
             return expands.filter(
                 (expand) =>

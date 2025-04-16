@@ -1,6 +1,7 @@
 import { useList } from "@arrai-innovations/reactive-helpers";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { computed, reactive, toRef } from "vue";
 
 /**
@@ -38,7 +39,7 @@ export function useViewDestroy(props) {
         },
         pkKey: computed(() => modelConfig.info?.pk ?? "id"),
         retrieveArgs: {
-            f: {},
+            [FIELDS_PARAM]: {},
         },
         listArgs: {
             id: computed(() => {

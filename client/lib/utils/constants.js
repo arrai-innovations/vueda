@@ -1,3 +1,10 @@
 export const CSRF_COOKIE_NAME = import.meta.env.VITE_CSRF_COOKIE_NAME;
 export const VITE_PACKAGE_VERSION = import.meta.env.VITE_PACKAGE_VERSION;
 export const NON_FIELD_ERRORS_KEY = "non_field_errors";
+export const FIELDS_PARAM = "f";
+export const EXPAND_PARAM = "e";
+export const OMIT_PARAM = "om";
+export const ORDERING_PARAM = "o";
+export const SEARCH_PARAM = "s";
+export const PAGE_PARAM = "p";
+export const PAGE_SIZE_PARAM = "ps";

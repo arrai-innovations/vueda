@@ -6,6 +6,7 @@ import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import { FIELDS_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import omit from "lodash-es/omit.js";
@@ -32,10 +33,6 @@ const props = defineProps({
         type: Array,
         required: true,
     },
-    searchKey: {
-        type: String,
-        default: "s",
-    },
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
 });
@@ -54,11 +51,11 @@ const modelListProps = reactive({
         model: toRef(props, "model"),
     },
     retrieveArgs: {
-        f: toRef(props, "modelFields"),
+        [FIELDS_PARAM]: toRef(props, "modelFields"),
     },
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     listArgs: {
-        [props.searchKey]: listSearch,
+        [SEARCH_PARAM]: listSearch,
         id: computed(() => {
             if (!listSearch.value) {
                 return selectedValue.value ?? undefined;

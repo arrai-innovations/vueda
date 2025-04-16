@@ -10,6 +10,7 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
 import { useObjectsWorkflowTransitions } from "@vueda/use/useObjectsWorkflowTransitions.js";
+import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -179,8 +180,8 @@ const instanceObjectProps = reactive({
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     pk: toRef(props, "pk"),
     retrieveArgs: {
-        f: computed(() => [modelConfig.info?.pk, fetchFields.value, "available_actions"]),
-        e: computed(() => modelConfig.config?.expands),
+        [FIELDS_PARAM]: computed(() => [modelConfig.info?.pk, fetchFields.value, "available_actions"]),
+        [EXPAND_PARAM]: computed(() => modelConfig.config?.expands),
     },
     intendToRetrieve,
     relatedObjectRules: toRef(props, "relatedObjectRules"),

@@ -7,6 +7,7 @@ import { useFormModel } from "@vueda/use/useFormModel.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useTheme } from "@vueda/use/useTheme.js";
+import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
@@ -72,7 +73,7 @@ const modelListProps = reactive({
     pkKey: "history_id",
     listArgs: {
         [props.pageKey]: currentPage,
-        f: ["history"],
+        [FIELDS_PARAM]: ["history"],
     },
     intendToList: validAndActive,
 });
