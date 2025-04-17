@@ -1,4 +1,5 @@
 import { setObjectCrud } from "@arrai-innovations/reactive-helpers";
+import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
@@ -12,7 +13,7 @@ const makeSearchParamsString = (searchParams) => {
     if (!params) {
         return "";
     }
-    if (Object.keys(params.f).length === 0 && Object.keys(params.e ?? []).length === 0) {
+    if (Object.keys(params[FIELDS_PARAM] ?? []).length === 0 && Object.keys(params[EXPAND_PARAM] ?? []).length === 0) {
         return "";
     }
     const usp = new URLSearchParams();
