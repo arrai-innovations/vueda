@@ -3,6 +3,7 @@ import { useList, useObject } from "@arrai-innovations/reactive-helpers";
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { useResolvedLookupObject } from "@vueda/use/useResolvedLookupObject.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
@@ -17,7 +18,7 @@ import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import InputText from "primevue/inputtext";
 import Select from "primevue/select";
-import { computed, reactive, readonly, ref, toRef, useSlots, watch } from "vue";
+import { computed, reactive, readonly, ref, toRef, unref, useSlots, watch } from "vue";
 import { deepUnref } from "vue-deepunref";
 
 defineOptions({
@@ -79,10 +80,6 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
-    pkKey: {
-        type: String,
-        default: "id",
-    },
     readonly: {
         type: Boolean,
         default: false,
@@ -130,50 +127,48 @@ const listSearch = computed(() => {
     return listFilterValue.value;
 });
 const intendToList = computed(() => {
-    return (!widgetContext.state.combinedValue || listSearch.value.length > 0) && hasBeenFocused.value;
-});
-const intendToRetrieve = computed(() => {
-    return widgetContext.state.combinedValue;
+    return (
+        ((modelConfig.info?.pk && !widgetContext.state.combinedValue) || listSearch.value.length > 0) &&
+        hasBeenFocused.value
+    );
 });
 const theme = useWidgetTheme("WidgetSearchableSelect", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
-const instanceObjectProps = reactive({
-    crudArgs: {
-        app: toRef(props, "app"),
-        model: toRef(props, "model"),
-    },
-    pkKey: toRef(props, "pkKey"),
-    pk: computed(() => widgetContext.state.combinedValue),
-    retrieveArgs: {
-        [FIELDS_PARAM]: toRef(props, "modelFields"),
-        [EXPAND_PARAM]: toRef(props, "modelExpandFields"),
-    },
-    intendToRetrieve,
-});
-const instanceObject = useObject({
-    props: instanceObjectProps,
-});
+
+const resolvedLookupObject = useResolvedLookupObject(
+    toRef(props, "app"),
+    toRef(props, "model"),
+    toRef(widgetContext.state, "combinedValue"),
+    toRef(props, "modelFields"),
+    toRef(props, "modelExpandFields"),
+);
 
 const computedOptions = computed(() => {
     if (intendToList.value && (!modelList.state.loading || fetchedPages.value > 1)) {
         return listObjects.value;
     }
-    if (intendToRetrieve.value && !instanceObject.state.loading) {
-        return [instanceObject.state.object];
+    if (widgetContext.state.combinedValue && !resolvedLookupObject.loading) {
+        return [unref(resolvedLookupObject.object)];
     }
     return [];
 });
 const selectedOption = computed(() => {
+    const isLoading = resolvedLookupObject.loading;
+
+    const value = widgetContext.state.combinedValue;
+    const labelField = props.selectedOptionLabel ?? props.optionLabel;
+    const resolved = resolvedLookupObject.object;
+    if (!isLoading && resolved && isEqual(resolved?.[props.optionValue], value) && resolved?.[labelField]) {
+        return resolved;
+    }
+
     const flatOptions = props.grouped
         ? computedOptions.value.flatMap((group) => group.items || [])
         : computedOptions.value;
 
-    const fromList = flatOptions.find((option) =>
-        isEqual(option?.[props.optionValue], widgetContext.state.combinedValue),
-    );
-
-    return fromList || instanceObject.state.object;
+    return flatOptions.find((option) => isEqual(option?.[props.optionValue], value));
 });
+
 const readOnlyDependencyValues = readonly(widgetContext.state.dependencyValues);
 const extraListArgs = computed(() => {
     let baseExtraListArgs = {};
@@ -185,11 +180,12 @@ const extraListArgs = computed(() => {
         ...props.extraListArgs,
     };
 });
+const pkKey = computed(() => modelConfig.info?.pk ?? "id");
 const listArgs = computed(() => ({
     [PAGE_PARAM]: fetchedPages,
     [SEARCH_PARAM]: listSearch,
     [FIELDS_PARAM]: [
-        computed(() => modelConfig.info?.pk),
+        pkKey,
         "formatted_name",
         computed(() => (props.grouped ? props.groupBy : "")),
         computed(() => props.selectedOptionLabel ?? ""),
@@ -205,7 +201,7 @@ const modelListProps = reactive({
     retrieveArgs: {
         [FIELDS_PARAM]: toRef(props, "modelFields"),
     },
-    pkKey: toRef(props, "pkKey"),
+    pkKey,
     listArgs,
     intendToList,
 });
@@ -421,12 +417,8 @@ watch(
     { immediate: true, deep: true },
 );
 
-const handleHide = () => {
-    listFilterValue.value = "";
-    if (intendToRetrieve.value) {
-        listFilterValue.value = prePopulatedSearchText.value;
-    }
-};
+const handleHide = () =>
+    (listFilterValue.value = widgetContext.state.combinedValue ? prePopulatedSearchText.value : "");
 
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);

@@ -1,8 +1,10 @@
 import { useList } from "@arrai-innovations/reactive-helpers";
 import { useIsActive } from "@vueda/use/useIsActive.js";
+import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { FIELDS_PARAM } from "@vueda/utils/constants.js";
-import { computed, reactive, toRef } from "vue";
+import { LookupContextSymbol } from "@vueda/utils/symbols.js";
+import { computed, inject, reactive, toRef } from "vue";
 
 /**
  * @typedef {object} ViewDestroyState
@@ -26,6 +28,9 @@ import { computed, reactive, toRef } from "vue";
  * @returns {ViewDestroyState} An object containing reactive state and the `handleDelete` function.
  */
 export function useViewDestroy(props) {
+    if (!inject(LookupContextSymbol, null)) {
+        useLookupContext();
+    }
     const isActive = useIsActive();
     const validAndActive = computed(
         () => !!(isActive.value && props.app && props.model && props.pk && modelConfig.info?.pk),

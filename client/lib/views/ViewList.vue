@@ -11,12 +11,14 @@ import StickyBar from "@vueda/components/StickyBar.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useFilteredActions } from "@vueda/use/useFilteredActions";
 import { useIsActive } from "@vueda/use/useIsActive.js";
+import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
 import { EXPAND_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
@@ -24,7 +26,7 @@ import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
-import { computed, effectScope, onMounted, reactive, readonly, ref, toRef, toRefs, unref, watch } from "vue";
+import { computed, effectScope, inject, onMounted, reactive, readonly, ref, toRef, toRefs, unref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 defineOptions({
@@ -129,6 +131,11 @@ const isActive = useIsActive();
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model && modelConfig.info?.pk));
 const viewName = "list";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
+
+if (!inject(LookupContextSymbol, null)) {
+    useLookupContext();
+}
+
 const selectedObjects = ref([]);
 const workflow = useWorkflowTransitions(toRef(props, "app"), toRef(props, "model"), isActive);
 const router = useRouter();

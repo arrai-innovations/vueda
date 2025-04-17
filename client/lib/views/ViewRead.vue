@@ -1,7 +1,9 @@
 <script setup>
 import DetailedView from "@vueda/components/DetailedView.vue";
 import { useForm } from "@vueda/use/useForm.js";
-import { reactive } from "vue";
+import { useLookupContext } from "@vueda/use/useLookupContext.js";
+import { LookupContextSymbol } from "@vueda/utils/symbols.js";
+import { inject, reactive } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -24,6 +26,10 @@ defineProps({
 const viewName = "read";
 
 const emit = defineEmits(["object", "loading", "related-object", "calculated-object", "form-object", "form-context"]);
+
+if (!inject(LookupContextSymbol, null)) {
+    useLookupContext();
+}
 
 const formContextProps = reactive({
     initialValues: {},

@@ -3,14 +3,16 @@ import { useList } from "@arrai-innovations/reactive-helpers";
 import ActionForm from "@vueda/components/ActionForm.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useIsActive } from "@vueda/use/useIsActive.js";
+import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
 import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { getDetailUrl } from "@vueda/utils/urls.js";
 import isEmpty from "lodash-es/isEmpty.js";
-import { computed, reactive, toRef } from "vue";
+import { computed, inject, reactive, toRef } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -43,6 +45,10 @@ const validAndActive = computed(
     () => !!(isActive.value && props.app && props.model && props.pk && modelConfig.info?.pk),
 );
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+
+if (!inject(LookupContextSymbol, null)) {
+    useLookupContext();
+}
 
 const instanceListProps = reactive({
     crudArgs: {

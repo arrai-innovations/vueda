@@ -7,13 +7,15 @@ import PageTitle from "@vueda/components/PageTitle.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useForm } from "@vueda/use/useForm.js";
+import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import Button from "primevue/button";
-import { computed, onMounted, reactive, toRef } from "vue";
+import { computed, inject, onMounted, reactive, toRef } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -61,6 +63,11 @@ const props = defineProps({
 const emit = defineEmits(["form-object", "form-context"]);
 const viewName = "create";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
+
+if (!inject(LookupContextSymbol, null)) {
+    useLookupContext();
+}
+
 const filteredActions = useFilteredActions({
     modelConfigInstance: modelConfig,
 });

@@ -1,17 +1,16 @@
 <script setup>
-import { useObject } from "@arrai-innovations/reactive-helpers";
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { useIsActive } from "@vueda/use/useIsActive.js";
+import { useResolvedLookupObject } from "@vueda/use/useResolvedLookupObject.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
-import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
-import { computed, reactive, toRef, useSlots, watch } from "vue";
+import { computed, toRef, useSlots } from "vue";
 
 const props = defineProps({
     ...WIDGET_PROPS,
@@ -23,10 +22,6 @@ const props = defineProps({
     model: {
         type: String,
         default: undefined,
-    },
-    pkKey: {
-        type: String,
-        default: "id",
     },
     foreignKeyObj: {
         type: Object,
@@ -55,30 +50,23 @@ const isActive = useIsActive();
 const validAndActive = computed(
     () => !!(!props.foreignKeyObj && isActive.value && props.app && props.model && widgetContext.state.combinedValue),
 );
-const instanceObjectProps = reactive({
-    crudArgs: {
-        app: toRef(props, "app"),
-        model: toRef(props, "model"),
-    },
-    pkKey: toRef(props, "pkKey"),
-    pk: toRef(widgetContext.state, "combinedValue"),
-    retrieveArgs: {
-        [FIELDS_PARAM]: [],
-    },
-    intendToRetrieve: validAndActive,
-});
-const instanceObject = useObject({
-    props: instanceObjectProps,
-});
+
+const resolvedLookupObject = useResolvedLookupObject(
+    toRef(props, "app"),
+    toRef(props, "model"),
+    toRef(widgetContext.state, "combinedValue"),
+    toRef(props, "modelFields"),
+    toRef(props, "modelExpandFields"),
+);
 
 const readonlyValue = computed(() => {
-    if (instanceObject.state?.loading || props.loading) {
+    if (resolvedLookupObject.loading || props.loading) {
         return "Loading...";
     }
-    return props.foreignKeyObj ? props.foreignKeyObj.formatted_name : instanceObject.state?.object?.formatted_name;
+    return props.foreignKeyObj ? props.foreignKeyObj.formatted_name : resolvedLookupObject.object?.formatted_name;
 });
 const pkValue = computed(() => {
-    return props.foreignKeyObj ? props.foreignKeyObj[props.pkKey] : instanceObject.state?.object?.[props.pkKey];
+    return props.foreignKeyObj ? props.foreignKeyObj[props.pkKey] : resolvedLookupObject.object?.[props.pkKey];
 });
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);

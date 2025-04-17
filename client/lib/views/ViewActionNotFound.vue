@@ -1,7 +1,9 @@
 <script setup>
 import { storeModelInfo } from "@vueda/stores/storeModelInfo";
+import { useLookupContext } from "@vueda/use/useLookupContext.js";
+import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { stringSimilarity } from "string-similarity-js";
-import { ref, toRef, watch } from "vue";
+import { inject, ref, toRef, watch } from "vue";
 import { useRoute } from "vue-router";
 
 const route = useRoute();
@@ -11,6 +13,11 @@ const model = toRef(route.params, "model");
 const action = toRef(route.params, "action");
 
 const modelInfoStore = storeModelInfo();
+
+if (!inject(LookupContextSymbol, null)) {
+    useLookupContext();
+}
+
 const suggestions = ref([]);
 
 const findClosestMatch = (input, options) => {

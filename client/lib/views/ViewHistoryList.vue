@@ -5,13 +5,15 @@ import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
+import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
-import { computed, reactive, ref, toRef } from "vue";
+import { computed, inject, reactive, ref, toRef } from "vue";
 import { useRouter } from "vue-router";
 
 defineOptions({
@@ -59,6 +61,11 @@ const handleIsTableUpdate = (newValue) => {
 };
 const viewName = "history-list";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
+
+if (!inject(LookupContextSymbol, null)) {
+    useLookupContext();
+}
+
 const isActive = useIsActive();
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model && modelConfig.info?.pk));
 const currentPage = ref(1);

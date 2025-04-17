@@ -2,11 +2,13 @@
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import DetailedView from "@vueda/components/DetailedView.vue";
 import { useForm } from "@vueda/use/useForm.js";
+import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { useWarnings } from "@vueda/use/useWarnings.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
-import { computed, reactive, toRef, unref } from "vue";
+import { LookupContextSymbol } from "@vueda/utils/symbols.js";
+import { computed, inject, reactive, toRef, unref } from "vue";
 
 const props = defineProps({
     app: {
@@ -30,6 +32,10 @@ const props = defineProps({
 
 const viewName = "update";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
+
+if (!inject(LookupContextSymbol, null)) {
+    useLookupContext();
+}
 
 const submitFields = computed(() => props.submitFields ?? modelConfig.config?.submitFields);
 

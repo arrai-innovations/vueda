@@ -2,14 +2,16 @@
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
+import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computedAsync } from "@vueuse/core";
 import isEmpty from "lodash-es/isEmpty.js";
 import Button from "primevue/button";
 import RadioButton from "primevue/radiobutton";
 import { useToast } from "primevue/usetoast";
-import { computed, ref, toRef, watch } from "vue";
+import { computed, inject, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
 
 defineOptions({
@@ -37,6 +39,11 @@ const workflow = storeWorkflow();
 const toast = useToast();
 const router = useRouter();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+
+if (!inject(LookupContextSymbol, null)) {
+    useLookupContext();
+}
+
 const titleStr = computed(() => {
     return `Transitions for ${memoizedStartCase(modelConfig.info?.verbose_name)}`;
 });
