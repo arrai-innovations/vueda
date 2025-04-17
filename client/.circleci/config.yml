@@ -70,20 +70,20 @@ workflows:
                       branches:
                           ignore:
                               - main
-            - run_pipeline:
-                  name: run-sems-client-pipeline-main
-                  project: sems-client
-                  filters:
-                      branches:
-                          only:
-                              - main
-            - run_pipeline:
-                  name: run-wayfinders-client-pipeline-main
-                  project: wayfinders-client
-                  filters:
-                      branches:
-                          only:
-                              - main
+            # - run_pipeline:
+            #       name: run-sems-client-pipeline-main
+            #       project: sems-client
+            #       filters:
+            #           branches:
+            #               only:
+            #                   - main
+            # - run_pipeline:
+            #       name: run-wayfinders-client-pipeline-main
+            #       project: wayfinders-client
+            #       filters:
+            #           branches:
+            #               only:
+            #                   - main
             - verify_release_version:
                   name: verify-release-version
                   filters:
@@ -111,26 +111,26 @@ workflows:
                           only: /.*/
                       branches:
                           ignore: /.*/
-            - run_pipeline:
-                  name: run-sems-client-pipeline-tag
-                  requires:
-                      - release_on_github
-                  project: sems-client
-                  filters:
-                      tags:
-                          only: /.*/
-                      branches:
-                          ignore: /.*/
-            - run_pipeline:
-                  name: run-wayfinders-client-pipeline-tag
-                  requires:
-                      - release_on_github
-                  project: wayfinders-client
-                  filters:
-                      tags:
-                          only: /.*/
-                      branches:
-                          ignore: /.*/
+            # - run_pipeline:
+            #       name: run-sems-client-pipeline-tag
+            #       requires:
+            #           - release_on_github
+            #       project: sems-client
+            #       filters:
+            #           tags:
+            #               only: /.*/
+            #           branches:
+            #               ignore: /.*/
+            # - run_pipeline:
+            #       name: run-wayfinders-client-pipeline-tag
+            #       requires:
+            #           - release_on_github
+            #       project: wayfinders-client
+            #       filters:
+            #           tags:
+            #               only: /.*/
+            #           branches:
+            #               ignore: /.*/
     lint:
         jobs:
             - eslint/eslint_fixed_ip:
