@@ -109,12 +109,12 @@ export function defaultIsRequiredViolation(value) {
  * // *** Error Handling ***
  * @property {(code: string, message: string) => void} updateError - Updates the error message for a given code.
  * @property {(code: string) => void} deleteError - Removes a specific error by code.
- * @property {(childIndex:number[]|undefined) => void} clearErrors - Clears all errors associated with this field.
+ * @property {(childIndex:number|undefined) => void} clearErrors - Clears all errors associated with this field.
  *
  * // *** Message Handling ***
  * @property {(code: string, message: string) => void} updateMessage - Updates a specific message.
  * @property {(code: string) => void} deleteMessage - Removes a message by code.
- * @property {(childIndex:number[]|undefined) => void} clearMessages - Clears all messages.
+ * @property {(childIndex:number|undefined) => void} clearMessages - Clears all messages.
  *
  * // *** Field Interactions ***
  * @property {() => void} setTouched - Marks the field as "touched" (e.g., user clicked away).
@@ -123,8 +123,8 @@ export function defaultIsRequiredViolation(value) {
  * @property {() => void} blur - Blurs (un-focuses) the field.
  *
  * // *** Field Ignoring ***
- * @property {(name:string[]|undefined) => void} ignore - Marks the field as ignored, so validation does not apply.
- * @property {(name:string[]|undefined) => void} removeIgnore - Removes the ignore status, making the field active again.
+ * @property {(name:string|undefined) => void} ignore - Marks the field as ignored, so validation does not apply.
+ * @property {(name:string|undefined) => void} removeIgnore - Removes the ignore status, making the field active again.
  *
  * // *** Hook Registration ***
  * @property {(hook: () => boolean) => string} registerIsModifiedHook - Registers a hook that determines if the field is modified.

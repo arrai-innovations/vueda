@@ -20,7 +20,7 @@ import { useRouter } from "vue-router";
  */
 
 /**
- * @typedef {import('vue').UnwrapRef<ObjectFormRawProps>} ObjectFormProps
+ * @typedef {import('vue').UnwrapNestedRefs<ObjectFormRawProps>} ObjectFormProps
  */
 
 /**

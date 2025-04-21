@@ -117,6 +117,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {{[fieldName: string]: FieldInfo}} [f] - A mapping of field names to their respective `FieldInfo` objects for the expanded model.
  * @property {boolean} [requiresPermission] - Indicates whether expanding this field requires special permissions.
  * @property {string} [description] - A brief description of what the expanded field represents.
+ * @property {string[]} [hidden] - Names of child fields to hide in this expansion.
  */
 
 /**
@@ -265,7 +266,7 @@ export const storeModelInfo = defineStore("modelInfo", {
                 return Promise.resolve(existing);
             }
             if (cachedError) {
-                // prevent us from self-ddosing the server
+                // prevent us from self-DDoSing the server
                 return Promise.reject(cachedError);
             }
             if (!this.promises[key]) {

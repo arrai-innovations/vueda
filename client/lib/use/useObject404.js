@@ -5,7 +5,9 @@ import { watch } from "vue";
  * A composable function for handling a 404 error on an ObjectInstance, given the props and model config, and updating
  *  a passed error ref.
  *
- * @param {import("vue").UnwrapNestedRefs} yourProps - The props object.
+ * @param {import("vue").UnwrapNestedRefs<{
+ *     pk: string,
+ * }>} yourProps - The props object.
  * @param {import("@arrai-innovations/reactive-helpers").ObjectInstance} yourInstanceObject - The object instance.
  * @param {import("@vueda/use/useModelConfig.js").ModelConfigState} yourModelConfig - The model config.
  * @param {import("vue").Ref<Error|null>} yourErrorRef - The error ref.
