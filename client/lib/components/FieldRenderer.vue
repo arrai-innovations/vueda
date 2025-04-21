@@ -1,10 +1,11 @@
 <script setup>
-import { combineClasses } from "@arrai-innovations/reactive-helpers";
+import { assignReactiveObject, combineClasses } from "@arrai-innovations/reactive-helpers";
+import { useFieldRenderer } from "@vueda/use/useFieldRenderer.js";
 import { mergeTheme, useTheme } from "@vueda/use/useTheme.js";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
-import { computed, inject, markRaw, reactive, toRef, unref, useAttrs, useSlots } from "vue";
+import { computed, effectScope, inject, markRaw, reactive, toRef, unref, useAttrs, useSlots, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -46,65 +47,20 @@ const attrs = useAttrs();
  */
 const fieldSetContext = inject(FieldContextSymbol, null);
 const slots = useSlots();
-const relativeFieldName = computed(() =>
-    !fieldSetContext ? props.formModelName : props.formModelName.replace(`${fieldSetContext.state.name}__`, ""),
-);
-const fieldValuePath = computed(() => {
-    if (!fieldSetContext) {
-        return props.formModelName;
-    } else {
-        if (props.objectGridFieldSlotProps.rowIndex !== undefined) {
-            return `${fieldSetContext.state.name}[${props.objectGridFieldSlotProps.rowIndex}].${unref(relativeFieldName)}`;
-        } else if (props.fieldsetStackedInlineProps.index !== undefined) {
-            return `${fieldSetContext.state.name}[${props.fieldsetStackedInlineProps.index}].${unref(relativeFieldName)}`;
-        }
-    }
-    return `${fieldSetContext.state.name}.${unref(relativeFieldName)}`;
-});
-const fieldSlotName = computed(() => `field(${props.formModelName})`);
-const fieldDefaultSlotName = computed(() => `${unref(fieldSlotName)}default`);
-const widgetSlotName = computed(() => `widget(${props.formModelName})`);
-const widgetDefaultSlotName = computed(() => `${unref(widgetSlotName)}default`);
-const knownSlots = computed(() => [
-    unref(fieldSlotName),
-    unref(fieldDefaultSlotName),
-    unref(widgetSlotName),
-    unref(widgetDefaultSlotName),
-    "default",
-]);
-const remainingSlots = computed(() => Object.keys(slots).filter((slotName) => !unref(knownSlots).includes(slotName)));
-const fieldComponent = computed(() => markRaw(props.formModel.fieldComponents[props.formModelName]));
-const widgetComponent = computed(() =>
-    markRaw(props.formModel.widgetComponents[props.formModelName] ?? availableWidgets.WidgetUnmapped),
-);
-const fieldDetail = computed(() => props.formModel.fieldDetails[props.formModelName]);
-const fieldProps = computed(() => ({
-    ...omit(props.objectGridFieldSlotProps, ["value"]),
-    ...omit(props.formModel.fieldProps[props.formModelName], ["themeOverride"]),
-    ...omit(attrs, ["class"]),
-    name: unref(fieldValuePath),
-    formModelName: props.formModelName,
-    modelValue: props.objectGridFieldSlotProps?.value,
-    themeOverride: mergeTheme(props.formModel.fieldProps[props.formModelName]?.themeOverride, props.themeOverride),
-}));
-const computedHidden = computed(() => {
-    if (props.hidden !== undefined) {
-        return props.hidden;
-    }
-    return !!fieldSetContext;
-});
-const widgetProps = computed(() => ({
-    ...props.objectGridFieldSlotProps,
-    ...omit(props.formModel.widgetProps[props.formModelName], ["themeOverride"]),
-    ...omit(attrs, ["class"]),
-    hidden: computedHidden.value,
-    themeOverride: mergeTheme(
-        props.formModel.fieldProps[props.formModelName]?.themeOverride,
-        props.formModel.widgetProps[props.formModelName]?.themeOverride,
-        props.themeOverride,
-    ),
-}));
-const slotsForPassing = computed(() => unref(remainingSlots).map((slotName) => [slotName, slots[slotName]]));
+const {
+    fieldComponent,
+    widgetComponent,
+    fieldSlotName,
+    widgetSlotName,
+    fieldProps,
+    widgetProps,
+    fieldDetail,
+    slotsForPassing,
+    fieldValuePath,
+    fieldDefaultSlotName,
+    widgetDefaultSlotName,
+    remainingSlots,
+} = useFieldRenderer(props, attrs, slots, fieldSetContext);
 const themeProps = reactive({
     themeOverride: computed(() => mergeTheme(props.formModel.theme, props.themeOverride)),
 });
