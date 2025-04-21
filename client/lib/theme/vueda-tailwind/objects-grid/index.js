@@ -94,10 +94,10 @@ export default {
     },
     ObjectsGridCardCell: {
         header: {
-            class: ["align-middle", "text-material-black dark:text-white", "font-semibold", "select-none"],
+            class: ["self-baseline", "text-material-black dark:text-white", "font-semibold", "select-none"],
         },
         value: {
-            class: ["align-middle", "text-surface-800 dark:text-surface-200", "font-normal"],
+            class: ["self-baseline", "text-surface-800 dark:text-surface-200", "font-normal"],
         },
     },
     ObjectsGridBodyCell: {
