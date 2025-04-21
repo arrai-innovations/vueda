@@ -16,7 +16,7 @@ import { deepUnref } from "vue-deepunref";
 /**
  * Helper function to focus the first descendant element that can be focused.
  * @private
- * @param {HTMLElement} element - The starting place to look for descendants from.
+ * @param {HTMLElement|null} element - The starting place to look for descendants from.
  */
 const focusFirstTabbableElement = (element) => {
     if (!element) {
@@ -39,8 +39,8 @@ const focusFirstTabbableElement = (element) => {
  * Helper to return an empty object with initial values for each field.
  *
  * @private
- * @param {FieldSetInlineState} state - The reactive state.
- * @returns {object} An object with initial field values.
+ * @param {FieldSetInlineRawState} state - The reactive state.
+ * @returns {{[fieldName: string]: any}} An object with initial field values.
  */
 const emptyFieldObject = (state) => {
     const emptyObject = {};
@@ -120,7 +120,7 @@ export const FIELD_SET_INLINE_PROPS = {
 /**
  * Handles selection/deselection of a row.
  *
- * @param {FieldSetInlineState} state - The reactive state.
+ * @param {FieldSetInlineRawState} state - The reactive state.
  * @param {import('@vueda/use/useField.js').FieldContext} fieldSetContext - The field context.
  * @param {boolean} isSelected - True if the row is selected.
  * @param {number} rowIndex - The row index.
@@ -138,7 +138,26 @@ const handleSelected = (state, fieldSetContext, isSelected, rowIndex) => {
 };
 
 /**
- * @typedef {import('vue').UnwrapNestedRefs<FieldSetInlineRawState | FieldSetInlineRawComputedState>} FieldSetInlineState
+ * @typedef {object} FieldSetInlineRawState
+ * @property {number|null} focusIndex - The index of the focused item.
+ * @property {import('vue').Ref<boolean>} hidable - Whether the fieldset can be hidden.
+ * @property {import('vue').Ref<string>} hiddenByDefault - The default visibility of the fieldset.
+ * @property {import('vue').ComputedRef<boolean>} showCreateButton - Whether to show the create button.
+ * @property {boolean} internalVisible - The internal visibility state of the fieldset.
+ * @property {HTMLElement[]} itemRefs - The references to the items in the fieldset.
+ * @property {number[]} selected - The indices of the selected items.
+ * @property {boolean} userHasToggled - Whether the user has toggled the visibility of the fieldset.
+ * @property {import('vue').Ref<boolean|undefined>} visible - The visibility state of the fieldset.
+ * @property {import('vue').ComputedRef<object[]>} actions - The field objects that are actions.
+ * @property {import('vue').ComputedRef<string[]>} fieldNames - The field names to display for each object.
+ * @property {import('vue').ComputedRef<FieldSetInlineFieldObject[]>} fieldObjects - The field objects to display.
+ * @property {import('vue').ComputedRef<boolean>} isVisibleByDefault - Whether the fieldset is visible by default.
+ * @property {import('vue').ComputedRef<string[]>} remainingSlotNames - The slot names that have not been resolved.
+ * @property {import('@vueuse/core').Ref<boolean>} greaterOrEqualHiddenBreakpoint - Whether the fieldset is at or above the hiddenByDefault breakpoint.
+ */
+
+/**
+ * @typedef {import('vue').UnwrapNestedRefs<FieldSetInlineRawState>} FieldSetInlineState
  */
 
 /**
@@ -173,6 +192,7 @@ const doCreate = (state, fieldSetContext, _e, defaultValues) => {
 /**
  * @callback BoundRemoveObject
  * @param {number} index - The index of the object to remove.
+ * @returns {void}
  */
 /**
  * Removes an object from the fieldset.
@@ -193,7 +213,7 @@ const removeObject = (fieldSetContext, index) => {
 /**
  * Toggles the visibility of the fieldset.
  *
- * @param {FieldSetInlineState} state - The reactive state.
+ * @param {FieldSetInlineRawState} state - The reactive state.
  * @param {import('vue').EmitFn} emit - The emit function.
  */
 const toggleVisibility = (state, emit) => {
@@ -212,7 +232,7 @@ const toggleVisibility = (state, emit) => {
 /**
  * Adds an element reference to the state's itemRefs array.
  *
- * @param {FieldSetInlineState} state - The reactive state.
+ * @param {FieldSetInlineRawState} state - The reactive state.
  * @param {HTMLElement} el - The element reference.
  */
 const refFn = (state, el) => {
@@ -220,11 +240,18 @@ const refFn = (state, el) => {
 };
 
 /**
+ * @typedef {import('@vueda/stores/storeModelInfo.js').FieldInfo} FieldSetInlineFieldObject
+ * @property {string} fieldName - The short name of the field, relative to the fieldset.
+ * @property {string} name - The full name of the field, including the fieldset name.
+ */
+
+/**
  * @typedef {
- *   import('@vueda/use/useField.js').FieldContextRawProps | import('@vueda/use/useTheme.js').ThemeRawProps |
+ *   import('@vueda/use/useField.js').FieldContextRawProps &
+ *   import('@vueda/use/useTheme.js').ThemeRawProps &
  *   import('@vueda/use/useFormModel.js').UseFormModelRawOverridableProps
  * } FieldSetInlineRawProps
- * @property {FieldSetInlineFieldObject[]} [fieldObjects] - A list of field / action configuration objects.
+ * @property {import('@vueda/stores/storeModelInfo.js').FieldInfo[]} [fieldObjects] - A list of field / action configuration objects.
  * @property {boolean} [visible] - Whether the fieldset is visible.
  * @property {boolean} [hidable] - Whether the fieldset can be hidden.
  * @property {string} [hiddenByDefault] - Should the fieldset be hidden by default? Can be 'always', 'never', or a VUEDA breakpoint threshold, at or above the fieldset is shown by default.
@@ -245,10 +272,10 @@ const refFn = (state, el) => {
 
 /**
  * @typedef {object} FieldSetInlineInstance
- * @property {FieldSetInlineState} state - The reactive state of the FieldSetInline.
+ * @property {import('vue').Readonly<FieldSetInlineState>} state - The reactive state of the FieldSetInline.
  * @property {import('@vueuse/core').Breakpoints} breakpoints - The breakpoints object.
  * @property {import('@vueda/use/useFormModel.js').UseFormModelState} formModel - The form model's reactive state.
- * @property {{[slotName: string]: import('@vueda/use/useSlotNameResolver.js').ResolvedSlotName}} - The resolved slot
+ * @property {{[slotName: string]: import('@vueda/use/useSlotNameResolver.js').ResolvedSlotName}} resolvedSlotNames - The resolved slot
  *  name instances by original slot name.
  * @property {BoundDoCreate} doCreate - The method to create a new object in the fieldset.
  * @property {BoundHandleSelected} handleSelected - The method to handle selected items.
@@ -300,80 +327,88 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
     });
     const formModel = useFormModel(mergedFormModelProps);
 
-    const state = reactive({
-        focusIndex: null,
-        hidable: toRef(props, "hidable"),
-        hiddenByDefault: toRef(props, "hiddenByDefault"),
-        showCreateButton: computed(() => props.showCreateButton && !props.readOnly),
-        internalVisible: true,
-        itemRefs: [],
-        selected: [],
-        userHasToggled: false,
-        visible: toRef(props, "visible"),
-        actions: computed(() => {
-            return [...state.fieldObjects].filter((field) => field.action);
-        }),
-        fieldNames: computed(() => {
-            if (props.fields) {
-                return props.fields;
-            }
-            const prefix = `${fieldSetContext.state.formModelName}__`;
-            const hidden = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.hidden || [];
-
-            const reduced = deepUnref(formModel.fields).reduce((acc, fullFieldName) => {
-                if (fullFieldName?.startsWith?.(prefix)) {
-                    const field = fullFieldName.slice(prefix.length);
-                    if (!hidden.includes(field)) {
-                        acc.push(field);
-                    }
+    /** @type {FieldSetInlineState} */
+    const state = reactive(
+        /** @type {FieldSetInlineRawState} */
+        {
+            focusIndex: null,
+            hidable: toRef(props, "hidable"),
+            hiddenByDefault: toRef(props, "hiddenByDefault"),
+            showCreateButton: computed(() => props.showCreateButton && !props.readOnly),
+            internalVisible: true,
+            itemRefs: [],
+            selected: [],
+            userHasToggled: false,
+            visible: toRef(props, "visible"),
+            actions: computed(() => {
+                return [...state.fieldObjects].filter((field) => field.action);
+            }),
+            fieldNames: computed(() => {
+                if (props.fields) {
+                    return props.fields;
                 }
-                return acc;
-            }, []);
+                const prefix = `${fieldSetContext.state.formModelName}__`;
+                const hidden = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.hidden || [];
 
-            if (reduced.length) {
-                return reduced;
-            }
+                // noinspection JSValidateTypes,JSCheckFunctionSignatures
+                /** @type {string[]} */
+                const unwrappedFields = deepUnref(formModel.fields);
 
-            const fields = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.f;
-            const omitFields = formModel?.expandDetails?.[fieldSetContext.state.formModelName].hidden;
-            return fields ? Object.keys(omit(fields, omitFields)) : [];
-        }),
-        fieldObjects: computed(() => {
-            if (props.fieldObjects) {
-                return props.fieldObjects;
-            }
-            const fields = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.f;
-            return fields
-                ? state.fieldNames?.map((name) => {
-                      return {
-                          fieldName: name,
-                          name: `${fieldSetContext.state.formModelName}__${name}`,
-                          ...fields[name],
-                      };
-                  })
-                : [];
-        }),
-        isVisibleByDefault: computed(() => {
-            if (state.hiddenByDefault === "always") {
-                return false;
-            } else if (state.hiddenByDefault === "never") {
+                const reduced = unwrappedFields.reduce((acc, fullFieldName) => {
+                    if (fullFieldName?.startsWith?.(prefix)) {
+                        const field = fullFieldName.slice(prefix.length);
+                        if (!hidden.includes(field)) {
+                            acc.push(field);
+                        }
+                    }
+                    return acc;
+                }, []);
+
+                if (reduced.length) {
+                    return reduced;
+                }
+
+                const fields = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.f;
+                const omitFields = formModel?.expandDetails?.[fieldSetContext.state.formModelName].hidden;
+                return fields ? Object.keys(omit(fields, omitFields)) : [];
+            }),
+            fieldObjects: computed(() => {
+                if (props.fieldObjects) {
+                    return props.fieldObjects;
+                }
+                const fields = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.f;
+                return fields
+                    ? state.fieldNames?.map((name) => {
+                          return {
+                              fieldName: name,
+                              name: `${fieldSetContext.state.formModelName}__${name}`,
+                              ...fields[name],
+                          };
+                      })
+                    : [];
+            }),
+            isVisibleByDefault: computed(() => {
+                if (state.hiddenByDefault === "always") {
+                    return false;
+                } else if (state.hiddenByDefault === "never") {
+                    return true;
+                } else if (Object.keys(breakpointsVueda).includes(state.hiddenByDefault)) {
+                    return state.greaterOrEqualHiddenBreakpoint;
+                }
                 return true;
-            } else if (Object.keys(breakpointsVueda).includes(state.hiddenByDefault)) {
-                return state.greaterOrEqualHiddenBreakpoint;
-            }
-            return true;
-        }),
-        remainingSlotNames: computed(() => {
-            const slotNames = Object.keys(slots);
-            const knownSlotNames = [
-                "default",
-                `field(${fieldSetContext.state.formModelName})item-action-bar`,
-                ...slotNames.flatMap((name) => unref(resolvedSlotNames?.[name]?.possibleNames)),
-                ...getFormChoresSlotNames(fieldSetContext.state.formModelName),
-            ];
-            return slotNames.filter((slotName) => !knownSlotNames.includes(slotName));
-        }),
-    });
+            }),
+            remainingSlotNames: computed(() => {
+                const slotNames = Object.keys(slots);
+                const knownSlotNames = [
+                    "default",
+                    `field(${fieldSetContext.state.formModelName})item-action-bar`,
+                    ...slotNames.flatMap((name) => unref(resolvedSlotNames?.[name]?.possibleNames)),
+                    ...getFormChoresSlotNames(fieldSetContext.state.formModelName),
+                ];
+                return slotNames.filter((slotName) => !knownSlotNames.includes(slotName));
+            }),
+        },
+    );
     state.greaterOrEqualHiddenBreakpoint = breakpoints.greaterOrEqual(toRef(state, "hiddenByDefault"));
 
     watch(
