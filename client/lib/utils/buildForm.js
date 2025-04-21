@@ -201,18 +201,33 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
                     themeOverride: fieldLevelThemeOverride,
                     name: key,
-                    readOnly: computedFields.includes(fieldName) || props.view === "read",
+                    readOnly: getIsReadOnly(fieldName),
                 };
             });
         });
         return componentProps;
     }
 
+    function getIsReadOnly(fieldName) {
+        const readOnlyProp = props.fieldProps?.[fieldName]?.readOnly;
+        const modelConfigReadOnly = modelConfig.config?.fieldProps?.[fieldName]?.readOnly;
+
+        const hasExplicitFalseOverride = readOnlyProp === false || modelConfigReadOnly === false;
+
+        const rv =
+            !hasExplicitFalseOverride &&
+            (props.view === "read" ||
+                computedFields.includes(fieldName) ||
+                readOnlyProp === true ||
+                modelConfigReadOnly === true);
+        return rv;
+    }
+
     function setWidgetComponent(key, detailObject, baseExpanded = false, fieldName = key) {
         let widget = undefined;
         es.run(() => {
             widget = computed(() => {
-                if (computedFields.includes(fieldName) || props.view === "read") {
+                if (getIsReadOnly(fieldName)) {
                     return availableWidgets.WidgetReadOnly;
                 }
                 if (baseExpanded) {
@@ -266,6 +281,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     baseProps.options = detailObject.choices;
                 }
                 baseProps.themeOverride = fieldLevelThemeOverride;
+                baseProps.readOnly = getIsReadOnly(fieldName);
                 return baseProps;
             });
         });
