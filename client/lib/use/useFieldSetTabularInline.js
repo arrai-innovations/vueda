@@ -4,44 +4,13 @@ import { useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
 import merge from "lodash-es/merge.js";
-import { computed, reactive, readonly, toRef } from "vue";
+import { computed, effectScope, reactive, readonly, toRef, toRefs, watch } from "vue";
+import { keyDiff } from "@arrai-innovations/reactive-helpers";
+import { useFieldSetTabularHeaderProps } from "@vueda/use/useFieldSetTabularHeaderProps.js";
 
-export const FIELD_SET_TABULAR_INLINE_PROPS = { ...FIELD_SET_INLINE_PROPS };
+export const FIELD_SET_TABULAR_INLINE_PROPS = {...FIELD_SET_INLINE_PROPS};
 
 export const FIELD_SET_TABULAR_INLINE_EMITS = [...FIELD_EMITS];
-
-/**
- * @typedef {object} FieldSetTabularInlineRawState
- * @property {number} focusIndex=null - The index of the focused item.
- * @property {boolean} hidable=true - Whether the fieldset can be hidden.
- * @property {string} [hiddenByDefault] - Should the fieldset be hidden by default? Can be 'always', 'never', or a
- *  VUEDA breakpoint threshold, at or above the fieldset is shown by default.
- * @property {boolean} internalVisible - Whether the fieldset is visible, including the default visibility and user
- *  toggling.
- * @property {boolean} isTable=true - Whether the fieldset is displayed as a table.
- * @property {HTMLElement[]} itemRefs=[] - The references to the items in the fieldset. Used for focusing / scrolling.
- * @property {number[]} selected=[] - The indices of the selected items.
- * @property {boolean} showCreateButton=true - Whether to show the create button.
- * @property {boolean} userHasToggled=false - Whether the user has toggled the visibility.
- * @property {boolean} [visible] - Whether the fieldset is visible. If undefined, the fieldset is controlled by the
- *  user.
- */
-
-/**
- * @typedef {object} FieldSetTabularInlineRawComputedState
- * @property {import('vue').ComputedRef<string[]>} actions - The field objects that are actions.
- * @property {import('vue').ComputedRef<object[]>} computedFieldObjects - The computed field objects, excluding actions,
- *  but including the item-action-bar.
- * @property {import('vue').ComputedRef<object>} computedFieldProps - The computed field props, including the form
- *  model's field props.
- * @property {import('vue').ComputedRef<string[]>} fieldNames - The field names to display. If not provided in fields
- *  prop, it is derived from the form model.
- * @property {import('vue').ComputedRef<object[]>} fieldObjects - The field objects to display. If not provided in
- *  fieldObjects prop, it is derived from the form model.
- * @property {import('vue').ComputedRef<boolean>} isVisibleByDefault - Whether the fieldset is visible by default.
- * @property {import('vue').ComputedRef<string[]>} remainingSlotNames - The slot names that have not been resolved. Used
- *  for passing unhandled slots to child components.
- */
 
 /**
  * @callback BoundHandleIsTableUpdate
@@ -58,20 +27,17 @@ const handleIsTableUpdate = (state, newValue) => {
 };
 
 /**
- * @typedef {object} FieldSetTabularInlineFieldObject
- * todo: document properties
+ * @typedef {object} FieldSetTabularInlineMyRawProps
+ * @property {object} fieldProps - The field props to be passed to the field objects.
  */
 
 /**
  * @typedef {
- *   import('@vueda/use/useField.js').FieldContextRawProps | import('@vueda/use/useTheme.js').ThemeRawProps |
- *   import('@vueda/use/useFormModel.js').UseFormModelRawOverridableProps
+ *   import('@vueda/use/useField.js').FieldContextRawProps &
+ *   import('@vueda/use/useTheme.js').ThemeRawProps &
+ *   import('@vueda/use/useFormModel.js').UseFormModelRawOverridableProps &
+ *   FieldSetTabularInlineMyRawProps
  * } FieldSetTabularInlineRawProps
- * @property {FieldSetTabularInlineFieldObject[]} [fieldObjects] - A list of field / action configuration objects.
- * @property {boolean} [visible] - Whether the fieldset is visible.
- * @property {boolean} [hidable] - Whether the fieldset can be hidden.
- * @property {string} [hiddenByDefault] - Should the fieldset be hidden by default? Can be 'always', 'never', or a VUEDA breakpoint threshold, at or above the fieldset is shown by default.
- * @property {boolean} [showCreateButton] - Whether to show the create button.
  */
 
 /**
@@ -86,12 +52,29 @@ const handleIsTableUpdate = (state, newValue) => {
  */
 
 /**
- * @typedef {import('vue').UnwrapNestedRefs<FieldSetTabularInlineRawState>} FieldSetTabularInlineState
+ * @typedef {object} FieldSetTabularInlineRawState
+ * @property {boolean} isTable=true - Whether the fieldset is displayed as a table.
+ * @property {import('vue').ComputedRef<object[]>} computedFieldObjects - The displayable field objects, excluding actions.
+ *  If any actions exist, includes a synthetic 'item-action-bar' field first.
+ * @property {import('vue').ComputedRef<object>} computedFieldProps - The computed field props, including the form
+ *  model's field props.
+ * @property {{ widgetContext: import('@vueda/use/useWidget.js').WidgetContext, props: import('vue').UnwrapNestedRefs<object> }[]} widgetContextItems - The widget
+ *  contexts registered from within the fieldset.
+ */
+
+// @property {import('@vueda/use/useWidget.js').WidgetContext[]} widgetContexts - The widget contexts registered from
+//  within the fieldset.
+
+/**
+ * @typedef {import('vue').UnwrapNestedRefs<
+ *     import('@vueda/use/useFieldSetInline.js').FieldSetInlineRawState &
+ *     FieldSetTabularInlineRawState
+ * >} FieldSetTabularInlineState
  */
 
 /**
- * @typedef {object} FieldSetTabularInlineInstance
- * @property {FieldSetTabularInlineState} state - The reactive state of the FieldSetTabularInline.
+ * @typedef {object} FieldSetTabularInlineContext
+ * @property {import('vue').Readonly<FieldSetTabularInlineState>} state - The reactive state of the FieldSetTabularInline.
  * @property {import('@vueuse/core').Breakpoints} breakpoints - The breakpoints object.
  * @property {import('@vueda/use/useField.js').FieldContext} fieldSetContext - The field context object.
  * @property {import('@vueda/use/useFormModel.js').UseFormModelState} formModel - The form model's reactive state.
@@ -110,21 +93,19 @@ const handleIsTableUpdate = (state, newValue) => {
  * Composable for handling tabular inline fieldset logic.
  *
  * @param {FieldSetTabularInlineOptions} options - Options containing props, emit, and slotNames.
- * @returns {FieldSetTabularInlineInstance} An object containing reactive state, computed properties, and methods
+ * @returns {FieldSetTabularInlineContext} An object containing reactive state, computed properties, and methods
  * to manage the tabular inline fieldset.
  */
-export function useFieldSetTabularInline({ props, emit, slotNames }) {
+export function useFieldSetTabularInline({props, emit, slotNames}) {
     const theme = useTheme("FieldSetTabularInline", props);
     const fieldSetContext = useField(props, emit);
     const breakpoints = useBreakpoints(breakpointsVueda);
-    const fieldSetInline = useFieldSetInline({ props, emit, slotNames, fieldSetContext });
+    const fieldSetInline = useFieldSetInline({props, emit, slotNames, fieldSetContext});
+    const baseState = toRefs(fieldSetInline.state);
+    /** @type {FieldSetTabularInlineState} */
     const state = reactive({
-        hidable: fieldSetInline.state.hidable,
-        internalVisible: toRef(fieldSetInline.state, "internalVisible"),
+        ...baseState,
         isTable: true,
-        selected: toRef(fieldSetInline.state, "selected"),
-        showCreateButton: toRef(fieldSetInline.state, "showCreateButton"),
-        actions: toRef(fieldSetInline.state, "actions"),
         computedFieldObjects: computed(() => {
             const objects = [];
             if (state.actions.length) {
@@ -139,8 +120,6 @@ export function useFieldSetTabularInline({ props, emit, slotNames }) {
         computedFieldProps: computed(() =>
             merge(fieldSetInline.formModel.fieldProps[fieldSetContext.state.formModelName], props.fieldProps),
         ),
-        fieldObjects: toRef(fieldSetInline.state, "fieldObjects"),
-        remainingSlotNames: toRef(fieldSetInline.state, "remainingSlotNames"),
     });
 
     return {
