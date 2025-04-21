@@ -1,0 +1,54 @@
+<script setup>
+import { useFieldSetTabularHeaderProps } from "@vueda/use/useFieldSetTabularHeaderProps.js";
+import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { FormContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
+import WidgetLabel from "@vueda/widgets/WidgetLabel.vue";
+import { WIDGET_LABEL_PROPS } from "@vueda/widgets/WidgetLabel.vue";
+import pick from "lodash-es/pick.js";
+import { computed, inject, provide, reactive, toRef, toRefs, useAttrs } from "vue";
+
+defineOptions({
+    inheritAttrs: false,
+});
+const props = defineProps({
+    ...WIDGET_PROPS,
+    ...WIDGET_LABEL_PROPS,
+    fieldSetTabularInline: {
+        type: Object,
+        default: () => ({}),
+    },
+    fieldValuePath: {
+        type: String,
+        required: true,
+    },
+});
+
+const emit = defineEmits([...WIDGET_EMITS]);
+const attrs = useAttrs();
+const formContext = inject(FormContextSymbol);
+const fieldSetTabularHeaderProps = useFieldSetTabularHeaderProps(
+    props.fieldSetTabularInline.formModel,
+    formContext,
+    computed(() => attrs.field.name),
+    toRef(props, "fieldValuePath"),
+);
+const widgetProps = reactive({
+    ...pick(toRefs(props), Object.keys(WIDGET_PROPS)),
+    label: fieldSetTabularHeaderProps.label,
+    help: fieldSetTabularHeaderProps.help,
+    required: fieldSetTabularHeaderProps.required,
+    invalid: fieldSetTabularHeaderProps.invalid,
+    readOnly: fieldSetTabularHeaderProps.readOnly,
+    contextless: true,
+    name: toRef(props, "fieldValuePath"),
+});
+const widgetContext = useWidget(widgetProps, emit);
+provide(WidgetContextSymbol, widgetContext);
+const propsToPass = {
+    ...pick(props, Object.keys(WIDGET_LABEL_PROPS)),
+};
+</script>
+
+<template>
+    <WidgetLabel v-bind="propsToPass" />
+</template>

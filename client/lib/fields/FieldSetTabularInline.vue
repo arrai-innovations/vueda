@@ -3,6 +3,7 @@ import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
+import WidgetLabelContextByProps from "@vueda/components/WidgetLabelContextByProps.vue";
 import {
     FIELD_SET_TABULAR_INLINE_EMITS,
     FIELD_SET_TABULAR_INLINE_PROPS,
@@ -18,7 +19,6 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps(FIELD_SET_TABULAR_INLINE_PROPS);
-
 const emit = defineEmits([...FIELD_SET_TABULAR_INLINE_EMITS]);
 const fieldSetTabularInline = useFieldSetTabularInline({
     props,
@@ -130,7 +130,16 @@ const fieldSetTabularInline = useFieldSetTabularInline({
                     :key="fieldObj.name"
                     #[`header(${fieldObj.name})`]="headerSlotProps"
                 >
-                    <slot :name="`header(${fieldObj.name})`" v-bind="headerSlotProps"></slot>
+                    <slot :name="`header(${fieldObj.name})`" v-bind="headerSlotProps">
+                        <div :class="headerSlotProps.class" :data-card-header="headerSlotProps['data-card-header']">
+                            <widget-label-context-by-props
+                                :field-set-tabular-inline="fieldSetTabularInline"
+                                :field-value-path="`${fieldSetTabularInline.fieldSetContext.state.name}[${headerSlotProps.rowIndex || '0'}].${headerSlotProps.field.fieldName}`"
+                                :row-index="headerSlotProps.rowIndex"
+                                v-bind="headerSlotProps"
+                            />
+                        </div>
+                    </slot>
                 </template>
                 <template #[`field(item-action-bar)`]="objectGridFieldSlotProps">
                     <slot name="item-action-bar">
