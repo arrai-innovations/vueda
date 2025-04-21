@@ -8,30 +8,29 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-  - [About](#about)
-  - [Install](#install)
-  - [Usage](#usage)
-    - [JSDocs](#jsdocs)
-    - [Forms](#forms)
-    - [CRUD Operation Views](#crud-operation-views)
-    - [Dynamic Routing](#dynamic-routing)
-    - [Authentication](#authentication)
-    - [Navigation](#navigation)
-    - [Permissions](#permissions)
-    - [Theming](#theming)
-    - [Customization](#customization)
-  - [Development](#development)
-    - [Environment](#environment)
-    - [Running Locally](#running-locally)
-- [todo: test these instructions when the examples exist](#todo-test-these-instructions-when-the-examples-exist)
-    - [Testing](#testing)
-      - [Running Tests](#running-tests)
-      - [Writing Tests](#writing-tests)
-      - [Coverage](#coverage)
-    - [Reporting Bugs](#reporting-bugs)
-    - [Getting my changes into the main branch](#getting-my-changes-into-the-main-branch)
-    - [Making a Release](#making-a-release)
-    - [Changelog](#changelog)
+- [About](#about)
+- [Install](#install)
+- [Usage](#usage)
+  - [JSDocs](#jsdocs)
+  - [Forms](#forms)
+  - [CRUD Operation Views](#crud-operation-views)
+  - [Dynamic Routing](#dynamic-routing)
+  - [Authentication](#authentication)
+  - [Navigation](#navigation)
+  - [Permissions](#permissions)
+  - [Theming](#theming)
+  - [Customization](#customization)
+- [Development](#development)
+  - [Environment](#environment)
+  - [Running Locally](#running-locally)
+  - [Testing](#testing)
+    - [Running Tests](#running-tests)
+    - [Writing Tests](#writing-tests)
+    - [Coverage](#coverage)
+  - [Reporting Bugs](#reporting-bugs)
+  - [Getting my changes into the main branch](#getting-my-changes-into-the-main-branch)
+  - [Making a Release](#making-a-release)
+  - [Changelog](#changelog)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 <!-- prettier-ignore-end -->
@@ -129,7 +128,7 @@ As a library, `vueda-client` is not intended to be run as a standalone applicati
 It is designed to be integrated into a Vue.js project, where it will be served by the Django backend.
 However, you can use the example server & client to run the library locally.
 
-# todo: test these instructions when the examples exist
+<!-- todo: test these instructions when the examples exist -->
 
 1. Clone `vueda-example-client`:
     ```console
