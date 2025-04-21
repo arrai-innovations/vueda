@@ -31,6 +31,7 @@
     - [Reporting Bugs](#reporting-bugs)
     - [Getting my changes into the main branch](#getting-my-changes-into-the-main-branch)
     - [Making a Release](#making-a-release)
+    - [Changelog](#changelog)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 <!-- prettier-ignore-end -->
@@ -208,6 +209,10 @@ If you want your changes OK'd before making a pull request, you can create an is
     $ git push --tags
     ```
 6. The circleci will publish a new version to NPM and create a release on GitHub.
+
+### Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for a complete list of changes by version.
 
 [prettier]: https://github.com/prettier/prettier
 [code style: prettier]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=for-the-badge
