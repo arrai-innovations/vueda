@@ -2,7 +2,7 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { useObjectGridCell } from "@vueda/use/useObjectGridCell.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed, reactive } from "vue";
+import { computed, reactive, toRef } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -63,18 +63,21 @@ const uniqueKeyForSlot = computed(() =>
         ? `${props.field.name}-${props.obj?.[props.pkKey]}`
         : `col-${props.columnIndex}-row-${props.rowIndex}`,
 );
+const effectiveHeaderClass = combineClasses(theme("header"), toRef(props, "headerClass"));
 </script>
 <template>
     <slot
         :key="uniqueKeyForSlot"
-        :class="theme('header')"
+        :class="effectiveHeaderClass"
+        :row-index="rowIndex"
         :column-index="columnIndex"
         :field="field"
         gird-type="cell"
         :is-card-layout="true"
+        :data-card-header="field.name"
         name="header"
     >
-        <div :class="combineClasses(theme('header'), headerClass)" :data-card-header="field.name">
+        <div :class="effectiveHeaderClass" :data-card-header="field.name">
             {{ field.label }}
         </div>
     </slot>
