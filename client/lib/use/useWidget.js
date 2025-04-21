@@ -18,6 +18,10 @@ export const WIDGET_PROPS = {
         type: String,
         default: undefined,
     },
+    readOnly: {
+        type: Boolean,
+        default: false,
+    },
 
     // *** Validation ***
     required: {
@@ -28,6 +32,14 @@ export const WIDGET_PROPS = {
     // *** Value Handling ***
     modelValue: {
         type: [String, Number, Boolean, Array, Object],
+        default: undefined,
+    },
+    invalid: {
+        type: Boolean,
+        default: undefined,
+    },
+    warning: {
+        type: Boolean,
         default: undefined,
     },
 
@@ -65,6 +77,8 @@ export const WIDGET_EMITS = ["update:modelValue"];
  *
  * // *** Validation ***
  * @property {boolean} [required] - Whether the widget is required. Inherits from field context if undefined.
+ * @property {boolean} [invalid] - Whether the widget is invalid, when not in a field context.
+ * @property {boolean} [warning] - Whether the widget is in a warning state, when not in a field context.
  *
  * // *** Value Handling ***
  * @property {any} [modelValue] - The widget’s bound value (v-model).
@@ -96,6 +110,7 @@ export const WIDGET_EMITS = ["update:modelValue"];
  * // *** Display ***
  * @property {import('vue').ComputedRef<string>} combinedLabel - The effective label of the widget.
  * @property {import('vue').ComputedRef<string>} help - The help text, from props or field context.
+ * @property {import('vue').ComputedRef<boolean>} readOnly - Whether the widget is read-only.
  *
  * // *** Validation ***
  * @property {import('vue').ComputedRef<boolean>} required - Whether the widget is required.
@@ -152,8 +167,6 @@ export function useWidget(props, emit) {
         localValue: null,
         focused: false,
         touched: false,
-        errors: {},
-        messages: {},
     });
 
     // allow local field context to be directly set for testing
@@ -223,6 +236,13 @@ export function useWidget(props, emit) {
             }
             return props.help || "";
         }),
+        readOnly: computed(() => {
+            const fc = unref(fieldContext);
+            if (fc) {
+                return fc.state.readOnly;
+            }
+            return !!props.readOnly;
+        }),
 
         // *** Validation ***
         required: computed(() => {
@@ -243,8 +263,8 @@ export function useWidget(props, emit) {
                 };
             }
             return {
-                invalid: false,
-                warning: false,
+                invalid: !!props.invalid,
+                warning: !!props.warning,
             };
         }),
 

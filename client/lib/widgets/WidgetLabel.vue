@@ -24,6 +24,14 @@ export const WIDGET_LABEL_PROPS = {
         type: Boolean,
         default: false,
     },
+    labelTag: {
+        type: String,
+        default: "label",
+    },
+    requiredTag: {
+        type: String,
+        default: "span",
+    },
 };
 </script>
 <script setup>
@@ -50,14 +58,6 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
-    labelTag: {
-        type: String,
-        default: "label",
-    },
-    requiredTag: {
-        type: String,
-        default: "span",
-    },
 });
 
 /** @type {import('@vueda/use/useWidget.js').WidgetContext} */
@@ -78,9 +78,10 @@ const availableFeedbackSlotNames = getFormHiddenFeedbackSlotsComputed(slots);
         <component :is="$props.labelTag" :id="id" :class="theme('label')" v-bind="$attrs" :for="$props.for">
             <component
                 :is="$props.requiredTag"
-                v-if="widgetContext.required"
+                v-if="widgetContext.state.required && !hidden && !widgetContext.state.readOnly"
                 :class="theme('required')"
                 aria-hidden="true"
+                title="Required"
             >
                 <slot :class="theme('required')" name="required" aria-hidden="true" title="Required"> * </slot>
             </component>
