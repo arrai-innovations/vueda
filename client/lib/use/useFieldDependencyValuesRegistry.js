@@ -111,8 +111,11 @@ export function useFieldDependencyValuesRegistry(formValues) {
         decrementRefCount(absPath);
         unsetDependencyValue(fieldRegistryId, dependencyPath);
         if (valueRefCountByAbsPath[absPath] <= 0) {
-            valueComputedStopsByAbsPath[absPath].stop();
-            delete valueComputedStopsByAbsPath[absPath];
+            const stop = valueComputedStopsByAbsPath[absPath];
+            if (stop) {
+                stop.stop();
+                delete valueComputedStopsByAbsPath[absPath];
+            }
             delete valueRefCountByAbsPath[absPath];
         }
         delete valueRegistryRelToAbsPathPerFieldRegistryId[fieldRegistryId][absPath];
@@ -183,7 +186,7 @@ export function useFieldDependencyValuesRegistry(formValues) {
             delete fieldWatchStops[id];
             delete fieldRegistryRefs[id];
 
-            for (const path of Object.keys(valueRegistryRelToAbsPathPerFieldRegistryId[id])) {
+            for (const path of Object.keys(valueRegistryRelToAbsPathPerFieldRegistryId[id] || {})) {
                 unregisterValue(id, path);
             }
         }
