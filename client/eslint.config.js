@@ -1,6 +1,6 @@
 import js from "@eslint/js";
+import vitest from "@vitest/eslint-plugin";
 import eslintConfigPrettier from "eslint-config-prettier";
-import vitest from "eslint-plugin-vitest";
 import pluginVue from "eslint-plugin-vue";
 import globals from "globals";
 

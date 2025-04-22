@@ -54,7 +54,6 @@
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-no-autofix": "^2.1.0",
     "eslint-plugin-promise": "^7.2.1",
-    "eslint-plugin-vitest-globals": "^1.5.0",
     "eslint-plugin-vue": "^10.0.0",
     "flush-promises": "^1.0.2",
     "glob-promise": "^6.0.5",
