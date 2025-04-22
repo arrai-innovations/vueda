@@ -2,6 +2,46 @@
 
 _Actions potentially required by implementers are marked with italics._
 
+## v2.0.0-alpha.3 (2025-04-xx)
+
+### TL;DR
+
+### Breaking Changes
+
+- **Peer Dependency Update**:
+    - Bumped `@arrai-innovations/reactive-helpers` to `^18.1.0` to use shared `cancellableFetch`.
+    - _Ensure your project updates its peer dependency to match._
+
+### Features
+
+### Fixes
+
+#### Object CRUD Utilities
+
+- **Consistent Cancellable Fetches**:
+    - Replaced inline `fetch` + `AbortController` logic in `objectCrud` with the standardized `cancellableFetch` utility from `@arrai-innovations/reactive-helpers`.
+    - Ensures compatibility with other `CancellablePromise`-based async flows and improves maintainability.
+    - _Requires reactive-helpers v18.1.0 or higher._
+
+#### Object Lookup Batching
+
+- **Resolved Debounced Race Conditions** (`useLookupContext`):
+    - Fixed race condition in batched foreign key lookups by:
+        - Cloning and clearing `requestsMap` immediately to avoid overlap.
+        - Deferring `.cancel()` assignment until after manager acquisition.
+        - Ensuring all `inflightPromises` and `consumerPromises` are cleaned up reliably.
+    - Prevented mutation of shared lookup state during overlapping debounce executions.
+    - Improved internal tracing and error reporting for consumer rejection paths.
+
+#### Lookup Lifecycle Management
+
+- **Safe Teardown of Inflight Requests** (`useResolvedLookupObject`):
+    - Ensures cancellation of inflight lookups when component scope is disposed.
+    - Prevents resolution of stale promises after unmount.
+    - Added internal guard against race conditions between cancellation and re-resolution.
+
+### Developer Recommendations
+
 ## v2.0.0-alpha.2 (2025-04-21)
 
 ### TL;DR
