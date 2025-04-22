@@ -1,4 +1,4 @@
-import { setListCrud } from "@arrai-innovations/reactive-helpers";
+import { CancellablePromise, cancellableFetch, setListCrud } from "@arrai-innovations/reactive-helpers";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
@@ -55,40 +55,33 @@ export const makeSearchParamsString = (searchParams) => {
  *         perPage: number,
  *     }
  * ) => void} - The callback function to call with the page data.
- * @returns {Promise<void> & { cancel: () => Promise<void> }} A cancellable promise.
+ * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<void>} A cancellable promise.
  */
 export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallback }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, pk, action } = crudArgs;
     const query = makeSearchParamsString(listArgs);
-    const controller = new AbortController();
     const url = pk ? getDetailUrl({ app, model, pk, action, query }) : getListUrl({ app, model, action, query });
 
-    const returnPromise = fetch(url, {
-        method: "GET",
-        credentials: "include",
-        signal: controller.signal,
-    }).then(async (response) => {
-        const responseData = await getJsonOrText(response);
-        if (!isObject(responseData)) {
-            throw new FetchError("Failed to fetch page list", response, responseData);
-        }
-        if (response.status === 200) {
-            return pageCallback(responseData[crudArgs.resultsKey], {
+    return cancellableFetch(
+        url,
+        {
+            method: "GET",
+            credentials: "include",
+        },
+        async (response) => {
+            const responseData = await getJsonOrText(response);
+            if (!isObject(responseData) || response.status !== 200) {
+                throw new FetchError("Failed to fetch page list", response, responseData);
+            }
+
+            pageCallback(responseData[crudArgs.resultsKey], {
                 totalRecords: responseData.totalRecords,
                 totalPages: responseData.totalPages,
                 perPage: responseData.perPage,
             });
-        }
-        throw new FetchError("Failed to fetch page list", response, responseData);
-    });
-
-    returnPromise.cancel = async () => {
-        controller.abort();
-        await returnPromise.catch(() => {});
-    };
-
-    return returnPromise;
+        },
+    );
 }
 
 /**
@@ -110,7 +103,7 @@ export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCal
  *         perPage: number,
  *     }
  * ) => void} - The callback function to call with the page data.
- * @returns {Promise<void> & { cancel: () => Promise<void> }} - A cancellable promise.
+ * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<void>} - A cancellable promise.
  */
 export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallback }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the requests. ###
@@ -122,6 +115,7 @@ export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallba
     const limit = pLimit(4);
     const responses = [];
 
+    // we don't use cancellableFetch here because we need to cancel all requests, not just the first one
     const fetchPages = async () => {
         const response = await fetch(`${url}${query}`, {
             method: "GET",
@@ -168,13 +162,10 @@ export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallba
         }
     };
 
-    const returnPromise = fetchPages();
-    returnPromise.cancel = async () => {
+    return CancellablePromise(fetchPages(), async () => {
         controller.abort();
         await Promise.allSettled(responses).catch(() => {});
-    };
-
-    return returnPromise;
+    });
 }
 
 /**
@@ -187,38 +178,33 @@ export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallba
  *    action?: string,
  * }} args.crudArgs - The arguments for the CRUD operation.
  * @param pks {string[]} - The PKs of the objects to delete.
- * @returns {Promise<void> & { cancel: () => Promise<void> }} - A cancellable promise.
+ * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<void>} - A cancellable promise.
  */
 export function defaultObjectsDelete({ crudArgs, pks }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = crudArgs;
-    const controller = new AbortController();
     const url = getListUrl({ app, model, action });
 
-    const returnPromise = fetch(url, {
-        method: "DELETE",
-        headers: {
-            "X-CSRFToken": getCSRFValue(),
-            "Content-Type": "application/json",
+    return cancellableFetch(
+        url,
+        {
+            method: "DELETE",
+            credentials: "include",
+            headers: {
+                "X-CSRFToken": getCSRFValue(),
+                "Content-Type": "application/json",
+            },
+            // VUEDA's bulk functionality customization of destroy always take pks, regardless of the name of the pk key
+            // reactive-helpers provides the pkKey in our args, but we ignore it.
+            body: JSON.stringify({ pks }),
         },
-        credentials: "include",
-        // VUEDA's bulk functionality customization of destroy always take pks, regardless of the name of the pk key
-        // reactive-helpers provides the pkKey in our args, but we ignore it.
-        body: JSON.stringify({ pks }),
-        signal: controller.signal,
-    }).then(async (response) => {
-        if (response.status === 204) {
-            return;
-        }
-        throw new FetchError("Failed to delete object", response, await getJsonOrText(response));
-    });
-
-    returnPromise.cancel = async () => {
-        controller.abort();
-        await returnPromise.catch(() => {});
-    };
-
-    return returnPromise;
+        async (response) => {
+            if (response.status === 204) {
+                return;
+            }
+            throw new FetchError("Failed to delete object", response, await getJsonOrText(response));
+        },
+    );
 }
 
 export function setupDefaultListCrud() {

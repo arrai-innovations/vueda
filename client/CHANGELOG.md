@@ -19,7 +19,7 @@ _Actions potentially required by implementers are marked with italics._
 #### Object CRUD Utilities
 
 - **Consistent Cancellable Fetches**:
-    - Replaced inline `fetch` + `AbortController` logic in `objectCrud` with the standardized `cancellableFetch` utility from `@arrai-innovations/reactive-helpers`.
+    - Replaced inline `fetch` + `AbortController` logic in `objectCrud` and `listCrud` with the standardized `cancellableFetch` utility from `@arrai-innovations/reactive-helpers`.
     - Ensures compatibility with other `CancellablePromise`-based async flows and improves maintainability.
     - _Requires reactive-helpers v18.1.0 or higher._
 
