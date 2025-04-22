@@ -4,11 +4,9 @@ import { useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
 import merge from "lodash-es/merge.js";
-import { computed, effectScope, reactive, readonly, toRef, toRefs, watch } from "vue";
-import { keyDiff } from "@arrai-innovations/reactive-helpers";
-import { useFieldSetTabularHeaderProps } from "@vueda/use/useFieldSetTabularHeaderProps.js";
+import { computed, reactive, readonly, toRefs } from "vue";
 
-export const FIELD_SET_TABULAR_INLINE_PROPS = {...FIELD_SET_INLINE_PROPS};
+export const FIELD_SET_TABULAR_INLINE_PROPS = { ...FIELD_SET_INLINE_PROPS };
 
 export const FIELD_SET_TABULAR_INLINE_EMITS = [...FIELD_EMITS];
 
@@ -96,11 +94,11 @@ const handleIsTableUpdate = (state, newValue) => {
  * @returns {FieldSetTabularInlineContext} An object containing reactive state, computed properties, and methods
  * to manage the tabular inline fieldset.
  */
-export function useFieldSetTabularInline({props, emit, slotNames}) {
+export function useFieldSetTabularInline({ props, emit, slotNames }) {
     const theme = useTheme("FieldSetTabularInline", props);
     const fieldSetContext = useField(props, emit);
     const breakpoints = useBreakpoints(breakpointsVueda);
-    const fieldSetInline = useFieldSetInline({props, emit, slotNames, fieldSetContext});
+    const fieldSetInline = useFieldSetInline({ props, emit, slotNames, fieldSetContext });
     const baseState = toRefs(fieldSetInline.state);
     /** @type {FieldSetTabularInlineState} */
     const state = reactive({
