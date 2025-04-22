@@ -14,6 +14,7 @@ export function useLookupContext() {
      *     promise: import('@arrai-innovations/reactive-helpers').CancellablePromise<object>,
      *     resolve: (value: object) => void,
      *     reject: (reason?: any) => void,
+     *     id: number,
      * }} PerConsumerPromise */
     /**
      *  The cancellable promises we hand out for consumers to get their results.
@@ -129,28 +130,36 @@ export function useLookupContext() {
      * @param {string[]} pks
      * @returns {Promise<boolean>} - true if the request was successful, false otherwise.
      */
-    async function runRequestBatch({ app, model, fields, expand }, { props, instance }, isList, key, pks) {
-        const config = await modelConfigStore.getConfig({ app, model });
-        props.pkKey = config.info?.pk ?? "id";
-        props.crudArgs.app = app;
-        props.crudArgs.model = model;
-        if (!props.retrieveArgs) {
-            props.retrieveArgs = {};
-        }
-        if (isList && !props.listArgs) {
-            props.listArgs = {};
-        }
-        const argKey = isList ? "listArgs" : "retrieveArgs";
-        props[argKey][FIELDS_PARAM] = fields;
-        props[argKey][EXPAND_PARAM] = expand;
-        const managerPromise = isList ? instance.list() : instance.retrieve();
-        if (!inflightPromises[key]) {
-            inflightPromises[key] = {};
-        }
-        for (const pk of pks) {
-            inflightPromises[key][pk] = managerPromise;
-        }
-        return managerPromise;
+    function runRequestBatch({ app, model, fields, expand }, { props, instance }, isList, key, pks) {
+        const config = modelConfigStore.getConfig({ app, model }).then(() => {
+            props.pkKey = config.info?.pk ?? "id";
+            props.crudArgs.app = app;
+            props.crudArgs.model = model;
+            if (!props.retrieveArgs) {
+                props.retrieveArgs = {};
+            }
+            if (isList && !props.listArgs) {
+                props.listArgs = {};
+            }
+            const argKey = isList ? "listArgs" : "retrieveArgs";
+            props[argKey][FIELDS_PARAM] = fields;
+            props[argKey][EXPAND_PARAM] = expand;
+            const managerPromise = isList
+                ? instance
+                      /** @type {import('@arrai-innovations/reactive-helpers').ListManager} */
+                      .list()
+                : instance
+                      /** @type {import('@arrai-innovations/reactive-helpers').ObjectManager} */
+                      .retrieve();
+            if (!inflightPromises[key]) {
+                inflightPromises[key] = {};
+            }
+            for (const pk of pks) {
+                inflightPromises[key][pk] = managerPromise;
+            }
+            return managerPromise;
+        });
+        return config;
     }
 
     /**
@@ -158,82 +167,123 @@ export function useLookupContext() {
      * @returns {Promise<void>}
      */
     const scheduledRequest = debounce(
-        async () => {
-            for (const [key, /** @type{Request[]} */ requests] of requestsMap.entries()) {
-                const pks = requests.map((request) => request.pk);
+        () => {
+            const localRequests = cloneDeep([...requestsMap.entries()]);
+            requestsMap.clear();
+            for (const [key, /** @type{Request[]} */ requests] of localRequests) {
+                const pks = Array.from(new Set(requests.map((r) => r.pk)));
                 /** @type {Request} */
                 const args = requests[0];
                 const isList = requests.length > 1;
 
-                const entry = await acquireManager({
-                    isList,
-                    args,
-                    pks,
-                });
+                if (!pks.some((pk) => consumerPromises[key]?.[pk]?.length)) {
+                    console.warn("[scheduledRequest] skipped request, no consumers", key, pks, requests);
+                    continue;
+                }
+                let instanceCancel = null;
+                const batchPromise = (async () => {
+                    const entry = await acquireManager({
+                        isList,
+                        args,
+                        pks,
+                    });
+                    try {
+                        const outcomePromise = runRequestBatch(args, entry, isList, key, pks);
+                        instanceCancel = outcomePromise.cancel;
+                        const outcome = await outcomePromise;
 
-                try {
-                    const outcome = await runRequestBatch(args, entry, isList, key, pks);
-
-                    for (const pk of pks) {
                         if (!results[key]) {
                             results[key] = {};
                         }
-                        // cloneDeep since we are about to clear our entry.instance
-                        results[key][pk] = cloneDeep(
-                            isList ? entry.instance.state.objects[pk] : entry.instance.state.object,
-                        );
-                        const promises = consumerPromises?.[key]?.[pk];
-                        let consumed;
-                        for (const promise of promises || []) {
-                            if (!outcome) {
-                                consumed = true;
-                                promise.reject(entry.instance.state.error);
+
+                        for (const pk of pks) {
+                            results[key][pk] = cloneDeep(
+                                isList ? entry.instance.state.objects[pk] : entry.instance.state.object,
+                            );
+
+                            const consumers = consumerPromises?.[key]?.[pk];
+                            if (!consumers) {
+                                console.warn(
+                                    "[scheduledRequest] No consumers for this request",
+                                    key,
+                                    pk,
+                                    consumerPromises,
+                                );
                                 continue;
                             }
-                            consumed = true;
-                            promise.resolve(readonlyResults[key][pk]);
+                            for (const consumer of consumers) {
+                                if (!outcome) {
+                                    consumer.reject(entry.instance.state.error);
+                                    continue;
+                                }
+                                consumer.resolve(readonlyResults[key][pk]);
+                            }
                         }
-                        if (!consumed) {
-                            console.warn("No consumers for this request", key, pk);
+                        return outcome;
+                    } catch (err) {
+                        console.error("[scheduledRequest] Error in runRequestBatch:", err);
+                        for (const pk of pks) {
+                            const consumers = consumerPromises?.[key]?.[pk];
+                            if (!consumers?.length) {
+                                console.error(
+                                    "[scheduledRequest] No consumers for request rejection",
+                                    key,
+                                    pk,
+                                    consumerPromises,
+                                    err,
+                                );
+                                continue;
+                            }
+                            for (const consumer of consumers) {
+                                consumer.reject(err);
+                            }
+                        }
+                    } finally {
+                        for (const pk of pks) {
+                            if (consumerPromises?.[key]?.[pk]) {
+                                delete consumerPromises[key][pk];
+                            }
+                            if (inflightPromises?.[key]?.[pk]) {
+                                delete inflightPromises[key][pk];
+                            }
+                        }
+                        if (consumerPromises[key] && !Object.keys(consumerPromises[key]).length) {
+                            delete consumerPromises[key];
+                        }
+                        if (inflightPromises[key] && !Object.keys(inflightPromises[key]).length) {
+                            delete inflightPromises[key];
+                        }
+
+                        if (isList) {
+                            entry.instance.clearList();
+                            idleLists.push(entry);
+                        } else {
+                            entry.instance.clear();
+                            idleObjects.push(entry);
                         }
                     }
-                } catch (e) {
-                    let rejected = false;
-                    for (const pk of pks) {
-                        const promises = consumerPromises?.[key]?.[pk];
-                        for (const promise of promises || []) {
-                            rejected = true;
-                            promise.reject(e);
+                })();
+                batchPromise.cancel = async (reason = "Cancelled") => {
+                    try {
+                        try {
+                            if (instanceCancel) {
+                                await instanceCancel?.(reason); // or whatever cancel logic applies
+                                instanceCancel = null; // make idempotent
+                            }
+                        } catch (e) {
+                            console.warn("[batchPromise] cancel failed", e);
                         }
+                    } catch (e) {
+                        console.warn("[scheduledRequest] cancel failed", e);
                     }
-                    if (!rejected) {
-                        throw e;
-                    }
-                } finally {
-                    for (const pk of pks) {
-                        if (consumerPromises?.[key]?.[pk]) {
-                            delete consumerPromises[key][pk];
-                        }
-                        if (inflightPromises?.[key]?.[pk]) {
-                            delete inflightPromises[key][pk];
-                        }
-                    }
-                    if (consumerPromises[key] && !Object.keys(consumerPromises[key]).length) {
-                        delete consumerPromises[key];
-                    }
-                    if (inflightPromises[key] && !Object.keys(inflightPromises[key]).length) {
-                        delete inflightPromises[key];
-                    }
-                    if (isList) {
-                        entry.instance.clearList();
-                        idleLists.push(entry);
-                    } else {
-                        entry.instance.clear();
-                        idleObjects.push(entry);
-                    }
+                };
+                if (!inflightPromises[key]) {
+                    inflightPromises[key] = {};
+                }
+                for (const pk of pks) {
+                    inflightPromises[key][pk] = batchPromise;
                 }
             }
-            requestsMap.clear();
         },
         250,
         { maxWait: 1000 },
@@ -246,6 +296,8 @@ export function useLookupContext() {
         return `${appModelDotName}/${fieldKey}/${expandKey}`;
     };
 
+    let promiseId = 0;
+
     const newPromiseUnwrapper = (key, pk) => {
         let resolve, reject;
         const promise = new Promise((res, rej) => {
@@ -256,8 +308,13 @@ export function useLookupContext() {
             promise,
             resolve,
             reject,
+            id: ++promiseId,
         };
-        promise.cancel = (reason = "Lookup cancelled") => {
+        promise.cancel = async (reason = "Lookup cancelled") => {
+            if (!consumerPromises[key]?.[pk]) {
+                console.trace("cancel called after consumerPromises already cleaned up", key, pk);
+                return;
+            }
             const myIndex = consumerPromises[key][pk].indexOf(self);
             if (myIndex === -1) {
                 console.trace("Promise not found in consumerPromises, was cancel called twice?", key, pk);
@@ -269,7 +326,7 @@ export function useLookupContext() {
             }
             if (!Object.keys(consumerPromises[key]).length) {
                 // last one out, cancel the inner promise
-                inflightPromises?.[key]?.[pk]?.cancel(reason);
+                await inflightPromises?.[key]?.[pk]?.cancel(reason);
                 delete consumerPromises[key];
             }
             if (inflightPromises?.[key]?.[pk]) {
@@ -300,6 +357,7 @@ export function useLookupContext() {
      */
     const lookupContext = {
         requestObject: (app, model, fields, expands, pk) => {
+            pk = pk + ""; // ensure pk is a string, matters to Map, unlike Object
             const key = getLookupKey(app, model, fields, expands);
             if (results[key]?.[pk]) {
                 return Promise.resolve(readonlyResults[key][pk]);
@@ -317,14 +375,11 @@ export function useLookupContext() {
                 model,
                 fields,
                 expands,
-                pk: cloneDeep(pk),
+                pk,
             });
-            if (!consumerPromises[key]) {
-                consumerPromises[key] = {};
-            }
             const promise = newPromiseUnwrapper(key, pk);
-            scheduledRequest();
             assignOuterPromise(key, pk, promise);
+            scheduledRequest();
             return promise.promise;
         },
     };

@@ -1,6 +1,6 @@
 import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
-import { inject, reactive, readonly, toRef, watch } from "vue";
+import { inject, onScopeDispose, reactive, readonly, toRef, watch } from "vue";
 
 /**
  * @typedef {object} ResolvedLookupObject
@@ -36,6 +36,17 @@ export function useResolvedLookupObject(app, model, pk, fields, expands) {
     });
 
     let inflightRequest = null;
+    let scopeDisposed = false;
+    onScopeDispose(() => {
+        scopeDisposed = true;
+        if (inflightRequest?.cancel) {
+            inflightRequest
+                .cancel("Component unmounted, cancelling request")
+                .catch((e) =>
+                    console.warn("[useResolvedLookupObject] Error cancelling inflight request during scope dispose", e),
+                );
+        }
+    });
 
     watch(
         [
@@ -46,17 +57,17 @@ export function useResolvedLookupObject(app, model, pk, fields, expands) {
             toRef(internalState, "expands"),
         ],
         async ([a, m, id, f, e]) => {
-            if (!a || !m || !id) {
-                assignReactiveObject(internalState.object, {});
-                return;
-            }
-
             if (inflightRequest?.cancel) {
                 try {
                     await inflightRequest.cancel("Parameters changed, lookup cancelled");
-                } catch (e) {
-                    console.warn("Error cancelling inflight request:", e);
+                } catch (err) {
+                    console.warn("[useResolvedLookupObject] Error cancelling inflight request:", err);
                 }
+            }
+
+            if (!a || !m || !id) {
+                assignReactiveObject(internalState.object, {});
+                return;
             }
 
             loadingError.setLoading();
@@ -67,15 +78,24 @@ export function useResolvedLookupObject(app, model, pk, fields, expands) {
                     const p = lookup.requestObject(a, m, f, e, id);
                     inflightRequest = p;
                     result = await p;
-                } catch (e) {
-                    loadingError.setError(e);
-                    console.error("Error in requestObject:", e);
+                    if (scopeDisposed) {
+                        console.warn("[useResolvedLookupObject] Scope was disposed but promise resolved");
+                        return;
+                    }
+                } catch (err) {
+                    loadingError.setError(err);
+                    console.error("[useResolvedLookupObject] Error in requestObject:", err);
                 }
-                assignReactiveObject(internalState.object, result);
-            } catch (e) {
-                loadingError.setError(e);
-                console.error("Error in useResolvedLookupObject watch:", e);
+                if (result && (Array.isArray(result) || typeof result === "object")) {
+                    assignReactiveObject(internalState.object, result);
+                } else {
+                    assignReactiveObject(internalState.object, {});
+                }
+            } catch (err) {
+                loadingError.setError(err);
+                console.error("[useResolvedLookupObject] Error in useResolvedLookupObject watch:", err);
             } finally {
+                inflightRequest = null;
                 loadingError.clearLoading();
             }
         },
