@@ -1,4 +1,4 @@
-import { setObjectCrud } from "@arrai-innovations/reactive-helpers";
+import { cancellableFetch, setObjectCrud } from "@arrai-innovations/reactive-helpers";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
@@ -81,7 +81,7 @@ const getFormData = (object) => {
  * }} - VUEDA specific arguments for the CRUD operation.
  * @params args.pk {string} - The primary key of the object to retrieve.
  * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
- * @returns {Promise<void> & { cancel: () => Promise<void> }} - A cancellable promise.
+ * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
 export function defaultObjectRetrieve({ crudArgs, pk, retrieveArgs }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
@@ -90,24 +90,21 @@ export function defaultObjectRetrieve({ crudArgs, pk, retrieveArgs }) {
     const controller = new AbortController();
     const url = getDetailUrl({ app, model, pk, action, query });
 
-    const returnPromise = fetch(url, {
-        method: "GET",
-        credentials: "include",
-        signal: controller.signal,
-    }).then(async (response) => {
-        const responseData = await getJsonOrText(response);
-        if (response.status === 200) {
-            return responseData;
-        }
-        throw new FetchError("Failed to retrieve object", response, responseData);
-    });
-
-    returnPromise.cancel = async () => {
-        controller.abort();
-        await returnPromise.catch(() => {});
-    };
-
-    return returnPromise;
+    return cancellableFetch(
+        url,
+        {
+            method: "GET",
+            credentials: "include",
+            signal: controller.signal,
+        },
+        async (response) => {
+            const responseData = await getJsonOrText(response);
+            if (response.status === 200) {
+                return /** @type{import("@arrai-innovations/reactive-helpers").CrudObject} */ responseData;
+            }
+            throw new FetchError("Failed to retrieve object", response, responseData);
+        },
+    );
 }
 
 /**
@@ -122,7 +119,7 @@ export function defaultObjectRetrieve({ crudArgs, pk, retrieveArgs }) {
  * }} - VUEDA specific arguments for the CRUD operation.
  * @params args.object {object} - The object to create.
  * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
- * @returns {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} - A cancellable promise.
+ * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
 export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
     const { app, model, action, pk } = crudArgs;
@@ -175,7 +172,7 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
  * }} - VUEDA specific arguments for the CRUD operation.
  * @params args.object {import("@arrai-innovations/reactive-helpers").CrudObject} - The object to update.
  * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
- * @returns {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} - A cancellable promise.
+ * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
 export function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
@@ -194,29 +191,26 @@ export function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
     }
     const body = hasFile ? getFormData(object) : JSON.stringify(object);
 
-    const returnPromise = fetch(url, {
-        method: "PUT",
-        headers,
-        credentials: "include",
-        body,
-        signal: controller.signal,
-    }).then(async (response) => {
-        const responseData = await getJsonOrText(response);
-        if (response.status === 200) {
-            return responseData;
-        }
-        if (response.status === 400) {
-            throw new FormValidationError(responseData, response);
-        }
-        throw new FetchError("Failed to update object", response, responseData);
-    });
-
-    returnPromise.cancel = async () => {
-        controller.abort();
-        await returnPromise.catch(() => {});
-    };
-
-    return returnPromise;
+    return cancellableFetch(
+        url,
+        {
+            method: "PUT",
+            headers,
+            credentials: "include",
+            body,
+            signal: controller.signal,
+        },
+        async (response) => {
+            const responseData = await getJsonOrText(response);
+            if (response.status === 200) {
+                return responseData;
+            }
+            if (response.status === 400) {
+                throw new FormValidationError(responseData, response);
+            }
+            throw new FetchError("Failed to update object", response, responseData);
+        },
+    );
 }
 
 /**
@@ -231,7 +225,7 @@ export function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
  * @params args.pk {string} - The primary key of the object to patch.
  * @params args.partialObject {object} - The partial object to patch.
  * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
- * @returns {Promise<import("@arrai-innovations/reactive-helpers").CrudObject> & { cancel: () => Promise<void> }} - A cancellable promise.
+ * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
 export function defaultObjectPatch({ crudArgs, pk, partialObject, retrieveArgs }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
@@ -249,29 +243,26 @@ export function defaultObjectPatch({ crudArgs, pk, partialObject, retrieveArgs }
     }
     const body = hasFile ? getFormData(partialObject) : JSON.stringify(partialObject);
 
-    const returnPromise = fetch(url, {
-        method: "PATCH",
-        headers,
-        credentials: "include",
-        body,
-        signal: controller.signal,
-    }).then(async (response) => {
-        const responseData = await getJsonOrText(response);
-        if (response.status === 200) {
-            return responseData;
-        }
-        if (response.status === 400) {
-            throw new FormValidationError(responseData, response);
-        }
-        throw new FetchError("Failed to patch object", response, responseData);
-    });
-
-    returnPromise.cancel = async () => {
-        controller.abort();
-        await returnPromise.catch(() => {});
-    };
-
-    return returnPromise;
+    return cancellableFetch(
+        url,
+        {
+            method: "PATCH",
+            headers,
+            credentials: "include",
+            body,
+            signal: controller.signal,
+        },
+        async (response) => {
+            const responseData = await getJsonOrText(response);
+            if (response.status === 200) {
+                return responseData;
+            }
+            if (response.status === 400) {
+                throw new FormValidationError(responseData, response);
+            }
+            throw new FetchError("Failed to patch object", response, responseData);
+        },
+    );
 }
 
 /**
