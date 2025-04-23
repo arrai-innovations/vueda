@@ -2,17 +2,35 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.0-alpha.3 (2025-04-xx)
+## v2.0.0-alpha.3 (2025-04-23)
 
 ### TL;DR
+
+- Introduced skeleton loading states and lazy rendering for fields and grids.
+- Refactored memoization and case utilities for better reactive safety and consistency.
+- Improved cancellation and reactivity in lookup batching.
+- Requires `@arrai-innovations/reactive-helpers@^19.0.0` due to internal API updates.
 
 ### Breaking Changes
 
 - **Peer Dependency Update**:
-    - Bumped `@arrai-innovations/reactive-helpers` to `^18.1.0` to use shared `cancellableFetch`.
-    - _Ensure your project updates its peer dependency to match._
+
+    - Bumped `@arrai-innovations/reactive-helpers` to `^19.0.0` to support internal improvements in `cancellableFetch`, `CancellablePromise`, reactivity guards, and value unwrapping.
+    - _Ensure your project dependency is updated to `^19.0.0` to maintain compatibility._
+
+- **Case Utility Refactor**:
+    - Moved all CRUD name and case conversion helpers from `crudSupport.js` into a unified `case.js` file.
+    - Moved constants like `DETAIL_VIEW_CRUD_NAME` and `LIST_VIEW_CRUD_NAME` to `constants.js`.
+    - _Update any imports of `getAppModelDotName`, `getAppModelViewDotName`, `getCRUDName`, etc., to use `@vueda/utils/case.js`._
+    - _Update any usage of `DETAIL_VIEW_CRUD_NAME`, `LIST_VIEW_CRUD_NAME` to import from `@vueda/utils/constants.js`._
 
 ### Features
+
+#### Utility & Memoization Improvements
+
+- **Reactive-Safe Memoization Keys**:
+    - Updated all `memoize` helpers (e.g., `getCRUDName`, `getAppModelDotName`) to use `unwrapNested` to safely support refs/reactive objects as arguments.
+    - Prevents subtle bugs when reactive props are passed directly to memoized utilities.
 
 ### Fixes
 
@@ -21,17 +39,20 @@ _Actions potentially required by implementers are marked with italics._
 - **Consistent Cancellable Fetches**:
     - Replaced inline `fetch` + `AbortController` logic in `objectCrud` and `listCrud` with the standardized `cancellableFetch` utility from `@arrai-innovations/reactive-helpers`.
     - Ensures compatibility with other `CancellablePromise`-based async flows and improves maintainability.
-    - _Requires reactive-helpers v18.1.0 or higher._
 
-#### Object Lookup Batching
+#### Forms & Validation
 
-- **Resolved Debounced Race Conditions** (`useLookupContext`):
-    - Fixed race condition in batched foreign key lookups by:
-        - Cloning and clearing `requestsMap` immediately to avoid overlap.
-        - Deferring `.cancel()` assignment until after manager acquisition.
-        - Ensuring all `inflightPromises` and `consumerPromises` are cleaned up reliably.
-    - Prevented mutation of shared lookup state during overlapping debounce executions.
-    - Improved internal tracing and error reporting for consumer rejection paths.
+- **Safe Default for `dependencyValues`** (`useField`):
+    - Fixed an issue where `field.state.dependencyValues` could be `undefined` if no validation dependencies were declared.
+    - Now always returns an object (defaulting to `{}`) to prevent access errors in templates or computed consumers.
+
+#### Object Lookup & Batching
+
+- **Robust Cancellation and Reactivity Handling**:
+    - Resolved race conditions in debounced batched lookups by immediately cloning and clearing `requestsMap`.
+    - Reordered and normalized `requestObject` arguments; ensures `pk` precedes other params.
+    - Used `CancellablePromise` and `toRaw()` to ensure proper cancellation, reduce proxy bugs, and avoid stale state.
+    - Applied defensive updates in `runRequestBatch` to maintain consistency with reactivity system.
 
 #### Lookup Lifecycle Management
 
@@ -41,6 +62,10 @@ _Actions potentially required by implementers are marked with italics._
     - Added internal guard against race conditions between cancellation and re-resolution.
 
 ### Developer Recommendations
+
+- **Loading Placeholders**:
+    - _Customize `ObjectsGrid` per-field skeleton appearance by adding a `skeleton` config to your `fieldDetails`._
+    - _Use `<LazyRender>` directly to wrap components that should defer rendering until in-view, using `default` and `placeholder` slots._
 
 ## v2.0.0-alpha.2 (2025-04-21)
 
