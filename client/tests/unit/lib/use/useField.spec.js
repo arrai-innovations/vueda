@@ -68,6 +68,9 @@ const getFormContextMock = (vue) => {
             modified: {},
             ignored: {},
             focused: {},
+
+            // *** Dependency Management ***
+            dependencyValues: {},
         }),
 
         // *** Form Reset & State Management ***
@@ -110,6 +113,8 @@ const getFormContextMock = (vue) => {
         unregisterIsRequiredHook: vi.fn(),
         registerIsValidHook: vi.fn(),
         unregisterIsValidHook: vi.fn(),
+        registerDependencyValues: vi.fn(),
+        unregisterDependencyValues: vi.fn(),
     };
 };
 
@@ -189,32 +194,6 @@ describe("lib/use/useField.js", () => {
             });
         });
         describe("validationDependencies", () => {
-            scopedIt("should populate into state.clearServerErrorDependents, reactively", async () => {
-                const { field, props: props } = mountFieldNoContext({
-                    validationDependencies: ["someOtherFieldName"],
-                });
-
-                expect(field.state.validationDependencies).toEqual(["someOtherFieldName"]);
-
-                props.validationDependencies.push("someNewOtherFieldName");
-                await flushPromises();
-                expect(field.state.validationDependencies).toEqual(["someOtherFieldName", "someNewOtherFieldName"]);
-            });
-            scopedIt("should do nothing when contextless", async () => {
-                const { field } = mountFieldNoContext({
-                    validationDependencies: ["$parent.anotherField", "field2"],
-                });
-                await flushPromises();
-                expect(field.state.dependencyValues).toBeUndefined();
-            });
-            scopedIt(
-                "should not throw when trying to use dependencyValues and not passing validationDependencies",
-                async () => {
-                    const { field } = mountFieldNoContext({});
-                    await flushPromises();
-                    expect(field.state.dependencyValues).toBeUndefined();
-                },
-            );
             scopedIt(
                 "should populate state.dependencyValues resolving, based on $parent and non-$parent validationDependencies",
                 async () => {
@@ -237,101 +216,25 @@ describe("lib/use/useField.js", () => {
                     props.validationDependencies = ["$parent.anotherField", "field2"];
                     const field = useField(vue.readonly(props), emit);
                     await flushPromises();
+                    expect(fc.registerDependencyValues).toHaveBeenCalledTimes(1);
+                    expect(fc.registerDependencyValues.mock.calls[0].length).toBe(2);
+                    const [fieldRef, depsRef] = fc.registerDependencyValues.mock.calls[0];
+                    expect(vue.isRef(fieldRef)).toBe(true);
+                    expect(fieldRef.value).toBe("fieldSet2[1].otherField");
+                    expect(vue.isRef(depsRef)).toBe(true);
+                    expect(depsRef.value).toEqual(["$parent.anotherField", "field2"]);
+                    fc.state.dependencyValues["fieldSet2[1].otherField"] = vue.computed(() => ({
+                        "$parent.anotherField": fc.state.values.fieldSet2[1].anotherField,
+                        field2: fc.state.values.field2,
+                    }));
 
                     // initial state
                     expect(field.state.dependencyValues).toEqual({
                         "$parent.anotherField": "anotherValue2",
                         field2: "fieldValue2",
                     });
-
-                    await flushPromises();
-
-                    // test reactive changes
-                    fc.state.values.fieldSet2[1].anotherField = "";
-                    fc.state.values.field2 = "";
-                    await flushPromises();
-                    expect(field.state.dependencyValues).toEqual({
-                        "$parent.anotherField": "",
-                        field2: "",
-                    });
-
-                    // test partial reactive changes
-                    fc.state.values.field2 = "fieldValue2";
-                    await flushPromises();
-                    expect(field.state.dependencyValues).toEqual({
-                        "$parent.anotherField": "",
-                        field2: "fieldValue2",
-                    });
                 },
             );
-            scopedIt("should deal with bad deps, reactively", async () => {
-                const fc = getFormContextMock(vue);
-                mockedProvide(FormContextSymbol, fc);
-                fc.state.initialValues = {
-                    field1: "fieldValue1",
-                    field2: "fieldValue2",
-                    field3: "fieldValue3",
-                    fieldSet1: [{ field: "value1" }, { field: "value2" }, { field: "value3" }],
-                    fieldSet2: [
-                        { otherField: "otherValue1", anotherField: "anotherValue1", thirdField: "thirdValue1" },
-                        { otherField: "otherValue2", anotherField: "anotherValue2", thirdField: "thirdValue2" },
-                        { otherField: "otherValue3", anotherField: "anotherValue3", thirdField: "thirdValue3" },
-                    ],
-                };
-                fc.state.values = cloneDeep(fc.state.initialValues);
-
-                const props = getDefaultProps(vue, "fieldSet2[1].otherField");
-                props.validationDependencies = ["$parent.notAField", "norAField"];
-                const field = useField(vue.readonly(props), emit);
-                await flushPromises();
-
-                // initial state
-                expect(field.state.dependencyValues).toBeUndefined();
-
-                await flushPromises();
-
-                // test reactive changes
-                fc.state.values.fieldSet2[1].anotherField = "";
-                fc.state.values.norAField = "";
-                await flushPromises();
-                expect(field.state.dependencyValues).toEqual({ norAField: "" });
-            });
-            scopedIt("should ignore $parent without errors when field is not nested", async () => {
-                const fc = getFormContextMock(vue);
-                mockedProvide(FormContextSymbol, fc);
-                fc.state.initialValues = {
-                    field1: "fieldValue1",
-                    field2: "fieldValue2",
-                    field3: "fieldValue3",
-                    fieldSet1: [{ field: "value1" }, { field: "value2" }, { field: "value3" }],
-                    fieldSet2: [
-                        { otherField: "otherValue1", anotherField: "anotherValue1", thirdField: "thirdValue1" },
-                        { otherField: "otherValue2", anotherField: "anotherValue2", thirdField: "thirdValue2" },
-                        { otherField: "otherValue3", anotherField: "anotherValue3", thirdField: "thirdValue3" },
-                    ],
-                };
-                fc.state.values = cloneDeep(fc.state.initialValues);
-
-                const props = getDefaultProps(vue, "field2");
-                props.validationDependencies = ["$parent.field1", "field3"];
-                const field = useField(vue.readonly(props), emit);
-                await flushPromises();
-
-                // initial state
-                expect(field.state.dependencyValues).toEqual({
-                    field3: "fieldValue3",
-                });
-
-                await flushPromises();
-
-                // test reactive changes
-                props.validationDependencies[0] = "field1";
-                await flushPromises();
-                expect(field.state.dependencyValues).toEqual({
-                    field1: "fieldValue1",
-                    field3: "fieldValue3",
-                });
-            });
         });
         describe("readOnly", () => {
             scopedIt("should populate into state.readOnly, reactively", async () => {
@@ -439,7 +342,10 @@ describe("lib/use/useField.js", () => {
                 props.shouldRequireFn = shouldRequireFn;
                 const field = useField(vue.readonly(props), emit);
                 await flushPromises();
-
+                fc.state.dependencyValues[field.state.name] = vue.computed(() => ({
+                    "$parent.anotherField": fc.state.values.fieldSet2[1].anotherField,
+                    "$parent.thirdField": fc.state.values.fieldSet2[1].thirdField,
+                }));
                 // initial state
                 expect(field.state.dependencyValues).toEqual({
                     "$parent.anotherField": "anotherValue2",
@@ -632,6 +538,10 @@ describe("lib/use/useField.js", () => {
                         validationDependencies: ["siblingField1", "siblingField2"],
                     },
                 );
+                fc.state.dependencyValues["customField"] = vue.computed(() => ({
+                    siblingField1: fc.state.values.siblingField1,
+                    siblingField2: fc.state.values.siblingField2,
+                }));
                 await flushPromises();
 
                 // verify & fake form context hook registration

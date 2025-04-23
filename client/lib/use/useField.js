@@ -443,7 +443,7 @@ export function useField(props, emit /*, functions*/) {
             dependencyValues: computed(() => {
                 const fc = unref(formContext);
                 // not sure that it makes sense to have non-form context dependencies
-                return fc ? fc.state.dependencyValues[props.name] : {};
+                return fc ? fc.state.dependencyValues[props.name] || {} : {};
             }),
         },
     );

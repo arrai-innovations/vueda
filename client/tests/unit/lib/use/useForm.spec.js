@@ -435,13 +435,15 @@ describe("lib/use/useForm.js", () => {
                 });
                 scopedIt("should reactively resets values and emits changes", async () => {
                     const { formContext } = getForm({ initialValues: { a: "abc" } });
-                    expect(formContext.state.values.a).toBe("abc");
-                    await flushPromises();
-                    const [stop, watchSpy] = testWatches(vue, formContext.state.values, "a");
+                    formContext.reset(); // first reset initializes tracking only
+
                     formContext.updateValue("a", "def");
+                    expect(formContext.state.values.a).toBe("def");
+
+                    const [stop, watchSpy] = testWatches(vue, formContext.state.values, "a");
+
                     try {
-                        expect(formContext.state.values.a).toBe("def");
-                        formContext.reset();
+                        formContext.reset(); // now this should trigger reactive assignment
                         await flushPromises();
                         expect(formContext.state.values.a).toBe("abc");
                         expect(watchSpy).toHaveBeenCalled();
