@@ -1,11 +1,12 @@
 <script setup>
-import { assignReactiveObject, combineClasses } from "@arrai-innovations/reactive-helpers";
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
+import LazyRender from "@vueda/components/LazyRender.vue";
 import { useFieldRenderer } from "@vueda/use/useFieldRenderer.js";
 import { mergeTheme, useTheme } from "@vueda/use/useTheme.js";
-import { availableWidgets } from "@vueda/utils/formLookups.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
-import { computed, effectScope, inject, markRaw, reactive, toRef, unref, useAttrs, useSlots, watch } from "vue";
+import Skeleton from "primevue/skeleton";
+import { computed, inject, reactive, toRef, unref, useAttrs, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -77,37 +78,30 @@ const fieldInnerClass = theme("fieldInner");
 </script>
 
 <template>
-    <slot
-        :field-class="fieldClass"
-        :field-component="fieldComponent"
-        :field-detail="fieldDetail"
-        :field-inner-class="fieldInnerClass"
-        :field-props="fieldProps"
-        :form-model-name="props.formModelName"
-        :name="fieldSlotName"
-        :slots="slotsForPassing"
-        :widget-component="widgetComponent"
-        :widget-props="widgetProps"
-    >
-        <component :is="fieldComponent" v-if="fieldComponent" :class="fieldClass" v-bind="omit(fieldProps, ['class'])">
-            <template v-for="slotName in remainingSlots" #[slotName]="fieldSlotProps">
-                <slot :name="slotName" v-bind="fieldSlotProps || {}" />
-            </template>
-            <template #default>
-                <slot
-                    :field-class="fieldClass"
-                    :field-component="fieldComponent"
-                    :field-detail="fieldDetail"
-                    :field-inner-class="fieldInnerClass"
-                    :field-props="fieldProps"
-                    :form-model-name="props.formModelName"
-                    :name="fieldDefaultSlotName"
-                    :slots="slotsForPassing"
-                    :widget-component="widgetComponent"
-                    :widget-props="widgetProps"
+    <lazy-render>
+        <template #default>
+            <slot
+                :field-class="fieldClass"
+                :field-component="fieldComponent"
+                :field-detail="fieldDetail"
+                :field-inner-class="fieldInnerClass"
+                :field-props="fieldProps"
+                :form-model-name="props.formModelName"
+                :name="fieldSlotName"
+                :slots="slotsForPassing"
+                :widget-component="widgetComponent"
+                :widget-props="widgetProps"
+            >
+                <component
+                    :is="fieldComponent"
+                    v-if="fieldComponent"
+                    :class="fieldClass"
+                    v-bind="omit(fieldProps, ['class'])"
                 >
-                    <a :name="fieldValuePath" />
-                    <div :class="fieldInnerClass" data-qa="field-renderer-field-inner">
+                    <template v-for="slotName in remainingSlots" #[slotName]="fieldSlotProps">
+                        <slot :name="slotName" v-bind="fieldSlotProps || {}" />
+                    </template>
+                    <template #default>
                         <slot
                             :field-class="fieldClass"
                             :field-component="fieldComponent"
@@ -115,23 +109,44 @@ const fieldInnerClass = theme("fieldInner");
                             :field-inner-class="fieldInnerClass"
                             :field-props="fieldProps"
                             :form-model-name="props.formModelName"
-                            :name="widgetSlotName"
+                            :name="fieldDefaultSlotName"
                             :slots="slotsForPassing"
                             :widget-component="widgetComponent"
                             :widget-props="widgetProps"
                         >
-                            <component :is="widgetComponent" v-bind="widgetProps">
-                                <template v-for="slotName in remainingSlots" #[slotName]="widgetSlotProps">
-                                    <slot :name="slotName" v-bind="widgetSlotProps || {}" />
-                                </template>
-                                <template v-if="$slots[widgetDefaultSlotName]" #default="widgetSlotProps">
-                                    <slot :name="widgetDefaultSlotName" v-bind="widgetSlotProps" />
-                                </template>
-                            </component>
+                            <a :name="fieldValuePath" />
+                            <div :class="fieldInnerClass" data-qa="field-renderer-field-inner">
+                                <slot
+                                    :field-class="fieldClass"
+                                    :field-component="fieldComponent"
+                                    :field-detail="fieldDetail"
+                                    :field-inner-class="fieldInnerClass"
+                                    :field-props="fieldProps"
+                                    :form-model-name="props.formModelName"
+                                    :name="widgetSlotName"
+                                    :slots="slotsForPassing"
+                                    :widget-component="widgetComponent"
+                                    :widget-props="widgetProps"
+                                >
+                                    <component :is="widgetComponent" v-bind="widgetProps">
+                                        <template v-for="slotName in remainingSlots" #[slotName]="widgetSlotProps">
+                                            <slot :name="slotName" v-bind="widgetSlotProps || {}" />
+                                        </template>
+                                        <template v-if="$slots[widgetDefaultSlotName]" #default="widgetSlotProps">
+                                            <slot :name="widgetDefaultSlotName" v-bind="widgetSlotProps" />
+                                        </template>
+                                    </component>
+                                </slot>
+                            </div>
                         </slot>
-                    </div>
-                </slot>
-            </template>
-        </component>
-    </slot>
+                    </template>
+                </component>
+            </slot>
+        </template>
+        <template #placeholder>
+            <div :class="fieldClass">
+                <Skeleton width="100%" height="2rem" class="mb-2" />
+            </div>
+        </template>
+    </lazy-render>
 </template>

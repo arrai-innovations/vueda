@@ -2,7 +2,9 @@
 import { combineClasses, keyDiff } from "@arrai-innovations/reactive-helpers";
 import EmptyComponent from "@vueda/components/EmptyComponent.vue";
 import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
+import ObjectsGridBodyCellSkeleton from "@vueda/components/ObjectsGridBodyCellSkeleton.vue";
 import ObjectsGridCardCell from "@vueda/components/ObjectsGridCardCell.vue";
+import ObjectsGridCardCellSkeleton from "@vueda/components/ObjectsGridCardCellSkeleton.vue";
 import ObjectsGridTableHeader from "@vueda/components/ObjectsGridTableHeader.vue";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -127,6 +129,10 @@ const props = defineProps({
     evenColumn: {
         type: Function,
         default: () => null,
+    },
+    skeletonRows: {
+        type: Number,
+        default: 25,
     },
     ...THEME_OVERRIDE_PROPS,
 });
@@ -272,7 +278,26 @@ watch(
                 </div>
             </div>
             <div
-                v-if="!objectsInOrder?.length && !loading && emptyText"
+                v-if="loading && !objectsInOrder?.length"
+                :class="theme('bodyRowGroup')"
+                data-qa="objects-grid-body-row-group-loading"
+                role="rowgroup"
+            >
+                <div :class="theme('bodyRow')" role="row" v-for="x in skeletonRows" :key="x">
+                    <component
+                        :is="isTable ? EmptyComponent : 'div'"
+                        :class="theme('cardContainer')"
+                        data-qa="objects-grid-card-container"
+                    >
+                        <template v-for="(field, columnIndex) in fields" :key="`${field?.name || columnIndex}-${x}`">
+                            <objects-grid-card-cell-skeleton v-if="!isTable" :field="field" />
+                            <objects-grid-body-cell-skeleton v-else :field="field" />
+                        </template>
+                    </component>
+                </div>
+            </div>
+            <div
+                v-else-if="!objectsInOrder?.length && !loading && emptyText"
                 :class="theme('bodyRowGroup')"
                 data-qa="objects-grid-body-row-group-empty"
                 role="rowgroup"

@@ -201,7 +201,7 @@ const instanceList = useList({
     props: instanceListProps,
     paged: true,
     keepOldPages: false,
-    clearListOnListIntentTriggered: true,
+    clearListOnListIntentTriggered: false, // don't retrigger the objects grid skeleton when we change page number
 });
 watch(toRef(listState, "search"), (newSearch, oldSearch) => {
     if (newSearch !== oldSearch) {
