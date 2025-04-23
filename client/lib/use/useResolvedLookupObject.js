@@ -1,6 +1,6 @@
 import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
-import { inject, onScopeDispose, reactive, readonly, toRef, watch } from "vue";
+import { inject, onScopeDispose, reactive, readonly, toRaw, toRef, watch } from "vue";
 
 /**
  * @typedef {object} ResolvedLookupObject
@@ -57,6 +57,11 @@ export function useResolvedLookupObject(app, model, pk, fields, expands) {
             toRef(internalState, "expands"),
         ],
         async ([a, m, id, f, e]) => {
+            const rawA = toRaw(a);
+            const rawM = toRaw(m);
+            const rawId = toRaw(id);
+            const rawF = toRaw(f);
+            const rawE = toRaw(e);
             if (inflightRequest?.cancel) {
                 try {
                     await inflightRequest.cancel("Parameters changed, lookup cancelled");
@@ -65,7 +70,7 @@ export function useResolvedLookupObject(app, model, pk, fields, expands) {
                 }
             }
 
-            if (!a || !m || !id) {
+            if (!rawA || !rawM || !rawId) {
                 assignReactiveObject(internalState.object, {});
                 return;
             }
@@ -73,18 +78,12 @@ export function useResolvedLookupObject(app, model, pk, fields, expands) {
             loadingError.setLoading();
             loadingError.clearError();
             try {
-                let result;
-                try {
-                    const p = lookup.requestObject(a, m, f, e, id);
-                    inflightRequest = p;
-                    result = await p;
-                    if (scopeDisposed) {
-                        console.warn("[useResolvedLookupObject] Scope was disposed but promise resolved");
-                        return;
-                    }
-                } catch (err) {
-                    loadingError.setError(err);
-                    console.error("[useResolvedLookupObject] Error in requestObject:", err);
+                const p = lookup.requestObject(rawA, rawM, rawId, rawF, rawE);
+                inflightRequest = p;
+                const result = await p;
+                if (scopeDisposed) {
+                    console.warn("[useResolvedLookupObject] Scope was disposed but promise resolved");
+                    return;
                 }
                 if (result && (Array.isArray(result) || typeof result === "object")) {
                     assignReactiveObject(internalState.object, result);

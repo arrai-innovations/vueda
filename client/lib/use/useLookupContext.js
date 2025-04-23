@@ -1,4 +1,4 @@
-import { useList, useObject } from "@arrai-innovations/reactive-helpers";
+import { CancellablePromise, useList, useObject } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
@@ -6,7 +6,8 @@ import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import debounce from "lodash-es/debounce.js";
-import { effectScope, provide, reactive, readonly } from "vue";
+import isEqual from "lodash-es/isEqual.js";
+import { effectScope, nextTick, provide, reactive, readonly } from "vue";
 
 export function useLookupContext() {
     const es = effectScope();
@@ -46,35 +47,39 @@ export function useLookupContext() {
     const idleLists = [];
     /** @type {ListManagerContainer[]} */
     const busyLists = [];
-    const modelConfigStore = storeModelConfig();
-
     /**
      * Acquire or reuse an instance of the object or list manager.
      *
      * @private
      * @param {boolean} isList
      * @param {object} args
-     * @param {string[]} pks
      * @returns {Promise<{ props: object, instance: import('@vueda/reactive-helpers/use/useList.js').ListManager|import('@vueda/reactive-helpers/use/useObject.js').ObjectManager }>}
      */
-    async function acquireManager({ isList, args, pks }) {
+    async function acquireManager({ isList, args }) {
         const pool = isList ? idleLists : idleObjects;
         const busy = isList ? busyLists : busyObjects;
         let entry = pool.pop();
 
-        const pkKey = await modelConfigStore.getConfig(args).then((c) => c.info?.pk ?? "id");
+        const pkKey =
+            (await storeModelConfig()
+                .getConfig(args)
+                .then((c) => c.info?.pk ?? "id")) + "";
 
         if (!entry) {
             // Create a new instance
             entry = es.run(() => {
                 if (isList) {
                     const listProps = reactive({
-                        crudArgs: { app: args.app, model: args.model },
+                        crudArgs: { app: args.app + "", model: args.model + "" },
                         pkKey,
-                        listArgs: { id: pks },
+                        listArgs: {
+                            id: ["dummy"],
+                        },
                         retrieveArgs: {}, // optional in list
                     });
 
+                    // @ts-ignore - prop type shenanigans
+                    // noinspection JSCheckFunctionSignatures
                     const instance = useList({
                         props: listProps,
                         functions: {
@@ -88,12 +93,14 @@ export function useLookupContext() {
                     return { props: listProps, instance };
                 } else {
                     const objectProps = reactive({
-                        crudArgs: { app: args.app, model: args.model },
+                        crudArgs: { app: args.app + "", model: args.model + "" },
                         pkKey,
-                        pk: pks[0],
+                        pk: "dummy",
                         retrieveArgs: {},
                     });
 
+                    // @ts-ignore - prop type shenanigans
+                    // noinspection JSCheckFunctionSignatures
                     const instance = useObject({ props: objectProps, functions: {} });
 
                     return { props: objectProps, instance };
@@ -102,15 +109,12 @@ export function useLookupContext() {
         } else {
             // Reuse the manager
             entry.props.pkKey = pkKey;
-            entry.props.crudArgs.app = args.app;
-            entry.props.crudArgs.model = args.model;
-            if (isList) {
-                entry.props.listArgs.id = pks;
-            } else {
-                entry.props.pk = pks[0];
-            }
+            entry.props.crudArgs.app = args.app + "";
+            entry.props.crudArgs.model = args.model + "";
         }
         busy.push(entry);
+        // settle some reactive assignments
+        await nextTick();
         return entry;
     }
 
@@ -118,8 +122,6 @@ export function useLookupContext() {
      * Do the actual list() or retrieve() call, and capture its cancel function.
      * @private
      * @param {object} args
-     * @param {string} args.app
-     * @param {string} args.model
      * @param {string[]} args.fields
      * @param {string[]} args.expand
      * @param {object} entry
@@ -128,38 +130,55 @@ export function useLookupContext() {
      * @param {boolean} isList
      * @param {string} key
      * @param {string[]} pks
-     * @returns {Promise<boolean>} - true if the request was successful, false otherwise.
+     * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<boolean>|import('@arrai-innovations/reactive-helpers').MaybeCancellablePromise<never>} - true if the request was successful, false otherwise.
      */
-    function runRequestBatch({ app, model, fields, expand }, { props, instance }, isList, key, pks) {
-        const config = modelConfigStore.getConfig({ app, model }).then(() => {
-            props.pkKey = config.info?.pk ?? "id";
-            props.crudArgs.app = app;
-            props.crudArgs.model = model;
+    function runRequestBatch({ fields, expand }, { props, instance }, isList, key, pks) {
+        // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
+        try {
             if (!props.retrieveArgs) {
                 props.retrieveArgs = {};
             }
-            if (isList && !props.listArgs) {
-                props.listArgs = {};
+            if (isList) {
+                if (!props.listArgs) {
+                    props.listArgs = {};
+                }
+                props.listArgs.id.length = 0;
+                props.listArgs.id.push(...pks);
+            } else {
+                props.pk = pks[0] + "";
             }
             const argKey = isList ? "listArgs" : "retrieveArgs";
-            props[argKey][FIELDS_PARAM] = fields;
-            props[argKey][EXPAND_PARAM] = expand;
-            const managerPromise = isList
-                ? instance
-                      /** @type {import('@arrai-innovations/reactive-helpers').ListManager} */
-                      .list()
-                : instance
-                      /** @type {import('@arrai-innovations/reactive-helpers').ObjectManager} */
-                      .retrieve();
-            if (!inflightPromises[key]) {
-                inflightPromises[key] = {};
+            props[argKey][FIELDS_PARAM] = cloneDeep(fields);
+            props[argKey][EXPAND_PARAM] = cloneDeep(expand);
+            if (
+                props.crudArgs.app !== instance.state.crud.args.app ||
+                props.crudArgs.model !== instance.state.crud.args.model ||
+                props.pkKey !== instance.state.crud.args.pkKey ||
+                (isList
+                    ? !isEqual(props[argKey].id, instance.state[argKey].id)
+                    : props[argKey].pk !== instance.state[argKey].pk) ||
+                !isEqual(props[argKey][FIELDS_PARAM], instance.state[argKey][FIELDS_PARAM]) ||
+                !isEqual(props[argKey][EXPAND_PARAM], instance.state[argKey][FIELDS_PARAM])
+            ) {
+                // HACK: this is a workaround for whatever reactivity mess is going on here
+                instance.state.crud.args.app = props.crudArgs.app;
+                instance.state.crud.args.model = props.crudArgs.model;
+                instance.state.crud.args.pkKey = props.pkKey;
+                if (isList) {
+                    instance.state.listArgs.id = props.listArgs.id;
+                    instance.state.listArgs[FIELDS_PARAM] = props.listArgs[FIELDS_PARAM];
+                    instance.state.listArgs[EXPAND_PARAM] = props.listArgs[EXPAND_PARAM];
+                } else {
+                    instance.state.pk = props.pk;
+                    instance.state.retrieveArgs[FIELDS_PARAM] = props.retrieveArgs[FIELDS_PARAM];
+                    instance.state.retrieveArgs[EXPAND_PARAM] = props.retrieveArgs[EXPAND_PARAM];
+                }
             }
-            for (const pk of pks) {
-                inflightPromises[key][pk] = managerPromise;
-            }
-            return managerPromise;
-        });
-        return config;
+            return isList ? instance.list() : instance.retrieve();
+        } catch (e) {
+            console.error("[runRequestBatch] Error in request:", e);
+            return CancellablePromise.reject(e);
+        }
     }
 
     /**
@@ -300,42 +319,41 @@ export function useLookupContext() {
 
     const newPromiseUnwrapper = (key, pk) => {
         let resolve, reject;
-        const promise = new Promise((res, rej) => {
+        const innerPromise = new Promise((res, rej) => {
             resolve = res;
             reject = rej;
         });
         const self = /** @type {PerConsumerPromise} */ {
-            promise,
+            promise: CancellablePromise(innerPromise, async (reason = "Lookup cancelled") => {
+                if (!consumerPromises[key]?.[pk]) {
+                    console.trace("cancel called after consumerPromises already cleaned up", key, pk);
+                    return;
+                }
+                const myIndex = consumerPromises[key][pk].indexOf(self);
+                if (myIndex === -1) {
+                    console.trace("Promise not found in consumerPromises, was cancel called twice?", key, pk);
+                    return;
+                }
+                consumerPromises[key][pk].splice(myIndex, 1);
+                if (!consumerPromises[key][pk].length) {
+                    delete consumerPromises[key][pk];
+                }
+                if (!Object.keys(consumerPromises[key]).length) {
+                    // last one out, cancel the inner promise
+                    await inflightPromises?.[key]?.[pk]?.cancel(reason);
+                    delete consumerPromises[key];
+                }
+                if (inflightPromises?.[key]?.[pk]) {
+                    delete inflightPromises[key][pk];
+                }
+                if (inflightPromises[key] && !Object.keys(inflightPromises[key]).length) {
+                    // this *should* be true if we cancelled the inner promise
+                    delete inflightPromises[key];
+                }
+            }),
             resolve,
             reject,
             id: ++promiseId,
-        };
-        promise.cancel = async (reason = "Lookup cancelled") => {
-            if (!consumerPromises[key]?.[pk]) {
-                console.trace("cancel called after consumerPromises already cleaned up", key, pk);
-                return;
-            }
-            const myIndex = consumerPromises[key][pk].indexOf(self);
-            if (myIndex === -1) {
-                console.trace("Promise not found in consumerPromises, was cancel called twice?", key, pk);
-                return;
-            }
-            consumerPromises[key][pk].splice(myIndex, 1);
-            if (!consumerPromises[key][pk].length) {
-                delete consumerPromises[key][pk];
-            }
-            if (!Object.keys(consumerPromises[key]).length) {
-                // last one out, cancel the inner promise
-                await inflightPromises?.[key]?.[pk]?.cancel(reason);
-                delete consumerPromises[key];
-            }
-            if (inflightPromises?.[key]?.[pk]) {
-                delete inflightPromises[key][pk];
-            }
-            if (inflightPromises[key] && !Object.keys(inflightPromises[key]).length) {
-                // this *should* be true if we cancelled the inner promise
-                delete inflightPromises[key];
-            }
         };
         return self;
     };
@@ -356,7 +374,17 @@ export function useLookupContext() {
      * @property {function(app:string, model:string, fields:string[], expands:string[], pk:string):import('@arrai-innovations/reactive-helpers').CancellablePromise<object>} requestObject - The function to request an object.
      */
     const lookupContext = {
-        requestObject: (app, model, fields, expands, pk) => {
+        /**
+         * Request an object from the server.
+         *
+         * @param {string} app - The app name, used in URL construction and request keying.
+         * @param {string} model - The model name, used in URL construction and request keying.
+         * @param {string} pk - The primary key of the object to request.
+         * @param {string[]} fields - The fields to include in the request.
+         * @param {string[]} expands - The expands to include in the request.
+         * @returns {Promise<object>} - A cancellable promise that resolves to the requested object.
+         */
+        requestObject: (app, model, pk, fields, expands) => {
             pk = pk + ""; // ensure pk is a string, matters to Map, unlike Object
             const key = getLookupKey(app, model, fields, expands);
             if (results[key]?.[pk]) {
