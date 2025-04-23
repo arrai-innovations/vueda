@@ -1,5 +1,4 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import flushPromises from "flush-promises";
 import { effectScope, isReactive, reactive, readonly, ref, unref } from "vue";
 
@@ -47,9 +46,11 @@ vi.mock("@vueda/use/useIsActive.js", () => ({
 describe("lib/use/useWorkflowTransitions.js", () => {
     const app = ref("myApp");
     const model = ref("myModel");
-    let useWorkflowTransitions;
+    let useWorkflowTransitions, caseJs, getAppModelDotName;
     beforeEach(async () => {
         useWorkflowTransitions = (await import("@vueda/use/useWorkflowTransitions.js")).useWorkflowTransitions;
+        caseJs = await import("@vueda/utils/case.js");
+        getAppModelDotName = caseJs.getAppModelDotName;
     });
     afterEach(() => {
         vi.clearAllMocks();

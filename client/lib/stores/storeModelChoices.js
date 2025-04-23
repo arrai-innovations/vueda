@@ -1,8 +1,7 @@
+import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
-import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
-import { memoizedSnakeCase } from "@vueda/utils/memoized.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
 

@@ -1,6 +1,7 @@
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
-import { LIST_VIEW_CRUD_NAME, memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import { memoizedStartCase } from "@vueda/utils/case.js";
+import { LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";

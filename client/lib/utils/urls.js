@@ -1,5 +1,6 @@
+import { unwrapNested } from "@arrai-innovations/reactive-helpers";
+import { getServerActionName, getServerRoutePart } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
-import { getServerActionName, getServerRoutePart } from "@vueda/utils/crudSupport.js";
 
 const defaultUrls = {
     historyObjectHistory: "/routes/history/object-history/:app/:model/:pk/",
@@ -86,12 +87,13 @@ export const getListUrl = ({ app, model, action, query = "" }) => {
  */
 export const getDetailUrl = ({ app, model, pk, action: action, query = "" }) => {
     const urlTemplate = getUrl(action ? "modelDetailAction" : "modelDetail");
-    let url = urlTemplate
-        .replace(":app", getServerRoutePart(app))
-        .replace(":model", getServerRoutePart(model))
-        .replace(":pk", pk);
-    if (action) {
-        url = url.replace(":action_name", getServerActionName(action));
+    const appStr = getServerRoutePart(app);
+    const modelStr = getServerRoutePart(model);
+    const pkStr = unwrapNested(pk);
+    const actionStr = getServerActionName(action);
+    let url = urlTemplate.replace(":app", appStr).replace(":model", modelStr).replace(":pk", pkStr);
+    if (actionStr) {
+        url = url.replace(":action_name", actionStr);
     }
-    return `${httpOrHttpsHostname}${url}${query}`;
+    return `${httpOrHttpsHostname}${url}${unwrapNested(query)}`;
 };

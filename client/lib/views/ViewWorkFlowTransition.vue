@@ -4,7 +4,7 @@ import PageTitle from "@vueda/components/PageTitle.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import { memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computedAsync } from "@vueuse/core";
 import isEmpty from "lodash-es/isEmpty.js";

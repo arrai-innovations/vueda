@@ -1,5 +1,5 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/crudSupport.js";
+import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";
 import flushPromises from "flush-promises";
 import { reactive, ref } from "vue";
 

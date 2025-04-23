@@ -7,12 +7,8 @@ import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
 import { defaultOnSubmissionError } from "@vueda/use/useObjectForm.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import {
-    DETAIL_VIEW_CRUD_NAME,
-    LIST_VIEW_CRUD_NAME,
-    getLowerTitle,
-    getPluralizedTitle,
-} from "@vueda/utils/crudSupport.js";
+import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
+import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";

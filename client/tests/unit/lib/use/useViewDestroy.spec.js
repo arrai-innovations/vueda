@@ -5,20 +5,32 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useViewDestroy } from "@vueda/use/useViewDestroy.js";
 import { nextTick, reactive, ref } from "vue";
 
-vi.mock("@vueda/use/useModelConfig.js", () => ({
-    useModelConfig: vi.fn(),
-}));
-vi.mock("@arrai-innovations/reactive-helpers", () => ({
-    useList: vi.fn(),
-}));
-vi.mock("@vueda/use/useIsActive.js", () => ({
-    useIsActive: vi.fn(),
-}));
+vi.mock("@vueda/use/useModelConfig.js", async () => {
+    const actual = await vi.importActual("@vueda/use/useModelConfig.js");
+    return {
+        ...actual,
+        useModelConfig: vi.fn(),
+    };
+});
+vi.mock("@arrai-innovations/reactive-helpers", async () => {
+    const actual = await vi.importActual("@arrai-innovations/reactive-helpers");
+    return {
+        ...actual,
+        useList: vi.fn(),
+    };
+});
+vi.mock("@vueda/use/useIsActive.js", async () => {
+    const actual = await vi.importActual("@vueda/use/useIsActive.js");
+    return {
+        ...actual,
+        useIsActive: vi.fn(),
+    };
+});
 
 describe("lib/use/useViewDestroy.js", () => {
     let mockModelConfig, mockInstanceList, props;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         props = reactive({
             app: "testApp",
             model: "testModel",

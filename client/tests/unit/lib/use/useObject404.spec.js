@@ -1,10 +1,10 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
-import { LIST_VIEW_CRUD_NAME } from "@vueda/utils/crudSupport.js";
+import { LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import { nextTick, reactive, ref } from "vue";
 
-vi.mock("@vueda/utils/crudSupport.js", async () => {
-    const actual = await vi.importActual("@vueda/utils/crudSupport.js");
+vi.mock("@vueda/utils/case.js", async () => {
+    const actual = await vi.importActual("@vueda/utils/case.js");
     return {
         ...actual,
         memoizedStartCase: vi.fn(() => "Model Title"),

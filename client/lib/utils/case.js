@@ -1,3 +1,4 @@
+import { unwrapNested } from "@arrai-innovations/reactive-helpers";
 import camelCase from "lodash-es/camelCase.js";
 import lowerCase from "lodash-es/lowerCase.js";
 import memoize from "lodash-es/memoize.js";
@@ -14,7 +15,7 @@ import pluralize from "pluralize";
  */
 export const getServerRoutePart = memoize((appOrModel) => {
     return `${snakeCase(appOrModel).toLowerCase()}`;
-});
+}, unwrapNested);
 
 /**
  * Get the PascalCase name for a given model.
@@ -25,7 +26,7 @@ export const getServerRoutePart = memoize((appOrModel) => {
  */
 export const getPascalCaseName = memoize((model) => {
     return `${startCase(model).replace(/ /g, "")}`;
-});
+}, unwrapNested);
 
 /**
  * Get the client route part in snake_case for a given model.
@@ -35,7 +36,7 @@ export const getPascalCaseName = memoize((model) => {
  */
 export const getClientRoutePart = memoize((appOrModel) => {
     return `${snakeCase(appOrModel).toLowerCase()}`;
-});
+}, unwrapNested);
 
 /**
  * Get the lower case title for a given model.
@@ -45,7 +46,7 @@ export const getClientRoutePart = memoize((appOrModel) => {
  */
 export const getLowerTitle = memoize((model) => {
     return `${lowerCase(model)}`;
-});
+}, unwrapNested);
 
 /**
  * Get the primary key route part in camelCase for a given model.
@@ -55,7 +56,7 @@ export const getLowerTitle = memoize((model) => {
  */
 export const getClientPkRoutePart = memoize((model) => {
     return `${camelCase(model)}`;
-});
+}, unwrapNested);
 
 /**
  * Get the pluralized title for a given model.
@@ -67,7 +68,7 @@ export const getPluralizedTitle = memoize((model) => {
     const words = model.split(" ");
     words.push(pluralize(words.pop()));
     return words.join(" ");
-});
+}, unwrapNested);
 
 /**
  * Get the normalized key (lowercase without spaces) for a given app, model or view identifier.
@@ -77,7 +78,7 @@ export const getPluralizedTitle = memoize((model) => {
  */
 export const getNormalizedKey = memoize((idx) => {
     return `${lowerCase(idx).replace(/ /g, "")}`;
-});
+}, unwrapNested);
 
 /**
  * Get the app model dot name for a given app and model.
@@ -87,9 +88,14 @@ export const getNormalizedKey = memoize((idx) => {
  * @param {string} params.model - The model name.
  * @returns {string} The app model dot name.
  */
-export const getAppModelDotName = memoize(({ app, model }) => {
-    return `${getNormalizedKey(app)}.${getNormalizedKey(model)}`;
-});
+export const getAppModelDotName = memoize(
+    ({ app, model }) => {
+        return `${getNormalizedKey(app)}.${getNormalizedKey(model)}`;
+    },
+    ({ app, model }) => {
+        return unwrapNested(app) + "." + unwrapNested(model);
+    },
+);
 
 /**
  * Get the app model view dot name for a given app, model, and view.
@@ -100,9 +106,12 @@ export const getAppModelDotName = memoize(({ app, model }) => {
  * @param {string} params.view - The view name.
  * @returns {string} The app model view dot name.
  */
-export const getAppModelViewDotName = memoize(({ app, model, view }) => {
-    return `${getAppModelDotName({ app, model })}-${getNormalizedKey(view)}`;
-});
+export const getAppModelViewDotName = memoize(
+    ({ app, model, view }) => {
+        return `${getAppModelDotName({ app, model })}-${getNormalizedKey(view)}`;
+    },
+    ({ app, model, view }) => unwrapNested(app) + "." + unwrapNested(model) + "-" + unwrapNested(view),
+);
 
 /**
  * Get the CRUD name for a given model and view.
@@ -113,10 +122,14 @@ export const getAppModelViewDotName = memoize(({ app, model, view }) => {
  * @param {string} params.view - The view name.
  * @returns {string} The CRUD name.
  */
-export const getCRUDName = memoize(({ app, model, view, bulk }) => {
-    const name = `${getClientRoutePart(app)}.${getClientRoutePart(model)}-${view}`;
-    return bulk ? `${name}-bulk` : name;
-});
+export const getCRUDName = memoize(
+    ({ app, model, view, bulk }) => {
+        const name = `${getClientRoutePart(app)}.${getClientRoutePart(model)}-${view}`;
+        return bulk ? `${name}-bulk` : name;
+    },
+    ({ app, model, view, bulk }) =>
+        unwrapNested(app) + "." + unwrapNested(model) + "-" + unwrapNested(view) + (bulk ? "-bulk" : ""),
+);
 
 /**
  * Converts a dashed URL name to an underscored action name and returns it.
@@ -124,19 +137,7 @@ export const getCRUDName = memoize(({ app, model, view, bulk }) => {
  * @param {string} params - The url name.
  * @returns {string} The action name.
  */
-export function getServerActionName(urlName) {
-    return urlName.replace(/-/g, "_");
-}
-
-/**
- * The CRUD name for detail view
- */
-export const DETAIL_VIEW_CRUD_NAME = "actionrouter.detailview";
-
-/**
- * The CRUD name for list view
- */
-export const LIST_VIEW_CRUD_NAME = "actionrouter.listview";
+export const getServerActionName = memoize((urlName) => urlName?.replace?.(/-/g, "_") || "", unwrapNested);
 
 /**
  * For turning various `dev_strs` or `DevStrs` or `devStrs` into a human-readable titles (`Dev Strs`).
@@ -144,4 +145,11 @@ export const LIST_VIEW_CRUD_NAME = "actionrouter.listview";
  * @param {string} model - The model name.
  * @returns {string} The human-readable title.
  */
-export const memoizedStartCase = memoize(startCase);
+export const memoizedStartCase = memoize(startCase, unwrapNested);
+/**
+ * For turning various `dev_strs` or `DevStrs` or `devStrs` into a human-readable titles (`Dev Strs`).
+ *
+ * @param {string} model - The model name.
+ * @returns {string} The human-readable title.
+ */
+export const memoizedSnakeCase = memoize(snakeCase, unwrapNested);

@@ -1,5 +1,5 @@
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
-import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/crudSupport.js";
+import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import merge from "lodash-es/merge.js";

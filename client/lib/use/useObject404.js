@@ -1,4 +1,5 @@
-import { LIST_VIEW_CRUD_NAME, memoizedStartCase } from "@vueda/utils/crudSupport.js";
+import { memoizedStartCase } from "@vueda/utils/case.js";
+import { LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import { watch } from "vue";
 
 /**

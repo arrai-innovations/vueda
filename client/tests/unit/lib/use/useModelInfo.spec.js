@@ -1,5 +1,4 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
 import flushPromises from "flush-promises";
 import { effectScope, isReactive, reactive, readonly, ref, unref } from "vue";
 
@@ -34,6 +33,7 @@ const mockedUseLoadingError = vi.fn(() => readonly(mockedUseLoadingErrorInstance
 vi.mock("@arrai-innovations/reactive-helpers", async () => {
     const actual = await vi.importActual("@arrai-innovations/reactive-helpers");
     return {
+        __esModule: true,
         ...actual,
         useLoadingError: mockedUseLoadingError,
     };
@@ -46,12 +46,13 @@ vi.mock("@vueda/use/useIsActive.js", () => ({
 describe("lib/use/useModelInfo.js", () => {
     const app = ref("myApp");
     const model = ref("myModel");
-    const key = getAppModelDotName({ app: unref(app), model: unref(model) });
-    let useModelInfo, es;
+    let caseJs, key, useModelInfo, es;
 
     beforeEach(async () => {
         es = effectScope();
         useModelInfo = (await import("@vueda/use/useModelInfo.js")).useModelInfo;
+        caseJs = await import("@vueda/utils/case.js");
+        key = caseJs.getAppModelDotName({ app: unref(app), model: unref(model) });
     });
 
     afterEach(() => {

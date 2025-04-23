@@ -1,5 +1,5 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
+import { getAppModelDotName } from "@vueda/utils/case.js";
 import { createPinia, setActivePinia } from "pinia";
 
 const dummyModelInfo = {

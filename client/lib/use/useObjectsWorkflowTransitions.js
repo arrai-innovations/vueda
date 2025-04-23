@@ -1,7 +1,7 @@
 import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { getUsingVuedaWorkFlow, storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
-import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
+import { getAppModelDotName } from "@vueda/utils/case.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
 import { reactive, readonly, ref, toRef, unref, watch } from "vue";

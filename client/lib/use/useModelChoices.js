@@ -1,7 +1,7 @@
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
-import { getAppModelDotName } from "@vueda/utils/crudSupport.js";
+import { getAppModelDotName } from "@vueda/utils/case.js";
 import { reactive, readonly, toRef, watch } from "vue";
 
 /**
