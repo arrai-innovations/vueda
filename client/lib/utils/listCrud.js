@@ -44,9 +44,9 @@ export const makeSearchParamsString = (searchParams) => {
  *     model: string,
  *     pk?: string,
  *     action?: string,
- * }} args.crudArgs - The arguments for the CRUD operation. If `pk` and `action` are provided, the detail action url will be used.
+ * }} args.target - The arguments for the CRUD operation. If `pk` and `action` are provided, the detail action url will be used.
  *  Otherwise, the non-detail list url will be used.
- * @param {object} args.listArgs - The arguments for the list operation.
+ * @param {object} args.params - The arguments for the list operation.
  * @param args.pageCallback {(
  *     newObjects: import('@arrai-innovations/reactive-helpers').ListObject[],
  *     pageData: {
@@ -57,10 +57,10 @@ export const makeSearchParamsString = (searchParams) => {
  * ) => void} - The callback function to call with the page data.
  * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<void>} A cancellable promise.
  */
-export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallback }) {
+export function singlePagePaginatedListCrudAdaptor({ target, params, pageCallback }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
-    const { app, model, pk, action } = crudArgs;
-    const query = makeSearchParamsString(listArgs);
+    const { app, model, pk, action } = target;
+    const query = makeSearchParamsString(params);
     const url = pk ? getDetailUrl({ app, model, pk, action, query }) : getListUrl({ app, model, action, query });
 
     return cancellableFetch(
@@ -75,7 +75,7 @@ export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCal
                 throw new FetchError("Failed to fetch page list", response, responseData);
             }
 
-            pageCallback(responseData[crudArgs.resultsKey], {
+            pageCallback(responseData[target.resultsKey], {
                 totalRecords: responseData.totalRecords,
                 totalPages: responseData.totalPages,
                 perPage: responseData.perPage,
@@ -88,13 +88,13 @@ export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCal
  * The VUEDA specific implementation for reactive-helper's list crud function, for all pages.
  *
  * @param args {object} - The arguments object.
- * @param args.crudArgs {{
+ * @param args.target {{
  *     app: string,
  *     model: string,
  *     pk?: string,
  *     action?: string,
  * }} - VUEDA specific arguments for the CRUD operation.
- * @param args.listArgs {{ [p]: number }} - The querystring parameters for the list operation.
+ * @param args.params {{ [p]: number }} - The querystring parameters for the list operation.
  * @param args.pageCallback {(
  *     newObjects: import('@arrai-innovations/reactive-helpers').ListObject[],
  *     pageData: {
@@ -105,11 +105,11 @@ export function singlePagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCal
  * ) => void} - The callback function to call with the page data.
  * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<void>} - A cancellable promise.
  */
-export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallback }) {
+export function allPagePaginatedListCrudAdaptor({ target, params, pageCallback }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the requests. ###
-    const { app, model, pk, action } = crudArgs;
-    const ourListArgs = { p: listArgs?.page || 1, ...omit(listArgs || {}, "p") };
-    const query = makeSearchParamsString(ourListArgs);
+    const { app, model, pk, action } = target;
+    const ourParams = { p: params?.page || 1, ...omit(params || {}, "p") };
+    const query = makeSearchParamsString(ourParams);
     const controller = new AbortController();
     const url = pk ? getDetailUrl({ app, model, pk, action }) : getListUrl({ app, model, action });
     const limit = pLimit(4);
@@ -128,7 +128,7 @@ export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallba
             throw new FetchError("Failed to all page list", response, responseData);
         }
 
-        pageCallback(responseData[crudArgs.resultsKey], {
+        pageCallback(responseData[target.resultsKey], {
             totalRecords: responseData.totalRecords,
             totalPages: responseData.totalPages,
             perPage: responseData.perPage,
@@ -136,8 +136,8 @@ export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallba
 
         if (responseData.totalPages > 1) {
             for (let i = 2; i <= responseData.totalPages; i++) {
-                ourListArgs.p = i;
-                const nextQuery = makeSearchParamsString(ourListArgs);
+                ourParams.p = i;
+                const nextQuery = makeSearchParamsString(ourParams);
                 responses.push(
                     limit(() =>
                         fetch(`${url}${nextQuery}`, {
@@ -147,7 +147,7 @@ export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallba
                         }).then(async (response) => {
                             const data = await getJsonOrText(response);
                             if (response.status === 200 && isObject(data)) {
-                                pageCallback(data[crudArgs.resultsKey], {
+                                pageCallback(data[target.resultsKey], {
                                     totalRecords: data.totalRecords,
                                     totalPages: data.totalPages,
                                     perPage: data.perPage,
@@ -176,13 +176,13 @@ export function allPagePaginatedListCrudAdaptor({ crudArgs, listArgs, pageCallba
  *    app: string,
  *    model: string,
  *    action?: string,
- * }} args.crudArgs - The arguments for the CRUD operation.
+ * }} args.target - The arguments for the CRUD operation.
  * @param pks {string[]} - The PKs of the objects to delete.
  * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<void>} - A cancellable promise.
  */
-export function defaultObjectsDelete({ crudArgs, pks }) {
+export function defaultObjectsDelete({ target, pks }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
-    const { app, model, action } = crudArgs;
+    const { app, model, action } = target;
     const url = getListUrl({ app, model, action });
 
     return cancellableFetch(

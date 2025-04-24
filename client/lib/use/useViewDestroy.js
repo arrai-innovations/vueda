@@ -2,7 +2,6 @@ import { useList } from "@arrai-innovations/reactive-helpers";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, reactive, toRef } from "vue";
 
@@ -38,15 +37,12 @@ export function useViewDestroy(props) {
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 
     const instanceListProps = reactive({
-        crudArgs: {
+        target: {
             app: toRef(props, "app"),
             model: toRef(props, "model"),
         },
         pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-        retrieveArgs: {
-            [FIELDS_PARAM]: {},
-        },
-        listArgs: {
+        params: {
             id: computed(() => {
                 const pk = props.pk;
                 return Array.isArray(pk) ? pk : [pk];

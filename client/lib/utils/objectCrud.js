@@ -74,19 +74,19 @@ const getFormData = (object) => {
  * The VUEDA specific implementation for reactive-helper's object retrieve crud function.
  *
  * @params args {object} - The arguments object.
- * @params args.crudArgs {{
+ * @params args.target {{
  *     app:string,
  *     model:string,
  *     action?:string,
  * }} - VUEDA specific arguments for the CRUD operation.
  * @params args.pk {string} - The primary key of the object to retrieve.
- * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
+ * @params args.params {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
-export function defaultObjectRetrieve({ crudArgs, pk, retrieveArgs }) {
+export function defaultObjectRetrieve({ target, pk, params }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
-    const { app, model, action } = crudArgs;
-    const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
+    const { app, model, action } = target;
+    const query = params ? makeSearchParamsString(params) : "";
     const controller = new AbortController();
     const url = getDetailUrl({ app, model, pk, action, query });
 
@@ -111,19 +111,19 @@ export function defaultObjectRetrieve({ crudArgs, pk, retrieveArgs }) {
  * The VUEDA specific implementation for reactive-helper's object create crud function.
  *
  * @params args {object} - The arguments object.
- * @params args.crudArgs {{
+ * @params args.target {{
  *     app: string,
  *     model: string,
  *     action?: string,
  *     pk?: string,
  * }} - VUEDA specific arguments for the CRUD operation.
  * @params args.object {object} - The object to create.
- * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
+ * @params args.params {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
-export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
-    const { app, model, action, pk } = crudArgs;
-    const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
+export async function defaultObjectCreate({ target, object, params }) {
+    const { app, model, action, pk } = target;
+    const query = params ? makeSearchParamsString(params) : "";
     const controller = new AbortController();
     const url = pk ? getDetailUrl({ app, model, pk, action, query }) : getListUrl({ app, model, action, query });
 
@@ -165,20 +165,20 @@ export async function defaultObjectCreate({ crudArgs, object, retrieveArgs }) {
  * The VUEDA specific implementation for reactive-helper's object update crud function.
  *
  * @params args {object} - The arguments object.
- * @params args.crudArgs {{
+ * @params args.target {{
  *     app: string,
  *     model: string,
  *     action?: string,
  * }} - VUEDA specific arguments for the CRUD operation.
  * @params args.object {import("@arrai-innovations/reactive-helpers").CrudObject} - The object to update.
- * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
+ * @params args.params {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
-export function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
+export function defaultObjectUpdate({ target, object, params }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
-    const { app, model, action } = crudArgs;
+    const { app, model, action } = target;
     const pk = object.id;
-    const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
+    const query = params ? makeSearchParamsString(params) : "";
     const controller = new AbortController();
     const url = getDetailUrl({ app, model, pk, action, query });
 
@@ -217,20 +217,20 @@ export function defaultObjectUpdate({ crudArgs, object, retrieveArgs }) {
  * The VUEDA specific implementation for reactive-helper's object patch crud function.
  *
  * @params args {object} - The arguments object.
- * @params args.crudArgs {{
+ * @params args.target {{
  *     app: string,
  *     model: string,
  *     action?: string,
  * }} - VUEDA specific arguments for the CRUD operation.
  * @params args.pk {string} - The primary key of the object to patch.
  * @params args.partialObject {object} - The partial object to patch.
- * @params args.retrieveArgs {object} - The arguments to be passed as querystring to the retrieve action.
+ * @params args.params {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
-export function defaultObjectPatch({ crudArgs, pk, partialObject, retrieveArgs }) {
+export function defaultObjectPatch({ target, pk, partialObject, params }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
-    const { app, model, action } = crudArgs;
-    const query = retrieveArgs ? makeSearchParamsString(retrieveArgs) : "";
+    const { app, model, action } = target;
+    const query = params ? makeSearchParamsString(params) : "";
     const controller = new AbortController();
     const url = getDetailUrl({ app, model, pk, action, query });
 
@@ -269,14 +269,14 @@ export function defaultObjectPatch({ crudArgs, pk, partialObject, retrieveArgs }
  * The VUEDA specific implementation for reactive-helper's object delete crud function.
  *
  * @params args {object} - The arguments object.
- * @params args.crudArgs {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
+ * @params args.target {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
  * @params args.pk {string} - The primary key of the object to delete.
  * @params args.deleteArgs {object} - The arguments to be passed to the delete function.
  * @returns {Promise<void> & { cancel: () => Promise<void> }} - A cancellable promise.
  */
-export function defaultObjectDelete({ crudArgs, pk, deleteArgs }) {
+export function defaultObjectDelete({ target, pk, deleteArgs }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
-    const { app, model, action } = crudArgs;
+    const { app, model, action } = target;
     const query = deleteArgs ? makeSearchParamsString(deleteArgs) : "";
     const controller = new AbortController();
     const url = getDetailUrl({ app, model, pk, action, query });

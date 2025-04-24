@@ -46,15 +46,15 @@ const selectedValue = ref(null);
 
 // TODO: the app and model here should be matched from the selected content type
 const modelListProps = reactive({
-    crudArgs: {
+    target: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
-    retrieveArgs: {
+    params: {
         [FIELDS_PARAM]: toRef(props, "modelFields"),
     },
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-    listArgs: {
+    params: {
         [SEARCH_PARAM]: listSearch,
         id: computed(() => {
             if (!listSearch.value) {
@@ -67,7 +67,7 @@ const modelListProps = reactive({
 });
 const modelListInstance = useList({
     props: modelListProps,
-    functions: {
+    handlers: {
         list: allPagePaginatedListCrudAdaptor,
     },
     paged: true,

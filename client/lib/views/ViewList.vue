@@ -93,11 +93,11 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    listArgs: {
+    params: {
         type: Object,
         default: () => ({}),
     },
-    retrieveArgs: {
+    params: {
         type: Object,
         default: () => ({}),
     },
@@ -173,11 +173,11 @@ const calculatedDisplayFields = computed(() => {
         );
     }
 });
-const alwaysListArgsKeys = ["o", "f", "e"];
+const alwaysParamsKeys = ["o", "f", "e"];
 const listState = reactive({
     currentPage: 1,
     search: "",
-    listArgs: {
+    params: {
         [ORDERING_PARAM]: toRef(sorting.state, "sorted"),
         [FIELDS_PARAM]: calculatedListFields,
         [EXPAND_PARAM]: computed(() => modelConfig.config?.expands),
@@ -185,13 +185,13 @@ const listState = reactive({
     filterArgs: {},
 });
 const instanceListProps = reactive({
-    crudArgs: {
+    target: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-    retrieveArgs: {},
-    listArgs: toRef(listState, "listArgs"),
+    params: {},
+    params: toRef(listState, "params"),
     intendToList: validAndActive,
     // intendToSubscribe: validAndActive,
     relatedObjectsRules: toRef(props, "relatedObjectsRules"),
@@ -216,16 +216,16 @@ watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, 
         }
     }
     if (newPage === 1) {
-        delete listState.listArgs[PAGE_PARAM];
+        delete listState.params[PAGE_PARAM];
     } else {
-        listState.listArgs[PAGE_PARAM] = newPage;
+        listState.params[PAGE_PARAM] = newPage;
     }
     if (!newSearch) {
-        delete listState.listArgs[SEARCH_PARAM];
+        delete listState.params[SEARCH_PARAM];
         const routeQuery = omit(route.query, [SEARCH_PARAM]);
         router.push({ query: routeQuery });
     } else {
-        listState.listArgs[SEARCH_PARAM] = newSearch;
+        listState.params[SEARCH_PARAM] = newSearch;
         const routeQuery = { ...route.query, [SEARCH_PARAM]: newSearch };
         if (!isEqual(routeQuery, route.query)) {
             router.push({ query: routeQuery });
@@ -244,11 +244,11 @@ watch(
     { immediate: true },
 );
 watch(
-    toRef(props, "listArgs"),
+    toRef(props, "params"),
     () => {
-        assignReactiveObject(listState.listArgs, props.listArgs, [
+        assignReactiveObject(listState.params, props.params, [
             ...Object.keys(listState.filterArgs),
-            ...alwaysListArgsKeys,
+            ...alwaysParamsKeys,
         ]);
     },
     { deep: true, immediate: true },
@@ -260,9 +260,9 @@ watch(
         if (!isEqual(newFilter, oldFilter)) {
             listState.currentPage = 1;
         }
-        assignReactiveObject(listState.listArgs, listState.filterArgs, [
-            ...Object.keys(props.listArgs),
-            ...alwaysListArgsKeys,
+        assignReactiveObject(listState.params, listState.filterArgs, [
+            ...Object.keys(props.params),
+            ...alwaysParamsKeys,
             SEARCH_PARAM,
         ]);
         const filterQuery = omit(route.query, [SEARCH_PARAM]);

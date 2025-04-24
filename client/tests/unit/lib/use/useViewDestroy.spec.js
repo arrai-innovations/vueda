@@ -73,9 +73,9 @@ describe("lib/use/useViewDestroy.js", () => {
             }),
         );
 
-        const listArgs = useList.mock.calls[0][0].props.listArgs;
-        expect(listArgs.id).toEqual(["123"]);
-        expect(Array.isArray(listArgs.id)).toBe(true);
+        const params = useList.mock.calls[0][0].props.params;
+        expect(params.id).toEqual(["123"]);
+        expect(Array.isArray(params.id)).toBe(true);
 
         expect(result.modelConfig).toBe(mockModelConfig);
         expect(result.instanceList).toBe(mockInstanceList);

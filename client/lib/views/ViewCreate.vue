@@ -86,13 +86,13 @@ const formContextProps = reactive({
 });
 const formContext = useForm(formContextProps);
 const instanceObjectProps = reactive({
-    crudArgs: {
+    target: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
     pk: null,
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-    retrieveArgs: {
+    params: {
         [FIELDS_PARAM]: computed(() => {
             return [...(props.submitFields ?? modelConfig.config?.submitFields ?? [])];
         }),

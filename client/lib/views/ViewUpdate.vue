@@ -40,13 +40,13 @@ if (!inject(LookupContextSymbol, null)) {
 const submitFields = computed(() => props.submitFields ?? modelConfig.config?.submitFields);
 
 const instanceObjectProps = reactive({
-    crudArgs: {
+    target: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     pk: toRef(props, "pk"),
-    retrieveArgs: {
+    params: {
         [FIELDS_PARAM]: computed(() => [modelConfig.info?.pk, ...(submitFields.value ?? [])]),
         [EXPAND_PARAM]: computed(() => {
             const expands = modelConfig.config?.expands || [];

@@ -173,13 +173,13 @@ const objectTransitions = useObjectsWorkflowTransitions(
     isActive,
 );
 const instanceObjectProps = reactive({
-    crudArgs: {
+    target: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     pk: toRef(props, "pk"),
-    retrieveArgs: {
+    params: {
         [FIELDS_PARAM]: computed(() => [modelConfig.info?.pk, fetchFields.value, "available_actions"]),
         [EXPAND_PARAM]: computed(() => modelConfig.config?.expands),
     },

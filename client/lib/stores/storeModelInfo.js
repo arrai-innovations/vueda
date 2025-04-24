@@ -269,7 +269,7 @@ export const storeModelInfo = defineStore("modelInfo", {
                 return Promise.reject(cachedError);
             }
             if (!this.promises[key]) {
-                const retrieveArgs = {
+                const params = {
                     [FIELDS_PARAM]: [
                         "app_label",
                         "model",
@@ -294,7 +294,7 @@ export const storeModelInfo = defineStore("modelInfo", {
                 this.promises[key] = fetchHelper(
                     // @ts-ignore - URLSearchParams is fine with object with a values of an array of strings.
                     //  it includes the key multiple times, as we intend.
-                    modelInfoUrl(args) + `?${new URLSearchParams(retrieveArgs).toString()}`,
+                    modelInfoUrl(args) + `?${new URLSearchParams(params).toString()}`,
                     {
                         method: "GET",
                     },

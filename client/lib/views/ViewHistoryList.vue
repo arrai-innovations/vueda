@@ -70,15 +70,15 @@ const isActive = useIsActive();
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model && modelConfig.info?.pk));
 const currentPage = ref(1);
 const modelListProps = reactive({
-    crudArgs: {
+    target: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
         pk: toRef(props, "pk"),
         action: "history_list",
     },
-    retrieveArgs: {},
+    params: {},
     pkKey: "history_id",
-    listArgs: {
+    params: {
         [props.pageKey]: currentPage,
         [FIELDS_PARAM]: ["history"],
     },

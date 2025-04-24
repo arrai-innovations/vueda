@@ -51,23 +51,23 @@ if (!inject(LookupContextSymbol, null)) {
 }
 
 const instanceListProps = reactive({
-    crudArgs: {
+    target: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-    retrieveArgs: {
+    params: {
         [FIELDS_PARAM]: {},
     },
-    listArgs: {
+    params: {
         id: Array.isArray(toRef(props, "pk")) ? toRef(props, "pk") : [toRef(props, "pk")],
     },
     intendToList: validAndActive,
 });
 
-async function executeAction({ crudArgs, pks }) {
+async function executeAction({ target, pks }) {
     const abortController = new AbortController();
-    const url = getDetailUrl(crudArgs.app, crudArgs.model, "activate");
+    const url = getDetailUrl(target.app, target.model, "activate");
     const returnedPromise = fetch(url, {
         method: "PATCH",
         headers: {
@@ -90,7 +90,7 @@ async function executeAction({ crudArgs, pks }) {
 const instanceList = useList({
     props: instanceListProps,
     paged: false,
-    functions: {
+    handlers: {
         executeAction,
     },
     keepOldPages: false,

@@ -6,7 +6,36 @@ _Actions potentially required by implementers are marked with italics._
 
 ### TL;DR
 
+- Unified CRUD prop names across all composables and components.
+- Aligned with `@arrai-innovations/reactive-helpers@^20.0.0`, which introduced new expectations for prop naming and handler structure.
+- **This is a breaking change for consumers passing `crudArgs`, `retrieveArgs`, or `listArgs` directly into `useList` or `useObject`-based props.**
+
 ### Breaking Changes
+
+- **Prop Renames for CRUD Operations**:
+
+    - Replaced `crudArgs` with `target` across all usage of `useList`, `useObject`, and related view/component integrations.
+    - Replaced both `listArgs` and `retrieveArgs` with `params`, simplifying how query parameters are passed.
+    - Renamed `functions` to `handlers` for injected implementations of `list`, `retrieve`, etc.
+    - _Update any custom or third-party integrations using `useList`/`useObject`/`useLookupContext`/etc. to match the new naming._
+    - _For example:_
+        ```js
+        useObject({
+            props: {
+                target: { app, model },
+                pk,
+                params: { f: ["id", "name"] },
+            },
+            handlers: {
+                retrieve: myCustomRetrieve,
+            },
+        });
+        ```
+    - _Component props such as `<ViewList :params="..." />` and `<WidgetSearchableSelect :extraParams="..." />` now align with these names._
+
+- **Peer Dependency Update**:
+    - Bumped `@arrai-innovations/reactive-helpers` to `^20.0.0`.
+    - _Ensure your project updates to this version to avoid breaking prop validation or unexpected behavior._
 
 ### Features
 

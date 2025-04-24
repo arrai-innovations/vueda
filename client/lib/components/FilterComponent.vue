@@ -24,7 +24,7 @@ const props = defineProps({
         type: Object,
         required: true,
     },
-    listArgs: {
+    params: {
         type: Object,
         required: true,
     },
@@ -250,7 +250,7 @@ watch(
         if (isEqual(newFormValue, oldFormValues) && isEqual(newQuery, oldQuery)) {
             return;
         }
-        if (!isEqual(newQuery, props.listArgs)) {
+        if (!isEqual(newQuery, props.params)) {
             let queryHasFilter = false;
             if (Array.isArray(lookupExpressionsToParams.value)) {
                 lookupExpressionsToParams.value.forEach((param) => {

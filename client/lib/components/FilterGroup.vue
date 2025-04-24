@@ -8,7 +8,7 @@ import Button from "primevue/button";
 import { computed, effectScope, reactive, readonly, ref, useSlots, watch } from "vue";
 import { useRoute } from "vue-router";
 
-const listArgs = defineModel({
+const params = defineModel({
     type: Object,
     required: true,
 });
@@ -41,7 +41,7 @@ const computedFilters = computed(() => props.filterables.filter((filter) => prop
 watch(
     () => route.query, // Watch the query part of the route
     (newQuery) => {
-        if (!isEqual(newQuery, listArgs.value)) {
+        if (!isEqual(newQuery, params.value)) {
             emit("query-change", newQuery);
         }
     },
@@ -51,7 +51,7 @@ watch(
 watch(
     addedFilters,
     (newAddedFilters) => {
-        const desiredListArgs = {};
+        const desiredParams = {};
         for (const filter of newAddedFilters) {
             let filterValue = filter.value;
             if (filter.isValueRawObject) {
@@ -64,18 +64,18 @@ watch(
                     if (isObject(filter.value)) {
                         const parts = p.split("_");
                         const key = parts[parts.length - 1];
-                        desiredListArgs[p] = filterValue[key] ?? "";
+                        desiredParams[p] = filterValue[key] ?? "";
                     } else {
-                        desiredListArgs[p] = filterValue;
+                        desiredParams[p] = filterValue;
                     }
                 });
                 continue;
             } else {
-                desiredListArgs[`${filter.param}`] = filterValue;
+                desiredParams[`${filter.param}`] = filterValue;
             }
         }
-        if (!isEqual(desiredListArgs, listArgs.value)) {
-            listArgs.value = desiredListArgs;
+        if (!isEqual(desiredParams, params.value)) {
+            params.value = desiredParams;
             emit("filter-change", readonly(newAddedFilters));
         }
     },
@@ -122,7 +122,7 @@ watch(
                     :filter-form-values="filterFormsValues[filter]"
                     :filter-name="filter"
                     :index="index"
-                    :list-args="listArgs"
+                    :params="params"
                     :model-value="addedFilters"
                     @hide-filter-form="emit('hide-filter-form', $event)"
                 >

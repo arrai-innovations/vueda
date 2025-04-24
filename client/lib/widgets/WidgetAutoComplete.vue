@@ -76,7 +76,7 @@ const computedOptionLabel = computed(() => {
     }
 });
 
-const modelListArgs = computed(() => {
+const modelParams = computed(() => {
     const f = [];
     if (props.modelFields.length) {
         f.concat(props.modelFields);
@@ -88,32 +88,32 @@ const modelListArgs = computed(() => {
     if (!f.includes(pkKey)) {
         f.push(pkKey);
     }
-    const listArgs = {
+    const params = {
         f,
     };
     if (listSearch.value) {
-        listArgs[SEARCH_PARAM] = listSearch.value;
+        params[SEARCH_PARAM] = listSearch.value;
     } else if (widgetContext.state.combinedValue) {
-        listArgs[unref(computedOptionValue)] = widgetContext.state.combinedValue;
+        params[unref(computedOptionValue)] = widgetContext.state.combinedValue;
     }
-    return listArgs;
+    return params;
 });
 
 const modelListProps = reactive({
-    crudArgs: {
+    target: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
-    retrieveArgs: {},
+    params: {},
     pkKey: computedPkKey,
-    listArgs: modelListArgs,
+    params: modelParams,
     intendToList: computed(
         () => modelConfig.loading === false && (!!listSearch.value || !!widgetContext.state.combinedValue),
     ),
 });
 const modelListInstance = useList({
     props: modelListProps,
-    functions: {
+    handlers: {
         list: allPagePaginatedListCrudAdaptor,
     },
     paged: true,

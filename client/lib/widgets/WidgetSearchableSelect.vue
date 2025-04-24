@@ -1,5 +1,5 @@
 <script setup>
-import { useList, useObject } from "@arrai-innovations/reactive-helpers";
+import { useList } from "@arrai-innovations/reactive-helpers";
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -13,6 +13,7 @@ import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } f
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import debounce from "lodash-es/debounce.js";
+import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
@@ -84,11 +85,11 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    extraListArgs: {
+    extraParams: {
         type: Object,
         default: () => ({}),
     },
-    getExtraListArgs: {
+    getExtraParams: {
         type: Function,
         default: undefined,
     },
@@ -170,39 +171,44 @@ const selectedOption = computed(() => {
 });
 
 const readOnlyDependencyValues = readonly(widgetContext.state.dependencyValues);
-const extraListArgs = computed(() => {
-    let baseExtraListArgs = {};
-    if (props.getExtraListArgs) {
-        baseExtraListArgs = props.getExtraListArgs(readOnlyDependencyValues);
+const extraParams = computed(() => {
+    let baseExtraParams = {};
+    if (props.getExtraParams) {
+        baseExtraParams = props.getExtraParams(readOnlyDependencyValues);
     }
     return {
-        ...baseExtraListArgs,
-        ...props.extraListArgs,
+        ...baseExtraParams,
+        ...props.extraParams,
     };
 });
+const labelField = computed(() => props.selectedOptionLabel ?? props.optionLabel);
+const groupingField = computed(() => (props.grouped ? props.groupBy : undefined));
+const fieldsList = computed(() => {
+    const fields = [pkKey.value];
+    if (labelField.value) {
+        fields.push(labelField.value);
+    }
+    if (groupingField.value) {
+        fields.push(groupingField.value);
+    }
+    return fields;
+});
 const pkKey = computed(() => modelConfig.info?.pk ?? "id");
-const listArgs = computed(() => ({
-    [PAGE_PARAM]: fetchedPages,
-    [SEARCH_PARAM]: listSearch,
-    [FIELDS_PARAM]: [
-        pkKey,
-        "formatted_name",
-        computed(() => (props.grouped ? props.groupBy : "")),
-        computed(() => props.selectedOptionLabel ?? ""),
-    ],
-    ...extraListArgs.value,
+const params = computed(() => ({
+    [PAGE_PARAM]: unref(fetchedPages),
+    [SEARCH_PARAM]: unref(listSearch),
+    [FIELDS_PARAM]: unref(fieldsList),
+    [EXPAND_PARAM]: props.modelExpandFields,
+    ...extraParams.value,
 }));
 
 const modelListProps = reactive({
-    crudArgs: {
+    target: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
-    retrieveArgs: {
-        [FIELDS_PARAM]: toRef(props, "modelFields"),
-    },
     pkKey,
-    listArgs,
+    params,
     intendToList,
 });
 
@@ -210,7 +216,7 @@ const callableOptionLabel = computed(() => {
     return typeof props.optionLabel === "function";
 });
 
-const modelListFunctions = reactive({
+const modelListHandlers = reactive({
     list: computed(() => {
         return props.isLazy || !props.grouped ? singlePagePaginatedListCrudAdaptor : allPagePaginatedListCrudAdaptor;
     }),
@@ -218,10 +224,10 @@ const modelListFunctions = reactive({
 
 const useListParams = reactive({
     props: modelListProps,
-    functions: modelListFunctions,
+    handlers: modelListHandlers,
     paged: true,
     keepOldPages: computed(() => !props.isLazy),
-    clearListOnListIntentTriggered: computed(() => props.isLazy),
+    clearListOnListIntentTriggered: false,
 });
 const modelList = useList({
     ...useListParams,
@@ -235,7 +241,7 @@ const lastScrollerPageTracks = reactive({
 });
 
 watch(
-    [extraListArgs, () => listArgs.value.f, listSearch],
+    [extraParams, () => params.value.f, listSearch],
     ([newExtraArgs, newArgs, newSearch], [oldExtraArgs, oldArgs, oldSearch]) => {
         const IsExtraArgsDiff = isEqual(newExtraArgs, oldExtraArgs);
         const IsArgsDiff = isEqual(deepUnref(newArgs), deepUnref(oldArgs));
@@ -246,11 +252,6 @@ watch(
                 recordsArray.value = [];
                 lastScrollerPageTracks.first = 0;
                 lastScrollerPageTracks.last = 0;
-            } else {
-                modelList.clearList();
-                if (intendToList.value) {
-                    modelList.list();
-                }
             }
             const virtualScrollerRef = selectRef.value?.virtualScroller;
             if (virtualScrollerRef) {
@@ -386,8 +387,8 @@ const listObjects = computed(() => {
     if (props.grouped) {
         if (objects.length && modelList.state.totalRecords) {
             const grouped = objects.reduce((acc, item) => {
-                const groupKey = item?.[props.groupBy];
-                let group = acc.find((g) => g[props.groupBy] === groupKey);
+                const groupKey = get(item, props.groupBy);
+                let group = acc.find((g) => get(g, props.groupBy) === groupKey);
                 if (!group) {
                     group = { [props.groupBy]: groupKey, items: [] };
                     acc.push(group);
@@ -461,7 +462,6 @@ const handleShow = () => {
                         fluid
                         :invalid="widgetContext.state.validationState.invalid"
                         :option-group-children="grouped && intendToList ? 'items' : undefined"
-                        :option-group-label="grouped && intendToList ? groupBy : undefined"
                         :option-label="props.optionLabel"
                         :option-value="pkKey"
                         :options="computedOptions"
@@ -486,7 +486,9 @@ const handleShow = () => {
                     >
                         <template #optiongroup="slotProps">
                             <div class="flex items-center">
-                                <div v-if="slotProps.option.items">{{ slotProps.option[props.groupBy] }}</div>
+                                <div v-if="slotProps.option.items">
+                                    {{ get(slotProps.option, props.groupBy) }}
+                                </div>
                             </div>
                         </template>
                         <template #value="slotProps">

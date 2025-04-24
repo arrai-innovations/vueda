@@ -232,8 +232,8 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
  * // Object instance for CRUD operations
  * const objectInstance = useObjectInstance({
  *   props: reactive({ id: '123', app: props.app, model: props.model }),
- *   functions: {
- *       // CRUD functions
+ *   handlers: {
+ *       // CRUD handlers
  *   }
  * });
  *

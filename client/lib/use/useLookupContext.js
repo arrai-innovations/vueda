@@ -70,19 +70,18 @@ export function useLookupContext() {
             entry = es.run(() => {
                 if (isList) {
                     const listProps = reactive({
-                        crudArgs: { app: args.app + "", model: args.model + "" },
+                        target: { app: args.app + "", model: args.model + "" },
                         pkKey,
-                        listArgs: {
+                        params: {
                             id: ["dummy"],
                         },
-                        retrieveArgs: {}, // optional in list
                     });
 
                     // @ts-ignore - prop type shenanigans
                     // noinspection JSCheckFunctionSignatures
                     const instance = useList({
                         props: listProps,
-                        functions: {
+                        handlers: {
                             list: allPagePaginatedListCrudAdaptor,
                         },
                         paged: false,
@@ -93,15 +92,15 @@ export function useLookupContext() {
                     return { props: listProps, instance };
                 } else {
                     const objectProps = reactive({
-                        crudArgs: { app: args.app + "", model: args.model + "" },
+                        target: { app: args.app + "", model: args.model + "" },
                         pkKey,
                         pk: "dummy",
-                        retrieveArgs: {},
+                        params: {},
                     });
 
                     // @ts-ignore - prop type shenanigans
                     // noinspection JSCheckFunctionSignatures
-                    const instance = useObject({ props: objectProps, functions: {} });
+                    const instance = useObject({ props: objectProps, handlers: {} });
 
                     return { props: objectProps, instance };
                 }
@@ -109,8 +108,8 @@ export function useLookupContext() {
         } else {
             // Reuse the manager
             entry.props.pkKey = pkKey;
-            entry.props.crudArgs.app = args.app + "";
-            entry.props.crudArgs.model = args.model + "";
+            entry.props.target.app = args.app + "";
+            entry.props.target.model = args.model + "";
         }
         busy.push(entry);
         // settle some reactive assignments
@@ -135,43 +134,46 @@ export function useLookupContext() {
     function runRequestBatch({ fields, expand }, { props, instance }, isList, key, pks) {
         // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
         try {
-            if (!props.retrieveArgs) {
-                props.retrieveArgs = {};
+            if (!props.params) {
+                props.params = {};
             }
             if (isList) {
-                if (!props.listArgs) {
-                    props.listArgs = {};
+                if (!props.params) {
+                    props.params = {};
                 }
-                props.listArgs.id.length = 0;
-                props.listArgs.id.push(...pks);
+                if (!props.params.id) {
+                    props.params.id = [];
+                } else {
+                    props.params.id.length = 0;
+                }
+                props.params.id.push(...pks);
             } else {
                 props.pk = pks[0] + "";
             }
-            const argKey = isList ? "listArgs" : "retrieveArgs";
-            props[argKey][FIELDS_PARAM] = cloneDeep(fields);
-            props[argKey][EXPAND_PARAM] = cloneDeep(expand);
+            props.params[FIELDS_PARAM] = cloneDeep(fields);
+            props.params[EXPAND_PARAM] = cloneDeep(expand);
             if (
-                props.crudArgs.app !== instance.state.crud.args.app ||
-                props.crudArgs.model !== instance.state.crud.args.model ||
+                props.target.app !== instance.state.crud.args.app ||
+                props.target.model !== instance.state.crud.args.model ||
                 props.pkKey !== instance.state.crud.args.pkKey ||
                 (isList
-                    ? !isEqual(props[argKey].id, instance.state[argKey].id)
-                    : props[argKey].pk !== instance.state[argKey].pk) ||
-                !isEqual(props[argKey][FIELDS_PARAM], instance.state[argKey][FIELDS_PARAM]) ||
-                !isEqual(props[argKey][EXPAND_PARAM], instance.state[argKey][FIELDS_PARAM])
+                    ? !isEqual(props.params.id, instance.state.params.id)
+                    : props.params.pk !== instance.state.params.pk) ||
+                !isEqual(props.params[FIELDS_PARAM], instance.state.params[FIELDS_PARAM]) ||
+                !isEqual(props.params[EXPAND_PARAM], instance.state.params[FIELDS_PARAM])
             ) {
                 // HACK: this is a workaround for whatever reactivity mess is going on here
-                instance.state.crud.args.app = props.crudArgs.app;
-                instance.state.crud.args.model = props.crudArgs.model;
+                instance.state.crud.args.app = props.target.app;
+                instance.state.crud.args.model = props.target.model;
                 instance.state.crud.args.pkKey = props.pkKey;
                 if (isList) {
-                    instance.state.listArgs.id = props.listArgs.id;
-                    instance.state.listArgs[FIELDS_PARAM] = props.listArgs[FIELDS_PARAM];
-                    instance.state.listArgs[EXPAND_PARAM] = props.listArgs[EXPAND_PARAM];
+                    instance.state.params.id = props.params.id;
+                    instance.state.params[FIELDS_PARAM] = props.params[FIELDS_PARAM];
+                    instance.state.params[EXPAND_PARAM] = props.params[EXPAND_PARAM];
                 } else {
                     instance.state.pk = props.pk;
-                    instance.state.retrieveArgs[FIELDS_PARAM] = props.retrieveArgs[FIELDS_PARAM];
-                    instance.state.retrieveArgs[EXPAND_PARAM] = props.retrieveArgs[EXPAND_PARAM];
+                    instance.state.params[FIELDS_PARAM] = props.params[FIELDS_PARAM];
+                    instance.state.params[EXPAND_PARAM] = props.params[EXPAND_PARAM];
                 }
             }
             return isList ? instance.list() : instance.retrieve();
