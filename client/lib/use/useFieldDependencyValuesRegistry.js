@@ -2,7 +2,7 @@ import { keyDiff } from "@arrai-innovations/reactive-helpers";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
-import { computed, effectScope, reactive, unref, watch } from "vue";
+import { computed, effectScope, reactive, readonly, unref, watch } from "vue";
 
 /**
  * @typedef {import('vue').Ref<string>} FieldRef
@@ -193,7 +193,7 @@ export function useFieldDependencyValuesRegistry(formValues) {
     };
 
     return {
-        dependencyValues: dependencyValuesByFieldName,
+        dependencyValues: readonly(dependencyValuesByFieldName),
         register: registerField,
         unregister: unregisterField,
         stop: () => mainEffectScope.stop(),
