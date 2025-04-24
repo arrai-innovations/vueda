@@ -1,6 +1,6 @@
+import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { computed, effectScope, reactive, readonly } from "vue";
 import { useSlots } from "vue";
-import { deepUnref } from "vue-deepunref";
 
 /**
  * @typedef {object} ResolvedSlotRawName

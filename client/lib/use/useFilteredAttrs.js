@@ -1,6 +1,6 @@
+import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import camelCase from "lodash-es/camelCase.js";
 import { computed, useAttrs } from "vue";
-import { deepUnref } from "vue-deepunref";
 
 /**
  * Filter an object down to only include keys in the list, if they exist.

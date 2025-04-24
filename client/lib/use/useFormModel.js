@@ -1,9 +1,9 @@
+import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { buildForm } from "@vueda/utils/buildForm.js";
 import { choiceFieldMappings, defaultFieldMappings, manyFieldMappings } from "@vueda/utils/fieldMappings.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import { provide, reactive, readonly, shallowReactive, toRef, watch } from "vue";
-import { deepUnref } from "vue-deepunref";
 
 /**
  * Get the field component for a given Django field type.

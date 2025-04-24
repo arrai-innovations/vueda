@@ -1,4 +1,5 @@
 import { cancellableFetch, setObjectCrud } from "@arrai-innovations/reactive-helpers";
+import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
@@ -6,7 +7,6 @@ import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import isObject from "lodash-es/isObject.js";
 import { unref } from "vue";
-import { deepUnref } from "vue-deepunref";
 
 const makeSearchParamsString = (searchParams) => {
     const params = deepUnref(searchParams);

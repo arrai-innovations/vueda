@@ -1,11 +1,11 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
+import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { ThemeOverrideSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isFunction from "lodash-es/isFunction.js";
 import mergeWith from "lodash-es/mergeWith.js";
 import { computed, effectScope, getCurrentInstance, inject, provide, toRef, unref } from "vue";
-import { deepUnref } from "vue-deepunref";
 
 let defaultTheme = vuedaTailwind;
 

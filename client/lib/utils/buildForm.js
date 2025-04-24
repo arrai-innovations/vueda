@@ -1,4 +1,5 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
+import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { mergeTheme, useTheme } from "@vueda/use/useTheme.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
@@ -8,7 +9,6 @@ import isObject from "lodash-es/isObject.js";
 import isSet from "lodash-es/isSet.js";
 import omit from "lodash-es/omit.js";
 import { computed, effectScope, toRef, watch } from "vue";
-import { deepUnref } from "vue-deepunref";
 
 /*
  * @param {string} formModelName - The name of the field's configuration in FormModel configuration.

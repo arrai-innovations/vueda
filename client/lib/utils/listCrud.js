@@ -1,4 +1,4 @@
-import { CancellablePromise, cancellableFetch, setListCrud } from "@arrai-innovations/reactive-helpers";
+import { CancellablePromise, cancellableFetch, deepUnref, setListCrud } from "@arrai-innovations/reactive-helpers";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
@@ -6,7 +6,6 @@ import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import isObject from "lodash-es/isObject.js";
 import omit from "lodash-es/omit.js";
 import pLimit from "p-limit";
-import { deepUnref } from "vue-deepunref";
 
 /**
  * Make a search params string from the given search params object.

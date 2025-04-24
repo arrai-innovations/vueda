@@ -1,4 +1,5 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
+import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
@@ -6,7 +7,6 @@ import isEqual from "lodash-es/isEqual.js";
 import isString from "lodash-es/isString.js";
 import omit from "lodash-es/omit.js";
 import { computed, inject, onUnmounted, provide, reactive, readonly, toRef, unref, watch } from "vue";
-import { deepUnref } from "vue-deepunref";
 
 export const FIELD_PROPS = {
     // *** Identification & Metadata ***

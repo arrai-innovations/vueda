@@ -1,6 +1,5 @@
 <script setup>
-import { useList } from "@arrai-innovations/reactive-helpers";
-import { combineClasses } from "@arrai-innovations/reactive-helpers";
+import { combineClasses, deepUnref, useList } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useResolvedLookupObject } from "@vueda/use/useResolvedLookupObject.js";
@@ -8,7 +7,7 @@ import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
-import { EXPAND_PARAM, FIELDS_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
+import { EXPAND_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -20,7 +19,6 @@ import pick from "lodash-es/pick.js";
 import InputText from "primevue/inputtext";
 import Select from "primevue/select";
 import { computed, reactive, readonly, ref, toRef, unref, useSlots, watch } from "vue";
-import { deepUnref } from "vue-deepunref";
 
 defineOptions({
     inheritAttrs: false,

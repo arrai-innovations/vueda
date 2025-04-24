@@ -1,3 +1,4 @@
+import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { FIELD_PROPS } from "@vueda/use/useField.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
@@ -11,7 +12,6 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import merge from "lodash-es/merge.js";
 import omit from "lodash-es/omit.js";
 import { computed, inject, onBeforeUpdate, reactive, readonly, toRef, unref, useSlots, watch } from "vue";
-import { deepUnref } from "vue-deepunref";
 
 /**
  * Helper function to focus the first descendant element that can be focused.
