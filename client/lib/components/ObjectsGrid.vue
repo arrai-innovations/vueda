@@ -247,7 +247,12 @@ watch(
                             role="columnheader"
                             @click="sortClick($event, field?.name)"
                         >
-                            <objects-grid-table-header v-if="field.extra" :column-index="columnIndex" :field="field">
+                            <objects-grid-table-header
+                                v-if="field.extra"
+                                :column-index="columnIndex"
+                                :column-count="fields.length"
+                                :field="field"
+                            >
                                 <template #label="slotProps">
                                     <slot
                                         :key="field?.name || `column-index-${columnIndex}`"
@@ -260,6 +265,7 @@ watch(
                                 v-else
                                 :ascending="sorted.includes(field.name)"
                                 :column-index="columnIndex"
+                                :column-count="fields.length"
                                 :descending="sorted.includes(`-${field.name}`)"
                                 :field="field"
                                 :field-props="fieldProps"
@@ -333,6 +339,7 @@ watch(
                                         combineClasses(fieldClasses?.[field?.name], cardFieldClasses?.[field?.name])
                                     "
                                     :column-index="columnIndex"
+                                    :column-count="fields.length"
                                     :data-field="field?.name"
                                     :field="field"
                                     :field-props="fieldProps"
@@ -345,6 +352,7 @@ watch(
                                     :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
                                     role="cell"
                                     :row-index="rowIndex"
+                                    :row-count="objectsInOrder.length"
                                 >
                                     <template #header="slotProps">
                                         <slot :name="slotNameResolvers[field?.name]?.header?.name" v-bind="slotProps" />
@@ -360,6 +368,7 @@ watch(
                                         combineClasses(fieldClasses?.[field?.name], tableFieldClasses?.[field?.name])
                                     "
                                     :column-index="columnIndex"
+                                    :column-count="fields.length"
                                     :data-field="field?.name"
                                     :field="field"
                                     :field-props="fieldProps"
@@ -369,6 +378,7 @@ watch(
                                     :related-object="relatedObjects[obj?.[pkKey]] ?? {}"
                                     role="cell"
                                     :row-index="rowIndex"
+                                    :row-count="objectsInOrder.length"
                                 >
                                     <template #value="slotProps">
                                         <slot :name="slotNameResolvers[field?.name]?.field?.name" v-bind="slotProps" />

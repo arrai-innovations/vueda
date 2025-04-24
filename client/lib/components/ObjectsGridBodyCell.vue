@@ -30,6 +30,14 @@ const props = defineProps({
         type: Number,
         required: true,
     },
+    rowCount: {
+        type: Number,
+        required: true,
+    },
+    columnCount: {
+        type: Number,
+        required: true,
+    },
     fieldProps: {
         type: Object,
         default: () => ({}),
@@ -65,6 +73,7 @@ const uniqueKeyForSlot = computed(() =>
             :column-index="columnIndex"
             :field="field"
             :formatted="formattedComputed"
+            :is-table-layout="true"
             :is-card-layout="false"
             name="value"
             :obj="obj"
@@ -72,6 +81,8 @@ const uniqueKeyForSlot = computed(() =>
             :pk-key="pkKey"
             :related-obj="relatedObject"
             :row-index="rowIndex"
+            :row-count="rowCount"
+            :column-count="columnCount"
             :value="valueComputed"
             v-bind="fieldProps"
         >

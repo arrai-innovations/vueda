@@ -2,6 +2,27 @@
 
 _Actions potentially required by implementers are marked with italics._
 
+## v2.0.0-alpha.4 (2025-04-24)
+
+### TL;DR
+
+### Breaking Changes
+
+### Features
+
+- **Slot Context Enhancements** (`ObjectsGrid`):
+    - All slot contexts for `ObjectsGridBodyCell`, `ObjectsGridCardCell`, and `ObjectsGridTableHeader` now include:
+        - `rowCount`, `columnCount`, `isTableLayout`, `isCardLayout`
+    - Enables fine-grained control over layout-aware rendering in slot content.
+    - _Use these values in scoped slots to conditionally adjust rendering based on grid size or mode._
+        ```vue
+        <template #field="{ rowCount, columnCount, isCardLayout }">
+            <div :class="{ 'mobile-layout': isCardLayout }">{{ columnCount }} columns, {{ rowCount }} rows</div>
+        </template>
+        ```
+
+### Fixes
+
 ## v2.0.0-alpha.3 (2025-04-23)
 
 ### TL;DR

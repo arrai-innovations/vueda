@@ -12,6 +12,10 @@ const props = defineProps({
         type: Number,
         required: true,
     },
+    columnCount: {
+        type: Number,
+        required: true,
+    },
     sortable: {
         type: Boolean,
         default: false,
@@ -50,9 +54,11 @@ const uniqueKeyForSlot = computed(() =>
             <slot
                 :key="uniqueKeyForSlot"
                 :column-index="columnIndex"
+                :column-count="columnCount"
                 :field="field"
                 v-bind="fieldProps"
                 gird-type="table-header"
+                :is-table-layout="true"
                 :is-card-layout="false"
                 name="label"
             >
@@ -64,8 +70,10 @@ const uniqueKeyForSlot = computed(() =>
                 :key="uniqueKeyForSlot"
                 :ascending="ascending"
                 :column-index="columnIndex"
+                :column-count="columnCount"
                 :descending="descending"
                 :field="field"
+                :is-table-layout="true"
                 :is-card-layout="false"
                 name="sort-icon"
                 v-bind="fieldProps"

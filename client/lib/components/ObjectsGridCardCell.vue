@@ -33,6 +33,14 @@ const props = defineProps({
         type: Number,
         required: true,
     },
+    rowCount: {
+        type: Number,
+        required: true,
+    },
+    columnCount: {
+        type: Number,
+        required: true,
+    },
     fieldProps: {
         type: Object,
         default: () => ({}),
@@ -71,8 +79,11 @@ const effectiveHeaderClass = combineClasses(theme("header"), toRef(props, "heade
         :class="effectiveHeaderClass"
         :row-index="rowIndex"
         :column-index="columnIndex"
+        :row-count="rowCount"
+        :column-count="columnCount"
         :field="field"
         gird-type="cell"
+        :is-table-layout="false"
         :is-card-layout="true"
         :data-card-header="field.name"
         name="header"
@@ -88,6 +99,7 @@ const effectiveHeaderClass = combineClasses(theme("header"), toRef(props, "heade
             :column-index="columnIndex"
             :field="field"
             :formatted="formattedComputed"
+            :is-table-layout="false"
             :is-card-layout="true"
             name="value"
             :obj="obj"
@@ -95,6 +107,8 @@ const effectiveHeaderClass = combineClasses(theme("header"), toRef(props, "heade
             :pk-key="pkKey"
             :related-obj="relatedObject"
             :row-index="rowIndex"
+            :row-count="rowCount"
+            :column-count="columnCount"
             :value="valueComputed"
             v-bind="fieldProps"
             >{{ formattedComputed }}</slot
