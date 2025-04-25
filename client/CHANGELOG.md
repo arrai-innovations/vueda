@@ -2,6 +2,16 @@
 
 _Actions potentially required by implementers are marked with italics._
 
+## v2.0.0-alpha.5 (2025-04-24)
+
+### Fixes
+
+- **Peer Dependency Update**:
+    - Bumped `@arrai-innovations/reactive-helpers` to `^20.0.1`.
+    - _Ensure your project updates to this version to avoid breaking prop validation or unexpected behavior._
+- Use `deepUnref` from `@arrai-innovations/reactive-helpers` for better types support of `vue-deepUnref`
+- `readonly` calculated dependency values in `useFieldDependencyValuesRegistry`
+
 ## v2.0.0-alpha.4 (2025-04-24)
 
 ### TL;DR
@@ -49,8 +59,6 @@ _Actions potentially required by implementers are marked with italics._
             <div :class="{ 'mobile-layout': isCardLayout }">{{ columnCount }} columns, {{ rowCount }} rows</div>
         </template>
         ```
-
-### Fixes
 
 ## v2.0.0-alpha.3 (2025-04-23)
 
@@ -299,8 +307,6 @@ _Actions potentially required by implementers are marked with italics._
     - `ViewHistoryList`: Respected theming root class and standardized v-model bindings.
     - `DetailedView`: Corrected application of `submitFields` only for submission.
     - `FieldSetInline`: Now respects user-defined field ordering in expanded inline fields.
-
----
 
 ### Developer Recommendations
 
