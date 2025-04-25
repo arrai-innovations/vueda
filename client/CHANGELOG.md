@@ -2,6 +2,17 @@
 
 _Actions potentially required by implementers are marked with italics._
 
+## v2.0.0-alpha.6 (2025-04-24)
+
+### Fixes
+
+- **useLookupContext**: prevent race when cancelling and immediately re-requesting the same lookup by deferring cleanup of `consumerPromises` and `inflightPromises`, and ignoring unchanged watch triggers in `useResolvedLookupObject`.
+- **useResolvedLookupObject**: ignore watch triggers where fields and expands haven't changed, preventing unnecessary cancellation and re-requesting of the same lookup.
+
+### Refactors
+
+- **WidgetSearchableSelect**: extract complex search, scroller, and lookup logic into a dedicated `useSearchableSelect` composable; improve loading handling by combining loading states, preventing a flash of the PK while label is loading, smoothing scroller resets on query/param changes, and fine-tuning debounce behavior.
+
 ## v2.0.0-alpha.5 (2025-04-24)
 
 ### Fixes
