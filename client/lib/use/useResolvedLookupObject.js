@@ -1,10 +1,19 @@
 import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
+import isEqual from "lodash-es/isEqual.js";
 import { inject, onScopeDispose, reactive, readonly, toRaw, toRef, watch } from "vue";
 
 /**
- * @typedef {object} ResolvedLookupObject
+ * @typedef {object} ResolvedLookupRawInstance
  * @property {{[prop:string]: any}} object - The resolved object.
+ */
+
+/**
+ * @typedef {import('vue').Reactive<(
+ *     import('@arrai-innovations/reactive-helpers').LoadingErrorStatus &
+ *     ResolvedLookupRawInstance
+ * )>} ResolvedLookupInstance
+ *
  */
 
 /**
@@ -14,7 +23,7 @@ import { inject, onScopeDispose, reactive, readonly, toRaw, toRef, watch } from 
  * @param {import('vue').Ref<string>|string} pk
  * @param {import('vue').Ref<string[]>|string[]} fields
  * @param {import('vue').Ref<string[]>|string[]} expands
- * @returns {ResolvedLookupObject & import('@arrai-innovations/reactive-helpers').LoadingErrorStatus}
+ * @returns {ResolvedLookupInstance}
  */
 export function useResolvedLookupObject(app, model, pk, fields, expands) {
     const loadingError = useLoadingError();
@@ -48,37 +57,41 @@ export function useResolvedLookupObject(app, model, pk, fields, expands) {
         }
     });
 
+    const cancelInflightRequest = async () => {
+        if (inflightRequest?.cancel) {
+            console.debug("[cancelInflightRequest] Cancelling inflight request");
+            try {
+                await inflightRequest.cancel("Parameters changed, lookup cancelled");
+            } catch (err) {
+                console.warn("[useResolvedLookupObject] Error cancelling inflight request:", err);
+            }
+        }
+    };
+
     watch(
         [
-            toRef(internalState, "app"),
-            toRef(internalState, "model"),
-            toRef(internalState, "pk"),
-            toRef(internalState, "fields"),
-            toRef(internalState, "expands"),
+            () => toRaw(internalState.app),
+            () => toRaw(internalState.model),
+            () => toRaw(internalState.pk),
+            () => toRaw(internalState.fields),
+            () => toRaw(internalState.expands),
         ],
-        async ([a, m, id, f, e]) => {
-            const rawA = toRaw(a);
-            const rawM = toRaw(m);
-            const rawId = toRaw(id);
-            const rawF = toRaw(f);
-            const rawE = toRaw(e);
-            if (inflightRequest?.cancel) {
-                try {
-                    await inflightRequest.cancel("Parameters changed, lookup cancelled");
-                } catch (err) {
-                    console.warn("[useResolvedLookupObject] Error cancelling inflight request:", err);
-                }
+        async ([a, m, id, f, e], [, , , , oldF, oldE]) => {
+            if (!a || !m || !id) {
+                await cancelInflightRequest();
+                assignReactiveObject(internalState.object, {});
+                return;
             }
 
-            if (!rawA || !rawM || !rawId) {
-                assignReactiveObject(internalState.object, {});
+            // primitive non changes won't trigger the watch, but array non-changes will
+            if (isEqual(oldF, f) && isEqual(oldE, e)) {
                 return;
             }
 
             loadingError.setLoading();
             loadingError.clearError();
             try {
-                const p = lookup.requestObject(rawA, rawM, rawId, rawF, rawE);
+                const p = lookup.requestObject(a, m, id, f, e);
                 inflightRequest = p;
                 const result = await p;
                 if (scopeDisposed) {

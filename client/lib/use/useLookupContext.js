@@ -202,102 +202,108 @@ export function useLookupContext() {
                     continue;
                 }
                 let instanceCancel = null;
-                const batchPromise = (async () => {
-                    const entry = await acquireManager({
-                        isList,
-                        args,
-                        pks,
-                    });
-                    try {
-                        const outcomePromise = runRequestBatch(args, entry, isList, key, pks);
-                        instanceCancel = outcomePromise.cancel;
-                        const outcome = await outcomePromise;
+                const batchPromise = CancellablePromise(
+                    (async () => {
+                        const entry = await acquireManager({
+                            isList,
+                            args,
+                            pks,
+                        });
+                        try {
+                            const outcomePromise = runRequestBatch(args, entry, isList, key, pks);
+                            instanceCancel = outcomePromise.cancel;
+                            const outcome = await outcomePromise;
 
-                        if (!results[key]) {
-                            results[key] = {};
-                        }
-
-                        for (const pk of pks) {
-                            results[key][pk] = cloneDeep(
-                                isList ? entry.instance.state.objects[pk] : entry.instance.state.object,
-                            );
-
-                            const consumers = consumerPromises?.[key]?.[pk];
-                            if (!consumers) {
-                                console.warn(
-                                    "[scheduledRequest] No consumers for this request",
-                                    key,
-                                    pk,
-                                    consumerPromises,
-                                );
-                                continue;
+                            if (!results[key]) {
+                                results[key] = {};
                             }
-                            for (const consumer of consumers) {
-                                if (!outcome) {
-                                    consumer.reject(entry.instance.state.error);
+
+                            for (const pk of pks) {
+                                results[key][pk] = cloneDeep(
+                                    isList ? entry.instance.state.objects[pk] : entry.instance.state.object,
+                                );
+
+                                const consumers = consumerPromises?.[key]?.[pk];
+                                if (!consumers) {
+                                    console.warn(
+                                        "[scheduledRequest] No consumers for this request",
+                                        key,
+                                        pk,
+                                        consumerPromises,
+                                    );
                                     continue;
                                 }
-                                consumer.resolve(readonlyResults[key][pk]);
+                                for (const consumer of consumers) {
+                                    if (!outcome) {
+                                        consumer.reject(entry.instance.state.error);
+                                        continue;
+                                    }
+                                    consumer.resolve(readonlyResults[key][pk]);
+                                }
                             }
-                        }
-                        return outcome;
-                    } catch (err) {
-                        console.error("[scheduledRequest] Error in runRequestBatch:", err);
-                        for (const pk of pks) {
-                            const consumers = consumerPromises?.[key]?.[pk];
-                            if (!consumers?.length) {
-                                console.error(
-                                    "[scheduledRequest] No consumers for request rejection",
-                                    key,
-                                    pk,
-                                    consumerPromises,
-                                    err,
-                                );
-                                continue;
+                            return outcome;
+                        } catch (err) {
+                            console.error("[scheduledRequest] Error in runRequestBatch:", err);
+                            for (const pk of pks) {
+                                const consumers = consumerPromises?.[key]?.[pk];
+                                if (!consumers?.length) {
+                                    console.error(
+                                        "[scheduledRequest] No consumers for request rejection",
+                                        key,
+                                        pk,
+                                        consumerPromises,
+                                        err,
+                                    );
+                                    continue;
+                                }
+                                for (const consumer of consumers) {
+                                    consumer.reject(err);
+                                }
                             }
-                            for (const consumer of consumers) {
-                                consumer.reject(err);
+                        } finally {
+                            for (const pk of pks) {
+                                if (consumerPromises?.[key]?.[pk]) {
+                                    delete consumerPromises[key][pk];
+                                }
+                                if (inflightPromises?.[key]?.[pk]) {
+                                    delete inflightPromises[key][pk];
+                                }
                             }
-                        }
-                    } finally {
-                        for (const pk of pks) {
-                            if (consumerPromises?.[key]?.[pk]) {
-                                delete consumerPromises[key][pk];
-                            }
-                            if (inflightPromises?.[key]?.[pk]) {
-                                delete inflightPromises[key][pk];
-                            }
-                        }
-                        if (consumerPromises[key] && !Object.keys(consumerPromises[key]).length) {
-                            delete consumerPromises[key];
-                        }
-                        if (inflightPromises[key] && !Object.keys(inflightPromises[key]).length) {
-                            delete inflightPromises[key];
-                        }
+                            // noinspection ES6MissingAwait
+                            nextTick(() => {
+                                // Defer cleanup to avoid race condition with immediate re-request for the same key
+                                if (consumerPromises[key] && !Object.keys(consumerPromises[key]).length) {
+                                    delete consumerPromises[key];
+                                }
+                                if (inflightPromises[key] && !Object.keys(inflightPromises[key]).length) {
+                                    delete inflightPromises[key];
+                                }
+                            });
 
-                        if (isList) {
-                            entry.instance.clearList();
-                            idleLists.push(entry);
-                        } else {
-                            entry.instance.clear();
-                            idleObjects.push(entry);
+                            if (isList) {
+                                entry.instance.clearList();
+                                idleLists.push(entry);
+                            } else {
+                                entry.instance.clear();
+                                idleObjects.push(entry);
+                            }
                         }
-                    }
-                })();
-                batchPromise.cancel = async (reason = "Cancelled") => {
-                    try {
+                    })(),
+                    async (reason = "Cancelled") => {
                         try {
-                            if (instanceCancel) {
-                                await instanceCancel?.(reason); // or whatever cancel logic applies
-                                instanceCancel = null; // make idempotent
+                            try {
+                                if (instanceCancel) {
+                                    await instanceCancel?.(reason); // or whatever cancel logic applies
+                                    instanceCancel = null; // make idempotent
+                                }
+                            } catch (e) {
+                                console.warn("[batchPromise] cancel failed", e);
                             }
                         } catch (e) {
-                            console.warn("[batchPromise] cancel failed", e);
+                            console.warn("[scheduledRequest] cancel failed", e);
                         }
-                    } catch (e) {
-                        console.warn("[scheduledRequest] cancel failed", e);
-                    }
-                };
+                    },
+                );
                 if (!inflightPromises[key]) {
                     inflightPromises[key] = {};
                 }
@@ -342,7 +348,12 @@ export function useLookupContext() {
                 }
                 if (!Object.keys(consumerPromises[key]).length) {
                     // last one out, cancel the inner promise
-                    await inflightPromises?.[key]?.[pk]?.cancel(reason);
+                    // await inflightPromises?.[key]?.[pk]?.cancel(reason);
+                    if (inflightPromises[key]?.[pk]) {
+                        await inflightPromises[key][pk].cancel(reason);
+                    } else {
+                        console.warn("[cancel] No inflightPromise yet for", key, pk, "- skipping cancel");
+                    }
                     delete consumerPromises[key];
                 }
                 if (inflightPromises?.[key]?.[pk]) {
