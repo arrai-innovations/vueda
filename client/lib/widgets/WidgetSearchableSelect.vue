@@ -1,24 +1,17 @@
 <script setup>
-import { combineClasses, deepUnref, useList } from "@arrai-innovations/reactive-helpers";
+import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
-import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { useResolvedLookupObject } from "@vueda/use/useResolvedLookupObject.js";
+import { SEARCHABLE_SELECT_PROPS, useSearchableSelect } from "@vueda/use/useSearchableSelect.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
-import { EXPAND_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
-import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
-import cloneDeep from "lodash-es/cloneDeep.js";
-import debounce from "lodash-es/debounce.js";
-import get from "lodash-es/get.js";
-import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import InputText from "primevue/inputtext";
 import Select from "primevue/select";
-import { computed, reactive, readonly, ref, toRef, unref, useSlots, watch } from "vue";
+import { ref, unref, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -26,407 +19,23 @@ defineOptions({
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
-    app: {
-        type: String,
-        required: true,
-    },
-    model: {
-        type: String,
-        required: true,
-    },
-    fieldApp: {
-        type: String,
-        required: true,
-    },
-    fieldModel: {
-        type: String,
-        required: true,
-    },
-    fieldName: {
-        type: String,
-        required: true,
-    },
-    modelFields: {
-        type: Array,
-        default: () => [],
-    },
-    modelExpandFields: {
-        type: Array,
-        default: () => [],
-    },
-    options: {
-        type: Array,
-        default: undefined,
-    },
-    optionValue: {
-        type: String,
-        default: "id",
-    },
-    optionLabel: {
-        type: String,
-        default: "formatted_name",
-    },
-    selectedOptionLabel: {
-        type: String,
-        default: undefined,
-        description: "The label to display when the value is set.",
-    },
-    multiple: {
-        type: Boolean,
-        default: false,
-    },
-    placeholder: {
-        type: String,
-        default: undefined,
-    },
-    readonly: {
-        type: Boolean,
-        default: false,
-    },
-    extraParams: {
-        type: Object,
-        default: () => ({}),
-    },
-    getExtraParams: {
-        type: Function,
-        default: undefined,
-    },
-    grouped: {
-        type: Boolean,
-        default: false,
-        description:
-            "If true, the options will be grouped by the groupBy field. isLazy is assumed to be true when grouped is true.",
-    },
-    groupBy: {
-        type: String,
-        default: undefined,
-    },
-    isLazy: {
-        type: Boolean,
-        default: true,
-    },
+    ...SEARCHABLE_SELECT_PROPS,
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
 });
-const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), ref("list"));
-const selectRef = ref(null);
-const fetchedPages = ref(1);
-const hasBeenFocused = ref(false);
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-
-const listFilterValue = ref("");
-const prePopulatedSearchText = computed(() => {
-    return selectedOption.value?.[props.optionLabel] || "";
-});
-const listSearch = computed(() => {
-    if (listFilterValue.value.length > 0 ? listFilterValue.value === prePopulatedSearchText.value : false) {
-        return "";
-    }
-    return listFilterValue.value;
-});
-const intendToList = computed(() => {
-    return (
-        ((modelConfig.info?.pk && !widgetContext.state.combinedValue) || listSearch.value.length > 0) &&
-        hasBeenFocused.value
-    );
-});
-const theme = useWidgetTheme("WidgetSearchableSelect", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
-
-const resolvedLookupObject = useResolvedLookupObject(
-    toRef(props, "app"),
-    toRef(props, "model"),
-    toRef(widgetContext.state, "combinedValue"),
-    toRef(props, "modelFields"),
-    toRef(props, "modelExpandFields"),
-);
-
-const computedOptions = computed(() => {
-    if (intendToList.value && (!modelList.state.loading || fetchedPages.value > 1)) {
-        return listObjects.value;
-    }
-    if (widgetContext.state.combinedValue && !resolvedLookupObject.loading) {
-        return [unref(resolvedLookupObject.object)];
-    }
-    return [];
-});
-const selectedOption = computed(() => {
-    const isLoading = resolvedLookupObject.loading;
-
-    const value = widgetContext.state.combinedValue;
-    const labelField = props.selectedOptionLabel ?? props.optionLabel;
-    const resolved = resolvedLookupObject.object;
-    if (!isLoading && resolved && isEqual(resolved?.[props.optionValue], value) && resolved?.[labelField]) {
-        return resolved;
-    }
-
-    const flatOptions = props.grouped
-        ? computedOptions.value.flatMap((group) => group.items || [])
-        : computedOptions.value;
-
-    return flatOptions.find((option) => isEqual(option?.[props.optionValue], value));
-});
-
-const readOnlyDependencyValues = readonly(widgetContext.state.dependencyValues);
-const extraParams = computed(() => {
-    let baseExtraParams = {};
-    if (props.getExtraParams) {
-        baseExtraParams = props.getExtraParams(readOnlyDependencyValues);
-    }
-    return {
-        ...baseExtraParams,
-        ...props.extraParams,
-    };
-});
-const labelField = computed(() => props.selectedOptionLabel ?? props.optionLabel);
-const groupingField = computed(() => (props.grouped ? props.groupBy : undefined));
-const fieldsList = computed(() => {
-    const fields = [pkKey.value];
-    if (labelField.value) {
-        fields.push(labelField.value);
-    }
-    if (groupingField.value) {
-        fields.push(groupingField.value);
-    }
-    return fields;
-});
-const pkKey = computed(() => modelConfig.info?.pk ?? "id");
-const params = computed(() => ({
-    [PAGE_PARAM]: unref(fetchedPages),
-    [SEARCH_PARAM]: unref(listSearch),
-    [FIELDS_PARAM]: unref(fieldsList),
-    [EXPAND_PARAM]: props.modelExpandFields,
-    ...extraParams.value,
-}));
-
-const modelListProps = reactive({
-    target: {
-        app: toRef(props, "app"),
-        model: toRef(props, "model"),
-    },
-    pkKey,
-    params,
-    intendToList,
-});
-
-const callableOptionLabel = computed(() => {
-    return typeof props.optionLabel === "function";
-});
-
-const modelListHandlers = reactive({
-    list: computed(() => {
-        return props.isLazy || !props.grouped ? singlePagePaginatedListCrudAdaptor : allPagePaginatedListCrudAdaptor;
-    }),
-});
-
-const useListParams = reactive({
-    props: modelListProps,
-    handlers: modelListHandlers,
-    paged: true,
-    keepOldPages: computed(() => !props.isLazy),
-    clearListOnListIntentTriggered: false,
-});
-const modelList = useList({
-    ...useListParams,
-});
-
-const recordsArray = ref([]);
-
-const lastScrollerPageTracks = reactive({
-    first: 0,
-    last: 0,
-});
-
-watch(
-    [extraParams, () => params.value.f, listSearch],
-    ([newExtraArgs, newArgs, newSearch], [oldExtraArgs, oldArgs, oldSearch]) => {
-        const IsExtraArgsDiff = isEqual(newExtraArgs, oldExtraArgs);
-        const IsArgsDiff = isEqual(deepUnref(newArgs), deepUnref(oldArgs));
-        const IsSearchDiff = isEqual(newSearch, oldSearch);
-        if (!IsExtraArgsDiff || !IsArgsDiff || !IsSearchDiff) {
-            fetchedPages.value = 1;
-            if (props.isLazy) {
-                recordsArray.value = [];
-                lastScrollerPageTracks.first = 0;
-                lastScrollerPageTracks.last = 0;
-            }
-            const virtualScrollerRef = selectRef.value?.virtualScroller;
-            if (virtualScrollerRef) {
-                virtualScrollerRef.scrollTo({ top: 0 });
-            }
-        }
-    },
-    { deep: true, immediate: true },
-);
-
-watch(
-    [
-        () => modelList?.state?.loading,
-        () => modelList?.state?.totalRecords,
-        toRef(props, "isLazy"),
-        toRef(props, "grouped"),
-    ],
-    ([newLoading, newTotalRecords, newIsLazy, newGrouped], [oldLoading, oldTotalRecords, oldIsLazy, oldGrouped]) => {
-        const lazyChanged = !isEqual(newIsLazy, oldIsLazy);
-        const groupedChanged = !isEqual(newGrouped, oldGrouped);
-        const loadingChanged = !isEqual(newLoading, oldLoading);
-        const totalRecordsChanged = !isEqual(newTotalRecords, oldTotalRecords);
-        if (!lazyChanged && !groupedChanged && !loadingChanged && !totalRecordsChanged) {
-            return;
-        }
-
-        if (loadingChanged && newLoading === false && modelList?.state?.objectsInOrder.length > 0) {
-            if (!isEqual(newTotalRecords, recordsArray.value.length)) {
-                recordsArray.value = Array(newTotalRecords).fill(undefined);
-                lastScrollerPageTracks.first = 0;
-                lastScrollerPageTracks.last = 0;
-            }
-            const startIndex = (fetchedPages.value - 1) * modelList?.state?.perPage;
-            modelList?.state?.objectsInOrder.forEach((item, index) => {
-                const targetIndex = startIndex + index;
-
-                if (targetIndex < recordsArray.value.length) {
-                    recordsArray.value[targetIndex] = cloneDeep(item);
-                }
-            });
-        }
-    },
-    { deep: true, immediate: true },
-);
-
-watch(
-    [toRef(props, "options")],
-    ([options]) => {
-        if (options) {
-            modelList.managed.listInstance.clearList(); // TODO
-            modelList.managed.listInstance.pageCallback(props.options);
-            if (!modelListProps.textSearchRules) {
-                if (callableOptionLabel.value) {
-                    throw new Error(
-                        "Cannot use options with a function for optionLabel when" + " using hardcoded options.",
-                    );
-                }
-                modelListProps.textSearchRules = [props.optionLabel];
-                modelListProps.textSearchValue = listFilterValue;
-            }
-        } else {
-            if (modelListProps.textSearchRules) {
-                modelListProps.textSearchRules = undefined;
-                modelListProps.textSearchValue = undefined;
-            }
-        }
-    },
-    {
-        immediate: true,
-    },
-);
-const handleFilter = debounce((value) => {
-    listFilterValue.value = value;
-    fetchedPages.value = 1;
-}, 500);
-
-const placeHolderText = computed(() => {
-    return props.placeholder || `Select a ${props.model}`;
-});
-
-const perPage = ref(100);
-
-watch(
-    [
-        () => modelList.state?.totalPages,
-        () => modelList.state?.perPage,
-        () => modelList?.state?.loading,
-        lastScrollerPageTracks,
-    ],
-    ([totalPages, numPerPage, loading, lastScrolled]) => {
-        if (numPerPage && numPerPage > 0) {
-            perPage.value = numPerPage;
-        }
-        if (loading && (totalPages === 0 || numPerPage === 0)) {
-            return;
-        }
-
-        const newPage = Math.min(Math.ceil(lastScrolled.first / (numPerPage || 1)) + 1, totalPages ?? 1) || 1;
-        const startIndex = (newPage - 1) * numPerPage;
-        if (!recordsArray.value[startIndex]) {
-            fetchedPages.value = newPage;
-        }
-    },
-    { immediate: true, deep: true },
-);
-const onLazyLoad = (event) => {
-    lastScrollerPageTracks.first = event.first;
-    lastScrollerPageTracks.last = event.last;
-};
-
-const onValueChange = () => {
-    if (!hasBeenFocused.value) {
-        hasBeenFocused.value = true;
-        widgetContext.blur();
-    }
-    recordsArray.value = [];
-
-    fetchedPages.value = 1;
-};
-const computedLabel = computed(() => {
-    return modelList.state.objectsInOrder.find((obj) => obj[props.optionValue] === widgetContext.state.combinedValue)?.[
-        props.optionLabel
-    ];
-});
-const handleLabelClick = (e) => {
-    if (selectRef.value) {
-        selectRef.value.onContainerClick(e);
-    }
-};
-
-const listObjects = computed(() => {
-    const objects = cloneDeep(modelList.state.objectsInOrder);
-    if (props.grouped) {
-        if (objects.length && modelList.state.totalRecords) {
-            const grouped = objects.reduce((acc, item) => {
-                const groupKey = get(item, props.groupBy);
-                let group = acc.find((g) => get(g, props.groupBy) === groupKey);
-                if (!group) {
-                    group = { [props.groupBy]: groupKey, items: [] };
-                    acc.push(group);
-                }
-                group.items.push({
-                    [props.optionValue]: item?.[props.optionValue],
-                    [props.optionLabel]: item?.[props.optionLabel],
-                });
-                return acc;
-            }, []);
-
-            return grouped;
-        }
-        return [];
-    }
-
-    return recordsArray.value;
-});
-
-watch(
-    prePopulatedSearchText,
-    (value, oldValue) => {
-        if (!isEqual(value, oldValue)) {
-            listFilterValue.value = value;
-        }
-    },
-    { immediate: true, deep: true },
-);
-
-const handleHide = () =>
-    (listFilterValue.value = widgetContext.state.combinedValue ? prePopulatedSearchText.value : "");
-
+const theme = useWidgetTheme("WidgetSearchableSelect", props, widgetContext.state);
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 
-const handleShow = () => {
-    if (!hasBeenFocused.value) {
-        hasBeenFocused.value = true;
-    }
-};
+const selectRef = ref(null);
+
+const searchableSelect = useSearchableSelect(props, widgetContext, selectRef);
+
+// ### onContainerClick is an internal API on primevue's Select component ###
+const handleLabelClick = (e) => unref(selectRef)?.onContainerClick?.(e);
 </script>
 <template>
     <div :class="theme('root')">
@@ -445,7 +54,7 @@ const handleShow = () => {
                         v-if="props.readonly"
                         :app="app"
                         class="whitespace-nowrap grow shrink-0"
-                        :label="computedLabel"
+                        :label="searchableSelect.selectedLabel"
                         :model="model"
                         :pk="widgetContext.state.combinedValue"
                         view="update"
@@ -455,48 +64,38 @@ const handleShow = () => {
                         v-bind="omit($attrs, 'value')"
                         ref="selectRef"
                         v-model="widgetContext.state.combinedValue"
+                        :loading="searchableSelect.loading"
+                        :options="searchableSelect.options"
+                        :option-value="searchableSelect.optionValue"
+                        :option-label="searchableSelect.optionLabel"
+                        :option-group-children="searchableSelect.optionGroupChildren"
+                        :virtual-scroller-options="searchableSelect.virtualScrollerOptions"
+                        @before-show="searchableSelect.onBeforeShow"
+                        @change="searchableSelect.onChange"
+                        @hide="searchableSelect.onHide"
                         :aria-labelledby="widgetContext.state.widgetId"
                         :disabled="widgetContext.state.disabled"
                         fluid
                         :invalid="widgetContext.state.validationState.invalid"
-                        :option-group-children="grouped && intendToList ? 'items' : undefined"
-                        :option-label="props.optionLabel"
-                        :option-value="pkKey"
-                        :options="computedOptions"
-                        :placeholder="placeHolderText"
                         :pt="effectivePt"
                         show-clear
-                        :virtual-scroller-options="{
-                            lazy: isLazy || !grouped,
-                            onLazyLoad: onLazyLoad,
-                            itemSize: 38,
-                            showLoader: true,
-                            loading: modelList.state.loading,
-                            autoSize: true,
-                            step: perPage,
-                        }"
-                        @before-show="handleShow"
                         @blur="widgetContext.blur"
-                        @change="onValueChange"
                         @focus="widgetContext.focus"
-                        @hide="handleHide"
                         :aria-required="widgetContext.state.required"
                     >
-                        <template #optiongroup="slotProps">
+                        <template #optiongroup="{ option }">
                             <div class="flex items-center">
-                                <div v-if="slotProps.option.items">
-                                    {{ get(slotProps.option, props.groupBy) }}
+                                <div v-if="option.items">
+                                    {{ searchableSelect.lookupGroupBy(option) }}
                                 </div>
                             </div>
                         </template>
-                        <template #value="slotProps">
-                            <template v-if="slotProps.value">
-                                {{
-                                    selectedOption?.[props.selectedOptionLabel ?? props.optionLabel] ?? slotProps.value
-                                }}
+                        <template #value>
+                            <template v-if="widgetContext.state.combinedValue">
+                                {{ searchableSelect.selectedLabel }}
                             </template>
                             <span v-else>
-                                {{ slotProps.placeholder }}
+                                {{ searchableSelect.placeholder }}
                             </span>
                         </template>
                         <template #header>
@@ -504,9 +103,8 @@ const handleShow = () => {
                                 <InputText
                                     :id="widgetContext.state.widgetId"
                                     class="w-full"
-                                    :model-value="listFilterValue"
+                                    v-model="searchableSelect.query"
                                     placeholder="Type to Search"
-                                    @update:model-value="handleFilter"
                                 ></InputText>
                             </div>
                         </template>
