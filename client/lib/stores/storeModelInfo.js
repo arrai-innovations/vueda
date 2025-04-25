@@ -203,7 +203,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  */
 
 /**
- * The information provided on a Django model, including fields, actions, expands, ordering, filtering, and permissions.
+ * The information provided on a Django model, including fields, actions, expand, ordering, filtering, and permissions.
  *
  * @typedef {object} ModelInfo
  * @property {string} appLabel - The app label of the model (e.g., "auth").
@@ -213,7 +213,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {string} pk - The primary key field of the model.
  * @property {{[fieldName: string]: FieldInfo}} fields - A mapping of field names to their respective `FieldInfo` objects.
  * @property {ActionInfo[]} actions - The actions that can be performed on the model.
- * @property {ExpandInfo[]} expands - The expandable fields of the model.
+ * @property {ExpandInfo[]} expand - The expandable fields of the model.
  * @property {OrderInfo[]} ordering - The fields available for ordering the model.
  * @property {{[filterName: string]: FilterInfo}} filtering - The fields available for filtering the model.
  * @property {PermissionInfo[]} permissions - The permissions available for the model.
@@ -301,7 +301,7 @@ export const storeModelInfo = defineStore("modelInfo", {
                     "Failed to fetch model info",
                     ModelInfoError,
                 )
-                    // server is serving all the expands as model_ to avoid server side conflicts
+                    // server is serving all the expanded fields as model_ to avoid server side conflicts
                     // that is just noise client side, so we'll clean it up here
                     .then((data) => {
                         // Process the data
@@ -311,6 +311,10 @@ export const storeModelInfo = defineStore("modelInfo", {
                                 if (key.startsWith("model_")) {
                                     key = k.slice(6);
                                 }
+                                // In client code, we consistently use `expand` (not `expands`), matching `omit` not `omits`
+                                if (key === "expands") {
+                                    key = "expand";
+                                }
                                 // Only camelCase nested objects, leave root keys unchanged
                                 if (key === "fields" || key === "filtering") {
                                     return [
@@ -318,8 +322,8 @@ export const storeModelInfo = defineStore("modelInfo", {
                                         Object.fromEntries(Object.entries(v).map(([k, v]) => [k, camelCaseObject(v)])),
                                     ];
                                 }
-                                if (key === "expands") {
-                                    // `expands.f` is also a mapping of field names to FieldInfo objects
+                                if (key === "expand") {
+                                    // `expand.f` is also a mapping of field names to FieldInfo objects
                                     return [
                                         key,
                                         v.map((expand) => ({

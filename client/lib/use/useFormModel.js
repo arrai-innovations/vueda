@@ -85,7 +85,7 @@ const getFieldProps = (field) => {
  * @property {string} model - The model name to load form configuration for
  * @property {string|undefined} view - The view name if wanting to use view specific configuration.
  * @property {string[]} fields - The fields to display, either passed in or from config.
- * @property {string[]} expands - The fields to expand, either passed in or from config.
+ * @property {string[]} expand - The fields to expand, either passed in or from config.
  * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - The merged fieldDetails, either passed in, from config or from server info.
  * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - The merged expandDetails, either passed in, from config or from server info.
  * @property {{[fieldName:string]:import('vue').Component}} fieldComponents - The field components to use, either passed in or as a result of fieldObject or expandObject.
@@ -104,7 +104,7 @@ const getFieldProps = (field) => {
 /**
  * @typedef {object} UseFormModelRawOverridableProps
  * @property {string[]|undefined} fields - The fields to display, if different from the default
- * @property {string[]|undefined} expands - The fields to expand, if different from the default
+ * @property {string[]|undefined} expand - The fields to expand, if different from the default
  * @property {{[fieldName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}|undefined} fieldComponents - The field components to use, if different from the default, by field path
  * @property {{[fieldName:string]: {[key:string]: any}}|undefined} fieldProps - The field props to use, if different from the default, by field path
  * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}|undefined} widgetComponents - The widget components to use, if different from the default, by field path
@@ -134,7 +134,7 @@ export function useFormModel(props) {
             view: toRef(props, "view"),
             fields: [],
             computedFields: [],
-            expands: [],
+            expand: [],
             fieldDetails: {},
             expandDetails: {},
             fieldComponents: shallowReactive({}),
@@ -155,34 +155,34 @@ export function useFormModel(props) {
         setWidgetComponentProps,
     } = buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps);
     setUpWatch("displayFields", "fieldDetails", "fields", "fieldDetails");
-    setUpWatch("expands", "expandDetails");
+    setUpWatch("expand", "expandDetails");
     setUpWatch("computedFields");
 
     watch(
-        [toRef(state, "expands"), toRef(state, "fields"), toRef(state, "fieldDetails"), toRef(state, "expandDetails")],
-        ([expands, fields, fieldDetails, expandDetails]) => {
+        [toRef(state, "expand"), toRef(state, "fields"), toRef(state, "fieldDetails"), toRef(state, "expandDetails")],
+        ([expand, fields, fieldDetails, expandDetails]) => {
             if (Object.keys(fieldDetails || {}).length && fields.length) {
                 const fieldComponents = {};
                 const fieldProps = {};
                 const widgetComponents = {};
                 const widgetProps = {};
                 const allFields = [];
-                const unrefExpands = deepUnref(expands) || [];
+                const unrefExpand = deepUnref(expand) || [];
                 const baseFieldNames = new Set();
                 const expansionFieldNames = new Set();
                 const expandedFieldNames = new Set();
-                let anySpecifiedExpands = false;
+                let anySpecifiedExpand = false;
                 for (const fieldName of deepUnref(fields) || []) {
                     const item = {
                         fieldName,
                         fieldDetail: fieldDetails[fieldName],
                         isExpandedField: fieldName.includes("__"),
-                        baseExpanded: unrefExpands.includes(fieldName),
+                        baseExpanded: unrefExpand.includes(fieldName),
                         expandName: null,
                     };
                     if (item.isExpandedField) {
-                        anySpecifiedExpands = true;
-                        // we don't deal with nested expands. we might need to in the future
+                        anySpecifiedExpand = true;
+                        // we don't deal with nested expand. we might need to in the future
                         [item.expandName, item.expandFieldName] = fieldName.split("__", 2);
                         item.expandDetail = expandDetails[item.expandName];
                         if (!item.expandDetail) {
@@ -231,10 +231,10 @@ export function useFormModel(props) {
                     }
                     allFields.push(item);
                 }
-                if (!anySpecifiedExpands && unrefExpands.length) {
-                    // if you didn't ask for any expand fields manually, but you did specify an expands,
+                if (!anySpecifiedExpand && unrefExpand.length) {
+                    // if you didn't ask for any expand fields manually, but you did specify an expand,
                     //  add all expansion fields
-                    for (const expandName of unrefExpands) {
+                    for (const expandName of unrefExpand) {
                         const baseIndex = allFields.findIndex((item) => item.fieldName === expandName);
                         if (baseIndex === -1) {
                             continue;

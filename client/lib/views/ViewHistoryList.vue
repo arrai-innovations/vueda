@@ -119,7 +119,7 @@ const extraFieldObjects = computed(() => {
     return objects;
 });
 const calculatedHistoryFieldsObjects = computed(() => {
-    const history_fields = modelConfig.info?.expands?.filter((expand) => expand.name === "history")[0]?.f;
+    const history_fields = modelConfig.info?.expand?.filter((expand) => expand.name === "history")[0]?.f;
     return history_fields ? Object.entries(history_fields).map(([key, value]) => ({ name: key, ...value })) : [];
 });
 const computedFieldObjects = computed(() => {

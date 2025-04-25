@@ -167,7 +167,7 @@ const props = defineProps({
         default: undefined,
         description: "The fields to render in the form, if not wanting to use the configuration default for this view.",
     },
-    expands: {
+    expand: {
         type: Array,
         default: undefined,
         description: "The fields to render in the form, expanded.",

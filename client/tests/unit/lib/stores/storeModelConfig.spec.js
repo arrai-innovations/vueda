@@ -100,7 +100,7 @@ const dummyModelInfo = {
             parameters: ["args", "kwargs"],
         },
     ],
-    expands: [
+    expand: [
         {
             name: "employee",
             readOnly: false,
@@ -239,7 +239,7 @@ describe("lib/store/storeModelConfig.js", () => {
         expect(config.fetchFields).toEqual(["name", "description"]);
         expect(config.submitFields).toEqual(["name", "description"]);
 
-        expect(config.expands).toEqual(["employee", "timesheet_days"]);
+        expect(config.expand).toEqual(["employee", "timesheet_days"]);
         expect(config.routeActions).toEqual([
             "create",
             "destroy",

@@ -81,7 +81,7 @@ export const FIELD_SET_INLINE_PROPS = {
         default: undefined,
         description: "A list of the field names to display for each object.",
     },
-    expands: {
+    expand: {
         type: Array,
         default: undefined,
         description: "A list of the field names to expand.",
@@ -314,10 +314,8 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
         view: parentFormModel.view,
         fields: computed(() => [...(parentFormModel.fields?.map((item) => item.value) || []), ...(props.fields || [])])
             .value,
-        expands: computed(() => [
-            ...(parentFormModel.expands?.map((item) => item.value) || []),
-            ...(props.expands || []),
-        ]).value,
+        expand: computed(() => [...(parentFormModel.expand?.map((item) => item.value) || []), ...(props.expand || [])])
+            .value,
         fieldDetails: computed(() => merge(cloneDeep(parentFormModel.fieldDetails), props.fieldDetails)),
         fieldComponents: computed(() => merge(cloneDeep(parentFormModel.fieldComponents), props.fieldComponents)),
         fieldProps: computed(() => merge(cloneDeep(parentFormModel.fieldProps), props.fieldProps)),

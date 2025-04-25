@@ -180,7 +180,7 @@ const listState = reactive({
     params: {
         [ORDERING_PARAM]: toRef(sorting.state, "sorted"),
         [FIELDS_PARAM]: calculatedListFields,
-        [EXPAND_PARAM]: computed(() => modelConfig.config?.expands),
+        [EXPAND_PARAM]: computed(() => modelConfig.config?.expand),
     },
     filterArgs: {},
 });

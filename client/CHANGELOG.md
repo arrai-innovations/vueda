@@ -2,12 +2,29 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.0-alpha.6 (2025-04-24)
+## v2.0.0-alpha.7 (2025-04-25)
+
+### Breaking Changes
+
+- **`expands` vs `expand` consistency:**
+    - _All internal uses of `expands` or `*Expands` (in model info, model config, and component props including form, field, and widget props) have been renamed to `expand` for consistency._
+    - _Check your `modelConfigStore.setConfig` calls and any customized views for references to `expands`._
+
+### Fixes
+
+- **useLookupContext**:
+    - Corrected `runRequestBatch` to properly compare and apply `expand` parameters (not mistakenly comparing `expand` to `fields`).
+    - Ensures object lookups respect requested expansions when batching or reusing managers.
+- **storeModelInfo**:
+    - Client-side normalization now maps server `"model_expands"` to `"expand"` internally.
+    - _Client code should consistently reference `expand`, avoiding mismatched `expands`._
+
+## v2.0.0-alpha.6 (2025-04-25)
 
 ### Fixes
 
 - **useLookupContext**: prevent race when cancelling and immediately re-requesting the same lookup by deferring cleanup of `consumerPromises` and `inflightPromises`, and ignoring unchanged watch triggers in `useResolvedLookupObject`.
-- **useResolvedLookupObject**: ignore watch triggers where fields and expands haven't changed, preventing unnecessary cancellation and re-requesting of the same lookup.
+- **useResolvedLookupObject**: ignore watch triggers where fields and expand haven't changed, preventing unnecessary cancellation and re-requesting of the same lookup.
 
 ### Refactors
 
@@ -183,7 +200,7 @@ _Actions potentially required by implementers are marked with italics._
     - Simplifies auto-lookups with reactive loading state and cancellation support.
     - _Use this for foreign object lookups:_
         ```js
-        const resolved = useResolvedLookupObject(app, model, pk, fields, expands);
+        const resolved = useResolvedLookupObject(app, model, pk, fields, expand);
         // reactive: resolved.object, resolved.loading
         ```
 

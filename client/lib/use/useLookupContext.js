@@ -1,4 +1,4 @@
-import { CancellablePromise, useList, useObject } from "@arrai-innovations/reactive-helpers";
+import { CancellablePromise, deepUnref, useList, useObject } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
@@ -28,7 +28,7 @@ export function useLookupContext() {
     /** @type {import('vue').Reactive<{[key:string]: {[pk:string]: object}}>} */
     const results = reactive({});
     const readonlyResults = readonly(results);
-    /** @typedef {{app:string, model:string, fields:string[], expands:string[], pk:string}} Request */
+    /** @typedef {{app:string, model:string, fields:string[], expand:string[], pk:string}} Request */
     /** @type {Map<[key: string], Request>} */
     const requestsMap = new Map();
     /** @typedef {{
@@ -150,8 +150,8 @@ export function useLookupContext() {
             } else {
                 props.pk = pks[0] + "";
             }
-            props.params[FIELDS_PARAM] = cloneDeep(fields);
-            props.params[EXPAND_PARAM] = cloneDeep(expand);
+            props.params[FIELDS_PARAM] = deepUnref(fields);
+            props.params[EXPAND_PARAM] = deepUnref(expand);
             if (
                 props.target.app !== instance.state.crud.args.app ||
                 props.target.model !== instance.state.crud.args.model ||
@@ -160,7 +160,7 @@ export function useLookupContext() {
                     ? !isEqual(props.params.id, instance.state.params.id)
                     : props.params.pk !== instance.state.params.pk) ||
                 !isEqual(props.params[FIELDS_PARAM], instance.state.params[FIELDS_PARAM]) ||
-                !isEqual(props.params[EXPAND_PARAM], instance.state.params[FIELDS_PARAM])
+                !isEqual(props.params[EXPAND_PARAM], instance.state.params[EXPAND_PARAM])
             ) {
                 // HACK: this is a workaround for whatever reactivity mess is going on here
                 instance.state.crud.args.app = props.target.app;
@@ -316,10 +316,10 @@ export function useLookupContext() {
         { maxWait: 1000 },
     );
 
-    const getLookupKey = (app, model, fields, expands) => {
+    const getLookupKey = (app, model, fields, expand) => {
         const appModelDotName = getAppModelDotName({ app, model });
         const fieldKey = [...(fields || [])].sort().join(",");
-        const expandKey = [...(expands || [])].sort().join(",");
+        const expandKey = [...(expand || [])].sort().join(",");
         return `${appModelDotName}/${fieldKey}/${expandKey}`;
     };
 
@@ -384,7 +384,7 @@ export function useLookupContext() {
     /**
      * The lookup context object.
      * @type {object}
-     * @property {function(app:string, model:string, fields:string[], expands:string[], pk:string):import('@arrai-innovations/reactive-helpers').CancellablePromise<object>} requestObject - The function to request an object.
+     * @property {function(app:string, model:string, fields:string[], expand:string[], pk:string):import('@arrai-innovations/reactive-helpers').CancellablePromise<object>} requestObject - The function to request an object.
      */
     const lookupContext = {
         /**
@@ -394,12 +394,12 @@ export function useLookupContext() {
          * @param {string} model - The model name, used in URL construction and request keying.
          * @param {string} pk - The primary key of the object to request.
          * @param {string[]} fields - The fields to include in the request.
-         * @param {string[]} expands - The expands to include in the request.
+         * @param {string[]} expand - The expand names to include in the request.
          * @returns {Promise<object>} - A cancellable promise that resolves to the requested object.
          */
-        requestObject: (app, model, pk, fields, expands) => {
+        requestObject: (app, model, pk, fields, expand) => {
             pk = pk + ""; // ensure pk is a string, matters to Map, unlike Object
-            const key = getLookupKey(app, model, fields, expands);
+            const key = getLookupKey(app, model, fields, expand);
             if (results[key]?.[pk]) {
                 return Promise.resolve(readonlyResults[key][pk]);
             }
@@ -415,7 +415,7 @@ export function useLookupContext() {
                 app,
                 model,
                 fields,
-                expands,
+                expand,
                 pk,
             });
             const promise = newPromiseUnwrapper(key, pk);

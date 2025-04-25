@@ -41,7 +41,7 @@ import { defineStore } from "pinia";
  * @property {string[]} displayFields - field names to display by default
  * @property {string[]} fetchFields - field names to fetch by default
  * @property {string[]} submitFields - field names to submit on create/update by default
- * @property {string[]} expands - field names to expand by default
+ * @property {string[]} expand - field names to expand by default
  * @property {string[]} routeActions - actions to configure routes for
  * @property {ActionPermissionConfig} actions - actions to display by default
  * @property {string[]} filterables - filters to display in list view
@@ -69,7 +69,7 @@ import { defineStore } from "pinia";
  * @property {string[]} [displayFields] - field names to display by default
  * @property {string[]} [fetchFields] - field names to fetch by default
  * @property {string[]} [submitFields] - field names to submit on create/update by default
- * @property {string[]} [expands] - field names to expand by default
+ * @property {string[]} [expand] - field names to expand by default
  * @property {string[]} [routeActions] - actions to configure routes for
  * @property {ActionPermissionConfig} [actions] - actions to display by default
  * @property {string[]} [filterables] - filters to display in list view
@@ -94,14 +94,14 @@ import { defineStore } from "pinia";
  * @returns {[generic:ModelConfig, {[view: string]: OverridingModelConfig}]} The default configuration objects.
  */
 const getDefaultFromModelInfo = (modelInfo) => {
-    if (!modelInfo || !modelInfo.fields || !modelInfo.expands || !modelInfo.actions) {
+    if (!modelInfo || !modelInfo.fields || !modelInfo.expand || !modelInfo.actions) {
         return [{}, {}];
     }
     const pkField = modelInfo.pk;
     const fields = Object.keys(modelInfo.fields).filter((f) => f !== pkField);
-    const expandFields = modelInfo.expands.map((e) => e.name);
+    const expandFields = modelInfo.expand.map((e) => e.name);
     const actionDetailsByName = Object.fromEntries(modelInfo.actions.map((a) => [a.name, a]));
-    const expandDetailsByName = Object.fromEntries(modelInfo.expands.map((e) => [e.name, e]));
+    const expandDetailsByName = Object.fromEntries(modelInfo.expand.map((e) => [e.name, e]));
     const actionNames = modelInfo.actions.map((a) => a.name);
     const canUpdate = actionNames.includes("update");
     const canRetrieve = actionNames.includes("retrieve");
@@ -113,7 +113,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
             displayFields: fields,
             fetchFields: fields,
             submitFields: fields,
-            expands: expandFields,
+            expand: expandFields,
             routeActions: modelInfo.actions.map((a) => a.name),
             actions: modelInfo.actions.map((a) => a.name),
             filterables: Object.keys(modelInfo.filtering),
@@ -204,7 +204,7 @@ const mergeSimpleProperties = (
  * from various configuration sources and then mapping them into the fieldDetails object.
  * The process ensures that:
  *
- * 1. For each expansion name listed in builtConfig.expands:
+ * 1. For each expansion name listed in builtConfig.expand:
  *    - It deep merges the expansion configuration from:
  *         • defaultGenericConfig.expandDetails[expandName]
  *         • customGenericConfig.expandDetails[expandName]
@@ -243,7 +243,7 @@ const flattenExpansionDetails = (
     defaultSpecificConfig,
     customSpecificConfig,
 ) => {
-    const expanded = builtConfig.expands || [];
+    const expanded = builtConfig.expand || [];
     if (isEmpty(expanded)) {
         return;
     }

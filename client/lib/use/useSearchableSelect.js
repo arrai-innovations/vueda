@@ -163,7 +163,7 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), "list");
     const pkKey = computed(() => modelConfig.info?.pk ?? "id");
     const defaultFields = computed(() => modelConfig.config?.fetchFields || []);
-    const defaultExpands = computed(() => modelConfig.config?.expands || []);
+    const defaultExpand = computed(() => modelConfig.config?.expand || []);
     const defaultOrdering = computed(() => undefined); // replace when available
 
     const fieldsList = computed(() => {
@@ -175,7 +175,7 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
     });
 
     const expandList = computed(() =>
-        props.modelExpandFields?.length ? props.modelExpandFields : unref(defaultExpands),
+        props.modelExpandFields?.length ? props.modelExpandFields : unref(defaultExpand),
     );
     const orderingList = computed(() => (props.modelOrdering?.length ? props.modelOrdering : unref(defaultOrdering)));
 

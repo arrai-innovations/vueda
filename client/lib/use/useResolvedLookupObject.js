@@ -22,10 +22,10 @@ import { inject, onScopeDispose, reactive, readonly, toRaw, toRef, watch } from 
  * @param {import('vue').Ref<string>|string} model
  * @param {import('vue').Ref<string>|string} pk
  * @param {import('vue').Ref<string[]>|string[]} fields
- * @param {import('vue').Ref<string[]>|string[]} expands
+ * @param {import('vue').Ref<string[]>|string[]} expand
  * @returns {ResolvedLookupInstance}
  */
-export function useResolvedLookupObject(app, model, pk, fields, expands) {
+export function useResolvedLookupObject(app, model, pk, fields, expand) {
     const loadingError = useLoadingError();
     const lookup = inject(LookupContextSymbol);
     const internalState = reactive({
@@ -33,7 +33,7 @@ export function useResolvedLookupObject(app, model, pk, fields, expands) {
         model,
         pk,
         fields,
-        expands,
+        expand,
         object: {},
     });
     const returnObject = reactive({
@@ -74,7 +74,7 @@ export function useResolvedLookupObject(app, model, pk, fields, expands) {
             () => toRaw(internalState.model),
             () => toRaw(internalState.pk),
             () => toRaw(internalState.fields),
-            () => toRaw(internalState.expands),
+            () => toRaw(internalState.expand),
         ],
         async ([a, m, id, f, e], [, , , , oldF, oldE]) => {
             if (!a || !m || !id) {

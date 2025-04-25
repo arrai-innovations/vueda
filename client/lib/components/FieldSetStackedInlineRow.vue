@@ -56,7 +56,7 @@ const remainingSlotNames = computed(() => {
 });
 </script>
 <template>
-    <div v-if="formModel.expands?.length" :class="theme('root')">
+    <div v-if="formModel.expand?.length" :class="theme('root')">
         <div v-if="fieldSetSlotNames['before-fields'].name" :class="theme('beforeFields')">
             <slot name="before-fields" />
         </div>

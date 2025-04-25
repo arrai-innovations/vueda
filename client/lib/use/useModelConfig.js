@@ -11,7 +11,7 @@ import { reactive, readonly, toRef, watch } from "vue";
  *
  * @typedef {object} ViewSpecificModelConfig
  * @property {string[]} fields - field names to display
- * @property {string[]} expands - field names to expand
+ * @property {string[]} expand - field names to expand
  * @property {string[]|undefined} filterables - filters to display in list view
  * @property {string[]|undefined} sortables - field names that can be sorted in list view
  * @property {string[]|undefined} sorted - the default sort order for list view

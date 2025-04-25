@@ -181,7 +181,7 @@ const instanceObjectProps = reactive({
     pk: toRef(props, "pk"),
     params: {
         [FIELDS_PARAM]: computed(() => [modelConfig.info?.pk, fetchFields.value, "available_actions"]),
-        [EXPAND_PARAM]: computed(() => modelConfig.config?.expands),
+        [EXPAND_PARAM]: computed(() => modelConfig.config?.expand),
     },
     intendToRetrieve,
     relatedObjectRules: toRef(props, "relatedObjectRules"),

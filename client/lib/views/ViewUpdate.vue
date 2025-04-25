@@ -49,8 +49,8 @@ const instanceObjectProps = reactive({
     params: {
         [FIELDS_PARAM]: computed(() => [modelConfig.info?.pk, ...(submitFields.value ?? [])]),
         [EXPAND_PARAM]: computed(() => {
-            const expands = modelConfig.config?.expands || [];
-            return expands.filter(
+            const expand = modelConfig.config?.expand || [];
+            return expand.filter(
                 (expand) =>
                     formContext.state?.values[expand] !== undefined && formContext.state.values[expand] !== null,
             );
