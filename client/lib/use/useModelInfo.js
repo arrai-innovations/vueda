@@ -50,7 +50,20 @@ export function useModelInfo(app, model, isActive) {
             error: loadingError.error,
             errored: loadingError.errored,
             clearError: loadingError.clearError,
-            info: ref({}),
+            info: ref({
+                // populate the expected shape to make deeper references work earlier
+                appLabel: "",
+                model: "",
+                verboseName: "",
+                verboseNamePlural: "",
+                pk: null,
+                fields: {},
+                actions: [],
+                expand: [],
+                ordering: [],
+                filtering: {},
+                permissions: [],
+            }),
         },
     );
 

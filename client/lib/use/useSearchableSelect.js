@@ -212,7 +212,7 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
 
     const intendToSearch = computed(
         () =>
-            ((!!modelConfig.info?.pk && !widgetContext.state.combinedValue) || effectiveSearch.value.length) &&
+            ((modelConfig.loading === false && !widgetContext.state.combinedValue) || effectiveSearch.value.length) &&
             hasBeenFocused.value,
     );
 

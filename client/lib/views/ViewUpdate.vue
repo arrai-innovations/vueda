@@ -47,7 +47,7 @@ const instanceObjectProps = reactive({
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     pk: toRef(props, "pk"),
     params: {
-        [FIELDS_PARAM]: computed(() => [modelConfig.info?.pk, ...(submitFields.value ?? [])]),
+        [FIELDS_PARAM]: computed(() => [modelConfig.info?.pk ?? "id", ...(submitFields.value ?? [])]),
         [EXPAND_PARAM]: computed(() => {
             const expand = modelConfig.config?.expand || [];
             return expand.filter(

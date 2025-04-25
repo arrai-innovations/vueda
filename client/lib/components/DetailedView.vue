@@ -141,7 +141,7 @@ const validAndActive = computed(
             props.app &&
             props.model &&
             props.pk &&
-            modelConfig.info?.pk &&
+            modelConfig.loading === false &&
             modelConfig.config?.fetchFields
         ),
 );
@@ -180,7 +180,7 @@ const instanceObjectProps = reactive({
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     pk: toRef(props, "pk"),
     params: {
-        [FIELDS_PARAM]: computed(() => [modelConfig.info?.pk, fetchFields.value, "available_actions"]),
+        [FIELDS_PARAM]: computed(() => [modelConfig.info?.pk ?? "id", fetchFields.value, "available_actions"]),
         [EXPAND_PARAM]: computed(() => modelConfig.config?.expand),
     },
     intendToRetrieve,

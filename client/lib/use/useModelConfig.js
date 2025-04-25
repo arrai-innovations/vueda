@@ -4,7 +4,7 @@ import { useIsActive } from "@vueda/use/useIsActive";
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";
-import { reactive, readonly, toRef, watch } from "vue";
+import { reactive, readonly, ref, toRef, watch } from "vue";
 
 /**
  * A view-specific configuration object for making use of a model client-side.
@@ -69,7 +69,30 @@ export function useModelConfig(app, model, view) {
         errored: proxyLoadingError.errored,
         clearError: proxyLoadingError.clearError,
         info: toRef(modelInfo, "info"),
-        config: {},
+        config: ref({
+            // populate the expected shape to make deeper references work earlier
+            verboseName: "",
+            verboseNamePlural: "",
+            displayFields: [],
+            fetchFields: [],
+            submitFields: [],
+            expand: [],
+            routeActions: [],
+            actions: [],
+            filterables: [],
+            sortables: [],
+            sorted: [],
+            fieldDetails: {},
+            expandDetails: {},
+            actionDetails: {},
+            filterableDetails: {},
+            formProps: {},
+            fieldComponents: {},
+            fieldProps: {},
+            widgetComponents: {},
+            widgetProps: {},
+            defaultView: null,
+        }),
     });
 
     watch(

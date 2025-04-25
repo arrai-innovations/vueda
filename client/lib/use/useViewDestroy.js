@@ -32,7 +32,7 @@ export function useViewDestroy(props) {
     }
     const isActive = useIsActive();
     const validAndActive = computed(
-        () => !!(isActive.value && props.app && props.model && props.pk && modelConfig.info?.pk),
+        () => !!(isActive.value && props.app && props.model && props.pk && modelConfig.loading === false),
     );
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 

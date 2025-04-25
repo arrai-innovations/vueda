@@ -42,7 +42,7 @@ const props = defineProps({
 
 const isActive = useIsActive();
 const validAndActive = computed(
-    () => !!(isActive.value && props.app && props.model && props.pk && modelConfig.info?.pk),
+    () => !!(isActive.value && props.app && props.model && props.pk && modelConfig.loading === false),
 );
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 
@@ -56,9 +56,6 @@ const instanceListProps = reactive({
         model: toRef(props, "model"),
     },
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-    params: {
-        [FIELDS_PARAM]: {},
-    },
     params: {
         id: Array.isArray(toRef(props, "pk")) ? toRef(props, "pk") : [toRef(props, "pk")],
     },

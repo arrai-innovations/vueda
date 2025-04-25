@@ -1,9 +1,8 @@
 import { useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeUser } from "@vueda/stores/storeUser.js";
-import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import isObject from "lodash-es/isObject.js";
-import { computed, effectScope, reactive, toRef, watch } from "vue";
+import IsObject from "lodash-es/isObject.js";
+import { computed, readonly, toRef } from "vue";
 
 /**
  * @typedef {object} FilteredActionsInternalRawState
@@ -30,7 +29,7 @@ import { computed, effectScope, reactive, toRef, watch } from "vue";
 /**
  * The return object for useFilteredActions.
  *
- * @typedef {import('vue').UnwrapNestedRefs<FilteredActionsRawState | import('@arrai-innovations/reactive-helpers').LoadingErrorStatus>} FilteredActionsState
+ * @typedef {import('vue').UnwrapNestedRefs<FilteredActionsRawState & import('@arrai-innovations/reactive-helpers').LoadingErrorStatus>} FilteredActionsState
  */
 
 /**
@@ -59,84 +58,42 @@ import { computed, effectScope, reactive, toRef, watch } from "vue";
  * @returns {FilteredActionsInstance} An object containing reactive state for filtered actions and related metadata.
  */
 export function useFilteredActions({ app, model, view = null, modelConfigInstance = null }) {
-    const es = effectScope();
-    const isActive = useIsActive();
+    const userStore = storeUser();
+    const modelConfig = modelConfigInstance || useModelConfig(app, model, view);
+    const proxyLoadingError = useProxyLoadingError([userStore, modelConfig]);
 
-    let localModelConfigInstance = null;
-    let localUserStore = null;
-    let localProxyLoadingError = null;
+    const filteredActions = computed(() => {
+        const actions = modelConfig.config.actions;
+        const groups = userStore.loggedInUser?.groups || [];
 
-    /** @type {FilteredActionsInternalState} */
-    const internalState = reactive({
-        actions: [],
-        groups: [],
-    });
-    /** @type {FilteredActionsState} */
-    const returnObject = reactive({
-        app: "",
-        model: "",
-        view: null,
-        loading: undefined,
-        error: null,
-        errored: false,
-        clearError: () => {},
-        info: {},
-        config: {},
-        actions: [],
-    });
-
-    watch(isActive, (active) => {
-        if (active) {
-            if (!localModelConfigInstance) {
-                localModelConfigInstance = modelConfigInstance || useModelConfig(app, model, view);
-                returnObject.app = toRef(localModelConfigInstance, "app");
-                returnObject.model = toRef(localModelConfigInstance, "model");
-                returnObject.view = toRef(localModelConfigInstance, "view");
-                returnObject.info = toRef(localModelConfigInstance, "info");
-                returnObject.config = toRef(localModelConfigInstance, "config");
-                internalState.actions = toRef(localModelConfigInstance.config, "actions");
-            }
-
-            if (!localUserStore) {
-                localUserStore = storeUser();
-                // Use a computed instead of toRef because `loggedInUser` may be null initially,
-                //  and we want reactivity to respond to replacing it, not just its properties.
-                es.run(() => {
-                    internalState.groups = computed(() => localUserStore.loggedInUser?.groups || []);
-                });
-            }
-            if (localModelConfigInstance && localUserStore && !localProxyLoadingError) {
-                localProxyLoadingError = useProxyLoadingError([localUserStore, localModelConfigInstance]);
-                returnObject.loading = localProxyLoadingError.loading;
-                returnObject.error = localProxyLoadingError.error;
-                returnObject.errored = localProxyLoadingError.errored;
-                returnObject.clearError = localProxyLoadingError.clearError;
-            }
+        if (!actions) {
+            return [];
         }
+        if (Array.isArray(actions)) {
+            return actions;
+        }
+        if (IsObject(actions)) {
+            return Object.keys(actions).filter((actionName) => {
+                const allowedGroups = actions[actionName];
+                return (
+                    allowedGroups === true ||
+                    (Array.isArray(allowedGroups) && allowedGroups.some((group) => groups.includes(group)))
+                );
+            });
+        }
+        return [];
     });
 
-    // watch for our view's actions to change as the model config changes
-    watch(
-        [() => internalState.actions, () => internalState.groups || []],
-        ([actions, groups]) => {
-            if (Array.isArray(actions)) {
-                // if actions are already a flat list, use directly
-                returnObject.actions = actions;
-            } else if (isObject(actions)) {
-                // get action code by keys, filtering based on requiring at least one of the specified groups in the value
-                returnObject.actions = Object.keys(actions).filter((action) => {
-                    const allowedGroups = actions[action];
-                    return (
-                        allowedGroups === true ||
-                        (Array.isArray(allowedGroups) && allowedGroups.some((group) => groups.includes(group)))
-                    );
-                });
-            } else {
-                returnObject.actions = [];
-            }
-        },
-        { deep: true },
-    );
-
-    return returnObject;
+    return readonly({
+        app: toRef(modelConfig, "app"),
+        model: toRef(modelConfig, "model"),
+        view: toRef(modelConfig, "view"),
+        loading: proxyLoadingError.loading,
+        error: proxyLoadingError.error,
+        errored: proxyLoadingError.errored,
+        clearError: proxyLoadingError.clearError,
+        info: toRef(modelConfig, "info"),
+        config: toRef(modelConfig, "config"),
+        actions: filteredActions,
+    });
 }

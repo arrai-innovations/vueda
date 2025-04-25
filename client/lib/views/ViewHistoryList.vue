@@ -67,7 +67,7 @@ if (!inject(LookupContextSymbol, null)) {
 }
 
 const isActive = useIsActive();
-const validAndActive = computed(() => !!(isActive.value && props.app && props.model && modelConfig.info?.pk));
+const validAndActive = computed(() => !!(isActive.value && props.app && props.model && modelConfig.loading === false));
 const currentPage = ref(1);
 const modelListProps = reactive({
     target: {
@@ -190,7 +190,7 @@ const theme = useTheme("ViewHistoryList");
                 class="w-full"
                 :even-column="evenColumn"
                 :field-props="{
-                    pkKey: modelConfig.info?.pk,
+                    pkKey: modelConfig.info?.pk ?? 'id',
                     modelInfo: modelConfig.info,
                     modelConfig: modelConfig.config,
                 }"

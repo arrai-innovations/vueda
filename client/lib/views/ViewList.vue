@@ -128,7 +128,7 @@ const props = defineProps({
 });
 const listSearch = ref(null);
 const isActive = useIsActive();
-const validAndActive = computed(() => !!(isActive.value && props.app && props.model && modelConfig.info?.pk));
+const validAndActive = computed(() => !!(isActive.value && props.app && props.model && modelConfig.loading === false));
 const viewName = "list";
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
 
@@ -149,6 +149,7 @@ const sorting = reactive({
         assignReactiveObject(sorting.state.sorted, sorted);
     },
 });
+const pkKey = computed(() => modelConfig.info?.pk ?? "id");
 const calculatedListFields = computed(() => {
     let fields = [];
     if (props.listFields.length) {
@@ -156,8 +157,9 @@ const calculatedListFields = computed(() => {
     } else if (modelConfig.config.fetchFields?.length) {
         fields = [...modelConfig.config.fetchFields];
     }
-    if (!fields.includes(modelConfig.info?.pk)) {
-        fields.unshift(modelConfig.info?.pk);
+    const unrefPKKey = unref(pkKey);
+    if (!fields.includes(unrefPKKey)) {
+        fields.unshift(unrefPKKey);
     }
     return fields;
 });
@@ -190,7 +192,6 @@ const instanceListProps = reactive({
         model: toRef(props, "model"),
     },
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-    params: {},
     params: toRef(listState, "params"),
     intendToList: validAndActive,
     // intendToSubscribe: validAndActive,
@@ -537,7 +538,7 @@ const searchSlotProps = reactive({
                 selected_: theme('selectedCheckbox'),
             }"
             :field-props="{
-                pkKey: modelConfig.info?.pk,
+                pkKey: modelConfig.info?.pk ?? 'id',
                 modelInfo: modelConfig.info,
                 modelConfig: modelConfig.config,
             }"
