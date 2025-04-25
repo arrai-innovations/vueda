@@ -32,6 +32,10 @@ export const WIDGET_LABEL_PROPS = {
         type: String,
         default: "span",
     },
+    skipFeedback: {
+        type: Boolean,
+        default: false,
+    },
 };
 </script>
 <script setup>
@@ -75,9 +79,9 @@ const availableFeedbackSlotNames = getFormHiddenFeedbackSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-label-root">
-        <component :is="$props.labelTag" :id="id" :class="theme('label')" v-bind="$attrs" :for="$props.for">
+        <component :is="labelTag" :id="id" :class="theme('label')" v-bind="$attrs" :for="$props.for">
             <component
-                :is="$props.requiredTag"
+                :is="requiredTag"
                 v-if="widgetContext.state.required && !hidden && !widgetContext.state.readOnly"
                 :class="theme('required')"
                 aria-hidden="true"
@@ -97,10 +101,15 @@ const availableFeedbackSlotNames = getFormHiddenFeedbackSlotsComputed(slots);
             </slot>
         </component>
         <slot :class="theme('control')"></slot>
-        <slot :class="theme('feedback')" name="feedback" v-bind="pick(props, Object.keys(FORM_HIDDEN_FEEDBACK_PROPS))">
+        <slot
+            v-if="!skipFeedback"
+            :class="theme('feedback')"
+            name="feedback"
+            v-bind="pick($props, Object.keys(FORM_HIDDEN_FEEDBACK_PROPS))"
+        >
             <form-hidden-feedback
                 :class="theme('feedback')"
-                v-bind="pick(props, Object.keys(FORM_HIDDEN_FEEDBACK_PROPS))"
+                v-bind="pick($props, Object.keys(FORM_HIDDEN_FEEDBACK_PROPS))"
             >
                 <template v-for="slotName in availableFeedbackSlotNames" :key="slotName" #[slotName]="slotProps">
                     <slot :name="slotName" v-bind="slotProps" />

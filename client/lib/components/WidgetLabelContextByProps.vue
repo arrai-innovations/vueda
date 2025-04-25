@@ -46,9 +46,14 @@ const widgetContext = useWidget(widgetProps, emit);
 provide(WidgetContextSymbol, widgetContext);
 const propsToPass = {
     ...pick(props, Object.keys(WIDGET_LABEL_PROPS)),
+    skipFeedback: true,
 };
 </script>
 
 <template>
-    <WidgetLabel v-bind="propsToPass" />
+    <widget-label v-bind="propsToPass">
+        <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+            <slot :name="slot" v-bind="slotProps || {}" />
+        </template>
+    </widget-label>
 </template>
