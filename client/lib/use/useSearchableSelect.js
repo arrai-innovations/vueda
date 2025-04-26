@@ -1,7 +1,14 @@
 import { deepUnref, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useResolvedLookupObject } from "@vueda/use/useResolvedLookupObject.js";
-import { EXPAND_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
+import {
+    EXPAND_PARAM,
+    FIELDS_PARAM,
+    ORDERING_PARAM,
+    PAGE_PARAM,
+    PAGE_SIZE_PARAM,
+    SEARCH_PARAM,
+} from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import debounce from "lodash-es/debounce.js";
 import get from "lodash-es/get.js";
@@ -62,10 +69,11 @@ export const SEARCHABLE_SELECT_PROPS = {
     optionLabel: {
         type: String,
         default: "formatted_name",
+        description: "The label to display when searching.",
     },
     selectedOptionLabel: {
         type: String,
-        default: undefined,
+        default: "formatted_name",
         description: "The label to display when the value is set.",
     },
     multiple: {
@@ -100,7 +108,7 @@ export const SEARCHABLE_SELECT_PROPS = {
     },
     isLazy: {
         type: Boolean,
-        default: true,
+        default: false,
     },
 };
 
@@ -151,14 +159,15 @@ function groupBy(objects, groupKey) {
  * @returns {WidgetSearchableSelect} - The instance of the widget searchable select.
  */
 export function useSearchableSelect(props, widgetContext, selectRef) {
-    const fetchedPages = ref(1);
-    const perPage = ref(100);
+    const lazy = computed(() => props.isLazy && !props.grouped);
+    const pageToFetch = ref(1);
+    const perPage = ref(25);
     const hasBeenFocused = ref(false);
     const query = ref("");
     const bouncedQuery = ref("");
-    const recordsArray = ref([]);
-    const lastScrollerPageTracksFirst = ref(0);
-    const lastScrollerPageTracksLast = ref(0);
+    const virtualObjectsInOrder = ref([]);
+    const firstVisibleIndex = ref(0);
+    const lastVisibleIndex = ref(0);
 
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), "list");
     const pkKey = computed(() => modelConfig.info?.pk ?? "id");
@@ -201,13 +210,18 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
         };
     });
 
-    const searchParams = computed(() => ({
-        [PAGE_PARAM]: fetchedPages.value,
+    const criticalSearchParams = computed(() => ({
         [SEARCH_PARAM]: effectiveSearch.value,
         [FIELDS_PARAM]: fieldsList.value,
         [EXPAND_PARAM]: expandList.value,
         [ORDERING_PARAM]: orderingList.value,
         ...extraParams.value,
+    }));
+
+    const fullSearchParams = computed(() => ({
+        ...criticalSearchParams.value,
+        [PAGE_PARAM]: pageToFetch.value,
+        [PAGE_SIZE_PARAM]: perPage.value,
     }));
 
     const intendToSearch = computed(
@@ -223,14 +237,15 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
                 model: toRef(props, "model"),
             },
             pkKey,
-            params: searchParams,
+            params: fullSearchParams,
             intendToList: intendToSearch,
         }),
         handlers: {
-            list: props.isLazy || !props.grouped ? singlePagePaginatedListCrudAdaptor : allPagePaginatedListCrudAdaptor,
+            list: (...args) =>
+                lazy.value ? singlePagePaginatedListCrudAdaptor(...args) : allPagePaginatedListCrudAdaptor(...args),
         },
         paged: true,
-        keepOldPages: computed(() => !props.isLazy),
+        keepOldPages: computed(() => !lazy.value),
         clearListOnListIntentTriggered: false,
     });
 
@@ -243,11 +258,11 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
     });
 
     const computedOptions = computed(() => {
-        if (intendToSearch.value && (!searchList.state.loading || fetchedPages.value > 1)) {
-            if (props.grouped || !props.isLazy) {
+        if (intendToSearch.value && !searchList.state.loading) {
+            if (!unref(lazy)) {
                 return readonly(listObjects.value);
             }
-            return readonly(recordsArray.value);
+            return readonly(virtualObjectsInOrder.value);
         }
         if (widgetContext.state.combinedValue && !selectedLookup.loading) {
             return readonly([selectedLookup.object].filter(IsEmpty));
@@ -256,11 +271,11 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
     });
 
     const resetScroller = () => {
-        fetchedPages.value = 1;
-        if (props.isLazy) {
-            recordsArray.value = [];
-            lastScrollerPageTracksFirst.value = 0;
-            lastScrollerPageTracksLast.value = 0;
+        pageToFetch.value = 1;
+        if (lazy.value) {
+            virtualObjectsInOrder.value = [];
+            firstVisibleIndex.value = 0;
+            lastVisibleIndex.value = 0;
         }
         const virtualScrollerRef = selectRef.value?.virtualScroller;
         if (virtualScrollerRef) {
@@ -279,7 +294,7 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
     );
 
     watch(
-        () => deepUnref(searchParams),
+        () => deepUnref(criticalSearchParams),
         (newParams, oldParams) => {
             // if the params change, reset the scroller
             if (!isEqual(newParams, oldParams)) {
@@ -289,28 +304,63 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
         { deep: true },
     );
 
+    // HACK: pageToIds will change before searchList.state.objects, due to reactivity indirection
+    //       we need to do our own indirection to wait for the objects to be set
+    const pageObjects = ref([]);
     watch(
-        () => searchList.state.objectsInOrder,
-        (items) => {
-            // populate the virtual scroller array
-            if (!Array.isArray(items)) {
+        () => searchList.state.pageToIds,
+        (pageToIds) => {
+            if (!unref(lazy)) {
                 return;
             }
-            const startIndex = (fetchedPages.value - 1) * (searchList.state.perPage || 100);
-            const total = searchList.state.totalRecords || 0;
-
-            if (recordsArray.value.length !== total) {
-                recordsArray.value = Array(total).fill(undefined);
-            }
-
-            items.forEach((item, i) => {
-                const target = startIndex + i;
-                if (target < recordsArray.value.length) {
-                    recordsArray.value[target] = deepUnref(item);
+            const page = pageToFetch.value;
+            const ids = pageToIds.get(page);
+            pageObjects.value.length = 0;
+            for (const id of ids) {
+                if (!(id in searchList.state.objects)) {
+                    searchList.state.objects[id] = {};
                 }
-            });
+                pageObjects.value.push(toRef(searchList.state.objects, id));
+            }
         },
-        { immediate: true },
+        { deep: true },
+    );
+    let id = 0;
+    watch(
+        pageObjects,
+        (newObjects) => {
+            if (!unref(lazy)) {
+                return;
+            }
+            const objectsInOrder = deepUnref(newObjects);
+            const total = searchList.state.totalRecords || 0;
+            const page = pageToFetch.value;
+            const pageSize = perPage.value;
+            const startingIndex = (page - 1) * pageSize;
+            if (virtualObjectsInOrder.value.length !== total) {
+                if (virtualObjectsInOrder.value.length === 0) {
+                    // First time: build the array to total size
+                    virtualObjectsInOrder.value = Array.from({ length: total }, () => ({
+                        [pkKey.value]: ++id,
+                        [props.optionLabel]: "loading...",
+                        [props.groupBy]: "nothing",
+                    }));
+                } else if (virtualObjectsInOrder.value.length < total) {
+                    // Expand if needed
+                    virtualObjectsInOrder.value.length = total;
+                }
+            }
+            if (objectsInOrder?.length) {
+                // virtualObjectsInOrder.value.splice(startingIndex, pageSize, ...objectsInOrder);
+                for (let i = 0; i < objectsInOrder.length; i++) {
+                    const index = startingIndex + i;
+                    if (index < total) {
+                        Object.assign(virtualObjectsInOrder.value[index], objectsInOrder[i]);
+                    }
+                }
+            }
+        },
+        { deep: true },
     );
 
     watch(
@@ -318,16 +368,21 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
             () => searchList.state.totalPages,
             () => searchList.state.perPage,
             () => searchList.state.loading,
-            () => lastScrollerPageTracksFirst.value,
+            () => firstVisibleIndex.value,
+            () => lastVisibleIndex.value,
         ],
-        ([totalPages, perPage, loading, first]) => {
+        ([totalPages, perPage, loading, first, last]) => {
             if (loading || !totalPages || !perPage) {
                 return;
             }
+            const pageFrom = Math.floor(first / perPage) + 1;
+            const pageTo = Math.floor((last - 1) / perPage) + 1; // minus 1 to make last index inclusive
 
-            const page = Math.min(Math.ceil(first / perPage) + 1, totalPages);
-            if (!recordsArray.value[(page - 1) * perPage]) {
-                fetchedPages.value = page;
+            for (let page = pageFrom; page <= pageTo; page++) {
+                if (!searchList.state.pageToIds.has(page)) {
+                    pageToFetch.value = page;
+                    break; // fetch one at a time
+                }
             }
         },
         { immediate: true },
@@ -346,10 +401,7 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
         onChange: () => {
             if (!hasBeenFocused.value) {
                 hasBeenFocused.value = true;
-                widgetContext.blur();
             }
-            recordsArray.value = [];
-            fetchedPages.value = 1;
         },
         onHide: () => {
             query.value = widgetContext.state.combinedValue ? returnObject.readonlyLabel : "";
@@ -367,16 +419,18 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
             return selectedOptionLabel.value ?? widgetContext.state.combinedValue ?? "\u00A0";
         }),
         virtualScrollerOptions: {
-            lazy: computed(() => props.isLazy || !props.grouped),
+            lazy: lazy,
             onLazyLoad: (e) => {
-                lastScrollerPageTracksFirst.value = e.first;
-                lastScrollerPageTracksLast.value = e.last;
+                firstVisibleIndex.value = e.first;
+                lastVisibleIndex.value = e.last;
+                const newPerPage = Math.max(e.last - e.first, 25);
+                if (perPage.value !== newPerPage) {
+                    perPage.value = newPerPage;
+                }
             },
             itemSize: 38,
             showLoader: true,
-            loading: searchList.state.loading,
             autoSize: true,
-            step: perPage,
         }, // Select's hide event
     });
     return returnObject;

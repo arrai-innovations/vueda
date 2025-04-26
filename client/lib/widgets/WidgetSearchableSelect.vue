@@ -64,7 +64,6 @@ const handleLabelClick = (e) => unref(selectRef)?.onContainerClick?.(e);
                         v-bind="omit($attrs, 'value')"
                         ref="selectRef"
                         v-model="widgetContext.state.combinedValue"
-                        :loading="searchableSelect.loading"
                         :options="searchableSelect.options"
                         :option-value="searchableSelect.optionValue"
                         :option-label="searchableSelect.optionLabel"

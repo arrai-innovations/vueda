@@ -22,7 +22,7 @@
     "coverage": "npm test -- run --coverage",
     "prepare": "npx --no-install husky",
     "docs": "echo \"#todo: setup jsdoc to markdown\"",
-    "lint": "npx eslint --fix .",
+    "eslint": "npx eslint --fix .",
     "prettier": "npx prettier --write ."
   },
   "repository": {
@@ -72,7 +72,7 @@
   },
   "peerDependencies": {
     "@arrai-innovations/pro-duotone-svg-icons": "^6.6.0",
-    "@arrai-innovations/reactive-helpers": "^20.0.1",
+    "@arrai-innovations/reactive-helpers": "^20.1.1",
     "@arrai-innovations/vue-fontawesome": "^3.0.8",
     "@floating-ui/vue": "^1.0.2",
     "@sentry/vue": "^9.5.0",
@@ -80,7 +80,7 @@
     "lodash-es": "^4.17.21",
     "luxon": "^3.5.0",
     "pinia": "^3.0.1",
-    "primevue": "^4.2.5",
+    "primevue": "^4.3.3",
     "quill": "^2.0.3",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"

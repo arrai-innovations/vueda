@@ -1,4 +1,5 @@
 import { CancellablePromise, cancellableFetch, deepUnref, setListCrud } from "@arrai-innovations/reactive-helpers";
+import { PAGE_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
@@ -78,6 +79,7 @@ export function singlePagePaginatedListCrudAdaptor({ target, params, pageCallbac
                 totalRecords: responseData.totalRecords,
                 totalPages: responseData.totalPages,
                 perPage: responseData.perPage,
+                page: params?.[PAGE_PARAM] || 1,
             });
         },
     );
@@ -107,7 +109,7 @@ export function singlePagePaginatedListCrudAdaptor({ target, params, pageCallbac
 export function allPagePaginatedListCrudAdaptor({ target, params, pageCallback }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the requests. ###
     const { app, model, pk, action } = target;
-    const ourParams = { p: params?.page || 1, ...omit(params || {}, "p") };
+    const ourParams = { [PAGE_PARAM]: 1, ...omit(params || {}, PAGE_PARAM) };
     const query = makeSearchParamsString(ourParams);
     const controller = new AbortController();
     const url = pk ? getDetailUrl({ app, model, pk, action }) : getListUrl({ app, model, action });
@@ -131,11 +133,13 @@ export function allPagePaginatedListCrudAdaptor({ target, params, pageCallback }
             totalRecords: responseData.totalRecords,
             totalPages: responseData.totalPages,
             perPage: responseData.perPage,
+            page: 1,
         });
 
         if (responseData.totalPages > 1) {
             for (let i = 2; i <= responseData.totalPages; i++) {
-                ourParams.p = i;
+                const page = i;
+                ourParams[PAGE_PARAM] = page;
                 const nextQuery = makeSearchParamsString(ourParams);
                 responses.push(
                     limit(() =>
@@ -150,6 +154,7 @@ export function allPagePaginatedListCrudAdaptor({ target, params, pageCallback }
                                     totalRecords: data.totalRecords,
                                     totalPages: data.totalPages,
                                     perPage: data.perPage,
+                                    page: page,
                                 });
                             } else {
                                 throw new FetchError("Failed to fetch additional page", response, data);

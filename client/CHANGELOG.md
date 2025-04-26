@@ -7,15 +7,15 @@ _Actions potentially required by implementers are marked with italics._
 ### Fixes
 
 - **useModelConfig / useModelInfo**:
-
     - Always initialize `info` and `config` fields with a full default structure, preventing issues where making refs before props existed would not react to their later introduction.
-
 - **Guard Validations**:
-
     - Standardized `validAndActive` checks to `modelConfig.loading === false` across all views and composables. No longer uses `modelConfig.info.pk` as a stand-in for "is the config loaded?".
-
 - **useFilteredActions**:
     - Simplified reactivity: no delayed store resolution, purely computed action list. Fixes action button visibility on list and detail views.
+- **WidgetSearchableSelect**:
+    - Virtual scrolling now works reliably even without lazy loading.
+    - Default `isLazy` is now `false` to avoid PrimeVue VirtualScroller scroll jumps.
+    - Developers can opt into lazy mode if they require maximum performance.
 
 ## v2.0.0-alpha.7 (2025-04-25)
 
