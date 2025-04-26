@@ -4,6 +4,13 @@ _Actions potentially required by implementers are marked with italics._
 
 ## v2.0.0-alpha.8 (2025-04-25)
 
+### Breaking Changes
+
+- **`storeModelConfig`**:
+    - We no longer expand all available expands by default. This wasn't really working as most expands are not available
+      when listing objects, causing the defaults to be useless.
+    - _You should check your `expand` keys if they are based on or override `modelConfig.config.expand`_
+
 ### Fixes
 
 - **useModelConfig / useModelInfo**:
