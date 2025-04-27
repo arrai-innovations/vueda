@@ -23,6 +23,10 @@ _Actions potentially required by implementers are marked with italics._
     - Virtual scrolling now works reliably even without lazy loading.
     - Default `isLazy` is now `false` to avoid PrimeVue VirtualScroller scroll jumps.
     - Developers can opt into lazy mode if they require maximum performance.
+    - Added `emptyMessage` support to improve messaging for loading, no query, and no match states.
+    - Improved virtual scrolling debounce behavior by enabling leading debounce, ensuring faster visible updates on user typing.
+    - Minor fix: `keepOldPages` now correctly reflects lazy mode rather than inverting it unnecessarily.
+      _This fix relies on `@arrai-innovations/reactive-helpers@^20.1.2`, please update your peer dependency._
 
 ## v2.0.0-alpha.7 (2025-04-25)
 

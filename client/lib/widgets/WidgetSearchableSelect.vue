@@ -81,6 +81,7 @@ const handleLabelClick = (e) => unref(selectRef)?.onContainerClick?.(e);
                         @blur="widgetContext.blur"
                         @focus="widgetContext.focus"
                         :aria-required="widgetContext.state.required"
+                        :empty-message="searchableSelect.emptyMessage"
                     >
                         <template #optiongroup="{ option }">
                             <div class="flex items-center">

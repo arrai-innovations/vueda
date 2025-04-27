@@ -139,6 +139,7 @@ function groupBy(objects, groupKey) {
  * @property {function} onBeforeShow - The before-show event for the select.
  * @property {function} onChange - The value-change event for the select.
  * @property {function} onHide - The hide event for the select.
+ * @property {import('vue').ComputedRef<any>} emptyMessage - The message to display when there are no options.
  * @property {function} optionGroupChildren - The function to get the group by value from an option.
  * @property {import('vue').ComputedRef<any>} optionLabel - The label field for the options.
  * @property {import('vue').ComputedRef<any>} optionValue - The value field for the options.
@@ -245,7 +246,7 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
                 lazy.value ? singlePagePaginatedListCrudAdaptor(...args) : allPagePaginatedListCrudAdaptor(...args),
         },
         paged: true,
-        keepOldPages: computed(() => !lazy.value),
+        keepOldPages: lazy,
         clearListOnListIntentTriggered: false,
     });
 
@@ -285,12 +286,18 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
 
     watch(
         query,
-        debounce((val) => {
-            // don't send a search for every keystroke
-            if (bouncedQuery.value !== val) {
-                bouncedQuery.value = val;
-            }
-        }, 500),
+        debounce(
+            (val) => {
+                // don't send a search for every keystroke
+                if (bouncedQuery.value !== val) {
+                    bouncedQuery.value = val;
+                }
+            },
+            500,
+            {
+                leading: true,
+            },
+        ),
     );
 
     watch(
@@ -390,6 +397,17 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
 
     const selectedOptionLabel = computed(() => get(selectedLookup.object, props.selectedOptionLabel));
 
+    const emptyMessage = computed(() => {
+        if (searchList.state.loading) {
+            return "Loading...";
+        }
+        if (!query.value) {
+            return "Type to search for results.";
+        }
+        return "No matching results.";
+    });
+
+    /** @type {WidgetSearchableSelect} */
     const returnObject = reactive({
         loading: computed(() => loadingCombine(selectedLookup.loading, searchList.state.loading)),
         lookupGroupBy: (option) => get(option, props.groupBy), // the label of the selected option, to display when closed but not readonly
@@ -406,6 +424,7 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
         onHide: () => {
             query.value = widgetContext.state.combinedValue ? returnObject.readonlyLabel : "";
         },
+        emptyMessage,
         optionGroupChildren: computed(() => (props.grouped && intendToSearch ? "items" : undefined)),
         optionLabel: computed(() => props.optionLabel),
         optionValue: computed(() => unref(pkKey)),
