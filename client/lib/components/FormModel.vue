@@ -238,7 +238,11 @@ const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlot
             </div>
             <!-- form-level chores -->
             <slot name="form-level-chores">
-                <form-chores :variant="null" />
+                <form-chores :variant="null">
+                    <template v-for="slotName in slotNames" #[slotName]="slotProps">
+                        <slot :name="slotName" v-bind="slotProps" />
+                    </template>
+                </form-chores>
             </slot>
             <div v-bind="$attrs">
                 <slot

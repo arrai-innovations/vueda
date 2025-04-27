@@ -13,14 +13,24 @@ import { computed, reactive, readonly, unref } from "vue";
  */
 
 /**
- * @param {{[slotName: string]: any}} slots - The slot names to check for.
- * @param {import('vue').Ref<string>|string} fieldName - The field name to check for.
+ * Organizes slots by prefix (e.g., "field", "widget") for a specific field name.
+ *
+ * Helps components like FieldRenderer and FormModel collect related slots
+ * into functional groups, e.g., all `field(myField)...` slots.
+ *
+ * Returns:
+ *  - grouped slots by prefix
+ *  - unmatched remaining slots
+ *  - a helper to check if a prefix has slots
+ *
  * @param {import('vue').Ref<string[]>|string[]} groupPrefixes - The groupPrefixes of the slot name.
+ * @param {import('vue').Ref<string>|string} fieldName - The field name to check for.
+ * @param {{[slotName: string]: any}} slots - The slot names to check for.
  * @returns {ResolvedSlotGroups}
  */
-export function useSlotNameGrouper(slots, fieldName, groupPrefixes) {
+export function useSlotNameGrouper(groupPrefixes, fieldName, slots) {
     const knownTuples = computed(() =>
-        unref(groupPrefixes).flatMap((type) => getSlotNamesFor(slots, type, unref(fieldName))),
+        unref(groupPrefixes).flatMap((type) => getSlotNamesFor(slots, type, unref(fieldName), [], true)),
     );
     const grouped = computed(() => {
         const out = {};

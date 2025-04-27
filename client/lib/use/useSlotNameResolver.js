@@ -63,8 +63,8 @@ export function useSlotNameResolver(slotNamesInOrderOfPrecedence, slots) {
     let returnObject = {};
     es.run(() => {
         const possibleNames = computed(() => deepUnref(slotNamesInOrderOfPrecedence));
-        const exists = computed(() => possibleNames.value.some((slotName) => !!slots[slotName]));
-        const name = computed(() => possibleNames.value.find((slotName) => slots[slotName]));
+        const exists = computed(() => possibleNames.value.some((slotName) => !!deepUnref(slots)[slotName]));
+        const name = computed(() => possibleNames.value.find((slotName) => deepUnref(slots)[slotName]));
         returnObject = { exists, name, possibleNames };
     });
     returnObject.stop = () => {

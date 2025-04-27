@@ -10,6 +10,21 @@ _Actions potentially required by implementers are marked with italics._
     - We no longer expand all available expands by default. This wasn't really working as most expands are not available
       when listing objects, causing the defaults to be useless.
     - _You should check your `expand` keys if they are based on or override `modelConfig.config.expand`_
+- **FormChores**:
+    - Old slots `field(fieldName)error`, `field-error`, `field(fieldName)message`, and `field-message` are **removed**.
+    - _Update your overrides to use the new `feedback(fieldName)error`, `feedback-error`, `feedback(fieldName)message`, and `feedback-message` slots._
+
+### Features
+
+- **`FormFeedback`**:
+    - Added a new `content` slot inside the feedback message component for fine-grained message customization per line.
+- **`FormChores`**:
+    - Introduced dynamic `feedback(fieldName)*` slot resolution, allowing external overrides for:
+        - `feedback(${fieldName})` or `feedback` to override or wrap FormFeedback per message type.
+        - `feedback(${fieldName})error`, `feedback-error`, `feedback(${fieldName})message`, `feedback-message` to override the default slot to FormFeedback, allowing the wrapping or replacement of the primevue message component.
+        - `feedback(${fieldName})error-content`, `feedback-error-content`, `feedback(${fieldName})message-content`, `feedback-message-content` to override the new content slot to FormFeedback.
+- **`FormModel`**:
+    - Push down slots from outside the form into the non-field form chores and feedback components. This allows access to slots the slots above from outside the form for `NON_FIELD_ERRORS_KEY`.
 
 ### Fixes
 
@@ -239,7 +254,7 @@ _Actions potentially required by implementers are marked with italics._
     - Simplified resolution of grouped slots by prefix (e.g., `field(...)`, `widget(...)`, etc.).
     - _Example usage:_
         ```js
-        const { grouped, remaining } = useSlotNameGrouper(slots, fieldName, ["field", "widget", "header"]);
+        const { grouped, remaining } = useSlotNameGrouper(["field", "widget", "header"], fieldName, slots);
         ```
 - **Reactive Hooks Custom Aggregation** (`useReactiveHookRegistry`):
     - Customizable aggregation logic (e.g., `every`, custom scoring).

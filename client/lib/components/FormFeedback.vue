@@ -110,7 +110,7 @@ const renderDetail = (data) => {
             :class="theme('messages')"
             data-qa="form-feedback-messages"
         >
-            <slot :name="type" v-bind="{ message, type, attrs: $attrs }">
+            <slot name="default" v-bind="{ message, type, attrs: $attrs }">
                 <Message
                     v-for="line in Array.isArray(message) ? message : [message]"
                     :key="line"
@@ -123,17 +123,29 @@ const renderDetail = (data) => {
                     <template #icon="slotProps">
                         <slot name="icon" v-bind="slotProps" />
                     </template>
-                    <template v-if="isObject(line)">
-                        <div v-if="allowHtml" v-html="renderDetail(line)"></div>
-                        <div v-else v-for="[name, message] of Object.entries(line)" :key="name">
-                            {{ name }}: {{ message }}
-                        </div>
-                    </template>
-                    <template v-else-if="allowHtml && containsHtml(line)">
-                        <div v-html="line" />
-                    </template>
-                    <template v-else>
-                        {{ line }}
+                    <template #default>
+                        <slot
+                            name="content"
+                            :line="line"
+                            :message="message"
+                            :type="type"
+                            :severity="severity"
+                            :variant="variant"
+                            :size="size"
+                        >
+                            <template v-if="isObject(line)">
+                                <div v-if="allowHtml" v-html="renderDetail(line)"></div>
+                                <div v-else v-for="[name, message] of Object.entries(line)" :key="name">
+                                    {{ name }}: {{ message }}
+                                </div>
+                            </template>
+                            <template v-else-if="allowHtml && containsHtml(line)">
+                                <div v-html="line" />
+                            </template>
+                            <template v-else>
+                                {{ line }}
+                            </template>
+                        </slot>
                     </template>
                 </Message>
             </slot>
