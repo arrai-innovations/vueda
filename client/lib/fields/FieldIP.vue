@@ -1,7 +1,8 @@
 <script setup>
+import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import omit from "lodash-es/omit.js";
-import { toRef, watch } from "vue";
+import { watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -11,23 +12,23 @@ const props = defineProps({
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
+const logger = useDevLogger({ fieldContext });
 
 watch(
-    toRef(fieldContext.state, "value"),
-    (newValue) => {
-        if (newValue === undefined || newValue === null) {
+    () => fieldContext.state.value,
+    (value) => {
+        if (value === null || value === undefined) {
             return;
         }
-        const coercedValue = newValue.toString();
-        if (coercedValue !== newValue) {
-            fieldContext.state.value = newValue;
+        if (typeof value !== "string") {
+            logger.warn(`Expected value to be a string (IP address), got:`, value);
         }
     },
     { immediate: true },
 );
 </script>
 <template>
-    <div :class="$attrs.class" data-qa="field-string">
+    <div :class="$attrs.class" data-qa="field-ip">
         <slot :field-attrs="omit($attrs, ['class'])" :field-props="props" />
     </div>
 </template>

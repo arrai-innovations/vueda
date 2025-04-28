@@ -1,5 +1,6 @@
 <script setup>
 import FormChores from "@vueda/components/FormChores.vue";
+import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import omit from "lodash-es/omit.js";
@@ -26,6 +27,7 @@ const theme = useTheme("FieldSetRange", props);
 const emit = defineEmits([...FIELD_EMITS]);
 
 const fieldContext = useField(props, emit);
+const logger = useDevLogger({ fieldContext });
 
 const fieldRangeProps = computed(() => {
     return props.rangeSuffix.map((suffix) => ({
@@ -39,17 +41,32 @@ const getLabel = (index) => {
     return index === 0 ? "From" : "To";
 };
 watch(
-    toRef(fieldContext.state, "value"),
-    (newValue) => {
-        if (newValue === null || newValue === undefined || newValue === []) {
+    () => fieldContext.state.value,
+    (value) => {
+        if (value === null || value === undefined) {
+            fieldContext.deleteError("range");
             return;
         }
-        if (newValue.length > 1) {
-            if (newValue[0] > newValue[1]) {
-                fieldContext.updateError("range", "The first value must be less than the second value.");
-            } else {
-                fieldContext.deleteError("range");
-            }
+        if (!Array.isArray(value)) {
+            logger.warn(`Expected value to be an array [lower, upper], got:`, value);
+            fieldContext.deleteError("range");
+            return;
+        }
+        if (value.length === 0) {
+            // empty range, no error, just no validation
+            fieldContext.deleteError("range");
+            return;
+        }
+        if (value.length !== 2) {
+            logger.warn(`Expected array of length 2 [lower, upper], got:`, value);
+            fieldContext.deleteError("range");
+            return;
+        }
+        const [lower, upper] = value;
+        if (lower != null && upper != null && lower > upper) {
+            fieldContext.updateError("range", "The first value must be less than or equal to the second value.");
+        } else {
+            fieldContext.deleteError("range");
         }
     },
     { immediate: true, deep: true },

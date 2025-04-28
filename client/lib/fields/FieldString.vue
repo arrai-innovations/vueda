@@ -1,4 +1,5 @@
 <script setup>
+import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import isString from "lodash-es/isString.js";
 import omit from "lodash-es/omit.js";
@@ -9,10 +10,10 @@ defineOptions({
 });
 const props = defineProps({
     ...FIELD_PROPS,
-    trim: {
-        type: Boolean,
-        default: false,
-    },
+    // trim: {
+    //     type: Boolean,
+    //     default: false,
+    // },
     maxLength: {
         type: Number,
         default: undefined,
@@ -32,19 +33,21 @@ const props = defineProps({
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
+const logger = useDevLogger({ fieldContext });
 const fieldValueRef = toRef(fieldContext.state, "value");
-watch(
-    [toRef(props, "trim"), fieldValueRef],
-    ([trim, value]) => {
-        if (trim && value !== undefined && value !== null) {
-            const trimmed = value?.trim();
-            if (trimmed !== value) {
-                fieldContext.state.value = trimmed;
-            }
-        }
-    },
-    { immediate: true },
-);
+// todo: trim is a widget concern
+// watch(
+//     [toRef(props, "trim"), fieldValueRef],
+//     ([trim, value]) => {
+//         if (trim && value !== undefined && value !== null) {
+//             const trimmed = value?.trim();
+//             if (trimmed !== value) {
+//                 fieldContext.state.value = trimmed;
+//             }
+//         }
+//     },
+//     { immediate: true },
+// );
 watch(
     [toRef(props, "maxLength"), fieldValueRef],
     ([maxLength, value]) => {
@@ -97,14 +100,13 @@ watch(
     { immediate: true },
 );
 watch(
-    toRef(fieldContext.state, "value"),
-    (newValue) => {
-        if (newValue === undefined || newValue === null) {
+    () => fieldContext.state.value,
+    (value) => {
+        if (value === null || value === undefined) {
             return;
         }
-        const coercedValue = newValue.toString();
-        if (coercedValue !== newValue) {
-            fieldContext.state.value = newValue;
+        if (typeof value !== "string") {
+            logger.warn(`Expected value to be a string, got:`, value);
         }
     },
     { immediate: true },

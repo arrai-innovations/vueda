@@ -34,6 +34,14 @@ export const WIDGET_PROPS = {
         type: [String, Number, Boolean, Array, Object],
         default: undefined,
     },
+    fieldToWidget: {
+        type: [Object, Function],
+        default: null,
+    },
+    widgetToField: {
+        type: [Object, Function],
+        default: null,
+    },
     invalid: {
         type: Boolean,
         default: undefined,
@@ -82,6 +90,10 @@ export const WIDGET_EMITS = ["update:modelValue"];
  *
  * // *** Value Handling ***
  * @property {any} [modelValue] - The widget’s bound value (v-model).
+ * @property {import('vue').Ref<ValueAdapter>|ValueAdapter|null} [fieldToWidget=null] - The value adapter for turing form
+ *  values into values suitable for UI concerns.
+ * @property {import('vue').Ref<ValueAdapter>|ValueAdapter|null} [widgetToField=null] - The value adapter for the widget values
+ *  back into form values, for validation and submission concerns.
  *
  * // *** Disabled Behavior ***
  * @property {boolean} [disabled=false] - Whether the widget is disabled.
@@ -95,6 +107,10 @@ export const WIDGET_EMITS = ["update:modelValue"];
  * The reactive prop arguments for the useWidget function. (Matches WIDGET_PROPS).
  *
  * @typedef {import('vue').UnwrapNestedRefs<WidgetContextRawProps>} WidgetContextProps
+ */
+
+/**
+ * @typedef {([value: any]) => any} ValueAdapter
  */
 
 /**
@@ -117,7 +133,12 @@ export const WIDGET_EMITS = ["update:modelValue"];
  * @property {import('vue').ComputedRef<{invalid: boolean, warning: boolean}>} validationState - Validation state flags.
  *
  * // *** Value Handling ***
- * @property {import('vue').WritableComputedRef<any>} combinedValue - The widget’s effective value (local or contextual).
+ * @property {import('vue').WritableComputedRef<any>} combinedValue - The widget’s effective form value (local or contextual).
+ * @property {import('vue').WritableComputedRef<any>} adaptedValue - The widget’s value adapted for UI concerns.
+ * @property {import('vue').ComputedRef<ValueAdapter|null>} fieldToWidget - The value adapter for turing form
+ *  values into values suitable for UI concerns.
+ * @property {import('vue').ComputedRef<ValueAdapter|null>} widgetToField - The value adapter for the widget values
+ *  back into form values, for validation and submission concerns.
  *
  * // *** Interaction & State Tracking ***
  * @property {import('vue').ComputedRef<boolean>} touched - Whether the widget has been interacted with.
@@ -292,6 +313,25 @@ export function useWidget(props, emit) {
                 }
             },
         }),
+        adaptedValue: computed({
+            get: () => {
+                const f2w = unref(state.fieldToWidget);
+                if (f2w && typeof f2w === "function") {
+                    return f2w(state.combinedValue);
+                }
+                return state.combinedValue;
+            },
+            set: (value) => {
+                const w2f = unref(state.widgetToField);
+                if (w2f && typeof w2f === "function") {
+                    state.combinedValue = w2f(value);
+                } else {
+                    state.combinedValue = value;
+                }
+            },
+        }),
+        fieldToWidget: computed(() => unref(props.fieldToWidget) ?? null),
+        widgetToField: computed(() => unref(props.widgetToField) ?? null),
 
         // *** Interaction & State Tracking ***
         touched: computed(() => {

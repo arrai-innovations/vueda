@@ -608,7 +608,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * <form @submit.prevent="handleSubmit">
  *     <form-feedback type="error" />
  *     <form-feedback type="message" />
- *     <field-string name="field1" label="Field 1" :trim="true">
+ *     <field-string name="field1" label="Field 1">
  *         <form-label>
  *             <widget-input />
  *         </form-label>

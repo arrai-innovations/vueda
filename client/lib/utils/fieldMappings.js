@@ -20,18 +20,19 @@ export const defaultFieldMappings = {
     },
     DecimalField: {
         DecimalField: {
-            component: availableFields.FieldNumber,
+            component: availableFields.FieldDecimal,
             widget: availableWidgets.WidgetInputNumber,
         },
         PositiveDecimalField: {
-            component: availableFields.FieldNumber,
+            component: availableFields.FieldDecimal,
             widget: availableWidgets.WidgetInputNumber,
         },
     },
     DurationSecondsField: {
         DurationField: {
-            component: availableFields.FieldDuration,
+            component: availableFields.FieldNumber,
             widget: availableWidgets.WidgetDuration,
+            // todo: mode for WidgetDuration to handle seconds directly
             widgetProps: { unit: "minutes" },
         },
     },
@@ -129,7 +130,7 @@ export const defaultFieldMappings = {
             widget: availableWidgets.WidgetSearchableSelect,
             widgetProps: { multiple: true },
             fieldProps: {
-                requiredFn: (value) => {
+                shouldRequireFn: (value) => {
                     if (Array.isArray(value)) {
                         return value.length;
                     } else {
@@ -143,7 +144,7 @@ export const defaultFieldMappings = {
             widget: availableWidgets.WidgetSearchableSelect,
             widgetProps: { multiple: true },
             fieldProps: {
-                requiredFn: (value) => {
+                shouldRequireFn: (value) => {
                     if (Array.isArray(value)) {
                         return value.length;
                     } else {
@@ -172,10 +173,10 @@ export const defaultFieldMappings = {
         },
     },
     PrimaryKeyRelatedField: {
-        ForeignKey: { component: availableFields.FieldString, widget: availableWidgets.WidgetSearchableSelect },
-        OneToOneField: { component: availableFields.FieldString, widget: availableWidgets.WidgetSearchableSelect },
+        ForeignKey: { component: availableFields.FieldNumber, widget: availableWidgets.WidgetSearchableSelect },
+        OneToOneField: { component: availableFields.FieldNumber, widget: availableWidgets.WidgetSearchableSelect },
         RelatedField: {
-            component: availableFields.FieldString,
+            component: availableFields.FieldNumber,
             widget: availableWidgets.WidgetSearchableSelect,
             widgetProps: { multiple: true },
         },
@@ -313,7 +314,7 @@ export const manyFieldMappings = {
     },
     DateField: {
         DateField: {
-            widget: availableWidgets.WidgetDatePickerm,
+            widget: availableWidgets.WidgetDatePicker,
             fieldProps: { manyComponent: availableFields.FieldDate },
         },
     },
@@ -321,22 +322,25 @@ export const manyFieldMappings = {
         DateTimeField: {
             widget: availableWidgets.WidgetDatePicker,
             fieldProps: { manyComponent: availableFields.FieldDateTime },
+            widgetProps: { showTime: true },
         },
     },
     DecimalField: {
         DecimalField: {
             widget: availableWidgets.WidgetInput,
-            fieldProps: { manyComponent: availableFields.FieldNumber },
+            fieldProps: { manyComponent: availableFields.FieldDecimal },
         },
         PositiveDecimalField: {
             widget: availableWidgets.WidgetInput,
-            fieldProps: { manyComponent: availableFields.FieldNumber },
+            fieldProps: { manyComponent: availableFields.FieldDecimal },
         },
     },
     DurationSecondsField: {
         DurationField: {
             widget: availableWidgets.WidgetDuration,
-            fieldProps: { manyComponent: availableFields.FieldDuration },
+            fieldProps: { manyComponent: availableFields.FieldNumber },
+            // todo: mode for WidgetDuration to handle seconds directly
+            widgetProps: { unit: "minutes" },
         },
     },
     DurationField: {

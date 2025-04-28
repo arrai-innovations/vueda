@@ -1,4 +1,5 @@
 <script setup>
+import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import omit from "lodash-es/omit.js";
 import { DateTime } from "luxon";
@@ -20,38 +21,29 @@ const props = defineProps({
     },
 });
 
-const preprocessGet = (value) => {
-    if (!value || value === "") {
+const emit = defineEmits([...FIELD_EMITS]);
+const fieldContext = useField(props, emit);
+const logger = useDevLogger({ fieldContext });
+
+const parseToDate = (value) => {
+    if (!value) {
         return null;
     }
     if (value instanceof Date) {
         return value;
     }
-    const parsed = DateTime.fromISO(value, { zone: "local" });
-    return parsed.isValid ? parsed.toJSDate() : null;
+    const dt = DateTime.fromISO(value, { zone: "local" });
+    return dt.isValid ? dt.toJSDate() : null;
 };
-
-const preprocessSet = (value) => {
-    if (value instanceof Date) {
-        const dt = DateTime.fromJSDate(value, { zone: "local" });
-        return dt.toISODate(); // Returns date in "yyyy-MM-dd" format
-    }
-    return value;
-};
-
-const emit = defineEmits([...FIELD_EMITS]);
-const fieldContext = useField(props, emit, { preprocessGet, preprocessSet });
 
 const valueAsDate = computed(() => {
-    return preprocessGet(fieldContext.state.value);
+    return parseToDate(fieldContext.state.value);
 });
-
 const maxValueAsDate = computed(() => {
-    return preprocessGet(props.maxValue);
+    return parseToDate(props.maxValue);
 });
-
 const minValueAsDate = computed(() => {
-    return preprocessGet(props.minValue);
+    return parseToDate(props.minValue);
 });
 
 const formatDate = (date) => {
@@ -80,6 +72,23 @@ watch(
             fieldContext.updateError("minValue", `Must be ${formatDate(minValue)} or more.`);
         } else {
             fieldContext.deleteError("minValue");
+        }
+    },
+    { immediate: true },
+);
+watch(
+    () => fieldContext.state.value,
+    (value) => {
+        if (value !== null && value !== undefined) {
+            if (typeof value !== "string") {
+                logger.warn(`Expected value to be a string (YYYY-MM-DD), got:`, value);
+            } else {
+                const parsed = DateTime.fromISO(value, { zone: "local" });
+                if (!parsed.isValid || value.length !== 10) {
+                    // "2024-04-27" is 10 characters
+                    logger.warn(`Value is a string but not a valid ISO date (YYYY-MM-DD):`, value);
+                }
+            }
         }
     },
     { immediate: true },

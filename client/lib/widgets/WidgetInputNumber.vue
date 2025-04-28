@@ -6,6 +6,7 @@ import { PASSTHROUGH_OPTION_PROPS } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import Decimal from "decimal.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
 import omit from "lodash-es/omit.js";
@@ -14,7 +15,7 @@ import Button from "primevue/button";
 import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
 import Popover from "primevue/popover";
-import { computed, ref, toRef, useSlots, useTemplateRef, watch } from "vue";
+import { computed, reactive, ref, toRef, toRefs, useSlots, useTemplateRef, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -40,9 +41,40 @@ const props = defineProps({
         type: [String, Array],
         default: undefined,
     },
+    unitDefs: {
+        type: Object,
+        default: () => ({}),
+    },
+    baseUnit: {
+        type: String,
+        default: undefined,
+    },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
-const widgetContext = useWidget(props, emit);
+const widgetProps = reactive({
+    ...toRefs(props),
+    fieldToWidget: (value) => {
+        if (value == null || value === "") {
+            return null;
+        }
+        try {
+            return new Decimal(value);
+        } catch {
+            return null;
+        }
+    },
+    widgetToField: (value) => {
+        if (value == null || value === "") {
+            return null;
+        }
+        try {
+            return new Decimal(value).toFixed();
+        } catch {
+            return null;
+        }
+    },
+});
+const widgetContext = useWidget(widgetProps, emit);
 
 const theme = useWidgetTheme("WidgetInputNumber", props, widgetContext.state);
 const slots = useSlots();
@@ -50,35 +82,20 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 const allowMinusSign = computed(() => {
     return props.min === undefined || props.min < 0;
 });
-const min = toRef(props, "min");
-const max = toRef(props, "max");
-const step = toRef(props, "step");
 
 const widgetMin = computed(() => {
-    if (min.value) {
-        if (isObject(min.value)) {
-            return min.value[currentUnit.value?.value] || 0;
-        }
-    }
-    return min.value;
+    const def = props.unitDefs?.[currentUnit.value?.value];
+    return def?.min ?? props.min;
 });
 
 const widgetMax = computed(() => {
-    if (max.value) {
-        if (isObject(max.value)) {
-            return max.value[currentUnit.value?.value] || 0;
-        }
-    }
-    return max.value;
+    const def = props.unitDefs?.[currentUnit.value?.value];
+    return def?.max ?? props.max;
 });
 
 const widgetStep = computed(() => {
-    if (step.value) {
-        if (isObject(step.value)) {
-            return step.value[currentUnit.value?.value] || 0;
-        }
-    }
-    return step.value;
+    const def = props.unitDefs?.[currentUnit.value?.value];
+    return def?.step ?? props.step;
 });
 const onInputKeyDown = (event) => {
     const char = event.key;
@@ -148,27 +165,34 @@ const onNextButtonClicked = () => {
     }
 };
 
-const inputValue = ref(null);
+function getConversionFactor(unit) {
+    const def = props.unitDefs?.[unit];
+    if (!def) return new Decimal(1);
+    const num = new Decimal(def.numerator ?? 1);
+    const den = new Decimal(def.denominator ?? 1);
+    return num.div(den);
+}
 
-watch([inputValue, currentUnit], ([value, unit], [oldValue, oldUnit]) => {
-    if (!isEqual(value, oldValue) || !isEqual(unit, oldUnit)) {
-        if (isObject(unit)) {
-            widgetContext.state.combinedValue = { value: value, unit: unit.value };
-        } else {
-            widgetContext.state.combinedValue = value;
+const displayValue = computed({
+    get() {
+        const raw = widgetContext.state.adaptedValue;
+        if (raw == null) {
+            return "";
         }
-    }
-});
-
-watch(
-    toRef(widgetContext.state, "combinedValue"),
-    (val) => {
-        if (inputValue.value == null && val) {
-            inputValue.value = val;
+        const unit = currentUnit.value?.value ?? props.baseUnit;
+        const factor = getConversionFactor(unit);
+        return new Decimal(raw).div(factor).toFixed();
+    },
+    set(displayed) {
+        const unit = currentUnit.value?.value ?? props.baseUnit;
+        const factor = getConversionFactor(unit);
+        if (displayed == null || displayed === "") {
+            widgetContext.state.adaptedValue = null;
+        } else {
+            widgetContext.state.adaptedValue = new Decimal(displayed).mul(factor).toFixed();
         }
     },
-    { immediate: true, deep: true },
-);
+});
 </script>
 
 <template>
@@ -183,7 +207,7 @@ watch(
                         <slot v-if="$slots.prefix" name="prefix" />
                         <input
                             :id="widgetContext.state.widgetId"
-                            v-model="inputValue"
+                            v-model="displayValue"
                             :aria-invalid="widgetContext.state.validationState.invalid"
                             :class="theme('input')"
                             :disabled="widgetContext.state.disabled"

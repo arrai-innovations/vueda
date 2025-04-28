@@ -30,8 +30,6 @@ export const FIELD_PROPS = {
 
     // *** Value Handling ***
     modelValue: { type: [String, Number, Boolean, Array, Object], default: undefined },
-    preprocessSet: { type: Function, default: null },
-    preprocessGet: { type: Function, default: null },
 
     // *** Form Context Behavior ***
     contextless: { type: Boolean, default: false },
@@ -123,8 +121,8 @@ export function defaultIsRequiredViolation(value) {
  * @property {() => void} blur - Blurs (un-focuses) the field.
  *
  * // *** Field Ignoring ***
- * @property {(name:string|undefined) => void} ignore - Marks the field as ignored, so validation does not apply.
- * @property {(name:string|undefined) => void} removeIgnore - Removes the ignore status, making the field active again.
+ * @property {(name?:string) => void} ignore - Marks the field as ignored, so validation does not apply.
+ * @property {(name?:string) => void} removeIgnore - Removes the ignore status, making the field active again.
  *
  * // *** Hook Registration ***
  * @property {(hook: () => boolean) => string} registerIsModifiedHook - Registers a hook that determines if the field is modified.
@@ -133,14 +131,6 @@ export function defaultIsRequiredViolation(value) {
  * @property {(id: string) => void} unregisterIsRequiredHook - Unregisters a previously registered required-state hook.
  * @property {(hook: () => boolean | string) => string} registerIsValidHook - Registers a hook that determines if the field is valid.
  * @property {(id: string) => void} unregisterIsValidHook - Unregisters a previously registered validation-state hook.
- */
-
-/**
- * The non-reactive `functions` that can be passed to useField.
- *
- * @typedef {object} FieldContextFunctions
- * @property {(value: any) => any} [preprocessSet] - A custom function to preprocess the value before updating
- * @property {(value: any) => any} [preprocessGet] - A custom function to preprocess the value before retrieving
  */
 
 /**
@@ -171,8 +161,6 @@ export function defaultIsRequiredViolation(value) {
  *
  * // *** Value Handling ***
  * @property {any} [modelValue] - The field's external model value (only used in context-less mode).
- * @property {(value: any) => any} [preprocessSet=null] - A custom function to preprocess the value before updating.
- * @property {(value: any) => any} [preprocessGet=null] - A custom function to preprocess the value before retrieving.
  *
  * // *** Form Context Behavior ***
  * @property {boolean} [contextless=false] - If `true`, the field will ignore the form context and manage its own state.
@@ -242,10 +230,9 @@ const setupFieldPropsForTest = (props, localFormContext) => {
  *
  * @param {FieldContextProps} props - The field context's reactive props.
  * @param {import('vue').EmitFn} emit - The component emit function.
- * @param {FieldContextFunctions} [functions] - Additional non-reactive functions.
  * @returns {FieldContext} The field context object.
  */
-export function useField(props, emit /*, functions*/) {
+export function useField(props, emit) {
     /** @type {import('@vueda/use/useForm.js').FormContext|null} */
     const rawFormContext = inject(FormContextSymbol, null);
     const formContext = computed(() => (!props.contextless ? unref(rawFormContext) : null));

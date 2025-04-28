@@ -2,13 +2,14 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldSetStackedInlineRow from "@vueda/components/FieldSetStackedInlineRow.vue";
 import FormChores from "@vueda/components/FormChores.vue";
+import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
-import { onMounted } from "vue";
+import { onMounted, watch } from "vue";
 
 const props = defineProps({
     ...FIELD_SET_INLINE_PROPS,
@@ -55,6 +56,21 @@ const handleDeleteSingle = (selected_) => {
     fieldSetContext.blur();
     fieldSetInline.state.selected.value = selected_;
 };
+/* todo: this field seems very copy and pasted from FieldSetStackedInline, could
+         `singular` just a prop on that component?
+*/
+watch(
+    () => fieldSetContext.state.value,
+    (value) => {
+        if (value === null || value === undefined) {
+            return; // OK: allow null/undefined
+        }
+        if (typeof value !== "object" || Array.isArray(value)) {
+            logger.warn(`Expected value to be a plain object (single inline object), got:`, value);
+        }
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
@@ -70,7 +86,7 @@ const handleDeleteSingle = (selected_) => {
                     },
                 }"
             >
-                <div v-if="fieldSetInline.state.hidable" data-qa="fieldset-singular-stacked-inline-header-toggle">
+                <div v-if="fieldSetInline.state.hidable" data-qa="field-set-singular-stacked-inline-header-toggle">
                     <slot
                         :class="theme('toggleButton')"
                         :field-props="fieldSetInline.state.computedFieldProps"
@@ -86,12 +102,12 @@ const handleDeleteSingle = (selected_) => {
                         />
                     </slot>
                 </div>
-                <div :class="theme('title')" data-qa="fieldset-singular-stacked-inline-title">
+                <div :class="theme('title')" data-qa="field-set-singular-stacked-inline-title">
                     <slot name="title">
                         {{ fieldSetContext.state.label }}
                     </slot>
                 </div>
-                <div :class="theme('actionBar')" data-qa="fieldset-singular-stacked-inline-action-bar">
+                <div :class="theme('actionBar')" data-qa="field-set-singular-stacked-inline-action-bar">
                     <slot
                         v-if="fieldSetInline.state.showCreateButton && !fieldSetContext.state.value"
                         :class="theme('createButton')"
@@ -117,12 +133,12 @@ const handleDeleteSingle = (selected_) => {
             </slot>
             <div
                 :class="{ hidden: !fieldSetInline.state.internalVisible }"
-                data-qa="field-set-stacked-inline-inline-rows"
+                data-qa="field-set-singular-stacked-inline-inline-rows"
             >
                 <div
                     v-if="fieldSetContext.state.value"
                     :class="theme('inlineRows')"
-                    data-qa="field-set-stacked-inline-inline-row"
+                    data-qa="field-set-singular-stacked-inline-inline-row"
                 >
                     <field-set-stacked-inline-row
                         :field-name="fieldSetContext.state.name"

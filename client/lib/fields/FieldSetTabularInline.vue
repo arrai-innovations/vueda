@@ -4,6 +4,7 @@ import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import WidgetLabelContextByProps from "@vueda/components/WidgetLabelContextByProps.vue";
+import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import {
     FIELD_SET_TABULAR_INLINE_EMITS,
     FIELD_SET_TABULAR_INLINE_PROPS,
@@ -14,6 +15,7 @@ import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
+import { watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -34,15 +36,33 @@ const fieldSetTabularInline = useFieldSetTabularInline({
         "item-action-button",
     ],
 });
+
+watch(
+    () => fieldSetTabularInline.fieldSetContext.state.value,
+    (value) => {
+        if (value === null || value === undefined) {
+            return;
+        }
+        if (!Array.isArray(value)) {
+            logger.warn(`Expected value to be an array of objects, got:`, value);
+            return;
+        }
+        const invalidElement = value.find((item) => typeof item !== "object" || item === null || Array.isArray(item));
+        if (invalidElement) {
+            logger.warn(`Array contains non-object elements:`, invalidElement);
+        }
+    },
+    { immediate: true, deep: true },
+);
 </script>
 
 <template>
     <div
         ref="test"
         :class="combineClasses(fieldSetTabularInline.theme('root'), $attrs.class)"
-        data-qa="fieldset-tabular-inline-root"
+        data-qa="field-set-tabular-inline-root"
     >
-        <div :class="fieldSetTabularInline.theme('inner')" data-qa="fieldset-tabular-inline-inner">
+        <div :class="fieldSetTabularInline.theme('inner')" data-qa="field-set-tabular-inline-inner">
             <Divider
                 :pt="{
                     root: {
@@ -53,7 +73,7 @@ const fieldSetTabularInline = useFieldSetTabularInline({
                     },
                 }"
             >
-                <div v-if="fieldSetTabularInline.state.hidable" data-qa="fieldset-tabular-inline-header-toggle">
+                <div v-if="fieldSetTabularInline.state.hidable" data-qa="field-set-tabular-inline-header-toggle">
                     <slot
                         :class="fieldSetTabularInline.theme('toggleButton')"
                         :field-props="fieldSetTabularInline.state.computedFieldProps"
@@ -69,12 +89,12 @@ const fieldSetTabularInline = useFieldSetTabularInline({
                         />
                     </slot>
                 </div>
-                <div :class="fieldSetTabularInline.theme('title')" data-qa="fieldset-tabular-inline-title">
+                <div :class="fieldSetTabularInline.theme('title')" data-qa="field-set-tabular-inline-title">
                     <slot name="title">
                         {{ fieldSetTabularInline.fieldSetContext.state.label }}
                     </slot>
                 </div>
-                <div :class="fieldSetTabularInline.theme('actionBar')" data-qa="fieldset-tabular-inline-action-bar">
+                <div :class="fieldSetTabularInline.theme('actionBar')" data-qa="field-set-tabular-inline-action-bar">
                     <slot
                         v-if="
                             fieldSetTabularInline.state.isTable &&
@@ -260,9 +280,9 @@ const fieldSetTabularInline = useFieldSetTabularInline({
                 >
                     <a
                         v-if="foIndex === 0"
-                        :id="`fieldset-tabular-inline-anchor-${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}`"
+                        :id="`field-set-tabular-inline-anchor-${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}`"
                         :ref="(el) => fieldSetTabularInline.refFn(el)"
-                        data-qa="fieldset-tabular-inline-anchor"
+                        data-qa="field-set-tabular-inline-anchor"
                         :data-row-index="objectGridFieldSlotProps.rowIndex"
                     />
                     <field-renderer

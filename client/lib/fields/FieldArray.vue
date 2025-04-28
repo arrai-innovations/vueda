@@ -1,6 +1,8 @@
 <script setup>
+import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import omit from "lodash-es/omit.js";
+import { watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -9,20 +11,19 @@ const props = defineProps({
     ...FIELD_PROPS,
 });
 const emit = defineEmits([...FIELD_EMITS]);
-const preprocessGet = (value) => {
-    if (value === undefined || value === null) {
-        return value;
-    }
-    return Array.isArray(value) ? value.join("\n") : value;
-};
-const preprocessSet = (value) => {
-    if (value === undefined || value === null) {
-        return value;
-    }
-    return Array.isArray(value) ? value : value.split("\n");
-};
 
-useField(props, emit, { preprocessGet, preprocessSet });
+const fieldContext = useField(props, emit);
+const logger = useDevLogger({ fieldContext });
+watch(
+    () => fieldContext.state.value,
+    (value) => {
+        // if you are not an array, or null or undefined, throw an error
+        if (!Array.isArray(value) && value !== null && value !== undefined) {
+            logger.warn("Expected value to be an array or null/undefined, got:", value);
+        }
+    },
+    { immediate: true },
+);
 </script>
 <template>
     <div :class="$attrs.class" data-qa="field-array">

@@ -9,32 +9,28 @@ defineOptions({
 });
 const props = defineProps({
     ...FIELD_PROPS,
-    maxValue: {
-        type: Number,
-        default: undefined,
-    },
-    minValue: {
-        type: Number,
-        default: undefined,
-    },
-    step: {
-        type: Number,
-        default: undefined,
-    },
-    // todo: maxFractionDigits doesn't do anything anymore, do we need it?
-    maxFractionDigits: {
-        type: Number,
-        default: undefined,
-    },
+    maxValue: { type: Number, default: undefined },
+    minValue: { type: Number, default: undefined },
+    step: { type: Number, default: undefined },
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
 const logger = useDevLogger({ fieldContext });
+
 const fieldValueRef = toRef(fieldContext.state, "value");
+
+function toNumeric(value) {
+    if (typeof value === "string" && !isNaN(Number(value))) {
+        return Number(value);
+    }
+    return value;
+}
+
 watch(
     [toRef(props, "maxValue"), fieldValueRef],
     ([maxValue, value]) => {
-        if (fieldValueRef.value !== null && maxValue && value > maxValue) {
+        const numericValue = toNumeric(value);
+        if (numericValue !== null && maxValue !== undefined && numericValue > maxValue) {
             fieldContext.updateError("maxValue", `Must be ${maxValue} or less.`);
         } else {
             fieldContext.deleteError("maxValue");
@@ -42,10 +38,12 @@ watch(
     },
     { immediate: true },
 );
+
 watch(
     [toRef(props, "minValue"), fieldValueRef],
     ([minValue, value]) => {
-        if (fieldValueRef.value !== null && minValue !== undefined && value < minValue) {
+        const numericValue = toNumeric(value);
+        if (numericValue !== null && minValue !== undefined && numericValue < minValue) {
             fieldContext.updateError("minValue", `Must be ${minValue} or more.`);
         } else {
             fieldContext.deleteError("minValue");
@@ -53,6 +51,7 @@ watch(
     },
     { immediate: true },
 );
+
 const stepScaleFactor = computed(() => {
     const step = props.step;
     if (step) {
@@ -64,13 +63,15 @@ const stepScaleFactor = computed(() => {
     }
     return 1;
 });
+
 watch(
     [toRef(props, "step"), fieldValueRef],
     ([step, value]) => {
-        if (step && fieldValueRef.value !== null) {
+        const numericValue = toNumeric(value);
+        if (step && numericValue !== null) {
             const factor = stepScaleFactor.value;
             const stepScaled = step * factor;
-            const valueScaled = value * factor;
+            const valueScaled = numericValue * factor;
             if (valueScaled % stepScaled !== 0) {
                 fieldContext.updateError("step", `Must be a multiple of ${step}.`);
             } else {
@@ -82,21 +83,23 @@ watch(
     },
     { immediate: true },
 );
+
 watch(
     fieldValueRef,
     (value) => {
         if (value === null || value === undefined) {
             return;
         }
-        if (typeof value !== "number") {
-            logger.warn(`Expected value to be a number, got:`, value);
+        if (typeof value !== "number" && !(typeof value === "string" && !isNaN(Number(value)))) {
+            logger.warn(`Expected value to be a number or numeric string, got:`, value);
         }
     },
     { immediate: true },
 );
 </script>
+
 <template>
-    <div :class="$attrs.class" data-qa="field-number">
+    <div :class="$attrs.class" data-qa="field-decimal">
         <slot :field-attrs="omit($attrs, ['class'])" :field-props="props" />
     </div>
 </template>

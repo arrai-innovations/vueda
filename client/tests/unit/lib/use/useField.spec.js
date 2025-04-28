@@ -41,8 +41,6 @@ const getDefaultProps = (vue, name) => {
 
         // *** Value Handling ***
         modelValue: undefined,
-        // preprocessGet: null,
-        // preprocessSet: null,
 
         // *** Form Context Behavior ***
         contextless: false,
@@ -770,8 +768,6 @@ describe("lib/use/useField.js", () => {
                 expect(fc.updateValue).toHaveBeenCalledWith("testField", "new context value");
             });
         });
-        describe.skip("preprocessSet", () => {});
-        describe.skip("preprocessGet", () => {});
         describe("contextless", () => {
             scopedIt("should not use FormContextSymbol when contextless is true", async () => {
                 const { field } = mountFieldNoContext({
@@ -894,8 +890,9 @@ describe("lib/use/useField.js", () => {
                     expect(field.state.required).toBe(false);
                     expect(field.state.valueRequiredViolation).toBe(false);
                 });
+                // todo: check this test, name seems off.
                 scopedIt(
-                    "should computed as if requiredFn was defaultValidateRequired when props.required and props.requiredFn is null",
+                    "should computed as if shouldRequireFn was defaultValidateRequired when props.required and props.shouldRequireFn is null",
                     async () => {
                         const { field, props } = mountFieldNoContext({
                             required: null,

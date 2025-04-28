@@ -1,5 +1,6 @@
 <script setup>
 import FormChores from "@vueda/components/FormChores.vue";
+import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
@@ -16,16 +17,10 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const preprocessGet = (value) => {
-    if (value === undefined || value === null) {
-        return value;
-    }
-    return Array.isArray(value) ? value : [value];
-};
-
 const emit = defineEmits([...FIELD_EMITS]);
 
-const fieldContext = useField(props, emit, { preprocessGet });
+const fieldContext = useField(props, emit);
+const logger = useDevLogger({ fieldContext });
 
 const fieldProps = computed(() => {
     const values = fieldContext.state.value;
@@ -37,27 +32,24 @@ const fieldProps = computed(() => {
     }));
 });
 
+watch(
+    () => fieldContext.state.value,
+    (value) => {
+        if (value !== null && value !== undefined && !Array.isArray(value)) {
+            logger.warn(`Expected value to be an array or null/undefined, got:`, value);
+        }
+    },
+    { immediate: true },
+);
+
 const onAdd = () => {
-    fieldContext.state.value = [...(cloneDeep(fieldContext.state.value) || [""]), undefined];
+    fieldContext.state.value = [...(fieldContext.state.value ?? []), undefined];
 };
 
 const onDestroy = (index) => {
-    fieldContext.state.value = cloneDeep(fieldContext.state.value).filter((_, i) => i !== index);
+    fieldContext.state.value = (fieldContext.state.value ?? []).filter((_, i) => i !== index);
 };
 const theme = useTheme("FieldSetMany", props);
-
-const isEmptyValue = (value) => {
-    return value === "";
-};
-watch(
-    toRef(fieldContext.state, "value"),
-    (newValue) => {
-        if (Array.isArray(newValue) && newValue.length === 1 && isEmptyValue(newValue[0])) {
-            fieldContext.state.value = [];
-        }
-    },
-    { immediate: true, deep: true },
-);
 </script>
 <template>
     <div data-qa="field-set-many">

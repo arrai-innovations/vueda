@@ -2,12 +2,14 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldSetStackedInlineRow from "@vueda/components/FieldSetStackedInlineRow.vue";
 import FormChores from "@vueda/components/FormChores.vue";
+import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
+import { watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -22,6 +24,24 @@ const fieldSetInline = useFieldSetInline({
     fieldSetContext,
 });
 const theme = useTheme("FieldSetStackedInline", props);
+
+watch(
+    () => fieldSetContext.state.value,
+    (value) => {
+        if (value === null || value === undefined) {
+            return;
+        }
+        if (!Array.isArray(value)) {
+            logger.warn(`Expected value to be an array of objects, got:`, value);
+            return;
+        }
+        const invalidElement = value.find((item) => typeof item !== "object" || item === null || Array.isArray(item));
+        if (invalidElement) {
+            logger.warn(`Array contains non-object elements:`, invalidElement);
+        }
+    },
+    { immediate: true, deep: true },
+);
 </script>
 
 <template>
@@ -37,7 +57,7 @@ const theme = useTheme("FieldSetStackedInline", props);
                     },
                 }"
             >
-                <div v-if="fieldSetInline.state.hidable" data-qa="fieldset-stacked-inline-header-toggle">
+                <div v-if="fieldSetInline.state.hidable" data-qa="field-set-stacked-inline-header-toggle">
                     <slot
                         :class="theme('toggleButton')"
                         :field-props="fieldSetInline.state.computedFieldProps"
@@ -53,7 +73,7 @@ const theme = useTheme("FieldSetStackedInline", props);
                         />
                     </slot>
                 </div>
-                <div :class="theme('title')" data-qa="fieldset-stacked-inline-title">
+                <div :class="theme('title')" data-qa="field-set-stacked-inline-title">
                     <slot name="title">
                         {{ fieldSetContext.state.label }}
                     </slot>

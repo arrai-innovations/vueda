@@ -1,4 +1,5 @@
 <script setup>
+import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import omit from "lodash-es/omit.js";
 import { DateTime } from "luxon";
@@ -18,40 +19,31 @@ const props = defineProps({
         default: undefined,
     },
 });
-const preprocessGet = (value) => {
-    if (!value || value === "") {
+const emit = defineEmits([...FIELD_EMITS]);
+const fieldContext = useField(props, emit);
+const logger = useDevLogger({ fieldContext });
+
+const parseToDateTime = (value) => {
+    if (!value) {
         return null;
     }
     if (value instanceof Date) {
         return value;
     }
-    const parsed = DateTime.fromISO(value);
-    return parsed.isValid ? parsed.toJSDate() : null;
+    const dt = DateTime.fromISO(value, { zone: "local" });
+    return dt.isValid ? dt.toJSDate() : null;
 };
 
-const preprocessSet = (value) => (value instanceof Date ? DateTime.fromJSDate(value).toISO() : value);
-const emit = defineEmits([...FIELD_EMITS]);
-const fieldContext = useField(props, emit, { preprocessGet, preprocessSet });
 const formatDateTime = (date) => {
     if (!date) {
         return "";
     }
     return DateTime.fromJSDate(date).toISO({ suppressMilliseconds: true });
 };
-const valueAsDateTime = computed(() => {
-    const value = fieldContext.state.value;
-    if (value) {
-        return new Date(value);
-    }
-    return null;
-});
-const maxValueAsDateTime = computed(() => {
-    return preprocessGet(props.maxValue);
-});
 
-const minValueAsDateTime = computed(() => {
-    return preprocessGet(props.minValue);
-});
+const valueAsDateTime = computed(() => parseToDateTime(fieldContext.state.value));
+const maxValueAsDateTime = computed(() => parseToDateTime(props.maxValue));
+const minValueAsDateTime = computed(() => parseToDateTime(props.minValue));
 watch(
     [maxValueAsDateTime, valueAsDateTime],
     ([maxValue, value]) => {
@@ -70,6 +62,22 @@ watch(
             fieldContext.updateError("minValue", `Must be ${formatDateTime(minValue)} or more.`);
         } else {
             fieldContext.deleteError("minValue");
+        }
+    },
+    { immediate: true },
+);
+watch(
+    () => fieldContext.state.value,
+    (value) => {
+        if (value !== null && value !== undefined) {
+            if (typeof value !== "string") {
+                logger.warn(`Expected value to be a string (ISO datetime), got:`, value);
+            } else {
+                const parsed = DateTime.fromISO(value, { zone: "local" });
+                if (!parsed.isValid) {
+                    logger.warn(`Value is a string but not a valid ISO datetime:`, value);
+                }
+            }
         }
     },
     { immediate: true },

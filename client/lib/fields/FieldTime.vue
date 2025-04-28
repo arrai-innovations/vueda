@@ -1,4 +1,5 @@
 <script setup>
+import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import omit from "lodash-es/omit.js";
 import { DateTime } from "luxon";
@@ -33,29 +34,9 @@ const getDateFromString = (timeString) => {
     }
     return null;
 };
-const preprocessSet = (value) => {
-    if (value instanceof Date) {
-        return formatTime(value);
-    }
-    return value;
-};
-const preprocessGet = (value) => {
-    if (value === undefined || value === null || value === "") {
-        return null;
-    }
-    if (value instanceof Date) {
-        return value;
-    }
-    return getDateFromString(value) || null;
-};
 const emit = defineEmits([...FIELD_EMITS]);
-const fieldContext = useField(props, emit, { preprocessSet, preprocessGet });
-const formatTime = (date) => {
-    if (!date) {
-        return "";
-    }
-    return DateTime.fromJSDate(date).toFormat("HH:mm:ss");
-};
+const fieldContext = useField(props, emit);
+const logger = useDevLogger({ fieldContext });
 /**
  * Convert a time string or Date object to a comparable value.
  * @param {String|Date} time - The time to convert.
@@ -118,6 +99,22 @@ watch(
                 fieldContext.updateError("step", `Must be a multiple of ${step}.`);
             } else {
                 fieldContext.deleteError("step");
+            }
+        }
+    },
+    { immediate: true },
+);
+watch(
+    () => fieldContext.state.value,
+    (value) => {
+        if (value !== null && value !== undefined) {
+            if (typeof value !== "string") {
+                logger.warn(`Expected value to be a string (HH:mm:ss), got:`, value);
+            } else {
+                const parsed = DateTime.fromFormat(value, "HH:mm:ss");
+                if (!parsed.isValid) {
+                    logger.warn(`Value is a string but not a valid HH:mm:ss time:`, value);
+                }
             }
         }
     },

@@ -1,4 +1,5 @@
 <script setup>
+import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import omit from "lodash-es/omit.js";
 import { toRef, watch } from "vue";
@@ -12,23 +13,26 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    requiredFn: {
+    shouldRequireFn: {
         type: Function,
         default: () => () => true,
     },
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
+const logger = useDevLogger({ fieldContext });
 
 watch(
-    toRef(fieldContext.state, "value"),
-    (newValue) => {
-        if (newValue === null && props.nullable) {
+    () => fieldContext.state.value,
+    (value) => {
+        if (value === undefined) {
             return;
         }
-        const coercedValue = !!newValue;
-        if (coercedValue !== newValue) {
-            fieldContext.state.value = coercedValue;
+        if (props.nullable && value === null) {
+            return;
+        }
+        if (typeof value !== "boolean") {
+            logger.warn(`Expected value to be a boolean${props.nullable ? " or null" : ""}, got:`, value);
         }
     },
     { immediate: true },

@@ -1,7 +1,9 @@
 <script setup>
+import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import isObject from "lodash-es/isObject.js";
 import omit from "lodash-es/omit.js";
+import { watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -12,49 +14,37 @@ const props = defineProps({
         type: String,
         default: "date",
     },
-    maxValue: {
-        type: [Date, String],
-        default: undefined,
-    },
-    minValue: {
-        type: [Date, String],
-        default: undefined,
-    },
     rangeSuffix: {
         type: Array,
         default: () => ["lower", "upper"],
     },
 });
-const preprocessGet = (value) => {
-    if (isObject(value)) {
-        const newValue = [value[props.rangeSuffix[0]], value[props.rangeSuffix[1]]];
-
-        if (props.type === "date") {
-            return newValue.map((v) => {
-                if (typeof v === "string") {
-                    return new Date(v);
-                }
-                return v;
-            });
-        }
-        return newValue;
-    }
-    return value;
-};
-const preprocessSet = (value) => {
-    if (Array.isArray(value) && props.rangeSuffix) {
-        return {
-            [props.rangeSuffix[0]]: value[0],
-            [props.rangeSuffix[1]]: value[1],
-        };
-    }
-    return value;
-};
 const emit = defineEmits([...FIELD_EMITS]);
-useField(props, emit, { preprocessGet, preprocessSet });
+const fieldContext = useField(props, emit);
+const logger = useDevLogger({ fieldContext });
+
+watch(
+    () => fieldContext.state.value,
+    (value) => {
+        if (value !== null && value !== undefined) {
+            if (!isObject(value)) {
+                logger.warn(
+                    `Expected value to be an object keyed by rangeSuffix (${props.rangeSuffix.join(", ")}), got:`,
+                    value,
+                );
+                return;
+            }
+            const [lowerKey, upperKey] = props.rangeSuffix;
+            if (!(lowerKey in value) || !(upperKey in value)) {
+                logger.warn(`Object value is missing "${lowerKey}" or "${upperKey}" key:`, value);
+            }
+        }
+    },
+    { immediate: true },
+);
 </script>
 <template>
-    <div :class="$attrs.class" data-qa="field-date">
+    <div :class="$attrs.class" data-qa="field-range">
         <slot :field-attrs="omit($attrs, ['class'])" :field-props="props" />
     </div>
 </template>
