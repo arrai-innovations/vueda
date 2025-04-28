@@ -38,7 +38,7 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  * // *** Interaction & Focus ***
  * @property {{[path: string]: boolean}} touched - Whether each field has been touched (blurred).
  * @property {boolean} anyTouched - Whether any field has been touched.
- * @property {string|undefined} focused - The currently focused field (if any).
+ * @property {string|null} focused - The currently focused field (if any).
  *
  * // *** Tracking & Modification ***
  * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} modified - Tracks modified fields.
@@ -638,7 +638,11 @@ export function useForm(props) {
     const requiredHookRegistry = useReactiveHookRegistry();
     const validationHookRegistry = useReactiveHookRegistry();
 
+    /** @type {FormContextState} */
     const state = reactive({
+        // *** Meta Information ***
+        parentPath: "", // keep similar shape to useSubForm
+
         // *** Values & Initial State ***
         values: {},
         submittingValues: computed(() => {
