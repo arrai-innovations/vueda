@@ -2,6 +2,16 @@
 
 _Actions potentially required by implementers are marked with italics._
 
+## v2.0.0-alpha.9 (2025-04-28)
+
+### Fixes
+
+handle dynamic lookup mode, add default fields/expands, and prevent incorrect link rendering
+
+- **WidgetReadOnly**:
+    - Fixed `fields` and `expands` not defaulting to the model config
+    - Fixed `useResolvedLookupObject` getting initilized for widgets without app && model props
+
 ## v2.0.0-alpha.8 (2025-04-28)
 
 ### TL;DR
