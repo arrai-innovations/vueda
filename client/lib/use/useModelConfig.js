@@ -4,7 +4,7 @@ import { useIsActive } from "@vueda/use/useIsActive";
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";
-import { reactive, readonly, ref, toRef, watch } from "vue";
+import { effectScope, reactive, readonly, ref, toRef, watch } from "vue";
 
 /**
  * A view-specific configuration object for making use of a model client-side.
@@ -34,6 +34,7 @@ import { reactive, readonly, ref, toRef, watch } from "vue";
  * @property {()=>void} clearError - Clear the error.
  * @property {import('@vueda/stores/storeModelInfo.js').ModelInfo} info - The model info.
  * @property {import('@vueda/stores/storeModelConfig.js').ModelConfig} config - The model config.
+ * @property {import('vue').EffectScope} effectScope - The effect scope for the instance.
  */
 
 /**
@@ -55,82 +56,86 @@ export function useModelConfig(app, model, view) {
     if (!app || !model) {
         throw new Error("app and model must be provided");
     }
-    const loadingError = useLoadingError();
-    const isActive = useIsActive();
-    const modelInfo = useModelInfo(app, model, isActive);
-    let modelConfigStore = null;
-    const proxyLoadingError = useProxyLoadingError([loadingError, modelInfo]);
-    const returnObject = reactive({
-        app,
-        model,
-        view: view || null,
-        loading: proxyLoadingError.loading,
-        error: proxyLoadingError.error,
-        errored: proxyLoadingError.errored,
-        clearError: proxyLoadingError.clearError,
-        info: toRef(modelInfo, "info"),
-        config: ref({
-            // populate the expected shape to make deeper references work earlier
-            verboseName: "",
-            verboseNamePlural: "",
-            displayFields: [],
-            fetchFields: [],
-            submitFields: [],
-            expand: [],
-            routeActions: [],
-            actions: [],
-            filterables: [],
-            sortables: [],
-            sorted: [],
-            fieldDetails: {},
-            expandDetails: {},
-            actionDetails: {},
-            filterableDetails: {},
-            formProps: {},
-            fieldComponents: {},
-            fieldProps: {},
-            widgetComponents: {},
-            widgetProps: {},
-            defaultView: null,
-        }),
+    const es = effectScope();
+    return es.run(() => {
+        const loadingError = useLoadingError();
+        const isActive = useIsActive();
+        const modelInfo = useModelInfo(app, model, isActive);
+        let modelConfigStore = null;
+        const proxyLoadingError = useProxyLoadingError([loadingError, modelInfo]);
+        const returnObject = reactive({
+            app,
+            model,
+            view: view || null,
+            loading: proxyLoadingError.loading,
+            error: proxyLoadingError.error,
+            errored: proxyLoadingError.errored,
+            clearError: proxyLoadingError.clearError,
+            info: toRef(modelInfo, "info"),
+            config: ref({
+                // populate the expected shape to make deeper references work earlier
+                verboseName: "",
+                verboseNamePlural: "",
+                displayFields: [],
+                fetchFields: [],
+                submitFields: [],
+                expand: [],
+                routeActions: [],
+                actions: [],
+                filterables: [],
+                sortables: [],
+                sorted: [],
+                fieldDetails: {},
+                expandDetails: {},
+                actionDetails: {},
+                filterableDetails: {},
+                formProps: {},
+                fieldComponents: {},
+                fieldProps: {},
+                widgetComponents: {},
+                widgetProps: {},
+                defaultView: null,
+            }),
+            effectScope: es,
+        });
+
+        watch(
+            [isActive, toRef(returnObject, "app"), toRef(returnObject, "model"), toRef(returnObject, "view")],
+            ([active, app, model, view]) => {
+                if (!active) {
+                    return; // we'll pick up again when the component is active
+                }
+                // we don't need to check if app and model have changed, vue does that checking for us
+                //  on immutable primitive values
+                if (!modelConfigStore) {
+                    modelConfigStore = storeModelConfig();
+                }
+                // todo: we could look at implementing cancelling of fetches if the app/model changes while loading
+                if (app && model) {
+                    loadingError.clearError();
+                    loadingError.setLoading();
+                    const actionName = getActionName(view);
+                    const args = { app, model, view: actionName };
+                    const key = actionName ? getAppModelViewDotName(args) : getAppModelDotName(args);
+                    modelConfigStore
+                        .getConfig(args)
+                        .then(() => {
+                            // WARNING: by assigning after awaiting, we KNOW the key is there, so there is no
+                            //  reactivity issues not working when the key is not there initially
+                            returnObject.config = toRef(modelConfigStore.builtConfigs, key);
+                        })
+                        .catch((e) => {
+                            loadingError.setError(e);
+                            console.error("useModelConfig: error fetching config", e);
+                        })
+                        .finally(() => {
+                            loadingError.clearLoading();
+                        });
+                }
+            },
+            { immediate: true },
+        );
+
+        return readonly(returnObject);
     });
-
-    watch(
-        [isActive, toRef(returnObject, "app"), toRef(returnObject, "model"), toRef(returnObject, "view")],
-        ([active, app, model, view]) => {
-            if (!active) {
-                return; // we'll pick up again when the component is active
-            }
-            // we don't need to check if app and model have changed, vue does that checking for us
-            //  on immutable primitive values
-            if (!modelConfigStore) {
-                modelConfigStore = storeModelConfig();
-            }
-            // todo: we could look at implementing cancelling of fetches if the app/model changes while loading
-            if (app && model) {
-                loadingError.clearError();
-                loadingError.setLoading();
-                const actionName = getActionName(view);
-                const args = { app, model, view: actionName };
-                const key = actionName ? getAppModelViewDotName(args) : getAppModelDotName(args);
-                modelConfigStore
-                    .getConfig(args)
-                    .then(() => {
-                        // WARNING: by assigning after awaiting, we KNOW the key is there, so there is no
-                        //  reactivity issues not working when the key is not there initially
-                        returnObject.config = toRef(modelConfigStore.builtConfigs, key);
-                    })
-                    .catch((e) => {
-                        loadingError.setError(e);
-                        console.error("useModelConfig: error fetching config", e);
-                    })
-                    .finally(() => {
-                        loadingError.clearLoading();
-                    });
-            }
-        },
-        { immediate: true },
-    );
-
-    return readonly(returnObject);
 }

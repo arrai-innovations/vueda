@@ -2,6 +2,7 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import { useIsActive } from "@vueda/use/useIsActive.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useResolvedLookupObject } from "@vueda/use/useResolvedLookupObject.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
@@ -10,7 +11,7 @@ import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
-import { computed, toRef, useSlots } from "vue";
+import { computed, effectScope, reactive, ref, toRef, unref, useSlots, watch } from "vue";
 
 const props = defineProps({
     ...WIDGET_PROPS,
@@ -43,30 +44,94 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
+const es = effectScope();
+const isLookupMode = computed(() => !!(props.app && props.model));
+let modelConfig = null;
+let fieldsList = null;
+let expandList = null;
+let resolvedLookupObject = null;
+const resolvedReactive = reactive({
+    object: {},
+    error: null,
+    errored: false,
+    loading: undefined,
+});
+watch(
+    isLookupMode,
+    (lookupMode) => {
+        if (lookupMode) {
+            modelConfig = es.run(() => useModelConfig(toRef(props, "app"), toRef(props, "model"), "list"));
+            fieldsList = es.run(() =>
+                computed(() =>
+                    !unref(isLookupMode)
+                        ? []
+                        : (props.modelFields?.length ? props.modelFields : modelConfig.config?.fetchFields) || [],
+                ),
+            );
+            expandList = es.run(() =>
+                computed(() =>
+                    !unref(isLookupMode)
+                        ? []
+                        : (props.modelExpandFields?.length ? props.modelExpandFields : modelConfig.config?.expand) ||
+                          [],
+                ),
+            );
+            resolvedLookupObject = es.run(() =>
+                useResolvedLookupObject(
+                    toRef(props, "app"),
+                    toRef(props, "model"),
+                    toRef(widgetContext.state, "combinedValue"),
+                    fieldsList,
+                    expandList,
+                ),
+            );
+            resolvedReactive.object = toRef(resolvedLookupObject, "object");
+            resolvedReactive.error = toRef(resolvedLookupObject, "error");
+            resolvedReactive.errored = toRef(resolvedLookupObject, "errored");
+            resolvedReactive.loading = toRef(resolvedLookupObject, "loading");
+        } else {
+            resolvedReactive.object = null;
+            resolvedReactive.error = null;
+            resolvedReactive.errored = false;
+            resolvedReactive.loading = false;
+            if (resolvedLookupObject) {
+                resolvedLookupObject.effectScope.stop();
+                resolvedLookupObject = null;
+            }
+            if (fieldsList) {
+                // this is an unofficial way to stop computed properties
+                fieldsList?.effect?.stop?.();
+                fieldsList = null;
+            }
+            if (expandList) {
+                // this is an unofficial way to stop computed properties
+                expandList?.effect?.stop?.();
+                expandList = null;
+            }
+            if (modelConfig) {
+                modelConfig.effectScope.stop();
+                modelConfig = null;
+            }
+        }
+    },
+    { immediate: true },
+);
 const theme = useWidgetTheme("WidgetReadOnly", props, widgetContext.state, {
     hidden: toRef(props, "hidden"),
 });
 const isActive = useIsActive();
-const validAndActive = computed(
-    () => !!(!props.foreignKeyObj && isActive.value && props.app && props.model && widgetContext.state.combinedValue),
-);
-
-const resolvedLookupObject = useResolvedLookupObject(
-    toRef(props, "app"),
-    toRef(props, "model"),
-    toRef(widgetContext.state, "combinedValue"),
-    toRef(props, "modelFields"),
-    toRef(props, "modelExpandFields"),
-);
-
 const readonlyValue = computed(() => {
-    if (resolvedLookupObject.loading || props.loading) {
-        return "Loading...";
+    if (props.loading || resolvedReactive.loading) {
+        return "\u00A0";
     }
-    return props.foreignKeyObj ? props.foreignKeyObj.formatted_name : resolvedLookupObject.object?.formatted_name;
+    return (
+        props.foreignKeyObj?.formatted_name ??
+        resolvedReactive.object?.formatted_name ??
+        widgetContext.state.combinedValue
+    );
 });
 const pkValue = computed(() => {
-    return props.foreignKeyObj ? props.foreignKeyObj[props.pkKey] : resolvedLookupObject.object?.[props.pkKey];
+    return props.foreignKeyObj ? props.foreignKeyObj[props.pkKey] : resolvedReactive.object?.[props.pkKey];
 });
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
@@ -98,9 +163,9 @@ const textItemResolvedSlotNames = useSlotNameResolver(
                         :class="combineClasses(theme('value'), labelControlClass, $attrs.class)"
                         data-qa="widget-read-only-value"
                     >
-                        <slot :value="readonlyValue || widgetContext.state.combinedValue">
+                        <slot name="default" :value="readonlyValue || widgetContext.state.combinedValue">
                             <slot
-                                v-if="readonlyValue"
+                                v-if="isLookupMode && readonlyValue"
                                 :app="app"
                                 :class="theme('linkItem')"
                                 :field-name="widgetContext.state.combinedName"

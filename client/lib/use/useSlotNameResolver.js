@@ -28,7 +28,7 @@ import { useSlots } from "vue";
  *
  * @param {SlotNamesInOrderOfPrecedence} slotNamesInOrderOfPrecedence - The slot names to check for, in order of
  *  precedence.
- * @param {{[slotName: string]: any}|undefined} slots - The slots object to check against. If not provided, the current
+ * @param {{[slotName: string]: any}} [slots] - The slots object to check against. If not provided, the current
  *  instance's slots will be used.
  * @returns {ResolvedSlotName} - The resolved slot name.
  * @example
