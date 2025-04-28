@@ -14,6 +14,6 @@ const theme = useTheme("ObjectsGridBodyCell", props);
 </script>
 <template>
     <div :class="theme('root')">
-        <Skeleton height="2rem" width="6rem" v-bind="getSkeletonPropsForField(props.field)" />
+        <Skeleton height="2rem" width="6rem" v-bind="getSkeletonPropsForField(field)" />
     </div>
 </template>

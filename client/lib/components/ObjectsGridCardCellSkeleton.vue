@@ -17,6 +17,6 @@ const theme = useTheme("ObjectsGridCardCell", props);
         {{ field.label }}
     </div>
     <div :class="theme('value')">
-        <Skeleton v-bind="getSkeletonPropsForField(props.field)" />
+        <Skeleton v-bind="getSkeletonPropsForField(field)" />
     </div>
 </template>
