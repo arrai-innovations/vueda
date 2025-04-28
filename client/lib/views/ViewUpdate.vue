@@ -27,6 +27,11 @@ const props = defineProps({
         type: Array,
         default: undefined,
     },
+    redirectAfter: {
+        type: String,
+        default: null, // meaning "stay here"
+        validator: (value) => ["list", "read", null].includes(value),
+    },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
 
@@ -47,7 +52,14 @@ const instanceObjectProps = reactive({
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     pk: toRef(props, "pk"),
     params: {
-        [FIELDS_PARAM]: computed(() => [modelConfig.info?.pk ?? "id", ...(submitFields.value ?? [])]),
+        [FIELDS_PARAM]: computed(() => {
+            const fields = [...(props.submitFields ?? modelConfig.config?.submitFields ?? [])];
+            const pkKey = modelConfig.info?.pk ?? "id";
+            if (!fields.includes(pkKey)) {
+                fields.push(pkKey);
+            }
+            return fields;
+        }),
         [EXPAND_PARAM]: computed(() => {
             const expand = modelConfig.config?.expand || [];
             return expand.filter(
@@ -91,6 +103,7 @@ const objectForm = useObjectForm({
     props: objectFormProps,
     formContext,
     instanceObject: instanceObjectForSubmit,
+    redirectAfter: toRef(props, "redirectAfter"),
 });
 
 useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, toRef(props, "pk"), objectForm.state);

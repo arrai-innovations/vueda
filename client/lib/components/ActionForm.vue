@@ -176,7 +176,7 @@ const handleConfirm = async () => {
         toast.add({
             severity: "success",
             summary: actionSuccessSummary,
-            life: 5000,
+            life: 15000,
         });
         if (props.handleActionCompletion) {
             await props.handleActionCompletion();
@@ -192,7 +192,7 @@ const handleConfirm = async () => {
                 severity: "error",
                 summary: actionErrorSummary,
                 detail: actionState.error,
-                life: 5000,
+                life: 15000,
             });
         }
     } finally {

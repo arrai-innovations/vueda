@@ -58,6 +58,11 @@ const props = defineProps({
         type: Array,
         default: undefined,
     },
+    redirectAfter: {
+        type: String,
+        default: "update",
+        validator: (value) => ["list", "update", "read"].includes(value),
+    },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
 const emit = defineEmits(["form-object", "form-context"]);
@@ -94,7 +99,12 @@ const instanceObjectProps = reactive({
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     params: {
         [FIELDS_PARAM]: computed(() => {
-            return [...(props.submitFields ?? modelConfig.config?.submitFields ?? [])];
+            const fields = [...(props.submitFields ?? modelConfig.config?.submitFields ?? [])];
+            const pkKey = modelConfig.info?.pk ?? "id";
+            if (!fields.includes(pkKey)) {
+                fields.push(pkKey);
+            }
+            return fields;
         }),
         [EXPAND_PARAM]: computed(() => {
             const expand = modelConfig.config?.expand || [];
@@ -113,6 +123,7 @@ const objectFormProps = reactive({
     app: toRef(props, "app"),
     model: toRef(props, "model"),
     verboseName: computed(() => modelConfig.config?.verboseName),
+    redirectAfter: toRef(props, "redirectAfter"),
 });
 const objectForm = useObjectForm({
     props: objectFormProps,

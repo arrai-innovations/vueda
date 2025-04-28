@@ -1,7 +1,7 @@
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
-import { LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
+import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
@@ -18,6 +18,7 @@ import { useRouter } from "vue-router";
  * @property {string} app - The app name.
  * @property {string} model - The model name.
  * @property {string} verboseName - The verbose name of the model.
+ * @property {'list'|'update'|'read'|null} redirectAfter - The view/route to redirect to after creating the object.
  */
 
 /**
@@ -34,6 +35,11 @@ import { useRouter } from "vue-router";
  * @property {string} model - The model name.
  * @property {string} verboseName - The verbose name of the model.
  * @property {boolean} modified - Whether the form has changes from the initial values.
+ * @property {string} firstErrorField - The name of the first field with an error.
+ * @property {'list'|'update'|'read'|null} redirectAfter - The view/route to redirect to after creating the object.
+ * @property {string} pkKey - The primary key field name.
+ * @property {string} pk - The primary key value.
+ * @property {object} object - The object being edited.
  */
 
 /**
@@ -90,7 +96,7 @@ export const defaultOnSubmitNotAnyModified = async ({ toast }) => {
         severity: "info",
         summary: "No Changes Detected",
         detail: "Please modify the fields before submitting.",
-        life: 10000,
+        life: 15000,
     });
     return true;
 };
@@ -128,7 +134,7 @@ export const defaultOnSubmitAnyError = async ({ state, formContext, toast }) => 
             severity: "warn",
             summary: "Pre-save Validation Failed",
             detail: `Please correct the error${plural ? "s" : ""} indicated.`,
-            life: 10000,
+            life: 15000,
         });
         const elementsByName = document.getElementsByName(state.firstErrorField);
         if (elementsByName.length) {
@@ -158,7 +164,7 @@ export const defaultOnSubmissionError = async ({ state, error, formContext, toas
             severity: "warn",
             summary: "Save Validation Failed",
             detail: `Please review the new error${plural ? "s" : ""} displayed. You have been scrolled to the first error.`,
-            life: 10000,
+            life: 15000,
         });
         // scroll to the anchor we render for each field by path/name.
         const elementsByName = document.getElementsByName(state.firstErrorField);
@@ -180,20 +186,53 @@ export const defaultOnSubmissionError = async ({ state, error, formContext, toas
  * @returns {Promise<void>}
  */
 export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, router }) => {
-    const detailMsg = isUpdate ? "" : "Returning to the list view.";
+    const redirectAfter = state.redirectAfter;
+    let detailMsg = "";
+    if (redirectAfter === "update") {
+        detailMsg = "Redirecting to update view.";
+    } else if (redirectAfter === "read") {
+        detailMsg = "Redirecting to read view.";
+    } else if (redirectAfter === "list") {
+        detailMsg = "Returning to the list view.";
+    }
+
     toast.add({
         severity: "success",
         summary: `${memoizedStartCase(state.verboseName)} Successfully ${isUpdate ? "Updated" : "Created"}`,
         detail: detailMsg,
-        life: 10000,
+        life: 15000,
     });
-    // noinspection ES6MissingAwait
-    if (!isUpdate) {
+    if (redirectAfter === "list") {
         await router.push({
             name: LIST_VIEW_CRUD_NAME,
-            params: { app: state.app, model: state.model, action: "list" },
+            params: {
+                app: state.app,
+                model: state.model,
+                action: "list",
+            },
+        });
+    } else if (redirectAfter === "read") {
+        await router.push({
+            name: DETAIL_VIEW_CRUD_NAME,
+            params: {
+                app: state.app,
+                model: state.model,
+                action: "read",
+                pk: state.object[state.pkKey],
+            },
+        });
+    } else if (redirectAfter === "update") {
+        await router.push({
+            name: DETAIL_VIEW_CRUD_NAME,
+            params: {
+                app: state.app,
+                model: state.model,
+                action: "update",
+                pk: state.object[state.pkKey],
+            },
         });
     }
+    // else, stay on the same page.
 };
 
 /**
@@ -262,6 +301,7 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
  */
 export function useObjectForm({ props, formContext, instanceObject }) {
     const loadingError = useLoadingError();
+    /** @type{ObjectFormState} */
     const state = reactive({
         loading: loadingError.loading,
         error: loadingError.error,
@@ -272,6 +312,12 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         verboseName: computed(() => props.verboseName),
         modified: computed(() => formContext.state.anyModified),
         firstErrorField: computed(() => props.firstErrorField),
+        redirectAfter: computed(() => props.redirectAfter),
+        pkKey: computed(() => instanceObject.state.pkKey),
+        // what we requested the pk to be, not what the server returned.
+        // in success after create, state.object[state.pkKey] will have the new pk.
+        pk: computed(() => instanceObject.state.pk),
+        object: computed(() => instanceObject.state.object),
     });
     const returnObject = {
         state,
@@ -332,7 +378,7 @@ export function useObjectForm({ props, formContext, instanceObject }) {
                 },
             };
             if (isUpdate) {
-                args.id = instanceObject.state.object.id;
+                args.id = instanceObject.state.object[instanceObject.state.pkKey];
             }
             await createOrUpdate(args);
             if (instanceObject.state.errored) {

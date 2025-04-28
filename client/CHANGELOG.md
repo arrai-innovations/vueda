@@ -2,6 +2,26 @@
 
 _Actions potentially required by implementers are marked with italics._
 
+## v2.0.0-alpha.11 (2025-04-28)
+
+### Features
+
+- **ViewCreate**:
+    - Added `redirectAfter` prop (`'list'`|`'update'`|`'read'`) to control where users are redirected after a successful create action.
+    - Defaults to `'update'` for a smoother UX when creating complex objects.
+- **ViewUpdate**:
+    - Added `redirectAfter` prop (`'list'`|`'read'`|`null`) to control where users are redirected (or not) after a successful update action.
+    - Defaults to `null` for no redirection.
+- **useObjectForm**:
+    - `state` now includes `object`, `pk`, and `pkKey` for easier access to the created or updated object data in event hooks.
+    - `onSubmissionSuccess` now redirects based on `redirectAfter` prop.
+- **Toasts**:
+    - Default toast life raised to 15000ms for better visibility.
+
+### Fixes
+
+- Ensure `pkKey` is always requested in `FIELDS_PARAM` for `ViewCreate` and `ViewUpdate` to avoid missing PKs in the response.
+
 ## v2.0.0-alpha.10 (2025-04-28)
 
 ### Fixes
