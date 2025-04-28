@@ -2,6 +2,13 @@
 
 _Actions potentially required by implementers are marked with italics._
 
+## v2.0.0-alpha.10 (2025-04-28)
+
+### Fixes
+
+- **FieldBoolean**:
+    - Don't require all boolean fields
+
 ## v2.0.0-alpha.9 (2025-04-28)
 
 ### Fixes
