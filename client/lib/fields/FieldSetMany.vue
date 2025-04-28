@@ -4,9 +4,9 @@ import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
-import cloneDeep from "lodash-es/cloneDeep.js";
+import { watchIfDev } from "@vueda/utils/dev.js";
 import Button from "primevue/button";
-import { computed, toRef, useAttrs, watch } from "vue";
+import { computed, useAttrs } from "vue";
 
 const attrs = useAttrs();
 const props = defineProps({
@@ -32,7 +32,7 @@ const fieldProps = computed(() => {
     }));
 });
 
-watch(
+watchIfDev(
     () => fieldContext.state.value,
     (value) => {
         if (value !== null && value !== undefined && !Array.isArray(value)) {

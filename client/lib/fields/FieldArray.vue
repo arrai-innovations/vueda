@@ -1,8 +1,8 @@
 <script setup>
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { watchIfDev } from "@vueda/utils/dev.js";
 import omit from "lodash-es/omit.js";
-import { watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -14,7 +14,7 @@ const emit = defineEmits([...FIELD_EMITS]);
 
 const fieldContext = useField(props, emit);
 const logger = useDevLogger({ fieldContext });
-watch(
+watchIfDev(
     () => fieldContext.state.value,
     (value) => {
         // if you are not an array, or null or undefined, throw an error
