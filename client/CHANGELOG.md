@@ -2,7 +2,16 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.0-alpha.8 (2025-04-25)
+## v2.0.0-alpha.8 (2025-04-28)
+
+### TL;DR
+
+- **Field Coercion Removed**: Fields now **store raw values** without auto-converting types; UI value adaptation is handled in widgets.
+- **New DevLogger**: Fields will now **warn in development** if values are the wrong type - making issues visible early.
+- **Widget Adaptation**: Widgets like `WidgetDatePicker` and `WidgetInputNumber` **adapt form values** for UI-friendly display and editing.
+- **FormChores Slots Updated**: Switched to `feedback(fieldName)*` slot naming for more flexible message customization.
+- **Expanded Virtual Scrolling**: `WidgetSearchableSelect` improvements: no more scroll jumps, better loading handling.
+- **Minor Breaking Changes**: Removed legacy slot names; adjusted expand handling for `storeModelConfig`.
 
 ### Breaking Changes
 
@@ -13,6 +22,38 @@ _Actions potentially required by implementers are marked with italics._
 - **FormChores**:
     - Old slots `field(fieldName)error`, `field-error`, `field(fieldName)message`, and `field-message` are **removed**.
     - _Update your overrides to use the new `feedback(fieldName)error`, `feedback-error`, `feedback(fieldName)message`, and `feedback-message` slots._
+- **Field Component Behavior**:
+
+    - Removed implicit value coercion at the field level (`useField`) for nearly all field types.
+    - Fields now **store raw values** directly (e.g., strings, numbers, dates, arrays, objects) without trying to parse or transform them automatically.
+    - UI-specific value conversion (e.g., date parsing, numeric precision) is now handled **inside widgets** via `fieldToWidget` and `widgetToField` adapters.
+    - **Developer Note**: If you were relying on automatic value coercion inside a field, ensure your widgets or usage patterns handle the correct types.
+    - _Most fields now expect and validate their shape but no longer fix invalid input silently._
+    - **Field behavior changes**:
+
+        | Field                         | Previous                              | New                             | Expected Shape                    | Coercion Removed |
+        | :---------------------------- | :------------------------------------ | :------------------------------ | :-------------------------------- | :--------------- |
+        | FieldArray                    | Split/join array to/from string       | Store array directly            | Array<any> \| null \| undefined   | ?                |
+        | FieldBoolean                  | Auto-coerce with `!!`                 | Store boolean directly          | boolean \| null                   | ?                |
+        | FieldDate                     | Parse JS Date from string             | Store ISO string (`YYYY-MM-DD`) | string                            | ?                |
+        | FieldDateTime                 | Parse JS Date from ISO string         | Store ISO string (ISO datetime) | string                            | ?                |
+        | FieldDuration                 | Parse duration string into object     | Store object directly           | { days, hours, minutes, seconds } | ?                |
+        | FieldEmail                    | Accept string without parsing         | Store string directly           | string                            | ?                |
+        | FieldIP                       | Coerce value to string                | Store string directly           | string                            | ?                |
+        | FieldNumber                   | Coerce to `+number` with fraction fix | Store number directly           | number                            | ?                |
+        | FieldObject                   | Accept any object                     | Store object directly           | object                            | ?                |
+        | FieldRange                    | Convert object/array                  | Store object `{lower, upper}`   | object                            | ?                |
+        | FieldSetMany                  | Coerce single to array                | Store array directly            | Array<any>                        | ?                |
+        | FieldSetRange                 | Validate array form                   | Store array `[lower, upper]`    | Array<any>                        | ?                |
+        | FieldSetSingularStackedInline | Expected object                       | Still expects object            | object                            | ?                |
+        | FieldSetStackedInline         | Expected array                        | Still expects array             | Array<object>                     | ?                |
+        | FieldSetTabularInline         | Expected array                        | Still expects array             | Array<object>                     | ?                |
+        | FieldString                   | Coerce with `.toString()` and trim    | Store string directly           | string                            | ?                |
+        | FieldTime                     | Parse into Date                       | Store string `HH:mm:ss`         | string                            | ?                |
+        | FieldURL                      | Accept string                         | Store string directly           | string                            | ?                |
+        | FieldUUID                     | Accept string                         | Store string directly           | string                            | ?                |
+
+    - _If you depended on field-level parsing (e.g., turning numbers into strings), you may need to adjust your widget configurations or usage._
 
 ### Features
 
@@ -25,6 +66,15 @@ _Actions potentially required by implementers are marked with italics._
         - `feedback(${fieldName})error-content`, `feedback-error-content`, `feedback(${fieldName})message-content`, `feedback-message-content` to override the new content slot to FormFeedback.
 - **`FormModel`**:
     - Push down slots from outside the form into the non-field form chores and feedback components. This allows access to slots the slots above from outside the form for `NON_FIELD_ERRORS_KEY`.
+- **Dev Logging for Fields**:
+    - Introduced `useDevLogger` to all field components.
+    - In development mode (`import.meta.env.DEV`), fields now log warnings if their bound value has the wrong shape (e.g., setting a number where a string is expected).
+    - In production builds, `useDevLogger` is a no-op with no performance overhead.
+    - Makes debugging field value issues much easier without silently fixing invalid data at runtime.
+- **Value Adapters in Widgets**:
+    - `WidgetDatePicker`, `WidgetInputNumber`, and others now support `fieldToWidget` and `widgetToField` adapters.
+    - Allows clean separation of form values (backend-safe) and UI values (widget-friendly), including custom date parsing, decimal precision, and more.
+    - _This ensures that form values remain normalized while widgets can display/accept richer inputs._
 
 ### Fixes
 
@@ -42,6 +92,15 @@ _Actions potentially required by implementers are marked with italics._
     - Improved virtual scrolling debounce behavior by enabling leading debounce, ensuring faster visible updates on user typing.
     - Minor fix: `keepOldPages` now correctly reflects lazy mode rather than inverting it unnecessarily.
       _This fix relies on `@arrai-innovations/reactive-helpers@^20.1.2`, please update your peer dependency._
+
+### Developer Recommendations
+
+- **Expect to validate values earlier**:
+    - Fields now trust their inputs more. Bad data won't be automatically "fixed"  you will see dev warnings if types mismatch.
+- **Use Adapters**:
+    - Customize `fieldToWidget` and `widgetToField` props on widgets to adapt how values are displayed or edited, without polluting field-level logic.
+- **Debugging with `useDevLogger`**:
+    - In development, watch the console for structured warnings if a field receives an unexpected type.
 
 ## v2.0.0-alpha.7 (2025-04-25)
 
