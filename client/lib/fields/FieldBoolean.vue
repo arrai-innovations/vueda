@@ -13,10 +13,6 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    shouldRequireFn: {
-        type: Function,
-        default: () => () => true,
-    },
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
