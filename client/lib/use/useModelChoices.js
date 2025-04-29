@@ -1,8 +1,9 @@
-import { useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { keyDiff, useLoadingError, useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
-import { reactive, readonly, toRef, watch } from "vue";
+import pLimit from "p-limit";
+import { computed, effectScope, reactive, readonly, toRef, unref, watch } from "vue";
 
 /**
  * The raw instance of a useModelChoices object.
@@ -12,7 +13,8 @@ import { reactive, readonly, toRef, watch } from "vue";
  * @property {Error} error - The error that occurred while loading the model choices.
  * @property {boolean} errored - True if an error occurred while loading the model choices.
  * @property {()=>void} clearError - Clear the error.
- * @property {object} choices - The choices for the model field.
+ * @property {{[fieldName:string]: object}} choices - The choices for the model field.
+ * @property {import('vue').EffectScope} es - The effect scope for the useModelChoices instance.
  */
 
 /**
@@ -22,33 +24,41 @@ import { reactive, readonly, toRef, watch } from "vue";
  */
 
 /**
+ * @typedef {object} ChoicesOption
+ * @property {import('vue').Ref<string>|string} app - The app name for the field.
+ * @property {import('vue').Ref<string>|string} model - The model name for the field.
+ * @property {import('vue').Ref<boolean>|boolean} intendToFetch - Should we fetch the choices?
+ * @property {import('vue').Ref<boolean>|boolean} isFilter - Is this a filter field?
+ */
+
+/**
+ * @typedef {{[fieldName:string]: ChoicesOption}} ChoicesOptions
+ */
+
+/**
  * Provides a reactive object for a given app, model, and field. This composition function is designed to preserve deep references
  * within the `choices` object, preventing them from breaking when the app, model, or field changes.
  *
  * This function deeply mirrors (watches and clones) the model choices, which assumes that the choices data has low churn.
  * Frequent updates could have performance implications due to the deep cloning process.
  *
- * @param {import('vue').Ref<string>} app - A ref containing the app name that is being watched.
- * @param {import('vue').Ref<string>} model - A ref containing the model name that is being watched.
- * @param {import('vue').Ref<string>} field - A ref containing the field name that is being watched.
+ * @param {import('vue').Reactive<ChoicesOptions>|ChoicesOptions} fields - Field name(s) to fetch choices for.
  * @param {import('@vueda/use/useIsActive.js').IsActive|undefined} [isActive] - An IsActive instance, if one can be reused.
- * @param {import('vue').Ref<boolean>} intendToFetch - A ref containing the indicator whether the model choices should be fetched.
- * @param {import('vue').Ref<boolean>} isFilter - A ref containing the indicator whether we are fetching filter choices.
  * @returns {UseModelChoices} An object containing reactive fields and actions for model choices.
  */
-export function useModelChoices(app, model, field, isActive, intendToFetch, isFilter = false) {
-    const loadingError = useLoadingError();
+export function useModelChoices(fields, isActive) {
+    const es = effectScope();
     if (!isActive) {
-        isActive = useIsActive();
+        isActive = es.run(() => useIsActive());
     }
     let modelChoicesStore = null;
     const internalState = reactive({
-        app,
-        model,
-        field,
-        intendToFetch,
-        isFilter,
+        /** @type {ChoicesOptions} */
+        fields,
+        /** @type {{[fieldName:string]: import('@arrai-innovations/reactive-helpers').LoadingError}} */
+        loadingErrors: {},
     });
+    const loadingError = es.run(() => useProxyLoadingError(computed(() => Object.values(internalState.loadingErrors))));
     const returnObject = reactive(
         /** @type {UseModelChoicesRaw} */ {
             loading: loadingError.loading,
@@ -56,51 +66,74 @@ export function useModelChoices(app, model, field, isActive, intendToFetch, isFi
             errored: loadingError.errored,
             clearError: loadingError.clearError,
             choices: {},
+            es,
+            internalState,
         },
     );
+    const limit = pLimit(4);
+    const stopWatches = {};
 
-    // update originalChoices when app, model, field, or isActive changes
-    watch(
-        [
-            isActive,
-            toRef(internalState, "app"),
-            toRef(internalState, "model"),
-            toRef(internalState, "field"),
-            toRef(internalState, "intendToFetch"),
-            toRef(internalState, "isFilter"),
-        ],
-        async ([active, app, model, field, intendToFetch, isFilter]) => {
-            if (!active) {
-                return; // we'll pick up again when the component is active
-            }
-            // we don't need to check if active, app, model, field, intendToFetch, or isFilter have changed, vue
-            //  does that checking for us because they are refs to immutable primitive values
-            if (!modelChoicesStore) {
-                modelChoicesStore = storeModelChoices();
-                modelChoicesStore.initializeChoice(app.value, model.value, isFilter.value);
-            }
-            // todo: we could look at implementing cancelling of fetches if the app/model/field changes while loading
-            if (app && model && field && !returnObject.loading && intendToFetch) {
-                const key = getAppModelDotName({ app, model });
-                loadingError.clearError();
-                loadingError.setLoading();
-                try {
-                    if (isFilter) {
-                        await modelChoicesStore.fetchFilterChoices(app, model, field);
-                        // WARNING: by assigning after awaiting, we KNOW the key is there, so there is no
-                        //  reactivity issues not working when the key is not there initially
-                        returnObject.choices = toRef(modelChoicesStore.filterChoices, key);
-                    } else {
-                        await modelChoicesStore.fetchChoices(app, model, field);
-                        // WARNING: by assigning after awaiting, we KNOW the key is there, so there is no
-                        //  reactivity issues not working when the key is not there initially
-                        returnObject.choices = toRef(modelChoicesStore.choices, key);
+    const newFieldWatch = (fieldName) => {
+        internalState.loadingErrors[fieldName] = es.run(() => useLoadingError());
+        if (!modelChoicesStore) {
+            modelChoicesStore = storeModelChoices();
+        }
+        stopWatches[fieldName] = es.run(() =>
+            watch(
+                [
+                    () => unref(internalState.fields[fieldName]?.app),
+                    () => unref(internalState.fields[fieldName]?.model),
+                    () => unref(internalState.fields[fieldName]?.intendToFetch),
+                    () => unref(internalState.fields[fieldName]?.isFilter),
+                    isActive,
+                ],
+                async ([app, model, intendToFetch, isFilter, isActive]) => {
+                    if (!isActive) {
+                        return; // we'll pick up again when the component is active
                     }
-                } catch (e) {
-                    loadingError.setError(e);
-                } finally {
-                    loadingError.clearLoading();
-                }
+                    if (intendToFetch) {
+                        const myLE = internalState.loadingErrors[fieldName];
+                        if (!myLE?.loading) {
+                            myLE.clearError();
+                            myLE.setLoading();
+                            try {
+                                modelChoicesStore.initializeChoice(app, model, isFilter);
+                                const choiceProps = isFilter
+                                    ? modelChoicesStore.filterChoices
+                                    : modelChoicesStore.choices;
+                                const key = getAppModelDotName({ app, model });
+                                const fetchFn = isFilter
+                                    ? modelChoicesStore.fetchFilterChoices.bind(modelChoicesStore)
+                                    : modelChoicesStore.fetchChoices.bind(modelChoicesStore);
+                                await limit(() => fetchFn(app, model, fieldName));
+                                returnObject.choices[fieldName] = toRef(choiceProps[key], fieldName);
+                            } catch (e) {
+                                myLE.setError(e);
+                            } finally {
+                                myLE.clearLoading();
+                            }
+                        }
+                    }
+                },
+                { immediate: true },
+            ),
+        );
+    };
+
+    watch(
+        () => Object.keys(unref(internalState.fields)),
+        (newFieldNames) => {
+            const { addedKeys, removedKeys } = keyDiff(newFieldNames, Object.keys(stopWatches), {
+                sameKeys: false,
+            });
+
+            for (const added of addedKeys) {
+                newFieldWatch(added);
+            }
+
+            for (const removed of removedKeys) {
+                stopWatches[removed]();
+                delete stopWatches[removed];
             }
         },
         { immediate: true },

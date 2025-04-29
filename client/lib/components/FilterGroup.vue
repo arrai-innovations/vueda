@@ -69,7 +69,6 @@ watch(
                         desiredParams[p] = filterValue;
                     }
                 });
-                continue;
             } else {
                 desiredParams[`${filter.param}`] = filterValue;
             }

@@ -1,5 +1,6 @@
 import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
+import { PAGE_SIZE_PARAM } from "@vueda/utils/constants.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
@@ -23,10 +24,10 @@ export class ModelChoicesError extends FetchError {
 }
 
 const modelChoicesUrl = (app, model, field) =>
-    `${httpOrHttpsHostname}${getUrl("infoModelInfoChoices")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/${memoizedSnakeCase(field)}`;
+    `${httpOrHttpsHostname}${getUrl("infoModelInfoChoices")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/${memoizedSnakeCase(field)}?${PAGE_SIZE_PARAM}=200`;
 
 const modelFilterChoicesUrl = (app, model, field) =>
-    `${httpOrHttpsHostname}${getUrl("infoModelInfoFilterChoices")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/${field}`;
+    `${httpOrHttpsHostname}${getUrl("infoModelInfoFilterChoices")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/${field}?${PAGE_SIZE_PARAM}=200`;
 
 /**
  * A store for lookup choices for a particular model field.

@@ -4,6 +4,20 @@ _Actions potentially required by implementers are marked with italics._
 
 ## v2.0.0-alpha.12 (2025-04-29)
 
+### Breaking Changes
+
+- **useModelChoices**:
+    - `useModelChoices(app, model, field, isActive?, intendToFetch?, isFilter?)` has been replaced with
+      `useModelChoices(fields, isActive?)`.
+    - Now supports multiple fields at once, each field getting its own `intendToFetch` and `isFilter` control.
+    - Existing single-field usages **must** be updated to the new structure:
+        ```diff
+        - const modelChoices = useModelChoices(app, model, field, isActive, intendToFetch, isFilter);
+        + const modelChoices = useModelChoices({ fieldName: { app, model, intendToFetch, isFilter } }, isActive);
+        ```
+    - **Developer Note**: The `choices` object on the returned instance is now keyed by field name rather than representing the full model's choices.
+    - **Motivation**: This change improves concurrent fetching, deep reactivity per-field, and corrects structural assumptions around choice batching.
+
 ### Features
 
 - **ViewList**:
