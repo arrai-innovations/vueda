@@ -11,6 +11,7 @@ from django.db import models
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.functions import Greatest
 from django.utils.translation import gettext_lazy as _
+from django_filters import ModelMultipleChoiceFilter
 from django_filters import rest_framework
 from ordered_set import OrderedSet
 from rest_framework.filters import SearchFilter
@@ -173,7 +174,12 @@ class VuedaSearchFilterBackend(SearchFilter):
                 annotations["iregex_score"] = Greatest(
                     *[
                         models.Case(
-                            models.When(**{f"{field}__iregex": regex_pattern, "then": models.Value(1)}),
+                            models.When(
+                                **{
+                                    f"{field}__iregex": regex_pattern,
+                                    "then": models.Value(1),
+                                }
+                            ),
                             default=models.Value(0),
                             output_field=models.IntegerField(),
                         )
@@ -210,7 +216,10 @@ class VuedaSearchFilterBackend(SearchFilter):
             # *** original code start (indented)
             # generator which for each term builds the corresponding search
             conditions = (
-                reduce(operator.or_, (models.Q(**{orm_lookup: term}) for orm_lookup in orm_lookups))
+                reduce(
+                    operator.or_,
+                    (models.Q(**{orm_lookup: term}) for orm_lookup in orm_lookups),
+                )
                 for term in search_terms
             )
             queryset = queryset.filter(reduce(operator.and_, conditions))
@@ -225,3 +234,7 @@ class VuedaSearchFilterBackend(SearchFilter):
             queryset = base.filter(models.Exists(queryset))
         return queryset
         # /*** original code end
+
+
+class ModelChoiceArrayFilter(BaseArrayInFilter, ModelMultipleChoiceFilter):
+    pass
