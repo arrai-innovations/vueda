@@ -2,6 +2,13 @@
 
 _Actions potentially required by implementers are marked with italics._
 
+## v2.0.0-alpha.12 (2025-04-29)
+
+### Features
+
+- **ViewList**:
+    - Add `additional-errors` slot above the list's own call to `ErrorDisplay`
+
 ## v2.0.0-alpha.11 (2025-04-28)
 
 ### Features

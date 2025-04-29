@@ -97,10 +97,6 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
-    params: {
-        type: Object,
-        default: () => ({}),
-    },
     // as long as there are no collisions, $attrs can be used to pass through any other props to objects-grid
     tableBreakpoint: {
         type: String,
@@ -519,6 +515,7 @@ const searchSlotProps = reactive({
             </filter-group>
         </sticky-bar>
 
+        <slot name="additional-errors" />
         <error-display :error="error" :errored="errored" @dismiss-error="dismissError" />
         <!-- todo: filters/search -->
         <!-- todo: hide/show columns -->
