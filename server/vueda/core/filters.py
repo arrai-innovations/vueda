@@ -125,115 +125,105 @@ class VuedaSearchFilterBackend(SearchFilter):
 
     def filter_queryset(self, request, queryset, view):
         """
-        Copying the original filter_queryset; if you use the new vueda search method,
-        we take over the filtering process to include ordering, if not otherwise specified.
+        Combines VUEDA-style ranked search (`V:`-prefixed fields) with deterministic lookups (e.g., `^`, `=`).
+        Search results are ranked by a unified 'combined_rank' annotation.
+
+        1. Parse search fields and terms using DRF's SearchFilter behavior.
+        2. Separate VUEDA-prefixed fields from standard deterministic ones.
+        3. Annotate rank components: full-text, trigram, word-boundary matches.
+        4. Filter on deterministic lookups (OR across fields, AND across terms) and boost rank for matches.
+        5. Filter on a minimum combined rank and optionally order by it.
+        6. Remove duplicates if needed (e.g. for M2M).
         """
-        # *** original code start
+        # gather search fields & terms (DRF semantics)
         search_fields = self.get_search_fields(view, request)
         search_terms = self.get_search_terms(request)
 
         if not search_fields or not search_terms:
             return queryset
 
-        orm_lookups = [self.construct_search(str(search_field), queryset) for search_field in search_fields]
-        base = queryset
-        # /*** original code end
+        # convert prefix shortcuts into long-form, including ours
+        orm_lookups = [self.construct_search(str(field), queryset) for field in search_fields]
+        base_queryset = queryset  # for fallback distinct logic
 
-        my_fake_lookup = f"__{self.customized_lookup_prefixes[SEARCH_LOOKUP_PREFIX]}"
-        # Identify which lookups we should handle. our field prefixes are not converted to orm_lookups
-        handled_lookups = [field for field in orm_lookups if field.endswith(my_fake_lookup)]
-        handled_fields = [field[: -len(my_fake_lookup)] for field in handled_lookups]
+        # split out our VUEDA-prefixed looups
+        v_prefix = f"__{self.customized_lookup_prefixes[SEARCH_LOOKUP_PREFIX]}"
+        v_lookups = [lookup for lookup in orm_lookups if lookup.endswith(v_prefix)]
+        handled_fields = [lookup[: -len(v_prefix)] for lookup in v_lookups]
+        det_lookups = [lookup for lookup in orm_lookups if lookup not in v_lookups]
 
         if not handled_fields:
+            # no ranked search lookups, defer to base class behavior for deterministic lookups
             return super().filter_queryset(request, queryset, view)
 
         annotations = {}
-        if handled_lookups:
-            # let's get annotated scores for:
-            # 1. SearchRank, SearchQuery, SearchVector to full text search against all the fields requested
-            # 2. TrigramSimilarity to do similarity search against all the fields requested
-            # 3. `iregex`, with a boolean 'score' if any of the fields contains any search term as a whole word
-            # 4. Combine all the scores to a single score, and filter the queryset based on the threshold
-            # 5. Order the queryset by the combined score
 
+        # ranked search: full-text, trigram and iregex
+        if handled_fields:
             search_vector = SearchVector(*handled_fields)
             search_query = SearchQuery(" ".join(search_terms))
-            search_rank = SearchRank(search_vector, search_query)
-            annotations["search_rank"] = search_rank
+            annotations["search_rank"] = SearchRank(search_vector, search_query)
 
-            for index, search_term in enumerate(search_terms):
-                for field in handled_fields:
-                    annotations[f"{field}_{index}_trigram_similarity"] = TrigramSimilarity(field, search_term)
+            # trigram similarity on every <field, term> pair
+            for i, term in enumerate(search_terms):
+                for fld in handled_fields:
+                    annotations[f"{fld}_{i}_trg"] = TrigramSimilarity(fld, term)
 
-            regex_patterns = [re.escape(term) for term in search_terms]
-            # postgres regular expression, not python
-            # \y is a word boundary
-            regex_pattern = r"(?:^|\y)(?:" + "|".join(regex_patterns) + r")(?:$|\y)"
-
-            if len(handled_fields) > 1:
-                annotations["iregex_score"] = Greatest(
-                    *[
-                        models.Case(
-                            models.When(
-                                **{
-                                    f"{field}__iregex": regex_pattern,
-                                    "then": models.Value(1),
-                                }
-                            ),
-                            default=models.Value(0),
-                            output_field=models.IntegerField(),
-                        )
-                        for field in handled_fields
-                    ]
-                )
-            else:
-                field = handled_fields[0]
-                annotations["iregex_score"] = models.Case(
-                    models.When(**{f"{field}__iregex": regex_pattern, "then": models.Value(1)}),
+            # whole-word iregex boost
+            regex = r"(?:^|\y)(?:" + "|".join(map(re.escape, search_terms)) + r")(?:$|\y)"
+            word_scores = [
+                models.Case(
+                    models.When(**{f"{fld}__iregex": regex}, then=models.Value(1)),
                     default=models.Value(0),
                     output_field=models.IntegerField(),
                 )
+                for fld in handled_fields
+            ]
+            if len(word_scores) > 1:
+                annotations["iregex_score"] = Greatest(*word_scores)
+            else:
+                annotations["iregex_score"] = word_scores[0]
 
-            annotations["combined_rank"] = reduce(operator.add, [models.F(key) for key in annotations])
+        # deterministic filtering and artificial rank boost
+        if det_lookups:
+            per_term_groups = [
+                reduce(operator.or_, [models.Q(**{lookup: term}) for lookup in det_lookups]) for term in search_terms
+            ]
+            queryset = queryset.filter(reduce(operator.and_, per_term_groups))
 
+            det_scores = [
+                models.Case(
+                    models.When(**{lookup: term}, then=models.Value(10)),
+                    default=models.Value(0),
+                    output_field=models.IntegerField(),
+                )
+                for lookup in det_lookups
+                for term in search_terms
+            ]
+            annotations["deterministic_score"] = reduce(operator.add, det_scores, models.Value(0))
+
+        # final combined rank and ordering
+        if annotations:
+            # sum every numeric annotation into combined_rank
+            annotations["combined_rank"] = reduce(operator.add, [models.F(k) for k in annotations])
             queryset = queryset.annotate(**annotations).filter(combined_rank__gte=self.search_threshold)
             if not request.query_params.get(api_settings.ORDERING_PARAM):
-                # user did not request a specific ordering, so we order by the combined rank
                 queryset = queryset.order_by("-combined_rank")
 
-            # remove the similarity annotations, so they don't interfere with the rest of the queryset
-            orm_lookups = [field for field in orm_lookups if field not in handled_lookups]
+        # strip custom prefixes so model opts.get_field doesn't choke
+        search_fields = list(
+            OrderedSet(search_fields) - OrderedSet(f"{SEARCH_LOOKUP_PREFIX}{f}" for f in handled_fields)
+            | OrderedSet(handled_fields)
+        )
 
-            # remove the prefixes on search fields, if the field was handled, so must_call_distinct works correctly
-            # it only works on standard django lookups
-            search_fields = list(
-                OrderedSet(search_fields) - OrderedSet(f"{SEARCH_LOOKUP_PREFIX}{field}" for field in handled_fields)
-                | OrderedSet(handled_fields)
-            )
-
-        if orm_lookups:
-            # there may not be non vueda search conditions
-            # *** original code start (indented)
-            # generator which for each term builds the corresponding search
-            conditions = (
-                reduce(
-                    operator.or_,
-                    (models.Q(**{orm_lookup: term}) for orm_lookup in orm_lookups),
-                )
-                for term in search_terms
-            )
-            queryset = queryset.filter(reduce(operator.and_, conditions))
-
-        # Remove duplicates from results, if necessary
+        # de-dupe if necessary (for M2M or joins)
+        # (copied from drf)
         mcd = self.must_call_distinct(queryset, search_fields)
         if mcd:
-            # inspired by django.contrib.admin
-            # this is more accurate than .distinct form M2M relationship
-            # also is cross-database
             queryset = queryset.filter(pk=models.OuterRef("pk"))
-            queryset = base.filter(models.Exists(queryset))
+            queryset = base_queryset.filter(models.Exists(queryset))
+
         return queryset
-        # /*** original code end
 
 
 class ModelChoiceArrayFilter(BaseArrayInFilter, ModelMultipleChoiceFilter):
