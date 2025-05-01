@@ -2,6 +2,14 @@
 
 _Actions potentially required by implementers are marked with italics._
 
+## v2.0.0-alpha.13 (2025-05-01)
+
+### Fixes
+
+- **WidgetSearchableSelect**:
+    - Fixed search result contamination from prior queries due to stale pagination state.
+    - Increased perPage to 200 in non-lazy mode to minimize request volume.
+
 ## v2.0.0-alpha.12 (2025-04-29)
 
 ### Breaking Changes
