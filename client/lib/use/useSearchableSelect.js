@@ -162,13 +162,20 @@ function groupBy(objects, groupKey) {
 export function useSearchableSelect(props, widgetContext, selectRef) {
     const lazy = computed(() => props.isLazy && !props.grouped);
     const pageToFetch = ref(1);
-    const perPage = ref(25);
+    const explicitPerPage = ref(null);
     const hasBeenFocused = ref(false);
     const query = ref("");
     const bouncedQuery = ref("");
     const virtualObjectsInOrder = ref([]);
     const firstVisibleIndex = ref(0);
     const lastVisibleIndex = ref(0);
+
+    const perPage = computed({
+        get: () => (props.isLazy ? (explicitPerPage.value ?? 25) : 200),
+        set: (val) => {
+            explicitPerPage.value = val;
+        },
+    });
 
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), "list");
     const pkKey = computed(() => modelConfig.info?.pk ?? "id");
@@ -246,8 +253,8 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
                 lazy.value ? singlePagePaginatedListCrudAdaptor(...args) : allPagePaginatedListCrudAdaptor(...args),
         },
         paged: true,
-        keepOldPages: lazy,
-        clearListOnListIntentTriggered: false,
+        keepOldPages: true,
+        clearListOnListIntentTriggered: true,
     });
 
     const listObjects = computed(() => {
