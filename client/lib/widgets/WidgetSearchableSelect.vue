@@ -67,6 +67,7 @@ const handleLabelClick = (e) => unref(selectRef)?.onContainerClick?.(e);
                         :options="searchableSelect.options"
                         :option-value="searchableSelect.optionValue"
                         :option-label="searchableSelect.optionLabel"
+                        :option-group-label="searchableSelect.optionGroupLabel"
                         :option-group-children="searchableSelect.optionGroupChildren"
                         :virtual-scroller-options="searchableSelect.virtualScrollerOptions"
                         @before-show="searchableSelect.onBeforeShow"
@@ -83,13 +84,6 @@ const handleLabelClick = (e) => unref(selectRef)?.onContainerClick?.(e);
                         :aria-required="widgetContext.state.required"
                         :empty-message="searchableSelect.emptyMessage"
                     >
-                        <template #optiongroup="{ option }">
-                            <div class="flex items-center">
-                                <div v-if="option.items">
-                                    {{ searchableSelect.lookupGroupBy(option) }}
-                                </div>
-                            </div>
-                        </template>
                         <template #value>
                             <template v-if="widgetContext.state.combinedValue">
                                 {{ searchableSelect.selectedLabel }}

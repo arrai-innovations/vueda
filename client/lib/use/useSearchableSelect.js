@@ -254,7 +254,7 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
         },
         paged: true,
         keepOldPages: true,
-        clearListOnListIntentTriggered: true,
+        clearListOnListIntentTriggered: false,
     });
 
     const listObjects = computed(() => {
@@ -417,7 +417,7 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
     /** @type {WidgetSearchableSelect} */
     const returnObject = reactive({
         loading: computed(() => loadingCombine(selectedLookup.loading, searchList.state.loading)),
-        lookupGroupBy: (option) => get(option, props.groupBy), // the label of the selected option, to display when closed but not readonly
+        lookupGroupBy: (option) => option[props.groupBy], // the `get` was already preformed in the groupBy function
         onBeforeShow: () => {
             if (!hasBeenFocused.value) {
                 hasBeenFocused.value = true;
@@ -432,6 +432,7 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
             query.value = widgetContext.state.combinedValue ? returnObject.readonlyLabel : "";
         },
         emptyMessage,
+        optionGroupLabel: computed(() => (props.grouped ? props.groupBy : undefined)),
         optionGroupChildren: computed(() => (props.grouped && intendToSearch ? "items" : undefined)),
         optionLabel: computed(() => props.optionLabel),
         optionValue: computed(() => unref(pkKey)),

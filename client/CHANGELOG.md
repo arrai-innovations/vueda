@@ -2,6 +2,14 @@
 
 _Actions potentially required by implementers are marked with italics._
 
+## v2.0.0-alpha.14 (2025-05-02)
+
+### Fixes
+
+- **WidgetSearchableSelect**:
+    - Fixed double-resolving of `groupBy` key when grouping options, which caused rendering issues with dot-separated keys like `"category.name"`.
+    - Simplified implementation by removing unnecessary `optiongroup` slot override. Group labels are now rendered using PrimeVue's built-in `optionGroupLabel` prop.
+
 ## v2.0.0-alpha.13 (2025-05-01)
 
 ### Fixes
