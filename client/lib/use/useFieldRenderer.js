@@ -1,7 +1,7 @@
 import { mergeTheme } from "@vueda/use/useTheme.js";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
 import omit from "lodash-es/omit.js";
-import { computed, effectScope, markRaw, readonly, unref } from "vue";
+import { computed, effectScope, markRaw, shallowReadonly, unref } from "vue";
 
 /**
  * @typedef {object} FieldRendererProps
@@ -113,7 +113,7 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
             ),
         }));
         const slotsForPassing = computed(() => unref(remainingSlots).map((slotName) => [slotName, slots[slotName]]));
-        return readonly({
+        return shallowReadonly({
             fieldComponent,
             widgetComponent,
             fieldSlotName,
