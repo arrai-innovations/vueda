@@ -56,16 +56,22 @@ const resolvedReactive = reactive({
     errored: false,
     loading: undefined,
 });
+const pkKey = ref("id");
 watch(
     isLookupMode,
     (lookupMode) => {
         if (lookupMode) {
             modelConfig = es.run(() => useModelConfig(toRef(props, "app"), toRef(props, "model"), "list"));
+            pkKey.value = modelConfig.info?.pk ?? "id";
             fieldsList = es.run(() =>
                 computed(() =>
                     !unref(isLookupMode)
                         ? []
-                        : (props.modelFields?.length ? props.modelFields : modelConfig.config?.fetchFields) || [],
+                        : [
+                              ...(props.modelFields?.length ? props.modelFields : modelConfig.config?.fetchFields),
+                              "formatted_name",
+                              pkKey.value,
+                          ],
                 ),
             );
             expandList = es.run(() =>
@@ -131,7 +137,7 @@ const readonlyValue = computed(() => {
     );
 });
 const pkValue = computed(() => {
-    return props.foreignKeyObj ? props.foreignKeyObj[props.pkKey] : resolvedReactive.object?.[props.pkKey];
+    return props.foreignKeyObj ? props.foreignKeyObj[pkKey.value] : resolvedReactive.object?.[pkKey.value];
 });
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
