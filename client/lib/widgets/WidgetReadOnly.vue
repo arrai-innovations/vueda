@@ -56,14 +56,30 @@ const resolvedReactive = reactive({
     errored: false,
     loading: undefined,
 });
-let pkKeyESComputed = null;
-const pkKey = computed(() => pkKeyESComputed?.value ?? "id");
+
+/**
+ * @typedef {Object} State
+ * @property {import('vue').ComputedRef<string>} pkKey
+ * @property {boolean} keyAlreadyScoped
+ */
+
+/** @type {State} */
+const state = reactive({
+    pkKey: "id",
+    keyAlreadyScoped: false,
+});
 watch(
     isLookupMode,
     (lookupMode) => {
         if (lookupMode) {
             modelConfig = es.run(() => useModelConfig(toRef(props, "app"), toRef(props, "model"), "list"));
-            pkKeyESComputed = es.run(() => computed(() => modelConfig?.info?.pk ?? "id"));
+            if (!state.keyAlreadyScoped) {
+                const scope = effectScope();
+                scope.run(() => {
+                    state.pkKey = computed(() => modelConfig.info?.pk ?? "id");
+                });
+                state.keyAlreadyScoped = true;
+            }
             fieldsList = es.run(() =>
                 computed(() =>
                     !unref(isLookupMode)
@@ -101,9 +117,9 @@ watch(
             resolvedReactive.error = null;
             resolvedReactive.errored = false;
             resolvedReactive.loading = false;
-            if (pkKeyESComputed) {
-                pkKeyESComputed?.effect?.stop?.();
-                pkKeyESComputed = null;
+            if (state.keyAlreadyScoped) {
+                state.pkKey?.effect?.stop?.();
+                state.keyAlreadyScoped = false;
             }
             if (resolvedLookupObject) {
                 resolvedLookupObject.effectScope.stop();
