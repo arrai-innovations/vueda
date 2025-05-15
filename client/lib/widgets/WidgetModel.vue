@@ -52,13 +52,17 @@ const hasBeenFocused = ref(false);
 const intendToFetch = computed(() => {
     return widgetContext.state.combinedValue || hasBeenFocused.value;
 });
+
 const modelChoices = useModelChoices(
-    toRef(props, "fieldApp"),
-    toRef(props, "fieldModel"),
-    toRef(props, "fieldName"),
+    {
+        [props.fieldName]: {
+            app: toRef(props, "fieldApp"),
+            model: toRef(props, "fieldModel"),
+            intendToFetch,
+            isFilter: toRef(props, "isFilter"),
+        },
+    },
     isActive,
-    intendToFetch,
-    toRef(props, "isFilter"),
 );
 const widgetComponents = {
     select: WidgetSelect,
@@ -78,7 +82,7 @@ const widgetComponent = computed(() => widgetComponents[props.type]);
         :on-focus="onFocus"
         option-label="label"
         option-value="value"
-        :options="modelChoices.choices?.results || []"
+        :options="modelChoices.choices?.[props.fieldName]?.results || []"
         v-bind="omit($attrs, 'value')"
         @update:model-value="emit('update:modelValue', $event)"
         :aria-required="widgetContext.state.required"

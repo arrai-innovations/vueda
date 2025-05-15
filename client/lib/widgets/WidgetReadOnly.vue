@@ -56,16 +56,36 @@ const resolvedReactive = reactive({
     errored: false,
     loading: undefined,
 });
+
+/**
+ * @typedef {Object} State
+ * @property {import('vue').ComputedRef<string>} pkKey
+ * @property {boolean} keyAlreadyScoped
+ */
+
+/** @type {State} */
+const state = reactive({
+    pkKey: "id",
+    keyAlreadyScoped: false,
+});
 watch(
     isLookupMode,
     (lookupMode) => {
         if (lookupMode) {
             modelConfig = es.run(() => useModelConfig(toRef(props, "app"), toRef(props, "model"), "list"));
+            if (!state.keyAlreadyScoped) {
+                state.pkKey = es.run(() => computed(() => modelConfig.info?.pk ?? "id"));
+                state.keyAlreadyScoped = true;
+            }
             fieldsList = es.run(() =>
                 computed(() =>
                     !unref(isLookupMode)
                         ? []
-                        : (props.modelFields?.length ? props.modelFields : modelConfig.config?.fetchFields) || [],
+                        : [
+                              ...(props.modelFields?.length ? props.modelFields : modelConfig.config?.fetchFields),
+                              "formatted_name",
+                              pkKey.value,
+                          ],
                 ),
             );
             expandList = es.run(() =>
@@ -94,6 +114,10 @@ watch(
             resolvedReactive.error = null;
             resolvedReactive.errored = false;
             resolvedReactive.loading = false;
+            if (state.keyAlreadyScoped) {
+                state.pkKey?.effect?.stop?.();
+                state.keyAlreadyScoped = false;
+            }
             if (resolvedLookupObject) {
                 resolvedLookupObject.effectScope.stop();
                 resolvedLookupObject = null;
@@ -131,7 +155,7 @@ const readonlyValue = computed(() => {
     );
 });
 const pkValue = computed(() => {
-    return props.foreignKeyObj ? props.foreignKeyObj[props.pkKey] : resolvedReactive.object?.[props.pkKey];
+    return props.foreignKeyObj ? props.foreignKeyObj[pkKey.value] : resolvedReactive.object?.[pkKey.value];
 });
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
