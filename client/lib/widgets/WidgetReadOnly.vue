@@ -74,10 +74,7 @@ watch(
         if (lookupMode) {
             modelConfig = es.run(() => useModelConfig(toRef(props, "app"), toRef(props, "model"), "list"));
             if (!state.keyAlreadyScoped) {
-                const scope = effectScope();
-                scope.run(() => {
-                    state.pkKey = computed(() => modelConfig.info?.pk ?? "id");
-                });
+                state.pkKey = es.run(() => computed(() => modelConfig.info?.pk ?? "id"));
                 state.keyAlreadyScoped = true;
             }
             fieldsList = es.run(() =>
