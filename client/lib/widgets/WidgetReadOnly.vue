@@ -84,7 +84,7 @@ watch(
                         : [
                               ...(props.modelFields?.length ? props.modelFields : modelConfig.config?.fetchFields),
                               "formatted_name",
-                              pkKey.value,
+                              state.pkKey,
                           ],
                 ),
             );
@@ -155,7 +155,7 @@ const readonlyValue = computed(() => {
     );
 });
 const pkValue = computed(() => {
-    return props.foreignKeyObj ? props.foreignKeyObj[pkKey.value] : resolvedReactive.object?.[pkKey.value];
+    return props.foreignKeyObj ? props.foreignKeyObj[state.pkKey] : resolvedReactive.object?.[state.pkKey];
 });
 const slots = useSlots();
 const availableLabelSlotNames = getWidgetSlotsComputed(slots);
