@@ -56,13 +56,14 @@ const resolvedReactive = reactive({
     errored: false,
     loading: undefined,
 });
-const pkKey = ref("id");
+let pkKeyESComputed = null;
+const pkKey = computed(() => pkKeyESComputed?.value ?? "id");
 watch(
     isLookupMode,
     (lookupMode) => {
         if (lookupMode) {
             modelConfig = es.run(() => useModelConfig(toRef(props, "app"), toRef(props, "model"), "list"));
-            pkKey.value = modelConfig.info?.pk ?? "id";
+            pkKeyESComputed = es.run(() => computed(() => modelConfig?.info?.pk ?? "id"));
             fieldsList = es.run(() =>
                 computed(() =>
                     !unref(isLookupMode)
@@ -100,6 +101,10 @@ watch(
             resolvedReactive.error = null;
             resolvedReactive.errored = false;
             resolvedReactive.loading = false;
+            if (pkKeyESComputed) {
+                pkKeyESComputed?.effect?.stop?.();
+                pkKeyESComputed = null;
+            }
             if (resolvedLookupObject) {
                 resolvedLookupObject.effectScope.stop();
                 resolvedLookupObject = null;
