@@ -8,6 +8,8 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
 from vueda.core.decorators import action
+from vueda.core.exceptions import VuedaValidationError
+from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.filtersets import WorkflowFilterSet
 from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import Workflow
@@ -98,28 +100,42 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             instance = self.get_object()
             with transaction.atomic():
                 # apply_transition does the permission checks
-                state, current_history_id = instance.apply_transition(transition_code, user=request.user)
-                response_data = {
-                    "new_state": {
-                        "code": state.code,
-                        "name": state.name,
-                    },
-                    "new_transitions": list(
-                        instance.available_transitions(request.user).order_by("name").values("code", "name")
-                    ),
-                }
-                if current_history_id:
-                    response_data["new_state"]["current_history_id"] = current_history_id
+                try:
+                    state, current_history_id = instance.apply_transition(transition_code, user=request.user)
+
+                    response_data = {
+                        "new_state": {
+                            "code": state.code,
+                            "name": state.name,
+                        },
+                        "new_transitions": list(
+                            instance.available_transitions(request.user).order_by("name").values("code", "name")
+                        ),
+                    }
+                    if current_history_id:
+                        response_data["new_state"]["current_history_id"] = current_history_id
+                except (PermissionDenied, InvalidTransitionError) as e:
+                    raise VuedaValidationError(str(e))
+
             return Response(response_data)
         else:
             object_ids = request.data.get("object_ids", [])
             if not isinstance(object_ids, list):
                 return Response({"error": "object_ids must be a list of primary keys."}, status=400)
             response_data = {}
+            error = {}
             with transaction.atomic():
                 for object_id in object_ids:
                     instance = get_object_or_404(self.get_workflow().content_type.model_class(), pk=object_id)
-                    state, current_history_id = instance.apply_transition(transition_code, user=request.user)
+                    try:
+                        state, current_history_id = instance.apply_transition(transition_code, user=request.user)
+                    except (PermissionDenied, InvalidTransitionError) as e:
+                        error[object_id] = [str(e)]
+                        continue
+                    except VuedaValidationError as e:
+                        error[object_id] = e.detail
+                        continue
+
                     response_data[object_id] = {
                         "new_state": {
                             "code": state.code,
@@ -131,5 +147,6 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                     }
                     if current_history_id:
                         response_data[object_id]["new_state"]["current_history_id"] = current_history_id
-
+            if error:
+                raise VuedaValidationError(error)
             return Response(response_data)
