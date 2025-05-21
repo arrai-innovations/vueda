@@ -387,7 +387,8 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         meta = model_class._meta
         viewset = self.canonical["viewset"]
         filterset = viewset.filterset_class
-        filters = filterset.get_filters()
+        filterset_instance = filterset(queryset=model_class.objects.all())
+        filters = filterset_instance.filters
         filter_mapping = dict(filters.items())
 
         self.validate_queryset(filterset, filter_mapping)
