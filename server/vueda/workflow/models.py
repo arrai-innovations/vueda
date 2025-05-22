@@ -115,6 +115,7 @@ class State(SimpleHistoryModelMixin):
     )
     code = models.CharField(max_length=255, db_index=True)
     name = models.CharField(max_length=255)
+    formatted_name_lookup_expression = "name"
 
     class Meta(BaseModelMeta):
         default_related_name = "states"
@@ -435,6 +436,7 @@ class ObjectState(SimpleHistoryModelMixin):
         content_type_field="content_type",
         object_id_field="object_id",
     )
+    formatted_name_lookup_expression = "state__name"
 
     class Meta(BaseModelMeta):
         default_related_name = "object_states"
