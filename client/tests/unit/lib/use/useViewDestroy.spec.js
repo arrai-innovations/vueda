@@ -41,6 +41,7 @@ describe("lib/use/useViewDestroy.js", () => {
             info: {
                 pk: "id",
             },
+            loading: false,
         });
 
         mockInstanceList = {

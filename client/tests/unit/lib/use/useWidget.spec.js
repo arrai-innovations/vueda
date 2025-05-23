@@ -205,25 +205,25 @@ describe("lib/use/useWidget.js", () => {
                 });
             });
         });
-        describe("Display", () => {
-            describe("label", () => {});
-            describe("help", () => {});
+        describe.skip("Display", () => {
+            describe.skip("label", () => {});
+            describe.skip("help", () => {});
         });
 
-        describe("Validation", () => {
-            describe("required", () => {});
+        describe.skip("Validation", () => {
+            describe.skip("required", () => {});
         });
 
-        describe("Value Handling", () => {
-            describe("modelValue", () => {});
+        describe.skip("Value Handling", () => {
+            describe.skip("modelValue", () => {});
         });
 
-        describe("Disabled Behavior", () => {
-            describe("disabled", () => {});
+        describe.skip("Disabled Behavior", () => {
+            describe.skip("disabled", () => {});
         });
 
-        describe("Field Context Behavior", () => {
-            describe("contextless", () => {});
+        describe.skip("Field Context Behavior", () => {
+            describe.skip("contextless", () => {});
         });
     });
 
@@ -488,8 +488,8 @@ describe("lib/use/useWidget.js", () => {
             });
         });
 
-        describe("Interaction & State Tracking", () => {
-            describe("focused", () => {});
+        describe.skip("Interaction & State Tracking", () => {
+            describe.skip("focused", () => {});
         });
 
         describe("Disabled Behavior", () => {

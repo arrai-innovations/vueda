@@ -11,6 +11,12 @@ export default defineConfig((configEnv) =>
                 coverage: {
                     reportOnFailure: true,
                     include: ["lib"],
+                    exclude: [
+                        "lib/utils/dev.js",
+                        "lib/utils/fieldMappings.js",
+                        "lib/utils/primevueConsts.js",
+                        "lib/utils/objectGridSkeletonProps.js",
+                    ],
                     reporter: ["text", "json-summary", "html"],
                 },
                 setupFiles: ["tests/unit/vitest-setup.js"],

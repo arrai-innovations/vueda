@@ -381,7 +381,7 @@ describe("lib/use/useForm.js", () => {
             });
         });
         describe("Ignored Fields & Reset Behavior", () => {
-            describe("ignored", () => {});
+            describe.skip("ignored", () => {});
             describe("anyIgnored", () => {
                 scopedIt("should not allow updates directly", () => {
                     const { formContext } = getForm({});
@@ -1981,13 +1981,13 @@ describe("lib/use/useForm.js", () => {
                 });
             });
         });
-        describe("Hook Registrations", () => {
-            describe("registerIsModifiedHook", () => {});
-            describe("unregisterIsModifiedHook", () => {});
-            describe("registerIsRequiredHook", () => {});
-            describe("unregisterIsRequiredHook", () => {});
-            describe("registerIsValidHook", () => {});
-            describe("unregisterIsValidHook", () => {});
+        describe.skip("Hook Registrations", () => {
+            describe.skip("registerIsModifiedHook", () => {});
+            describe.skip("unregisterIsModifiedHook", () => {});
+            describe.skip("registerIsRequiredHook", () => {});
+            describe.skip("unregisterIsRequiredHook", () => {});
+            describe.skip("registerIsValidHook", () => {});
+            describe.skip("unregisterIsValidHook", () => {});
         });
     });
     describe("lifecycle", () => {

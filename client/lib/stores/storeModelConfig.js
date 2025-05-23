@@ -95,11 +95,24 @@ import { defineStore } from "pinia";
  */
 const getDefaultFromModelInfo = (modelInfo) => {
     if (!modelInfo || !modelInfo.fields || !modelInfo.expand || !modelInfo.actions) {
-        return [{}, {}];
+        return [
+            {
+                formProps: {},
+                fieldComponents: {},
+                fieldProps: {},
+                widgetComponents: {},
+                widgetProps: {},
+                actionDetails: {},
+                fieldDetails: {},
+                filterableDetails: {},
+                sortableDetails: {},
+            },
+            {},
+        ];
     }
     const pkField = modelInfo.pk;
     const fields = Object.keys(modelInfo.fields).filter((f) => f !== pkField);
-    const expandFields = [];
+    const expandFields = modelInfo.expand.map((e) => e.name);
     const actionDetailsByName = Object.fromEntries(modelInfo.actions.map((a) => [a.name, a]));
     const expandDetailsByName = Object.fromEntries(modelInfo.expand.map((e) => [e.name, e]));
     const actionNames = modelInfo.actions.map((a) => a.name);
@@ -116,14 +129,14 @@ const getDefaultFromModelInfo = (modelInfo) => {
             expand: expandFields,
             routeActions: modelInfo.actions.map((a) => a.name),
             actions: modelInfo.actions.map((a) => a.name),
-            filterables: Object.keys(modelInfo.filtering),
-            sortables: modelInfo.ordering.map((o) => o.name),
+            filterables: Object.keys(modelInfo.filtering || {}),
+            sortables: (modelInfo.ordering || []).map((o) => o.name),
             sorted: [], // todo: the server has default field(s) being sorted on, we should get that
             fieldDetails: cloneDeep(modelInfo.fields),
             expandDetails: cloneDeep(expandDetailsByName),
             actionDetails: cloneDeep(actionDetailsByName),
-            filterableDetails: cloneDeep(modelInfo.filtering),
-            sortablesDetails: cloneDeep(modelInfo.ordering),
+            filterableDetails: cloneDeep(modelInfo.filtering || {}),
+            sortablesDetails: cloneDeep(modelInfo.ordering || []),
             formProps: {},
             fieldComponents: {},
             fieldProps: {},

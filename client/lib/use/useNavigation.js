@@ -138,7 +138,7 @@ export function useNavigation(userConfig) {
     });
 
     watch(
-        () => userConfig,
+        userConfig,
         async (newConfig) => {
             navigationData.loading = true;
             try {
@@ -151,7 +151,7 @@ export function useNavigation(userConfig) {
                 navigationData.loading = false;
             }
         },
-        { immediate: true },
+        { immediate: true, deep: true },
     );
 
     return navigationData;

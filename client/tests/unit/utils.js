@@ -122,7 +122,8 @@ export function testWatches(vue, props, pos, neg = false, deep = false) {
  * @param {string} name - The name of the property being set.
  * @returns {string} The expected error message substring.
  */
-export const expectReadOnlyFor = (name) => `'set' on proxy: trap returned falsish for property '${name}'`;
+export const expectReadOnlyFor = (name) =>
+    new RegExp(`(?:target is readonly.*${name}|${name}.*target is readonly|trap returned falsish.*${name})`);
 
 export const mockVueRouterLifecycle = (vi) => {
     const leaveFns = [];

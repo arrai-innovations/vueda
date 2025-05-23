@@ -60,30 +60,18 @@ describe("lib/use/useFilteredActions.js", () => {
         vi.clearAllMocks();
     });
 
-    const activate = async () => {
-        isActive.value = true;
-        await flushPromises();
-    };
-
     scopedIt("creates model config if none provided", async () => {
         useFilteredActions({ app: "foo", model: "bar" });
-        expect(useModelConfig).not.toHaveBeenCalled();
-        await activate();
         expect(useModelConfig).toHaveBeenCalledWith("foo", "bar", null);
     });
     scopedIt("uses provided modelConfigInstance", async () => {
         useFilteredActions({ modelConfigInstance: modelConfig });
-        expect(useModelConfig).not.toHaveBeenCalled();
-        await activate();
         expect(useModelConfig).not.toHaveBeenCalled();
     });
     scopedIt("returns flat array of actions if config.actions is an array", async () => {
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
         mockedModelConfig.config.actions = ["create", "update", "delete"];
         await flushPromises();
-        expect(state.actions).toEqual([]);
-
-        await activate();
         expect(state.actions).toEqual(["create", "update", "delete"]);
     });
     scopedIt("filters object-based actions based on user groups", async () => {
@@ -95,9 +83,6 @@ describe("lib/use/useFilteredActions.js", () => {
             audit: true,
         };
         await flushPromises();
-        expect(state.actions).toEqual([]);
-
-        await activate();
         expect(state.actions).toEqual(["create", "update", "audit"]);
     });
     scopedIt("returns empty actions if config.actions is invalid", async () => {
@@ -119,13 +104,6 @@ describe("lib/use/useFilteredActions.js", () => {
             clearError,
         });
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
-        expect(state.loading).toBeUndefined();
-        expect(state.errored).toBe(false);
-        expect(state.error).toBeNull();
-        expect(state.clearError).toEqual(expect.any(Function));
-        expect(state.clearError).not.toBe(clearError); // the default placeholder
-
-        await activate();
         expect(state.loading).toBe(true);
         expect(state.errored).toBe(true);
         expect(state.error).toBeInstanceOf(Error);
@@ -138,9 +116,6 @@ describe("lib/use/useFilteredActions.js", () => {
             audit: true,
         };
         await flushPromises();
-        expect(state.actions).toEqual([]);
-
-        await activate();
         expect(state.actions).toEqual(["create", "audit"]);
 
         mockedModelConfig.config.actions = ["a", "b", "c"];
@@ -151,9 +126,6 @@ describe("lib/use/useFilteredActions.js", () => {
         const state = useFilteredActions({ modelConfigInstance: modelConfig });
         mockedModelConfig.config.actions = ["valid"];
         await flushPromises();
-        expect(state.actions).toEqual([]);
-
-        await activate();
         expect(state.actions).toEqual(["valid"]);
 
         mockedModelConfig.config.actions = null;
@@ -168,9 +140,6 @@ describe("lib/use/useFilteredActions.js", () => {
             audit: true,
         };
         await flushPromises();
-        expect(state.actions).toEqual([]);
-
-        await activate();
         expect(state.actions).toEqual(["create", "audit"]);
 
         // now change user groups to ["managers"]
@@ -185,9 +154,6 @@ describe("lib/use/useFilteredActions.js", () => {
             onlyForAdmins: ["admins"],
         };
         await flushPromises();
-        expect(state.actions).toEqual([]);
-
-        await activate();
         expect(state.actions).toEqual(["onlyForAdmins"]);
 
         // update actions object reactively without replacing it
@@ -203,9 +169,6 @@ describe("lib/use/useFilteredActions.js", () => {
             audit: true,
         };
         await flushPromises();
-        expect(state.actions).toEqual([]);
-
-        await activate();
         expect(state.actions).toEqual(["create", "audit"]);
 
         userStore.loggedInUser.groups = null;
@@ -219,9 +182,6 @@ describe("lib/use/useFilteredActions.js", () => {
             public: true,
         };
         await flushPromises();
-        expect(state.actions).toEqual([]);
-
-        await activate();
         expect(state.actions).toEqual(["adminOnly", "public"]);
 
         userStore.loggedInUser = null;

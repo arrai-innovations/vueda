@@ -48,6 +48,7 @@ export function useSubForm({ parentPath }) {
         anyModified: toRef(parentState, "anyModified"),
         required: {},
         anyRequired: toRef(parentState, "anyRequired"),
+        valid: {},
 
         // *** Ignored Fields & Reset Behavior ***
         ignored: {},
@@ -57,7 +58,7 @@ export function useSubForm({ parentPath }) {
         dependencyValues: {},
     });
 
-    for (const nestedValues in ["values", "initialValues"]) {
+    for (const nestedValues of ["values", "initialValues"]) {
         watch(
             [
                 () => flattenPathsWithValues(get(parentState[nestedValues], unref(parentPath))),

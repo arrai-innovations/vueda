@@ -95,12 +95,16 @@ export function useFieldDependencyValuesRegistry(formValues) {
 
         if (!valueComputedStopsByAbsPath[absPath]) {
             valueComputedStopsByAbsPath[absPath] = mainEffectScope.run(() => {
-                return computed(() => {
-                    return get(formValues, absPath);
-                });
+                const scope = effectScope();
+                const comp = scope.run(() =>
+                    computed(() => {
+                        return get(formValues, absPath);
+                    }),
+                );
+                return { computed: comp, stop: scope.stop };
             });
         }
-        setDependencyValue(fieldRegistryId, dependencyPath, valueComputedStopsByAbsPath[absPath]);
+        setDependencyValue(fieldRegistryId, dependencyPath, valueComputedStopsByAbsPath[absPath].computed);
         incrementRefCount(absPath);
     };
 
@@ -111,9 +115,9 @@ export function useFieldDependencyValuesRegistry(formValues) {
         decrementRefCount(absPath);
         unsetDependencyValue(fieldRegistryId, dependencyPath);
         if (valueRefCountByAbsPath[absPath] <= 0) {
-            const stop = valueComputedStopsByAbsPath[absPath];
-            if (stop) {
-                stop.stop();
+            const entry = valueComputedStopsByAbsPath[absPath];
+            if (entry) {
+                entry.stop();
                 delete valueComputedStopsByAbsPath[absPath];
             }
             delete valueRefCountByAbsPath[absPath];
@@ -152,11 +156,15 @@ export function useFieldDependencyValuesRegistry(formValues) {
                             delete dependencyValuesByFieldName[oldName];
                         }
                         fieldComputedStops[fieldId] = mainEffectScope.run(() => {
-                            return computed(() => {
-                                return dependencyValuesByFieldId[fieldId];
-                            });
+                            const scope = effectScope();
+                            const comp = scope.run(() =>
+                                computed(() => {
+                                    return dependencyValuesByFieldId[fieldId];
+                                }),
+                            );
+                            return { computed: comp, stop: scope.stop };
                         });
-                        dependencyValuesByFieldName[newName] = fieldComputedStops[fieldId];
+                        dependencyValuesByFieldName[newName] = fieldComputedStops[fieldId].computed;
                     } else if (!isEqual(newPaths, oldPaths)) {
                         const { removedKeys, addedKeys } = keyDiff(newPaths, oldPaths, { sameKeys: false });
                         pathsToUnregister = Array.from(removedKeys);
@@ -184,7 +192,16 @@ export function useFieldDependencyValuesRegistry(formValues) {
         if (fieldRegistryRefs[id]) {
             fieldWatchStops[id]();
             delete fieldWatchStops[id];
+            const fieldName = unref(fieldRegistryRefs[id].field);
             delete fieldRegistryRefs[id];
+
+            if (fieldComputedStops[id]) {
+                fieldComputedStops[id].stop();
+                delete fieldComputedStops[id];
+            }
+            if (dependencyValuesByFieldName[fieldName]) {
+                delete dependencyValuesByFieldName[fieldName];
+            }
 
             for (const path of Object.keys(valueRegistryRelToAbsPathPerFieldRegistryId[id] || {})) {
                 unregisterValue(id, path);

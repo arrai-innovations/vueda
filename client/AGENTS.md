@@ -19,8 +19,10 @@ To get started:
 - Run tests:
 
     ```bash
-    npm run test
+    npm test run
     ```
+
+> By default, npm test launches vitest in watch mode. The run argument disables watch mode for single-pass execution.
 
 - View coverage:
 

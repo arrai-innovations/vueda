@@ -60,8 +60,11 @@ describe("useModelChoices", () => {
     scopedIt("fetches normal choices on mount", async () => {
         const app = ref("blog");
         const model = ref("article");
-        const field = ref("status");
         const intendToFetch = ref(true);
+
+        const fields = reactive({
+            status: { app, model, intendToFetch },
+        });
 
         const key = "blog.article";
         storeMock.choices[key] = { status: ["draft", "published"] };
@@ -69,7 +72,7 @@ describe("useModelChoices", () => {
 
         let result;
         scope.run(() => {
-            result = useModelChoices(app, model, field, undefined, intendToFetch);
+            result = useModelChoices(fields);
         });
 
         await flushPromises();
@@ -81,9 +84,12 @@ describe("useModelChoices", () => {
     scopedIt("fetches filter choices when isFilter is true", async () => {
         const app = ref("blog");
         const model = ref("article");
-        const field = ref("status");
         const intendToFetch = ref(true);
         const isFilter = ref(true);
+
+        const fields = reactive({
+            status: { app, model, intendToFetch, isFilter },
+        });
 
         const key = "blog.article";
         storeMock.filterChoices[key] = { status: ["open", "closed"] };
@@ -91,7 +97,7 @@ describe("useModelChoices", () => {
 
         let result;
         scope.run(() => {
-            result = useModelChoices(app, model, field, undefined, intendToFetch, isFilter);
+            result = useModelChoices(fields);
         });
 
         await flushPromises();
@@ -103,12 +109,15 @@ describe("useModelChoices", () => {
     scopedIt("does not fetch when inactive", async () => {
         const app = ref("a");
         const model = ref("b");
-        const field = ref("x");
-        const isActive = ref(false);
         const intendToFetch = ref(true);
+        const isActive = ref(false);
+
+        const fields = reactive({
+            x: { app, model, intendToFetch },
+        });
 
         scope.run(() => {
-            useModelChoices(app, model, field, isActive, intendToFetch);
+            useModelChoices(fields, isActive);
         });
 
         await flushPromises();
@@ -119,11 +128,14 @@ describe("useModelChoices", () => {
     scopedIt("does not fetch when intendToFetch is false", async () => {
         const app = ref("a");
         const model = ref("b");
-        const field = ref("x");
         const intendToFetch = ref(false);
 
+        const fields = reactive({
+            x: { app, model, intendToFetch },
+        });
+
         scope.run(() => {
-            useModelChoices(app, model, field, undefined, intendToFetch);
+            useModelChoices(fields);
         });
 
         await flushPromises();
@@ -134,13 +146,16 @@ describe("useModelChoices", () => {
     scopedIt("avoids redundant fetches with identical inputs", async () => {
         const app = ref("app");
         const model = ref("model");
-        const field = ref("field");
         const intendToFetch = ref(true);
+
+        const fields = reactive({
+            field: { app, model, intendToFetch },
+        });
 
         storeMock.fetchChoices.mockResolvedValue();
 
         scope.run(() => {
-            useModelChoices(app, model, field, undefined, intendToFetch);
+            useModelChoices(fields);
         });
 
         await flushPromises();
@@ -149,7 +164,7 @@ describe("useModelChoices", () => {
 
         app.value = "app"; // same value
         model.value = "model";
-        field.value = "field";
+        // updating to same values should not trigger a new fetch
 
         await flushPromises();
 
@@ -159,14 +174,17 @@ describe("useModelChoices", () => {
     scopedIt("handles an error from fetchChoices", async () => {
         const app = ref("blog");
         const model = ref("post");
-        const field = ref("status");
         const intendToFetch = ref(true);
+
+        const fields = reactive({
+            status: { app, model, intendToFetch },
+        });
         const error = new Error("choices failed");
 
         storeMock.fetchChoices.mockRejectedValue(error);
 
         scope.run(() => {
-            useModelChoices(app, model, field, undefined, intendToFetch);
+            useModelChoices(fields);
         });
 
         await flushPromises();

@@ -161,7 +161,7 @@ export function useFormModel(props) {
     watch(
         [toRef(state, "expand"), toRef(state, "fields"), toRef(state, "fieldDetails"), toRef(state, "expandDetails")],
         ([expand, fields, fieldDetails, expandDetails]) => {
-            if (Object.keys(fieldDetails || {}).length && fields.length) {
+            if (fields.length) {
                 const fieldComponents = {};
                 const fieldProps = {};
                 const widgetComponents = {};

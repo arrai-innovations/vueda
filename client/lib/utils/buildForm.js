@@ -140,10 +140,14 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 const desiredDetails = {};
                 if (configDetailKey) {
                     for (const d of desired) {
-                        desiredDetails[d] = {
-                            ...modelConfig.config?.[configDetailKey]?.[d],
-                            ...props[propDetailKey]?.[d],
-                        };
+                        const configDetail = modelConfig.config?.[configDetailKey]?.[d];
+                        const propDetail = props[propDetailKey]?.[d];
+                        if (configDetail || propDetail) {
+                            desiredDetails[d] = {
+                                ...configDetail,
+                                ...propDetail,
+                            };
+                        }
                     }
                     assignStateObjectsIfChanged({
                         [stateKey]: desired,
@@ -202,14 +206,14 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
                     themeOverride: fieldLevelThemeOverride,
                     name: key,
-                    readOnly: getIsReadOnly(fieldName),
+                    readOnly: getIsReadOnly(fieldName, detailObject.readOnly),
                 };
             });
         });
         return componentProps;
     }
 
-    function getIsReadOnly(fieldName) {
+    function getIsReadOnly(fieldName, detailReadOnly = false) {
         const readOnlyProp = props.fieldProps?.[fieldName]?.readOnly;
         const modelConfigReadOnly = modelConfig.config?.fieldProps?.[fieldName]?.readOnly;
 
@@ -220,7 +224,8 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
             (props.view === "read" ||
                 computedFields.includes(fieldName) ||
                 readOnlyProp === true ||
-                modelConfigReadOnly === true);
+                modelConfigReadOnly === true ||
+                detailReadOnly === true);
         return rv;
     }
 
@@ -228,7 +233,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         let widget = undefined;
         es.run(() => {
             widget = computed(() => {
-                if (getIsReadOnly(fieldName)) {
+                if (getIsReadOnly(fieldName, detailObject.readOnly)) {
                     return availableWidgets.WidgetReadOnly;
                 }
                 if (baseExpanded) {
@@ -282,7 +287,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     baseProps.options = detailObject.choices;
                 }
                 baseProps.themeOverride = fieldLevelThemeOverride;
-                baseProps.readOnly = getIsReadOnly(fieldName);
+                baseProps.readOnly = getIsReadOnly(fieldName, detailObject.readOnly);
                 return baseProps;
             });
         });
