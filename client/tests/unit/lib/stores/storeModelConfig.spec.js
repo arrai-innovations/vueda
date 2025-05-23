@@ -553,4 +553,94 @@ describe("lib/store/storeModelConfig.js", () => {
 
         expect(store.initialized).not.toHaveProperty(getAppModelDotName({ app: "testApp", model: "testModel" }));
     });
+
+    scopedIt("falls back to default field lists when overrides provide empty arrays", async () => {
+        const store = storeModelConfig();
+        store.builtConfigs = {};
+        store.initialized = {};
+
+        store.setConfig(
+            { app: "testApp", model: "testModel" },
+            {
+                displayFields: [],
+                fetchFields: [],
+                submitFields: [],
+            },
+        );
+
+        const config = await store.getConfig({ app: "testApp", model: "testModel" });
+        expect(config.displayFields).toEqual(["name", "description"]);
+        expect(config.fetchFields).toEqual(["name", "description"]);
+        expect(config.submitFields).toEqual(["name", "description"]);
+    });
+
+    scopedIt("returns no expansion fields when expand array is empty", async () => {
+        const store = storeModelConfig();
+        store.builtConfigs = {};
+        store.initialized = {};
+
+        store.setConfig({ app: "testApp", model: "testModel" }, { expand: [] });
+
+        const config = await store.getConfig({ app: "testApp", model: "testModel" });
+        expect(config.expand).toEqual([]);
+        expect(config.fieldDetails).not.toHaveProperty("employee");
+        expect(config.fieldDetails).not.toHaveProperty("timesheet_days");
+    });
+
+    scopedIt("handles expansions lacking sub-field info", async () => {
+        const store = storeModelConfig();
+        store.builtConfigs = {};
+        store.initialized = {};
+
+        const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+        delete customModelInfo.expand[0].f;
+        mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+
+        const config = await store.getConfig({ app: "testApp", model: "testModel" });
+        expect(config.fieldDetails).toHaveProperty("employee");
+        expect(config.fieldDetails).not.toHaveProperty("employee__id");
+    });
+
+    scopedIt("supports null specific config entries", async () => {
+        const store = storeModelConfig();
+        store.builtConfigs = {};
+        store.initialized = {};
+
+        store.setConfig({ app: "testApp", model: "testModel" }, null, { update: null });
+
+        const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
+        expect(config.verboseName).toBe("timesheet");
+    });
+
+    scopedIt.for([
+        { actions: ["retrieve", "list"], expected: "read" },
+        { actions: ["list"], expected: "list" },
+        { actions: [], expected: null },
+    ])("sets defaultView based on available actions", async ({ actions, expected }) => {
+        const store = storeModelConfig();
+        store.builtConfigs = {};
+        store.initialized = {};
+
+        const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+        customModelInfo.actions = customModelInfo.actions.filter((a) => actions.includes(a.name));
+        mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+
+        const config = await store.getConfig({ app: "testApp", model: "testModel" });
+        expect(config.defaultView).toBe(expected);
+    });
+
+    scopedIt("uses empty filter and sort info when not provided", async () => {
+        const store = storeModelConfig();
+        store.builtConfigs = {};
+        store.initialized = {};
+
+        const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+        delete customModelInfo.filtering;
+        delete customModelInfo.ordering;
+        mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+
+        const config = await store.getConfig({ app: "testApp", model: "testModel" });
+        expect(config.filterables).toEqual([]);
+        expect(config.sortables).toEqual([]);
+    });
 });
