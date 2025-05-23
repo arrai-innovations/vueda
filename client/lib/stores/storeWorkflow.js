@@ -2,7 +2,7 @@ import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FetchError } from "@vueda/utils/errors.js";
+import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
@@ -493,11 +493,20 @@ export const storeWorkflow = defineStore("workflow", {
                 },
                 "Failed to execute transition",
                 WorkflowError,
+                undefined,
+                undefined,
+                (response, data) => {
+                    if (response.status === 400) {
+                        return new FormValidationError(data, response);
+                    }
+                    return new WorkflowError("Failed to execute transition", response, data);
+                },
             )
                 .then((data) => {
                     responseData = data;
                     updateState(this.objectStates, { ...result, ...data.new_state });
                     updateState(this.objectTransitions, { ...result, transitions: data.new_transitions });
+                    return data;
                 })
                 .finally(() => {
                     if (router && stateToRoute && responseData?.new_state?.state?.code in stateToRoute) {

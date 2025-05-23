@@ -52,8 +52,13 @@ export const fetchHelper = (
     errorClass = FetchError,
     emptyResponseCodes = new Set([204]),
     emptyResponseValue = undefined,
+    errorResolver = undefined,
 ) => {
     const controller = new AbortController();
+
+    if (!errorResolver) {
+        errorResolver = (response, data) => new errorClass(messagePrefix, response, data);
+    }
 
     const promise = new Promise((resolve, reject) => {
         fetch(url, {
@@ -67,7 +72,7 @@ export const fetchHelper = (
                     if (emptyResponseCodes.has(response.status) && emptyResponseValue !== undefined) {
                         resolve(emptyResponseValue);
                     } else {
-                        reject(new errorClass(messagePrefix, response, responseData));
+                        reject(errorResolver(response, responseData));
                     }
                 } else {
                     resolve(responseData);

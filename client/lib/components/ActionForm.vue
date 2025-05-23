@@ -16,6 +16,7 @@ import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import isObject from "lodash-es/isObject.js";
+import startCase from "lodash-es/startCase.js";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 import { computed, inject, onDeactivated, onUnmounted, reactive, toRef, unref } from "vue";
@@ -93,7 +94,7 @@ const actionSuccessSummary = computed(() => {
     if (props.actionSuccessSummary) {
         return props.actionSuccessSummary;
     }
-    return `${props.model} ${props.action} successful`;
+    return startCase(`${unref(computedActionVerboseNameLowerCase)} ${unref(modelVerboseName)} successful`);
 });
 const actionErrorSummary = computed(() => {
     if (props.actionErrorSummary) {
@@ -172,10 +173,11 @@ const handleConfirm = async () => {
         }
 
         actionPromise = unref(runAction)(props.action);
+        const summary = unref(actionSuccessSummary);
         await actionPromise;
         toast.add({
             severity: "success",
-            summary: actionSuccessSummary,
+            summary: summary,
             life: 15000,
         });
         if (props.handleActionCompletion) {
@@ -190,7 +192,7 @@ const handleConfirm = async () => {
             actionState.error = error;
             toast.add({
                 severity: "error",
-                summary: actionErrorSummary,
+                summary: actionErrorSummary.value,
                 detail: actionState.error,
                 life: 15000,
             });
