@@ -82,7 +82,7 @@ build, ci, chore, content, docs, feat, fix, perf, refactor, remove, revert, styl
 fix(WidgetSearchableSelect): correct options grouping
 ```
 
-The scope should reference the affected file, module, or concern.
+The scope should reference the affected filename (sans extension), module, or concern.
 
 ---
 
