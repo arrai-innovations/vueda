@@ -12,10 +12,11 @@ export default defineConfig((configEnv) =>
                     reportOnFailure: true,
                     include: ["lib"],
                     exclude: [
-                        "lib/utils/dev.js",
-                        "lib/utils/fieldMappings.js",
-                        "lib/utils/primevueConsts.js",
-                        "lib/utils/objectGridSkeletonProps.js",
+                        "lib/theme", // mostly static configuration, even though contained in .js files
+                        "lib/utils/dev.js", // only used in dev mode, basically a no-op
+                        "lib/utils/fieldMappings.js", // static configuration
+                        "lib/utils/primevueConsts.js", // copy of primevue constants
+                        "lib/utils/objectGridSkeletonProps.js", // configuration for object grid skeletons
                     ],
                     reporter: ["text", "json-summary", "html"],
                 },
