@@ -57,6 +57,15 @@ describe("lib/fields/FieldBoolean.vue", () => {
         expect(warnSpy).toHaveBeenCalledWith("Expected value to be a boolean or null, got:", 1);
     });
 
+    scopedIt("does not warn for undefined and warns on later invalid value", async () => {
+        const { fieldContext } = mountWithValue(undefined);
+        await vue.nextTick();
+        expect(warnSpy).not.toHaveBeenCalled();
+        fieldContext.state.value = "bad";
+        await vue.nextTick();
+        expect(warnSpy).toHaveBeenCalledWith("Expected value to be a boolean, got:", "bad");
+    });
+
     scopedIt("forwards non-class attrs to slot", async () => {
         const { wrapper } = mountWithValue(true, {
             attrs: { id: "id1", class: "root", disabled: "" },
