@@ -80,4 +80,33 @@ describe("lib/fields/FieldDate.vue", () => {
 
         restore();
     });
+
+    scopedIt("parseToDate and formatDate bail early for falsey values", async () => {
+        const { wrapper, restore } = await setup(false);
+
+        expect(wrapper.vm.parseToDate(null)).toBeNull();
+        expect(wrapper.vm.parseToDate(undefined)).toBeNull();
+        expect(wrapper.vm.parseToDate(0)).toBeNull();
+        expect(wrapper.vm.parseToDate("")).toBeNull();
+
+        expect(wrapper.vm.formatDate(null)).toBe("");
+        expect(wrapper.vm.formatDate(undefined)).toBe("");
+
+        restore();
+    });
+
+    scopedIt("watchIfDev ignores nullish values", async () => {
+        const { state, logger, restore } = await setup(true);
+
+        logger.warn.mockClear();
+        state.value = null;
+        await vue.nextTick();
+        expect(logger.warn).not.toHaveBeenCalled();
+
+        state.value = undefined;
+        await vue.nextTick();
+        expect(logger.warn).not.toHaveBeenCalled();
+
+        restore();
+    });
 });
