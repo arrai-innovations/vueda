@@ -111,4 +111,19 @@ describe("lib/router/makeCrud.js", () => {
             pk: ["1", "2", "3"],
         });
     });
+
+    scopedIt("detail route props read from params", () => {
+        const [detail] = makeCRUDRoutes({ component, vueApp, router, pinia });
+
+        const props = detail.props({
+            params: { app: "foo", model: "bar", action: "detail", pk: "42" },
+        });
+
+        expect(props).toEqual({
+            app: "foo",
+            model: "bar",
+            action: "detail",
+            pk: "42",
+        });
+    });
 });
