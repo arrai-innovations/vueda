@@ -74,4 +74,31 @@ describe("lib/fields/FieldNumber.vue", () => {
         await flushPromises();
         expect(warnSpy).toHaveBeenCalledWith("Expected value to be a number, got:", "abc");
     });
+    scopedIt("computes default stepScaleFactor when step missing", async () => {
+        const wrapper = mount(FieldNumber, { props: { name: "n" } });
+        expect(wrapper.vm.stepScaleFactor).toBe(1);
+        await flushPromises();
+        expect(fieldContext.deleteError).toHaveBeenCalledWith("step");
+    });
+
+    scopedIt("computes decimal step scale factor", async () => {
+        fieldContext.state.value = 0.25;
+        const wrapper = mount(FieldNumber, { props: { name: "n", step: 0.1 } });
+        await flushPromises();
+        expect(wrapper.vm.stepScaleFactor).toBe(10);
+        expect(fieldContext.updateError).toHaveBeenCalledWith("step", "Must be a multiple of 0.1.");
+
+        fieldContext.updateError.mockClear();
+        fieldContext.deleteError.mockClear();
+        fieldContext.state.value = 0.3;
+        await flushPromises();
+        expect(fieldContext.deleteError).toHaveBeenCalledWith("step");
+    });
+
+    scopedIt.each([null, undefined])("does not warn when value is %s", async (val) => {
+        fieldContext.state.value = val;
+        mount(FieldNumber, { props: { name: "n" } });
+        await flushPromises();
+        expect(warnSpy).not.toHaveBeenCalled();
+    });
 });
