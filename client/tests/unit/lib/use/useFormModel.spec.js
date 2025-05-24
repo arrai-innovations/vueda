@@ -712,4 +712,78 @@ describe("lib/use/useFormModel.js", () => {
         expect(state.computedFields).toEqual([]);
         expect(state.fieldProps.name.contextless).toBe(false);
     });
+    scopedIt("uses FieldString for computed fields", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+        const { availableFields } = await import("@vueda/utils/formLookups.js");
+
+        const props = makeBaseProps({
+            fields: ["score"],
+            computedFields: ["score"],
+            fieldDetails: {
+                score: {
+                    name: "score",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    many: false,
+                    readOnly: false,
+                },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.fieldComponents.score).toBe(availableFields.FieldString);
+    });
+    scopedIt("infers FieldSetStackedInline for expanded many fields", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+        const { availableFields } = await import("@vueda/utils/formLookups.js");
+
+        const props = makeBaseProps({
+            fields: ["tags"],
+            expand: ["tags"],
+            fieldDetails: {
+                tags: {
+                    name: "tags",
+                    typeSerializer: "TagField",
+                    typeModel: "TagField",
+                    many: true,
+                    readOnly: false,
+                },
+            },
+            expandDetails: {
+                tags: { f: {} },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.fieldComponents.tags).toBe(availableFields.FieldSetStackedInline);
+    });
+    scopedIt("resolves field component names passed as strings", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+        const { availableFields } = await import("@vueda/utils/formLookups.js");
+
+        const props = makeBaseProps({
+            fields: ["title"],
+            fieldDetails: {
+                title: {
+                    name: "title",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    many: false,
+                    readOnly: false,
+                },
+            },
+            fieldComponents: {
+                title: "FieldSetTabularInline",
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.fieldComponents.title).toBe(availableFields.FieldSetTabularInline);
+    });
 });
