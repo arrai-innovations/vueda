@@ -96,7 +96,6 @@ export const getFormChoresSlotNames = (formModelName) => {
 export function buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps) {
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
     const es = effectScope();
-    let computedFields = [];
 
     const assignStateObjectsIfChanged = (args) => {
         for (const key in args) {
@@ -109,14 +108,6 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
             }
         }
     };
-
-    watch(
-        toRef(state, "computedFields"),
-        () => {
-            computedFields = deepUnref(state.computedFields) || [];
-        },
-        { immediate: true, deep: true },
-    );
 
     function setUpWatch(
         configKey,
@@ -167,7 +158,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         let component = undefined;
         es.run(() => {
             component = computed(() => {
-                if (computedFields.includes(fieldName)) {
+                if ((deepUnref(state.computedFields) || []).includes(fieldName)) {
                     return availableFields.FieldString;
                 }
                 const customField =
@@ -199,7 +190,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 const fieldLevelThemeOverride = getFieldLevelThemeOverride(fieldName);
                 return {
                     // useFormModel resolves type, the fields don't care about the server type.
-                    contextless: computedFields.includes(fieldName),
+                    contextless: (deepUnref(state.computedFields) || []).includes(fieldName),
                     ...omit(detailObject, ["type"]),
                     ...getFieldProps(detailObject),
                     ...(deepUnref(modelConfig.config?.fieldProps?.[fieldName]) || {}),
@@ -222,7 +213,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         const rv =
             !hasExplicitFalseOverride &&
             (props.view === "read" ||
-                computedFields.includes(fieldName) ||
+                (deepUnref(state.computedFields) || []).includes(fieldName) ||
                 readOnlyProp === true ||
                 modelConfigReadOnly === true ||
                 detailReadOnly === true);
