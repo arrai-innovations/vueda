@@ -95,4 +95,45 @@ describe("lib/fields/FieldString.vue", () => {
         expect(warnMock).not.toHaveBeenCalled();
         import.meta.env.DEV = originalDev;
     });
+
+    scopedIt("shows regex when patternForMessage is absent", async () => {
+        const state = reactive({ value: "abc", touched: true });
+        const updateError = vi.fn();
+        const deleteError = vi.fn();
+        mockedUseField.mockReturnValue({ state, updateError, deleteError });
+
+        mount(FieldString, {
+            props: { name: "foo", patternRegex: "^[0-9]+$" },
+        });
+        await flushPromises();
+
+        expect(updateError).toHaveBeenCalledWith("pattern", 'Must match "/^[0-9]+$/".');
+
+        updateError.mockClear();
+        deleteError.mockClear();
+        state.value = "123";
+        await flushPromises();
+        expect(deleteError).toHaveBeenCalledWith("pattern");
+    });
+
+    scopedIt("does not warn when value is null or undefined in dev", async () => {
+        const originalDev = import.meta.env.DEV;
+        import.meta.env.DEV = true;
+        const state = reactive({ value: null, touched: false });
+        mockedUseField.mockReturnValue({
+            state,
+            updateError: vi.fn(),
+            deleteError: vi.fn(),
+        });
+
+        mount(FieldString, { props: { name: "foo" } });
+        await flushPromises();
+        expect(warnMock).not.toHaveBeenCalled();
+
+        warnMock.mockClear();
+        state.value = undefined;
+        await flushPromises();
+        expect(warnMock).not.toHaveBeenCalled();
+        import.meta.env.DEV = originalDev;
+    });
 });
