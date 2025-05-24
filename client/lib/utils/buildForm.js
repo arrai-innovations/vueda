@@ -201,7 +201,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     // useFormModel resolves type, the fields don't care about the server type.
                     contextless: computedFields.includes(fieldName),
                     ...omit(detailObject, ["type"]),
-                    ...(getFieldProps(detailObject) || {}),
+                    ...getFieldProps(detailObject),
                     ...(deepUnref(modelConfig.config?.fieldProps?.[fieldName]) || {}),
                     ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
                     themeOverride: fieldLevelThemeOverride,
