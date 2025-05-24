@@ -11,7 +11,8 @@ export default defineConfig((configEnv) =>
                 coverage: {
                     reportOnFailure: true,
                     provider: "istanbul",
-                    include: ["lib"],
+                    all: true,
+                    include: ["lib/**/*.js", "lib/**/*.ts", "lib/**/*.vue"],
                     exclude: [
                         "lib/theme", // mostly static configuration, even though contained in .js files
                         "lib/utils/dev.js", // only used in dev mode, basically a no-op

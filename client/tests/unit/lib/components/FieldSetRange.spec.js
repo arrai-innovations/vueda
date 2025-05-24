@@ -102,4 +102,18 @@ describe("lib/fields/FieldSetRange.vue", () => {
         await nextTick();
         expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
     });
+
+    scopedIt("clears errors for empty range array", async () => {
+        fieldContext.state.value = [1, 2];
+        mount(FieldSetRange, { props: { boundaryComponent: BoundaryStub } });
+        await nextTick();
+        expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
+
+        fieldContext.deleteError.mockClear();
+        fieldContext.state.value = [];
+        await nextTick();
+        expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
+        expect(loggerWarn).not.toHaveBeenCalled();
+        expect(fieldContext.updateError).not.toHaveBeenCalled();
+    });
 });
