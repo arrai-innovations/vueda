@@ -651,4 +651,41 @@ describe("lib/use/useFormModel.js", () => {
         expect([...state.baseFieldNames]).toEqual(["name"]);
         expect([...state.expansionFieldNames]).toEqual([]);
     });
+    scopedIt("handles expand with no field definitions", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+        const vue = await import("vue");
+        const useModelConfig = (await import("@vueda/use/useModelConfig")).useModelConfig;
+
+        const modelConfig = vue.readonly(vue.reactive({ config: {} }));
+        useModelConfig.mockReturnValue(modelConfig);
+
+        const props = vue.reactive({
+            app: "foo",
+            model: "bar",
+            view: "create",
+            fields: ["department"],
+            expand: ["department"],
+            fieldDetails: {
+                department: {
+                    name: "department",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    many: false,
+                    readOnly: false,
+                },
+            },
+            expandDetails: {
+                department: {}, // no 'f' property
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect([...state.baseFieldNames]).toEqual(["department"]);
+        expect([...state.expansionFieldNames]).toEqual([]);
+        expect([...state.expandedFieldNames]).toEqual(["department"]);
+        expect(state.fieldComponents.department).toBeTruthy();
+        expect(state.widgetComponents.department).toBe(null);
+    });
 });
