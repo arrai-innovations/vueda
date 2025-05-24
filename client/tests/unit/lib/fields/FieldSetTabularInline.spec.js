@@ -39,7 +39,8 @@ vi.stubGlobal("logger", { warn: warnSpy });
 
 const FieldSetTabularInline = await import("@vueda/fields/FieldSetTabularInline.vue").then((m) => m.default);
 
-function mountWithContext(value) {
+function mountWithContext(value, options = {}) {
+    const { state: stateOverride, ...mountOptions } = options;
     const state = reactive({
         hidable: false,
         internalVisible: true,
@@ -51,6 +52,7 @@ function mountWithContext(value) {
         showCreateButton: true,
         remainingSlotNames: [],
         selected: [],
+        ...stateOverride,
     });
     const fieldSetContext = { state: reactive({ value, label: "Label", name: "items", formModelName: "fm" }) };
     useFieldSetTabularInline.mockReturnValue({
@@ -74,7 +76,7 @@ function mountWithContext(value) {
         toggleVisibility: vi.fn(),
     });
 
-    return mount(FieldSetTabularInline, { props: {} });
+    return mount(FieldSetTabularInline, { props: {}, ...mountOptions });
 }
 
 describe("lib/fields/FieldSetTabularInline.vue", () => {
@@ -105,5 +107,33 @@ describe("lib/fields/FieldSetTabularInline.vue", () => {
         mountWithContext([{ id: 1 }]);
         await nextTick();
         expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    scopedIt("does not warn when value is undefined", async () => {
+        mountWithContext(undefined);
+        await nextTick();
+        expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    scopedIt("does not warn when value is null", async () => {
+        mountWithContext(null);
+        await nextTick();
+        expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    scopedIt("emits toggleVisibility when slot content clicked", async () => {
+        let slotClick;
+        const wrapper = mountWithContext([], {
+            state: { hidable: true },
+            slots: {
+                "toggle-button": (slotProps) => {
+                    slotClick = slotProps.onClick;
+                    return h("button", { "data-qa": "slot-toggle" }, "Toggle");
+                },
+            },
+        });
+        expect(typeof slotClick).toBe("function");
+        slotClick();
+        expect(wrapper.vm.fieldSetTabularInline.toggleVisibility).toHaveBeenCalled();
     });
 });
