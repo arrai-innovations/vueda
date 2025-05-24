@@ -107,8 +107,8 @@ describe("lib/widgets/WidgetImage.vue", () => {
     });
 
     scopedIt("shows image when value present and removes on click", async () => {
-        widgetContext.state.combinedValue = "url";
         const wrapper = mount(WidgetImage);
+        widgetContext.state.combinedValue = "url";
         await nextTick();
         const img = wrapper.getComponent(ImageStub);
         expect(img.props("src")).toBe("url");
