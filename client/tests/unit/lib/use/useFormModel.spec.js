@@ -688,4 +688,28 @@ describe("lib/use/useFormModel.js", () => {
         expect(state.fieldComponents.department).toBeTruthy();
         expect(state.widgetComponents.department).toBe(null);
     });
+
+    scopedIt("defaults to [] when computedFields is falsey", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+        const props = makeBaseProps({
+            fields: ["name"],
+            computedFields: null,
+            fieldDetails: {
+                name: {
+                    name: "name",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    many: false,
+                    readOnly: false,
+                },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.computedFields).toEqual([]);
+        expect(state.fieldProps.name.contextless).toBe(false);
+    });
 });
