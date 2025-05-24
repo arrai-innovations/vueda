@@ -366,8 +366,8 @@ describe("lib/use/useFormModel.js", () => {
             fieldDetails: {
                 tags: {
                     name: "tags",
-                    typeSerializer: "TagField",
-                    typeModel: "TagField",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
                     many: true,
                     readOnly: false,
                 },
@@ -379,6 +379,30 @@ describe("lib/use/useFormModel.js", () => {
 
         expect(state.fieldComponents.tags).toBeTruthy();
         expect(state.widgetComponents.tags).toBeTruthy();
+        // manyFieldMappings should set default fieldProps
+        expect(state.fieldProps.tags.manyComponent).toBeTruthy();
+    });
+    scopedIt("applies ModelField specific fieldProps", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+        const props = makeBaseProps({
+            fields: ["rating"],
+            fieldDetails: {
+                rating: {
+                    name: "rating",
+                    typeSerializer: "ModelField",
+                    typeModel: "GeneratedField",
+                    typeDb: "FloatField",
+                    many: false,
+                    readOnly: false,
+                },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.fieldProps.rating.maxFractionDigits).toBe(2);
     });
     scopedIt("prefers explicit prop readOnly over config defaults", async () => {
         // mock model-config to declare name readOnly=true
