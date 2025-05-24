@@ -10,6 +10,7 @@ export default defineConfig((configEnv) =>
                 environment: "jsdom",
                 coverage: {
                     reportOnFailure: true,
+                    provider: "istanbul",
                     include: ["lib"],
                     exclude: [
                         "lib/theme", // mostly static configuration, even though contained in .js files
@@ -18,7 +19,7 @@ export default defineConfig((configEnv) =>
                         "lib/utils/primevueConsts.js", // copy of primevue constants
                         "lib/utils/objectGridSkeletonProps.js", // configuration for object grid skeletons
                     ],
-                    reporter: ["text", "json-summary", "html"],
+                    reporter: ["text", "json-summary", "html", "lcov"],
                 },
                 setupFiles: ["tests/unit/vitest-setup.js"],
             },
