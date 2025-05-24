@@ -20,6 +20,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldSetContext = useField(props, emit);
+const logger = useDevLogger({ fieldContext: fieldSetContext });
 const theme = useTheme("FieldSetStackedInline", props);
 defineOptions({
     inheritAttrs: false,

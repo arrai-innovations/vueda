@@ -1,0 +1,125 @@
+import { scopedIt } from "@tests/unit/utils.js";
+import { mount } from "@vue/test-utils";
+import { defineComponent, h, reactive } from "vue";
+
+const ButtonStub = defineComponent({
+    name: "ButtonStub",
+    props: ["label", "class"],
+    setup(props) {
+        return () => h("button", { "data-qa": "button-stub", class: props.class, "data-label": props.label });
+    },
+});
+
+const DividerStub = defineComponent({
+    name: "DividerStub",
+    props: ["pt"],
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "divider-stub" }, slots.default ? slots.default() : null);
+    },
+});
+
+const InlineRowStub = defineComponent({
+    name: "InlineRowStub",
+    emits: ["destroy-row", "update:selected"],
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "inline-row-stub" }, slots.default ? slots.default() : null);
+    },
+});
+
+const FormChoresStub = defineComponent({
+    name: "FormChoresStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "form-chores-stub" }, slots.default ? slots.default() : null);
+    },
+});
+
+vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("primevue/divider", () => ({ default: DividerStub }));
+vi.mock("@vueda/components/FieldSetStackedInlineRow.vue", () => ({ default: InlineRowStub }));
+vi.mock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
+
+const mockedUseTheme = vi.fn(() => () => "theme");
+vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERRIDE_PROPS: {} }));
+
+let fieldState, fieldSetContext;
+const mockedUseField = vi.fn(() => fieldSetContext);
+vi.mock("@vueda/use/useField.js", () => ({ FIELD_EMITS: [], useField: mockedUseField }));
+
+const inlineState = reactive({
+    hidable: false,
+    internalVisible: true,
+    showCreateButton: true,
+    computedFieldProps: {},
+    remainingSlotNames: [],
+    selected: { value: [] },
+});
+const emptyObject = { empty: true };
+const toggleVisibility = vi.fn();
+const mockedUseFieldSetInline = vi.fn(() => ({
+    state: inlineState,
+    resolvedSlotNames: {
+        "toggle-button": { name: "toggle-button" },
+        "create-button": { name: "create-button" },
+        "field-set-level-chores": { name: "field-set-level-chores" },
+        title: { name: "title" },
+    },
+    getEmptyFieldObject: () => emptyObject,
+    toggleVisibility,
+}));
+vi.mock("@vueda/use/useFieldSetInline.js", () => ({
+    FIELD_SET_INLINE_PROPS: {},
+    useFieldSetInline: mockedUseFieldSetInline,
+}));
+
+const logger = { warn: vi.fn() };
+vi.mock("@vueda/use/useDevLogger.js", () => ({ useDevLogger: vi.fn(() => logger) }));
+vi.mock("@vueda/utils/buildForm.js", () => ({ getFormChoresSlotNames: vi.fn(() => []) }));
+
+let FieldSetSingularStackedInline, vue;
+
+beforeEach(async () => {
+    vue = await vi.importActual("vue");
+    fieldState = vue.reactive({ name: "fs", label: "FS", value: null });
+    fieldSetContext = { state: fieldState, blur: vi.fn(), ignore: vi.fn(), removeIgnore: vi.fn() };
+    FieldSetSingularStackedInline = (await import("@vueda/fields/FieldSetSingularStackedInline.vue")).default;
+    logger.warn.mockClear();
+    fieldSetContext.blur.mockClear();
+    fieldSetContext.ignore.mockClear();
+    fieldSetContext.removeIgnore.mockClear();
+    inlineState.selected.value = [];
+});
+
+scopedIt("creates inline object on mount when empty", async () => {
+    mount(FieldSetSingularStackedInline, { props: { autoCreateWhenEmpty: true } });
+    await vue.nextTick();
+    expect(fieldSetContext.blur).toHaveBeenCalled();
+    expect(fieldState.value).toEqual(emptyObject);
+});
+
+scopedIt("clearField clears value and blurs", () => {
+    const wrapper = mount(FieldSetSingularStackedInline);
+    fieldState.value = { id: 1 };
+    wrapper.vm.clearField();
+    expect(fieldSetContext.blur).toHaveBeenCalled();
+    expect(fieldState.value).toBe(null);
+});
+
+scopedIt("handleDeleteSingle toggles ignore", () => {
+    const wrapper = mount(FieldSetSingularStackedInline);
+    wrapper.vm.handleDeleteSingle([2]);
+    expect(fieldSetContext.ignore).toHaveBeenCalled();
+    expect(inlineState.selected.value).toEqual([2]);
+    wrapper.vm.handleDeleteSingle([]);
+    expect(fieldSetContext.removeIgnore).toHaveBeenCalled();
+});
+
+scopedIt("warns when value is not object", async () => {
+    fieldState.value = 5;
+    mount(FieldSetSingularStackedInline);
+    await vue.nextTick();
+    expect(logger.warn).toHaveBeenCalled();
+    logger.warn.mockClear();
+    fieldState.value = { id: 3 };
+    await vue.nextTick();
+    expect(logger.warn).not.toHaveBeenCalled();
+});
