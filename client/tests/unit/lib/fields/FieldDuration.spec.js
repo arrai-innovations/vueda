@@ -63,3 +63,16 @@ scopedIt("warns when value becomes invalid", async () => {
     expect(logger.warn).toHaveBeenCalledTimes(1);
     expect(logger.warn).toHaveBeenCalledWith("Expected value to be a plain object for duration, got:", [1]);
 });
+
+scopedIt("does not warn for null or undefined values", async () => {
+    const state = vue.reactive({ value: null });
+    useFieldMock.mockReturnValue({ state });
+    mount(FieldDuration, { props: { name: "duration" } });
+    await vue.nextTick();
+    expect(logger.warn).not.toHaveBeenCalled();
+
+    logger.warn.mockClear();
+    state.value = undefined;
+    await vue.nextTick();
+    expect(logger.warn).not.toHaveBeenCalled();
+});
