@@ -310,6 +310,54 @@ describe("lib/use/useFormModel.js", () => {
         // default widgetProps should include the collapsed choices array
         expect(state.widgetProps.status.options).toEqual(props.fieldDetails.status.choices);
     });
+
+    scopedIt("maps GeneratedField using typeDb mapping", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+        const { defaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+
+        const props = makeBaseProps({
+            fields: ["amount"],
+            fieldDetails: {
+                amount: {
+                    name: "amount",
+                    typeSerializer: "ModelField",
+                    typeModel: "GeneratedField",
+                    typeDb: "FloatField",
+                    many: false,
+                    readOnly: false,
+                },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.fieldComponents.amount).toBe(defaultFieldMappings.ModelField.GeneratedField.FloatField.component);
+    });
+
+    scopedIt("uses choice field component when choices provided", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+        const { choiceFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+
+        const props = makeBaseProps({
+            fields: ["kind"],
+            fieldDetails: {
+                kind: {
+                    name: "kind",
+                    typeSerializer: "ChoiceField",
+                    typeModel: "CharField",
+                    choices: [{ value: "A", display_name: "Alpha" }],
+                    many: false,
+                    readOnly: false,
+                },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.fieldComponents.kind).toBe(choiceFieldMappings.ChoiceField.CharField.component);
+    });
     scopedIt("uses many field / widget mappings when many=true", async () => {
         const { useFormModel } = await import("@vueda/use/useFormModel.js");
 
