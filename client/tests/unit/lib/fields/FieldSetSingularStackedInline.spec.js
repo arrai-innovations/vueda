@@ -123,3 +123,22 @@ scopedIt("warns when value is not object", async () => {
     await vue.nextTick();
     expect(logger.warn).not.toHaveBeenCalled();
 });
+
+scopedIt("does not auto create when autoCreateWhenEmpty is false", async () => {
+    mount(FieldSetSingularStackedInline, { props: { autoCreateWhenEmpty: false } });
+    await vue.nextTick();
+    expect(fieldSetContext.blur).not.toHaveBeenCalled();
+    expect(fieldState.value).toBe(null);
+});
+
+scopedIt("toggleVisibility called when slot button clicked", async () => {
+    inlineState.hidable = true;
+    const wrapper = mount(FieldSetSingularStackedInline, {
+        slots: {
+            "toggle-button": (slotProps) => h("button", { "data-qa": "toggle-slot", ...slotProps }),
+        },
+    });
+    await vue.nextTick();
+    await wrapper.get('[data-qa="toggle-slot"]').trigger("click");
+    expect(toggleVisibility).toHaveBeenCalled();
+});
