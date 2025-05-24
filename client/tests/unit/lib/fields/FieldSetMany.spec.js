@@ -38,6 +38,18 @@ const ManyComponentStub = defineComponent({
     },
 });
 
+const SlotButton = defineComponent({
+    name: "SlotButton",
+    emits: ["click"],
+    setup(_, { emit }) {
+        return () =>
+            h("button", {
+                "data-qa": "slot-destroy",
+                onClick: () => emit("click"),
+            });
+    },
+});
+
 const warnSpy = vi.fn();
 const useFieldMock = vi.fn();
 const themeFn = vi.fn((cls) => `t-${cls}`);
@@ -102,6 +114,35 @@ describe("lib/fields/FieldSetMany.vue", () => {
         const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(2);
         await wrapper.find('[data-icon="pi pi-times"]').trigger("click");
+        await vue.nextTick();
+        expect(fieldContext.state.value).toEqual([1]);
+        expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(1);
+    });
+
+    scopedIt("handles undefined value for add and destroy", async () => {
+        const fieldContext = { state: reactive({ name: "nums", label: "Nums", value: undefined }) };
+        useFieldMock.mockReturnValue(fieldContext);
+        const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
+
+        await wrapper.find('[data-label="add"]').trigger("click");
+        await vue.nextTick();
+        expect(fieldContext.state.value).toEqual([undefined]);
+
+        fieldContext.state.value = undefined;
+        wrapper.vm.onDestroy(0);
+        await vue.nextTick();
+        expect(fieldContext.state.value).toEqual([]);
+    });
+
+    scopedIt("destroys items when slot clicked", async () => {
+        const fieldContext = { state: reactive({ name: "nums", label: "Nums", value: [1, 2] }) };
+        useFieldMock.mockReturnValue(fieldContext);
+        const wrapper = mount(FieldSetMany, {
+            props: { name: "nums", manyComponent: ManyComponentStub },
+            slots: { destroy: ({ onClick }) => h(SlotButton, { onClick }) },
+        });
+        expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(2);
+        await wrapper.getComponent(SlotButton).trigger("click");
         await vue.nextTick();
         expect(fieldContext.state.value).toEqual([1]);
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(1);
