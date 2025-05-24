@@ -1,7 +1,7 @@
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { mergeTheme, useTheme } from "@vueda/use/useTheme.js";
+import { mergeTheme } from "@vueda/use/useTheme.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -77,9 +77,6 @@ export const getFormChoresSlotNames = (formModelName) => {
  *     field?: object,
  *     fieldName?: string
  * ) => import('vue').ComputedRef<object>} setWidgetComponentProps - Set the widget props for a field.
- * @property {(
- *     props: import('vue').UnwrapNestedRefs<{[key: string]: any, themeOverride: import('@vueda/use/useTheme.js').ThemeObject|undefined}>
- * ) => import('vue').ComputedRef<import('vue').UnwrapNestedRefs<object>>} makeFormModelTheme - Make the field-specific form model theme.
  */
 
 /**
@@ -337,14 +334,6 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         return isEmpty(themeOverride) ? undefined : themeOverride;
     }
 
-    function makeFormModelTheme(props) {
-        let theme = undefined;
-        es.run(() => {
-            theme = useTheme("FormModel", props);
-        });
-        return theme;
-    }
-
     return {
         assignStateObjectsIfChanged,
         setFieldComponent,
@@ -352,6 +341,5 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         setUpWatch,
         setWidgetComponent,
         setWidgetComponentProps,
-        makeFormModelTheme,
     };
 }
