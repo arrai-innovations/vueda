@@ -35,8 +35,8 @@ watch(
             logger.warn(`Expected value to be an array of objects, got:`, value);
             return;
         }
-        const invalidElement = value.find((item) => typeof item !== "object" || item === null || Array.isArray(item));
-        if (invalidElement) {
+        const invalidElement = value.find((item) => item === null || Array.isArray(item) || typeof item !== "object");
+        if (invalidElement !== undefined) {
             logger.warn(`Array contains non-object elements:`, invalidElement);
         }
     },
@@ -113,7 +113,7 @@ watch(
                         :field-name="fieldSetContext.state.name"
                         :field-set-context-state="fieldSetInline.state"
                         :index="index"
-                        :pk="value.id"
+                        :pk="value?.id"
                         :read-only="props.readOnly"
                         @destroy-row="fieldSetInline.removeObject(index)"
                         @update:selected="fieldSetInline.handleSelected($event, index)"
