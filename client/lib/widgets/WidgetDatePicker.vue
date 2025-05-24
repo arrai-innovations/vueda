@@ -250,10 +250,10 @@ const onBlur = (e) => {
     });
 };
 const minDateAsDate = computed(() => {
-    return props.minDate ? DateTime.fromFormat(props.minDate, "yyyy-MM-dd").toJSDate() : undefined;
+    return props.minDate ? DateTime.fromFormat(props.minDate, "yyyy-MM-dd", { zone: "utc" }).toJSDate() : undefined;
 });
 const maxDateAsDate = computed(() => {
-    return props.maxDate ? DateTime.fromFormat(props.maxDate, "yyyy-MM-dd").toJSDate() : undefined;
+    return props.maxDate ? DateTime.fromFormat(props.maxDate, "yyyy-MM-dd", { zone: "utc" }).toJSDate() : undefined;
 });
 </script>
 <template>
