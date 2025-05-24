@@ -859,4 +859,100 @@ describe("lib/use/useFormModel.js", () => {
 
         expect(state.widgetComponents.notes).toBe(availableWidgets.WidgetTextarea);
     });
+    scopedIt("buildForm setWidgetComponentProps handles choice props for base field", async () => {
+        const { buildForm } = await import("@vueda/utils/buildForm.js");
+        const vue = await import("vue");
+
+        const props = vue.reactive({
+            app: "foo",
+            model: "bar",
+            view: "create",
+            widgetProps: {},
+            fieldProps: {},
+        });
+        const state = vue.reactive({ computedFields: [] });
+
+        const getWidgetProps = vi.fn(() => false);
+
+        const { setWidgetComponentProps } = buildForm(
+            props,
+            state,
+            () => {},
+            () => {},
+            () => {},
+            getWidgetProps,
+        );
+
+        const detail = {
+            choices: true,
+            appLabel: "baz",
+            model: "Thing",
+            readOnly: false,
+        };
+
+        const widget = setWidgetComponentProps("status", detail);
+
+        expect(widget.value).toEqual({
+            fieldApp: "foo",
+            fieldModel: "bar",
+            app: "baz",
+            model: "Thing",
+            fieldName: "status",
+            themeOverride: undefined,
+            readOnly: false,
+        });
+        expect(getWidgetProps).toHaveBeenCalledWith(detail);
+        expect(widget.value).not.toHaveProperty("options");
+    });
+
+    scopedIt("buildForm setWidgetComponentProps handles choice props for expanded field", async () => {
+        const { buildForm } = await import("@vueda/utils/buildForm.js");
+        const vue = await import("vue");
+
+        const props = vue.reactive({
+            app: "foo",
+            model: "bar",
+            view: "create",
+            widgetProps: {},
+            fieldProps: {},
+        });
+        const state = vue.reactive({ computedFields: [] });
+
+        const getWidgetProps = vi.fn(() => false);
+
+        const { setWidgetComponentProps } = buildForm(
+            props,
+            state,
+            () => {},
+            () => {},
+            () => {},
+            getWidgetProps,
+        );
+
+        const detail = {
+            choices: true,
+            appLabel: "baz",
+            model: "Thing",
+            readOnly: false,
+        };
+
+        const expandField = {
+            expandDetail: { app_label: "app", model: "Model" },
+            expandFieldName: "title",
+        };
+
+        const widget = setWidgetComponentProps("department__title", detail, true, expandField);
+
+        expect(widget.value).toEqual({
+            fieldApp: "app",
+            fieldModel: "Model",
+            app: "baz",
+            model: "Thing",
+            fieldName: "title",
+            themeOverride: undefined,
+            readOnly: false,
+        });
+        expect(getWidgetProps).toHaveBeenCalledWith(detail);
+        expect(widget.value).not.toHaveProperty("options");
+    });
 });
