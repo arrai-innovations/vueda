@@ -786,4 +786,26 @@ describe("lib/use/useFormModel.js", () => {
 
         expect(state.fieldComponents.title).toBe(availableFields.FieldSetTabularInline);
     });
+    scopedIt("defaults readOnly to false when field detail omits property", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+        const props = makeBaseProps({
+            fields: ["name"],
+            fieldDetails: {
+                name: {
+                    name: "name",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    many: false,
+                    // no readOnly property
+                },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.fieldProps.name.readOnly).toBe(false);
+        expect(state.widgetProps.name.readOnly).toBe(false);
+    });
 });
