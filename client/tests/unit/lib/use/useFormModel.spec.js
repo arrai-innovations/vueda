@@ -512,4 +512,54 @@ describe("lib/use/useFormModel.js", () => {
         expect(state.fieldComponents.summary).toBe(FieldCustom);
         expect(state.widgetComponents.summary).toBe(WidgetCustom);
     });
+
+    scopedIt("uses WidgetReadOnly when field.readOnly is true", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+        const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+        const props = makeBaseProps({
+            fields: ["title"],
+            fieldDetails: {
+                title: {
+                    name: "title",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    many: false,
+                    readOnly: true,
+                },
+            },
+            fieldProps: {
+                title: { readOnly: false },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.widgetComponents.title).toBe(availableWidgets.WidgetReadOnly);
+    });
+
+    scopedIt("uses manyWidget for choice fields when many=true", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+        const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+        const props = makeBaseProps({
+            fields: ["status"],
+            fieldDetails: {
+                status: {
+                    name: "status",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    many: true,
+                    choices: [{ value: "A", display_name: "Active" }],
+                    readOnly: false,
+                },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.widgetComponents.status).toBe(availableWidgets.WidgetMultiSelect);
+    });
 });
