@@ -110,6 +110,21 @@ describe("lib/router/guards.js", () => {
         expect(toast.add).not.toHaveBeenCalled();
     });
 
+    scopedIt("requireGroups denies unauthorized user", async () => {
+        userStore.loggedInUser = { groups: ["user"] };
+        const router = { resolve: vi.fn((r) => r) };
+        const toast = { add: vi.fn() };
+        const instance = { config: { globalProperties: { $toast: toast } } };
+        const to = { fullPath: "/path" };
+        const toastArgs = { summary: "Denied", detail: "Forbidden", severity: "error" };
+        const result = await guards.requireGroups(instance, toastArgs, ["admin"], { name: "denied" }, to, router, {});
+        expect(toast.add).toHaveBeenCalledWith({
+            ...toastArgs,
+            detail: `${toastArgs.detail} ${to.fullPath}`,
+        });
+        expect(result).toEqual({ name: "denied" });
+    });
+
     scopedIt("requireModelInfo resolves when action allowed", async () => {
         fetchWorkflowTransition.mockResolvedValue([{ name: "other" }]);
         fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }] });
