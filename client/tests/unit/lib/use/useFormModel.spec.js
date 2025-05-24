@@ -607,4 +607,48 @@ describe("lib/use/useFormModel.js", () => {
 
         expect(() => useFormModel(props)).toThrow("Unknown field bogus specified for foo.bar");
     });
+    scopedIt("ignores expand base names not present in fields", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+        const vue = await import("vue");
+        const useModelConfig = (await import("@vueda/use/useModelConfig")).useModelConfig;
+
+        const modelConfig = vue.readonly(vue.reactive({ config: {} }));
+        useModelConfig.mockReturnValue(modelConfig);
+
+        const props = vue.reactive({
+            app: "foo",
+            model: "bar",
+            view: "create",
+            fields: ["name"],
+            expand: ["department"],
+            fieldDetails: {
+                name: {
+                    name: "name",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    many: false,
+                    readOnly: false,
+                },
+            },
+            expandDetails: {
+                department: {
+                    f: {
+                        title: {
+                            name: "title",
+                            typeSerializer: "CharField",
+                            typeModel: "CharField",
+                            many: false,
+                            readOnly: false,
+                        },
+                    },
+                },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect([...state.baseFieldNames]).toEqual(["name"]);
+        expect([...state.expansionFieldNames]).toEqual([]);
+    });
 });
