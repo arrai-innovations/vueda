@@ -106,3 +106,49 @@ scopedIt("init calls fetchCurrentUser when not initialized", async () => {
     expect(store.initialized).toBe(true);
     expect(store.initializingPromise).toBeInstanceOf(Promise);
 });
+
+scopedIt("fetchCurrentUser stores error when fetch fails", async () => {
+    getUrl.mockReturnValue("/current/");
+    fetch.mockRejectedValue(new Error("boom"));
+    const store = storeUser();
+    await expect(store.fetchCurrentUser()).rejects.toThrow("Error requesting current user");
+    expect(store.error).toBeInstanceOf(Error);
+    expect(store.error.message).toMatch("Error requesting current user");
+    expect(store.errored).toBe(true);
+    expect(store.loading).toBe(false);
+    expect(store.loggedIn).toBe(false);
+    expect(store.loggedInUser).toEqual({});
+    expect(store.initialized).toBe(true);
+});
+
+scopedIt("fetchCurrentUser stores error on non-ok response", async () => {
+    const response = new Response("{}", { status: 500 });
+    getUrl.mockReturnValue("/current/");
+    getJsonOrText.mockResolvedValue({});
+    fetch.mockResolvedValue(response);
+    const store = storeUser();
+    await expect(store.fetchCurrentUser()).rejects.toThrow("Unexpected current user response");
+    expect(store.error).toBeInstanceOf(Error);
+    expect(store.error.message).toMatch("Unexpected current user response");
+    expect(store.errored).toBe(true);
+    expect(store.loading).toBe(false);
+    expect(store.loggedIn).toBe(false);
+    expect(store.loggedInUser).toEqual({});
+    expect(store.initialized).toBe(true);
+});
+
+scopedIt("fetchCurrentUser stores error on invalid data", async () => {
+    const response = new Response("bad", { status: 200 });
+    getUrl.mockReturnValue("/current/");
+    getJsonOrText.mockResolvedValue("notobject");
+    fetch.mockResolvedValue(response);
+    const store = storeUser();
+    await expect(store.fetchCurrentUser()).rejects.toThrow("Unexpected current user response");
+    expect(store.error).toBeInstanceOf(Error);
+    expect(store.error.message).toMatch("Unexpected current user response");
+    expect(store.errored).toBe(true);
+    expect(store.loading).toBe(false);
+    expect(store.loggedIn).toBe(false);
+    expect(store.loggedInUser).toEqual({});
+    expect(store.initialized).toBe(true);
+});
