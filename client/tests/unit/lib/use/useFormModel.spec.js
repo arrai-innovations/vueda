@@ -6,16 +6,26 @@ describe("lib/use/useFormModel.js", () => {
         vi.doMock("@vueda/use/useModelConfig", () => ({
             useModelConfig: vi.fn(() => ({ config: {} })),
         }));
-        vi.doMock("@vueda/use/useTheme.js", () => ({
-            mergeTheme: (...themes) => Object.assign({}, ...themes),
-            useTheme: vi.fn(() => ({})),
-        }));
     });
 
     afterEach(() => {
         vi.resetAllMocks();
         vi.resetModules();
     });
+
+    function makeBaseProps(overrides = {}) {
+        const vue = require("vue");
+        return vue.reactive({
+            app: "foo",
+            model: "bar",
+            view: "create",
+            fields: [],
+            expand: [],
+            fieldDetails: {},
+            expandDetails: {},
+            ...overrides,
+        });
+    }
 
     scopedIt("creates field state including expansion fields", async () => {
         const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -275,5 +285,183 @@ describe("lib/use/useFormModel.js", () => {
         });
 
         expect(() => useFormModel(props)).toThrow("Unknown field bogus specified for expand department on foo.bar");
+    });
+    scopedIt("maps ChoiceField -> choice widget and props.options", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+        const props = makeBaseProps({
+            fields: ["status"],
+            fieldDetails: {
+                status: {
+                    name: "status",
+                    typeSerializer: "ChoiceField",
+                    typeModel: "ChoiceField",
+                    many: false,
+                    choices: [{ value: "A", display_name: "Active" }],
+                    readOnly: false,
+                },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.widgetComponents.status).toBeTruthy();
+        // default widgetProps should include the collapsed choices array
+        expect(state.widgetProps.status.options).toEqual(props.fieldDetails.status.choices);
+    });
+    scopedIt("uses many field / widget mappings when many=true", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+        const props = makeBaseProps({
+            fields: ["tags"],
+            fieldDetails: {
+                tags: {
+                    name: "tags",
+                    typeSerializer: "TagField",
+                    typeModel: "TagField",
+                    many: true,
+                    readOnly: false,
+                },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.fieldComponents.tags).toBeTruthy();
+        expect(state.widgetComponents.tags).toBeTruthy();
+    });
+    scopedIt("prefers explicit prop readOnly over config defaults", async () => {
+        // mock model-config to declare name readOnly=true
+        vi.doMock("@vueda/use/useModelConfig", () => ({
+            useModelConfig: vi.fn(() => ({
+                config: {
+                    fieldProps: { code: { readOnly: true } },
+                },
+            })),
+        }));
+
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+        const props = makeBaseProps({
+            fields: ["code"],
+            fieldDetails: {
+                code: {
+                    name: "code",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    readOnly: false,
+                },
+            },
+            fieldProps: {
+                code: { readOnly: false }, // override
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.widgetProps.code.readOnly).toBe(false);
+    });
+    scopedIt("merges themeOverride from form + fieldProps", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+        const props = makeBaseProps({
+            fields: ["name"],
+            fieldDetails: {
+                name: {
+                    name: "name",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    readOnly: false,
+                },
+            },
+            themeOverride: {
+                slots: {
+                    control: {
+                        base: {
+                            class: "form-ctrl",
+                        },
+                    },
+                },
+            },
+            fieldProps: {
+                name: {
+                    themeOverride: {
+                        slots: {
+                            control: {
+                                base: {
+                                    style: "color:red;",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        const theme = state.fieldProps.name.themeOverride;
+        expect(theme.slots.control.base.class).toBe("form-ctrl");
+        expect(theme.slots.control.base.style).toBe("color:red;");
+    });
+    scopedIt("uses prop.fields when both prop and config supply fields", async () => {
+        vi.doMock("@vueda/use/useModelConfig", () => ({
+            useModelConfig: vi.fn(() => ({
+                config: { fields: ["name"] },
+            })),
+        }));
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+        const props = makeBaseProps({
+            fields: ["title"],
+            fieldDetails: {
+                title: {
+                    name: "title",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    readOnly: false,
+                },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect([...state.baseFieldNames]).toEqual(["title"]);
+    });
+    scopedIt("accepts factory functions for custom field + widget components", async () => {
+        // simple placeholder components
+        const FieldCustom = { name: "FieldCustom" };
+        const WidgetCustom = { name: "WidgetCustom" };
+
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+        const props = makeBaseProps({
+            fields: ["summary"],
+            fieldDetails: {
+                summary: {
+                    name: "summary",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    readOnly: false,
+                },
+            },
+            fieldComponents: {
+                summary: () => FieldCustom,
+            },
+            widgetComponents: {
+                summary: () => WidgetCustom,
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.fieldComponents.summary).toBe(FieldCustom);
+        expect(state.widgetComponents.summary).toBe(WidgetCustom);
     });
 });
