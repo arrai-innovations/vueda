@@ -25,16 +25,6 @@ const props = defineProps({
         description: "The step in seconds.",
     },
 });
-const getDateFromString = (timeString) => {
-    if (!timeString || typeof timeString !== "string") {
-        return null;
-    }
-    const parsed = DateTime.fromFormat(timeString, "HH:mm:ss");
-    if (parsed.isValid) {
-        return parsed.toJSDate();
-    }
-    return null;
-};
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
 const logger = useDevLogger({ fieldContext });

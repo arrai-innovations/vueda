@@ -86,4 +86,26 @@ describe("lib/fields/FieldTime.vue", () => {
         expect(warnSpy).toHaveBeenCalledWith("Expected value to be a string (HH:mm:ss), got:", value);
         expect(context.deleteError).toHaveBeenCalledWith("minValue");
     });
+
+    scopedIt("ignores invalid maxValue types", async () => {
+        const { context } = await mountField({ maxValue: 5 }, "12:00:00");
+        expect(context.updateError).not.toHaveBeenCalled();
+        expect(context.deleteError).toHaveBeenCalledWith("maxValue");
+    });
+
+    scopedIt("valueAsTime returns null for falsy value", async () => {
+        const { context } = await mountField({ step: 60 }, "");
+        expect(context.updateError).not.toHaveBeenCalled();
+        expect(context.deleteError).toHaveBeenCalledWith("step");
+    });
+
+    scopedIt("does not warn when value is null or undefined", async () => {
+        await mountField({}, null);
+        expect(warnSpy).not.toHaveBeenCalled();
+        warnSpy.mockClear();
+        const { context } = await mountField();
+        context.state.value = undefined;
+        await flushPromises();
+        expect(warnSpy).not.toHaveBeenCalled();
+    });
 });
