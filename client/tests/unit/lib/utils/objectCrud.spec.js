@@ -4,11 +4,12 @@ const getListUrl = vi.fn();
 const getJsonOrText = vi.fn();
 const getCSRFValue = vi.fn(() => "csrftoken");
 const flattenPaths = vi.fn(() => []);
+const setObjectCrud = vi.fn();
 
 vi.mock("@arrai-innovations/reactive-helpers", () => ({
     cancellableFetch,
     deepUnref: (v) => v,
-    setObjectCrud: vi.fn(),
+    setObjectCrud,
     flattenPaths,
 }));
 
@@ -367,5 +368,26 @@ describe("lib/utils/objectCrud.js", () => {
         expect(abortSpy).toHaveBeenCalledTimes(1);
         await promise;
         global.AbortController = originalAbort;
+    });
+
+    it("setupDefaultObjectCrud registers crud functions", () => {
+        const {
+            defaultObjectRetrieve,
+            defaultObjectCreate,
+            defaultObjectUpdate,
+            defaultObjectPatch,
+            defaultObjectDelete,
+            setupDefaultObjectCrud,
+        } = objectCrud;
+
+        setupDefaultObjectCrud();
+
+        expect(setObjectCrud).toHaveBeenCalledWith({
+            retrieve: defaultObjectRetrieve,
+            create: defaultObjectCreate,
+            update: defaultObjectUpdate,
+            patch: defaultObjectPatch,
+            delete: defaultObjectDelete,
+        });
     });
 });
