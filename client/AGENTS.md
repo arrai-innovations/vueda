@@ -105,3 +105,13 @@ All notable changes are recorded in `CHANGELOG.md`. For each release tag, use th
 ```
 
 When making changes, suggest Changelog entries if they impact consumers or public components.
+
+---
+
+## Test Structure & Isolation
+
+- Use `scopedIt(...)` from `@tests/unit/utils.js` in place of `it(...)` for all tests involving Vue components, reactivity, lifecycle hooks, or injections. This runs tests in a fresh `effectScope()` to prevent state leakage.
+
+- Wrap all test files in a root `describe("<source file path>", ...)` block (e.g. `describe("lib/components/ActionForm.vue", ...)`) to clearly associate tests with their source. This improves readability, traceability in CI, and allows behavioral grouping inside without losing context.
+
+- Group related tests with `describe(...)` blocks that reflect **behavioral responsibilities**, not implementation details (e.g. `"Confirm flow"` or `"Rendering with slots"`).
