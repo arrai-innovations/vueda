@@ -121,7 +121,7 @@ export function defaultObjectRetrieve({ target, pk, params }) {
  * @params args.params {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
-export async function defaultObjectCreate({ target, object, params }) {
+export function defaultObjectCreate({ target, object, params }) {
     const { app, model, action, pk } = target;
     const query = params ? makeSearchParamsString(params) : "";
     const controller = new AbortController();

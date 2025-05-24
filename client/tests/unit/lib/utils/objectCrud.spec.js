@@ -6,12 +6,17 @@ const getCSRFValue = vi.fn(() => "csrftoken");
 const flattenPaths = vi.fn(() => []);
 const setObjectCrud = vi.fn();
 
-vi.mock("@arrai-innovations/reactive-helpers", () => ({
-    cancellableFetch,
-    deepUnref: (v) => v,
-    setObjectCrud,
-    flattenPaths,
-}));
+vi.mock("@arrai-innovations/reactive-helpers", async () => {
+    const actual = await vi.importActual("@arrai-innovations/reactive-helpers");
+    return {
+        __esModule: true,
+        ...actual,
+        cancellableFetch,
+        deepUnref: (v) => v,
+        setObjectCrud,
+        flattenPaths,
+    };
+});
 
 vi.mock("@vueda/utils/urls.js", () => ({
     getDetailUrl,
@@ -204,6 +209,71 @@ describe("lib/utils/objectCrud.js", () => {
         await expect(
             objectCrud.defaultObjectPatch({ target: { app: "a", model: "b" }, pk: "2", partialObject: {} }),
         ).rejects.toBeInstanceOf(errors.FetchError);
+    });
+
+    it("defaultObjectCreate passes params to makeSearchParamsString", async () => {
+        getDetailUrl.mockReturnValue("detail-url");
+        const params = {
+            [constants.FIELDS_PARAM]: ["id"],
+            [constants.EXPAND_PARAM]: ["owner"],
+        };
+        const response = new Response(JSON.stringify({ id: 1 }), { status: 201 });
+        getJsonOrText.mockResolvedValue({ id: 1 });
+        global.fetch = vi.fn(() => Promise.resolve(response));
+
+        const result = await objectCrud.defaultObjectCreate({
+            target: { app: "blog", model: "article", pk: "2" },
+            object: { title: "t" },
+            params,
+        });
+
+        expect(getDetailUrl).toHaveBeenCalledWith({
+            app: "blog",
+            model: "article",
+            pk: "2",
+            action: undefined,
+            query: "?f=id&e=owner",
+        });
+        expect(result).toEqual({ id: 1 });
+    });
+
+    it("defaultObjectCreate throws FormValidationError on 400", async () => {
+        getListUrl.mockReturnValue("list-url");
+        const response = new Response(JSON.stringify({ field: "error" }), { status: 400 });
+        getJsonOrText.mockResolvedValue({ field: "error" });
+        global.fetch = vi.fn(() => Promise.resolve(response));
+
+        await expect(
+            objectCrud.defaultObjectCreate({ target: { app: "a", model: "b" }, object: {} }),
+        ).rejects.toBeInstanceOf(errors.FormValidationError);
+    });
+
+    it("defaultObjectCreate throws FetchError on unexpected status", async () => {
+        getListUrl.mockReturnValue("list-url");
+        const response = new Response(JSON.stringify({}), { status: 500 });
+        getJsonOrText.mockResolvedValue({});
+        global.fetch = vi.fn(() => Promise.resolve(response));
+
+        await expect(
+            objectCrud.defaultObjectCreate({ target: { app: "a", model: "b" }, object: {} }),
+        ).rejects.toBeInstanceOf(errors.FetchError);
+    });
+
+    it("defaultObjectCreate.cancel aborts the request", async () => {
+        const abortSpy = vi.fn();
+        const controller = { signal: {}, abort: abortSpy };
+        const OriginalAbortController = global.AbortController;
+        global.AbortController = vi.fn(() => controller);
+        getListUrl.mockReturnValue("list-url");
+        const response = new Response(JSON.stringify({ id: 3 }), { status: 201 });
+        getJsonOrText.mockResolvedValue({ id: 3 });
+        global.fetch = vi.fn(() => Promise.resolve(response));
+
+        const promise = objectCrud.defaultObjectCreate({ target: { app: "a", model: "b" }, object: {} });
+        promise.cancel();
+        expect(abortSpy).toHaveBeenCalledTimes(1);
+        await promise;
+        global.AbortController = OriginalAbortController;
     });
 
     it("defaultObjectDelete throws FetchError on failure", async () => {
