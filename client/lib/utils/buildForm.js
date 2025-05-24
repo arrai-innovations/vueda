@@ -252,7 +252,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
             widget = computed(() => {
                 const fieldLevelThemeOverride = getFieldLevelThemeOverride(fieldName, true);
                 const baseProps = {
-                    ...(getWidgetProps(detailObject) || {}),
+                    ...getWidgetProps(detailObject),
                     ...(deepUnref(modelConfig.config?.widgetProps?.[fieldName]) || {}),
                     ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
                 };
