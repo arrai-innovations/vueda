@@ -134,4 +134,17 @@ describe("lib/router/guards.js", () => {
         expect(toast.add).toHaveBeenCalled();
         expect(result).toEqual({ name: "nf" });
     });
+
+    scopedIt("requireModelInfo redirects when action not found", async () => {
+        fetchWorkflowTransition.mockResolvedValue([]);
+        fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }] });
+        getConfig.mockResolvedValue({ routerActions: ["list"] });
+        const router = { resolve: vi.fn((r) => r) };
+        const toast = { add: vi.fn() };
+        const instance = { config: { globalProperties: { $toast: toast } } };
+        const to = { params: { app: "a", model: "b", action: "edit" }, fullPath: "/a/b/edit" };
+        const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
+        expect(toast.add).toHaveBeenCalledWith({ summary: "Action Not Found", severity: "error" });
+        expect(result).toEqual({ name: "nf" });
+    });
 });
