@@ -808,4 +808,55 @@ describe("lib/use/useFormModel.js", () => {
         expect(state.fieldProps.name.readOnly).toBe(false);
         expect(state.widgetProps.name.readOnly).toBe(false);
     });
+    scopedIt("returns null widget for base expanded fields", async () => {
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+        const props = makeBaseProps({
+            fields: ["dep"],
+            expand: ["dep"],
+            fieldDetails: {
+                dep: {
+                    name: "dep",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    many: false,
+                    readOnly: false,
+                },
+            },
+            expandDetails: {
+                dep: { f: {} },
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.widgetComponents.dep).toBe(null);
+    });
+
+    scopedIt("resolves widget names from props", async () => {
+        const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+        const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+        const props = makeBaseProps({
+            fields: ["notes"],
+            fieldDetails: {
+                notes: {
+                    name: "notes",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    many: false,
+                    readOnly: false,
+                },
+            },
+            widgetComponents: {
+                notes: "WidgetTextarea",
+            },
+        });
+
+        const state = useFormModel(props);
+        await flushPromises();
+
+        expect(state.widgetComponents.notes).toBe(availableWidgets.WidgetTextarea);
+    });
 });
