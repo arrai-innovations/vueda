@@ -40,6 +40,62 @@ describe("lib/store/storeWorkflow.js", () => {
         expect(mockedFetchHelper).not.toHaveBeenCalled();
     });
 
+    scopedIt("fetchWorkflowTransition rejects when app or model missing", async () => {
+        const store = storeWorkflow();
+
+        await expect(store.fetchWorkflowTransition("", null)).rejects.toThrow(
+            "storeWorkflow.fetchWorkflowTransition: app and model must be provided",
+        );
+    });
+
+    scopedIt("fetchWorkflowTransition resolves empty array when workflow disabled", async () => {
+        storeWorkflowModule.setUsingVuedaWorkFlow(false);
+        const store = storeWorkflow();
+
+        const result = await store.fetchWorkflowTransition("app", "model");
+
+        expect(result).toEqual([]);
+        expect(mockedFetchHelper).not.toHaveBeenCalled();
+    });
+
+    scopedIt("fetchWorkflowTransition stores empty array when no results", async () => {
+        mockedFetchHelper.mockResolvedValue({ results: [] });
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+
+        const result = await store.fetchWorkflowTransition("app", "model");
+
+        expect(result).toEqual([]);
+        expect(store.workflowTransitions[key]).toEqual([]);
+    });
+
+    scopedIt("fetchWorkflowTransition ignores marker responses", async () => {
+        mockedFetchHelper.mockResolvedValue("marker");
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+
+        const result = await store.fetchWorkflowTransition("app", "model");
+
+        expect(result).toBeUndefined();
+        expect(store.workflowTransitions[key]).toBeUndefined();
+        expect(store.promises.workflowTransitions[key]).toBeUndefined();
+    });
+
+    scopedIt("caches errors for fetchWorkflowTransition", async () => {
+        const error = new Error("boom");
+        mockedFetchHelper.mockRejectedValue(error);
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+
+        await expect(store.fetchWorkflowTransition("app", "model")).rejects.toBe(error);
+        expect(store.errors.workflowTransitions[key]).toBe(error);
+        expect(store.promises.workflowTransitions[key]).toBeUndefined();
+
+        mockedFetchHelper.mockClear();
+        await expect(store.fetchWorkflowTransition("app", "model")).rejects.toBe(error);
+        expect(mockedFetchHelper).not.toHaveBeenCalled();
+    });
+
     scopedIt("fetchModelStates stores and caches states", async () => {
         const states = [{ code: "init", name: "Init" }];
         mockedFetchHelper.mockResolvedValue(states);
