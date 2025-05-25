@@ -2,6 +2,18 @@
 
 _Actions potentially required by implementers are marked with italics._
 
+## v2.0.0-beta.1 (2025-05-24)
+
+### Breaking Changes
+
+- **ActionForm**:
+    - The `handleActionCompletion` prop has been removed. Redirection after action completion now uses the model config's `defaultView`, which prefers `update`, `read`, then `list` in that order.
+      _If your use case required a custom post-action redirect, update the model config accordingly._
+
+### Features
+
+### Fixes
+
 ## v2.0.0-alpha.14 (2025-05-02)
 
 ### Fixes

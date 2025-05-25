@@ -3,7 +3,6 @@ import { loadingCombine } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import FieldString from "@vueda/fields/FieldString.vue";
-import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
 import { defaultOnSubmissionError } from "@vueda/use/useObjectForm.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -11,11 +10,10 @@ import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
-import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
-import isObject from "lodash-es/isObject.js";
 import startCase from "lodash-es/startCase.js";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
@@ -43,10 +41,6 @@ const props = defineProps({
         default: undefined,
     },
     runAction: {
-        type: Function,
-        default: undefined,
-    },
-    handleActionCompletion: {
         type: Function,
         default: undefined,
     },
@@ -109,55 +103,37 @@ const bulk = computed(() => unref(pks)?.length > 1);
 
 const defaultRunAction = (action) => {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
-    let method = props.requestMethod;
-    if (action === "destroy") {
-        method = "DELETE";
-        action = undefined;
-    }
-    const controller = new AbortController();
-    let body = props.submitFormValues ? props.submitFormValues(formContext.state.submittingValues) : undefined;
+    const isDestroy = action === "destroy";
+    return fetchHelper(
+        unref(bulk)
+            ? getListUrl({ app: props.app, model: props.model, action })
+            : getDetailUrl({ app: props.app, model: props.model, pk: pks.value[0], action }),
+        {
+            method: isDestroy ? "DELETE" : props.requestMethod,
+            headers: {
+                "X-CSRFToken": getCSRFValue(),
+                "Content-Type": "application/json",
+            },
+            body: (() => {
+                const formData = props.submitFormValues
+                    ? props.submitFormValues(formContext.state.submittingValues)
+                    : undefined;
 
-    if (unref(bulk)) {
-        body = { pks: unref(pks), ...(body || {}) };
-    }
-    const url = unref(bulk)
-        ? getListUrl({ app: props.app, model: props.model, action })
-        : getDetailUrl({
-              app: props.app,
-              model: props.model,
-              pk: pks.value[0],
-              action,
-          });
-    /** @type {Promise<void> & { cancel: () => Promise<void> }} */
-    const returnPromise = fetch(url, {
-        method,
-        headers: {
-            "X-CSRFToken": getCSRFValue(),
-            "Content-Type": "application/json",
+                if (unref(bulk)) {
+                    return JSON.stringify({ pks: unref(pks), ...(formData || {}) });
+                }
+
+                return formData ? JSON.stringify(formData) : undefined;
+            })(),
         },
-        credentials: "include",
-        body: body ? JSON.stringify(body) : undefined,
-        signal: controller.signal,
-    }).then(async (response) => {
-        const responseData = await getJsonOrText(response);
-        if (!isObject(responseData)) {
-            throw new FetchError("Failed to execute action", response, responseData);
-        }
-        if (response.status === 200) {
-            return responseData;
-        }
-        if (response.status === 400) {
-            throw new FormValidationError(responseData, response);
-        }
-        throw new FetchError("Failed to create object", response, responseData);
-    });
-
-    returnPromise.cancel = async () => {
-        controller.abort();
-        await returnPromise.catch(() => {});
-    };
-
-    return returnPromise;
+        "Failed to execute action",
+        (response, data) => {
+            if (response.status === 400) {
+                return new FormValidationError(data, response);
+            }
+            return new FetchError("Failed to execute action", response, data);
+        },
+    );
 };
 const runAction = computed(() => props.runAction || defaultRunAction);
 const formContext = inject(FormContextSymbol, null);
@@ -180,11 +156,7 @@ const handleConfirm = async () => {
             summary: summary,
             life: 15000,
         });
-        if (props.handleActionCompletion) {
-            await props.handleActionCompletion();
-        } else {
-            await goBack();
-        }
+        await goBack();
     } catch (error) {
         const handled = await defaultOnSubmissionError({ error, formContext, toast });
         if (!handled) {
@@ -235,19 +207,7 @@ const handleCancelClick = async (e) => {
         e.preventDefault();
         e.stopPropagation();
     }
-    // router.back() is not great, as the url could be hit from an email or otherwise off-site.
-    if (unref(bulk)) {
-        // if we are bulk, let's redirect back to the list view for this model.
-        await router.push(
-            await getCRUDForTo({
-                app: props.app,
-                model: props.model,
-                view: "list",
-            }),
-        );
-    } else {
-        await goBack();
-    }
+    await goBack();
 };
 const route = useRoute();
 const goBack = async () => {
@@ -329,8 +289,14 @@ const goBack = async () => {
                 >
                     <Button :loading="combinedLoading" @click="handleConfirm">Yes, continue</Button>
                 </slot>
-                <slot label="Cancel, go back" name="cancel-button" verb="cancel" @click="handleCancelClick">
-                    <Button label="Cancel, go back" @click="handleCancelClick" />
+                <slot
+                    label="Cancel, go back"
+                    :loading="combinedLoading"
+                    name="cancel-button"
+                    verb="cancel"
+                    @click="handleCancelClick"
+                >
+                    <Button label="Cancel, go back" :loading="combinedLoading" @click="handleCancelClick" />
                 </slot>
             </div>
         </div>
