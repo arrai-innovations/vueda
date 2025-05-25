@@ -2,7 +2,7 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.0-beta.1 (2025-05-24)
+## v2.0.0-beta.1 (unreleased)
 
 ### Breaking Changes
 
