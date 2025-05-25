@@ -2,12 +2,30 @@ import { scopedIt } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
 
 let retrieveSpy;
+let listSpy;
+let cancelRetrieveSpy;
+let cancelListSpy;
+let retrieveDeferred;
+let listDeferred;
 let useLookupContext;
+
+const makeDeferred = () => {
+    let resolve;
+    const promise = new Promise((r) => {
+        resolve = r;
+    });
+    return { promise, resolve };
+};
 
 beforeEach(async () => {
     vi.useFakeTimers();
     vi.resetModules();
     vi.clearAllMocks();
+
+    retrieveDeferred = null;
+    listDeferred = null;
+    cancelRetrieveSpy = vi.fn();
+    cancelListSpy = vi.fn();
 
     vi.doMock("@vueda/stores/storeModelConfig.js", () => ({
         storeModelConfig: () => ({
@@ -36,7 +54,8 @@ beforeEach(async () => {
                 });
                 retrieveSpy = vi.fn(() => {
                     state.object = { id: props.pk, val: "ok" };
-                    return actual.CancellablePromise.resolve(true);
+                    const inner = retrieveDeferred ? retrieveDeferred.promise : Promise.resolve(true);
+                    return actual.CancellablePromise(inner, cancelRetrieveSpy);
                 });
                 return {
                     state,
@@ -44,7 +63,27 @@ beforeEach(async () => {
                     clear: vi.fn(),
                 };
             },
-            useList: vi.fn(),
+            useList: vi.fn(({ props }) => {
+                const state = vue.reactive({
+                    crud: {
+                        args: {
+                            app: props.target.app,
+                            model: props.target.model,
+                            pkKey: props.pkKey,
+                        },
+                    },
+                    params: props.params,
+                    objects: {},
+                });
+                listSpy = vi.fn(() => {
+                    for (const pk of props.params.id) {
+                        state.objects[pk] = { id: pk, val: "ok" };
+                    }
+                    const inner = listDeferred ? listDeferred.promise : Promise.resolve(true);
+                    return actual.CancellablePromise(inner, cancelListSpy);
+                });
+                return { state, list: listSpy, clearList: vi.fn() };
+            }),
         };
     });
 
@@ -144,6 +183,120 @@ describe("lib/use/useLookupContext.js", () => {
             await flushPromises();
             await p2;
             expect(retrieveSpy).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe("deduplicates concurrent requests", () => {
+        scopedIt("second caller during in-flight shares the same promise", async () => {
+            retrieveDeferred = makeDeferred();
+            const lookup = useLookupContext();
+            const p1 = lookup.requestObject("app", "model", "1", [], []);
+            const p2 = lookup.requestObject("app", "model", "1", [], []);
+            await vi.advanceTimersByTimeAsync(300);
+            await flushPromises();
+            expect(listSpy).toHaveBeenCalledTimes(1);
+            retrieveDeferred.resolve(true);
+            await flushPromises();
+            await expect(p1).resolves.toEqual({ id: "1", val: "ok" });
+            await expect(p2).resolves.toEqual({ id: "1", val: "ok" });
+        });
+
+        scopedIt("all callers receive the same resolved value", async () => {
+            retrieveDeferred = makeDeferred();
+            const lookup = useLookupContext();
+            const p1 = lookup.requestObject("app", "model", "1", [], []);
+            const p2 = lookup.requestObject("app", "model", "1", [], []);
+            await vi.advanceTimersByTimeAsync(250);
+            retrieveDeferred.resolve(true);
+            await flushPromises();
+            const v1 = await p1;
+            const v2 = await p2;
+            expect(v1).toBe(v2);
+        });
+
+        scopedIt("cancelling *one* consumer keeps the request alive for the rest", async () => {
+            retrieveDeferred = makeDeferred();
+            const lookup = useLookupContext();
+            const p1 = lookup.requestObject("app", "model", "1", [], []);
+            const p2 = lookup.requestObject("app", "model", "1", [], []);
+            await vi.advanceTimersByTimeAsync(250);
+            await p1.cancel();
+            expect(cancelRetrieveSpy).not.toHaveBeenCalled();
+            retrieveDeferred.resolve(true);
+            await flushPromises();
+            await expect(p2).resolves.toEqual({ id: "1", val: "ok" });
+        });
+
+        scopedIt("cancelling the **last** consumer aborts the underlying retrieve", async () => {
+            retrieveDeferred = makeDeferred();
+            const lookup = useLookupContext();
+            const p = lookup.requestObject("app", "model", "1", [], []);
+            await vi.advanceTimersByTimeAsync(250);
+            await p.cancel();
+            expect(cancelRetrieveSpy).toHaveBeenCalled();
+            retrieveDeferred.resolve(true);
+        });
+    });
+
+    describe("request batching window", () => {
+        scopedIt("multiple PKs queued inside 250 ms trigger a *single* list() call", async () => {
+            const lookup = useLookupContext();
+            const p1 = lookup.requestObject("app", "model", "1", [], []);
+            const p2 = lookup.requestObject("app", "model", "2", [], []);
+            await vi.advanceTimersByTimeAsync(250);
+            expect(listSpy).toHaveBeenCalledTimes(1);
+            await flushPromises();
+            await expect(p1).resolves.toEqual({ id: "1", val: "ok" });
+            await expect(p2).resolves.toEqual({ id: "2", val: "ok" });
+        });
+
+        scopedIt("requests separated by > 250 ms but < maxWait still batch", async () => {
+            const lookup = useLookupContext();
+            const p1 = lookup.requestObject("app", "model", "1", [], []);
+            await vi.advanceTimersByTimeAsync(200);
+            const p2 = lookup.requestObject("app", "model", "2", [], []);
+            await vi.advanceTimersByTimeAsync(200);
+            const p3 = lookup.requestObject("app", "model", "3", [], []);
+            await vi.advanceTimersByTimeAsync(250);
+            expect(listSpy).toHaveBeenCalledTimes(1);
+            await flushPromises();
+            await expect(p1).resolves.toEqual({ id: "1", val: "ok" });
+            await expect(p2).resolves.toEqual({ id: "2", val: "ok" });
+            await expect(p3).resolves.toEqual({ id: "3", val: "ok" });
+        });
+
+        scopedIt("after maxWait (1 s) the queue is flushed automatically", async () => {
+            const lookup = useLookupContext();
+            const promises = [lookup.requestObject("app", "model", "1", [], [])];
+            for (let i = 2; i <= 4; i++) {
+                await vi.advanceTimersByTimeAsync(200);
+                promises.push(lookup.requestObject("app", "model", String(i), [], []));
+            }
+            await vi.advanceTimersByTimeAsync(400); // exceed maxWait
+            await flushPromises();
+            expect(listSpy).toHaveBeenCalledTimes(1);
+            await Promise.all(promises);
+        });
+    });
+
+    describe("object vs list manager", () => {
+        scopedIt("uses *object* manager for a single-PK batch", async () => {
+            const lookup = useLookupContext();
+            lookup.requestObject("app", "model", "1", [], []);
+            await vi.advanceTimersByTimeAsync(250);
+            await flushPromises();
+            expect(retrieveSpy).toHaveBeenCalledTimes(1);
+            expect(listSpy).toHaveBeenCalledTimes(0);
+        });
+
+        scopedIt("uses *list* manager for a multi-PK batch", async () => {
+            const lookup = useLookupContext();
+            lookup.requestObject("app", "model", "1", [], []);
+            lookup.requestObject("app", "model", "2", [], []);
+            await vi.advanceTimersByTimeAsync(250);
+            await flushPromises();
+            expect(listSpy).toHaveBeenCalledTimes(1);
+            expect(retrieveSpy).not.toHaveBeenCalled();
         });
     });
 });
