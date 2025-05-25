@@ -1,6 +1,7 @@
-import { scopedIt } from "@tests/unit/utils.js";
+import { mockLifecycle, scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
+import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 import { defineComponent, h } from "vue";
@@ -86,22 +87,11 @@ vi.mock("@vueda/fields/FieldString.vue", () => ({ default: FieldStringStub }));
 vi.mock("@vueda/widgets/WidgetReadOnly.vue", () => ({ default: WidgetReadOnlyStub }));
 vi.mock("primevue/button", () => ({ default: ButtonStub }));
 
-let ActionForm, vue;
+// Lifecycle mocks
+const lifecycle = mockLifecycle(vi);
+const { mockedOnDeactivated, runDeactivatedHooks, clearDeactivated } = lifecycle;
 
-beforeEach(async () => {
-    vue = await vi.importActual("vue");
-    ActionForm = (await import("@vueda/components/ActionForm.vue")).default;
-    mockedUseModelConfig.mockReset();
-    mockedUseTheme.mockClear();
-    toastAdd.mockClear();
-    routerPush.mockClear();
-    defaultOnSubmissionError.mockClear();
-    getListUrl.mockClear();
-    getDetailUrl.mockClear();
-    getCSRFValue.mockClear();
-    routeQuery = { returnPath: "/back" };
-    fetchHelper.mockClear();
-});
+let ActionForm, vue;
 
 function mountWithContext(options = {}) {
     const formContext = {
@@ -139,6 +129,28 @@ function mountWithContext(options = {}) {
 }
 
 describe("lib/components/ActionForm.vue", () => {
+    beforeEach(async () => {
+        vi.doMock("vue", async () => {
+            const actual = await vi.importActual("vue");
+            return { __esModule: true, ...actual, onDeactivated: mockedOnDeactivated };
+        });
+        vue = await import("vue");
+        ActionForm = (await import("@vueda/components/ActionForm.vue")).default;
+        // only mock the lifecycle hooks after importing our component
+        vi.unmock("vue");
+        mockedUseModelConfig.mockReset();
+        mockedUseTheme.mockClear();
+        toastAdd.mockClear();
+        routerPush.mockClear();
+        defaultOnSubmissionError.mockClear();
+        getListUrl.mockClear();
+        getDetailUrl.mockClear();
+        getCSRFValue.mockClear();
+        routeQuery = { returnPath: "/back" };
+        fetchHelper.mockClear();
+        clearDeactivated();
+    });
+
     describe("Rendering & slot fall-backs", () => {
         scopedIt("renders selected objects and confirm message", () => {
             const { wrapper } = mountWithContext();
@@ -228,6 +240,38 @@ describe("lib/components/ActionForm.vue", () => {
                 expect.objectContaining({ severity: "error", summary: "Failed to activate person " }),
             );
         });
+
+        scopedIt("prop actionSuccessSummary overrides computed", async () => {
+            const { wrapper } = mountWithContext({ props: { actionSuccessSummary: "Yay" } });
+            await wrapper.find('[data-qa="prime-button"]').trigger("click");
+            await flushPromises();
+            expect(wrapper.vm.actionSuccessSummary).toBe("Yay");
+            expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ summary: "Yay" }));
+        });
+
+        scopedIt("prop actionErrorSummary overrides computed", async () => {
+            const runAction = vi.fn(() => Promise.reject(new Error("x")));
+            const { wrapper } = mountWithContext({
+                runAction,
+                props: { actionErrorSummary: "Nope", fetchState: { objectsInOrder: [{ id: 1 }], objects: { 1: {} } } },
+            });
+            await wrapper.find('[data-qa="prime-button"]').trigger("click");
+            await flushPromises();
+            expect(wrapper.vm.actionErrorSummary).toBe("Nope");
+            expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ summary: "Nope" }));
+        });
+
+        scopedIt("actionVerboseName prop influences computedActionVerboseNameLowerCase", () => {
+            const { wrapper } = mountWithContext({ props: { actionVerboseName: "Deactivate" } });
+            expect(wrapper.vm.computedActionVerboseNameLowerCase).toBe("Deactivate");
+        });
+
+        scopedIt("modelConfig cache miss uses fallbacks", () => {
+            const { wrapper, modelConfig } = mountWithContext();
+            modelConfig.info.verboseName = undefined;
+            modelConfig.info.verboseNamePlural = undefined;
+            expect(wrapper.vm.computedConfirmMessage).toContain("the selected people");
+        });
     });
 
     describe("Confirm flow", () => {
@@ -251,6 +295,20 @@ describe("lib/components/ActionForm.vue", () => {
             await flushPromises();
             expect(wrapper.vm.actionState.errored).toBe(true);
             expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ severity: "error" }));
+        });
+
+        scopedIt("handled errors skip toast", async () => {
+            defaultOnSubmissionError.mockResolvedValue(true);
+            const error = new Error("bad");
+            const runAction = vi.fn(() => Promise.reject(error));
+            const { wrapper } = mountWithContext({
+                runAction,
+                props: { fetchState: { objectsInOrder: [{ id: 1 }], objects: { 1: {} } } },
+            });
+            await wrapper.find('[data-qa="prime-button"]').trigger("click");
+            await flushPromises();
+            expect(wrapper.vm.actionState.errored).toBe(false);
+            expect(toastAdd).not.toHaveBeenCalledWith(expect.objectContaining({ severity: "error" }));
         });
     });
 
@@ -281,6 +339,14 @@ describe("lib/components/ActionForm.vue", () => {
                 name: DETAIL_VIEW_CRUD_NAME,
                 params: { app: "app", model: "person", action: "detail", pk: 1 },
             });
+        });
+
+        scopedIt("handleCancelClick stops event", async () => {
+            const { wrapper } = mountWithContext();
+            const evt = { preventDefault: vi.fn(), stopPropagation: vi.fn() };
+            await wrapper.vm.handleCancelClick(evt);
+            expect(evt.preventDefault).toHaveBeenCalled();
+            expect(evt.stopPropagation).toHaveBeenCalled();
         });
     });
 
@@ -354,6 +420,21 @@ describe("lib/components/ActionForm.vue", () => {
             await flushPromises();
             expect(fetchHelper.mock.calls[1][1].body).toEqual(JSON.stringify({ extra: true }));
         });
+
+        scopedIt("response handler returns typed errors", async () => {
+            let resolver;
+            fetchHelper.mockImplementation((url, options, msg, responseResolver) => {
+                resolver = responseResolver;
+                return Promise.resolve();
+            });
+            const { wrapper } = mountWithContext({ props: { runAction: undefined } });
+            await wrapper.find('[data-qa="prime-button"]').trigger("click");
+            await flushPromises();
+            const err1 = resolver({ status: 400 }, {});
+            expect(err1).toBeInstanceOf(FormValidationError);
+            const err2 = resolver({ status: 500 }, {});
+            expect(err2).toBeInstanceOf(FetchError);
+        });
     });
 
     describe("Reactive state & loaders", () => {
@@ -378,6 +459,22 @@ describe("lib/components/ActionForm.vue", () => {
             await vue.nextTick();
             wrapper.unmount();
             expect(cancelSpy).toHaveBeenCalled();
+        });
+
+        scopedIt("cancels inflight action on deactivation", async () => {
+            const cancelSpy = vi.fn();
+            fetchHelper.mockReturnValue(Object.assign(new Promise(() => {}), { cancel: cancelSpy }));
+            const { wrapper } = mountWithContext({ props: { runAction: undefined } });
+            await wrapper.find('[data-qa="prime-button"]').trigger("click");
+            await vue.nextTick();
+            runDeactivatedHooks();
+            expect(cancelSpy).toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        scopedIt("handles deactivation without inflight", () => {
+            mountWithContext();
+            expect(() => runDeactivatedHooks()).not.toThrow();
         });
     });
 
