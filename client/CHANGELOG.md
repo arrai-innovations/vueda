@@ -2,17 +2,43 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.0-beta.1 (unreleased)
+## v2.0.0-beta.1 (2025-05-26)
 
 ### Breaking Changes
 
-- **ActionForm**:
-    - The `handleActionCompletion` prop has been removed. Redirection after action completion now uses the model config's `defaultView`, which prefers `update`, `read`, then `list` in that order.
-      _If your use case required a custom post-action redirect, update the model config accordingly._
-
-### Features
+- **ActionForm**
+    - The `handleActionCompletion` prop has been **removed**.
+      Redirection after action completion now follows the model-config `defaultView`
+      order (`update` ? `read` ? `list`).
+      _Update your model config if you previously passed a custom redirect._
 
 ### Fixes
+
+- **useLookupContext**
+
+    - `pkKey` is now fetched from `storeModelInfo.fetchModelInfo`, not from
+      `storeModelConfig`, so models with non-standard primary keys resolve
+      correctly.
+    - Internal managers rename `props` ? `config` to reduce confusion with
+      Vue component props. _(No public API impact.)_
+    - Console warnings now share a consistent `[useLookupContext.]` prefix, making
+      them easier to filter.
+
+- **useFormModel**
+
+    - `state.computedFields` is fully reactive.
+    - `contextless` defaults to `true` for `computedFields` items, matching docs.
+
+- **Widgets**
+    - **WidgetReadOnly** - `pkKey` reactivity restored.
+    - **WidgetModel** - now calls the updated `useModelChoices` API.
+    - Other select/image widgets updated to fetch `formatted_name` or choice data
+      correctly.
+
+### Internal / Tooling
+
+- **Test & Coverage**
+    - Extensive new unit tests raise overall coverage to **~78%**.
 
 ## v2.0.0-alpha.14 (2025-05-02)
 
