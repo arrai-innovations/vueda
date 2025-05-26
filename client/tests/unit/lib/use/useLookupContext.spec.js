@@ -19,6 +19,8 @@ const makeDeferred = () => {
     return { promise, resolve, reject };
 };
 
+let forceSyncRetrieveError = false;
+
 beforeEach(async () => {
     vi.useFakeTimers();
     vi.resetModules();
@@ -56,6 +58,9 @@ beforeEach(async () => {
                     object: {},
                 });
                 retrieveSpy = vi.fn(() => {
+                    if (forceSyncRetrieveError) {
+                        throw new Error("sync boom");
+                    }
                     state.object = { id: props.pk, val: "ok" };
                     const inner = retrieveDeferred ? retrieveDeferred.promise : Promise.resolve(true);
                     return actual.CancellablePromise(inner, cancelRetrieveSpy);
@@ -114,6 +119,25 @@ describe("lib/use/useLookupContext.js", () => {
             const obj2 = await p2;
             expect(obj2).toEqual({ id: "1", val: "ok" });
             expect(retrieveSpy).toHaveBeenCalledTimes(1);
+        });
+
+        scopedIt("returns cached list results on second identical call", async () => {
+            const lookup = useLookupContext();
+            const p1 = lookup.requestObject("app", "model", "1", [], []);
+            const p2 = lookup.requestObject("app", "model", "2", [], []);
+            await vi.advanceTimersByTimeAsync(250);
+            await flushPromises();
+
+            await p1;
+            await p2;
+
+            const p3 = lookup.requestObject("app", "model", "1", [], []);
+            const p4 = lookup.requestObject("app", "model", "2", [], []);
+            await flushPromises();
+
+            expect(listSpy).toHaveBeenCalledTimes(1);
+            await expect(p3).resolves.toEqual({ id: "1", val: "ok" });
+            await expect(p4).resolves.toEqual({ id: "2", val: "ok" });
         });
 
         scopedIt("ignores order of fields when computing the key", async () => {
@@ -389,14 +413,20 @@ describe("lib/use/useLookupContext.js", () => {
             expect(listSpy).toHaveBeenCalledTimes(0);
         });
 
-        scopedIt("uses *list* manager for a multi-PK batch", async () => {
+        scopedIt("uses list manager for multi-PK batched request", async () => {
             const lookup = useLookupContext();
-            lookup.requestObject("app", "model", "1", [], []);
-            lookup.requestObject("app", "model", "2", [], []);
-            await vi.advanceTimersByTimeAsync(250);
+
+            const p1 = lookup.requestObject("app", "model", "1", [], []);
+            const p2 = lookup.requestObject("app", "model", "2", [], []);
+
+            await vi.advanceTimersByTimeAsync(250); // trigger debounce
             await flushPromises();
+
             expect(listSpy).toHaveBeenCalledTimes(1);
             expect(retrieveSpy).not.toHaveBeenCalled();
+
+            await expect(p1).resolves.toEqual({ id: "1", val: "ok" });
+            await expect(p2).resolves.toEqual({ id: "2", val: "ok" });
         });
     });
 
@@ -414,6 +444,61 @@ describe("lib/use/useLookupContext.js", () => {
             await flushPromises();
 
             await expect(p2).resolves.toEqual({ id: "1", val: "ok" });
+        });
+    });
+
+    describe("error propagation", () => {
+        scopedIt("propagates a synchronous exception from runRequestBatch", async () => {
+            const handler = (err) => {
+                if (err?.message === "sync boom") {
+                    return;
+                }
+                throw err;
+            };
+            process.on("unhandledRejection", handler);
+            forceSyncRetrieveError = true;
+            try {
+                const lookup = useLookupContext();
+
+                const p = lookup.requestObject("app", "model", "1", [], []);
+                await vi.advanceTimersByTimeAsync(300);
+
+                await expect(p).rejects.toThrow("sync boom");
+            } finally {
+                forceSyncRetrieveError = false;
+                process.off("unhandledRejection", handler);
+            }
+        });
+
+        scopedIt("propagates error from list manager to all consumers", async () => {
+            const handler = (err) => {
+                if (err?.message === "list fetch failed") {
+                    return;
+                }
+                throw err;
+            };
+            process.on("unhandledRejection", handler);
+            listDeferred = makeDeferred();
+
+            const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+            try {
+                const lookup = useLookupContext();
+
+                const p1 = lookup.requestObject("app", "model", "1", [], []);
+                const p2 = lookup.requestObject("app", "model", "2", [], []);
+                await vi.advanceTimersByTimeAsync(300);
+                await flushPromises();
+
+                const err = new Error("list fetch failed");
+                listDeferred.reject(err);
+
+                await flushPromises();
+                await expect(p1).rejects.toBe(err);
+                await expect(p2).rejects.toBe(err);
+            } finally {
+                errorSpy.mockRestore();
+                process.off("unhandledRejection", handler);
+            }
         });
     });
 });
