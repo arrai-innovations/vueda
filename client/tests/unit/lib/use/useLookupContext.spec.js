@@ -284,6 +284,27 @@ describe("lib/use/useLookupContext.js", () => {
             await p2;
             expect(retrieveSpy).toHaveBeenCalledTimes(2);
         });
+
+        scopedIt("retains previous cache entries when requesting a new pk later", async () => {
+            const lookup = useLookupContext();
+
+            const first = lookup.requestObject("app", "model", "1", [], []);
+            await vi.advanceTimersByTimeAsync(250);
+            await flushPromises();
+            await first;
+            expect(retrieveSpy).toHaveBeenCalledTimes(1);
+
+            const second = lookup.requestObject("app", "model", "2", [], []);
+            await vi.advanceTimersByTimeAsync(250);
+            await flushPromises();
+            await second;
+            expect(retrieveSpy).toHaveBeenCalledTimes(2);
+
+            const again = lookup.requestObject("app", "model", "1", [], []);
+            await flushPromises();
+            await expect(again).resolves.toEqual({ id: "1", val: "ok" });
+            expect(retrieveSpy).toHaveBeenCalledTimes(2);
+        });
     });
 
     describe("deduplicates concurrent requests", () => {
