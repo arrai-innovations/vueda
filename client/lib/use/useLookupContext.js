@@ -134,15 +134,8 @@ export function useLookupContext() {
     function runRequestBatch({ fields, expand }, { config, instance }, isList, key, pks) {
         // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
         try {
-            if (!config.params) {
-                config.params = {};
-            }
             if (isList) {
-                if (!config.params.id) {
-                    config.params.id = [];
-                } else {
-                    config.params.id.length = 0;
-                }
+                config.params.id.length = 0;
                 config.params.id.push(...pks);
             } else {
                 config.pk = pks[0] + "";
