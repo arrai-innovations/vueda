@@ -32,7 +32,7 @@ export function useLookupContext() {
     /** @type {Map<[key: string], Request>} */
     const requestsMap = new Map();
     /** @typedef {{
-     *     props: import('@arrai-innovations/reactive-helpers').ObjectManagerProps,
+     *     config: import('@arrai-innovations/reactive-helpers').ObjectManagerProps,
      *     instance: import('@arrai-innovations/reactive-helpers').ObjectManager
      }} ObjectManagerContainer */
     /** @type {ObjectManagerContainer[]} */
@@ -40,7 +40,7 @@ export function useLookupContext() {
     /** @type {ObjectManagerContainer[]} */
     const busyObjects = [];
     /** @typedef {{
-     *     props: import('@arrai-innovations/reactive-helpers').ListManagerProps,
+     *     config: import('@arrai-innovations/reactive-helpers').ListManagerProps,
      *     instance: import('@arrai-innovations/reactive-helpers').ListManager
      }} ListManagerContainer */
     /** @type {ListManagerContainer[]} */
@@ -53,7 +53,7 @@ export function useLookupContext() {
      * @private
      * @param {boolean} isList
      * @param {object} args
-     * @returns {Promise<{ props: object, instance: import('@vueda/reactive-helpers/use/useList.js').ListManager|import('@vueda/reactive-helpers/use/useObject.js').ObjectManager }>}
+     * @returns {Promise<{ config: object, instance: import('@vueda/reactive-helpers/use/useList.js').ListManager|import('@vueda/reactive-helpers/use/useObject.js').ObjectManager }>}
      */
     async function acquireManager({ isList, args }) {
         const pool = isList ? idleLists : idleObjects;
@@ -69,7 +69,7 @@ export function useLookupContext() {
             // Create a new instance
             entry = es.run(() => {
                 if (isList) {
-                    const listProps = reactive({
+                    const listConfig = reactive({
                         target: { app: args.app + "", model: args.model + "" },
                         pkKey,
                         params: {
@@ -80,7 +80,7 @@ export function useLookupContext() {
                     // @ts-ignore - prop type shenanigans
                     // noinspection JSCheckFunctionSignatures
                     const instance = useList({
-                        props: listProps,
+                        props: listConfig,
                         handlers: {
                             list: allPagePaginatedListCrudAdaptor,
                         },
@@ -89,9 +89,9 @@ export function useLookupContext() {
                         clearListOnListIntentTriggered: false,
                     });
 
-                    return { props: listProps, instance };
+                    return { config: listConfig, instance };
                 } else {
-                    const objectProps = reactive({
+                    const objectConfig = reactive({
                         target: { app: args.app + "", model: args.model + "" },
                         pkKey,
                         pk: "dummy",
@@ -100,16 +100,16 @@ export function useLookupContext() {
 
                     // @ts-ignore - prop type shenanigans
                     // noinspection JSCheckFunctionSignatures
-                    const instance = useObject({ props: objectProps, handlers: {} });
+                    const instance = useObject({ props: objectConfig, handlers: {} });
 
-                    return { props: objectProps, instance };
+                    return { config: objectConfig, instance };
                 }
             });
         } else {
             // Reuse the manager
-            entry.props.pkKey = pkKey;
-            entry.props.target.app = args.app + "";
-            entry.props.target.model = args.model + "";
+            entry.config.pkKey = pkKey;
+            entry.config.target.app = args.app + "";
+            entry.config.target.model = args.model + "";
         }
         busy.push(entry);
         // settle some reactive assignments
@@ -124,56 +124,53 @@ export function useLookupContext() {
      * @param {string[]} args.fields
      * @param {string[]} args.expand
      * @param {object} entry
-     * @param {object} entry.props
+     * @param {object} entry.config
      * @param {object} entry.instance
      * @param {boolean} isList
      * @param {string} key
      * @param {string[]} pks
      * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<boolean>|import('@arrai-innovations/reactive-helpers').MaybeCancellablePromise<never>} - true if the request was successful, false otherwise.
      */
-    function runRequestBatch({ fields, expand }, { props, instance }, isList, key, pks) {
+    function runRequestBatch({ fields, expand }, { config, instance }, isList, key, pks) {
         // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
         try {
-            if (!props.params) {
-                props.params = {};
+            if (!config.params) {
+                config.params = {};
             }
             if (isList) {
-                if (!props.params) {
-                    props.params = {};
-                }
-                if (!props.params.id) {
-                    props.params.id = [];
+                if (!config.params.id) {
+                    config.params.id = [];
                 } else {
-                    props.params.id.length = 0;
+                    config.params.id.length = 0;
                 }
-                props.params.id.push(...pks);
+                config.params.id.push(...pks);
             } else {
-                props.pk = pks[0] + "";
+                config.pk = pks[0] + "";
             }
-            props.params[FIELDS_PARAM] = deepUnref(fields);
-            props.params[EXPAND_PARAM] = deepUnref(expand);
+            config.params[FIELDS_PARAM] = deepUnref(fields);
+            config.params[EXPAND_PARAM] = deepUnref(expand);
             if (
-                props.target.app !== instance.state.crud.args.app ||
-                props.target.model !== instance.state.crud.args.model ||
-                props.pkKey !== instance.state.crud.args.pkKey ||
+                config.target.app !== instance.state.crud.args.app ||
+                config.target.model !== instance.state.crud.args.model ||
+                config.pkKey !== instance.state.crud.args.pkKey ||
                 (isList
-                    ? !isEqual(props.params.id, instance.state.params.id)
-                    : props.params.pk !== instance.state.params.pk) ||
-                !isEqual(props.params[FIELDS_PARAM], instance.state.params[FIELDS_PARAM]) ||
-                !isEqual(props.params[EXPAND_PARAM], instance.state.params[EXPAND_PARAM])
+                    ? !isEqual(config.params.id, instance.state.params.id)
+                    : config.params.pk !== instance.state.params.pk) ||
+                !isEqual(config.params[FIELDS_PARAM], instance.state.params[FIELDS_PARAM]) ||
+                !isEqual(config.params[EXPAND_PARAM], instance.state.params[EXPAND_PARAM])
             ) {
                 // HACK: this is a workaround for whatever reactivity mess is going on here
-                instance.state.crud.args.app = props.target.app;
-                instance.state.crud.args.model = props.target.model;
-                instance.state.crud.args.pkKey = props.pkKey;
+                instance.state.crud.args.app = config.target.app;
+                instance.state.crud.args.model = config.target.model;
+                instance.state.crud.args.pkKey = config.pkKey;
                 if (isList) {
-                    instance.state.params.id = props.params.id;
-                    instance.state.params[FIELDS_PARAM] = props.params[FIELDS_PARAM];
-                    instance.state.params[EXPAND_PARAM] = props.params[EXPAND_PARAM];
+                    instance.state.params.id = config.params.id;
+                    instance.state.params[FIELDS_PARAM] = config.params[FIELDS_PARAM];
+                    instance.state.params[EXPAND_PARAM] = config.params[EXPAND_PARAM];
                 } else {
-                    instance.state.pk = props.pk;
-                    instance.state.params[FIELDS_PARAM] = props.params[FIELDS_PARAM];
-                    instance.state.params[EXPAND_PARAM] = props.params[EXPAND_PARAM];
+                    instance.state.pk = config.pk;
+                    instance.state.params[FIELDS_PARAM] = config.params[FIELDS_PARAM];
+                    instance.state.params[EXPAND_PARAM] = config.params[EXPAND_PARAM];
                 }
             }
             return isList ? instance.list() : instance.retrieve();
