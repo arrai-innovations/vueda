@@ -32,9 +32,9 @@ beforeEach(async () => {
     cancelListSpy = vi.fn();
     retrieveSpies = [];
 
-    vi.doMock("@vueda/stores/storeModelConfig.js", () => ({
-        storeModelConfig: () => ({
-            getConfig: () => Promise.resolve({ info: { pk: "id" } }),
+    vi.doMock("@vueda/stores/storeModelInfo.js", () => ({
+        storeModelInfo: () => ({
+            fetchModelInfo: () => Promise.resolve({ pk: "id" }),
         }),
     }));
 

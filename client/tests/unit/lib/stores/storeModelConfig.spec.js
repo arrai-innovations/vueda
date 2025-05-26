@@ -643,4 +643,27 @@ describe("lib/store/storeModelConfig.js", () => {
         expect(config.filterables).toEqual([]);
         expect(config.sortables).toEqual([]);
     });
+
+    scopedIt("exposes the primary key via fieldDetails", async () => {
+        const store = storeModelConfig();
+        store.builtConfigs = {};
+        store.initialized = {};
+
+        const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+        customModelInfo.pk = "uuid";
+        customModelInfo.fields.id.pk = false;
+        customModelInfo.fields.uuid = {
+            ...customModelInfo.fields.id,
+            label: "UUID",
+            pk: true,
+        };
+        mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+
+        const config = await store.getConfig({ app: "testApp", model: "testModel" });
+        expect(config.fieldDetails.uuid.pk).toBe(true);
+        expect(config.displayFields).not.toContain("uuid");
+
+        const foundPk = Object.keys(config.fieldDetails).find((f) => config.fieldDetails[f].pk);
+        expect(foundPk).toBe("uuid");
+    });
 });

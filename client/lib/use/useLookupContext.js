@@ -1,5 +1,5 @@
 import { CancellablePromise, deepUnref, useList, useObject } from "@arrai-innovations/reactive-helpers";
-import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
+import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
@@ -60,10 +60,7 @@ export function useLookupContext() {
         const busy = isList ? busyLists : busyObjects;
         let entry = pool.pop();
 
-        const pkKey =
-            (await storeModelConfig()
-                .getConfig(args)
-                .then((c) => c.info?.pk ?? "id")) + "";
+        const pkKey = ((await storeModelInfo().fetchModelInfo(args)).pk || "id") + "";
 
         if (!entry) {
             // Create a new instance
