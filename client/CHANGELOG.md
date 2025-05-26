@@ -29,7 +29,7 @@ _Actions potentially required by implementers are marked with italics._
       correctly.
     - Internal managers rename `props` ? `config` to reduce confusion with
       Vue component props. _(No public API impact.)_
-    - Console warnings now share a consistent `[useLookupContext.]` prefix, making
+    - Console warnings now share a consistent `[useLookupContext.*]` prefix, making
       them easier to filter.
 
 - **useFormModel**
