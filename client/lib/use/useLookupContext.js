@@ -330,12 +330,12 @@ export function useLookupContext() {
         const self = /** @type {PerConsumerPromise} */ {
             promise: CancellablePromise(innerPromise, async (reason = "Lookup cancelled") => {
                 if (!consumerPromises[key]?.[pk]) {
-                    console.trace("cancel called after consumerPromises already cleaned up", key, pk);
+                    // no consumers for this key/pk, nothing to cancel
                     return;
                 }
                 const myIndex = consumerPromises[key][pk].indexOf(self);
                 if (myIndex === -1) {
-                    console.trace("Promise not found in consumerPromises, was cancel called twice?", key, pk);
+                    // called twice? ignore
                     return;
                 }
                 consumerPromises[key][pk].splice(myIndex, 1);
