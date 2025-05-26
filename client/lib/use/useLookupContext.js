@@ -60,7 +60,7 @@ export function useLookupContext() {
         const busy = isList ? busyLists : busyObjects;
         let entry = pool.pop();
 
-        const pkKey = ((await storeModelInfo().fetchModelInfo(args)).pk || "id") + "";
+        const pkKey = (await storeModelInfo().fetchModelInfo(args)).pk + "";
 
         if (!entry) {
             // Create a new instance
