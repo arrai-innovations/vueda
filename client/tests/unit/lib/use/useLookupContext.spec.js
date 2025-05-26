@@ -430,6 +430,23 @@ describe("lib/use/useLookupContext.js", () => {
         });
     });
 
+    describe("optional arguments", () => {
+        scopedIt("handles calls without fields or expand", async () => {
+            const lookup = useLookupContext();
+
+            const p1 = lookup.requestObject("app", "model", "1");
+            await vi.advanceTimersByTimeAsync(250);
+            await flushPromises();
+            await expect(p1).resolves.toEqual({ id: "1", val: "ok" });
+            expect(retrieveSpy).toHaveBeenCalledTimes(1);
+
+            const p2 = lookup.requestObject("app", "model", "1");
+            await flushPromises();
+            await expect(p2).resolves.toEqual({ id: "1", val: "ok" });
+            expect(retrieveSpy).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe("re-requesting after cancellation", () => {
         scopedIt("cancelled request can be retried with fresh retrieve call", async () => {
             retrieveDeferred = makeDeferred();
