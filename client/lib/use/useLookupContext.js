@@ -194,7 +194,12 @@ export function useLookupContext() {
                 const isList = requests.length > 1;
 
                 if (!pks.some((pk) => consumerPromises[key]?.[pk]?.length)) {
-                    console.warn("[scheduledRequest] skipped request, no consumers", key, pks, requests);
+                    console.warn(
+                        "[useLookupContext.scheduledRequest] skipped request, no consumers",
+                        key,
+                        pks,
+                        requests,
+                    );
                     continue;
                 }
                 let instanceCancel = null;
@@ -222,7 +227,7 @@ export function useLookupContext() {
                                 const consumers = consumerPromises?.[key]?.[pk];
                                 if (!consumers) {
                                     console.warn(
-                                        "[scheduledRequest] No consumers for this request",
+                                        "[useLookupContext.scheduledRequest] No consumers for this request",
                                         key,
                                         pk,
                                         consumerPromises,
@@ -287,16 +292,13 @@ export function useLookupContext() {
                     })(),
                     async (reason = "Cancelled") => {
                         try {
-                            try {
-                                if (instanceCancel) {
-                                    await instanceCancel?.(reason); // or whatever cancel logic applies
-                                    instanceCancel = null; // make idempotent
-                                }
-                            } catch (e) {
-                                console.warn("[batchPromise] cancel failed", e);
+                            if (instanceCancel) {
+                                await instanceCancel?.(reason); // or whatever cancel logic applies
                             }
                         } catch (e) {
-                            console.warn("[scheduledRequest] cancel failed", e);
+                            console.warn("[useLookupContext.batchPromise.cancel] cancel failed", e);
+                        } finally {
+                            instanceCancel = null; // make idempotent
                         }
                     },
                 );
@@ -330,12 +332,20 @@ export function useLookupContext() {
         const self = /** @type {PerConsumerPromise} */ {
             promise: CancellablePromise(innerPromise, async (reason = "Lookup cancelled") => {
                 if (!consumerPromises[key]?.[pk]) {
-                    // no consumers for this key/pk, nothing to cancel
+                    console.warn(
+                        "[useLookupContext.PerConsumerPromise.cancel] called after consumerPromises already cleaned up",
+                        key,
+                        pk,
+                    );
                     return;
                 }
                 const myIndex = consumerPromises[key][pk].indexOf(self);
                 if (myIndex === -1) {
-                    // called twice? ignore
+                    console.warn(
+                        "[useLookupContext.PerConsumerPromise.cancel] Promise not found in consumerPromises, was cancel called twice?",
+                        key,
+                        pk,
+                    );
                     return;
                 }
                 consumerPromises[key][pk].splice(myIndex, 1);
@@ -348,7 +358,12 @@ export function useLookupContext() {
                     if (inflightPromises[key]?.[pk]) {
                         await inflightPromises[key][pk].cancel(reason);
                     } else {
-                        console.warn("[cancel] No inflightPromise yet for", key, pk, "- skipping cancel");
+                        console.warn(
+                            "[useLookupContext.PerConsumerPromise.cancel] No inflightPromise yet for",
+                            key,
+                            pk,
+                            "- skipping cancel",
+                        );
                     }
                     delete consumerPromises[key];
                 }
