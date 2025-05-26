@@ -8,6 +8,7 @@ let cancelListSpy;
 let retrieveDeferred;
 let listDeferred;
 let useLookupContext;
+let retrieveSpies;
 
 const makeDeferred = () => {
     let resolve;
@@ -26,6 +27,7 @@ beforeEach(async () => {
     listDeferred = null;
     cancelRetrieveSpy = vi.fn();
     cancelListSpy = vi.fn();
+    retrieveSpies = [];
 
     vi.doMock("@vueda/stores/storeModelConfig.js", () => ({
         storeModelConfig: () => ({
@@ -57,6 +59,7 @@ beforeEach(async () => {
                     const inner = retrieveDeferred ? retrieveDeferred.promise : Promise.resolve(true);
                     return actual.CancellablePromise(inner, cancelRetrieveSpy);
                 });
+                retrieveSpies.push(retrieveSpy);
                 return {
                     state,
                     retrieve: retrieveSpy,
@@ -169,6 +172,74 @@ describe("lib/use/useLookupContext.js", () => {
             await p2;
             expect(retrieveSpy).toHaveBeenCalledTimes(2);
         });
+
+        scopedIt(
+            "creates a fresh request when the *fields* differ while the first call is still in-flight",
+            async () => {
+                const deferred1 = (retrieveDeferred = makeDeferred());
+                const lookup = useLookupContext();
+                const p1 = lookup.requestObject("app", "model", "1", ["a"], []);
+                await vi.advanceTimersByTimeAsync(300);
+                await flushPromises();
+
+                const deferred2 = (retrieveDeferred = makeDeferred());
+                const p2 = lookup.requestObject("app", "model", "1", ["b"], []);
+                await vi.advanceTimersByTimeAsync(300);
+                await flushPromises();
+
+                expect(retrieveSpies).toHaveLength(2);
+                expect(retrieveSpies[0]).toHaveBeenCalledTimes(1);
+                expect(retrieveSpies[1]).toHaveBeenCalledTimes(1);
+
+                let p2Resolved = false;
+                p2.then(() => {
+                    p2Resolved = true;
+                });
+
+                deferred1.resolve(true);
+                await flushPromises();
+                await expect(p1).resolves.toEqual({ id: "1", val: "ok" });
+                expect(p2Resolved).toBe(false);
+
+                deferred2.resolve(true);
+                await flushPromises();
+                await expect(p2).resolves.toEqual({ id: "1", val: "ok" });
+            },
+        );
+
+        scopedIt(
+            "creates a fresh request when the *expands* differ while the first call is still in-flight",
+            async () => {
+                const deferred1 = (retrieveDeferred = makeDeferred());
+                const lookup = useLookupContext();
+                const p1 = lookup.requestObject("app", "model", "1", [], ["a"]);
+                await vi.advanceTimersByTimeAsync(300);
+                await flushPromises();
+
+                const deferred2 = (retrieveDeferred = makeDeferred());
+                const p2 = lookup.requestObject("app", "model", "1", [], ["b"]);
+                await vi.advanceTimersByTimeAsync(300);
+                await flushPromises();
+
+                expect(retrieveSpies).toHaveLength(2);
+                expect(retrieveSpies[0]).toHaveBeenCalledTimes(1);
+                expect(retrieveSpies[1]).toHaveBeenCalledTimes(1);
+
+                let p2Resolved = false;
+                p2.then(() => {
+                    p2Resolved = true;
+                });
+
+                deferred1.resolve(true);
+                await flushPromises();
+                await expect(p1).resolves.toEqual({ id: "1", val: "ok" });
+                expect(p2Resolved).toBe(false);
+
+                deferred2.resolve(true);
+                await flushPromises();
+                await expect(p2).resolves.toEqual({ id: "1", val: "ok" });
+            },
+        );
 
         scopedIt("separates cache by app + model namespace", async () => {
             const lookup = useLookupContext();
