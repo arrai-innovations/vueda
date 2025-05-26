@@ -518,4 +518,122 @@ describe("lib/use/useLookupContext.js", () => {
             }
         });
     });
+
+    describe("warnings", () => {
+        scopedIt('logs "skipped request, no consumers"', async () => {
+            const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+            const lookup = useLookupContext();
+            const p = lookup.requestObject("app", "model", "1", [], []);
+            await p.cancel();
+            await vi.advanceTimersByTimeAsync(300);
+
+            expect(warnSpy).toHaveBeenCalledWith(
+                expect.stringContaining("skipped request, no consumers"),
+                expect.any(String),
+                expect.any(Array),
+                expect.any(Array),
+            );
+
+            warnSpy.mockRestore();
+        });
+
+        scopedIt('logs "No inflightPromise yet"', async () => {
+            const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+            const lookup = useLookupContext();
+            const p = lookup.requestObject("app", "model", "1", [], []);
+            await p.cancel();
+
+            expect(warnSpy).toHaveBeenCalledWith(
+                expect.stringContaining("No inflightPromise yet for"),
+                expect.any(String),
+                "1",
+                expect.any(String),
+            );
+
+            warnSpy.mockRestore();
+        });
+
+        scopedIt("logs on double cancel", async () => {
+            const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+            const lookup = useLookupContext();
+            const p = lookup.requestObject("app", "model", "1", [], []);
+            await p.cancel();
+            await p.cancel();
+
+            expect(warnSpy).toHaveBeenCalledWith(
+                expect.stringContaining("already cleaned up"),
+                expect.any(String),
+                "1",
+            );
+
+            warnSpy.mockRestore();
+        });
+
+        scopedIt('logs "No consumers for this request"', async () => {
+            listDeferred = makeDeferred();
+            const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+            const lookup = useLookupContext();
+            const p1 = lookup.requestObject("app", "model", "1", [], []);
+            lookup.requestObject("app", "model", "2", [], []);
+            await vi.advanceTimersByTimeAsync(300);
+            await p1.cancel();
+
+            listDeferred.resolve(true);
+            await flushPromises();
+
+            expect(warnSpy).toHaveBeenCalledWith(
+                expect.stringContaining("No consumers for this request"),
+                expect.any(String),
+                "1",
+                expect.any(Object),
+            );
+
+            warnSpy.mockRestore();
+        });
+
+        scopedIt("logs error in runRequestBatch (async)", async () => {
+            listDeferred = makeDeferred();
+            const err = new Error("async boom");
+            const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+            const lookup = useLookupContext();
+            const p1 = lookup.requestObject("app", "model", "1", [], []);
+            const p2 = lookup.requestObject("app", "model", "2", [], []);
+            await vi.advanceTimersByTimeAsync(300);
+
+            listDeferred.reject(err);
+            await expect(p1).rejects.toBe(err);
+            await expect(p2).rejects.toBe(err);
+
+            expect(errorSpy).toHaveBeenCalledWith("[scheduledRequest] Error in runRequestBatch:", err);
+
+            errorSpy.mockRestore();
+        });
+
+        scopedIt("warns when underlying cancel throws", async () => {
+            cancelRetrieveSpy = vi.fn(() => {
+                throw new Error("cancel blew up");
+            });
+
+            retrieveDeferred = makeDeferred();
+            const lookup = useLookupContext();
+            const p = lookup.requestObject("app", "model", "1", [], []);
+
+            await vi.advanceTimersByTimeAsync(300);
+            const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+            await p.cancel();
+
+            expect(warnSpy).toHaveBeenCalledWith(
+                "[useLookupContext.batchPromise.cancel] cancel failed",
+                expect.any(Error),
+            );
+
+            warnSpy.mockRestore();
+        });
+    });
 });
