@@ -389,8 +389,8 @@ export function useLookupContext() {
          * @param {string} app - The app name, used in URL construction and request keying.
          * @param {string} model - The model name, used in URL construction and request keying.
          * @param {string} pk - The primary key of the object to request.
-         * @param {string[]} fields - The fields to include in the request.
-         * @param {string[]} expand - The expand names to include in the request.
+         * @param {string[]} [fields] - The fields to include in the request.
+         * @param {string[]} [expand] - The expand names to include in the request.
          * @returns {Promise<object>} - A cancellable promise that resolves to the requested object.
          */
         requestObject: (app, model, pk, fields, expand) => {
