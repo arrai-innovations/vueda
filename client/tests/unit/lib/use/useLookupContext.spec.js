@@ -3,6 +3,8 @@ import flushPromises from "flush-promises";
 
 let retrieveSpy;
 let listSpy;
+let listState;
+let useListMock;
 let cancelRetrieveSpy;
 let cancelListSpy;
 let retrieveDeferred;
@@ -31,6 +33,8 @@ beforeEach(async () => {
     cancelRetrieveSpy = vi.fn();
     cancelListSpy = vi.fn();
     retrieveSpies = [];
+    listState = null;
+    useListMock = null;
 
     vi.doMock("@vueda/stores/storeModelInfo.js", () => ({
         storeModelInfo: () => ({
@@ -72,8 +76,8 @@ beforeEach(async () => {
                     clear: vi.fn(),
                 };
             },
-            useList: vi.fn(({ props }) => {
-                const state = vue.reactive({
+            useList: (useListMock = vi.fn(({ props }) => {
+                listState = vue.reactive({
                     crud: {
                         args: {
                             app: props.target.app,
@@ -86,13 +90,13 @@ beforeEach(async () => {
                 });
                 listSpy = vi.fn(() => {
                     for (const pk of props.params.id) {
-                        state.objects[pk] = { id: pk, val: "ok" };
+                        listState.objects[pk] = { id: pk, val: "ok" };
                     }
                     const inner = listDeferred ? listDeferred.promise : Promise.resolve(true);
                     return actual.CancellablePromise(inner, cancelListSpy);
                 });
-                return { state, list: listSpy, clearList: vi.fn() };
-            }),
+                return { state: listState, list: listSpy, clearList: vi.fn() };
+            })),
         };
     });
 
@@ -427,6 +431,38 @@ describe("lib/use/useLookupContext.js", () => {
 
             await expect(p1).resolves.toEqual({ id: "1", val: "ok" });
             await expect(p2).resolves.toEqual({ id: "2", val: "ok" });
+        });
+    });
+
+    describe("manager reuse across app/model pairs", () => {
+        scopedIt("updates params and crud args when reused", async () => {
+            const lookup = useLookupContext();
+
+            const p1 = lookup.requestObject("a1", "m1", "1", [], []);
+            const p2 = lookup.requestObject("a1", "m1", "2", [], []);
+            await vi.advanceTimersByTimeAsync(250);
+            await flushPromises();
+            await p1;
+            await p2;
+
+            expect(useListMock).toHaveBeenCalledTimes(1);
+            expect(listSpy).toHaveBeenCalledTimes(1);
+            expect(listState.crud.args.app).toBe("a1");
+            expect(listState.crud.args.model).toBe("m1");
+            expect(listState.params.id).toEqual(["1", "2"]);
+
+            const q1 = lookup.requestObject("a2", "m2", "3", [], []);
+            const q2 = lookup.requestObject("a2", "m2", "4", [], []);
+            await vi.advanceTimersByTimeAsync(250);
+            await flushPromises();
+            await q1;
+            await q2;
+
+            expect(useListMock).toHaveBeenCalledTimes(1);
+            expect(listSpy).toHaveBeenCalledTimes(2);
+            expect(listState.crud.args.app).toBe("a2");
+            expect(listState.crud.args.model).toBe("m2");
+            expect(listState.params.id).toEqual(["3", "4"]);
         });
     });
 
