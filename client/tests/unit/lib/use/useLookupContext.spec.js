@@ -11,11 +11,12 @@ let useLookupContext;
 let retrieveSpies;
 
 const makeDeferred = () => {
-    let resolve;
-    const promise = new Promise((r) => {
-        resolve = r;
+    let resolve, reject;
+    const promise = new Promise((res, rej) => {
+        resolve = res;
+        reject = rej;
     });
-    return { promise, resolve };
+    return { promise, resolve, reject };
 };
 
 beforeEach(async () => {
@@ -306,6 +307,34 @@ describe("lib/use/useLookupContext.js", () => {
             await p.cancel();
             expect(cancelRetrieveSpy).toHaveBeenCalled();
             retrieveDeferred.resolve(true);
+        });
+
+        scopedIt("propagates a single retrieve() rejection to all in-flight consumers (no extra call)", async () => {
+            retrieveDeferred = makeDeferred();
+            const lookup = useLookupContext();
+
+            const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+            const p1 = lookup.requestObject("app", "model", "1", [], []);
+            await vi.advanceTimersByTimeAsync(250);
+            expect(retrieveSpy).toHaveBeenCalledTimes(1);
+
+            const p2 = lookup.requestObject("app", "model", "1", [], []);
+            p1.catch(() => {});
+            p2.catch(() => {});
+
+            const err = new Error("boom");
+            retrieveDeferred.promise.catch(() => {});
+            retrieveDeferred.reject(err);
+
+            await flushPromises();
+
+            await expect(p1).rejects.toBe(err);
+            await expect(p2).rejects.toBe(err);
+
+            expect(retrieveSpy).toHaveBeenCalledTimes(1);
+            expect(listSpy).not.toHaveBeenCalled();
+            errorSpy.mockRestore();
         });
     });
 
