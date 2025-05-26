@@ -299,4 +299,21 @@ describe("lib/use/useLookupContext.js", () => {
             expect(retrieveSpy).not.toHaveBeenCalled();
         });
     });
+
+    describe("re-requesting after cancellation", () => {
+        scopedIt("cancelled request can be retried with fresh retrieve call", async () => {
+            retrieveDeferred = makeDeferred();
+            const lookup = useLookupContext();
+            const p1 = lookup.requestObject("app", "model", "1", [], []);
+            await p1.cancel();
+            retrieveDeferred = null;
+
+            const p2 = lookup.requestObject("app", "model", "1", [], []);
+
+            await vi.advanceTimersByTimeAsync(250);
+            await flushPromises();
+
+            await expect(p2).resolves.toEqual({ id: "1", val: "ok" });
+        });
+    });
 });
