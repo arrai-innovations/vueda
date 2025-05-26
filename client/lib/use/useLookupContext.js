@@ -152,7 +152,13 @@ export function useLookupContext() {
                 !isEqual(config.params[FIELDS_PARAM], instance.state.params[FIELDS_PARAM]) ||
                 !isEqual(config.params[EXPAND_PARAM], instance.state.params[EXPAND_PARAM])
             ) {
-                // HACK: this is a workaround for whatever reactivity mess is going on here
+                // TEMPORARY: Manually sync reactive config into instance state.
+                // Some downstream consumers (e.g. useList/useObject internals) may not
+                // observe reactivity changes immediately - updates can lag by several ticks.
+                // This ensures updated values are visible synchronously during reuse.
+                //
+                // FUTURE: Once we've upgraded to the next major of reactive-helpers
+                // and have full coverage, try removing this to see if it's still necessary.
                 instance.state.crud.args.app = config.target.app;
                 instance.state.crud.args.model = config.target.model;
                 instance.state.crud.args.pkKey = config.pkKey;
