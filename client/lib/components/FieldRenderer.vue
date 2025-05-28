@@ -30,6 +30,11 @@ const props = defineProps({
         description: "Additional props to merge with formModel.fieldProps[formModelName]",
         default: () => ({}),
     },
+    widgetProps: {
+        type: Object,
+        description: "Additional props to merge with formModel.widgetProps[formModelName]",
+        default: () => ({}),
+    },
     /** @type {import("@vueda/use/useFormModel.js").UseFormModelState} */
     formModel: {
         type: Object,
@@ -38,6 +43,10 @@ const props = defineProps({
     hidden: {
         type: Boolean,
         default: undefined,
+    },
+    isFilter: {
+        type: Boolean,
+        default: false,
     },
 });
 
@@ -63,7 +72,7 @@ const {
     remainingSlots,
 } = useFieldRenderer(props, attrs, slots, fieldSetContext);
 const themeProps = reactive({
-    themeOverride: computed(() => mergeTheme(props.formModel.theme, props.themeOverride)),
+    themeOverride: computed(() => mergeTheme(props.formModel?.theme, props.themeOverride)),
 });
 const themeContext = reactive({
     formModelName: toRef(props, "formModelName"),
