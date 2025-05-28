@@ -54,7 +54,15 @@ export default {
             }),
         },
         formPopover: {
-            class: [],
+            class: ["sm:min-w-[25%]"],
+        },
+    },
+    FilterForm: {
+        outer: {
+            class: ["flex flex-col"],
+        },
+        heading: {
+            class: ["font-bold leading-relaxed"],
         },
     },
 };

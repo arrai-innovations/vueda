@@ -128,12 +128,10 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 const desiredDetails = {};
                 if (configDetailKey) {
                     for (const d of desired) {
-                        const configDetail = modelConfig.config?.[configDetailKey]?.[d];
-                        const propDetail = props[propDetailKey]?.[d];
-                        if (configDetail || propDetail) {
+                        if (modelConfig.config?.[configDetailKey]?.[d] || props[propDetailKey]?.[d]) {
                             desiredDetails[d] = {
-                                ...configDetail,
-                                ...propDetail,
+                                ...modelConfig.config?.[configDetailKey]?.[d],
+                                ...props[propDetailKey]?.[d],
                             };
                         }
                     }

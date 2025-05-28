@@ -1,11 +1,12 @@
 <script setup>
-import { keyDiff } from "@arrai-innovations/reactive-helpers";
+import { deepUnref, keyDiff } from "@arrai-innovations/reactive-helpers";
 import FilterComponent from "@vueda/components/FilterComponent.vue";
+import { useFilter } from "@vueda/use/useFilter.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
 import Button from "primevue/button";
-import { computed, effectScope, reactive, readonly, ref, useSlots, watch } from "vue";
+import { effectScope, reactive, readonly, ref, useSlots, watch } from "vue";
 import { useRoute } from "vue-router";
 
 const params = defineModel({
@@ -14,14 +15,24 @@ const params = defineModel({
 });
 
 const props = defineProps({
+    app: {
+        type: String,
+        required: true,
+    },
+    model: {
+        type: String,
+        required: true,
+    },
+    view: {
+        type: String,
+        required: true,
+    },
     filterables: {
         type: Array,
-        required: true,
         description: "A list of the filterables to show in the filter form.",
     },
     filterableDetails: {
         type: Object,
-        required: true,
         description: "A dictionary of overriding filterable details.",
     },
     filterFormsValues: {
@@ -31,12 +42,11 @@ const props = defineProps({
 });
 const emit = defineEmits(["filter-change", "hide-filter-form", "query-change"]);
 const addedFilters = ref([]);
-
+const filterContext = useFilter(props);
 const clearFilters = () => {
     addedFilters.value = [];
 };
 const route = useRoute();
-const computedFilters = computed(() => props.filterables.filter((filter) => props.filterableDetails[filter]));
 
 watch(
     () => route.query, // Watch the query part of the route
@@ -87,8 +97,9 @@ const slots = useSlots();
 const resolversEffectScope = effectScope();
 const resolvers = reactive({});
 watch(
-    computedFilters,
-    (newFilters) => {
+    () => filterContext?.filterables,
+    (filters) => {
+        let newFilters = deepUnref(filters);
         const { addedKeys, removedKeys } = keyDiff(newFilters, Object.keys(resolvers));
         for (const key of addedKeys) {
             resolversEffectScope.run(() => {
@@ -106,22 +117,23 @@ watch(
 
 <template>
     <div class="flex flex-wrap gap-1 mt-1">
-        <template v-for="(filter, index) in computedFilters" :key="index">
+        <template v-for="(filter, index) in deepUnref(filterContext?.filterables)" :key="index">
             <slot
                 v-if="resolvers[filter]"
                 :filter="filter"
-                :filter-details="props.filterableDetails[filter]"
+                :filter-details="filterContext?.filterableDetails[filter]"
                 :index="index"
                 :model-value="addedFilters"
                 :name="resolvers[filter]?.name"
                 @hide-filter-form="emit('hide-filter-form', $event)"
             >
                 <filter-component
-                    :filter-details="props.filterableDetails[filter]"
+                    :filter-details="filterContext?.filterableDetails[filter] ?? {}"
                     :filter-form-values="filterFormsValues[filter]"
                     :filter-name="filter"
                     :index="index"
                     :params="params"
+                    :query="route.query"
                     :model-value="addedFilters"
                     @hide-filter-form="emit('hide-filter-form', $event)"
                 >

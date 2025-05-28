@@ -120,6 +120,10 @@ const props = defineProps({
         type: Array,
         default: undefined,
     },
+    filterableDetails: {
+        type: Object,
+        default: () => ({}),
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const listSearch = ref(null);
@@ -502,9 +506,12 @@ const searchSlotProps = reactive({
         <sticky-bar :class="theme('filterGroupBar')">
             <filter-group
                 v-model="listState.filterArgs"
+                :app="props.app"
+                :model="props.model"
+                :view="viewName"
                 :filter-forms-values="props.filterFormsValues"
-                :filterable-details="modelConfig.config?.filterableDetails || {}"
-                :filterables="props.filterables || modelConfig.config?.filterables || []"
+                :filterable-details="props.filterableDetails"
+                :filterables="props.filterables"
                 @filter-change="emit('filter-change', $event)"
                 @hide-filter-form="emit('hide-filter-form', $event)"
                 @query-change="emit('query-change', $event)"

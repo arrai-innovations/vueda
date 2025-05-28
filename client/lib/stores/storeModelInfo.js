@@ -154,6 +154,9 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {boolean} hidden - Indicates whether the filter is hidden.
  * @property {boolean} required - Indicates whether the filter is required.
  * @property {boolean|LabelValuePair[]} [choices] - Indicates whether the filter has choices. If it does, it's an array of label/value pairs.
+ * @property {string} typeDb - The database type of the field.
+ * @property {string} typeModel - The model type of the field.
+ * @property {string} typeFilter - The filter type of the field.
  *
  * Validation and constraints.
  * @property {number} [maxValue] - The maximum value for the filter.
