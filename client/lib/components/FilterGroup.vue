@@ -173,7 +173,7 @@ const theme = useTheme("FilterGroup", props);
                 :has-filters="!!addedFilters?.length"
                 label="Clear Filters"
                 name="clear-filters-button"
-                verb="clearFilters"
+                :severity="!!addedFilters?.length ? 'warn' : 'secondary'"
                 @click="clearFilters"
             >
                 <Button

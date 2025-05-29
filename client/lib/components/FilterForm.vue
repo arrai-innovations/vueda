@@ -23,16 +23,11 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    isArray: {
-        type: Boolean,
-        default: false,
-    },
     formValue: {
         type: [Object, Array, String, Number],
         default: undefined,
     },
 });
-const submittingValue = defineModel();
 const filterModel = inject(FilterModelSymbol, null);
 const formContext = inject(FormContextSymbol, null);
 const theme = useTheme("FilterForm", props);

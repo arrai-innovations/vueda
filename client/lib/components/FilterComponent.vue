@@ -31,10 +31,6 @@ const props = defineProps({
         type: Object,
         required: true,
     },
-    filterFormValues: {
-        type: Object,
-        default: undefined,
-    },
     query: {
         type: Object,
         default: () => ({}),
@@ -138,9 +134,7 @@ const doToggle = (event) => {
     }
 };
 
-const filterFormValue = computed(() => {
-    return props.filterFormValues ? props.filterFormValues.value : formContext.state.submittingValues[props.filterName];
-});
+const filterFormValue = computed(() => formContext.state?.submittingValues?.[props.filterName]);
 const modelChoices = useModelChoices({
     [props.filterName]: {
         app: toRef(filterContext, "app"),
@@ -217,22 +211,12 @@ const onApplyFilter = (e) => {
 
 const applyFilter = () => {
     // TODO: this now handle handles with single lookup expression
-    // TODO: This is kinda hard coded for dates only
-    const filter = props.filterFormValues ?? formState;
-    if (filter.range && isObject(filterFormValue.value)) {
-        Object.entries(filterFormValue.value).forEach(([key, value]) => {
-            if (value instanceof Date) {
-                filterFormValue.value[key] = value.toISOString().split("T")[0];
-            }
-        });
-    }
     const filterObject = deepUnref({
         field: props.filterName,
         expression: lookupExpression,
         param: lookupExpressionsToParams.value,
         value: filterFormValue.value,
-        labelValue: filter.labelValue,
-        range: filter.range,
+        range: formState.range,
     });
     if (!addedFilters.value.some((f) => f.field === props.filterName)) {
         if (isEmpty(filterFormValue.value)) {
@@ -240,7 +224,7 @@ const applyFilter = () => {
         }
         addedFilters.value.push(filterObject);
     } else {
-        if (isEmpty(filterFormValue.value) || (filter.range && isRangeObjectEmpty(filterFormValue))) {
+        if (isEmpty(filterFormValue.value) || (formState.range && isRangeObjectEmpty(filterFormValue))) {
             removeFilter();
         }
         assignReactiveObject(

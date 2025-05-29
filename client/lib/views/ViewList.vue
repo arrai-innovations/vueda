@@ -535,7 +535,7 @@ const searchSlotProps = reactive({
         </sticky-bar>
 
         <slot name="additional-errors" />
-        <error-display :error="error" :errored="errored" @dismiss-error="dismissError" :ignoreListFilterErrors="true" />
+        <error-display :error="error" :errored="errored" @dismiss-error="dismissError" />
         <!-- todo: filters/search -->
         <!-- todo: hide/show columns -->
         <!-- todo: filters return here? @submit=filterList -->
