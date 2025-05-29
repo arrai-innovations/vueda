@@ -431,8 +431,8 @@ watch(
                         :apply-filter="onApplyFilter"
                         :has-filter-value="hasFilterValue"
                     >
-                        <template v-for="(_, slot) in remainingSlotNames" #[slot]="slotProps">
-                            <slot :name="slot" v-bind="slotProps || {}" />
+                        <template v-for="slotName in remainingSlotNames" #[slotName]="slotProps">
+                            <slot :name="slotName" v-bind="slotProps || {}" />
                         </template>
                     </FilterForm>
                 </slot>
