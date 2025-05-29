@@ -1,12 +1,15 @@
 <script setup>
 import { deepUnref, keyDiff } from "@arrai-innovations/reactive-helpers";
+import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FilterComponent from "@vueda/components/FilterComponent.vue";
 import { useFilter } from "@vueda/use/useFilter.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
+import { useTheme } from "@vueda/use/useTheme.js";
+import { ListFilterError } from "@vueda/utils/errors.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
 import Button from "primevue/button";
-import { effectScope, reactive, readonly, ref, useSlots, watch } from "vue";
+import { computed, effectScope, reactive, readonly, ref, useSlots, watch } from "vue";
 import { useRoute } from "vue-router";
 
 const params = defineModel({
@@ -38,6 +41,14 @@ const props = defineProps({
     filterFormsValues: {
         type: Object,
         default: () => ({}),
+    },
+    errored: {
+        type: Boolean,
+        default: false,
+    },
+    error: {
+        type: Object,
+        default: null,
     },
 });
 const emit = defineEmits(["filter-change", "hide-filter-form", "query-change"]);
@@ -113,49 +124,80 @@ watch(
     },
     { immediate: true, deep: true },
 );
+
+const filterError = computed(() => {
+    if (props.error && props.error instanceof ListFilterError) {
+        return props.error;
+    }
+    return null;
+});
+
+const isFilterErrored = computed(() => {
+    return filterError.value && props.errored;
+});
+
+const theme = useTheme("FilterGroup", props);
 </script>
 
 <template>
-    <div class="flex flex-wrap gap-1 mt-1">
-        <template v-for="(filter, index) in deepUnref(filterContext?.filterables)" :key="index">
-            <slot
-                v-if="resolvers[filter]"
-                :filter="filter"
-                :filter-details="filterContext?.filterableDetails[filter]"
-                :index="index"
-                :model-value="addedFilters"
-                :name="resolvers[filter]?.name"
-                @hide-filter-form="emit('hide-filter-form', $event)"
-            >
-                <filter-component
-                    :filter-details="filterContext?.filterableDetails[filter] ?? {}"
-                    :filter-form-values="filterFormsValues[filter]"
-                    :filter-name="filter"
+    <div :class="theme('root')">
+        <div :class="theme('filtersWrapper')">
+            <template v-for="(filter, index) in deepUnref(filterContext?.filterables)" :key="index">
+                <slot
+                    v-if="resolvers[filter]"
+                    :filter="filter"
+                    :filter-details="filterContext?.filterableDetails[filter]"
                     :index="index"
-                    :params="params"
-                    :query="route.query"
                     :model-value="addedFilters"
+                    :name="resolvers[filter]?.name"
                     @hide-filter-form="emit('hide-filter-form', $event)"
                 >
-                    <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-                        <slot :name="slot" v-bind="slotProps || {}" />
-                    </template>
-                </filter-component>
-            </slot>
-        </template>
-        <slot
-            :has-filters="!!addedFilters?.length"
-            label="Clear Filters"
-            name="clear-filters-button"
-            verb="clearFilters"
-            @click="clearFilters"
-        >
-            <Button
+                    <filter-component
+                        :filter-details="filterContext?.filterableDetails[filter] ?? {}"
+                        :filter-form-values="filterFormsValues[filter]"
+                        :filter-name="filter"
+                        :errored="filterError?.erroredFilters?.includes(filter)"
+                        :index="index"
+                        :params="params"
+                        :query="route.query"
+                        :model-value="addedFilters"
+                        @hide-filter-form="emit('hide-filter-form', $event)"
+                    >
+                        <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                            <slot :name="slot" v-bind="slotProps || {}" />
+                        </template>
+                    </filter-component>
+                </slot>
+            </template>
+            <slot
+                :has-filters="!!addedFilters?.length"
                 label="Clear Filters"
                 name="clear-filters-button"
-                :severity="!!addedFilters?.length ? 'warn' : 'secondary'"
+                verb="clearFilters"
                 @click="clearFilters"
-            />
-        </slot>
+            >
+                <Button
+                    label="Clear Filters"
+                    name="clear-filters-button"
+                    :severity="!!addedFilters?.length ? 'warn' : 'secondary'"
+                    @click="clearFilters"
+                />
+            </slot>
+        </div>
+        <div :class="theme('messageWrapper')">
+            <error-display :error="filterError" :errored="isFilterErrored" :ignoreListFilterErrors="true">
+                <slot name="filter-group-error-display">
+                    <div>
+                        {{ error.message }}
+                        <ul>
+                            <li v-for="(value, key) in error.errorDetails" :key="key">
+                                <strong>{{ filterContext?.filterableDetails?.[key]?.label ?? key }}</strong
+                                >: {{ value.join(", ") }}
+                            </li>
+                        </ul>
+                    </div>
+                </slot>
+            </error-display>
+        </div>
     </div>
 </template>

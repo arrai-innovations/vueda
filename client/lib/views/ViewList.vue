@@ -18,6 +18,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
+import { ListFilterError } from "@vueda/utils/errors.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -280,8 +281,17 @@ watch(
 
 const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
 const titleStr = computed(() => `List ${memoizedStartCase(modelConfig.config?.verboseNamePlural || "items")}`);
-const errored = computed(() => modelConfig.errored || instanceList.state.errored);
-const error = computed(() => modelConfig.error || instanceList.state.error);
+const errored = computed(() =>
+    modelConfig.errored || (instanceList.state.errored && !(instanceList.state.error instanceof ListFilterError))
+        ? instanceList.state.errored
+        : false,
+);
+const error = computed(() =>
+    modelConfig.error || (instanceList.state.error && !(instanceList.state.error instanceof ListFilterError))
+        ? instanceList.state.error
+        : null,
+);
+
 const dismissError = () => {
     modelConfig.clearError();
     instanceList.clearError();
@@ -509,6 +519,8 @@ const searchSlotProps = reactive({
                 :app="props.app"
                 :model="props.model"
                 :view="viewName"
+                :error="instanceList.state.error"
+                :errored="instanceList.state.errored"
                 :filter-forms-values="props.filterFormsValues"
                 :filterable-details="props.filterableDetails"
                 :filterables="props.filterables"
@@ -523,7 +535,7 @@ const searchSlotProps = reactive({
         </sticky-bar>
 
         <slot name="additional-errors" />
-        <error-display :error="error" :errored="errored" @dismiss-error="dismissError" />
+        <error-display :error="error" :errored="errored" @dismiss-error="dismissError" :ignoreListFilterErrors="true" />
         <!-- todo: filters/search -->
         <!-- todo: hide/show columns -->
         <!-- todo: filters return here? @submit=filterList -->

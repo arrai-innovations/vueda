@@ -39,6 +39,10 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    errored: {
+        type: Boolean,
+        default: false,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const filterContext = inject(FilterModelSymbol, null);
@@ -154,27 +158,21 @@ const displayFilterValue = computed(() => {
     }
     return filters
         .map((filter) => {
-            let labelValue = {};
-            if (filter.range && lookupExpressionsToParams.value.length) {
-                const keys = Object.keys(filter.value);
-                for (const key of keys) {
-                    const value = filter.value[key];
-                    if (value && !isNaN(Date.parse(value))) {
-                        labelValue[key] = new Date(value).toISOString().split("T")[0];
-                    }
-                }
-            } else if (props.filterDetails.choices) {
+            let labelValue;
+            if (props.filterDetails.choices) {
                 let options = props.filterDetails.choices;
                 if (options === true) {
                     options = modelChoices.choices?.[props.filterName]?.results || [];
                 }
                 if (Array.isArray(filter.value)) {
                     labelValue = filter.value.map((option) =>
-                        Array.isArray(options) ? options.find((choice) => choice.value === option)?.label : "",
+                        Array.isArray(options)
+                            ? (options.find((choice) => choice.value === option)?.label ?? "unknown")
+                            : "",
                     );
                 } else {
                     labelValue = Array.isArray(options)
-                        ? options.find((choice) => choice.value == filter.value)?.label
+                        ? (options.find((choice) => choice.value == filter.value)?.label ?? "unknown")
                         : "";
                 }
             }
@@ -283,6 +281,7 @@ const theme = useTheme(
     props,
     reactive({
         hasFilterValue,
+        errored: toRef(props, "errored"),
     }),
 );
 

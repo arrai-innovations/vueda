@@ -1,7 +1,7 @@
 <script setup>
 import * as Sentry from "@sentry/vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { FormValidationError } from "@vueda/utils/errors.js";
+import { FormValidationError, ListFilterError } from "@vueda/utils/errors.js";
 import { formatError } from "@vueda/utils/formatError.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import Message from "primevue/message";
@@ -22,6 +22,11 @@ const props = defineProps({
         type: String,
         default: "loading",
         description: "The text to indicate what was attempted when the error occurred",
+    },
+    ignoreListFilterErrors: {
+        type: Boolean,
+        default: false,
+        description: "Whether to ignore form validation errors",
     },
     ignoreFormValidationErrors: {
         type: Boolean,
@@ -50,6 +55,7 @@ const emit = defineEmits(["dismiss-error"]);
 const ignoredError = (error) =>
     !!(
         (props.ignoreFormValidationErrors && error instanceof FormValidationError) ||
+        (props.ignoreListFilterErrors && error instanceof ListFilterError) ||
         (props.ignoreAbortedRequests && error?.message?.includes("aborted"))
     );
 
@@ -97,11 +103,13 @@ const theme = useTheme("ErrorDisplay", props);
 <template>
     <Message v-if="errored" :class="theme('root')" :closable="showDismiss" severity="error" @close="onDismiss">
         <div :class="theme('container')">
-            <p :class="theme('message')">There was an error while {{ whileText }}.</p>
-            <pre :class="theme('codeBlock')"><code>{{ formatError(error) }}</code></pre>
-            <p v-if="redirectParams">
-                <router-link :class="theme('link')" :to="redirectParams">{{ redirectTitle }}</router-link>
-            </p>
+            <slot>
+                <p :class="theme('message')">There was an error while {{ whileText }}.</p>
+                <pre :class="theme('codeBlock')"><code>{{ formatError(error) }}</code></pre>
+                <p v-if="redirectParams">
+                    <router-link :class="theme('link')" :to="redirectParams">{{ redirectTitle }}</router-link>
+                </p>
+            </slot>
         </div>
     </Message>
 </template>
