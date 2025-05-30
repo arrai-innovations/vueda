@@ -156,7 +156,7 @@ const handleConfirm = async () => {
             summary: summary,
             life: 15000,
         });
-        await goBack({ result: "success" });
+        await redirectTo("success");
     } catch (error) {
         const handled = await defaultOnSubmissionError({ error, formContext, toast });
         if (!handled) {
@@ -207,10 +207,10 @@ const handleCancelClick = async (e) => {
         e.preventDefault();
         e.stopPropagation();
     }
-    await goBack({ result: "cancel" });
+    await redirectTo("cancel");
 };
 const route = useRoute();
-const goBack = async ({ result } = {}) => {
+const redirectTo = async (result) => {
     const returnPath = route.query?.returnPath;
     if (returnPath && typeof returnPath === "string") {
         await router.push(returnPath);
