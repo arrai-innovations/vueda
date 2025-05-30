@@ -77,20 +77,20 @@ describe("lib/fields/FieldSetRange.vue", () => {
 
         loggerWarn.mockClear();
         fieldContext.deleteError.mockClear();
-        fieldContext.state.value = [1];
+        fieldContext.state.value = { lower: 1 };
         await nextTick();
         expect(loggerWarn).toHaveBeenCalled();
         expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
     });
 
     scopedIt("updates error when lower is greater than upper", async () => {
-        fieldContext.state.value = [1, 2];
+        fieldContext.state.value = { lower: 1, upper: 2 };
         mount(FieldSetRange, { props: { boundaryComponent: BoundaryStub } });
         await nextTick();
         expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
 
         fieldContext.deleteError.mockClear();
-        fieldContext.state.value = [5, 2];
+        fieldContext.state.value = { lower: 5, upper: 2 };
         await nextTick();
         expect(fieldContext.updateError).toHaveBeenCalledWith(
             "range",
@@ -98,19 +98,19 @@ describe("lib/fields/FieldSetRange.vue", () => {
         );
 
         fieldContext.updateError.mockClear();
-        fieldContext.state.value = [2, 5];
+        fieldContext.state.value = { lower: 2, upper: 5 };
         await nextTick();
         expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
     });
 
-    scopedIt("clears errors for empty range array", async () => {
-        fieldContext.state.value = [1, 2];
+    scopedIt("clears errors for empty range object", async () => {
+        fieldContext.state.value = { lower: 1, upper: 2 };
         mount(FieldSetRange, { props: { boundaryComponent: BoundaryStub } });
         await nextTick();
         expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
 
         fieldContext.deleteError.mockClear();
-        fieldContext.state.value = [];
+        fieldContext.state.value = {};
         await nextTick();
         expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
         expect(loggerWarn).not.toHaveBeenCalled();
