@@ -211,6 +211,7 @@ const onApplyFilter = (e) => {
 
 const applyFilter = () => {
     // TODO: this now handle handles with single lookup expression
+
     const filterObject = deepUnref({
         field: props.filterName,
         expression: lookupExpression,
@@ -218,15 +219,21 @@ const applyFilter = () => {
         value: filterFormValue.value,
         range: formState.range,
     });
+
     if (!addedFilters.value.some((f) => f.field === props.filterName)) {
         if (isEmpty(filterFormValue.value)) {
+            throw new Error(
+                `Filter "${filterFormValue.value}" has no value. Please provide a value before applying the filter.`,
+            );
             return;
         }
+
         addedFilters.value.push(filterObject);
     } else {
         if (isEmpty(filterFormValue.value) || (formState.range && isRangeObjectEmpty(filterFormValue))) {
             removeFilter();
         }
+
         assignReactiveObject(
             addedFilters,
             addedFilters.value.map((f) => {

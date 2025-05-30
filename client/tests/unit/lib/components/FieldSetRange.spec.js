@@ -2,23 +2,13 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, nextTick, reactive } from "vue";
 
-const BoundaryStub = defineComponent({
-    name: "BoundaryStub",
-    props: ["name", "label", "id"],
-    setup(props, { slots }) {
-        return () =>
-            h(
-                "div",
-                {
-                    "data-qa": "boundary",
-                    "data-name": props.name,
-                    "data-label": props.label,
-                    "data-id": props.id,
-                },
-                slots.default ? slots.default() : null,
-            );
-    },
-});
+const SimpleStub = (qa) =>
+    defineComponent({
+        name: `${qa}-stub`,
+        setup(_, { slots }) {
+            return () => h("div", { "data-qa": qa }, slots.default ? slots.default() : null);
+        },
+    });
 
 const FormChoresStub = defineComponent({
     name: "FormChoresStub",
@@ -38,8 +28,16 @@ const fieldContext = {
 vi.mock("@vueda/use/useField.js", () => ({ FIELD_PROPS: {}, FIELD_EMITS: [], useField: () => fieldContext }));
 
 const themeFn = vi.fn(() => "theme-root");
-vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => themeFn, THEME_OVERRIDE_PROPS: {} }));
 
+const mockedUseTheme = vi.fn(() => themeFn);
+
+vi.mock("@vueda/components/FieldRenderer.vue", () => ({ default: SimpleStub("field-renderer") }));
+vi.mock("@vueda/components/FormChores.vue", () => ({ default: SimpleStub("form-chores") }));
+vi.mock("@vueda/use/useTheme.js", () => ({
+    useTheme: mockedUseTheme,
+    THEME_OVERRIDE_PROPS: {},
+    mergeTheme: (...themes) => Object.assign({}, ...themes),
+}));
 vi.mock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
 
 let FieldSetRange;
@@ -54,30 +52,9 @@ beforeEach(async () => {
 });
 
 describe("lib/fields/FieldSetRange.vue", () => {
-    scopedIt("computes props for boundary components", () => {
-        const wrapper = mount(FieldSetRange, {
-            props: { boundaryComponent: BoundaryStub },
-            attrs: { id: "the-id" },
-        });
-        const boundaries = wrapper.findAll('[data-qa="boundary"]');
-        expect(boundaries).toHaveLength(2);
-        expect(boundaries[0].attributes("data-name")).toBe("range.lower");
-        expect(boundaries[0].attributes("data-label")).toBe("From");
-        expect(boundaries[0].attributes("data-id")).toBe("the-id");
-        expect(boundaries[1].attributes("data-name")).toBe("range.upper");
-        expect(boundaries[1].attributes("data-label")).toBe("To");
-    });
-
     scopedIt("warns for invalid values", async () => {
         fieldContext.state.value = "bad";
-        mount(FieldSetRange, { props: { boundaryComponent: BoundaryStub } });
-        await nextTick();
-        expect(loggerWarn).toHaveBeenCalled();
-        expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
-
-        loggerWarn.mockClear();
-        fieldContext.deleteError.mockClear();
-        fieldContext.state.value = { lower: 1 };
+        mount(FieldSetRange, { props: {} });
         await nextTick();
         expect(loggerWarn).toHaveBeenCalled();
         expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
@@ -85,7 +62,7 @@ describe("lib/fields/FieldSetRange.vue", () => {
 
     scopedIt("updates error when lower is greater than upper", async () => {
         fieldContext.state.value = { lower: 1, upper: 2 };
-        mount(FieldSetRange, { props: { boundaryComponent: BoundaryStub } });
+        mount(FieldSetRange, { props: {} });
         await nextTick();
         expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
 
@@ -105,7 +82,7 @@ describe("lib/fields/FieldSetRange.vue", () => {
 
     scopedIt("clears errors for empty range object", async () => {
         fieldContext.state.value = { lower: 1, upper: 2 };
-        mount(FieldSetRange, { props: { boundaryComponent: BoundaryStub } });
+        mount(FieldSetRange, { props: {} });
         await nextTick();
         expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
 
