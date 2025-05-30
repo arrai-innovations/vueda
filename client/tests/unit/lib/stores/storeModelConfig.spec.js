@@ -279,7 +279,7 @@ describe("lib/store/storeModelConfig.js", () => {
         expect(config.filterableDetails).toEqual(dummyModelInfo.filtering);
         expect(config.sortablesDetails).toEqual(dummyModelInfo.ordering);
 
-        expect(config.defaultView).toBe("update");
+        expect(config.actionRedirects.default).toBe("update");
 
         expect(config.formProps).toEqual({});
         expect(config.fieldComponents).toEqual({});
@@ -451,6 +451,7 @@ describe("lib/store/storeModelConfig.js", () => {
             fieldProps: {},
             widgetComponents: {},
             widgetProps: {},
+            actionRedirects: {},
             actionDetails: {},
             fieldDetails: {},
             filterableDetails: {},
@@ -616,7 +617,7 @@ describe("lib/store/storeModelConfig.js", () => {
         { actions: ["retrieve", "list"], expected: "read" },
         { actions: ["list"], expected: "list" },
         { actions: [], expected: null },
-    ])("sets defaultView based on available actions", async ({ actions, expected }) => {
+    ])("sets default redirect based on available actions", async ({ actions, expected }) => {
         const store = storeModelConfig();
         store.builtConfigs = {};
         store.initialized = {};
@@ -626,7 +627,7 @@ describe("lib/store/storeModelConfig.js", () => {
         mockedFetchModelInfo.mockResolvedValue(customModelInfo);
 
         const config = await store.getConfig({ app: "testApp", model: "testModel" });
-        expect(config.defaultView).toBe(expected);
+        expect(config.actionRedirects.default).toBe(expected);
     });
 
     scopedIt("uses empty filter and sort info when not provided", async () => {

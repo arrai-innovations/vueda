@@ -56,8 +56,10 @@ import { defineStore } from "pinia";
  * @property {object} fieldProps - extra props to pass a field component in a form model
  * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} widgetComponents - overriding components for individual widgets
  * @property {object} widgetProps - extra props to pass a widget component in a form model
- * @property {string|null} defaultView - the default view to use. default is `"update"` if available, otherwise
- *  `"read"` if available, otherwise `"`list" if available or `null`.
+ * @property {object} actionRedirects - mapping of action name to destination view
+ *  when cancelling or after successful completion. The `default` key is used
+ *  when no action-specific redirect exists. Values can be strings or functions
+ *  receiving `{bulk, result}` and returning a view name.
  */
 
 /**
@@ -84,7 +86,7 @@ import { defineStore } from "pinia";
  * @property {object} [fieldProps] - extra props to pass a field component in a form model
  * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} [widgetComponents] - overriding components for individual widgets
  * @property {object} [widgetProps] - extra props to pass a widget component in a form model
- * @property {string|null} defaultView - the default view to use.
+ * @property {object} [actionRedirects] - action-specific redirect mapping to merge with defaults.
  */
 
 /**
@@ -142,13 +144,15 @@ const getDefaultFromModelInfo = (modelInfo) => {
             fieldProps: {},
             widgetComponents: {},
             widgetProps: {},
-            defaultView: canUpdate ? "update" : canRetrieve ? "read" : canList ? "list" : null,
+            actionRedirects: {
+                default: canUpdate ? "update" : canRetrieve ? "read" : canList ? "list" : null,
+            },
         },
         {},
     ];
 };
 
-const shallowObjectProperties = ["formProps", "fieldComponents", "widgetComponents"];
+const shallowObjectProperties = ["formProps", "fieldComponents", "widgetComponents", "actionRedirects"];
 const deepObjectProperties = [
     "fieldDetails",
     "actionDetails",

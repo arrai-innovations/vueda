@@ -156,7 +156,7 @@ const handleConfirm = async () => {
             summary: summary,
             life: 15000,
         });
-        await goBack();
+        await goBack({ result: "success" });
     } catch (error) {
         const handled = await defaultOnSubmissionError({ error, formContext, toast });
         if (!handled) {
@@ -207,16 +207,26 @@ const handleCancelClick = async (e) => {
         e.preventDefault();
         e.stopPropagation();
     }
-    await goBack();
+    await goBack({ result: "cancel" });
 };
 const route = useRoute();
-const goBack = async () => {
+const goBack = async ({ result } = {}) => {
     const returnPath = route.query?.returnPath;
     if (returnPath && typeof returnPath === "string") {
         await router.push(returnPath);
         return;
     }
-    if (unref(bulk)) {
+
+    const redirects = modelConfig.config.actionRedirects || {};
+    let redirect = redirects[props.action];
+    if (redirect === undefined) {
+        redirect = redirects.default;
+    }
+    if (typeof redirect === "function") {
+        redirect = redirect({ bulk: unref(bulk), result });
+    }
+
+    if (unref(bulk) || redirect === "list") {
         await router.push({
             name: LIST_VIEW_CRUD_NAME,
             params: { app: props.app, model: props.model, action: "list" },
@@ -224,7 +234,7 @@ const goBack = async () => {
     } else {
         await router.push({
             name: DETAIL_VIEW_CRUD_NAME,
-            params: { app: props.app, model: props.model, action: modelConfig.config.defaultView, pk: pks.value[0] },
+            params: { app: props.app, model: props.model, action: redirect, pk: pks.value[0] },
         });
     }
 };
