@@ -11,6 +11,7 @@ import { computed, effectScope, markRaw, shallowReadonly, unref } from "vue";
  * @property {object} [fieldsetStackedInlineProps] - Slot props used for stacked inline rendering.
  * @property {object} [fieldProps] - Additional field-level props.
  * @property {boolean} [hidden] - Whether to hide the widget from rendering.
+ * @property {boolean} isFilter - Whether to this was used with a filter model.
  */
 
 /**
@@ -64,9 +65,9 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
             }
             return `${fieldSetContext.state.name}.${unref(relativeFieldName)}`;
         });
-        const fieldSlotName = computed(() => `field(${props.formModelName})`);
+        const fieldSlotName = computed(() => `${props.isFilter ? "filter-" : ""}field(${props.formModelName})`);
         const fieldDefaultSlotName = computed(() => `${unref(fieldSlotName)}default`);
-        const widgetSlotName = computed(() => `widget(${props.formModelName})`);
+        const widgetSlotName = computed(() => `${props.isFilter ? "filter-" : ""}widget(${props.formModelName})`);
         const widgetDefaultSlotName = computed(() => `${unref(widgetSlotName)}default`);
         const knownSlots = computed(() => [
             unref(fieldSlotName),
