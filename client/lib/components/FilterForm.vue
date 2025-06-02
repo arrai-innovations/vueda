@@ -26,6 +26,10 @@ const props = defineProps({
 });
 const filterModel = inject(FilterModelSymbol, null);
 const formContext = inject(FormContextSymbol, null);
+if (!filterModel || !formContext) {
+    throw new Error("FilterForm must be used within a formContext and filterModel.");
+}
+
 const theme = useTheme("FilterForm", props);
 const slots = useSlots();
 const resolvedSlotNamesArgs = {

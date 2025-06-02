@@ -46,8 +46,15 @@ afterEach(() => {
 });
 
 function mountForm(options = {}) {
-    const filterModel = {};
-    const formContext = { state: reactive({ anyError: false, anyModified: false }) };
+    const filterModel = options.provide?.filterModel ?? {};
+    const formContext = options.provide?.formContext ?? { state: reactive({ anyError: false, anyModified: false }) };
+    const provide = {};
+    if (!options.provide?.omitFilterModel) {
+        provide[FilterModelSymbol] = filterModel;
+    }
+    if (!options.provide?.omitFormContext) {
+        provide[FormContextSymbol] = formContext;
+    }
     return mount(FilterForm, {
         props: {
             filterName: "status",
@@ -58,10 +65,7 @@ function mountForm(options = {}) {
         slots: options.slots,
         global: {
             stubs: { FieldRenderer: FieldRendererStub, Button: ButtonStub },
-            provide: {
-                [FilterModelSymbol]: filterModel,
-                [FormContextSymbol]: formContext,
-            },
+            provide,
         },
     });
 }
@@ -78,5 +82,73 @@ describe("lib/components/FilterForm.vue", () => {
         const wrapper = mountForm();
         expect(mockedUseSlotNameResolver).toHaveBeenCalledTimes(2);
         expect(wrapper.get("[data-qa='field-renderer']").attributes("data-name")).toBe("status");
+    });
+
+    scopedIt("throws an error when FilterModel or formContext is missing", () => {
+        expect(() => mountForm({ provide: { omitFilterModel: true } })).toThrow(
+            "FilterForm must be used within a formContext and filterModel.",
+        );
+
+        expect(() => mountForm({ provide: { omitFormContext: true } })).toThrow(
+            "FilterForm must be used within a formContext and filterModel.",
+        );
+    });
+
+    scopedIt("renders default heading and button without slots", () => {
+        mockedUseSlotNameResolver
+            .mockReturnValueOnce({ name: "submit-slot" })
+            .mockReturnValueOnce({ name: "header-slot" });
+        const wrapper = mountForm();
+        expect(wrapper.get("h1").text()).toBe("Filter by Status");
+        expect(wrapper.findComponent(ButtonStub).exists()).toBe(true);
+    });
+
+    scopedIt("does not render default button when submitButton slot provided", () => {
+        mockedUseSlotNameResolver
+            .mockReturnValueOnce({ name: "submit-slot" })
+            .mockReturnValueOnce({ name: "header-slot" });
+        const wrapper = mountForm({
+            slots: {
+                "submit-slot": () => h("button", { "data-qa": "slot-submit" }),
+            },
+        });
+        expect(wrapper.findComponent(ButtonStub).exists()).toBe(false);
+        expect(wrapper.get("[data-qa='slot-submit']")).toBeTruthy();
+    });
+
+    scopedIt("disabled state follows formContext", () => {
+        mockedUseSlotNameResolver
+            .mockReturnValueOnce({ name: "submit-slot" })
+            .mockReturnValueOnce({ name: "header-slot" });
+        const wrapper = mountForm({
+            provide: { formContext: { state: reactive({ anyError: true, anyModified: false }) } },
+            slots: {
+                "submit-slot": ({ disabled }) =>
+                    h("button", { "data-qa": "slot-submit", "data-disabled": String(disabled) }),
+            },
+        });
+        expect(wrapper.get("[data-qa='slot-submit']").attributes("data-disabled")).toBe("true");
+    });
+
+    scopedIt("throws without formContext injection", () => {
+        expect(() => mountForm({ provide: { omitFormContext: true } })).toThrow();
+    });
+
+    scopedIt("passes filterName and filterLabel to relevant slots", () => {
+        mockedUseSlotNameResolver
+            .mockReturnValueOnce({ name: "submit-slot" })
+            .mockReturnValueOnce({ name: "header-slot" });
+        const wrapper = mountForm({
+            slots: {
+                "header-slot": ({ filterLabel }) => h("div", { "data-qa": "slot-header", "data-label": filterLabel }),
+                "submit-slot": ({ filterName }) => h("div", { "data-qa": "slot-submit", "data-name": filterName }),
+            },
+        });
+
+        expect(wrapper.get("[data-qa='field-renderer']").attributes("data-name")).toBe("status");
+
+        expect(wrapper.get("[data-qa='slot-header']").attributes("data-label")).toBe("Status");
+
+        expect(wrapper.get("[data-qa='slot-submit']").attributes("data-name")).toBe("status");
     });
 });
