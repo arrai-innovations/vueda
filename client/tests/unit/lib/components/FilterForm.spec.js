@@ -84,16 +84,6 @@ describe("lib/components/FilterForm.vue", () => {
         expect(wrapper.get("[data-qa='field-renderer']").attributes("data-name")).toBe("status");
     });
 
-    scopedIt("throws an error when FilterModel or formContext is missing", () => {
-        expect(() => mountForm({ provide: { omitFilterModel: true } })).toThrow(
-            "FilterForm must be used within a formContext and filterModel.",
-        );
-
-        expect(() => mountForm({ provide: { omitFormContext: true } })).toThrow(
-            "FilterForm must be used within a formContext and filterModel.",
-        );
-    });
-
     scopedIt("renders default heading and button without slots", () => {
         mockedUseSlotNameResolver
             .mockReturnValueOnce({ name: "submit-slot" })
