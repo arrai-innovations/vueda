@@ -64,7 +64,7 @@ const remainingSlotNames = computed(() => {
                 :has-filter-value="hasFilterValue"
                 :name="resolvedSlotNames.submitButton.name"
                 :disabled="formContext.state.anyError"
-                :modifed="formContext.state.anyModified"
+                :modified="formContext.state.anyModified"
             >
                 <Button type="submit" label="Apply" size="small" :disabled="formContext.state.anyError" />
             </slot>
