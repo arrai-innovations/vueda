@@ -225,7 +225,6 @@ const applyFilter = () => {
             throw new Error(
                 `Filter "${filterFormValue.value}" has no value. Please provide a value before applying the filter.`,
             );
-            return;
         }
 
         addedFilters.value.push(filterObject);
@@ -279,7 +278,8 @@ const theme = useTheme(
 watch(
     toRef(formState, "initialValues"),
     (newInitialValues) => {
-        if (newInitialValues && !isEmpty(newInitialValues)) {
+        const newValue = newInitialValues?.[props.filterName];
+        if (newValue && !isEmpty(newValue)) {
             applyFilter();
         } else {
             removeFilter();
