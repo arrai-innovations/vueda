@@ -84,18 +84,18 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
         );
         const fieldDetail = computed(() =>
             props.isFilter
-                ? props.formModel?.filterableDetails[props.formModelName]
-                : props.formModel?.fieldDetails[props.formModelName],
+                ? props.formModel.filterableDetails[props.formModelName]
+                : props.formModel.fieldDetails[props.formModelName],
         );
         const fieldProps = computed(() => ({
             ...omit(props.objectGridFieldSlotProps, ["value"]),
-            ...omit(props.formModel?.fieldProps[props.formModelName], ["themeOverride"]),
+            ...omit(props.formModel.fieldProps[props.formModelName], ["themeOverride"]),
             ...omit(attrs, ["class"]),
             name: unref(fieldValuePath),
             formModelName: props.formModelName,
             modelValue: props.objectGridFieldSlotProps?.value,
             themeOverride: mergeTheme(
-                props.formModel?.fieldProps[props.formModelName]?.themeOverride,
+                props.formModel.fieldProps[props.formModelName]?.themeOverride,
                 props.themeOverride,
             ),
         }));
@@ -107,13 +107,13 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
         });
         const widgetProps = computed(() => ({
             ...props.objectGridFieldSlotProps,
-            ...omit(props.formModel?.widgetProps[props.formModelName], ["themeOverride"]),
+            ...omit(props.formModel.widgetProps[props.formModelName], ["themeOverride"]),
             ...omit(attrs, ["class"]),
             ...props.widgetProps,
             hidden: computedHidden.value,
             themeOverride: mergeTheme(
-                props.formModel?.fieldProps[props.formModelName]?.themeOverride,
-                props.formModel?.widgetProps[props.formModelName]?.themeOverride,
+                props.formModel.fieldProps[props.formModelName]?.themeOverride,
+                props.formModel.widgetProps[props.formModelName]?.themeOverride,
                 props.themeOverride,
             ),
         }));
