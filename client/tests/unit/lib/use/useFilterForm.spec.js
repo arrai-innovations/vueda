@@ -45,6 +45,6 @@ describe("lib/use/useFilterForm.js", () => {
     scopedIt("throws when mapping missing", () => {
         const props = reactive({ filterName: "bad", filterDetails: { typeFilter: "Bogus" } });
         const queryValue = ref();
-        expect(() => useFilterField(props, queryValue)).toThrow("Missing mapping for filter type: Bogus");
+        expect(() => useFilterField(props, queryValue)).toThrow("bad: Missing mapping for filter type Bogus");
     });
 });
