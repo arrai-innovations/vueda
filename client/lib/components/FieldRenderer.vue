@@ -71,9 +71,7 @@ const {
     widgetDefaultSlotName,
     remainingSlots,
 } = useFieldRenderer(props, attrs, slots, fieldSetContext);
-const themeProps = reactive({
-    themeOverride: computed(() => mergeTheme(props.formModel?.theme, props.themeOverride)),
-});
+
 const themeContext = reactive({
     formModelName: toRef(props, "formModelName"),
     fieldDetail: fieldDetail,
@@ -81,7 +79,7 @@ const themeContext = reactive({
     widgetProps: widgetProps,
     inFieldSet: computed(() => !!fieldSetContext),
 });
-const theme = useTheme("FormModel", themeProps, themeContext);
+const theme = useTheme("FormModel", props, themeContext);
 const fieldClass = computed(() => combineClasses(unref(theme("field")), unref(fieldProps)?.class, attrs.class));
 const fieldInnerClass = theme("fieldInner");
 </script>
