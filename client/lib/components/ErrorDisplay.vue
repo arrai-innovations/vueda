@@ -26,7 +26,7 @@ const props = defineProps({
     ignoreListFilterErrors: {
         type: Boolean,
         default: false,
-        description: "Whether to ignore form validation errors",
+        description: "Whether to ignore list filter errors",
     },
     ignoreFormValidationErrors: {
         type: Boolean,
