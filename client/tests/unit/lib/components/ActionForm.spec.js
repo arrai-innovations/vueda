@@ -100,7 +100,7 @@ function mountWithContext(options = {}) {
     };
     const modelConfig = vue.reactive({
         info: { verboseName: "Person", verboseNamePlural: "People" },
-        config: { defaultView: "detail" },
+        config: { actionRedirects: { default: "detail" } },
     });
     mockedUseModelConfig.mockReturnValue(modelConfig);
     const runActionProp = options.runAction ?? vi.fn(() => Promise.resolve());

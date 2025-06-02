@@ -6,6 +6,10 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Breaking Changes
 
+- **ActionForm**
+    - `ModelConfig.defaultView` has been replaced by `actionRedirects`.
+      _Update any custom model config overrides to define `actionRedirects.default`._
+
 ### Features
 
 ### Fixes

@@ -94,7 +94,7 @@ export function useModelConfig(app, model, view) {
                 fieldProps: {},
                 widgetComponents: {},
                 widgetProps: {},
-                defaultView: null,
+                actionRedirects: {},
             }),
             effectScope: es,
         });
