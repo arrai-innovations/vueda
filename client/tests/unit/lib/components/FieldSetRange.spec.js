@@ -93,4 +93,24 @@ describe("lib/fields/FieldSetRange.vue", () => {
         expect(loggerWarn).not.toHaveBeenCalled();
         expect(fieldContext.updateError).not.toHaveBeenCalled();
     });
+
+    scopedIt("handles zero boundaries correctly", async () => {
+        fieldContext.state.value = { lower: 0, upper: 5 };
+        mount(FieldSetRange, { props: {} });
+        await nextTick();
+        expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
+
+        fieldContext.deleteError.mockClear();
+        fieldContext.state.value = { lower: 5, upper: 0 };
+        await nextTick();
+        expect(fieldContext.updateError).toHaveBeenCalledWith(
+            "range",
+            "The first value must be less than or equal to the second value.",
+        );
+
+        fieldContext.updateError.mockClear();
+        fieldContext.state.value = { lower: 0, upper: 0 };
+        await nextTick();
+        expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
+    });
 });

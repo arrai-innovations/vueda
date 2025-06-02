@@ -52,7 +52,7 @@ watch(
             fieldContext.deleteError("range");
             return;
         }
-        if (lower.value && upper.value) {
+        if (lower.value !== null && lower.value !== undefined && upper.value !== null && upper.value !== undefined) {
             if (props.type === "number" && lower.value > upper.value) {
                 fieldContext.updateError("range", "The first value must be less than or equal to the second value.");
             } else if (props.type === "date") {

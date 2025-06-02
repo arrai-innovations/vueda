@@ -103,7 +103,7 @@ const theme = useTheme("ErrorDisplay", props);
 <template>
     <Message v-if="errored" :class="theme('root')" :closable="showDismiss" severity="error" @close="onDismiss">
         <div :class="theme('container')">
-            <slot>
+            <slot v-bind="{ redirectParams, redirectTitle, whileText, error }">
                 <p :class="theme('message')">There was an error while {{ whileText }}.</p>
                 <pre :class="theme('codeBlock')"><code>{{ formatError(error) }}</code></pre>
                 <p v-if="redirectParams">

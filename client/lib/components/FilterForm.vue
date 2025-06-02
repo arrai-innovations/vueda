@@ -23,10 +23,6 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    formValue: {
-        type: [Object, Array, String, Number],
-        default: undefined,
-    },
 });
 const filterModel = inject(FilterModelSymbol, null);
 const formContext = inject(FormContextSymbol, null);
@@ -50,7 +46,7 @@ const remainingSlotNames = computed(() => {
 <template>
     <form @submit.prevent="applyFilter">
         <div :class="theme('outer')">
-            <slot :name="resolvedSlotNames.header.name" :class="theme('heading')">
+            <slot :name="resolvedSlotNames.header.name" :class="theme('heading')" :filterLabel="filterLabel">
                 <h1 :class="theme('heading')">Filter by {{ filterLabel }}</h1>
             </slot>
             <field-renderer :form-model="filterModel" :form-model-name="filterName" :is-filter="true">

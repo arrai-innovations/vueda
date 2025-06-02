@@ -2,6 +2,7 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { useFilteredAttrs } from "@vueda/use/useFilteredAttrs.js";
+import { useIsActive } from "@vueda/use/useIsActive.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
@@ -119,13 +120,11 @@ const computedSelectionMode = computed(() =>
 const unvalidatedInput = ref(null);
 const debounceTimeout = ref(null);
 const DEBOUNCE_DELAY = 1000;
-const isInitialized = ref(false);
-onMounted(() => {
-    isInitialized.value = true;
-});
+const isActive = useIsActive();
+
 const modelValue = computed({
     get() {
-        if (!isInitialized.value) {
+        if (!isActive.value) {
             return null;
         }
         if (inputIsDirty.value && unvalidatedInput.value !== null) {

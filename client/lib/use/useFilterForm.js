@@ -56,7 +56,7 @@ const FilterFieldMappings = {
 
 /**
  * @typedef {object} UseFilterFieldProps
- * @property {string} [filterName] - The name for the filter.
+ * @property {string} filterName - The name for the filter.
  * @property {{filterName: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - each available filter details, by filter name
  */
 
@@ -92,7 +92,7 @@ export function useFilterField(props, queryValue) {
             let newInitialValue = {};
             let obj = FilterFieldMappings[newFilterDetails?.typeFilter];
             if (!obj) {
-                throw new Error(`Missing mapping for filter type: ${newFilterDetails?.typeFilter}`);
+                throw new Error(`${props.filterName}: Missing mapping for filter type ${newFilterDetails?.typeFilter}`);
             }
             if (newQueryValue) {
                 if (obj.array && !Array.isArray(newQueryValue)) {

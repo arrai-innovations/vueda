@@ -111,12 +111,14 @@ export const defaultFieldMappings = {
         FloatRangeField: {
             component: availableFields.FieldSetRange,
             widget: availableWidgets.WidgetInputNumber,
-            fieldProps: { boundaryComponent: availableFields.FieldNumber },
+            boundaryComponent: availableFields.FieldDecimal,
+            boundaryWidget: availableWidgets.WidgetInputNumber,
         },
         IntegerRangeField: {
             component: availableFields.FieldSetRange,
             widget: availableWidgets.WidgetInputNumber,
-            fieldProps: { boundaryComponent: availableFields.FieldNumber },
+            boundaryComponent: availableFields.FieldNumber,
+            boundaryWidget: availableWidgets.WidgetInputNumber,
         },
         TimeRangeField: {
             component: availableFields.FieldRange,
