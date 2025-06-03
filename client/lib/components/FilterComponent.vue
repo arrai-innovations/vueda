@@ -1,15 +1,18 @@
 <script setup>
-import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
+import { assignReactiveObject, deepUnref } from "@arrai-innovations/reactive-helpers";
+import FilterForm from "@vueda/components/FilterForm.vue";
+import { useFilterField } from "@vueda/use/useFilterForm.js";
+import { useForm } from "@vueda/use/useForm.js";
+import { useModelChoices } from "@vueda/use/useModelChoices.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { FilterModelSymbol } from "@vueda/utils/symbols.js";
 import isEmpty from "lodash-es/isEmpty.js";
-import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
 import Button from "primevue/button";
 import ButtonGroup from "primevue/buttongroup";
 import Popover from "primevue/popover";
-import { computed, reactive, ref, toRef, useSlots, useTemplateRef, watch } from "vue";
-import { useRoute } from "vue-router";
+import { computed, inject, reactive, ref, toRef, useSlots, useTemplateRef, watch } from "vue";
 
 const props = defineProps({
     filterName: {
@@ -28,16 +31,63 @@ const props = defineProps({
         type: Object,
         required: true,
     },
-    filterFormValues: {
+    query: {
         type: Object,
-        default: undefined,
+        default: () => ({}),
+    },
+    errored: {
+        type: Boolean,
+        default: false,
     },
     ...THEME_OVERRIDE_PROPS,
 });
+const filterContext = inject(FilterModelSymbol, null);
+
+const lookupExpression = computed(() => {
+    return props.filterDetails.ignorelookupExprs ? undefined : props.filterDetails.lookupExprs?.[0];
+});
+const lookupExpressionsToParams = computed(() => {
+    const params = [];
+    if (props.filterDetails.suffixes?.length) {
+        props.filterDetails.suffixes.forEach((suffix) => {
+            params.push(`${props.filterName}_${suffix}`);
+        });
+    }
+    if (params.length > 0) {
+        return params;
+    }
+    return props.filterName;
+});
+
+const queryValue = computed(() => {
+    if (!props.query) {
+        return undefined;
+    }
+
+    const paramKeys = lookupExpressionsToParams.value;
+
+    if (Array.isArray(paramKeys)) {
+        return paramKeys.reduce((acc, key) => {
+            if (props.query[key]) {
+                const parts = key.split("_");
+                const suffix = parts[parts.length - 1];
+                acc[suffix] = props.query[key];
+            }
+            return acc;
+        }, {});
+    }
+
+    return props.query[paramKeys];
+});
+
+const formState = useFilterField(props, queryValue);
+const formContext = useForm({
+    initialValues: toRef(formState, "initialValues"),
+});
+
 // TODO: this is built assuming each filter field has only one lookup expression
 const emit = defineEmits(["hide-filter-form"]);
 const popoverRef = useTemplateRef("popoverRef");
-
 const addedFilters = defineModel({
     type: Object,
     required: true,
@@ -67,26 +117,12 @@ const resolvedSlotNamesArgs = {
 const resolvedSlotNames = Object.fromEntries(
     Object.entries(resolvedSlotNamesArgs).map(([key, value]) => [key, useSlotNameResolver(value)]),
 );
-
-const lookupExpression = computed(() => {
-    return props.filterDetails.ignorelookupExprs ? undefined : props.filterDetails.lookupExprs?.[0];
+const remainingSlotNames = computed(() => {
+    const slotNames = Object.keys(slots);
+    return slotNames.filter(
+        (slotName) => !Object.values(resolvedSlotNames).some((resolver) => resolver.name === slotName),
+    );
 });
-const lookupExpressionsToParams = computed(() => {
-    const params = [];
-    if (props.filterDetails.suffixes?.length) {
-        props.filterDetails.suffixes.forEach((suffix) => {
-            const p = lookupExpression.value
-                ? `${props.filterName}_${suffix}__${lookupExpression.value}`
-                : `${props.filterName}_${suffix}`;
-            params.push(p);
-        });
-    }
-    if (params.length > 0) {
-        return params;
-    }
-    return lookupExpression.value ? `${props.filterName}__${lookupExpression.value}` : props.filterName;
-});
-const route = useRoute();
 
 const doToggle = (event) => {
     if (event) {
@@ -98,6 +134,17 @@ const doToggle = (event) => {
     }
 };
 
+const filterFormValue = computed(() => formContext.state?.submittingValues?.[props.filterName]);
+const modelChoices = useModelChoices({
+    [props.filterName]: {
+        app: toRef(filterContext, "app"),
+        model: toRef(filterContext, "model"),
+        intendToFetch: computed(
+            () => props.filterDetails.choices === true && (queryValue.value || internalShowState.value),
+        ),
+        isFilter: true,
+    },
+});
 const displayFilterValue = computed(() => {
     const filters = addedFilters.value.filter((filter) => filter.field === props.filterName);
     if (!filters.length) {
@@ -105,31 +152,21 @@ const displayFilterValue = computed(() => {
     }
     return filters
         .map((filter) => {
-            const filterValue = filter.value;
-            let labelValue = filter.labelValue;
-            if (filter.is_range && lookupExpressionsToParams.value.length) {
-                const keys = Object.keys(filterValue);
-                if (!labelValue) {
-                    labelValue = {};
-                    for (const key of keys) {
-                        const value = filterValue[key];
-                        if (!value) {
-                            continue;
-                        }
-                        labelValue[key] = new Date(value).toISOString().split("T")[0];
-                    }
+            let labelValue;
+            if (props.filterDetails.choices) {
+                let options = props.filterDetails.choices;
+                if (options === true) {
+                    options = modelChoices.choices?.[props.filterName]?.results || [];
                 }
-            } else if (labelValue === true) {
-                const options = props.filterFormValues.options?.length
-                    ? props.filterFormValues.options
-                    : props.filterDetails.choices;
-                if (Array.isArray(filterValue)) {
-                    labelValue = filterValue.map((option) =>
-                        Array.isArray(options) ? options.find((choice) => choice.value === option)?.label : "",
+                if (Array.isArray(filter.value)) {
+                    labelValue = filter.value.map((option) =>
+                        Array.isArray(options)
+                            ? (options.find((choice) => choice.value === option)?.label ?? "unknown")
+                            : "",
                     );
                 } else {
                     labelValue = Array.isArray(options)
-                        ? options.find((choice) => choice.value == filterValue)?.label
+                        ? (options.find((choice) => choice.value == filter.value)?.label ?? "unknown")
                         : "";
                 }
             }
@@ -137,7 +174,7 @@ const displayFilterValue = computed(() => {
             if (Array.isArray(labelValue)) {
                 return labelValue.join(",");
             } else if (isObject(labelValue)) {
-                if (filter.is_range) {
+                if (filter.range) {
                     const keys = Object.keys(labelValue);
                     if (keys.length === 2) {
                         return `${labelValue[keys[0]] ?? ""} - ${labelValue[keys[1]] ?? ""}`;
@@ -157,7 +194,6 @@ const displayFilterValue = computed(() => {
         })
         .join(", ");
 });
-
 const computedFilterLabel = computed(() => {
     const filterLabel = props.filterDetails.label ?? props.filterName;
     if (addedFilters.value.some((filter) => filter.field === props.filterName)) {
@@ -175,38 +211,32 @@ const onApplyFilter = (e) => {
 
 const applyFilter = () => {
     // TODO: this now handle handles with single lookup expression
-    //TODO: This is kinda hard coded for dates only
-    const filter = props.filterFormValues;
-    const filterValue = filter.value;
-    if (filter.range && isObject(filterValue)) {
-        Object.entries(filterValue).forEach(([key, value]) => {
-            if (value instanceof Date) {
-                filterValue[key] = value.toISOString().split("T")[0];
-            }
-        });
-    }
-    const filterObject = {
-        field: filter.name,
-        isValueRawObject: filter.isValueRawObject,
+
+    const filterObject = deepUnref({
+        field: props.filterName,
         expression: lookupExpression,
         param: lookupExpressionsToParams.value,
-        value: filterValue,
-        labelValue: filter.labelValue,
-        is_range: filter.range,
-    };
-    if (!addedFilters.value.some((f) => f.field === filter.name)) {
-        if (isEmpty(filterValue)) {
-            return;
+        value: filterFormValue.value,
+        range: formState.range,
+    });
+
+    if (!addedFilters.value.some((f) => f.field === props.filterName)) {
+        if (isEmpty(filterFormValue.value)) {
+            throw new Error(
+                `Filter "${filterFormValue.value}" has no value. Please provide a value before applying the filter.`,
+            );
         }
+
         addedFilters.value.push(filterObject);
     } else {
-        if (isEmpty(filterValue) || (filter.range && isRangeObjectEmpty(filterValue))) {
+        if (isEmpty(filterFormValue.value) || (formState.range && isRangeObjectEmpty(filterFormValue))) {
             removeFilter();
         }
+
         assignReactiveObject(
             addedFilters,
             addedFilters.value.map((f) => {
-                if (f.field === filter.name) {
+                if (f.field === props.filterName) {
                     return filterObject;
                 }
                 return f;
@@ -241,29 +271,18 @@ const theme = useTheme(
     props,
     reactive({
         hasFilterValue,
+        errored: toRef(props, "errored"),
     }),
 );
 
 watch(
-    [toRef(props, "filterFormValues"), () => route.query],
-    ([newFormValue, newQuery], [oldFormValues, oldQuery]) => {
-        if (isEqual(newFormValue, oldFormValues) && isEqual(newQuery, oldQuery)) {
-            return;
-        }
-        if (!isEqual(newQuery, props.params)) {
-            let queryHasFilter = false;
-            if (Array.isArray(lookupExpressionsToParams.value)) {
-                lookupExpressionsToParams.value.forEach((param) => {
-                    if (newQuery[param]) {
-                        queryHasFilter = true;
-                    }
-                });
-            } else if (newQuery[lookupExpressionsToParams.value]) {
-                queryHasFilter = true;
-            }
-            if (queryHasFilter) {
-                applyFilter();
-            }
+    toRef(formState, "initialValues"),
+    (newInitialValues) => {
+        const newValue = newInitialValues?.[props.filterName];
+        if (newValue && !isEmpty(newValue)) {
+            applyFilter();
+        } else {
+            removeFilter();
         }
     },
     { deep: true, immediate: true },
@@ -396,7 +415,18 @@ watch(
                     :filter-name="filterName"
                     :has-filter-value="hasFilterValue"
                     :name="resolvedSlotNames.form.name"
-                />
+                >
+                    <FilterForm
+                        :filter-name="filterName"
+                        :filter-label="props.filterDetails.label ?? props.filterName"
+                        :apply-filter="onApplyFilter"
+                        :has-filter-value="hasFilterValue"
+                    >
+                        <template v-for="slotName in remainingSlotNames" #[slotName]="slotProps">
+                            <slot :name="slotName" v-bind="slotProps || {}" />
+                        </template>
+                    </FilterForm>
+                </slot>
             </Popover>
         </slot>
     </div>

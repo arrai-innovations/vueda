@@ -173,3 +173,61 @@ export class FormValidationError extends Error {
         return paths.filter((path) => !objectPaths.some((objectPath) => path.startsWith(objectPath)));
     }
 }
+/**
+ * Specific error class for responses interpreted as list filter errors from the server.
+ *
+ * @extends {Error}
+ */
+export class ListFilterError extends Error {
+    /**
+     * Creates an instance of FetchError.
+     *
+     * @param {Response} [response] - The response object associated with the error.
+     * @param {object|string} [responseData] - The data returned in the response.
+     */
+    constructor(response, responseData) {
+        super("ListFilterError");
+        this.name = "ListFilterError";
+        /**
+         * The response object associated with the error.
+         *
+         * @type {Response}
+         */
+        this.response = response;
+        /**
+         * The data returned in the response. Decoded if JSON, otherwise a string.
+         * @type {object|string}
+         */
+        this.responseData = responseData;
+
+        const data = { ...responseData };
+        if ("serverStack" in data) {
+            /**
+             * The server stack trace, if available.
+             *
+             * @type {string}
+             */
+            this.serverStack = data.serverStack;
+            delete data.serverStack;
+        }
+
+        /**
+         * The messages for the error
+         *
+         * @type {string}
+         */
+        this.message = "Invalid filter values.";
+
+        /**
+         * An object containing the details of the errors.
+         * @type {object}
+         */
+        this.errorDetails = data;
+
+        /**
+         * The list of errored filter names.
+         * @type {string[]}
+         */
+        this.erroredFilters = Object.keys(data);
+    }
+}

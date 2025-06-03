@@ -1,7 +1,7 @@
 import { CancellablePromise, cancellableFetch, deepUnref, setListCrud } from "@arrai-innovations/reactive-helpers";
-import { PAGE_PARAM } from "@vueda/utils/constants.js";
+import { PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FetchError } from "@vueda/utils/errors.js";
+import { FetchError, ListFilterError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import isObject from "lodash-es/isObject.js";
@@ -71,7 +71,13 @@ export function singlePagePaginatedListCrudAdaptor({ target, params, pageCallbac
         },
         async (response) => {
             const responseData = await getJsonOrText(response);
-            if (!isObject(responseData) || response.status !== 200) {
+            if (response.status !== 200) {
+                if (isObject(responseData)) {
+                    const filterParams = Object.keys(omit(params || {}, [PAGE_PARAM, SEARCH_PARAM]));
+                    if (isObject(responseData) && filterParams.some((key) => key in responseData)) {
+                        throw new ListFilterError(response, responseData);
+                    }
+                }
                 throw new FetchError("Failed to fetch page list", response, responseData);
             }
 
@@ -125,7 +131,13 @@ export function allPagePaginatedListCrudAdaptor({ target, params, pageCallback }
         });
 
         const responseData = await getJsonOrText(response);
-        if (!isObject(responseData) || response.status !== 200) {
+        if (response.status !== 200) {
+            if (isObject(responseData)) {
+                const filterParams = Object.keys(omit(params || {}, [PAGE_PARAM, SEARCH_PARAM]));
+                if (isObject(responseData) && filterParams.some((key) => key in responseData)) {
+                    throw new ListFilterError(response, responseData);
+                }
+            }
             throw new FetchError("Failed to all page list", response, responseData);
         }
 

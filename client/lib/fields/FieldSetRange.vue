@@ -1,25 +1,24 @@
 <script setup>
+import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import omit from "lodash-es/omit.js";
-import { computed, toRef, useAttrs, watch } from "vue";
+import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
+import { FilterModelSymbol, FormModelSymbol } from "@vueda/utils/symbols.js";
+import IsObject from "lodash-es/isObject.js";
+import { computed, inject, watch } from "vue";
 
-const attrs = useAttrs();
 const props = defineProps({
     ...FIELD_PROPS,
-    boundaryComponent: {
-        type: Object,
-        required: true,
-    },
     type: {
         type: String,
         default: "number",
     },
-    rangeSuffix: {
+    suffixes: {
         type: Array,
         default: () => ["lower", "upper"],
+        description: "The suffixes should always be in the order lower, upper.",
     },
     ...THEME_OVERRIDE_PROPS,
 });
@@ -28,18 +27,19 @@ const emit = defineEmits([...FIELD_EMITS]);
 
 const fieldContext = useField(props, emit);
 const logger = useDevLogger({ fieldContext });
-
-const fieldRangeProps = computed(() => {
-    return props.rangeSuffix.map((suffix) => ({
-        ...omit(props, "boundaryComponent", "label"),
-        ...attrs,
-        name: `${fieldContext.state.name}.${suffix}`,
-    }));
+const formModel = inject(FormModelSymbol, null);
+const filterModel = inject(FilterModelSymbol, null);
+const boundaryNames = computed(() => {
+    return props.suffixes.map((suffix) => `${fieldContext.state.name}__${suffix}`) ?? [];
 });
 
-const getLabel = (index) => {
-    return index === 0 ? "From" : "To";
-};
+const lower = computed(() => {
+    return fieldContext.state.value?.[props.suffixes[0]] ?? null;
+});
+const upper = computed(() => {
+    return fieldContext.state.value?.[props.suffixes[1]] ?? null;
+});
+
 watch(
     () => fieldContext.state.value,
     (value) => {
@@ -47,24 +47,27 @@ watch(
             fieldContext.deleteError("range");
             return;
         }
-        if (!Array.isArray(value)) {
-            logger.warn(`Expected value to be an array [lower, upper], got:`, value);
+        if (!IsObject(value)) {
+            logger.warn(`Expected value to be an object {upper: '', lower: ''}, got:`, value);
             fieldContext.deleteError("range");
             return;
         }
-        if (value.length === 0) {
-            // empty range, no error, just no validation
-            fieldContext.deleteError("range");
-            return;
-        }
-        if (value.length !== 2) {
-            logger.warn(`Expected array of length 2 [lower, upper], got:`, value);
-            fieldContext.deleteError("range");
-            return;
-        }
-        const [lower, upper] = value;
-        if (lower != null && upper != null && lower > upper) {
-            fieldContext.updateError("range", "The first value must be less than or equal to the second value.");
+        if (lower.value !== null && lower.value !== undefined && upper.value !== null && upper.value !== undefined) {
+            if (props.type === "number" && lower.value > upper.value) {
+                fieldContext.updateError("range", "The first value must be less than or equal to the second value.");
+            } else if (props.type === "date") {
+                let lowerDate = new Date(lower.value);
+                const upperDate = new Date(upper.value);
+                if (isNaN(lowerDate.getTime()) || isNaN(upperDate.getTime())) {
+                    fieldContext.updateError("range", "Invalid date.");
+                } else if (lowerDate > upperDate) {
+                    fieldContext.updateError("range", "The first date must be less than or equal to the second date.");
+                } else {
+                    fieldContext.deleteError("range");
+                }
+            } else {
+                fieldContext.deleteError("range");
+            }
         } else {
             fieldContext.deleteError("range");
         }
@@ -79,22 +82,29 @@ watch(
                 {{ fieldContext.state.label }}
             </label>
         </div>
-        <div :class="theme('inner')">
-            <template v-for="(fieldProp, i) in fieldRangeProps" :key="fieldProp.name">
-                <component
-                    :is="props.boundaryComponent"
-                    v-bind="fieldProp"
-                    class="flex-grow flex-row"
-                    :label="getLabel(i)"
+        <slot name="field-set-level-chores">
+            <form-chores :variant="null">
+                <template
+                    v-for="slot in getFormChoresSlotNames(fieldContext.state.formModelName)"
+                    #[slot]="formChoresSlotProps"
                 >
-                    <slot />
-                </component>
+                    <slot :name="slot" v-bind="formChoresSlotProps" />
+                </template>
+            </form-chores>
+        </slot>
+        <div :class="theme('inner')">
+            <template v-for="name in boundaryNames" :key="name">
+                <field-renderer
+                    :form-model="formModel ?? filterModel"
+                    :form-model-name="name"
+                    :hidden="false"
+                    v-bind="$attrs"
+                >
+                    <template v-for="slotName in $slots" #[slotName]="slotProps">
+                        <slot :name="slotName" v-bind="slotProps" />
+                    </template>
+                </field-renderer>
             </template>
         </div>
-        <form-chores>
-            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-                <slot :name="slot" v-bind="slotProps" />
-            </template>
-        </form-chores>
     </div>
 </template>

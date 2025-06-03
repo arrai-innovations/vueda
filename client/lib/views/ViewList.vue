@@ -18,6 +18,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
+import { ListFilterError } from "@vueda/utils/errors.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -119,6 +120,10 @@ const props = defineProps({
     filterables: {
         type: Array,
         default: undefined,
+    },
+    filterableDetails: {
+        type: Object,
+        default: () => ({}),
     },
     ...THEME_OVERRIDE_PROPS,
 });
@@ -276,8 +281,17 @@ watch(
 
 const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
 const titleStr = computed(() => `List ${memoizedStartCase(modelConfig.config?.verboseNamePlural || "items")}`);
-const errored = computed(() => modelConfig.errored || instanceList.state.errored);
-const error = computed(() => modelConfig.error || instanceList.state.error);
+const errored = computed(() =>
+    modelConfig.errored || (instanceList.state.errored && !(instanceList.state.error instanceof ListFilterError))
+        ? instanceList.state.errored
+        : false,
+);
+const error = computed(() =>
+    modelConfig.error || (instanceList.state.error && !(instanceList.state.error instanceof ListFilterError))
+        ? instanceList.state.error
+        : null,
+);
+
 const dismissError = () => {
     modelConfig.clearError();
     instanceList.clearError();
@@ -502,9 +516,14 @@ const searchSlotProps = reactive({
         <sticky-bar :class="theme('filterGroupBar')">
             <filter-group
                 v-model="listState.filterArgs"
+                :app="props.app"
+                :model="props.model"
+                :view="viewName"
+                :error="instanceList.state.error"
+                :errored="instanceList.state.errored"
                 :filter-forms-values="props.filterFormsValues"
-                :filterable-details="modelConfig.config?.filterableDetails || {}"
-                :filterables="props.filterables || modelConfig.config?.filterables || []"
+                :filterable-details="props.filterableDetails"
+                :filterables="props.filterables"
                 @filter-change="emit('filter-change', $event)"
                 @hide-filter-form="emit('hide-filter-form', $event)"
                 @query-change="emit('query-change', $event)"

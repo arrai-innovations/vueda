@@ -89,9 +89,7 @@ const getFieldProps = (field) => {
  * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - The merged fieldDetails, either passed in, from config or from server info.
  * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - The merged expandDetails, either passed in, from config or from server info.
  * @property {{[fieldName:string]:import('vue').Component}} fieldComponents - The field components to use, either passed in or as a result of fieldObject or expandObject.
- * @property {{[fieldName:string]: {[key:string]: any, themeOverride: import('@vueda/use/useTheme.js').ThemeObject|undefined}}} fieldProps - The field props to use, either passed in or as a result of fieldObject or expandObject.
  * @property {{[fieldName:string]: import('vue').Component}} widgetComponents - The widget components to use, either passed in or as a result of fieldObject or expandObject.
- * @property {{[fieldName:string]: {[key:string]: any, themeOverride: import('@vueda/use/useTheme.js').ThemeObject|undefined}}} widgetProps - The widget props to use, either passed in or as a result of fieldObject or expandObject.
  * @property {Set<string>} baseFieldNames - The field names that are not expanded.
  * @property {Set<string>} expansionFieldNames - The field names that are expanded.
  * @property {Set<string>} expandedFieldNames - The field names that are expanded and base.
@@ -112,7 +110,7 @@ const getFieldProps = (field) => {
  */
 
 /**
- * @typedef {UseFormModelRawOverridableProps | import('@vueda/use/useTheme.js').ThemeRawProps} UseFormModelRawProps
+ * @typedef {UseFormModelRawOverridableProps} UseFormModelRawProps
  * @property {string} app - The app name to load form configuration for
  * @property {string} model - The model name to load form configuration for
  * @property {string|undefined} view - The view name if wanting to use view specific configuration.

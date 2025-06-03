@@ -111,12 +111,14 @@ export const defaultFieldMappings = {
         FloatRangeField: {
             component: availableFields.FieldSetRange,
             widget: availableWidgets.WidgetInputNumber,
-            fieldProps: { boundaryComponent: availableFields.FieldNumber },
+            boundaryComponent: availableFields.FieldDecimal,
+            boundaryWidget: availableWidgets.WidgetInputNumber,
         },
         IntegerRangeField: {
             component: availableFields.FieldSetRange,
             widget: availableWidgets.WidgetInputNumber,
-            fieldProps: { boundaryComponent: availableFields.FieldNumber },
+            boundaryComponent: availableFields.FieldNumber,
+            boundaryWidget: availableWidgets.WidgetInputNumber,
         },
         TimeRangeField: {
             component: availableFields.FieldRange,
@@ -420,5 +422,56 @@ export const manyFieldMappings = {
     },
     UUIDField: {
         UUIDField: { widget: availableWidgets.WidgetInput, fieldProps: { manyComponent: availableFields.FieldUUID } },
+    },
+};
+export const filterFieldMapping = {
+    BooleanField: {
+        component: availableFields.FieldBoolean,
+        widget: availableWidgets.WidgetCheckbox,
+    },
+    CharField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput },
+    ChoiceField: { component: availableFields.FieldString, widget: availableWidgets.WidgetSelect },
+    NullBooleanField: {
+        component: availableFields.FieldString,
+        widget: availableWidgets.WidgetSelect,
+    },
+    ModelMultipleChoiceInField: {
+        component: availableFields.FieldArray,
+        widget: availableWidgets.WidgetModel,
+        widgetProps: { type: "multiSelect", isFilter: true },
+    },
+    ModelChoiceInField: {
+        component: availableFields.FieldArray,
+        widget: availableWidgets.WidgetModel,
+        widgetProps: { type: "multiSelect", isFilter: true },
+    },
+    DateRangeField: {
+        component: availableFields.FieldSetRange,
+        fieldProps: {
+            type: "date",
+            isFilter: true,
+        },
+        boundaryWidget: availableWidgets.WidgetDatePicker,
+        boundaryWidgetProps: { showIcon: true },
+        boundaryComponent: availableFields.FieldDate,
+    },
+    DateTimeRangeField: {
+        component: availableFields.FieldSetRange,
+        boundaryComponent: availableFields.FieldDate,
+        boundaryWidget: availableWidgets.WidgetDatePicker,
+        boundaryWidgetProps: { showTime: true },
+    },
+    ModelChoiceField: {
+        component: availableFields.FieldString,
+        widget: availableWidgets.WidgetModel,
+        widgetProps: { type: "select", isFilter: true },
+    },
+    DecimalField: {
+        component: availableFields.FieldDecimal,
+        widget: availableWidgets.WidgetInputNumber,
+    },
+    PositiveDecimalField: {
+        component: availableFields.FieldDecimal,
+        widget: availableWidgets.WidgetInputNumber,
     },
 };

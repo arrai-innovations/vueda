@@ -41,20 +41,41 @@ export default {
             ],
         },
     },
+    FilterGroup: {
+        root: {
+            class: "flex-col ",
+        },
+        filtersWrapper: {
+            class: "flex flex-wrap gap-1 mt-1",
+        },
+        messageWrapper: {
+            class: "flex my-2",
+        },
+    },
     FilterComponent: {
         root: {},
         clearButton: {
-            class: ({ hasFilterValue }) => ({
+            class: ({ hasFilterValue, errored }) => ({
                 "!border-dashed": !hasFilterValue,
+                "!border-red-500 !text-red-500": errored,
             }),
         },
         dropdownButton: {
-            class: ({ hasFilterValue }) => ({
+            class: ({ hasFilterValue, errored }) => ({
                 "!border-dashed": !hasFilterValue,
+                "!border-red-500 !text-red-500": errored,
             }),
         },
         formPopover: {
-            class: [],
+            class: ["sm:min-w-[25%]"],
+        },
+    },
+    FilterForm: {
+        outer: {
+            class: ["flex flex-col"],
+        },
+        heading: {
+            class: ["font-bold leading-relaxed"],
         },
     },
 };
