@@ -294,14 +294,14 @@ export const storeUser = defineStore("user", {
                 this.loading = false;
             }
         },
-        async checkResetLinkIsValid(parmas) {
+        async checkResetLinkIsValid(params) {
             let response;
             this.loading = true;
             this.error = null;
             this.errored = false;
             try {
                 try {
-                    const url = getUrl("isResetLinkValid").replace("{pk}", parmas.pk).replace("{token}", parmas.token);
+                    const url = getUrl("isResetLinkValid").replace("{pk}", params.pk).replace("{token}", params.token);
                     response = await fetch(`${httpOrHttpsHostname}${url}`, {
                         method: "GET",
                         credentials: "include",
