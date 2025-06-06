@@ -18,7 +18,11 @@ _Actions potentially required by implementers are marked with italics._
     import { setCustomUrl } from "@vueda/utils/urls.js";
 
     setCustomUrl("forgotPassword", "/routes/forgot-password/");
+    setCustomUrl("isResetLinkValid", "/routes/reset-password/?pk={pk}&token={token}"); // isResetLinkValid url assumes the backend expects a `pk` and `token` query parameter
     ```
+
+- **WidgetInput**
+    - Uses primevue `Password` component for type 'password'
 
 ### Fixes
 
