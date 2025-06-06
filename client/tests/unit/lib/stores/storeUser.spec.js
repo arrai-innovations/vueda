@@ -152,3 +152,145 @@ scopedIt("fetchCurrentUser stores error on invalid data", async () => {
     expect(store.loggedInUser).toEqual({});
     expect(store.initialized).toBe(true);
 });
+
+scopedIt("login stores validation error on bad request", async () => {
+    const { FormValidationError } = await vi.importActual("@vueda/utils/errors.js");
+    const data = { detail: "invalid" };
+    const response = new Response(JSON.stringify(data), { status: 400 });
+    getUrl.mockReturnValue("/login/");
+    getJsonOrText.mockResolvedValue(data);
+    fetch.mockResolvedValue(response);
+
+    const store = storeUser();
+    await store.login({ username: "u", password: "p" });
+
+    expect(store.error).toBeInstanceOf(FormValidationError);
+    expect(store.errored).toBe(true);
+    expect(store.loading).toBe(false);
+});
+
+scopedIt("login stores error on fetch failure", async () => {
+    getUrl.mockReturnValue("/login/");
+    fetch.mockRejectedValue(new Error("boom"));
+    const store = storeUser();
+    await store.login({ username: "u", password: "p" });
+    expect(store.error).toBeInstanceOf(Error);
+    expect(store.error.message).toMatch("Error sending authentication request");
+    expect(store.errored).toBe(true);
+    expect(store.loading).toBe(false);
+});
+
+scopedIt("logout does nothing when still logged out", async () => {
+    const store = storeUser();
+    store.fetchCurrentUser = vi.fn();
+    await store.logout();
+    expect(store.fetchCurrentUser).toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+});
+
+scopedIt("forgotPassword returns data on success", async () => {
+    const data = { ok: true };
+    const response = new Response(JSON.stringify(data), { status: 200 });
+    getUrl.mockReturnValue("/forgot/");
+    getJsonOrText.mockResolvedValue(data);
+    fetch.mockResolvedValue(response);
+
+    const store = storeUser();
+    const result = await store.forgotPassword({ email: "a@b.c" });
+    expect(result).toEqual(data);
+    expect(store.loading).toBe(false);
+    expect(store.error).toBeNull();
+});
+
+scopedIt("forgotPassword stores validation error", async () => {
+    const { FormValidationError } = await vi.importActual("@vueda/utils/errors.js");
+    const data = { email: ["required"] };
+    const response = new Response(JSON.stringify(data), { status: 400 });
+    getUrl.mockReturnValue("/forgot/");
+    getJsonOrText.mockResolvedValue(data);
+    fetch.mockResolvedValue(response);
+
+    const store = storeUser();
+    await store.forgotPassword({ email: "bad" });
+    expect(store.error).toBeInstanceOf(FormValidationError);
+    expect(store.errored).toBe(true);
+    expect(store.loading).toBe(false);
+});
+
+scopedIt("resetPassword returns data on success", async () => {
+    const data = { ok: true };
+    const response = new Response(JSON.stringify(data), { status: 200 });
+    getUrl.mockReturnValue("/reset/");
+    getJsonOrText.mockResolvedValue(data);
+    fetch.mockResolvedValue(response);
+
+    const store = storeUser();
+    const result = await store.resetPassword({ password: "p", password_confirm: "p" });
+    expect(result).toEqual(data);
+    expect(store.loading).toBe(false);
+    expect(store.error).toBeNull();
+});
+
+scopedIt("resetPassword stores validation error", async () => {
+    const { FormValidationError } = await vi.importActual("@vueda/utils/errors.js");
+    const data = { password: ["short"] };
+    const response = new Response(JSON.stringify(data), { status: 400 });
+    getUrl.mockReturnValue("/reset/");
+    getJsonOrText.mockResolvedValue(data);
+    fetch.mockResolvedValue(response);
+
+    const store = storeUser();
+    await store.resetPassword({ password: "p", password_confirm: "p" });
+    expect(store.error).toBeInstanceOf(FormValidationError);
+    expect(store.errored).toBe(true);
+    expect(store.loading).toBe(false);
+});
+
+scopedIt("resetPassword stores error on fetch failure", async () => {
+    getUrl.mockReturnValue("/reset/");
+    fetch.mockRejectedValue(new Error("boom"));
+    const store = storeUser();
+    await store.resetPassword({ password: "p", password_confirm: "p" });
+    expect(store.error).toBeInstanceOf(Error);
+    expect(store.error.message).toMatch("Error sending authentication request");
+    expect(store.errored).toBe(true);
+    expect(store.loading).toBe(false);
+});
+
+scopedIt("checkResetLinkIsValid stores invalid link error", async () => {
+    const { InvalidResetPasswordLinkError } = await vi.importActual("@vueda/stores/storeUser.js");
+    const data = { token: ["invalid"] };
+    const response = new Response(JSON.stringify(data), { status: 400 });
+    getUrl.mockReturnValue("/reset/{pk}/{token}/");
+    getJsonOrText.mockResolvedValue(data);
+    fetch.mockResolvedValue(response);
+
+    const store = storeUser();
+    await store.checkResetLinkIsValid({ pk: "1", token: "t" });
+    expect(store.error).toBeInstanceOf(InvalidResetPasswordLinkError);
+    expect(store.errored).toBe(true);
+});
+scopedIt("checkResetLinkIsValid returns data on success", async () => {
+    const data = { ok: true };
+    const response = new Response(JSON.stringify(data), { status: 200 });
+    getUrl.mockReturnValue("/reset/{pk}/{token}/");
+    getJsonOrText.mockResolvedValue(data);
+    fetch.mockResolvedValue(response);
+
+    const store = storeUser();
+    const result = await store.checkResetLinkIsValid({ pk: "1", token: "t" });
+    expect(result).toEqual(data);
+    expect(store.loading).toBe(false);
+    expect(store.error).toBeNull();
+});
+scopedIt("clearError resets error state", async () => {
+    const error = new Error("boom");
+    const store = storeUser();
+    store.error = error;
+    store.errored = true;
+
+    store.clearError();
+
+    expect(store.error).toBeNull();
+    expect(store.errored).toBe(false);
+});
