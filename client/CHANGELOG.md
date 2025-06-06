@@ -6,11 +6,19 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Breaking Changes
 
-- **ActionForm**
-    - `ModelConfig.defaultView` has been replaced by `actionRedirects`.
-      _Update any custom model config overrides to define `actionRedirects.default`._
-
 ### Features
+
+- **storeUser**
+
+    - added new methods `forgotPassword`, `resetPassword` and `checkResetLinkIsValid`
+    - _Note that there isn't a default Url set for these methods, so you wish to use these functions you will need to set `resetPassword`, `forgotPassword` or `isResetLinkValid` to the url corresponding to your backend implementation for the specific project,
+      for example_:
+
+    ```js
+    import { setCustomUrl } from "@vueda/utils/urls.js";
+
+    setCustomUrl("forgotPassword", "/routes/forgot-password/");
+    ```
 
 ### Fixes
 
