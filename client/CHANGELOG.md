@@ -2,7 +2,15 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.0-beta.3 (unreleased)
+## v2.0.0-beta.4 (unreleased)
+
+### Breaking Changes
+
+### Features
+
+### Fixes
+
+## v2.0.0-beta.3 (2025-06-09)
 
 ### Breaking Changes
 
