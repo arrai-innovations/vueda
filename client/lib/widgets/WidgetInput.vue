@@ -13,6 +13,7 @@ import InputMask from "primevue/inputmask";
 import InputNumber from "primevue/inputnumber";
 import InputOtp from "primevue/inputotp";
 import InputText from "primevue/inputtext";
+import Password from "primevue/password";
 import { computed, useSlots } from "vue";
 
 defineOptions({
@@ -34,6 +35,7 @@ const widgetContext = useWidget(props, emit);
 const inputComponent = computed(
     () =>
         ({
+            password: Password,
             text: InputText,
             number: InputNumber,
             otp: InputOtp,

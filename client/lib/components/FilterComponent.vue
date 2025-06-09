@@ -222,9 +222,7 @@ const applyFilter = () => {
 
     if (!addedFilters.value.some((f) => f.field === props.filterName)) {
         if (isEmpty(filterFormValue.value)) {
-            throw new Error(
-                `Filter "${filterFormValue.value}" has no value. Please provide a value before applying the filter.`,
-            );
+            return;
         }
 
         addedFilters.value.push(filterObject);

@@ -2,11 +2,35 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.0-beta.3 (unreleased)
+## v2.0.0-beta.4 (unreleased)
 
 ### Breaking Changes
 
 ### Features
+
+### Fixes
+
+## v2.0.0-beta.3 (2025-06-09)
+
+### Breaking Changes
+
+### Features
+
+- **storeUser**
+
+    - added new methods `forgotPassword`, `resetPassword` and `checkResetLinkIsValid`
+    - _Note that there isn't a default Url set for these methods, so you wish to use these functions you will need to set `resetPassword`, `forgotPassword` or `isResetLinkValid` to the url corresponding to your backend implementation for the specific project,
+      for example_:
+
+    ```js
+    import { setCustomUrl } from "@vueda/utils/urls.js";
+
+    setCustomUrl("forgotPassword", "/routes/forgot-password/");
+    setCustomUrl("isResetLinkValid", "/routes/reset-password/?pk={pk}&token={token}"); // isResetLinkValid url assumes the backend expects a `pk` and `token` query parameter
+    ```
+
+- **WidgetInput**
+    - Uses primevue `Password` component for type 'password'
 
 ### Fixes
 
@@ -17,7 +41,6 @@ _Actions potentially required by implementers are marked with italics._
 - **ActionForm**
     - `ModelConfig.defaultView` has been replaced by `actionRedirects`.
       _Update any custom model config overrides to define `actionRedirects.default`._
-      
 - **FilterComponent**
     - Removed and stopped using `filterFormValues`.
     - Automatically renders fields and widgets based on `filterableDetails.typeFilter`.
@@ -25,35 +48,43 @@ _Actions potentially required by implementers are marked with italics._
 ## Features
 
 - **ViewList**:
+
     - Ignores `ListFilterError` and passes it down to `FilterGroup` for handling.
 
 - **FilterGroup**:
+
     - Displays proper error messages when `ListFilterError` is thrown.
     - Uses the `useFilter` helper function to retrieve combined `filterables` and `filterableDetails`, instead of relying solely on props.
 
 - **FilterForm**:
+
     - Introduced new `FilterForm` component. Fields and widgets can be provided through slots named `filter-field(fieldname)` and `filter-widget(fieldname)`.
     - Submit button exposes `disabled` and `modified` as slot props.
     - Uses `fieldRenderer` to render fields and widgets. A `FilterModel` is passed into `fieldRenderer` as `formModel`.
 
 - **FilterComponent**:
+
     - Theme: The component outlines itself in red when an error occurs.
     - Uses `useModelChoices` to display filter labels.
     - Automatically applies or removes filters when route query values change.
 
 - **FieldSetRange**:
+
     - Refactored to use `fieldRenderer` for rendering boundary components.
     - Instead of using `boundaryComponents` props, field mapping now supports `boundaryComponent`, `boundaryComponentProps`, `boundaryWidget`, and `boundaryWidgetProps`.
 
 - **useFieldRenderer**:
+
     - Accepts either a `FilterModel` or `FormModel` via the `formModel` prop.
     - Added a new boolean prop `isFilter` to indicate if the model is a `FilterModel`. Defaults to `false`.
 
 - **listCrud**:
+
     - Introduced new error type: `ListFilterError`.
     - Both `singlePagePaginatedListCrudAdaptor` and `allPagePaginatedListCrudAdaptor` now throw `ListFilterError` when `responseData` includes filter parameters.
 
 - **useFilter**:
+
     - New helper function that returns a reactive state object similar to `FormModel`, designed for rendering filter fields and widgets.
 
 - **useFilterField**:

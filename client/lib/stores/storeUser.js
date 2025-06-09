@@ -22,6 +22,18 @@ class UserError extends FetchError {
         this.name = "UserError";
     }
 }
+export class InvalidResetPasswordLinkError extends FetchError {
+    /**
+     * Creates an instance of InvalidResetPasswordLinkError.
+     * @param {string} messagePrefix - The prefix for the error message.
+     * @param {Response} [response] - The response object associated with the error.
+     * @param {object|string} [responseData] - The data returned in the response.
+     */
+    constructor(messagePrefix, response, responseData) {
+        super(messagePrefix, response, responseData);
+        this.name = "InvalidResetPasswordLinkError";
+    }
+}
 
 /**
  * @typedef {import('pinia').Store<
@@ -40,6 +52,9 @@ class UserError extends FetchError {
  *       fetchCurrentUser: () => Promise<void>,
  *       login: (payload: object) => Promise<void>,
  *       logout: () => Promise<void>,
+ *       forgotPassword: () => Promise<void>,
+ *       resetPassword: () => Promise<void>,
+ *       checkResetLinkIsValid: () => Promise<void>,
  *       init: () => Promise<void>,
  *       clearError: () => void,
  *   },
@@ -64,6 +79,9 @@ class UserError extends FetchError {
  *
  *   user.init(); // fetch the current user, with initialization wrapping
  *   user.login({username: "username", password: "password"}); // login
+ *   user.forgotPassword({email: "password"}); /
+ *   user.resetPassword({password: "password", password_confirm: "password_confirm"});
+ *   user.checkResetLinkIsValid(); // login
  *   user.logout(); // logout
  *   user.fetchCurrentUser(); // fetch the current user
  * ```
@@ -195,6 +213,116 @@ export const storeUser = defineStore("user", {
                 this.error = error;
                 this.errored = true;
                 throw error;
+            } finally {
+                this.loading = false;
+            }
+        },
+        async forgotPassword(payload) {
+            let response;
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+            try {
+                try {
+                    response = await fetch(`${httpOrHttpsHostname}${getUrl("forgotPassword")}`, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": getCSRFValue(),
+                            "Content-Type": "application/json",
+                        },
+                        credentials: "include",
+                        body: JSON.stringify(payload),
+                    });
+                } catch (error) {
+                    throw new UserError("Error sending authentication request", error, {});
+                }
+                const responseData = await getJsonOrText(response);
+                if (response.status === 200) {
+                    return responseData;
+                }
+                let error;
+                if (response.status === 400) {
+                    // bad request
+                    // return instead of throw, avoiding the local catch and not getting added to the error state
+                    error = new FormValidationError(responseData, response);
+                } else {
+                    error = new UserError("Unexpected error occurred", response, responseData);
+                }
+                throw error;
+            } catch (error) {
+                this.error = error;
+                this.errored = true;
+                // throw error;
+            } finally {
+                this.loading = false;
+            }
+        },
+        async resetPassword(payload) {
+            let response;
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+            try {
+                try {
+                    response = await fetch(`${httpOrHttpsHostname}${getUrl("resetPassword")}`, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": getCSRFValue(),
+                            "Content-Type": "application/json",
+                        },
+                        credentials: "include",
+                        body: JSON.stringify(payload),
+                    });
+                } catch (error) {
+                    throw new UserError("Error sending authentication request", error, {});
+                }
+                const responseData = await getJsonOrText(response);
+                if (response.status === 200) {
+                    return responseData;
+                }
+                let error;
+                if (response.status === 400) {
+                    error = new FormValidationError(responseData, response);
+                } else {
+                    error = new UserError("Unexpected error occurred", response, responseData);
+                }
+                throw error;
+            } catch (error) {
+                this.error = error;
+                this.errored = true;
+            } finally {
+                this.loading = false;
+            }
+        },
+        async checkResetLinkIsValid(params) {
+            let response;
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+            try {
+                try {
+                    const url = getUrl("isResetLinkValid").replace("{pk}", params.pk).replace("{token}", params.token);
+                    response = await fetch(`${httpOrHttpsHostname}${url}`, {
+                        method: "GET",
+                        credentials: "include",
+                    });
+                } catch (error) {
+                    throw new UserError("Error sending authentication request", error, {});
+                }
+                const responseData = await getJsonOrText(response);
+                if (response.status === 200) {
+                    return responseData;
+                }
+                let error;
+                if (response.status === 400) {
+                    error = new InvalidResetPasswordLinkError(responseData, response);
+                } else {
+                    error = new UserError("Unexpected error occurred", response, responseData);
+                }
+                throw error;
+            } catch (error) {
+                this.error = error;
+                this.errored = true;
             } finally {
                 this.loading = false;
             }
