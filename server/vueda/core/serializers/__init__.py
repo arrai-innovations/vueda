@@ -341,7 +341,7 @@ class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):
 
 class VuedaLookupSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
-        fields = ["code", "name", "formatted_name"] + VuedaSerializer.Meta.fields
+        fields = ["id", "code", "name", "formatted_name"] + VuedaSerializer.Meta.fields
 
 
 # TODO: Create a test that uses the readonly serializers
