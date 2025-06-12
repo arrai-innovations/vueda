@@ -189,26 +189,26 @@ workflows:
                           only: /.*/
                       branches:
                           ignore: /.*/
-            - run_pipeline:
-                  name: run-sems-server-pipeline-tag
-                  requires:
-                      - publish
-                  project: sems-server
-                  filters:
-                      tags:
-                          only: /.*/
-                      branches:
-                          ignore: /.*/
-            - run_pipeline:
-                  name: run-wayfinders-server-pipeline-tag
-                  requires:
-                      - publish
-                  project: wayfinders-server
-                  filters:
-                      tags:
-                          only: /.*/
-                      branches:
-                          ignore: /.*/
+            # - run_pipeline:
+            #      name: run-sems-server-pipeline-tag
+            #      requires:
+            #          - publish
+            #      project: sems-server
+            #      filters:
+            #          tags:
+            #              only: /.*/
+            #          branches:
+            #              ignore: /.*/
+            # - run_pipeline:
+            #      name: run-wayfinders-server-pipeline-tag
+            #      requires:
+            #          - publish
+            #      project: wayfinders-server
+            #      filters:
+            #          tags:
+            #              only: /.*/
+            #          branches:
+            #              ignore: /.*/
     lint:
         jobs:
             - ruff/ruff_fixed_ip:
