@@ -133,24 +133,24 @@ workflows:
                           only: /.*/
                       tags:
                           only: /.*/
-            - run_pipeline:
-                  name: run-sems-server-pipeline-main
-                  requires:
-                      - pytest
-                  project: sems-server
-                  filters:
-                      branches:
-                          only:
-                              - main
-            - run_pipeline:
-                  name: run-wayfinders-server-pipeline-main
-                  requires:
-                      - pytest
-                  project: wayfinders-server
-                  filters:
-                      branches:
-                          only:
-                              - main
+            #            - run_pipeline:
+            #                  name: run-sems-server-pipeline-main
+            #                  requires:
+            #                      - pytest
+            #                  project: sems-server
+            #                  filters:
+            #                      branches:
+            #                          only:
+            #                              - main
+            #            - run_pipeline:
+            #                  name: run-wayfinders-server-pipeline-main
+            #                  requires:
+            #                      - pytest
+            #                  project: wayfinders-server
+            #                  filters:
+            #                      branches:
+            #                          only:
+            #                              - main
             - docs:
                   name: docs
                   context: arrai-global
