@@ -191,6 +191,11 @@ const props = defineProps({
         default: undefined,
         description: "A map of field paths to field details, as overrides.",
     },
+    expandDetails: {
+        type: Object,
+        default: undefined,
+        description: "Any overriding expand information by field path.",
+    },
     widgetComponents: {
         type: Object,
         default: undefined,

@@ -85,6 +85,16 @@ const props = defineProps({
         default: undefined,
         description: "Any overriding field information by field path.",
     },
+    expand: {
+        type: Array,
+        default: undefined,
+        description: "The expanding fields in the form.",
+    },
+    expandDetails: {
+        type: Object,
+        default: undefined,
+        description: "Any overriding expand information by field path.",
+    },
     fieldComponents: {
         type: Object,
         default: undefined,
@@ -381,6 +391,8 @@ const nonDetailActions = computed(() =>
                     :field-details="fieldDetails"
                     :field-props="fieldProps"
                     :fields="fields"
+                    :expand="expand"
+                    :expand-details="expandDetails"
                     :model="model"
                     :variant="formModelVariant"
                     :view="viewName"

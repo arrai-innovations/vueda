@@ -312,10 +312,8 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
         app: parentFormModel.app,
         model: parentFormModel.model,
         view: parentFormModel.view,
-        fields: computed(() => [...(parentFormModel.fields?.map((item) => item.value) || []), ...(props.fields || [])])
-            .value,
-        expand: computed(() => [...(parentFormModel.expand?.map((item) => item.value) || []), ...(props.expand || [])])
-            .value,
+        fields: computed(() => [...(deepUnref(parentFormModel.fields) || []), ...(props.fields || [])]),
+        expand: computed(() => [...(deepUnref(parentFormModel.expand) || []), ...(props.expand || [])]),
         fieldDetails: computed(() => merge(cloneDeep(parentFormModel.fieldDetails), props.fieldDetails)),
         fieldComponents: computed(() => merge(cloneDeep(parentFormModel.fieldComponents), props.fieldComponents)),
         fieldProps: computed(() => merge(cloneDeep(parentFormModel.fieldProps), props.fieldProps)),
@@ -342,10 +340,16 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
                 return [...state.fieldObjects].filter((field) => field.action);
             }),
             fieldNames: computed(() => {
-                if (props.fields) {
-                    return props.fields;
-                }
                 const prefix = `${fieldSetContext.state.formModelName}__`;
+
+                if (props.fields) {
+                    return props.fields.reduce((acc, fullFieldName) => {
+                        if (fullFieldName?.startsWith?.(prefix)) {
+                            acc.push(fullFieldName.slice(prefix.length));
+                        }
+                        return acc;
+                    }, []);
+                }
                 const hidden = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.hidden || [];
 
                 // noinspection JSValidateTypes,JSCheckFunctionSignatures
