@@ -47,12 +47,15 @@ def get_builtin_permissions(opts):
     perms = []
     for action in opts.default_permissions:
         action = permission_names_mapping.get(action, action)
-        perms.append(
-            (
-                get_permission_codename(action, opts),
-                f"Can {action} {opts.verbose_name_raw}",
-            )
+        perm = (
+            get_permission_codename(action, opts),
+            f"Can {action} {opts.verbose_name_raw}",
         )
+        # Make sure we don't add the same perm in the list twice, which can happen if older sites map list to view.
+        # create_permissions in django would then try to create the
+        # same permission twice, and get a duplicate key violation.
+        if perm not in perms:
+            perms.append(perm)
     return perms
 
 
