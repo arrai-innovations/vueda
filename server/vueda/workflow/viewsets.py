@@ -1,10 +1,10 @@
 from django.conf import settings
-from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import Http404
 from rest_framework import mixins
 from rest_framework import status as drf_status
 from rest_framework import viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 

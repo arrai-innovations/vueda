@@ -1,10 +1,10 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied
 from django.db.models import Max
 from django.db.models import OuterRef
 from django.db.models import Subquery
 from rest_framework import status as drf_status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from vueda.history.serialiers import WhoIsSerializer
