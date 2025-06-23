@@ -1,9 +1,10 @@
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.http import Http404
 from rest_framework import mixins
 from rest_framework import status as drf_status
 from rest_framework import viewsets
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
@@ -87,6 +88,46 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             current_history_id = instance.object_state.history.latest().id
             response_data["current_history_id"] = current_history_id
         return Response(response_data)
+
+    @action(detail=True, methods=["get"])
+    def permitted_transitions(self, request, *args, **kwargs):
+        try:
+            workflow = self.get_workflow()
+        except Http404:
+            return Response([])
+        user = request.user
+
+        if user is not None:
+            workflow_permissions = [
+                ".".join(permission_parts)
+                for permission_parts in workflow.workflow_permissions.values_list(
+                    "permission__content_type__app_label",
+                    "permission__codename",
+                )
+            ]
+            if workflow_permissions and not user.has_perms(workflow_permissions):
+                raise PermissionDenied(
+                    f"User {user.get_username()!r} does not have workflow permissions for {workflow.content_type!r}"
+                )
+
+        transitions = workflow.transitions.exclude(transition_permissions__isnull=True).select_related("target").all()
+        permitted_ids = []
+        for transition in transitions:
+            perms = [
+                ".".join(p)
+                for p in transition.transition_permissions.values_list(
+                    "permission__content_type__app_label",
+                    "permission__codename",
+                )
+            ]
+            if user is None:
+                if perms:
+                    permitted_ids.append(transition.id)
+            elif user.has_perms(perms):
+                permitted_ids.append(transition.id)
+
+        result = transitions.filter(pk__in=permitted_ids).order_by("name").values("code", "name")
+        return Response(list(result))
 
     @action(detail=True, methods=["get"], url_path=r"object-transitions/(?P<object_id>[^/.]+)")
     def object_transitions(self, request, *args, **kwargs):
