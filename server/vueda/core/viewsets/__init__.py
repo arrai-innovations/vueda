@@ -283,8 +283,9 @@ class DeactivateActionViewSetMixin:
         if pk:
             instance = self.get_object()
             if not isinstance(instance, ActivatableBaseModel):
-                raise VuedaValidationError(
-                    {pk: [f"Deactivate action is not supported for {instance.__class__.__name__}."]}
+                return Response(
+                    {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
+                    status=405,
                 )
             if not instance.is_active:
                 raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already deactivated"]})
@@ -309,8 +310,9 @@ class DeactivateActionViewSetMixin:
         already_deactivated = []
         for instance in queryset:
             if not isinstance(instance, ActivatableBaseModel):
-                raise VuedaValidationError(
-                    {pk: [f"Deactivate action is not supported for {instance.__class__.__name__}."]}
+                return Response(
+                    {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
+                    status=405,
                 )
 
             elif not instance.is_active:
@@ -329,8 +331,9 @@ class DeactivateActionViewSetMixin:
         if pk:
             instance = self.get_object()
             if not isinstance(instance, ActivatableBaseModel):
-                raise VuedaValidationError(
-                    {pk: [f"Activate action is not supported for {instance.__class__.__name__}."]}
+                return Response(
+                    {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
+                    status=405,
                 )
 
             if instance.is_active:
@@ -357,8 +360,9 @@ class DeactivateActionViewSetMixin:
         already_activated = []
         for instance in queryset:
             if not isinstance(instance, ActivatableBaseModel):
-                raise VuedaValidationError(
-                    {pk: [f"Deactivate action is not supported for {instance.__class__.__name__}."]}
+                return Response(
+                    {"detail": f"Activate action is not supported for {instance.__class__.__name__}."},
+                    status=405,
                 )
 
             elif instance.is_active:
