@@ -9,6 +9,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
 
 from vueda.core.decorators import action
+from vueda.core.exceptions import VuedaValidationError
 from vueda.core.models import ActivatableBaseModel
 from vueda.history.viewsets import SimpleHistoryViewSetMixin
 
@@ -287,10 +288,7 @@ class DeactivateActionViewSetMixin:
                     status=405,
                 )
             if not instance.is_active:
-                return Response(
-                    {"detail": f"{instance.__class__.__name__} with id {instance.pk} is already deactivated."},
-                    status=400,
-                )
+                raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already deactivated"]})
             instance.is_active = False
             instance.save()
             return Response(
@@ -316,14 +314,12 @@ class DeactivateActionViewSetMixin:
                     {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
                     status=405,
                 )
+
             elif not instance.is_active:
                 already_deactivated.append(instance.pk)
 
         if already_deactivated:
-            return Response(
-                {"detail": f"Instances with id {', '.join(map(str, already_deactivated))} are already deactivated."},
-                status=400,
-            )
+            raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already deactivated"]})
 
         # Perform bulk deactivation in a single query
         queryset.update(is_active=False)
@@ -339,11 +335,10 @@ class DeactivateActionViewSetMixin:
                     {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
                     status=405,
                 )
+
             if instance.is_active:
-                return Response(
-                    {"detail": f"{instance.__class__.__name__} with id {instance.pk} is already activated."},
-                    status=400,
-                )
+                raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already activated"]})
+
             instance.is_active = True
             instance.save()
             return Response(
@@ -369,14 +364,12 @@ class DeactivateActionViewSetMixin:
                     {"detail": f"Activate action is not supported for {instance.__class__.__name__}."},
                     status=405,
                 )
+
             elif instance.is_active:
                 already_activated.append(instance.pk)
 
         if already_activated:
-            return Response(
-                {"detail": f"Instances with id {', '.join(map(str, already_activated))} are already activated."},
-                status=405,
-            )
+            raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already activated"]})
 
         # Perform bulk deactivation in a single query
         queryset.update(is_active=True)

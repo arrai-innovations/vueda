@@ -9,9 +9,9 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.exceptions import PermissionDenied
 from django.db import models
 from django.db.models import QuerySet
+from rest_framework.exceptions import PermissionDenied
 from simple_history.models import HistoricalRecords
 
 from vueda.core.models import BaseModelMeta

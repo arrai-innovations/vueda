@@ -1,7 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
@@ -9,6 +8,7 @@ from django.utils.safestring import mark_safe
 from django.utils.timezone import now
 from django.views import View
 from django.views.generic import TemplateView
+from rest_framework.exceptions import PermissionDenied
 
 from vueda.user.mixins import LogoutMixin
 from vueda.workflow import models
