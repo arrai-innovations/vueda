@@ -54,6 +54,8 @@ class SimpleHistoryViewSetMixin:
     @action(detail=True, methods=["get"])
     def history_list(self, *args, **kwargs):
         # if it is slow then we should try making postgres do it.
+        user_model = get_user_model()
+        user_cache = {}
         instance = self.get_object()
         history_queryset = instance.history.all().order_by("-history_date")
         page = self.paginate_queryset(history_queryset)
@@ -81,9 +83,11 @@ class SimpleHistoryViewSetMixin:
                 different_fields=different_fields,
             )
             new_data = serializer.data
-            user = new_data["history_user"]
-            if user:
-                new_data["history_user"] = get_user_model().objects.get(pk=user).formatted_name
+            user_id = new_data["history_user"]
+            if user_id:
+                if user_id not in user_cache:
+                    user_cache[user_id] = user_model.objects.get(pk=user_id).formatted_name
+                new_data["history_user"] = user_cache[user_id]
             new_data["num_changes"] = len(different_fields)
             changes = []
             if different_fields:
