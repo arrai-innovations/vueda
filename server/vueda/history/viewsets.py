@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.db.models import Max
 from django.db.models import OuterRef
 from django.db.models import Subquery
@@ -53,6 +54,8 @@ class SimpleHistoryViewSetMixin:
     @action(detail=True, methods=["get"])
     def history_list(self, *args, **kwargs):
         # if it is slow then we should try making postgres do it.
+        user_model = get_user_model()
+        user_cache = {}
         instance = self.get_object()
         history_queryset = instance.history.all().order_by("-history_date")
         page = self.paginate_queryset(history_queryset)
@@ -69,33 +72,50 @@ class SimpleHistoryViewSetMixin:
             if previous_entry is None:
                 # all the field names on the entry
                 different_fields = []
+                delta = None
             else:
-                different_fields = self.diff_fields(previous_entry, entry)
+                delta = entry.diff_against(previous_entry, foreign_keys_are_objs=True)
+                different_fields = delta.changed_fields
+
             serializer = DynamicHistoricalSerializer(
                 instance=entry,
                 model_serializer_class=serializer_class,
                 different_fields=different_fields,
             )
-            changes = []
             new_data = serializer.data
+            user_id = new_data["history_user"]
+            if user_id:
+                if user_id not in user_cache:
+                    user_cache[user_id] = user_model.objects.get(pk=user_id).formatted_name
+                new_data["history_user"] = user_cache[user_id]
             new_data["num_changes"] = len(different_fields)
+            changes = []
             if different_fields:
-                previous_serializer = DynamicHistoricalSerializer(
-                    instance=previous_entry,
-                    model_serializer_class=serializer_class,
-                    different_fields=different_fields,
-                )
-                old_data = previous_serializer.data
-                for field in different_fields:
-                    copy = {
-                        "new": new_data[field],
-                        "old": old_data[field],
-                        "field": field,
-                    }
+                for change in delta.changes:
+                    if hasattr(change.new, "_meta") or hasattr(change.old, "_meta"):
+                        copy = {
+                            "new": change.new.formatted_name if hasattr(change.new, "_meta") else change.new.pk,
+                            "old": change.old.formatted_name if hasattr(change.old, "_meta") else change.old.pk,
+                            "field": change.field,
+                        }
+                    else:
+                        copy = {
+                            "new": change.new,
+                            "old": change.old,
+                            "field": change.field,
+                        }
                     changes.append(copy)
-                new_data["changes"] = changes
-                new_data.pop(field)
 
+                new_data["changes"] = changes
+            elif delta:
+                copy = {
+                    "new": "",
+                    "old": "",
+                    "field": "related object updated",
+                }
+                new_data["changes"] = changes
+                new_data["num_changes"] = 1
+                changes.append(copy)
             previous_entry = entry
             serialized_data.append(new_data)
 
