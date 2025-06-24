@@ -3,15 +3,14 @@ import { loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
-import { useFormModel } from "@vueda/use/useFormModel.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
-import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import omit from "lodash-es/omit.js";
+import { DateTime } from "luxon";
 import Button from "primevue/button";
 import { computed, inject, reactive, ref, toRef } from "vue";
 import { useRouter } from "vue-router";
@@ -76,7 +75,6 @@ const modelListProps = reactive({
         pk: toRef(props, "pk"),
         action: "history_list",
     },
-    params: {},
     pkKey: "history_id",
     params: {
         [props.pageKey]: currentPage,
@@ -123,26 +121,20 @@ const calculatedHistoryFieldsObjects = computed(() => {
     return history_fields ? Object.entries(history_fields).map(([key, value]) => ({ name: key, ...value })) : [];
 });
 const computedFieldObjects = computed(() => {
-    return props.fields.map((field) => {
-        return (
-            calculatedHistoryFieldsObjects.value.find((f) => f.name === field) ||
-            extraFieldObjects.value.find((f) => f.name === field)
-        );
-    });
+    return props.fields
+        .map((field) => {
+            return (
+                calculatedHistoryFieldsObjects.value.find((f) => f.name === field) ||
+                extraFieldObjects.value.find((f) => f.name === field)
+            );
+        })
+        .filter(Boolean);
 });
 const calculatedHistoryFields = computed(() => {
     return calculatedHistoryFieldsObjects.value.map((field) => field.name);
 });
-const formFields = computed(() => {
-    return ["history", ...Object.keys(modelConfig.info?.fields ?? {})];
-});
-const formModelProps = reactive({
-    app: toRef(props, "app"),
-    model: toRef(props, "model"),
-    fields: formFields,
-});
+
 const router = useRouter();
-const formModel = useFormModel(formModelProps);
 const computedChangeObjects = computed(() => {
     return instanceList.state.objectsInOrder.flatMap((item, parentIndex) => {
         if (!item.num_changes) {
@@ -174,6 +166,9 @@ const evenColumn = (obj) => {
     return obj.parent_row % 2 === 0;
 };
 const theme = useTheme("ViewHistoryList");
+const formatHistoryDate = (date) => {
+    return date ? DateTime.fromISO(date).toLocaleString(DateTime.DATETIME_MED) : "";
+};
 </script>
 <template>
     <div :class="theme('root')">
@@ -203,91 +198,27 @@ const theme = useTheme("ViewHistoryList");
             >
                 <template v-for="field in calculatedHistoryFields" :key="field" #[`field(${field})`]="{ obj }">
                     <slot :name="`field(${field})`" v-bind="{ obj }">
-                        <component
-                            :is="formModel.fieldComponents[`history__${field}`]"
-                            v-if="formModel.fieldComponents[`history__${field}`]"
-                            v-bind="formModel.fieldProps[`history__${field}`]"
-                            :model-value="obj[field]"
-                            :name="`${field}`"
-                        >
-                            <div>
-                                <WidgetReadOnly
-                                    v-bind="formModel.widgetProps[`history__${field}`]"
-                                    :hidden="isTable"
-                                    :name="`history__${field}`"
-                                />
-                            </div>
-                        </component>
+                        {{ field === "history_date" ? formatHistoryDate(obj[field]) : obj[field] }}
                     </slot>
                 </template>
                 <template #field(new)="{ obj }">
                     <slot name="field(new)">
                         <div v-if="!isTable" v-for="changed in obj.changes" :key="changed.field">
-                            <component
-                                :is="formModel.fieldComponents[changed.field]"
-                                v-if="formModel.fieldComponents[changed.field]"
-                                v-bind="formModel.fieldProps[changed.field]"
-                                :model-value="changed.new"
-                                :name="`${changed.field}_new`"
-                            >
-                                <div>
-                                    <WidgetReadOnly
-                                        v-bind="formModel.widgetProps[changed.field]"
-                                        :name="`${changed.field}_new`"
-                                    />
-                                </div>
-                            </component>
+                            {{ changed.new }}
                         </div>
-                        <component
-                            :is="formModel.fieldComponents[obj.field]"
-                            v-else-if="formModel.fieldComponents[obj.field]"
-                            v-bind="formModel.fieldProps[obj.field]"
-                            :model-value="obj.new"
-                            :name="`${obj.field}_new`"
-                        >
-                            <div>
-                                <WidgetReadOnly
-                                    v-bind="formModel.widgetProps[obj.field]"
-                                    :hidden="true"
-                                    :name="`${obj.field}_new`"
-                                />
-                            </div>
-                        </component>
+                        <div v-else>
+                            {{ obj.new }}
+                        </div>
                     </slot>
                 </template>
                 <template #field(old)="{ obj }">
                     <slot name="field(old)">
                         <div v-if="!isTable" v-for="changed in obj.changes" :key="changed.field">
-                            <component
-                                :is="formModel.fieldComponents[changed.field]"
-                                v-if="formModel.fieldComponents[changed.field]"
-                                v-bind="formModel.fieldProps[changed.field]"
-                                :model-value="changed.old"
-                                :name="`${changed.field}_old`"
-                            >
-                                <div>
-                                    <WidgetReadOnly
-                                        v-bind="formModel.widgetProps[changed.field]"
-                                        :name="`${changed.field}_old`"
-                                    />
-                                </div>
-                            </component>
+                            {{ changed.old }}
                         </div>
-                        <component
-                            :is="formModel.fieldComponents[obj.field]"
-                            v-else-if="formModel.fieldComponents[obj.field]"
-                            v-bind="formModel.fieldProps[obj.field]"
-                            :model-value="obj.old"
-                            :name="`${obj.field}_old`"
-                        >
-                            <div>
-                                <WidgetReadOnly
-                                    v-bind="formModel.widgetProps[obj.field]"
-                                    :hidden="true"
-                                    :name="`${obj.field}_old`"
-                                />
-                            </div>
-                        </component>
+                        <div v-else>
+                            {{ obj.old }}
+                        </div>
                     </slot>
                 </template>
             </objects-grid>
