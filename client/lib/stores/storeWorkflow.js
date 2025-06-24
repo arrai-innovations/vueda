@@ -115,8 +115,15 @@ const makeResultObject = (app, model, pk) => ({
     model: unref(model),
     pk: unref(pk),
 });
-const workflowListTransitionUrl = (app, model) =>
-    `${httpOrHttpsHostname}${getUrl("workflowList")}?app_label=${memoizedSnakeCase(app)}&model=${memoizedSnakeCase(model)}&e=transitions`;
+const workflowUserPermittedTransitionsUrl = (result) => {
+    const routeTemplate = getUrl("workflowUserPermittedTransitions");
+    // Replace placeholders with actual values from the result object
+    const urlWithVariables = routeTemplate
+        .replace(":app", memoizedSnakeCase(result.app))
+        .replace(":model", memoizedSnakeCase(result.model))
+        .replace(":pk", result.pk);
+    return `${httpOrHttpsHostname}${urlWithVariables}`;
+};
 const modelStatesUrl = (app, model) =>
     `${httpOrHttpsHostname}${getUrl("workflowStates")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
 const objectStatesUrl = (result) =>
@@ -248,7 +255,7 @@ export const storeWorkflow = defineStore("workflow", {
             }
             if (!this.promises.workflowTransitions[key]) {
                 this.promises.workflowTransitions[key] = fetchHelper(
-                    workflowListTransitionUrl(app, model),
+                    workflowUserPermittedTransitionsUrl({ app, model }),
                     {
                         method: "GET",
                     },
@@ -259,11 +266,11 @@ export const storeWorkflow = defineStore("workflow", {
                 )
                     .then((data) => {
                         if (data !== "marker") {
-                            if (!data.results.length) {
+                            if (!data.length) {
                                 this.workflowTransitions[key] = [];
                                 return [];
                             }
-                            this.workflowTransitions[key] = data.results[0].transitions;
+                            this.workflowTransitions[key] = data;
                             return this.workflowTransitions[key];
                         }
                     })

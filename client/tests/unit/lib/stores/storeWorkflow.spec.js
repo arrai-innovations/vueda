@@ -26,7 +26,7 @@ describe("lib/store/storeWorkflow.js", () => {
 
     scopedIt("fetchWorkflowTransition stores and caches transitions", async () => {
         const transitions = [{ code: "one", name: "One" }];
-        mockedFetchHelper.mockResolvedValue({ results: [{ transitions }] });
+        mockedFetchHelper.mockResolvedValue(transitions);
         const store = storeWorkflow();
 
         const result = await store.fetchWorkflowTransition("app", "model");

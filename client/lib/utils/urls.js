@@ -16,6 +16,7 @@ const defaultUrls = {
     userLogin: "/routes/vueda.user/login/",
     userLogout: "/routes/vueda.user/logout/",
     workflowList: "/routes/vueda.workflow/workflows/",
+    workflowUserPermittedTransitions: "/routes/vueda.workflow/workflows/:app/:model/permitted_transitions/",
     workflowRetrieveTransition: "/routes/vueda.workflow/workflows/",
     workflowExecuteTransition: "/routes/vueda.workflow/workflows/:app/:model/execute-transition/",
     workflowObjectState: "/routes/vueda.workflow/workflows/:app/:model/object-state/:pk/",
