@@ -1,0 +1,60 @@
+ERROR 2025-06-23 09:43:17,595 exceptions 576397 140245788096320 Exception in DRF view
+Traceback (most recent call last):
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/serializers.py", line 231, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string="[ErrorDetail(string='Test Error 1', code='invalid')]", code='invalid'), ErrorDetail(string="[{'warnings': [ErrorDetail(string='Test Warning 1', code='warning')]}]", code='invalid'), ErrorDetail(string="[ErrorDetail(string='Test Error 2', code='invalid')]", code='invalid'), ErrorDetail(string="[{'warnings': [ErrorDetail(string='Test Warning 2', code='warning')]}]", code='invalid')]}
+ERROR 2025-06-23 09:43:17,808 exceptions 576397 140245788096320 Exception in DRF view
+Traceback (most recent call last):
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/serializers.py", line 231, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string="[ErrorDetail(string='Test Error 1', code='invalid')]", code='invalid'), ErrorDetail(string="[ErrorDetail(string='Test Error 2', code='invalid')]", code='invalid')]}
+ERROR 2025-06-23 14:47:56,384 exceptions 1223280 139832358696768 Exception in DRF view
+Traceback (most recent call last):
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/serializers.py", line 231, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string="[ErrorDetail(string='Test Error 1', code='invalid')]", code='invalid'), ErrorDetail(string="[{'warnings': [ErrorDetail(string='Test Warning 1', code='warning')]}]", code='invalid'), ErrorDetail(string="[ErrorDetail(string='Test Error 2', code='invalid')]", code='invalid'), ErrorDetail(string="[{'warnings': [ErrorDetail(string='Test Warning 2', code='warning')]}]", code='invalid')]}
+ERROR 2025-06-23 14:47:56,618 exceptions 1223280 139832358696768 Exception in DRF view
+Traceback (most recent call last):
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/serializers.py", line 231, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string="[ErrorDetail(string='Test Error 1', code='invalid')]", code='invalid'), ErrorDetail(string="[ErrorDetail(string='Test Error 2', code='invalid')]", code='invalid')]}
+ERROR 2025-06-24 15:48:07,384 exceptions 2430520 139920935036736 Exception in DRF view
+Traceback (most recent call last):
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/serializers.py", line 231, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string="[ErrorDetail(string='Test Error 1', code='invalid')]", code='invalid'), ErrorDetail(string="[{'warnings': [ErrorDetail(string='Test Warning 1', code='warning')]}]", code='invalid'), ErrorDetail(string="[ErrorDetail(string='Test Error 2', code='invalid')]", code='invalid'), ErrorDetail(string="[{'warnings': [ErrorDetail(string='Test Warning 2', code='warning')]}]", code='invalid')]}
+ERROR 2025-06-24 15:48:07,605 exceptions 2430520 139920935036736 Exception in DRF view
+Traceback (most recent call last):
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/zoey/.local/share/virtualenvs/vueda-server-NIKahSmJ/lib/python3.11/site-packages/rest_framework/serializers.py", line 231, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string="[ErrorDetail(string='Test Error 1', code='invalid')]", code='invalid'), ErrorDetail(string="[ErrorDetail(string='Test Error 2', code='invalid')]", code='invalid')]}
