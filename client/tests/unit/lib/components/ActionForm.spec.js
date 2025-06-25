@@ -430,9 +430,9 @@ describe("lib/components/ActionForm.vue", () => {
             const { wrapper } = mountWithContext({ props: { runAction: undefined } });
             await wrapper.find('[data-qa="prime-button"]').trigger("click");
             await flushPromises();
-            const err1 = resolver({ status: 400 }, {});
+            const err1 = resolver("", { status: 400 }, {});
             expect(err1).toBeInstanceOf(FormValidationError);
-            const err2 = resolver({ status: 500 }, {});
+            const err2 = resolver("", { status: 500 }, {});
             expect(err2).toBeInstanceOf(FetchError);
         });
     });

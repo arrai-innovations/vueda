@@ -350,13 +350,7 @@ export function useWidget(props, emit) {
         }),
 
         // *** Disabled Behavior ***
-        disabled: computed(() => {
-            const fc = unref(fieldContext);
-            if (fc) {
-                return fc.state.disabled;
-            }
-            return props.disabledFn ? props.disabledFn() : props.disabled;
-        }),
+        disabled: computed(() => (props.disabledFn ? props.disabledFn() : props.disabled)),
 
         // *** Dependency Management ***
         dependencyValues: computed(() => {

@@ -36,7 +36,30 @@ describe("lib/utils/fetchSupport.js", () => {
         await expect(getJsonOrText(response)).rejects.toThrow("boom");
         JSON.parse = original;
     });
+    scopedIt("fetchHelper accepts errorClass as a callable", async () => {
+        const customErrorFn = vi.fn((prefix) => {
+            return new Error(`custom error: ${prefix}`);
+        });
 
+        const res = new Response(null, { status: 400 }); // simulate error response
+        global.fetch = vi.fn().mockResolvedValue(res);
+
+        await expect(fetchHelper("/api", {}, "fetch", customErrorFn)).rejects.toThrow("custom error: fetch");
+
+        expect(customErrorFn).toHaveBeenCalledWith("fetch", res, expect.anything());
+    });
+    scopedIt("fetchHelper accepts errorClass as a class constructor", async () => {
+        class MyCustomError extends Error {
+            constructor(prefix) {
+                super(`MyCustomError: ${prefix}`);
+            }
+        }
+
+        const res = new Response(null, { status: 500 });
+        global.fetch = vi.fn().mockResolvedValue(res);
+
+        await expect(fetchHelper("/api", {}, "fetch", MyCustomError)).rejects.toThrow(MyCustomError);
+    });
     scopedIt("fetchHelper resolves with parsed data on success", async () => {
         const res = new Response(JSON.stringify({ ok: true }), { status: 200 });
         global.fetch = vi.fn().mockResolvedValue(res);

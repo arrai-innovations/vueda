@@ -20,14 +20,6 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    app: {
-        type: String,
-        required: true,
-    },
-    model: {
-        type: String,
-        required: true,
-    },
     fieldName: {
         type: String,
         required: true,

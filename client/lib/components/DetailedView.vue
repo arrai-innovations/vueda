@@ -10,6 +10,7 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
 import { useObjectsWorkflowTransitions } from "@vueda/use/useObjectsWorkflowTransitions.js";
+import { getActionName } from "@vueda/utils/actionMap.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
@@ -282,13 +283,13 @@ const availableTransitions = computed(() => {
 const detailActions = computed(() =>
     availableActions.value.filter((n) => {
         const a = modelConfig.config?.actionDetails?.[n];
-        return a && props.viewName !== n && a.detail;
+        return a && getActionName(props.viewName) !== n && a.detail;
     }),
 );
 const nonDetailActions = computed(() =>
     availableActions.value.filter((n) => {
         const a = modelConfig.config?.actionDetails?.[n];
-        return a && props.viewName !== n && !a.detail;
+        return a && getActionName(props.viewName) !== n && !a.detail;
     }),
 );
 </script>

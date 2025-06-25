@@ -104,7 +104,7 @@ watch(
                     </slot>
                 </div>
                 <div :class="theme('title')" data-qa="field-set-singular-stacked-inline-title">
-                    <slot name="title">
+                    <slot :name="fieldSetInline.resolvedSlotNames['title'].name">
                         {{ fieldSetContext.state.label }}
                     </slot>
                 </div>

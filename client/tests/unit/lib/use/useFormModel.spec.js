@@ -2,10 +2,17 @@ import { scopedIt } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
 
 describe("lib/use/useFormModel.js", () => {
-    beforeEach(() => {
+    let modelConfig;
+    let vue;
+    beforeEach(async () => {
         vi.doMock("@vueda/use/useModelConfig", () => ({
             useModelConfig: vi.fn(() => ({ config: {} })),
         }));
+        vue = await import("vue");
+        const useModelConfig = (await import("@vueda/use/useModelConfig")).useModelConfig;
+        modelConfig = vue.reactive({ config: { fieldDetails: {} } });
+        const modelConfigReturnValue = vue.readonly(modelConfig);
+        useModelConfig.mockReturnValue(modelConfigReturnValue);
     });
 
     afterEach(() => {
@@ -30,11 +37,6 @@ describe("lib/use/useFormModel.js", () => {
     describe("field state computation", () => {
         scopedIt("creates field state including expansion fields", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
-            const vue = await import("vue");
-            const useModelConfig = (await import("@vueda/use/useModelConfig")).useModelConfig;
-
-            const modelConfig = vue.readonly(vue.reactive({ config: {} }));
-            useModelConfig.mockReturnValue(modelConfig);
 
             const props = vue.reactive({
                 app: "foo",
@@ -74,6 +76,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+            modelConfig.config.expandDetails = props.expandDetails;
             await flushPromises();
 
             expect([...state.baseFieldNames]).toEqual(["name", "department"]);
@@ -87,11 +91,6 @@ describe("lib/use/useFormModel.js", () => {
         });
         scopedIt("uses expand details when field name contains '__'", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
-            const vue = await import("vue");
-            const useModelConfig = (await import("@vueda/use/useModelConfig")).useModelConfig;
-
-            const modelConfig = vue.readonly(vue.reactive({ config: {} }));
-            useModelConfig.mockReturnValue(modelConfig);
 
             const props = vue.reactive({
                 app: "foo",
@@ -124,6 +123,9 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+            modelConfig.config.expandDetails = props.expandDetails;
+
             await flushPromises();
 
             expect([...state.baseFieldNames]).toEqual([]);
@@ -152,6 +154,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.fieldComponents).toEqual({});
@@ -162,11 +166,6 @@ describe("lib/use/useFormModel.js", () => {
         });
         scopedIt("creates default details for top-level fields with underscore suffixes", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
-            const vue = await import("vue");
-            const useModelConfig = (await import("@vueda/use/useModelConfig")).useModelConfig;
-
-            const modelConfig = vue.readonly(vue.reactive({ config: {} }));
-            useModelConfig.mockReturnValue(modelConfig);
 
             const props = vue.reactive({
                 app: "foo",
@@ -174,11 +173,13 @@ describe("lib/use/useFormModel.js", () => {
                 view: "create",
                 fields: ["display_"],
                 expand: [],
-                fieldDetails: {},
+                fieldDetails: { non_empty_: {} },
                 expandDetails: {},
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect([...state.baseFieldNames]).toEqual(["display_"]);
@@ -188,12 +189,6 @@ describe("lib/use/useFormModel.js", () => {
         });
         scopedIt("creates default details for expansion fields with underscore suffixes", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
-            const vue = await import("vue");
-            const useModelConfig = (await import("@vueda/use/useModelConfig")).useModelConfig;
-
-            const modelConfig = vue.readonly(vue.reactive({ config: {} }));
-            useModelConfig.mockReturnValue(modelConfig);
-
             const props = vue.reactive({
                 app: "foo",
                 model: "bar",
@@ -217,6 +212,9 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+            modelConfig.config.expandDetails = props.expandDetails;
+
             await flushPromises();
 
             expect([...state.baseFieldNames]).toEqual([]);
@@ -243,6 +241,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.computedFields).toEqual([]);
@@ -267,16 +267,13 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.fieldComponents.score).toBe(availableFields.FieldString);
         });
         scopedIt("uses prop.fields when both prop and config supply fields", async () => {
-            vi.doMock("@vueda/use/useModelConfig", () => ({
-                useModelConfig: vi.fn(() => ({
-                    config: { fields: ["name"] },
-                })),
-            }));
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
 
             const props = makeBaseProps({
@@ -290,8 +287,11 @@ describe("lib/use/useFormModel.js", () => {
                     },
                 },
             });
+            modelConfig.config.fields = ["name"];
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect([...state.baseFieldNames]).toEqual(["title"]);
@@ -300,13 +300,6 @@ describe("lib/use/useFormModel.js", () => {
     describe("field detail fallback behavior", () => {
         scopedIt("prefers explicit prop readOnly over config defaults", async () => {
             // mock model-config to declare name readOnly=true
-            vi.doMock("@vueda/use/useModelConfig", () => ({
-                useModelConfig: vi.fn(() => ({
-                    config: {
-                        fieldProps: { code: { readOnly: true } },
-                    },
-                })),
-            }));
 
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
 
@@ -324,8 +317,11 @@ describe("lib/use/useFormModel.js", () => {
                     code: { readOnly: false }, // override
                 },
             });
+            modelConfig.config.fieldProps = { code: { readOnly: true } };
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.widgetProps.code.readOnly).toBe(false);
@@ -368,6 +364,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             const theme = state.fieldProps.name.themeOverride;
@@ -392,6 +390,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.fieldProps.rating.maxFractionDigits).toBe(2);
@@ -413,6 +413,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.fieldProps.name.readOnly).toBe(false);
@@ -423,10 +425,6 @@ describe("lib/use/useFormModel.js", () => {
         scopedIt("throws on unknown expand name", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
             const vue = await import("vue");
-            const useModelConfig = (await import("@vueda/use/useModelConfig")).useModelConfig;
-
-            const modelConfig = vue.readonly(vue.reactive({ config: {} }));
-            useModelConfig.mockReturnValue(modelConfig);
 
             const props = vue.reactive({
                 app: "foo",
@@ -445,17 +443,18 @@ describe("lib/use/useFormModel.js", () => {
                 },
                 expandDetails: {},
             });
-
-            expect(() => useFormModel(props)).toThrow("Unknown expand department specified for foo.bar");
+            let errorThrown = null;
+            try {
+                useFormModel(props);
+                modelConfig.config.fieldDetails = props.fieldDetails;
+                await vue.nextTick();
+            } catch (err) {
+                errorThrown = err;
+            }
+            expect(errorThrown.message).toBe("Unknown expand department specified for foo.bar");
         });
         scopedIt("throws on unknown field inside a known expand", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
-            const vue = await import("vue");
-            const useModelConfig = (await import("@vueda/use/useModelConfig")).useModelConfig;
-
-            // mock empty config
-            const modelConfig = vue.readonly(vue.reactive({ config: {} }));
-            useModelConfig.mockReturnValue(modelConfig);
 
             const props = vue.reactive({
                 app: "foo",
@@ -476,16 +475,20 @@ describe("lib/use/useFormModel.js", () => {
                     department: { f: {} }, // no bogus entry here
                 },
             });
+            let errorThrown = null;
+            try {
+                useFormModel(props);
+                modelConfig.config.fieldDetails = props.fieldDetails;
+                modelConfig.config.expandDetails = props.expandDetails;
+                await vue.nextTick();
+            } catch (err) {
+                errorThrown = err;
+            }
 
-            expect(() => useFormModel(props)).toThrow("Unknown field bogus specified for expand department on foo.bar");
+            expect(errorThrown.message).toBe("Unknown field bogus specified for expand department on foo.bar");
         });
         scopedIt("ignores expand base names not present in fields", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
-            const vue = await import("vue");
-            const useModelConfig = (await import("@vueda/use/useModelConfig")).useModelConfig;
-
-            const modelConfig = vue.readonly(vue.reactive({ config: {} }));
-            useModelConfig.mockReturnValue(modelConfig);
 
             const props = vue.reactive({
                 app: "foo",
@@ -518,6 +521,9 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+            modelConfig.config.expandDetails = props.expandDetails;
+
             await flushPromises();
 
             expect([...state.baseFieldNames]).toEqual(["name"]);
@@ -525,11 +531,6 @@ describe("lib/use/useFormModel.js", () => {
         });
         scopedIt("handles expand with no field definitions", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
-            const vue = await import("vue");
-            const useModelConfig = (await import("@vueda/use/useModelConfig")).useModelConfig;
-
-            const modelConfig = vue.readonly(vue.reactive({ config: {} }));
-            useModelConfig.mockReturnValue(modelConfig);
 
             const props = vue.reactive({
                 app: "foo",
@@ -552,6 +553,9 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+            modelConfig.config.expandDetails = props.expandDetails;
+
             await flushPromises();
 
             expect([...state.baseFieldNames]).toEqual(["department"]);
@@ -580,6 +584,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.widgetComponents.status).toBeTruthy();
@@ -605,6 +611,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.fieldComponents.amount).toBe(
@@ -630,6 +638,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.fieldComponents.kind).toBe(choiceFieldMappings.ChoiceField.CharField.component);
@@ -651,6 +661,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.fieldComponents.tags).toBeTruthy();
@@ -684,6 +696,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.fieldComponents.summary).toBe(FieldCustom);
@@ -710,6 +724,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.widgetComponents.title).toBe(availableWidgets.WidgetReadOnly);
@@ -733,6 +749,7 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
             await flushPromises();
 
             expect(state.widgetComponents.status).toBe(availableWidgets.WidgetMultiSelect);
@@ -759,6 +776,9 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+            modelConfig.config.expandDetails = props.expandDetails;
+
             await flushPromises();
 
             expect(state.fieldComponents.tags).toBe(availableFields.FieldSetStackedInline);
@@ -784,6 +804,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.fieldComponents.title).toBe(availableFields.FieldSetTabularInline);
@@ -809,6 +831,8 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
             await flushPromises();
 
             expect(state.widgetComponents.notes).toBe(availableWidgets.WidgetTextarea);
@@ -834,6 +858,9 @@ describe("lib/use/useFormModel.js", () => {
             });
 
             const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+            modelConfig.config.expandDetails = props.expandDetails;
+
             await flushPromises();
 
             expect(state.widgetComponents.dep).toBe(null);
@@ -842,12 +869,6 @@ describe("lib/use/useFormModel.js", () => {
     describe("error handling for misconfigured fields", () => {
         scopedIt("throws on unknown field", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
-            const vue = await import("vue");
-            const useModelConfig = (await import("@vueda/use/useModelConfig")).useModelConfig;
-
-            // mock empty config
-            const modelConfig = vue.readonly(vue.reactive({ config: {} }));
-            useModelConfig.mockReturnValue(modelConfig);
 
             const props = vue.reactive({
                 app: "foo",
@@ -858,8 +879,17 @@ describe("lib/use/useFormModel.js", () => {
                 fieldDetails: {},
                 expandDetails: {},
             });
+            expect(() => useFormModel(props)).not.toThrow();
+            let errorThrown = null;
+            try {
+                useFormModel(props);
+                modelConfig.config.fieldDetails = { test: {} };
+                await vue.nextTick();
+            } catch (err) {
+                errorThrown = err;
+            }
 
-            expect(() => useFormModel(props)).toThrow("Unknown field bogus specified for foo.bar");
+            expect(errorThrown.message).toBe("Unknown field bogus specified for foo.bar");
         });
     });
     describe("setWidgetComponentProps", () => {

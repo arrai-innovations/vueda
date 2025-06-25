@@ -165,7 +165,7 @@ scopedIt("renders actions and transitions", async () => {
     const wrapper = mountWithContext();
     await vue.nextTick();
     const views = wrapper.findAll('[data-qa="link-model-view"]').map((n) => n.attributes("data-view"));
-    expect(views.sort()).toEqual(["activate", "approve", "complete", "destroy", "update"].sort());
+    expect(views.sort()).toEqual(["activate", "approve", "complete", "destroy", "read", "update"].sort());
 });
 
 scopedIt("sets form id and forwards attrs", () => {

@@ -117,11 +117,14 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         watch(
             [
                 () => modelConfig.config[configKey],
-                () => configDetailKey ?? modelConfig.config[configDetailKey],
+                () => (configDetailKey ? modelConfig.config[configDetailKey] : undefined),
                 toRef(props, propKey),
                 toRef(props, propDetailKey),
             ],
             () => {
+                if (configDetailKey && !Object.keys(modelConfig.config?.[configDetailKey] || {}).length) {
+                    return;
+                }
                 // props has priority over config
                 const desired = props[propKey] || modelConfig.config?.[configKey] || [];
                 // details fields merge at the field property level

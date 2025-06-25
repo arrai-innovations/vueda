@@ -26,6 +26,7 @@ const fieldSetTabularInline = useFieldSetTabularInline({
     props,
     emit,
     slotNames: [
+        "title",
         "toggle-button",
         "create-button",
         "create-button-inline",
@@ -90,7 +91,7 @@ watch(
                     </slot>
                 </div>
                 <div :class="fieldSetTabularInline.theme('title')" data-qa="field-set-tabular-inline-title">
-                    <slot name="title">
+                    <slot :name="fieldSetTabularInline.resolvedSlotNames['title'].name">
                         {{ fieldSetTabularInline.fieldSetContext.state.label }}
                     </slot>
                 </div>

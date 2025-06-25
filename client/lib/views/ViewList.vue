@@ -259,6 +259,9 @@ watch(
 watch(
     () => cloneDeep(listState.filterArgs),
     (newFilter, oldFilter) => {
+        if (route.params?.action !== "list") {
+            return; // ignore watcher, component is already being switched out
+        }
         if (!isEqual(newFilter, oldFilter)) {
             listState.currentPage = 1;
         }

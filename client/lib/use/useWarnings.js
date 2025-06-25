@@ -6,6 +6,16 @@ import { makeSearchParamsString } from "@vueda/utils/listCrud.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import { isRef, reactive, ref, toRef, watch } from "vue";
 
+let isUsingWarnings = true;
+
+/**
+ * Set the usingVuedaWorkFlow value.
+ *
+ * @param {boolean} value - The value to set isUsingWarnings to.
+ */
+export function setUsingWarnings(value) {
+    isUsingWarnings = value;
+}
 /**
  * @typedef {object} UseWarningRawState
  * @property {FormValidationError} formValidationErrors - The form validation errors.
@@ -83,6 +93,9 @@ function warningsFetch(app, model, action, pk, detailed) {
  * @param {import('@vueda/use/useObjectForm.js').ObjectFormState|null} [objectFormState] - The reactive state of the object form.
  */
 export function useWarnings(app, model, formContext, view, pk, objectFormState = null) {
+    if (!isUsingWarnings) {
+        return;
+    }
     if (!view) {
         view = ref(null);
     } else {

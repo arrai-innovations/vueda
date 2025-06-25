@@ -2,13 +2,41 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.0-beta.4 (unreleased)
+## v2.0.0-beta.5 (unreleased)
+
+### Breaking Changes
+
+### Features
+
+- **useWarnings**:
+    - Introduced `setUsingWarnings` which allows you to toggle the usage of warnings in the application. Defaults to `true`.
+- **fetchHelper**:
+    - Enhanced fetchHelper to accept either a class constructor or a factory function for `errorClass`.
+
+### Fixes
+
+- **StoreWorkflow**:
+    - Only return permitted workflow transitions for the current user via new `permitted_transitions` endpoint
+- **ViewHistoryList**:
+    - hide unused history fields not present in model config; simplify display with raw values and friendlier date formatting.
+- **ActionForm**:
+    - made sure the value of `formContext.state.anyErrors` was updated before checking it, prevent the form to submit when there are errors in the form.
+- **DetailedView**:
+    - prevented `retrieve` action being displayed when the read view is already the current view.
+- **buildForm**:
+    - fixed an issue where an exception will be thrown complaining about missing fieldDetail if `fields` are getting passed through props.
+
+## v2.0.0-beta.4 (2025-06-17)
 
 ### Breaking Changes
 
 ### Features
 
 ### Fixes
+
+- mergedFormModelProps.fields and mergedFormModelProps.expand was not reactive when parentFormModel.fields changes.
+- DetailedView now accept `expand` and `expandDetail` as props.
+- FormModel now accepts `expandDetail` as props.
 
 ## v2.0.0-beta.3 (2025-06-09)
 

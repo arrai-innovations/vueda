@@ -60,6 +60,7 @@ function mountWithContext(value, options = {}) {
         fieldSetContext,
         formModel: { fieldProps: { fm: {} } },
         resolvedSlotNames: {
+            title: { name: "title" },
             "toggle-button": { name: "toggle-button" },
             "create-button": { name: "create-button" },
             "create-button-inline": { name: "create-button-inline" },

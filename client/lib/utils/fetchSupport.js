@@ -55,9 +55,11 @@ export const fetchHelper = (
     errorResolver = undefined,
 ) => {
     const controller = new AbortController();
-
     if (!errorResolver) {
-        errorResolver = (response, data) => new errorClass(messagePrefix, response, data);
+        errorResolver = (response, data) =>
+            errorClass.prototype instanceof Error
+                ? new errorClass(messagePrefix, response, data)
+                : errorClass(messagePrefix, response, data);
     }
 
     const promise = new Promise((resolve, reject) => {
@@ -80,7 +82,11 @@ export const fetchHelper = (
             })
             .catch((error) => {
                 // AbortError can be handled separately if desired.
-                reject(new errorClass(messagePrefix, error, {}));
+                reject(
+                    errorClass.prototype instanceof Error
+                        ? new errorClass(messagePrefix, error, {})
+                        : errorClass(messagePrefix, error, {}),
+                );
             });
     });
 

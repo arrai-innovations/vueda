@@ -371,7 +371,7 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
                 }
 
                 const fields = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.f;
-                const omitFields = formModel?.expandDetails?.[fieldSetContext.state.formModelName].hidden;
+                const omitFields = formModel?.expandDetails?.[fieldSetContext.state.formModelName]?.hidden;
                 return fields ? Object.keys(omit(fields, omitFields)) : [];
             }),
             fieldObjects: computed(() => {

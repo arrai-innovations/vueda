@@ -17,7 +17,7 @@ import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import startCase from "lodash-es/startCase.js";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
-import { computed, inject, onDeactivated, onUnmounted, reactive, toRef, unref } from "vue";
+import { computed, inject, nextTick, onDeactivated, onUnmounted, reactive, toRef, unref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 defineOptions({
@@ -127,11 +127,11 @@ const defaultRunAction = (action) => {
             })(),
         },
         "Failed to execute action",
-        (response, data) => {
+        (message, response, data) => {
             if (response.status === 400) {
                 return new FormValidationError(data, response);
             }
-            return new FetchError("Failed to execute action", response, data);
+            return new FetchError(message, response, data);
         },
     );
 };
@@ -139,15 +139,15 @@ const runAction = computed(() => props.runAction || defaultRunAction);
 const formContext = inject(FormContextSymbol, null);
 let actionPromise = null;
 const handleConfirm = async () => {
+    formContext.setAllTouched();
+    await nextTick();
+    if (formContext.state.anyError) {
+        return;
+    }
     actionState.loading = true;
     actionState.errored = false;
     actionState.error = null;
     try {
-        formContext.setAllTouched();
-        if (formContext.state.anyError) {
-            return;
-        }
-
         actionPromise = unref(runAction)(props.action);
         const summary = unref(actionSuccessSummary);
         await actionPromise;
@@ -264,7 +264,7 @@ const redirectTo = async (result) => {
                             :class="theme('listItem')"
                             data-qa="action-form-list-item"
                         >
-                            <field-string :field-value="pk" :label="pk" :name="pk">
+                            <field-string :field-value="pk" :label="pk" :name="pk" :readOnly="true">
                                 <widget-read-only
                                     :app="app"
                                     :foreign-key-obj="fetchState.objects[pk]"
