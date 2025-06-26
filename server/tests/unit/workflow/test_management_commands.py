@@ -1255,7 +1255,7 @@ class TestManagementCommandWorkflowMulti(BaseTestCallCommand):
                 "id": {"code": "complete"},
                 "name": "complete",
             },
-            "history_date": datetime.datetime(2024, 7, 17, 19, 53, 55, 857366, tzinfo=datetime.timezone.utc),
+            "history_date": datetime.datetime(2024, 7, 17, 19, 53, 55, 857366, tzinfo=datetime.UTC),
             "history_type": "added",
             "model_name": "workflow",
         }, first_change

@@ -1,7 +1,4 @@
-from typing import Iterable
-from typing import List
-from typing import Optional
-from typing import Union
+from collections.abc import Iterable
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -492,20 +489,20 @@ class HasWorkflowModelMixin(models.Model):
         return ContentType.objects.get_for_model(cls)
 
     @property
-    def workflow(self) -> Optional[Workflow]:
+    def workflow(self) -> Workflow | None:
         return Workflow.objects.filter(content_type=self.content_type()).first()
 
     @property
-    def object_state(self) -> Optional[ObjectState]:
+    def object_state(self) -> ObjectState | None:
         osp = self.object_states_proxy.all().first()
         return osp and osp.object_state
 
     @property
-    def workflow_state(self) -> Optional[State]:
+    def workflow_state(self) -> State | None:
         object_state = self.object_state
         return object_state and object_state.state
 
-    def available_transitions(self, user: Optional[User] = None) -> QuerySet[Transition]:
+    def available_transitions(self, user: User | None = None) -> QuerySet[Transition]:
         """
         Returns available transitions for this object.
         """
@@ -532,8 +529,8 @@ class HasWorkflowModelMixin(models.Model):
     @classmethod
     def available_transitions_for(
         cls,
-        objs: Union[List["HasWorkflowModelMixin"], List[int], QuerySet["HasWorkflowModelMixin"]],
-        user: Optional[User] = None,
+        objs: list["HasWorkflowModelMixin"] | list[int] | QuerySet["HasWorkflowModelMixin"],
+        user: User | None = None,
     ) -> QuerySet[Transition]:
         """
         Returns available transitions for a list of objects.
@@ -566,7 +563,7 @@ class HasWorkflowModelMixin(models.Model):
         return transitions.filter(pk__in=[t.id for t in transitions if cls.check_transition_permission(t, user)])
 
     @classmethod
-    def check_workflow_permission(cls, user: Optional[User] = None) -> bool:
+    def check_workflow_permission(cls, user: User | None = None) -> bool:
         """
         user as None means superuser, pass django's AnonymousUser if you want to check for anonymous user.
         """
@@ -589,8 +586,8 @@ class HasWorkflowModelMixin(models.Model):
         raise PermissionDenied(f"User {user.get_username()!r} does not have permission for workflow {workflow.code!r}.")
 
     def check_state_permission(
-        self, perm: str, groups: Union[Iterable[str], Iterable[int], QuerySet["Group"]]
-    ) -> Optional[bool]:
+        self, perm: str, groups: Iterable[str] | Iterable[int] | QuerySet["Group"]
+    ) -> bool | None:
         # for our state are there any StatePermissions related to this permission?
         state_permission = StatePermission.objects.filter(
             state=self.workflow_state,
@@ -602,7 +599,7 @@ class HasWorkflowModelMixin(models.Model):
             return None
         return state_permission.grant_or_deny
 
-    def check_transition_permission(self, transition: Transition, user: Optional[User] = None) -> bool:
+    def check_transition_permission(self, transition: Transition, user: User | None = None) -> bool:
         """
         user as None means superuser, pass django's AnonymousUser if you want to check for anonymous user.
         """
@@ -621,7 +618,7 @@ class HasWorkflowModelMixin(models.Model):
             return False
         return user.has_perms(transition_permissions, obj=self)
 
-    def allow_transition(self, transition: Transition, user: Optional[User] = None) -> Union[bool, str]:
+    def allow_transition(self, transition: Transition, user: User | None = None) -> bool | str:
         """
         Check if transition is allowed for this object.
         return falsy or a string will raise a InvalidTransitionError exception in apply_transition
@@ -637,7 +634,7 @@ class HasWorkflowModelMixin(models.Model):
         except Transition.DoesNotExist:
             raise ValueError(f"Transition {transition_code!r} does not exist for workflow {self.workflow.code!r}.")
 
-    def apply_transition(self, transition_code: str, user: Optional[User] = None) -> tuple[State, Optional[int]]:
+    def apply_transition(self, transition_code: str, user: User | None = None) -> tuple[State, int | None]:
         """
         Apply a transition to the object.
         """
@@ -672,7 +669,7 @@ class HasWorkflowModelMixin(models.Model):
             return transition.target, object_state.history.latest().history_id
         return transition.target, None
 
-    def on_transition(self, transition: Transition, user: Optional[User] = None):
+    def on_transition(self, transition: Transition, user: User | None = None):
         """
         Override this method to add custom logic on transition.
         """

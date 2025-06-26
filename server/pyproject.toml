@@ -82,6 +82,8 @@ select = [
     "T20",
     # flake8-tidy-imports: https://docs.astral.sh/ruff/rules/#flake8-tidy-imports-tid
     "TID",
+    # pyupgrade: https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "UP",
 ]
 ignore = [
     # pycodestyle: let the reformatter deal with long lines
@@ -96,6 +98,10 @@ ignore = [
     "SIM105",
     # flake8-simplify: developers are a better judge as to when to use ternaries
     "SIM108",
+    # pyupgrade: super-call-with-parameters - possibly unsafe, needs testing/validation
+    "UP008",
+    # pyupgrade: non-pep604-isinstance - slower?
+    "UP038",
 ]
 
 [tool.ruff.lint.per-file-ignores]

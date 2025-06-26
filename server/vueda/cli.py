@@ -3,14 +3,7 @@ import sys
 import termios
 import tty
 from functools import partial
-
-
-try:
-    # future: drop this when we drop prior to python 3.13
-    # noinspection PyCompatibility
-    from pipes import quote as shell_quote
-except ImportError:
-    from shlex import quote as shell_quote
+from shlex import quote as shell_quote
 
 from colors import color
 

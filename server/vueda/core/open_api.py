@@ -1,7 +1,5 @@
 import copy
 from http.client import responses
-from typing import List
-from typing import Optional
 
 from django.conf import settings
 from django.db import models
@@ -401,7 +399,7 @@ else:
     class VuedaAutoSchema(VuedaBaseAutoSchema, SpectacularAutoSchema):
         def get_operation(
             self, path: str, path_regex: str, path_prefix: str, method: str, registry: ComponentRegistry
-        ) -> Optional[_SchemaType]:
+        ) -> _SchemaType | None:
             operation = super().get_operation(path, path_regex, path_prefix, method, registry)
 
             try:
@@ -416,7 +414,7 @@ else:
 
             return operation
 
-        def _get_parameters(self) -> List[_SchemaType]:
+        def _get_parameters(self) -> list[_SchemaType]:
             parameters = super()._get_parameters()
 
             # Sort all parameters alphabetically, except path parameters.

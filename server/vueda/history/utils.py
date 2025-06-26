@@ -31,6 +31,6 @@ def create_historical_record(
     if history_change_reason:
         attrs["history_change_reason"] = history_change_reason
     attrs["history_relation"] = instance
-    return (manager or apps.get_model(opts.app_label, "Historical{}".format(opts.model_name)).objects).create(
+    return (manager or apps.get_model(opts.app_label, f"Historical{opts.model_name}").objects).create(
         history_date=history_date or timezone.now(), history_type=history_type, history_user_id=user_id, **attrs
     )

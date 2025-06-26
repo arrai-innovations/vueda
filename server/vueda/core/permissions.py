@@ -1,6 +1,3 @@
-from typing import Optional
-from typing import Union
-
 from django.conf import settings
 from django.db.models import Q
 from rest_framework import exceptions
@@ -83,7 +80,7 @@ DEFAULT = object()
 
 class BaseRowLevelPermissions:
     @classmethod
-    def check_instance(cls, model, obj, perm, user, perm_type) -> Optional[bool]:
+    def check_instance(cls, model, obj, perm, user, perm_type) -> bool | None:
         """
         True if the user has the permission, False if the user does not have the permission, None if the check is not
         applicable due to there being no row level permissions for the model.
@@ -94,7 +91,7 @@ class BaseRowLevelPermissions:
         return None
 
     @classmethod
-    def check_queryset(cls, queryset, perm, user, perm_type) -> Union[Q, bool, None]:
+    def check_queryset(cls, queryset, perm, user, perm_type) -> Q | bool | None:
         """
         Return of None means do not filter based on row level permissions.
         Return of True means the user has the permission without needing to check the rows.

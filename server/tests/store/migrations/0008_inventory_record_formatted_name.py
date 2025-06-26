@@ -8,7 +8,7 @@ from django.db import migrations
 sql_path = "tests/store/sql"
 forward_sql_filename = "view-inventory_record_data-latest.sql"
 
-with open(os.path.join(sql_path, forward_sql_filename), mode="r") as f:
+with open(os.path.join(sql_path, forward_sql_filename)) as f:
     forwards_sql = f.read()
 
 

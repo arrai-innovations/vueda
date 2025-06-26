@@ -1,5 +1,3 @@
-from typing import Optional
-
 from django.conf import settings
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
@@ -17,7 +15,7 @@ class VUEDAPermissionsMixin(PermissionsMixin):
     class Meta:
         abstract = True
 
-    def has_perm(self, perm, obj: Optional[models.Model] = None):
+    def has_perm(self, perm, obj: models.Model | None = None):
         # django.contrib.auth.backends.ModelBackend always returns false if object is passed, so do not pass obj and
         #  deal with it ourselves
         if self.is_superuser:

@@ -1,6 +1,4 @@
 import inspect
-from typing import Dict
-from typing import List
 
 import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
@@ -146,11 +144,11 @@ class ExcludeFieldsSerializerMixin:
 class VuedaExpandableFieldsSerializerMixin:
     def _get_expanded_field_names(
         self,
-        expand_fields: List[str],
-        omit_fields: List[str],
-        sparse_fields: List[str],
-        next_level_omits: Dict[str, List[str]],  # rest_flex_fields says this is List[str], but it's a dictionary.
-    ) -> List[str]:
+        expand_fields: list[str],
+        omit_fields: list[str],
+        sparse_fields: list[str],
+        next_level_omits: dict[str, list[str]],  # rest_flex_fields says this is List[str], but it's a dictionary.
+    ) -> list[str]:
         for field_name in expand_fields:
             if field_name not in next_level_omits:
                 next_level_omits[field_name] = []

@@ -1,5 +1,5 @@
+from collections.abc import Iterable
 from copy import deepcopy
-from typing import Iterable
 
 from django import forms
 from django.utils.encoding import force_str

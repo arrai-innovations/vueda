@@ -15,7 +15,7 @@ sql_location = os.path.join(
     "view-vueda_workflow_objectstateproxy.sql",
 )
 
-with open(sql_location, mode="r") as f:
+with open(sql_location) as f:
     forwards_sql = f.read()
 
 

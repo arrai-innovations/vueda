@@ -110,7 +110,7 @@ def ask(
     stdout: typing.TextIO,
     stderr: typing.TextIO,
     question: str,
-    choices: typing.List[str],
+    choices: list[str],
     default: str,
     non_interactive: bool = False,
 ):
@@ -119,14 +119,14 @@ def ask(
     """
     if non_interactive:
         return default
-    char_input = all((len(x) == 1 for x in choices))
+    char_input = all(len(x) == 1 for x in choices)
     get_answer = orange_char if char_input else orange_input
     answer = ""
     if "" in choices:
         raise ValueError("Choices cannot include an empty string.")
-    if not all((x in choices for x in default)):
+    if not all(x in choices for x in default):
         raise ValueError("Default must be a subset of choices.")
-    if not all((x.isprintable() for x in choices)):
+    if not all(x.isprintable() for x in choices):
         raise ValueError("Choices must be printable characters.")
     while answer not in choices:
         print(wrap_text(f"{question} [{'/'.join(choices)}] ({default}): "), file=stdout)
@@ -174,7 +174,7 @@ def ask_tag(
 def echo_and_eval(
     stdout: typing.TextIO,
     stderr: typing.TextIO,
-    command: typing.Union[str, typing.List[str]],
+    command: str | list[str],
     extra_env: dict = None,
     shell: bool = False,
 ):

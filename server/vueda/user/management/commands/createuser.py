@@ -31,13 +31,12 @@ class Command(CreateSuperUserCommand):
         groups = apps.get_model("auth", "Group").objects.filter(name__in=group_names)
         if groups.count() < len(group_names):
             missing_groups = [
-                '"{}"'.format(group)
-                for group in set(group_names).difference(set(groups.values_list("name", flat=True)))
+                f'"{group}"' for group in set(group_names).difference(set(groups.values_list("name", flat=True)))
             ]
             missing_groups.sort()
             if len(missing_groups) > 1:
                 missing_groups_plural = True
-                missing_groups[-1] = "{} and {}".format(missing_groups[-2], missing_groups.pop(-1))
+                missing_groups[-1] = f"{missing_groups[-2]} and {missing_groups.pop(-1)}"
             else:
                 missing_groups_plural = False
             raise CommandError(

@@ -1152,7 +1152,7 @@ class Command(BaseCommand):
         # Return the date created in the django comment.
         django_comment = None
 
-        with open(os.path.join(*app_name.split("."), "migrations", f"{migration_name}.py"), "r", encoding="utf-8") as f:
+        with open(os.path.join(*app_name.split("."), "migrations", f"{migration_name}.py"), encoding="utf-8") as f:
             is_modified_by_us = False
             # Did we modify this migration?  Check the first 20 lines for our modified comment.
             for migration_line_no, migration_line in enumerate(f.readlines()):
