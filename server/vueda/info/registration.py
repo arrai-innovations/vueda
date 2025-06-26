@@ -143,20 +143,17 @@ def get_registered_content_types():
     :return: All the registered content types.
     """
     from django.contrib.contenttypes.models import ContentType
+    from django.db.models import Q
 
     registered_keys = list(_registry.keys())
-    content_types = []
+    if not registered_keys:
+        return []
 
-    for key in registered_keys:
-        app_label, model = key.split(".")
-        try:
-            content_type = ContentType.objects.get(app_label=app_label, model=model)
-            content_types.append(content_type.pk)
-        except ContentType.DoesNotExist:
-            # Handle the case where the ContentType might not exist yet (e.g., before migrations)
-            pass
+    query = Q()
+    for app_label, model in (key.split(".") for key in registered_keys):
+        query |= Q(app_label=app_label, model=model)
 
-    return content_types
+    return list(ContentType.objects.filter(query).values_list("pk", flat=True))
 
 
 # Required for testing, so we can have separate registry dictionaries for each test.
