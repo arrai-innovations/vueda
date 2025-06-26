@@ -319,7 +319,10 @@ class DeactivateActionViewSetMixin:
                 already_deactivated.append(instance.pk)
 
         if already_deactivated:
-            raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already deactivated"]})
+            errors = {}
+            for pk in already_deactivated:
+                errors[pk] = [f"This {instance.__class__.__name__} is already deactivated"]
+            raise VuedaValidationError(errors)
 
         # Perform bulk deactivation in a single query
         queryset.update(is_active=False)
@@ -367,10 +370,11 @@ class DeactivateActionViewSetMixin:
 
             elif instance.is_active:
                 already_activated.append(instance.pk)
-
         if already_activated:
-            raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already activated"]})
-
+            errors = {}
+            for pk in already_activated:
+                errors[pk] = [f"This {instance.__class__.__name__} is already activated"]
+            raise VuedaValidationError(errors)
         # Perform bulk deactivation in a single query
         queryset.update(is_active=True)
 
