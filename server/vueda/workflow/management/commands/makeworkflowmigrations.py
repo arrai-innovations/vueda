@@ -962,6 +962,32 @@ class Command(BaseCommand):
             ),
         )
 
+        choices = []
+        workflow_names = (
+            "workflow",
+            "workflowpermission",
+            "state",
+            "statepermission",
+            "initialstate",
+            "transition",
+            "transitionpermission",
+            "transitionsource",
+        )
+
+        for app_data in self._get_apps_with_workflow().values():
+            app_name = app_data["app_name"]
+            for model_name in app_data["model_to_content_type_ids"]:
+                for workflow_name in workflow_names:
+                    choices.append(f"{app_name}.{model_name}.{workflow_name}")
+
+        parser.add_argument(
+            "--debug",
+            action="append",
+            choices=choices,
+            default=[],
+            help=("Print debug information about an apps model and specified workflow model."),
+        )
+
     def _call_command(self, *args):
         err = io.StringIO()
         out = io.StringIO()
@@ -1958,12 +1984,64 @@ class Command(BaseCommand):
                 del changes[app_label]
         return changes
 
+    def print_debug(self, debug_name, app_data):
+        if debug_name in self.debug:
+            _app_name, model_name, workflow_model_name = debug_name.rsplit(".", 2)
+            history_data = app_data["history_by_model_name"][model_name][workflow_model_name]
+            queryset = history_data["queryset"]
+            unmatched = history_data["unmatched"]
+
+            heading_printed = False
+            for migration_name, migration_data in app_data["migrations"].items():
+                for change in migration_data["changes_by_model_name"].get(workflow_model_name, ()):
+                    if "matches_history" in change and queryset.filter(pk=change["matches_history"]).exists():
+                        if not heading_printed:
+                            heading_printed = True
+                            print("")  # noqa: T201
+                            print(f"Changes matching history records - {debug_name}")  # noqa: T201
+                            print("")  # noqa: T201
+
+                        print(f"  Change from {migration_name} matches history pk {change['matches_history']}:")  # noqa: T201
+                        print("    Change:")  # noqa: T201
+                        print(f"      {change}")  # noqa: T201
+                        print("    History:")  # noqa: T201
+                        print(f"      {queryset.filter(pk=change['matches_history']).values()}")  # noqa: T201
+
+            heading_printed = False
+            for migration_name, migration_data in app_data["migrations"].items():
+                for change in migration_data["changes_by_model_name"].get(workflow_model_name, ()):
+                    if "matches_history" not in change:
+                        if not heading_printed:
+                            heading_printed = True
+                            print("")  # noqa: T201
+                            print(f"Changes not matching history records - {debug_name}")  # noqa: T201
+                            print("")  # noqa: T201
+
+                        print(f"  Change from {migration_name} does not match history:")  # noqa: T201
+                        print("    Change:")  # noqa: T201
+                        print(f"      {change}")  # noqa: T201
+
+            heading_printed = False
+            if unmatched.exists():
+                for history_record in unmatched:
+                    if not heading_printed:
+                        heading_printed = True
+                        print("")  # noqa: T201
+                        print(f"Unmatched history - {debug_name}")  # noqa: T201
+                        print("")  # noqa: T201
+
+                    print("  History which will be added to the migration:")  # noqa: T201
+                    print(f"    {unmatched.filter(pk=history_record.pk).values()}")  # noqa: T201
+
+            print("")  # noqa: T201
+
     @atomic
     def handle(self, *app_labels, **options):
         self.dry_run = options["dry_run"]
         self.keep_history_date = options["keep_history_date"]
         self.env_guarded_operations = options["env_guarded_operations"]
         self.import_instead = options["import_instead"]
+        self.debug = options["debug"]
 
         # If you pass in a specific app, validate that it exists.
         app_labels = set(app_labels)
@@ -2009,6 +2087,8 @@ class Command(BaseCommand):
 
             for model_name, model_data in app_data["history_by_model_name"].items():
                 for workflow_model_name, model_history in model_data.items():
+                    self.print_debug(f"{app_name}.{model_name}.{workflow_model_name}", app_data)
+
                     queryset = model_history["queryset"]
                     unmatched = model_history["unmatched"]
 
