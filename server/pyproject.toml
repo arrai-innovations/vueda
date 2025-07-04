@@ -129,20 +129,6 @@ lines-after-imports = 2
 [tool.ruff.lint.mccabe]
 max-complexity = 20
 
-[tool.ruff.lint.flake8-self]
-ignore-names = [
-    # defaults
-    'setUp',
-    'tearDown',
-    'setUpClass',
-    'tearDownClass',
-    'setUpTestData',
-    'failureException',
-    'longMessage',
-    'maxDiff',
-    # custom (ideally, we'd want "assert*")
-]
-
 [tool.setuptools]
 include-package-data = false
 
