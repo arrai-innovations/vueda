@@ -89,7 +89,6 @@ MIGRATION_MODIFIED_COMMENT = (
 # This is less work than finding all the places that use them and adding noqa comments.
 changed_data = ()
 history_change_reason = ""
-keep_history_date = False
 migration_app_label = "vueda_workflow"
 
 
@@ -823,7 +822,7 @@ def add_history_to_data(history_data, obj, history_type, history_date, fields=()
 
     # For all history
     history_data["history_change_reason"] = history_change_reason
-    history_data["history_date"] = history_date if keep_history_date else timezone.now()
+    history_data["history_date"] = timezone.now()
     history_data["history_relation_id"] = obj.pk
     history_data["history_type"] = history_type
     history_data["id"] = obj.pk
@@ -935,11 +934,6 @@ class Command(BaseCommand):
             "--dry-run",
             action="store_true",
             help="Just show what migrations would be made; don't actually write them.",
-        )
-        parser.add_argument(
-            "--keep-history-date",
-            action="store_true",
-            help="Will set keep_history_date to True in the created migration.  This is mainly used by tests.",
         )
         parser.add_argument(
             "--env-guarded-operations",
@@ -1861,7 +1855,6 @@ class Command(BaseCommand):
 
             copied_code = [
                 f'''{NEWLINE}history_change_reason = "Workflow Migration - {migration_name.replace(".py", "")}"''',
-                f"{NEWLINE}keep_history_date = {self.keep_history_date}",
                 f'{NEWLINE}migration_app_label = "{app_label}"',
                 # Pretty Print is not formatted as nice as black.  At least a small width is better than nothing.
                 f"{NEWLINE}changed_data = {pformat(changed_data, width=20)}{NEWLINE}{NEWLINE}",
@@ -2038,7 +2031,6 @@ class Command(BaseCommand):
     @atomic
     def handle(self, *app_labels, **options):
         self.dry_run = options["dry_run"]
-        self.keep_history_date = options["keep_history_date"]
         self.env_guarded_operations = options["env_guarded_operations"]
         self.import_instead = options["import_instead"]
         self.debug = options["debug"]
