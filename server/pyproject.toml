@@ -92,6 +92,8 @@ ignore = [
     "F811",
     # flake8-fixme: "todo" comments are fine
     "FIX002",
+    # pylint: imports not at the top of the file are OK
+    "PLC0415",
     # ruff: don't care about annotations
     "RUF012",
     # flake8-simplify: try-except-pass is fine
