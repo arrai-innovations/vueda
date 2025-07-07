@@ -254,7 +254,7 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
         },
         paged: true,
         keepOldPages: true,
-        clearListOnListIntentTriggered: false,
+        clearListOnListIntentTriggered: computed(() => !props.isLazy),
     });
 
     const listObjects = computed(() => {
@@ -273,7 +273,7 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
             return readonly(virtualObjectsInOrder.value);
         }
         if (widgetContext.state.combinedValue && !selectedLookup.loading) {
-            return readonly([selectedLookup.object].filter(IsEmpty));
+            return readonly([selectedLookup.object].filter((o) => !IsEmpty(o)));
         }
         return readonly([]);
     });

@@ -11,8 +11,13 @@ _Actions potentially required by implementers are marked with italics._
 ### Fixes
 
 - **FieldSetStackedInLineRow**:
+
     - corrected the slot name for destroy button
     - hide feedback buttons for row level destroy checkboxes
+
+- **useSearchableSelect**:
+    - fixed an issue where search results were not loading correctly because previously loaded options were not being cleared.
+    - addressed a case where the options list is always empty when a valid selection existed.
 
 ## v2.0.0-beta.5 (2025-06-26)
 

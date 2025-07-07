@@ -145,4 +145,11 @@ describe("lib/use/useSearchableSelect.js", () => {
         await flushPromises();
         expect(result.selectedLabel).toBe("\u00A0");
     });
+
+    scopedIt("returns the selected value as the options", async () => {
+        const result = useSearchableSelect(props, widgetContext, selectRef);
+        widgetContext.state.combinedValue = 1;
+
+        expect(result.options).toEqual([lookup.object]);
+    });
 });
