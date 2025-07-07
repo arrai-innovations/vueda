@@ -2,9 +2,19 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.0-beta.5 (unreleased)
+## v2.0.0-beta.6 (unreleased)
 
 ### Breaking Changes
+
+### Features
+
+### Fixes
+
+- **FieldSetStackedInLineRow**:
+    - corrected the slot name for destroy button
+    - hide feedback buttons for row level destroy checkboxes
+
+## v2.0.0-beta.5 (2025-06-26)
 
 ### Features
 
@@ -28,10 +38,6 @@ _Actions potentially required by implementers are marked with italics._
 
 ## v2.0.0-beta.4 (2025-06-17)
 
-### Breaking Changes
-
-### Features
-
 ### Fixes
 
 - mergedFormModelProps.fields and mergedFormModelProps.expand was not reactive when parentFormModel.fields changes.
@@ -39,8 +45,6 @@ _Actions potentially required by implementers are marked with italics._
 - FormModel now accepts `expandDetail` as props.
 
 ## v2.0.0-beta.3 (2025-06-09)
-
-### Breaking Changes
 
 ### Features
 

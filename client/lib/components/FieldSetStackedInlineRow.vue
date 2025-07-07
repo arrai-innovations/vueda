@@ -104,7 +104,7 @@ const remainingSlotNames = computed(() => {
                             v-if="!pk"
                             :action="action"
                             :label="action.label"
-                            :name="fieldSetSlotNames['destroy-checkbox'].name"
+                            :name="fieldSetSlotNames['destroy-button'].name"
                             :row-index="index"
                             :selected="fieldSetContextState?.selected.includes(index)"
                             :theme="theme"
@@ -116,6 +116,7 @@ const remainingSlotNames = computed(() => {
                         </slot>
                         <slot
                             v-else
+                            :skip-feedback="true"
                             :action="action"
                             :contextless="true"
                             label="Destroy?"
@@ -129,6 +130,7 @@ const remainingSlotNames = computed(() => {
                             @update:model-value="emit('update:selected', $event)"
                         >
                             <widget-checkbox
+                                :skip-feedback="true"
                                 :contextless="true"
                                 :input-id="`selected-inline-row-${index}`"
                                 label="Destroy?"
