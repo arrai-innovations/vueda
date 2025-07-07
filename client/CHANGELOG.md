@@ -8,6 +8,9 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Features
 
+- **FieldSetStackedInLineRow**:
+    - defaultObjectsDelete throws `FormValidationError` for responses with `statusCode` 400.
+
 ### Fixes
 
 - **FieldSetStackedInLineRow**:

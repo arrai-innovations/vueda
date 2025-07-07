@@ -1,7 +1,7 @@
 import { CancellablePromise, cancellableFetch, deepUnref, setListCrud } from "@arrai-innovations/reactive-helpers";
 import { PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FetchError, ListFilterError } from "@vueda/utils/errors.js";
+import { FetchError, FormValidationError, ListFilterError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import isObject from "lodash-es/isObject.js";
@@ -215,10 +215,14 @@ export function defaultObjectsDelete({ target, pks }) {
             body: JSON.stringify({ pks }),
         },
         async (response) => {
+            const responseData = await getJsonOrText(response);
             if (response.status === 204) {
                 return;
             }
-            throw new FetchError("Failed to delete object", response, await getJsonOrText(response));
+            if (response.status === 400) {
+                throw new FormValidationError(responseData, response);
+            }
+            throw new FetchError("Failed to delete object", response, responseData);
         },
     );
 }
