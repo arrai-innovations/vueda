@@ -7,11 +7,9 @@ import os
 from django.apps import apps as django_apps
 from django.contrib.auth.management import create_permissions
 from django.db import migrations
-from django.utils import timezone
 
 
 history_change_reason = "Workflow Migration - 0003_workflow_migrations_2024_05_14"
-keep_history_date = True
 migration_app_label = "workflow_changed"
 changed_data = [
     {
@@ -1060,7 +1058,7 @@ def add_history_to_data(history_data, obj, history_type, history_date, fields=()
 
     # For all history
     history_data["history_change_reason"] = history_change_reason
-    history_data["history_date"] = history_date if keep_history_date else timezone.now()
+    history_data["history_date"] = history_date
     history_data["history_relation_id"] = obj.pk
     history_data["history_type"] = history_type
     history_data["id"] = obj.pk

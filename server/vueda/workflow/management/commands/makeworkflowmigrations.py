@@ -18,7 +18,6 @@ from django.core.management import BaseCommand
 from django.core.management import call_command
 from django.db import migrations
 from django.db.transaction import atomic
-from django.utils import timezone
 
 from vueda.workflow import models
 from vueda.workflow.custom_migration_operations import SkippableRunSQL
@@ -822,7 +821,7 @@ def add_history_to_data(history_data, obj, history_type, history_date, fields=()
 
     # For all history
     history_data["history_change_reason"] = history_change_reason
-    history_data["history_date"] = timezone.now()
+    history_data["history_date"] = history_date
     history_data["history_relation_id"] = obj.pk
     history_data["history_type"] = history_type
     history_data["id"] = obj.pk
