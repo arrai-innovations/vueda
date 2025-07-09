@@ -1463,7 +1463,7 @@ class Command(BaseCommand):
                     historical_queryset = self._get_historical_queryset_for_model(
                         workflow_model_name, workflow_model, content_type_id
                     )
-                    history_pks = list(historical_queryset.values_list("pk", flat=True))
+                    history_pks = tuple(historical_queryset.values_list("pk", flat=True))
                     existing_history_pks = set()
 
                     for migration_data in migrations.values():
