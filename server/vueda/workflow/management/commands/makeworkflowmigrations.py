@@ -1466,6 +1466,8 @@ class Command(BaseCommand):
                     history_pks = tuple(historical_queryset.values_list("pk", flat=True))
                     existing_history_pks = set()
 
+                    modified_historical_queryset = historical_queryset
+
                     for migration_data in migrations.values():
                         changed_data = migration_data["changes_by_model_name"].get(workflow_model_name, ())
                         for changed_item in changed_data:
@@ -1542,8 +1544,7 @@ class Command(BaseCommand):
 
                         changes_by_model_name[model_name].append(changed_item)
 
-            if migration_data["history_change_reasons"]:
-                migrations_by_app[app_name] = migration_data
+            migrations_by_app[app_name] = migration_data
 
         return migrations_by_app
 
