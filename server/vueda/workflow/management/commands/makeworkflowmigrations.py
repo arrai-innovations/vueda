@@ -1354,7 +1354,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**initialstate_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.last()
+                historical_obj = historical_queryset.first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "state":
@@ -1365,7 +1365,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**state_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.last()
+                historical_obj = historical_queryset.first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "statepermission":
@@ -1376,7 +1376,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**statepermission_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.last()
+                historical_obj = historical_queryset.first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "transition":
@@ -1387,7 +1387,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**transition_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.last()
+                historical_obj = historical_queryset.first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "transitionpermission":
@@ -1398,7 +1398,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**transitionpermission_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.last()
+                historical_obj = historical_queryset.first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "transitionsource":
@@ -1409,7 +1409,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**transitionsource_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.last()
+                historical_obj = historical_queryset.first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "workflow":
@@ -1420,7 +1420,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**workflow_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.last()
+                historical_obj = historical_queryset.first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "workflowpermission":
@@ -1431,7 +1431,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**workflowpermission_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.last()
+                historical_obj = historical_queryset.first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
         return historical_obj
