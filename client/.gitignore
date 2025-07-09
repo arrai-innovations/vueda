@@ -27,3 +27,6 @@ arrai-innovations-vueda-*.tgz
 
 # eslint
 .eslintcache
+
+# TypeScript build artifacts
+types/

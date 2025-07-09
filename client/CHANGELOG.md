@@ -2,19 +2,31 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.0-beta.6 (unreleased)
+## v2.0.0-beta.7 (unreleased)
 
 ### Breaking Changes
 
 ### Features
 
+### Fixes
+
+## v2.0.0-beta.6 (2025-07-09)
+
+### Breaking Changes
+
+### Features
+
+- **TypeScript Declaration Generation**:
+    - Added `tsconfig.json` and `build:types` script to generate TypeScript declarations from JSDoc comments.
+    - Package now includes `types/` directory with `.d.ts` files for improved TypeScript support.
+    - Automatically builds types before publishing via `prepublishOnly` script.
+    - _TypeScript projects can now get proper type inference and IDE support for vueda-client._
 - **FieldSetStackedInLineRow**:
     - defaultObjectsDelete throws `FormValidationError` for responses with `statusCode` 400.
 
 ### Fixes
 
 - **FieldSetStackedInLineRow**:
-
     - corrected the slot name for destroy button
     - hide feedback buttons for row level destroy checkboxes
 
@@ -57,7 +69,6 @@ _Actions potentially required by implementers are marked with italics._
 ### Features
 
 - **storeUser**
-
     - added new methods `forgotPassword`, `resetPassword` and `checkResetLinkIsValid`
     - _Note that there isn't a default Url set for these methods, so you wish to use these functions you will need to set `resetPassword`, `forgotPassword` or `isResetLinkValid` to the url corresponding to your backend implementation for the specific project,
       for example_:
@@ -88,43 +99,35 @@ _Actions potentially required by implementers are marked with italics._
 ## Features
 
 - **ViewList**:
-
     - Ignores `ListFilterError` and passes it down to `FilterGroup` for handling.
 
 - **FilterGroup**:
-
     - Displays proper error messages when `ListFilterError` is thrown.
     - Uses the `useFilter` helper function to retrieve combined `filterables` and `filterableDetails`, instead of relying solely on props.
 
 - **FilterForm**:
-
     - Introduced new `FilterForm` component. Fields and widgets can be provided through slots named `filter-field(fieldname)` and `filter-widget(fieldname)`.
     - Submit button exposes `disabled` and `modified` as slot props.
     - Uses `fieldRenderer` to render fields and widgets. A `FilterModel` is passed into `fieldRenderer` as `formModel`.
 
 - **FilterComponent**:
-
     - Theme: The component outlines itself in red when an error occurs.
     - Uses `useModelChoices` to display filter labels.
     - Automatically applies or removes filters when route query values change.
 
 - **FieldSetRange**:
-
     - Refactored to use `fieldRenderer` for rendering boundary components.
     - Instead of using `boundaryComponents` props, field mapping now supports `boundaryComponent`, `boundaryComponentProps`, `boundaryWidget`, and `boundaryWidgetProps`.
 
 - **useFieldRenderer**:
-
     - Accepts either a `FilterModel` or `FormModel` via the `formModel` prop.
     - Added a new boolean prop `isFilter` to indicate if the model is a `FilterModel`. Defaults to `false`.
 
 - **listCrud**:
-
     - Introduced new error type: `ListFilterError`.
     - Both `singlePagePaginatedListCrudAdaptor` and `allPagePaginatedListCrudAdaptor` now throw `ListFilterError` when `responseData` includes filter parameters.
 
 - **useFilter**:
-
     - New helper function that returns a reactive state object similar to `FormModel`, designed for rendering filter fields and widgets.
 
 - **useFilterField**:
@@ -151,7 +154,6 @@ _Actions potentially required by implementers are marked with italics._
 ### Fixes
 
 - **useLookupContext**
-
     - `pkKey` is now fetched from `storeModelInfo.fetchModelInfo`, not from
       `storeModelConfig`, so models with non-standard primary keys resolve
       correctly.
@@ -161,7 +163,6 @@ _Actions potentially required by implementers are marked with italics._
       them easier to filter.
 
 - **useFormModel**
-
     - `state.computedFields` is fully reactive.
     - `contextless` defaults to `true` for `computedFields` items, matching docs.
 
@@ -271,7 +272,6 @@ handle dynamic lookup mode, add default fields/expands, and prevent incorrect li
     - Old slots `field(fieldName)error`, `field-error`, `field(fieldName)message`, and `field-message` are **removed**.
     - _Update your overrides to use the new `feedback(fieldName)error`, `feedback-error`, `feedback(fieldName)message`, and `feedback-message` slots._
 - **Field Component Behavior**:
-
     - Removed implicit value coercion at the field level (`useField`) for nearly all field types.
     - Fields now **store raw values** directly (e.g., strings, numbers, dates, arrays, objects) without trying to parse or transform them automatically.
     - UI-specific value conversion (e.g., date parsing, numeric precision) is now handled **inside widgets** via `fieldToWidget` and `widgetToField` adapters.
@@ -399,7 +399,6 @@ handle dynamic lookup mode, add default fields/expands, and prevent incorrect li
 ### Breaking Changes
 
 - **Prop Renames for CRUD Operations**:
-
     - Replaced `crudArgs` with `target` across all usage of `useList`, `useObject`, and related view/component integrations.
     - Replaced both `listArgs` and `retrieveArgs` with `params`, simplifying how query parameters are passed.
     - Renamed `functions` to `handlers` for injected implementations of `list`, `retrieve`, etc.
@@ -448,7 +447,6 @@ handle dynamic lookup mode, add default fields/expands, and prevent incorrect li
 ### Breaking Changes
 
 - **Peer Dependency Update**:
-
     - Bumped `@arrai-innovations/reactive-helpers` to `^19.0.0` to support internal improvements in `cancellableFetch`, `CancellablePromise`, reactivity guards, and value unwrapping.
     - _Ensure your project dependency is updated to `^19.0.0` to maintain compatibility._
 
@@ -530,7 +528,6 @@ handle dynamic lookup mode, add default fields/expands, and prevent incorrect li
 #### Widgets & Fields
 
 - **Contextless Widget Props** (`useWidget`):
-
     - Added `readOnly`, `invalid`, and `warning` props for widgets used outside field context.
     - `WidgetLabel` now respects `readOnly` and hides required indicator when appropriate.
 
@@ -643,9 +640,7 @@ handle dynamic lookup mode, add default fields/expands, and prevent incorrect li
     - View type `"retrieve"` has been renamed to `"read"` for clarity.
       _Update your router config and component logic if referencing `"retrieve"`._
 - **Peer Dependency Updates**:
-
     - Updated peer ranges:
-
         - `pinia` ? `^3.0.1`
         - `@vueuse/core` ? `^13.0.0`
         - `@sentry/vue` ? `^9.5.0`
