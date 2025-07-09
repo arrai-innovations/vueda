@@ -955,7 +955,7 @@ class Command(BaseCommand):
             ),
         )
 
-        choices = []
+        choices = ["all"]
         workflow_names = (
             "workflow",
             "workflowpermission",
@@ -2089,7 +2089,7 @@ class Command(BaseCommand):
         return changes
 
     def print_debug(self, debug_name, app_data):
-        if debug_name in self.debug:
+        if debug_name in self.debug or "all" in self.debug:
             _app_name, model_name, workflow_model_name = debug_name.rsplit(".", 2)
             history_data = app_data["history_by_model_name"][model_name][workflow_model_name]
             queryset = history_data["queryset"]
@@ -2101,15 +2101,21 @@ class Command(BaseCommand):
                     if "matches_history" in change and queryset.filter(pk=change["matches_history"]).exists():
                         if not heading_printed:
                             heading_printed = True
-                            print("")  # noqa: T201
-                            print(f"Changes matching history records - {debug_name}")  # noqa: T201
-                            print("")  # noqa: T201
+                            self.stdout.write("")
+                            self.stdout.write(
+                                self.style.HTTP_NOT_FOUND(f"Changes matching history records - {debug_name}")
+                            )
+                            self.stdout.write("")
 
-                        print(f"  Change from {migration_name} matches history pk {change['matches_history']}:")  # noqa: T201
-                        print("    Change:")  # noqa: T201
-                        print(f"      {change}")  # noqa: T201
-                        print("    History:")  # noqa: T201
-                        print(f"      {queryset.filter(pk=change['matches_history']).values()}")  # noqa: T201
+                        self.stdout.write(
+                            self.style.MIGRATE_HEADING(
+                                f"  Change from {migration_name} matches history pk {change['matches_history']}:"
+                            )
+                        )
+                        self.stdout.write(self.style.HTTP_NOT_MODIFIED("    Change:"))
+                        self.stdout.write(f"      {change}")
+                        self.stdout.write(self.style.HTTP_NOT_MODIFIED("    History:"))
+                        self.stdout.write(f"      {queryset.filter(pk=change['matches_history']).values()}")
 
             heading_printed = False
             for migration_name, migration_data in app_data["migrations"].items():
@@ -2117,27 +2123,31 @@ class Command(BaseCommand):
                     if "matches_history" not in change:
                         if not heading_printed:
                             heading_printed = True
-                            print("")  # noqa: T201
-                            print(f"Changes not matching history records - {debug_name}")  # noqa: T201
-                            print("")  # noqa: T201
+                            self.stdout.write("")
+                            self.stdout.write(
+                                self.style.HTTP_NOT_FOUND(f"Changes not matching history records - {debug_name}")
+                            )
+                            self.stdout.write("")
 
-                        print(f"  Change from {migration_name} does not match history:")  # noqa: T201
-                        print("    Change:")  # noqa: T201
-                        print(f"      {change}")  # noqa: T201
+                        self.stdout.write(
+                            self.style.MIGRATE_HEADING(f"  Change from {migration_name} does not match history:")
+                        )
+                        self.stdout.write(self.style.HTTP_NOT_MODIFIED("    Change:"))
+                        self.stdout.write(f"      {change}")
 
             heading_printed = False
             if unmatched.exists():
                 for history_record in unmatched:
                     if not heading_printed:
                         heading_printed = True
-                        print("")  # noqa: T201
-                        print(f"Unmatched history - {debug_name}")  # noqa: T201
-                        print("")  # noqa: T201
+                        self.stdout.write("")
+                        self.stdout.write(self.style.HTTP_NOT_FOUND(f"Unmatched history - {debug_name}"))
+                        self.stdout.write("")
 
-                    print("  History which will be added to the migration:")  # noqa: T201
-                    print(f"    {unmatched.filter(pk=history_record.pk).values()}")  # noqa: T201
+                    self.stdout.write(self.style.MIGRATE_HEADING("  History which will be added to the migration:"))
+                    self.stdout.write(f"    {unmatched.filter(pk=history_record.pk).values()}")
 
-            print("")  # noqa: T201
+            self.stdout.write("")
 
     @atomic
     def handle(self, *app_labels, **options):
