@@ -1,6 +1,5 @@
 import ast
 import datetime
-import json
 import os
 import subprocess
 from importlib import import_module
@@ -119,7 +118,7 @@ class TestManagementCommandWorkflow(BaseTestCallCommand):
         assert "Migrations for 'workflow_duplicates':" in results, results
 
 
-class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
+class TestManagementCommandWorkflowAdded(BaseTestCallCommand, BasePyTestJsonResults):
     @classmethod
     def teardown_class(cls):
         # Delete test created migrations, for workflow added.
@@ -176,45 +175,7 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
         if stderr:
             pytest.fail(SUBPROCESS_EXCEPTION_TEXT + stderr, pytrace=False)
 
-        with open(json_report_file, "rb") as f:
-            json_results = json.load(f)
-
-        if os.path.exists(json_report_file):
-            os.remove(json_report_file)
-
-        summary = json_results["summary"]
-
-        if "error" in summary:
-            for test in json_results["tests"]:
-                if test["outcome"] == "error":
-                    if "longrepr" in test["setup"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["setup"]["longrepr"])
-
-                    elif "longrepr" in test["call"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["call"]["longrepr"])
-
-                    elif "longrepr" in test["teardown"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["teardown"]["longrepr"])
-
-                    else:
-                        # Not sure what the error was in, so give the entire error object back.
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + str(test))
-
-        if "failed" in summary:
-            for test in json_results["tests"]:
-                if test["outcome"] == "failed":
-                    if "longrepr" in test["setup"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["setup"]["longrepr"])
-
-                    elif "longrepr" in test["call"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["call"]["longrepr"])
-
-                    elif "longrepr" in test["teardown"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["teardown"]["longrepr"])
-
-                    else:
-                        # Not sure what the error was in, so give the entire dictionary as the error.
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + str(test))
+        self.handle_json_results(json_report_file, SUBPROCESS_EXCEPTION_TEXT)
 
         # Migrating forwards and backwards passed!
 
@@ -417,7 +378,7 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
         )
 
 
-class TestManagementCommandWorkflowChanged(BaseTestCallCommand):
+class TestManagementCommandWorkflowChanged(BaseTestCallCommand, BasePyTestJsonResults):
     @classmethod
     def teardown_class(cls):
         # Delete test created migrations, for workflow changed.
@@ -474,45 +435,7 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand):
         if stderr:
             pytest.fail(SUBPROCESS_EXCEPTION_TEXT + stderr, pytrace=False)
 
-        with open(json_report_file, "rb") as f:
-            json_results = json.load(f)
-
-        if os.path.exists(json_report_file):
-            os.remove(json_report_file)
-
-        summary = json_results["summary"]
-
-        if "error" in summary:
-            for test in json_results["tests"]:
-                if test["outcome"] == "error":
-                    if "longrepr" in test["setup"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["setup"]["longrepr"])
-
-                    elif "longrepr" in test["call"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["call"]["longrepr"])
-
-                    elif "longrepr" in test["teardown"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["teardown"]["longrepr"])
-
-                    else:
-                        # Not sure what the error was in, so give the entire error object back.
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + str(test))
-
-        if "failed" in summary:
-            for test in json_results["tests"]:
-                if test["outcome"] == "failed":
-                    if "longrepr" in test["setup"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["setup"]["longrepr"])
-
-                    elif "longrepr" in test["call"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["call"]["longrepr"])
-
-                    elif "longrepr" in test["teardown"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["teardown"]["longrepr"])
-
-                    else:
-                        # Not sure what the error was in, so give the entire dictionary as the error.
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + str(test))
+        self.handle_json_results(json_report_file, SUBPROCESS_EXCEPTION_TEXT)
 
         # Migrating forwards and backwards passed!
 
@@ -866,7 +789,7 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand):
 
 
 @pytest.mark.django_db
-class TestManagementCommandWorkflowDeleted(BaseTestCallCommand):
+class TestManagementCommandWorkflowDeleted(BaseTestCallCommand, BasePyTestJsonResults):
     @classmethod
     def teardown_class(cls):
         # Delete test created migrations, for workflow deleted.
@@ -923,45 +846,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand):
         if stderr:
             pytest.fail(SUBPROCESS_EXCEPTION_TEXT + stderr, pytrace=False)
 
-        with open(json_report_file, "rb") as f:
-            json_results = json.load(f)
-
-        if os.path.exists(json_report_file):
-            os.remove(json_report_file)
-
-        summary = json_results["summary"]
-
-        if "error" in summary:
-            for test in json_results["tests"]:
-                if test["outcome"] == "error":
-                    if "longrepr" in test["setup"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["setup"]["longrepr"])
-
-                    elif "longrepr" in test["call"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["call"]["longrepr"])
-
-                    elif "longrepr" in test["teardown"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["teardown"]["longrepr"])
-
-                    else:
-                        # Not sure what the error was in, so give the entire error object back.
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + str(test))
-
-        if "failed" in summary:
-            for test in json_results["tests"]:
-                if test["outcome"] == "failed":
-                    if "longrepr" in test["setup"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["setup"]["longrepr"])
-
-                    elif "longrepr" in test["call"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["call"]["longrepr"])
-
-                    elif "longrepr" in test["teardown"]:
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + test["teardown"]["longrepr"])
-
-                    else:
-                        # Not sure what the error was in, so give the entire dictionary as the error.
-                        pytest.fail(SUBPROCESS_EXCEPTION_TEXT + str(test))
+        self.handle_json_results(json_report_file, SUBPROCESS_EXCEPTION_TEXT)
 
         # Migrating forwards and backwards passed!
 
@@ -1215,7 +1100,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand):
         assert data == orig_data_transition_source
 
 
-class TestManagementCommandWorkflowMulti(BaseTestCallCommand):
+class TestManagementCommandWorkflowMulti(BaseTestCallCommand, BasePyTestJsonResults):
     @classmethod
     def teardown_class(cls):
         # Delete test created migrations, for workflow multi.
