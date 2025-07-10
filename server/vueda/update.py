@@ -10,7 +10,6 @@ from traceback import format_exception
 
 from argparse_color_formatter import ColorHelpFormatter
 from argparse_color_formatter import ColorTextWrapper
-from django.conf import settings
 
 from vueda.cli import NoExitArgumentParser
 from vueda.cli import blue_color
@@ -139,6 +138,7 @@ def ask(
 def ask_tag(
     stdout: typing.TextIO,
     stderr: typing.TextIO,
+    debug_mode: bool = False,
 ):
     """
     Ask the user which git tag they would like to check out.
@@ -156,7 +156,7 @@ def ask_tag(
         return tags.returncode
     tags = ["HEAD"] + tags.stdout.decode().splitlines()
     question = "Which tag would you like to check out?"
-    default_tag = tags[1] if len(tags) > 1 and not settings.DEBUG else "HEAD"
+    default_tag = tags[1] if len(tags) > 1 and not debug_mode else "HEAD"
     desired_tag = ""
     while desired_tag not in tags:
         # show head and last 5
@@ -180,28 +180,16 @@ def echo_and_eval(
     """
     Print a command to stdout and then execute it.
     """
-    command_for_display = fake_arg_quoting(command)
-    print(wrap_text(f"{blue_color(command_for_display)}"), file=stdout)
-
-    # Prepare environment variables
-    env = os.environ.copy()
-    if extra_env:
-        env.update(extra_env)
-
-    sp = subprocess.run(command, shell=shell, env=env)
-    if sp.returncode != 0:
-        print(
-            wrap_text(f"{error_color('Error')}: {command_for_display} failed with code {sp.returncode}"),
-            file=stderr,
-        )
-        raise ExitWithCode(code=sp.returncode)
+    echo_and_eval_with_cwd(stdout, stderr, command, cwd=None, extra_env=extra_env, shell=shell)
 
 
 def backup(stdout: typing.TextIO, stderr: typing.TextIO, non_interactive: bool = False):
     """
     Clean up backups older than a week. Create a new database backup.
     """
-    # get config up front in this command, so we are not halfway through and throw an error
+    # Configure Django settings and get config up front in this command, so we are not halfway through and throw an error
+    _, _, manage_py_dir = detect_package_manager()
+    settings = configure_django_settings(manage_py_dir)
     backup_dir = os.path.expanduser(settings.DATABASE_BACKUP_DIR)
     database_name = settings.DATABASES["default"]["NAME"]
     database_user = settings.DATABASES["default"]["USER"]
@@ -251,6 +239,9 @@ def pull(
     Pull the latest code from git. if on main, we ask the user if they want to
     check out a tag. if on a branch, we pull.
     """
+    # Configure Django settings to check DEBUG mode for tag selection
+    _, _, manage_py_dir = detect_package_manager()
+    settings = configure_django_settings(manage_py_dir)
     branch_sp = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True)
     if branch_sp.returncode != 0:
         print_trace(stderr, "Could not get current branch.", branch_sp.stderr.decode())
@@ -259,7 +250,7 @@ def pull(
     # HEAD is the branch name if you are in a detached HEAD, like checking out a tag.
     if branch in ("main", "HEAD"):
         echo_and_eval(stdout, stderr, ["git", "fetch"])
-        desired_tag = "HEAD" if non_interactive else ask_tag(stdout, stderr)
+        desired_tag = "HEAD" if non_interactive else ask_tag(stdout, stderr, settings.DEBUG)
         # checkout desired_tag
         echo_and_eval(stdout, stderr, ["git", "checkout", desired_tag])
     else:
@@ -298,18 +289,39 @@ def find_manage_py(start_dir=None):
     return None
 
 
+# Global cache for package manager detection to avoid repeated calls
+_package_manager_cache = None
+
+
+def configure_django_settings(manage_py_dir):
+    """
+    Configure Django settings from the correct directory so .env files are found.
+    """
+    original_cwd = os.getcwd()
+    try:
+        # Change to manage.py directory so Django can find .env files
+        os.chdir(manage_py_dir)
+        from django.conf import settings
+
+        # Access settings to trigger configuration
+        _ = settings.DEBUG
+        return settings
+    finally:
+        # Restore original directory
+        os.chdir(original_cwd)
+
+
 def detect_package_manager():
     """
     Auto-detect package manager based on lock files and availability.
     Works from anywhere within a git repository.
     Returns tuple of (package_manager, repo_root, manage_py_dir).
-    """
-    # Check for explicit setting
-    if hasattr(settings, "PACKAGE_MANAGER") and settings.PACKAGE_MANAGER != "auto":
-        package_manager = settings.PACKAGE_MANAGER
-    else:
-        package_manager = "auto"
 
+    Results are cached to avoid repeated filesystem operations.
+    """
+    global _package_manager_cache
+    if _package_manager_cache is not None:
+        return _package_manager_cache
     # Find repository root
     repo_root = find_repo_root()
     if not repo_root:
@@ -320,9 +332,6 @@ def detect_package_manager():
     manage_py_dir = find_manage_py(repo_root)
     if not manage_py_dir:
         raise ExitWithCode("Could not find manage.py in repository", code=1)
-
-    if package_manager != "auto":
-        return package_manager, repo_root, manage_py_dir
 
     # Auto-detect based on lock files in repo root
     uv_lock_path = os.path.join(repo_root, "uv.lock")
@@ -342,7 +351,10 @@ def detect_package_manager():
     else:
         detected_manager = "pipenv"
 
-    return detected_manager, repo_root, manage_py_dir
+    # Cache the result for future calls
+    result = (detected_manager, repo_root, manage_py_dir)
+    _package_manager_cache = result
+    return result
 
 
 def echo_and_eval_with_cwd(
@@ -388,9 +400,33 @@ def install(
     Use sync so deploys get locked files, and so devs don't change the lock unintentionally.
     """
     package_manager, repo_root, manage_py_dir = detect_package_manager()
+    settings = configure_django_settings(manage_py_dir)
 
     if package_manager == "uv":
-        install_cmd = ["uv", "sync"]
+        install_cmd = ["uv", "sync", "--frozen"]
+
+        # Check if we're in a workspace and target specific package
+        if repo_root != manage_py_dir:
+            # Read package name from pyproject.toml in manage.py directory
+            pyproject_path = os.path.join(manage_py_dir, "pyproject.toml")
+            workspace_package = os.path.basename(manage_py_dir)  # fallback to directory name
+
+            try:
+                import tomllib
+
+                with open(pyproject_path, "rb") as f:
+                    pyproject_data = tomllib.load(f)
+                    workspace_package = pyproject_data.get("project", {}).get("name", workspace_package)
+            except (FileNotFoundError, ImportError, Exception):
+                # Fallback to directory name if we can't read pyproject.toml
+                pass
+
+            install_cmd.extend(["--package", workspace_package])
+            print(
+                wrap_text(f"{blue_color('Info')}: Installing workspace package '{workspace_package}' dependencies"),
+                file=stdout,
+            )
+
         if settings.DEBUG:
             install_cmd.append("--dev")
             print(
@@ -398,6 +434,7 @@ def install(
                 file=stdout,
             )
         else:
+            install_cmd.append("--no-dev")
             print(
                 wrap_text(f"{blue_color('Info')}: Installing production requirements with uv, based on settings.DEBUG"),
                 file=stdout,
@@ -444,6 +481,7 @@ def static(
     Run Django management command 'collectstatic', if on a live site.
     """
     package_manager, repo_root, manage_py_dir = detect_package_manager()
+    settings = configure_django_settings(manage_py_dir)
 
     if package_manager == "uv":
         cmd = ["uv", "run", "python", "manage.py", "collectstatic", "--traceback"]
