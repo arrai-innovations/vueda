@@ -475,6 +475,8 @@ class Migration(migrations.Migration):
                 AND
                 code = 'state_1';""",
             reverse_sql=migrations.RunSQL.noop,
+            skippable=True,
+            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
         custom_migration_operations.SkippableRunSQL(
             sql="""
