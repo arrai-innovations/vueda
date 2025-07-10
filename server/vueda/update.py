@@ -266,27 +266,114 @@ def pull(
         echo_and_eval(stdout, stderr, ["git", "pull", "--rebase", "--stat"])
 
 
+def find_repo_root():
+    """
+    Find the git repository root directory.
+    Returns None if not in a git repo.
+    """
+    try:
+        result = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True)
+        return result.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+
+def find_manage_py(start_dir=None):
+    """
+    Find manage.py starting from start_dir (or current directory).
+    Searches common locations: ., server/, src/, backend/, app/
+    Returns the directory containing manage.py, or None if not found.
+    """
+    if start_dir is None:
+        start_dir = os.getcwd()
+
+    # Common locations for manage.py in various project structures
+    search_paths = [".", "server", "src", "backend", "app", "django_app"]
+
+    for path in search_paths:
+        full_path = os.path.join(start_dir, path)
+        if os.path.exists(os.path.join(full_path, "manage.py")):
+            return full_path
+
+    return None
+
+
 def detect_package_manager():
     """
     Auto-detect package manager based on lock files and availability.
-    Returns 'uv' or 'pipenv'.
+    Works from anywhere within a git repository.
+    Returns tuple of (package_manager, repo_root, manage_py_dir).
     """
     # Check for explicit setting
     if hasattr(settings, "PACKAGE_MANAGER") and settings.PACKAGE_MANAGER != "auto":
-        return settings.PACKAGE_MANAGER
+        package_manager = settings.PACKAGE_MANAGER
+    else:
+        package_manager = "auto"
 
-    # Auto-detect based on lock files and tool availability
-    has_uv_lock = os.path.exists("uv.lock")
+    # Find repository root
+    repo_root = find_repo_root()
+    if not repo_root:
+        # If not in git repo, use current directory
+        repo_root = os.getcwd()
+
+    # Find manage.py location
+    manage_py_dir = find_manage_py(repo_root)
+    if not manage_py_dir:
+        raise ExitWithCode("Could not find manage.py in repository", code=1)
+
+    if package_manager != "auto":
+        return package_manager, repo_root, manage_py_dir
+
+    # Auto-detect based on lock files in repo root
+    uv_lock_path = os.path.join(repo_root, "uv.lock")
+    pipfile_lock_path = os.path.join(repo_root, "Pipfile.lock")
+    pyproject_path = os.path.join(repo_root, "pyproject.toml")
+
+    has_uv_lock = os.path.exists(uv_lock_path)
+    has_pipfile_lock = os.path.exists(pipfile_lock_path)
+    has_pyproject = os.path.exists(pyproject_path)
 
     # Check if uv command is available
     uv_available = shutil.which("uv") is not None
 
-    # Prefer uv if it's available and has a lock file
-    if has_uv_lock and uv_available:
-        return "uv"
+    # Prefer uv if available and has uv indicators
+    if uv_available and (has_uv_lock or (has_pyproject and not has_pipfile_lock)):
+        detected_manager = "uv"
+    else:
+        detected_manager = "pipenv"
 
-    # Fall back to pipenv
-    return "pipenv"
+    return detected_manager, repo_root, manage_py_dir
+
+
+def echo_and_eval_with_cwd(
+    stdout: typing.TextIO,
+    stderr: typing.TextIO,
+    command: str | list[str],
+    cwd: str = None,
+    extra_env: dict = None,
+    shell: bool = False,
+):
+    """
+    Print a command to stdout and then execute it from specified directory.
+    """
+    command_for_display = fake_arg_quoting(command)
+    if cwd:
+        print(wrap_text(f"{blue_color(f'[{cwd}] {command_for_display}')}"), file=stdout)
+    else:
+        print(wrap_text(f"{blue_color(command_for_display)}"), file=stdout)
+
+    # Prepare environment variables
+    env = os.environ.copy()
+    if extra_env:
+        env.update(extra_env)
+
+    sp = subprocess.run(command, shell=shell, env=env, cwd=cwd)
+    if sp.returncode != 0:
+        print(
+            wrap_text(f"{error_color('Error')}: {command_for_display} failed with code {sp.returncode}"),
+            file=stderr,
+        )
+        raise ExitWithCode(code=sp.returncode)
 
 
 def install(
@@ -300,7 +387,7 @@ def install(
     Auto-detects package manager or uses PACKAGE_MANAGER setting.
     Use sync so deploys get locked files, and so devs don't change the lock unintentionally.
     """
-    package_manager = detect_package_manager()
+    package_manager, repo_root, manage_py_dir = detect_package_manager()
 
     if package_manager == "uv":
         install_cmd = ["uv", "sync"]
@@ -315,7 +402,8 @@ def install(
                 wrap_text(f"{blue_color('Info')}: Installing production requirements with uv, based on settings.DEBUG"),
                 file=stdout,
             )
-        echo_and_eval(stdout, stderr, install_cmd)
+        # Run uv commands from repo root where lock files are
+        echo_and_eval_with_cwd(stdout, stderr, install_cmd, cwd=repo_root)
 
         # UV doesn't have a separate clean command like pipenv, it's built into sync
         print(wrap_text(f"{blue_color('Info')}: UV automatically manages dependencies during sync"), file=stdout)
@@ -337,13 +425,14 @@ def install(
                 ),
                 file=stdout,
             )
-        echo_and_eval(stdout, stderr, install_cmd)
+        # Run pipenv commands from manage.py directory for compatibility
+        echo_and_eval_with_cwd(stdout, stderr, install_cmd, cwd=manage_py_dir)
 
         clean_pipenv = ask(
             stdout, stderr, "Do you want to clean extraneous packages (pipenv clean)?", ["y", "n"], "y", non_interactive
         )
         if clean_pipenv == "y":
-            echo_and_eval(stdout, stderr, ["pipenv", "clean"])
+            echo_and_eval_with_cwd(stdout, stderr, ["pipenv", "clean"], cwd=manage_py_dir)
 
 
 def static(
@@ -354,7 +443,7 @@ def static(
     """
     Run Django management command 'collectstatic', if on a live site.
     """
-    package_manager = detect_package_manager()
+    package_manager, repo_root, manage_py_dir = detect_package_manager()
 
     if package_manager == "uv":
         cmd = ["uv", "run", "python", "manage.py", "collectstatic", "--traceback"]
@@ -364,7 +453,8 @@ def static(
     if non_interactive:
         cmd.append("--noinput")
     if not settings.DEBUG:
-        echo_and_eval(stdout, stderr, cmd)
+        # Run Django commands from manage.py directory
+        echo_and_eval_with_cwd(stdout, stderr, cmd, cwd=manage_py_dir)
     else:
         print(
             wrap_text(f"{orange_color('Skipping')}: {blue_color('`collectstatic`')} is only run on live sites"),
@@ -380,7 +470,7 @@ def migrate(
     """
     Run Django management command 'migrate' and 'remove_stale_contenttypes'.
     """
-    package_manager = detect_package_manager()
+    package_manager, repo_root, manage_py_dir = detect_package_manager()
 
     if package_manager == "uv":
         migrate_cmd = ["uv", "run", "python", "manage.py", "migrate", "--traceback"]
@@ -392,8 +482,9 @@ def migrate(
     if non_interactive:
         migrate_cmd.append("--noinput")
         stale_cmd.append("--noinput")
-    echo_and_eval(stdout, stderr, migrate_cmd)
-    echo_and_eval(stdout, stderr, stale_cmd)
+    # Run Django commands from manage.py directory
+    echo_and_eval_with_cwd(stdout, stderr, migrate_cmd, cwd=manage_py_dir)
+    echo_and_eval_with_cwd(stdout, stderr, stale_cmd, cwd=manage_py_dir)
 
 
 def post(stdout: typing.TextIO, stderr: typing.TextIO, non_interactive: bool = False):
