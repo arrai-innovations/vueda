@@ -260,6 +260,7 @@ def get_defaults(env: Env):
         },
         **{  # our own settings regarding to `vueda update` cli.
             "DATABASE_BACKUP_DIR": env("DATABASE_BACKUP_DIR"),
+            "PACKAGE_MANAGER": env("PACKAGE_MANAGER", default="auto"),  # auto, uv, pipenv
         },
     }
     if return_dict["EMAIL_BACKEND"] == "anymail.backends.mailgun.EmailBackend":
