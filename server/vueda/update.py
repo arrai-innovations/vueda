@@ -11,7 +11,6 @@ from traceback import format_exception
 from argparse_color_formatter import ColorHelpFormatter
 from argparse_color_formatter import ColorTextWrapper
 from django.conf import settings
-from test.support.os_helper import EnvironmentVarGuard
 
 from vueda.cli import NoExitArgumentParser
 from vueda.cli import blue_color
@@ -183,12 +182,13 @@ def echo_and_eval(
     """
     command_for_display = fake_arg_quoting(command)
     print(wrap_text(f"{blue_color(command_for_display)}"), file=stdout)
-    env = EnvironmentVarGuard()
-    with env:
-        if extra_env:
-            for key, value in extra_env.items():
-                env[key] = value
-        sp = subprocess.run(command, shell=shell)
+
+    # Prepare environment variables
+    env = os.environ.copy()
+    if extra_env:
+        env.update(extra_env)
+
+    sp = subprocess.run(command, shell=shell, env=env)
     if sp.returncode != 0:
         print(
             wrap_text(f"{error_color('Error')}: {command_for_display} failed with code {sp.returncode}"),
