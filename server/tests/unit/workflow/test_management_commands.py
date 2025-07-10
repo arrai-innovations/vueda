@@ -1,3 +1,4 @@
+import ast
 import datetime
 import json
 import os
@@ -9,6 +10,7 @@ import pytest
 from django.db.migrations.recorder import MigrationRecorder
 from django.utils.timezone import now
 
+from tests.conftest import BasePyTestJsonResults
 from tests.conftest import BaseTestCallCommand
 from tests.utils import clean_migrations
 from vueda.workflow import models
@@ -21,6 +23,8 @@ from vueda.workflow import models
 #       test_workflow_changed, investigate_running_migration_forwards_and_backwards
 #   TestManagementCommandWorkflowDeleted
 #       test_workflow_deleted, investigate_running_migration_forwards_and_backwards
+#   TestManagementCommandWorkflowDuplicates
+#       test_workflow_duplicates, investigate_running_migration_forwards_and_backwards
 #
 # The main tests are prefixed with "test_".
 # The subtests are prefixed with "investigate_".
@@ -112,6 +116,7 @@ class TestManagementCommandWorkflow(BaseTestCallCommand):
         assert "Migrations for 'workflow_added':" in results, results
         assert "Migrations for 'workflow_changed':" in results, results
         assert "Migrations for 'workflow_deleted':" in results, results
+        assert "Migrations for 'workflow_duplicates':" in results, results
 
 
 class TestManagementCommandWorkflowAdded(BaseTestCallCommand):
@@ -1259,3 +1264,241 @@ class TestManagementCommandWorkflowMulti(BaseTestCallCommand):
             "history_type": "added",
             "model_name": "workflow",
         }, first_change
+
+
+class TestManagementCommandWorkflowDuplicates(BaseTestCallCommand, BasePyTestJsonResults):
+    @classmethod
+    def teardown_class(cls):
+        # Delete test created migrations, for workflow added.
+        clean_migrations("workflow_duplicates")
+
+    def get_unmatched_history_records_by_date(self, unmatched_history_data):
+        history_records_by_date = {}
+        for record in unmatched_history_data:
+            key = (record["history_type"], record["history_date"])
+            if key not in history_records_by_date:
+                history_records_by_date[key] = set()
+
+            history_records_by_date[key].add(record["code"])
+
+        return history_records_by_date
+
+    def _group_results(self, results):
+        grouped_results = []
+
+        previous_index = None
+        for index, line in enumerate(results):
+            if line.strip() and not line.startswith(" "):
+                if previous_index is not None:
+                    grouped_results.append("".join(results[previous_index:index]).strip())
+                previous_index = index
+        grouped_results.append("".join(results[previous_index:]).strip())
+
+        return grouped_results
+
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_duplicates(self):
+        """
+        This test validates the matching of historical records to existing workflow migration
+        changes works correctly when there are multiple add and delete records to work with.
+        It uses the debugging to verify that the correct records were matched up.
+        """
+        succeeded, results = self.call_command(
+            "makeworkflowmigrations",
+            "workflow_duplicates",
+            "--env-guarded-operations",
+            "--import-instead",
+            "--debug",
+            "all",
+        )
+        if not succeeded:
+            pytest.fail("".join(results), pytrace=False)
+
+        grouped_results = self._group_results(results)
+
+        num_changes_matching_history_records = {
+            "num": 0,
+            "sub_nums": [],
+        }
+        num_changes_not_matching_history_records = 0
+        num_unmatched_history = 0
+        unmatched_history_data = []
+        for result in grouped_results:
+            if " - " not in result:
+                # Ignore the lines that don't contain debug data.
+                continue
+            heading, lines = result.split(" - ", 1)
+
+            match heading:
+                case "Changes matching history records":
+                    num_changes_matching_history_records["num"] += 1
+
+                    change_data = None
+                    history_data = None
+                    history_pk = None
+                    previous_line = None
+
+                    num = 0
+                    for line in lines.split("\n"):
+                        line = line.strip()
+                        if not line:
+                            continue
+
+                        if "matches history pk" in line:
+                            _, history_pk = line.split("matches history pk")
+                            history_pk = history_pk.strip(" :")
+
+                        match previous_line:
+                            case "Change:":
+                                change_data = line
+                            case "History:":
+                                num += 1
+
+                                history_data = line
+
+                                # Make sure the history pk is in the change and history data.
+                                assert f"'matches_history': {history_pk}" in change_data
+                                assert f"'history_id': {history_pk}" in history_data
+                                # Make sure the history dates are the same.
+                                # [1] should contain a string like 'datetime(2025, 1, 1, 1, 0, tzinfo='
+                                assert change_data.split("datetime.")[1] == history_data.split("datetime.")[1]
+
+                        previous_line = line
+
+                    num_changes_matching_history_records["sub_nums"].append(num)
+
+                case "Changes not matching history records":
+                    num_changes_not_matching_history_records += 1
+
+                case "Unmatched history":
+                    num_unmatched_history += 1
+
+                    previous_line = None
+                    for line in lines.split("\n"):
+                        line = line.strip()
+                        if not line:
+                            continue
+
+                        if previous_line == "History which will be added to the migration:":
+                            beginning_index = line.find("[")
+                            ending_index = line.find("]")
+                            ast_data = line[beginning_index + 1 : ending_index]
+                            for remove_word in (
+                                "tzinfo=",
+                                "datetime",
+                                "timezone",
+                                "utc",
+                                ".",
+                            ):
+                                ast_data = ast_data.replace(remove_word, "")
+
+                            try:
+                                unmatched_history_data.append(ast.literal_eval(ast_data))
+                            except Exception:
+                                raise Exception(ast_data)
+
+                        previous_line = line
+
+        assert num_changes_matching_history_records == {"num": 3, "sub_nums": [1, 5, 1]}
+        # There should be no changes not matching history records.
+        assert not num_changes_not_matching_history_records
+        assert num_unmatched_history == 1, unmatched_history_data
+
+        history_records_by_date = self.get_unmatched_history_records_by_date(unmatched_history_data)
+
+        assert history_records_by_date[("-", (2025, 1, 1, 1, 0, 10))] == frozenset(
+            ("delete_1", "delete_2", "delete_3", "delete_4")
+        ), history_records_by_date
+        assert history_records_by_date[("+", (2025, 1, 1, 1, 0, 11))] == frozenset(
+            ("add_1", "add_2", "add_3", "add_4", "delete_2", "delete_3", "delete_4")
+        ), history_records_by_date
+        assert history_records_by_date[("~", (2025, 1, 1, 1, 0, 12))] == frozenset(
+            ("add_2a", "add_3a", "add_4a", "delete_3a", "delete_4a")
+        ), history_records_by_date
+        assert history_records_by_date[("-", (2025, 1, 1, 1, 0, 13))] == frozenset(("add_3a", "add_4a", "delete_4a")), (
+            history_records_by_date
+        )
+        assert history_records_by_date[("+", (2025, 1, 1, 1, 0, 14))] == frozenset(("add_4",)), history_records_by_date
+
+        test_db_name = "vueda_workflow_management_command_migration_testing_duplicates"
+        os.environ["workflow_test_type"] = "duplicates"  # This is added to the end of the db name in settings.
+        os.environ["skip_migration_when_setting_up_db"] = "true"
+
+        json_report_file = "pytest_running_workflow_migrations_duplicates.json"
+
+        if os.path.exists(json_report_file):
+            os.remove(json_report_file)
+
+        # Run the investigate_running_migration_forwards_and_backwards test.
+        results = subprocess.run(
+            [
+                "pytest",
+                "-vv",
+                "-s",
+                "--json-report",
+                f"--json-report-file={json_report_file}",
+                "-c",
+                "tests/unit/workflow/pytest_running_workflow_migrations.ini",
+                "--rootdir",
+                os.getcwd(),
+                "tests/unit/workflow/test_management_commands.py::TestManagementCommandWorkflowDuplicates",
+            ],
+            capture_output=True,
+        )
+
+        # Database creation and deletion are added to stderr.  We don't want those messages in stderr.
+        stderr = strip_database_creation_and_deletion_from_stderr(results.stderr.decode("utf-8"), test_db_name)
+        # Also Registered info messages end up in stderr.  We don't want those messages in stderr.
+        stderr = strip_registered_info_from_stderr(stderr)
+
+        if stderr:
+            pytest.fail(SUBPROCESS_EXCEPTION_TEXT + stderr, pytrace=False)
+
+        self.handle_json_results(json_report_file, SUBPROCESS_EXCEPTION_TEXT)
+
+        # Migrating forwards and backwards passed!
+
+    # This is a test that will be run by pytest when we call pytest within test_workflow_added.
+    @pytest.mark.django_db
+    def investigate_running_migration_forwards_and_backwards(self):
+        # The operations in 0003 and the generated 0004 will skip running the
+        # sql forwards, so we can roll back and then run them manually.
+        succeeded, results = self.call_command("migrate", "workflow_duplicates", "0002")
+        assert succeeded, results
+
+        # Did the migrations roll back?
+        # assert succeeded, results
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 2
+
+        # Now we want to manually migrate forwards, skipping certain tests by using 'migration_skip_workflow_duplicates'.
+        os.environ.pop("skip_migration_when_setting_up_db")
+        skip_some_migrations_forward_env_name = "migration_skip_workflow_duplicates"
+        os.environ[skip_some_migrations_forward_env_name] = "true"
+
+        assert not models.State.objects.filter(code="add_1").exists(), "states appears to exist when they should not."
+
+        # Run migration 0004 forwards
+        succeeded, results = self.call_command("migrate", "workflow_duplicates", "0004")
+
+        # Did the migration run?
+        assert succeeded, results
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 4
+
+        workflow = models.Workflow.objects.filter(code="duplicates_workflow")
+        assert workflow.exists(), models.Workflow.objects.values()
+
+        state_codes = frozenset(models.State.objects.filter(workflow=workflow.get()).values_list("code", flat=True))
+
+        assert state_codes == {"add_1", "add_2a", "add_4", "delete_2", "delete_3a", "not_used_by_test"}
+
+        # Run migration 0005 backwards
+        succeeded, results = self.call_command("migrate", "workflow_duplicates", "0002")
+
+        # Did the migration reverse?
+        assert succeeded, results
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 2
+
+        state_codes = frozenset(models.State.objects.filter(workflow=workflow.get()).values_list("code", flat=True))
+
+        assert state_codes == {"delete_1", "delete_2", "delete_3", "delete_4", "not_used_by_test"}
