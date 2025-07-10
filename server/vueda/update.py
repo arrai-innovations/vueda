@@ -266,34 +266,84 @@ def pull(
         echo_and_eval(stdout, stderr, ["git", "pull", "--rebase", "--stat"])
 
 
+def detect_package_manager():
+    """
+    Auto-detect package manager based on lock files and availability.
+    Returns 'uv' or 'pipenv'.
+    """
+    # Check for explicit setting
+    if hasattr(settings, "PACKAGE_MANAGER") and settings.PACKAGE_MANAGER != "auto":
+        return settings.PACKAGE_MANAGER
+
+    # Auto-detect based on lock files and tool availability
+    has_uv_lock = os.path.exists("uv.lock")
+
+    # Check if uv command is available
+    uv_available = shutil.which("uv") is not None
+
+    # Prefer uv if it's available and has a lock file
+    if has_uv_lock and uv_available:
+        return "uv"
+
+    # Fall back to pipenv
+    return "pipenv"
+
+
 def install(
     stdout: typing.TextIO,
     stderr: typing.TextIO,
     non_interactive: bool = False,
 ):
     """
-    Install the latest requirements, assuming modern projects use pipenv.
+    Install the latest requirements, supporting both uv and pipenv.
 
+    Auto-detects package manager or uses PACKAGE_MANAGER setting.
     Use sync so deploys get locked files, and so devs don't change the lock unintentionally.
     """
-    install_cmd = ["pipenv", "sync"]
-    if settings.DEBUG:
-        install_cmd.append("--dev")
-        print(
-            wrap_text(f"{orange_color('Warning')}: Installing dev requirements, based on settings.DEBUG"),
-            file=stdout,
+    package_manager = detect_package_manager()
+
+    if package_manager == "uv":
+        install_cmd = ["uv", "sync"]
+        if settings.DEBUG:
+            install_cmd.append("--dev")
+            print(
+                wrap_text(f"{orange_color('Warning')}: Installing dev requirements with uv, based on settings.DEBUG"),
+                file=stdout,
+            )
+        else:
+            print(
+                wrap_text(f"{blue_color('Info')}: Installing production requirements with uv, based on settings.DEBUG"),
+                file=stdout,
+            )
+        echo_and_eval(stdout, stderr, install_cmd)
+
+        # UV doesn't have a separate clean command like pipenv, it's built into sync
+        print(wrap_text(f"{blue_color('Info')}: UV automatically manages dependencies during sync"), file=stdout)
+
+    else:  # pipenv
+        install_cmd = ["pipenv", "sync"]
+        if settings.DEBUG:
+            install_cmd.append("--dev")
+            print(
+                wrap_text(
+                    f"{orange_color('Warning')}: Installing dev requirements with pipenv, based on settings.DEBUG"
+                ),
+                file=stdout,
+            )
+        else:
+            print(
+                wrap_text(
+                    f"{blue_color('Info')}: Installing production requirements with pipenv, based on settings.DEBUG"
+                ),
+                file=stdout,
+            )
+        echo_and_eval(stdout, stderr, install_cmd)
+
+        clean_pipenv = ask(
+            stdout, stderr, "Do you want to clean extraneous packages (pipenv clean)?", ["y", "n"], "y", non_interactive
         )
-    else:
-        print(
-            wrap_text(f"{blue_color('Info')}: Installing production requirements, based on settings.DEBUG"),
-            file=stdout,
-        )
-    echo_and_eval(stdout, stderr, install_cmd)
-    clean_pipenv = ask(
-        stdout, stderr, "Do you want to clean extraneous packages (pipenv clean)?", ["y", "n"], "y", non_interactive
-    )
-    if clean_pipenv == "y":
-        echo_and_eval(stdout, stderr, ["pipenv", "clean"])
+        if clean_pipenv == "y":
+            echo_and_eval(stdout, stderr, ["pipenv", "clean"])
 
 
 def static(
@@ -304,7 +354,13 @@ def static(
     """
     Run Django management command 'collectstatic', if on a live site.
     """
-    cmd = ["pipenv", "run", "python", "manage.py", "collectstatic", "--traceback"]
+    package_manager = detect_package_manager()
+
+    if package_manager == "uv":
+        cmd = ["uv", "run", "python", "manage.py", "collectstatic", "--traceback"]
+    else:  # pipenv
+        cmd = ["pipenv", "run", "python", "manage.py", "collectstatic", "--traceback"]
+
     if non_interactive:
         cmd.append("--noinput")
     if not settings.DEBUG:
@@ -324,8 +380,15 @@ def migrate(
     """
     Run Django management command 'migrate' and 'remove_stale_contenttypes'.
     """
-    migrate_cmd = ["pipenv", "run", "python", "manage.py", "migrate", "--traceback"]
-    stale_cmd = ["pipenv", "run", "python", "manage.py", "remove_stale_contenttypes", "--traceback"]
+    package_manager = detect_package_manager()
+
+    if package_manager == "uv":
+        migrate_cmd = ["uv", "run", "python", "manage.py", "migrate", "--traceback"]
+        stale_cmd = ["uv", "run", "python", "manage.py", "remove_stale_contenttypes", "--traceback"]
+    else:  # pipenv
+        migrate_cmd = ["pipenv", "run", "python", "manage.py", "migrate", "--traceback"]
+        stale_cmd = ["pipenv", "run", "python", "manage.py", "remove_stale_contenttypes", "--traceback"]
+
     if non_interactive:
         migrate_cmd.append("--noinput")
         stale_cmd.append("--noinput")
