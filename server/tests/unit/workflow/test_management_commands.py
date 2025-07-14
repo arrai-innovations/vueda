@@ -52,8 +52,8 @@ from vueda.workflow import models
 #       This is needed, because the root directory otherwise becomes the same
 #       as the location of the .ini file.
 #
-#   And then we specify the classname where the tests are we are running, so
-#   we only run the corresponding subtest for each main test.
+#   And then we specify the classname where the tests are that we are
+#   running, so we only run the corresponding subtest for each main test.
 #
 # In the main tests, before the subtest is run, we set the environment variable
 # "skip_migration_when_setting_up_db", so that when migrations are run, it
@@ -182,7 +182,7 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand, BasePyTestJsonResu
     # This is a test that will be run by pytest when we call pytest within test_workflow_added.
     @pytest.mark.django_db
     def investigate_running_migration_forwards_and_backwards(self):
-        # The operations in 0002 and the generated 0003 will not run the
+        # The operations in 0002 and the generated 0003 will skip running the
         # sql forwards, so we can roll back and then run them manually.
         succeeded, results = self.call_command("migrate", "workflow_added", "0001")
         assert succeeded, results
@@ -442,7 +442,7 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand, BasePyTestJsonRe
     # This is a test that will be run by pytest when we call pytest within test_workflow_added.
     @pytest.mark.django_db
     def investigate_running_migration_forwards_and_backwards(self):
-        # The operations in 0004 and the generated 0005 will not run the
+        # The operations in 0004 and the generated 0005 will skip running the
         # sql forwards, so we can roll back and then run them manually.
         succeeded, results = self.call_command("migrate", "workflow_changed", "0003")
         assert succeeded, results
@@ -852,7 +852,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand, BasePyTestJsonRe
     # This is a test that will be run by pytest when we call pytest within test_workflow_deleted.
     @pytest.mark.django_db
     def investigate_running_migration_forwards_and_backwards(self):
-        # The operations in 0004 and the generated 0005 will not run the
+        # The operations in 0004 and the generated 0005 will skip running the
         # sql forwards, so we can roll back and then run them manually.
         succeeded, results = self.call_command("migrate", "workflow_deleted", "0003")
         assert succeeded, results
