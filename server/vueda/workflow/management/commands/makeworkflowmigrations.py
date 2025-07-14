@@ -1562,7 +1562,7 @@ class Command(BaseCommand):
         return hist_obj
 
     # This function is a complexity of 25, but is much cleaner as a single function.
-    def _parse_related_fields_into_changes_data(self, history_diff, change, field_name, ct):  # noqa C901
+    def _parse_related_fields_into_changes_data(self, history_diff, historical_date, change, field_name, ct):  # noqa C901
         new = change.new
         old = change.old
 
@@ -1583,14 +1583,14 @@ class Command(BaseCommand):
                 # But, at this point in the code, we don't know if the workflow was deleted or not.
                 if change.new:
                     hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, change.new, history_diff.new_record.history_date
+                        models.HistoricalWorkflow, change.new, historical_date
                     )
 
                     new = {"code": hist_workflow.code}
 
                 if change.old:
                     hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, change.old, history_diff.old_record.history_date
+                        models.HistoricalWorkflow, change.old, historical_date
                     )
 
                     old = {"code": hist_workflow.code}
@@ -1638,11 +1638,9 @@ class Command(BaseCommand):
                 # want will be the last history record before the date we have.
                 # But, at this point in the code, we don't know if the workflow or state was deleted or not.
                 if change.new:
-                    hist_state = self._get_history_record_for_date(
-                        models.HistoricalState, change.new, history_diff.new_record.history_date
-                    )
+                    hist_state = self._get_history_record_for_date(models.HistoricalState, change.new, historical_date)
                     hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_state.workflow_id, history_diff.new_record.history_date
+                        models.HistoricalWorkflow, hist_state.workflow_id, historical_date
                     )
 
                     new = {
@@ -1651,11 +1649,9 @@ class Command(BaseCommand):
                     }
 
                 if change.old:
-                    hist_state = self._get_history_record_for_date(
-                        models.HistoricalState, change.old, history_diff.old_record.history_date
-                    )
+                    hist_state = self._get_history_record_for_date(models.HistoricalState, change.old, historical_date)
                     hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_state.workflow_id, history_diff.old_record.history_date
+                        models.HistoricalWorkflow, hist_state.workflow_id, historical_date
                     )
 
                     old = {
@@ -1665,11 +1661,9 @@ class Command(BaseCommand):
 
             case "target_id":
                 if change.new:
-                    hist_state = self._get_history_record_for_date(
-                        models.HistoricalState, change.new, history_diff.new_record.history_date
-                    )
+                    hist_state = self._get_history_record_for_date(models.HistoricalState, change.new, historical_date)
                     hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_state.workflow_id, history_diff.new_record.history_date
+                        models.HistoricalWorkflow, hist_state.workflow_id, historical_date
                     )
 
                     new = {
@@ -1678,11 +1672,9 @@ class Command(BaseCommand):
                     }
 
                 if change.old:
-                    hist_state = self._get_history_record_for_date(
-                        models.HistoricalState, change.old, history_diff.old_record.history_date
-                    )
+                    hist_state = self._get_history_record_for_date(models.HistoricalState, change.old, historical_date)
                     hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_state.workflow_id, history_diff.old_record.history_date
+                        models.HistoricalWorkflow, hist_state.workflow_id, historical_date
                     )
 
                     old = {
@@ -1692,11 +1684,9 @@ class Command(BaseCommand):
 
             case "source_id":
                 if change.new:
-                    hist_state = self._get_history_record_for_date(
-                        models.HistoricalState, change.new, history_diff.new_record.history_date
-                    )
+                    hist_state = self._get_history_record_for_date(models.HistoricalState, change.new, historical_date)
                     hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_state.workflow_id, history_diff.new_record.history_date
+                        models.HistoricalWorkflow, hist_state.workflow_id, historical_date
                     )
 
                     new = {
@@ -1705,11 +1695,9 @@ class Command(BaseCommand):
                     }
 
                 if change.old:
-                    hist_state = self._get_history_record_for_date(
-                        models.HistoricalState, change.old, history_diff.old_record.history_date
-                    )
+                    hist_state = self._get_history_record_for_date(models.HistoricalState, change.old, historical_date)
                     hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_state.workflow_id, history_diff.old_record.history_date
+                        models.HistoricalWorkflow, hist_state.workflow_id, historical_date
                     )
 
                     old = {
@@ -1720,10 +1708,10 @@ class Command(BaseCommand):
             case "transition_id":
                 if change.new:
                     hist_transition = self._get_history_record_for_date(
-                        models.HistoricalTransition, change.new, history_diff.new_record.history_date
+                        models.HistoricalTransition, change.new, historical_date
                     )
                     hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_transition.workflow_id, history_diff.new_record.history_date
+                        models.HistoricalWorkflow, hist_transition.workflow_id, historical_date
                     )
 
                     new = {
@@ -1733,10 +1721,10 @@ class Command(BaseCommand):
 
                 if change.old:
                     hist_transition = self._get_history_record_for_date(
-                        models.HistoricalTransition, change.old, history_diff.old_record.history_date
+                        models.HistoricalTransition, change.old, historical_date
                     )
                     hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_transition.workflow_id, history_diff.old_record.history_date
+                        models.HistoricalWorkflow, hist_transition.workflow_id, historical_date
                     )
 
                     old = {
@@ -1771,7 +1759,9 @@ class Command(BaseCommand):
             # from a database where the pks may be different.  Added and deleted could get their
             # data from the objects that are already added into current_changes, but changed may
             # not have that data.  So, we assume we don't have the data and fetch it every time.
-            new, old = self._parse_related_fields_into_changes_data(historical_diff, change, field_name, ct)
+            new, old = self._parse_related_fields_into_changes_data(
+                historical_diff, historical_date, change, field_name, ct
+            )
 
             match historical_type:
                 case "added":
@@ -1796,7 +1786,9 @@ class Command(BaseCommand):
                 field_name = workflow_model_field_names_to_attname[model_name][field_name]
 
                 if field_name not in current_changes:
-                    new, old = self._parse_related_fields_into_changes_data(extra_data_diff, change, field_name, ct)
+                    new, old = self._parse_related_fields_into_changes_data(
+                        extra_data_diff, historical_date, change, field_name, ct
+                    )
 
                     current_changes[field_name] = new
 
