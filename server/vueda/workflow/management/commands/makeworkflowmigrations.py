@@ -14,6 +14,7 @@ from django.contrib.auth.management import create_permissions
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.management import BaseCommand
 from django.core.management import call_command
 from django.db import migrations
@@ -1287,7 +1288,9 @@ class Command(BaseCommand):
 
                 case "group_id":
                     group = Group.objects.filter(**query.pop("group_id")).first()
-                    query["group"] = group
+                    # If we don't get back a group, then it was deleted, so we must try to match without it.
+                    if group is not None:
+                        query["group"] = group
 
                 case "permission_id":
                     sub_query = self._recursive_compile_changed_item(query.pop("permission_id"))
@@ -1610,14 +1613,22 @@ class Command(BaseCommand):
 
             case "group_id":
                 if change.new:
-                    new = {
-                        "name": history_diff.new_record.group.name,
-                    }
+                    try:
+                        new = {
+                            "name": history_diff.new_record.group.name,
+                        }
+                    except ObjectDoesNotExist as e:
+                        if "Group matching query does not exist" in str(e):
+                            new = {"name": history_diff.new_record.historical_group_name}
 
                 if change.old:
-                    old = {
-                        "name": history_diff.old_record.historical_group_name,
-                    }
+                    try:
+                        old = {
+                            "name": history_diff.old_record.historical_group_name,
+                        }
+                    except ObjectDoesNotExist as e:
+                        if "Group matching query does not exist" in str(e):
+                            new = {"name": history_diff.old_record.historical_group_name}
 
             case "state_id":
                 # Because there is no transaction number in simple history:
