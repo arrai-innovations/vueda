@@ -384,10 +384,14 @@ class DeactivateActionViewSetMixin:
 class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
     detail_args = ["pk"]
 
+    def destroy_validation(self, objs):
+        return None
+
     def destroy(self, request, **kwargs):
         pk = kwargs.get("pk")
         if pk:
             instance = self.get_object()
+            self.destroy_validation((instance,))
             self.perform_destroy(instance)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -404,6 +408,7 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
         queryset = self.get_queryset()
         queryset = queryset.filter(pk__in=pks)
 
+        self.destroy_validation(queryset)
         count, _ = queryset.delete()
 
         return Response({"status": f"{count} objects deleted."}, status=status.HTTP_200_OK)

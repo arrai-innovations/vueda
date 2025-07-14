@@ -9,7 +9,7 @@ vueda = {path = ".", editable = true}
 
 [dev-packages]
 # lint related, sync with .pre-commit-config.yaml
-ruff = "==0.11.4"
+ruff = "==0.12.2"
 # build related
 wheel = ">=0.42.0,<1"
 django_extensions = "==4.0.0"

@@ -29,29 +29,42 @@ def setup_django_settings_module():
     """
     from environs import Env
 
-    # check that .env / .env.local are in the cwd.
-    # there should aways be a .env
-    # complain if there is no .env
-    cwd = os.getcwd()
-    if not os.path.isfile(os.path.join(cwd, ".env")):
-        print(f"ERROR: No .env file found in {cwd}", file=sys.stderr)
+    from vueda.update import detect_package_manager
+
+    # Find the manage.py directory where .env files should be located
+    try:
+        _, _, manage_py_dir = detect_package_manager()
+    except Exception:
+        # Fallback to current directory if detection fails
+        manage_py_dir = os.getcwd()
+
+    # Check that .env exists in the manage.py directory
+    env_path = os.path.join(manage_py_dir, ".env")
+    if not os.path.isfile(env_path):
+        print(f"ERROR: No .env file found in {manage_py_dir}", file=sys.stderr)
         sys.exit(1)
 
-    env = Env()
-    env.read_env(".env.local")
-    env.read_env(".env")
+    # Change to manage.py directory to read .env files
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(manage_py_dir)
+        env = Env()
+        env.read_env(".env.local")
+        env.read_env(".env")
 
-    debug = env.bool("DEBUG", default=False)
+        debug = env.bool("DEBUG", default=False)
 
-    if not os.environ.get("DJANGO_SETTINGS_MODULE"):
-        os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.local" if debug else "config.settings.production"
+        if not os.environ.get("DJANGO_SETTINGS_MODULE"):
+            os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.local" if debug else "config.settings.production"
 
-    # this isn't going to work with cwd on the path
-    sys.path.append(os.getcwd())
+        # Add manage.py directory to path for Django imports
+        sys.path.append(manage_py_dir)
+    finally:
+        # Restore original directory
+        os.chdir(original_cwd)
 
 
 def main():
-    setup_django_settings_module()
     parser = argparse.ArgumentParser(
         prog="vueda",
         description="Vueda CLI Interface",
@@ -71,6 +84,10 @@ def main():
         commands[name], _parser = setup_subparser(subparsers)
 
     args = parser.parse_args()
+
+    # Only setup Django settings when actually running commands that need it
+    if args.subcommand == "update":
+        setup_django_settings_module()
 
     commands[args.subcommand](args)
 
