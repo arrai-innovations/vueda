@@ -75,7 +75,7 @@ SUBPROCESS_EXCEPTION_TEXT = "\n\nException when calling pytest through subproces
 def convert_data_to_list_of_dicts_without_id_fields(queryset):
     data = []
 
-    for values in queryset.order_by("id"):
+    for values in queryset:
         item = {}
 
         for key, value in values.items():
@@ -621,12 +621,12 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand, BasePyTestJsonRe
         )
         assert data == [
             {
-                "historical_permission_codename": "can_do_something",
+                "historical_permission_codename": "can_do_another_thing",
                 "historical_permission_content_type_app_label": "workflow_changed",
                 "historical_permission_content_type_model_name": "workflowchanged",
             },
             {
-                "historical_permission_codename": "can_do_another_thing",
+                "historical_permission_codename": "can_do_something",
                 "historical_permission_content_type_app_label": "workflow_changed",
                 "historical_permission_content_type_model_name": "workflowchanged",
             },
@@ -728,11 +728,11 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand, BasePyTestJsonRe
         assert data == [
             {
                 "source__code": "state_2",
-                "transition__code": "go_to_state_1_a",
+                "transition__code": "go_to_state_1",
             },
             {
                 "source__code": "state_2",
-                "transition__code": "go_to_state_1",
+                "transition__code": "go_to_state_1_a",
             },
             {
                 "source__code": "state_3",
@@ -757,8 +757,7 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand, BasePyTestJsonRe
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).values()
         )
-        # Because these workflow permissions have an add and delete, as well as a change, the order of the data changes.
-        assert data == list(reversed(orig_data_workflow_permission))
+        assert data == orig_data_workflow_permission
 
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.State.objects.filter(workflow_id=workflow_pk).values()
@@ -898,16 +897,16 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand, BasePyTestJsonRe
         )
         assert orig_data_state == [
             {
-                "code": "state_3",
-                "name": "State 3",
-            },
-            {
                 "code": "state_1",
                 "name": "State 1",
             },
             {
                 "code": "state_2",
                 "name": "State 2",
+            },
+            {
+                "code": "state_3",
+                "name": "State 3",
             },
         ]
 
@@ -943,9 +942,9 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand, BasePyTestJsonRe
         )
         assert orig_data_transition == [
             {
-                "code": "go_to_state_3",
-                "name": "Go To State 3",
-                "target__code": "state_3",
+                "code": "go_to_state_1",
+                "name": "Go To State 1",
+                "target__code": "state_1",
             },
             {
                 "code": "go_to_state_2",
@@ -953,9 +952,9 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand, BasePyTestJsonRe
                 "target__code": "state_2",
             },
             {
-                "code": "go_to_state_1",
-                "name": "Go To State 1",
-                "target__code": "state_1",
+                "code": "go_to_state_3",
+                "name": "Go To State 3",
+                "target__code": "state_3",
             },
         ]
 
@@ -1058,35 +1057,27 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand, BasePyTestJsonRe
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).values()
         )
-        # Because we delete and add objects during these migrations, the order changes.
-        assert data == list(reversed(orig_data_workflow_permission))
+        assert data == orig_data_workflow_permission
 
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.State.objects.filter(workflow_id=workflow_pk).values()
         )
-        # Because we delete and add objects during these migrations, the order changes.
-        assert data == list(reversed(orig_data_state))
+        assert data == orig_data_state
 
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.StatePermission.objects.filter(state__workflow_id=workflow_pk).values()
         )
-        # Because we delete and add objects during these migrations, the order changes.
-        assert data == list(reversed(orig_data_state_permission))
+        assert data == orig_data_state_permission
 
         # Converting the data uses id, so it is stripped from the data.
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.Transition.objects.filter(workflow_id=workflow_pk).values("id", "code", "name", "target__code")
         )
-        # Because we delete and add objects during these migrations, the order changes.
-        assert data == list(reversed(orig_data_transition))
+        assert data == orig_data_transition
 
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).values()
         )
-        # Because we delete and add objects during these migrations, the order changes.
-        # In this case, they are not entirely reversed, so we need to do more work.
-        orig_data_transition_permission = list(reversed(orig_data_transition_permission))
-        orig_data_transition_permission.append(orig_data_transition_permission.pop(0))
         assert data == orig_data_transition_permission
 
         data = convert_data_to_list_of_dicts_without_id_fields(
@@ -1094,9 +1085,6 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand, BasePyTestJsonRe
                 "transition__code", "source__code"
             )
         )
-        # Because we delete and add objects during these migrations, the order changes.
-        orig_data_transition_source = list(reversed(orig_data_transition_source))
-        orig_data_transition_source.append(orig_data_transition_source.pop(0))
         assert data == orig_data_transition_source
 
 
