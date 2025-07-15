@@ -484,7 +484,7 @@ def static(
     settings = configure_django_settings(manage_py_dir)
 
     if package_manager == "uv":
-        cmd = ["uv", "run", "python", "manage.py", "collectstatic", "--traceback"]
+        cmd = ["uv", "run", "--no-sync", "python", "manage.py", "collectstatic", "--traceback"]
     else:  # pipenv
         cmd = ["pipenv", "run", "python", "manage.py", "collectstatic", "--traceback"]
 
@@ -511,8 +511,8 @@ def migrate(
     package_manager, repo_root, manage_py_dir = detect_package_manager()
 
     if package_manager == "uv":
-        migrate_cmd = ["uv", "run", "python", "manage.py", "migrate", "--traceback"]
-        stale_cmd = ["uv", "run", "python", "manage.py", "remove_stale_contenttypes", "--traceback"]
+        migrate_cmd = ["uv", "run", "--no-sync", "python", "manage.py", "migrate", "--traceback"]
+        stale_cmd = ["uv", "run", "--no-sync", "python", "manage.py", "remove_stale_contenttypes", "--traceback"]
     else:  # pipenv
         migrate_cmd = ["pipenv", "run", "python", "manage.py", "migrate", "--traceback"]
         stale_cmd = ["pipenv", "run", "python", "manage.py", "remove_stale_contenttypes", "--traceback"]
