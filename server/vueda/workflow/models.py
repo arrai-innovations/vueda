@@ -36,6 +36,7 @@ class Workflow(SimpleHistoryModelMixin, Lookup):
     class Meta(BaseModelMeta):
         default_related_name = "workflows"
         constraints = [models.UniqueConstraint(fields=["code"], name="unique_workflow_code")]
+        ordering = ["code"]
 
     def __str__(self):
         return f"name: {self.name}, code: {self.code}"
@@ -66,6 +67,7 @@ class WorkflowPermission(SimpleHistoryModelMixin):
                 name="unique_workflow_permission",
             )
         ]
+        ordering = ["historical_permission_codename"]
 
     def __str__(self):
         # When debugging where an object has been deleted, get data from the history rather than blow up.
@@ -117,6 +119,7 @@ class State(SimpleHistoryModelMixin):
     class Meta(BaseModelMeta):
         default_related_name = "states"
         constraints = [models.UniqueConstraint(fields=["workflow", "code"], name="unique_state_code")]
+        ordering = ["code"]
 
     def __str__(self):
         return f"name: {self.name}, code: {self.code}"
@@ -148,6 +151,7 @@ class StatePermission(SimpleHistoryModelMixin):
     class Meta(BaseModelMeta):
         default_related_name = "state_permissions"
         constraints = [models.UniqueConstraint(fields=["state", "permission", "group"], name="unique_state_permission")]
+        ordering = ["historical_permission_codename"]
 
     def __str__(self):
         # When debugging where an object has been deleted, get data from the history rather than blow up.
@@ -202,6 +206,7 @@ class InitialState(SimpleHistoryModelMixin):
     class Meta(BaseModelMeta):
         default_related_name = "initial_states"
         constraints = [models.UniqueConstraint(fields=["workflow", "state"], name="unique_workflow_initial_state")]
+        ordering = ["workflow__code", "state__code"]
 
     def __str__(self):
         # When debugging where an object has been deleted, get data from the history rather than blow up.
@@ -253,6 +258,7 @@ class Transition(SimpleHistoryModelMixin):
         constraints = [
             models.UniqueConstraint(fields=["workflow", "code"], name="unique_transition_code"),
         ]
+        ordering = ["code"]
 
     def __str__(self):
         # When debugging where an object has been deleted, get data from the history rather than blow up.
@@ -294,6 +300,7 @@ class TransitionPermission(SimpleHistoryModelMixin):
                 name="unique_transition_permission",
             )
         ]
+        ordering = ["historical_permission_codename"]
 
     def __str__(self):
         # When debugging where an object has been deleted, get data from the history rather than blow up.
@@ -350,6 +357,7 @@ class TransitionSource(SimpleHistoryModelMixin):
                 name="unique_transition_source",
             )
         ]
+        ordering = ["source__code", "transition__code"]
 
     def __str__(self):
         # When debugging where an object has been deleted, get data from the history rather than blow up.

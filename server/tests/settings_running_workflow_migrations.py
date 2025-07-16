@@ -36,6 +36,7 @@ LOCAL_APPS = [
     "tests.workflow_added.apps.WorkflowAddedConfig",
     "tests.workflow_changed.apps.WorkflowChangedConfig",
     "tests.workflow_deleted.apps.WorkflowDeletedConfig",
+    "tests.workflow_duplicates.apps.WorkflowDuplicatesConfig",
 ]
 
 # noinspection PyUnresolvedReferences

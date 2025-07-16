@@ -43,8 +43,7 @@ class Distributor(VuedaHistoryBaseModel):
 
 
 class TangibleType(Lookup):
-    class Meta(BaseModelMeta):
-        pass
+    pass
 
 
 class SpecialCare(VuedaBaseModel):
@@ -81,8 +80,7 @@ class Product(VuedaHistoryBaseModel):
 
 
 class OptionType(Lookup):
-    class Meta(BaseModelMeta):
-        pass
+    pass
 
 
 class ProductOption(VuedaHistoryBaseModel):
@@ -138,8 +136,7 @@ class CartItemData(models.Model):
 
 
 class OrderState(Lookup):
-    class Meta(BaseModelMeta):
-        pass
+    pass
 
 
 class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryBaseModel):

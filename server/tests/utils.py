@@ -6,7 +6,11 @@ from django.http import QueryDict
 
 def clean_migrations(which_app=None):
     workflow_added_migrations_data = {
-        "tests/workflow_added/migrations": ("__init__.py", "0001_initial.py", "0002_create_workflow_added_workflow.py"),
+        "tests/workflow_added/migrations": (
+            "__init__.py",
+            "0001_initial.py",
+            "0002_create_workflow_added_workflow.py",
+        ),
     }
     workflow_changed_migrations_data = {
         "tests/workflow_changed/migrations": (
@@ -26,6 +30,14 @@ def clean_migrations(which_app=None):
             "0004_delete_workflow.py",
         ),
     }
+    workflow_duplicates_migrations_data = {
+        "tests/workflow_duplicates/migrations": (
+            "__init__.py",
+            "0001_initial.py",
+            "0002_workflow_migrations_2025_07_07.py",
+            "0003_create_state_history_records.py",
+        ),
+    }
     workflow_multi_migrations_data = {
         "tests/workflow_multi/migrations": (
             "__init__.py",
@@ -43,6 +55,9 @@ def clean_migrations(which_app=None):
         case "workflow_deleted":
             existing_migration_data = workflow_deleted_migrations_data
 
+        case "workflow_duplicates":
+            existing_migration_data = workflow_duplicates_migrations_data
+
         case "workflow_multi":
             existing_migration_data = workflow_multi_migrations_data
 
@@ -51,6 +66,8 @@ def clean_migrations(which_app=None):
             existing_migration_data.update(workflow_added_migrations_data)
             existing_migration_data.update(workflow_changed_migrations_data)
             existing_migration_data.update(workflow_deleted_migrations_data)
+            existing_migration_data.update(workflow_duplicates_migrations_data)
+            existing_migration_data.update(workflow_multi_migrations_data)
 
     for path, existing_migrations in existing_migration_data.items():
         for root, _dirs, files in os.walk(path):
