@@ -461,6 +461,11 @@ export const filterFieldMapping = {
         boundaryWidget: availableWidgets.WidgetDatePicker,
         boundaryWidgetProps: { showTime: true },
     },
+    IsoDateTimeField: {
+        component: availableFields.FieldDate,
+        widget: availableWidgets.WidgetDatePicker,
+        widgetProps: { showTime: true },
+    },
     ModelChoiceField: {
         component: availableFields.FieldString,
         widget: availableWidgets.WidgetModel,
