@@ -6,6 +6,11 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Breaking Changes
 
+- **Dependencies**:
+    - Updated PrimeVue peer dependency to ~4.3.6 to prevent theming issues from minor version updates
+    - Added `@primevue/themes` as peer dependency with ~4.3.6 constraint to ensure theme compatibility
+    - _Update both `"primevue": "~4.3.6"` and `"@primevue/themes": "~4.3.6"` in consuming projects_
+
 ### Features
 
 ### Fixes
