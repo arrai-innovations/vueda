@@ -7,10 +7,9 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { resolveSlotName } from "@vueda/utils/rendererSupport.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
-import { watchOnce } from "@vueuse/core";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
-import { computed, inject, unref, useAttrs, useSlots } from "vue";
+import { computed, inject, onMounted, unref, useAttrs, useSlots } from "vue";
 
 const props = defineProps({
     name: {
@@ -35,16 +34,14 @@ const props = defineProps({
 });
 const formContext = inject(FormContextSymbol, null);
 const fieldContext = inject(FieldContextSymbol, null);
-watchOnce(
-    () => {
-        if (!formContext && !fieldContext && (!props.name || !props.errors || !props.warnings)) {
-            console.warn(
-                "FormChores.vue must be used within a form context, a field context, a field name must be provided with [help]/errors/warnings.",
-            );
-        }
-    },
-    { immediate: true },
-);
+// Validate component setup after mounting
+onMounted(() => {
+    if (!formContext && !fieldContext && (!props.name || !props.errors || !props.warnings)) {
+        console.warn(
+            "FormChores.vue must be used within a form context, a field context, a field name must be provided with [help]/errors/warnings.",
+        );
+    }
+});
 const computedName = computed(() =>
     props.name?.length ? props.name : (fieldContext?.state?.name ?? NON_FIELD_ERRORS_KEY),
 );

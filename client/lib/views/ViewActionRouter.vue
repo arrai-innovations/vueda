@@ -66,8 +66,7 @@ watch(
             const transition = transitionObjects.find((transition) => transition.name === actionName);
             if (!action && !transition) {
                 actionComponentRef.value = () => ViewActionNotFound;
-            }
-            if (Object.keys(crudComponents).includes(actionStr)) {
+            } else if (Object.keys(crudComponents).includes(actionStr)) {
                 actionComponentRef.value = async () => await crudComponents[actionStr](props);
             } else {
                 actionComponentRef.value = async () => await getExtraActionComponent(actionStr);

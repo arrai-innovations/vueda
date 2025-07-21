@@ -20,6 +20,9 @@ const FilterFieldMappings = {
     DateTimeField: {
         initialValue: null,
     },
+    IsoDateTimeField: {
+        initialValue: null,
+    },
     DecimalField: {
         initialValue: null,
     },
