@@ -10,6 +10,11 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Fixes
 
+- **useFilter/FilterGroup**:
+    - Improved developer experience for invalid filter configurations by replacing crashes with helpful console warnings
+    - Invalid filterables (missing details or typeFilter) are now skipped during rendering instead of breaking the entire list view
+    - _Malformed filter configurations will now log warnings instead of preventing page loads_
+
 ## v2.0.0-beta.7 (2025-07-21)
 
 ### Breaking Changes

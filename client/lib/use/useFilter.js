@@ -126,12 +126,18 @@ export function useFilter(props) {
                 const widgetProps = {};
                 let allFields = {};
                 let rangeFields = [];
+                const missingDetails = [];
+                const unknownTypeFilters = [];
+
                 for (const fieldName of deepUnref(filterables) || []) {
                     let detail = filterableDetails[fieldName];
+                    if (!detail) {
+                        missingDetails.push(fieldName);
+                        continue;
+                    }
                     if (!detail.typeFilter) {
-                        throw new Error(
-                            `Unknown filterable field ${fieldName} specified for ${props.app}.${props.model}`,
-                        );
+                        unknownTypeFilters.push(fieldName);
+                        continue;
                     }
                     if (detail?.typeFilter.toLowerCase().includes("range") && detail.suffixes?.length === 2) {
                         for (const lookup of detail.suffixes) {
@@ -145,6 +151,17 @@ export function useFilter(props) {
                         rangeFields.push(fieldName);
                     }
                     allFields[fieldName] = detail;
+                }
+
+                // Log any issues found during processing
+                if (missingDetails.length > 0) {
+                    console.warn(`Missing filter details for fields in ${props.app}.${props.model}:`, missingDetails);
+                }
+                if (unknownTypeFilters.length > 0) {
+                    console.warn(
+                        `Unknown typeFilter for filterable fields in ${props.app}.${props.model}:`,
+                        unknownTypeFilters,
+                    );
                 }
 
                 for (const [name, detail] of Object.entries(allFields)) {
