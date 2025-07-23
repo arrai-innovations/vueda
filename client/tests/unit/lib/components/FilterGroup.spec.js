@@ -39,7 +39,12 @@ const useSlotNameResolver = vi.fn(() => {
 });
 const mockedUseFilter = vi.fn((props) =>
     reactive({
-        filterables: computed(() => (props.filterables ?? []).filter((f) => props.filterableDetails?.[f])),
+        filterables: computed(() =>
+            (props.filterables ?? []).filter((f) => {
+                const detail = props.filterableDetails?.[f];
+                return detail && detail.typeFilter;
+            }),
+        ),
         filterableDetails: toRef(props, "filterableDetails"),
     }),
 );
@@ -81,7 +86,7 @@ describe("lib/components/FilterGroup.vue", () => {
                 model: "m",
                 view: "v",
                 filterables: ["foo", "bar"],
-                filterableDetails: { foo: {}, bar: undefined },
+                filterableDetails: { foo: { typeFilter: "CharField" }, bar: undefined },
                 filterFormsValues: {},
                 modelValue: params.value,
                 "onUpdate:modelValue": (v) => (params.value = v),
@@ -161,7 +166,7 @@ describe("lib/components/FilterGroup.vue", () => {
                 model: "m",
                 view: "v",
                 filterables: ["foo"],
-                filterableDetails: { foo: {}, bar: {} },
+                filterableDetails: { foo: { typeFilter: "CharField" }, bar: { typeFilter: "IntegerField" } },
                 modelValue: params.value,
                 "onUpdate:modelValue": (v) => (params.value = v),
             },

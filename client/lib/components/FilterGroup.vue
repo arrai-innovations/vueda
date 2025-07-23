@@ -103,12 +103,23 @@ watch(
         deep: true,
     },
 );
+// Filter out invalid filterables to prevent rendering broken filter components
+const validFilterables = computed(() => {
+    const filterables = deepUnref(filterContext?.filterables) || [];
+    const filterableDetails = filterContext?.filterableDetails || {};
+
+    return filterables.filter((fieldName) => {
+        const detail = filterableDetails[fieldName];
+        return detail && detail.typeFilter;
+    });
+});
+
 // watch computedFilters, and maintain a map to useSlotNameResolver instances
 const slots = useSlots();
 const resolversEffectScope = effectScope();
 const resolvers = reactive({});
 watch(
-    () => filterContext?.filterables,
+    validFilterables,
     (filters) => {
         let newFilters = deepUnref(filters);
         const { addedKeys, removedKeys } = keyDiff(newFilters, Object.keys(resolvers));
@@ -142,7 +153,7 @@ const theme = useTheme("FilterGroup", props);
 <template>
     <div :class="theme('root')">
         <div :class="theme('filtersWrapper')">
-            <template v-for="(filter, index) in deepUnref(filterContext?.filterables)" :key="index">
+            <template v-for="(filter, index) in validFilterables" :key="index">
                 <slot
                     v-if="resolvers[filter]"
                     :filter="filter"

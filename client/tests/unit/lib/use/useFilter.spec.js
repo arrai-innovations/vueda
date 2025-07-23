@@ -56,13 +56,20 @@ describe("lib/use/useFilter.js", () => {
         expect(state.widgetComponents.created).toBeUndefined();
     });
 
-    scopedIt("throws for unknown filter detail", () => {
+    scopedIt("warns for unknown filter detail", () => {
+        const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
         const props = reactive({
             app: "a",
             model: "b",
             filterables: ["foo"],
             filterableDetails: { foo: {} },
         });
-        expect(() => useFilter(props)).toThrow("Unknown filterable field foo specified for a.b");
+
+        useFilter(props);
+
+        expect(consoleWarnSpy).toHaveBeenCalledWith("Unknown typeFilter for filterable fields in a.b:", ["foo"]);
+
+        consoleWarnSpy.mockRestore();
     });
 });
