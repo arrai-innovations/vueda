@@ -1,6 +1,1 @@
-{
-    "GHSA-67mh-4wv8-2f99": {
-        "active": true,
-        "notes": "Vite does not use the vulnerable esbuild dev server."
-    }
-}
+{}
