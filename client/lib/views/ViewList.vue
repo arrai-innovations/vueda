@@ -27,7 +27,20 @@ import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
-import { computed, effectScope, inject, onMounted, reactive, readonly, ref, toRef, toRefs, unref, watch } from "vue";
+import {
+    computed,
+    effectScope,
+    inject,
+    onMounted,
+    reactive,
+    readonly,
+    ref,
+    toRef,
+    toRefs,
+    unref,
+    useSlots,
+    watch,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 defineOptions({
@@ -150,6 +163,7 @@ const sorting = reactive({
         assignReactiveObject(sorting.state.sorted, sorted);
     },
 });
+const slots = useSlots();
 const pkKey = computed(() => modelConfig.info?.pk ?? "id");
 const calculatedListFields = computed(() => {
     let fields = [];
@@ -531,7 +545,7 @@ const searchSlotProps = reactive({
                 @hide-filter-form="emit('hide-filter-form', $event)"
                 @query-change="emit('query-change', $event)"
             >
-                <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                <template v-for="(_, slot) in slots" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>
             </filter-group>
@@ -572,7 +586,7 @@ const searchSlotProps = reactive({
             @update:sorted="sorting.updateSorted"
         >
             <template
-                v-for="slot in Object.keys($slots).filter((slot) => !specialSlots.includes(slot))"
+                v-for="slot in Object.keys(slots).filter((slot) => !specialSlots.includes(slot))"
                 #[slot]="slotProps"
             >
                 <slot :name="slot" v-bind="slotProps || {}"></slot>
