@@ -9,7 +9,7 @@ _Actions potentially required by implementers are marked with italics._
 - **Dependencies**:
     - Updated peer dependency from `@primevue/themes` to `@primeuix/themes` following PrimeVue's migration path
     - `@primevue/themes` 4.3.6+ is now a thin wrapper around `@primeuix/themes`, making the direct dependency more appropriate
-    - _Update peer dependency to `"@primeuix/themes": "~4.3.6"` and remove `@primevue/themes` from consuming projects_
+    - _Update peer dependency to `"@primeuix/themes": "~1.2.1"` and remove `@primevue/themes` from consuming projects_
     - _Update tailwind.config.js content paths from `@primevue/themes` to `@primeuix/themes` (e.g., `./node_modules/@primeuix/themes/lara/**/*.{vue,js,ts,jsx,tsx}`)_
 
 ### Features
