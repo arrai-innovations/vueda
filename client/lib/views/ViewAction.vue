@@ -10,7 +10,7 @@ import { memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
-import { computed, inject, toRef } from "vue";
+import { computed, inject, toRef, useSlots } from "vue";
 import { useRouter } from "vue-router";
 
 defineOptions({
@@ -50,6 +50,7 @@ const props = defineProps({
 if (!inject(LookupContextSymbol, null)) {
     useLookupContext();
 }
+const slots = useSlots();
 const actionTitleText = computed(() => {
     return props.title?.length > 0
         ? props.title
@@ -90,13 +91,13 @@ const rootClass = computed(() => combineClasses(theme.root, props.class));
                     <Button label="Go Back" verb="return" @click="handleReturnClick" />
                 </slot>
             </template>
-            <template v-for="(_, slot) in omit($slots, ['before-list', 'default'])" #[slot]="slotProps">
+            <template v-for="(_, slot) in omit(slots, ['before-list', 'default'])" #[slot]="slotProps">
                 <slot :name="slot" v-bind="slotProps || {}" />
             </template>
         </PageTitle>
         <slot :action="action" :app="app" :form-context="formContext" :model="model" :pk="pk">
             <action-form :action="action" :app="app" :model="model" v-bind="$attrs">
-                <template v-for="(_, slot) in omit($slots, ['before-list'])" #[slot]="slotProps">
+                <template v-for="(_, slot) in omit(slots, ['before-list'])" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>
             </action-form>

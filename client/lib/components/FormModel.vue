@@ -238,7 +238,7 @@ const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlot
 <template>
     <div :class="theme('root')" data-qa="form-model">
         <template v-if="formModel.fields?.length">
-            <div v-if="$slots['before-fields']" :class="theme('beforeFields')">
+            <div v-if="slots['before-fields']" :class="theme('beforeFields')">
                 <slot :form-attrs="$attrs" :form-props="$props" name="before-fields" />
             </div>
             <!-- form-level chores -->
@@ -274,7 +274,7 @@ const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlot
                     </template>
                 </slot>
             </div>
-            <div v-if="$slots['after-fields']" :class="theme('afterFields')">
+            <div v-if="slots['after-fields']" :class="theme('afterFields')">
                 <slot :form-attrs="$attrs" :form-props="$props" name="after-fields" />
             </div>
         </template>

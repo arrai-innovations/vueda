@@ -17,7 +17,7 @@ import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
-import { computed, inject, onMounted, reactive, readonly, ref, toRef, watch } from "vue";
+import { computed, inject, onMounted, reactive, readonly, ref, toRef, useSlots, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -165,6 +165,7 @@ const emit = defineEmits(["object", "loading", "related-object", "calculated-obj
 
 /** @type {import("@vueda/use/useForm.js").FormContext|null} */
 const formContext = inject(FormContextSymbol, null);
+const slots = useSlots();
 const capitalizedViewName = computed(() => memoizedStartCase(props.viewName));
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "viewName"));
 const filteredActions = useFilteredActions({
@@ -316,7 +317,7 @@ const nonDetailActions = computed(() =>
                 </template>
                 <slot name="extra-buttons" />
             </template>
-            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+            <template v-for="(_, slot) in slots" #[slot]="slotProps">
                 <slot :name="slot" v-bind="slotProps || {}" />
             </template>
         </page-title>
@@ -401,7 +402,7 @@ const nonDetailActions = computed(() =>
                     :widget-props="computedWidgetProps"
                     v-bind="combinedFormProps"
                 >
-                    <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                    <template v-for="(_, slot) in slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />
                     </template>
                 </form-model>
