@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
     operations = [
         custom_migration_operations.SkippableRunSQL(
             sql="""
-                WITH SYSTEM_USER AS (
+                WITH USER_SYSTEM AS (
                     SELECT
                         id
                     FROM
@@ -53,10 +53,10 @@ class Migration(migrations.Migration):
                     'Migration - 0003_create_state_history_records',
                     '-',
                     DATA.id,
-                    SYSTEM_USER.id,
+                    USER_SYSTEM.id,
                     WORKFLOW.id
                 FROM
-                    SYSTEM_USER,
+                    USER_SYSTEM,
                     WORKFLOW,
                     (
                         SELECT
@@ -115,7 +115,7 @@ class Migration(migrations.Migration):
         ),
         custom_migration_operations.SkippableRunSQL(
             sql="""
-                WITH SYSTEM_USER AS (
+                WITH USER_SYSTEM AS (
                     SELECT
                         id
                     FROM
@@ -152,10 +152,10 @@ class Migration(migrations.Migration):
                     'Migration - 0003_create_state_history_records',
                     '+',
                     DATA.id,
-                    SYSTEM_USER.id,
+                    USER_SYSTEM.id,
                     WORKFLOW.id
                 FROM
-                    SYSTEM_USER,
+                    USER_SYSTEM,
                     WORKFLOW,
                     (
                         SELECT
@@ -213,7 +213,7 @@ class Migration(migrations.Migration):
         ),
         custom_migration_operations.SkippableRunSQL(
             sql="""
-                WITH SYSTEM_USER AS (
+                WITH USER_SYSTEM AS (
                     SELECT
                         id
                     FROM
@@ -250,10 +250,10 @@ class Migration(migrations.Migration):
                     'Migration - 0003_create_state_history_records',
                     '~',
                     DATA.id,
-                    SYSTEM_USER.id,
+                    USER_SYSTEM.id,
                     WORKFLOW.id
                 FROM
-                    SYSTEM_USER,
+                    USER_SYSTEM,
                     WORKFLOW,
                     (
                         SELECT
@@ -321,7 +321,7 @@ class Migration(migrations.Migration):
         ),
         custom_migration_operations.SkippableRunSQL(
             sql="""
-                WITH SYSTEM_USER AS (
+                WITH USER_SYSTEM AS (
                     SELECT
                         id
                     FROM
@@ -358,10 +358,10 @@ class Migration(migrations.Migration):
                     'Migration - 0003_create_state_history_records',
                     '-',
                     DATA.id,
-                    SYSTEM_USER.id,
+                    USER_SYSTEM.id,
                     WORKFLOW.id
                 FROM
-                    SYSTEM_USER,
+                    USER_SYSTEM,
                     WORKFLOW,
                     (
                         SELECT
@@ -411,7 +411,7 @@ class Migration(migrations.Migration):
         ),
         custom_migration_operations.SkippableRunSQL(
             sql="""
-                WITH SYSTEM_USER AS (
+                WITH USER_SYSTEM AS (
                     SELECT
                         id
                     FROM
@@ -448,10 +448,10 @@ class Migration(migrations.Migration):
                     'Migration - 0003_create_state_history_records',
                     '+',
                     DATA.id,
-                    SYSTEM_USER.id,
+                    USER_SYSTEM.id,
                     WORKFLOW.id
                 FROM
-                    SYSTEM_USER,
+                    USER_SYSTEM,
                     WORKFLOW,
                     (
                         SELECT
