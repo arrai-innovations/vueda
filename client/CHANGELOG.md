@@ -21,7 +21,7 @@ _Actions potentially required by implementers are marked with italics._
     - Invalid filterables (missing details or typeFilter) are now skipped during rendering instead of breaking the entire list view
     - _Malformed filter configurations will now log warnings instead of preventing page loads_
 - **Developer Experience**:
-    - Converted `$slots` usage to `useSlots()` `in ViewList`, `DetailedView`, `ViewAction`, and `FormModel` components
+    - Converted `$slots` usage to `useSlots()` in `ViewList`, `DetailedView`, `ViewAction`, and `FormModel` components
       for better debugging visibility in Vue DevTools
 
 ## v2.0.0-beta.7 (2025-07-21)
