@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
     operations = [
         custom_migration_operations.SkippableRunSQL(
             sql="""
-                WITH SYSTEM_USER AS (
+                WITH USER_SYSTEM AS (
                     SELECT
                         id
                     FROM
@@ -42,12 +42,12 @@ class Migration(migrations.Migration):
                     'Migration - 0004_delete_workflow',
                     '-',
                     T.id,
-                    SYSTEM_USER.id,
+                    USER_SYSTEM.id,
                     T.source_id,
                     T.transition_id
                 FROM
                     vueda_workflow_transitionsource T,
-                    SYSTEM_USER
+                    USER_SYSTEM
                 WHERE
                     transition_id IN (
                         SELECT
@@ -193,7 +193,7 @@ class Migration(migrations.Migration):
         ),
         custom_migration_operations.SkippableRunSQL(
             sql="""
-                WITH SYSTEM_USER AS (
+                WITH USER_SYSTEM AS (
                     SELECT
                         id
                     FROM
@@ -222,7 +222,7 @@ class Migration(migrations.Migration):
                     'Migration - 0004_delete_workflow',
                     '-',
                     T.id,
-                    SYSTEM_USER.id,
+                    USER_SYSTEM.id,
                     T.permission_id,
                     T.historical_permission_codename,
                     T.historical_permission_content_type_app_label,
@@ -230,7 +230,7 @@ class Migration(migrations.Migration):
                     T.transition_id
                 FROM
                     vueda_workflow_transitionpermission T,
-                    SYSTEM_USER
+                    USER_SYSTEM
                 WHERE
                     transition_id IN (
                         SELECT
@@ -391,7 +391,7 @@ class Migration(migrations.Migration):
         ),
         custom_migration_operations.SkippableRunSQL(
             sql="""
-                WITH SYSTEM_USER AS (
+                WITH USER_SYSTEM AS (
                     SELECT
                         id
                     FROM
@@ -421,12 +421,12 @@ class Migration(migrations.Migration):
                     'Migration - 0004_delete_workflow',
                     '-',
                     T.id,
-                    SYSTEM_USER.id,
+                    USER_SYSTEM.id,
                     T.target_id,
                     T.workflow_id
                 FROM
                     vueda_workflow_transition T,
-                    SYSTEM_USER
+                    USER_SYSTEM
                 WHERE
                     workflow_id IN (
                         SELECT
@@ -552,7 +552,7 @@ class Migration(migrations.Migration):
         ),
         custom_migration_operations.SkippableRunSQL(
             sql="""
-                WITH SYSTEM_USER AS (
+                WITH USER_SYSTEM AS (
                     SELECT
                         id
                     FROM
@@ -586,7 +586,7 @@ class Migration(migrations.Migration):
                     '-',
                     S.group_id,
                     S.id,
-                    SYSTEM_USER.id,
+                    USER_SYSTEM.id,
                     S.permission_id,
                     S.historical_permission_codename,
                     S.historical_permission_content_type_app_label,
@@ -595,7 +595,7 @@ class Migration(migrations.Migration):
                     S.state_id
                 FROM
                     vueda_workflow_statepermission S,
-                    SYSTEM_USER
+                    USER_SYSTEM
                 WHERE
                     S.state_id IN (
                         SELECT
@@ -803,7 +803,7 @@ class Migration(migrations.Migration):
         ),
         custom_migration_operations.SkippableRunSQL(
             sql="""
-                WITH SYSTEM_USER AS (
+                WITH USER_SYSTEM AS (
                     SELECT
                         id
                     FROM
@@ -829,12 +829,12 @@ class Migration(migrations.Migration):
                     'Migration - 0004_delete_workflow',
                     '-',
                     I.id,
-                    SYSTEM_USER.id,
+                    USER_SYSTEM.id,
                     I.state_id,
                     I.workflow_id
                 FROM
                     vueda_workflow_initialstate I,
-                    SYSTEM_USER
+                    USER_SYSTEM
                 WHERE
                     I.workflow_id IN (
                         SELECT
@@ -900,7 +900,7 @@ class Migration(migrations.Migration):
         ),
         custom_migration_operations.SkippableRunSQL(
             sql="""
-                WITH SYSTEM_USER AS (
+                WITH USER_SYSTEM AS (
                     SELECT
                         id
                     FROM
@@ -929,11 +929,11 @@ class Migration(migrations.Migration):
                     'Migration - 0004_delete_workflow',
                     '-',
                     S.id,
-                    SYSTEM_USER.id,
+                    USER_SYSTEM.id,
                     S.workflow_id
                 FROM
                     vueda_workflow_state S,
-                    SYSTEM_USER
+                    USER_SYSTEM
                 WHERE
                     S.workflow_id IN (
                         SELECT
@@ -1010,7 +1010,7 @@ class Migration(migrations.Migration):
         ),
         custom_migration_operations.SkippableRunSQL(
             sql="""
-                WITH SYSTEM_USER AS (
+                WITH USER_SYSTEM AS (
                     SELECT
                         id
                     FROM
@@ -1039,7 +1039,7 @@ class Migration(migrations.Migration):
                     'Migration - 0004_delete_workflow',
                     '-',
                     W.id,
-                    SYSTEM_USER.id,
+                    USER_SYSTEM.id,
                     W.permission_id,
                     W.historical_permission_codename,
                     W.historical_permission_content_type_app_label,
@@ -1047,7 +1047,7 @@ class Migration(migrations.Migration):
                     W.workflow_id
                 FROM
                     vueda_workflow_workflowpermission W,
-                    SYSTEM_USER
+                    USER_SYSTEM
                 WHERE
                     workflow_id IN (
                         SELECT
@@ -1236,7 +1236,7 @@ class Migration(migrations.Migration):
         ),
         custom_migration_operations.SkippableRunSQL(
             sql="""
-                WITH SYSTEM_USER AS (
+                WITH USER_SYSTEM AS (
                     SELECT
                         id
                     FROM
@@ -1270,10 +1270,10 @@ class Migration(migrations.Migration):
                     '-',
                     W.content_type_id,
                     W.id,
-                    SYSTEM_USER.id
+                    USER_SYSTEM.id
                 FROM
                     vueda_workflow_workflow W,
-                    SYSTEM_USER
+                    USER_SYSTEM
                 WHERE
                     W.code = 'deleted_workflow';""",
             reverse_sql=migrations.RunSQL.noop,

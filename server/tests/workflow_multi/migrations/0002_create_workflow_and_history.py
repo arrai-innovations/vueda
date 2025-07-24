@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-            WITH SYSTEM_USER AS (
+            WITH USER_SYSTEM AS (
                 SELECT
                     id
                 FROM
@@ -89,17 +89,17 @@ class Migration(migrations.Migration):
                 '+',
                 W.content_type_id,
                 W.id,
-                SYSTEM_USER.id
+                USER_SYSTEM.id
             FROM
                 vueda_workflow_workflow W,
-                SYSTEM_USER
+                USER_SYSTEM
             WHERE
                 W.code = 'complete_task';""",
             reverse_sql=migrations.RunSQL.noop,
         ),
         migrations.RunSQL(
             sql="""
-            WITH SYSTEM_USER AS (
+            WITH USER_SYSTEM AS (
                 SELECT
                     id
                 FROM
@@ -133,10 +133,10 @@ class Migration(migrations.Migration):
                 '~',
                 W.content_type_id,
                 W.id,
-                SYSTEM_USER.id
+                USER_SYSTEM.id
             FROM
                 vueda_workflow_workflow W,
-                SYSTEM_USER
+                USER_SYSTEM
             WHERE
                 W.code = 'complete_task';""",
             reverse_sql=migrations.RunSQL.noop,
@@ -179,7 +179,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-            WITH SYSTEM_USER AS (
+            WITH USER_SYSTEM AS (
                 SELECT
                     id
                 FROM
@@ -208,11 +208,11 @@ class Migration(migrations.Migration):
                 'Migration - 0002_create_workflow_and_history',
                 '+',
                 S.id,
-                SYSTEM_USER.id,
+                USER_SYSTEM.id,
                 S.workflow_id
             FROM
                 vueda_workflow_state S,
-                SYSTEM_USER
+                USER_SYSTEM
             WHERE
                 S.workflow_id IN (
                     SELECT
@@ -228,7 +228,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-            WITH SYSTEM_USER AS (
+            WITH USER_SYSTEM AS (
                 SELECT
                     id
                 FROM
@@ -257,11 +257,11 @@ class Migration(migrations.Migration):
                 'Migration - 0002_create_workflow_and_history',
                 '~',
                 S.id,
-                SYSTEM_USER.id,
+                USER_SYSTEM.id,
                 S.workflow_id
             FROM
                 vueda_workflow_state S,
-                SYSTEM_USER
+                USER_SYSTEM
             WHERE
                 S.workflow_id IN (
                     SELECT
@@ -277,7 +277,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-            WITH SYSTEM_USER AS (
+            WITH USER_SYSTEM AS (
                 SELECT
                     id
                 FROM
@@ -306,11 +306,11 @@ class Migration(migrations.Migration):
                 'Migration - 0002_create_workflow_and_history',
                 '+',
                 S.id,
-                SYSTEM_USER.id,
+                USER_SYSTEM.id,
                 S.workflow_id
             FROM
                 vueda_workflow_state S,
-                SYSTEM_USER
+                USER_SYSTEM
             WHERE
                 S.workflow_id IN (
                     SELECT
@@ -363,7 +363,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-            WITH SYSTEM_USER AS (
+            WITH USER_SYSTEM AS (
                 SELECT
                     id
                 FROM
@@ -389,7 +389,7 @@ class Migration(migrations.Migration):
                 'Migration - 0002_create_workflow_and_history',
                 '+',
                 I.id,
-                SYSTEM_USER.id,
+                USER_SYSTEM.id,
                 (
                     SELECT
                         id
@@ -409,7 +409,7 @@ class Migration(migrations.Migration):
                 I.workflow_id
             FROM
                 vueda_workflow_initialstate I,
-                SYSTEM_USER
+                USER_SYSTEM
             WHERE
                 I.workflow_id IN (
                     SELECT
@@ -440,7 +440,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-            WITH SYSTEM_USER AS (
+            WITH USER_SYSTEM AS (
                 SELECT
                     id
                 FROM
@@ -466,12 +466,12 @@ class Migration(migrations.Migration):
                 'Migration - 0002_create_workflow_and_history',
                 '~',
                 I.id,
-                SYSTEM_USER.id,
+                USER_SYSTEM.id,
                 I.state_id,
                 I.workflow_id
             FROM
                 vueda_workflow_initialstate I,
-                SYSTEM_USER
+                USER_SYSTEM
             WHERE
                 I.workflow_id IN (
                     SELECT
@@ -543,7 +543,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-            WITH SYSTEM_USER AS (
+            WITH USER_SYSTEM AS (
                 SELECT
                     id
                 FROM
@@ -573,12 +573,12 @@ class Migration(migrations.Migration):
                 'Migration - 0002_create_workflow_and_history',
                 '+',
                 T.id,
-                SYSTEM_USER.id,
+                USER_SYSTEM.id,
                 T.target_id,
                 T.workflow_id
             FROM
                 vueda_workflow_transition T,
-                SYSTEM_USER
+                USER_SYSTEM
             WHERE
                 workflow_id IN (
                     SELECT
@@ -668,7 +668,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-            WITH SYSTEM_USER AS (
+            WITH USER_SYSTEM AS (
                 SELECT
                     id
                 FROM
@@ -697,7 +697,7 @@ class Migration(migrations.Migration):
                 'Migration - 0002_create_workflow_and_history',
                 '+',
                 W.id,
-                SYSTEM_USER.id,
+                USER_SYSTEM.id,
                 W.permission_id,
                 W.historical_permission_codename,
                 W.historical_permission_content_type_app_label,
@@ -705,7 +705,7 @@ class Migration(migrations.Migration):
                 W.workflow_id
             FROM
                 vueda_workflow_workflowpermission W,
-                SYSTEM_USER
+                USER_SYSTEM
             WHERE
                 workflow_id IN (
                     SELECT
@@ -721,7 +721,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-            WITH SYSTEM_USER AS (
+            WITH USER_SYSTEM AS (
                 SELECT
                     id
                 FROM
@@ -750,7 +750,7 @@ class Migration(migrations.Migration):
                 'Migration - 0002_create_workflow_and_history',
                 '+',
                 W.id,
-                SYSTEM_USER.id,
+                USER_SYSTEM.id,
                 W.permission_id,
                 W.historical_permission_codename,
                 W.historical_permission_content_type_app_label,
@@ -758,7 +758,7 @@ class Migration(migrations.Migration):
                 W.workflow_id
             FROM
                 vueda_workflow_workflowpermission W,
-                SYSTEM_USER
+                USER_SYSTEM
             WHERE
                 workflow_id IN (
                     SELECT
