@@ -1,11 +1,18 @@
-from distutils.util import strtobool
-
 from django.core.validators import StepValueValidator
 from django_filters import rest_framework
 
 import tests.store.models as my_models
 from tests import filters as test_filters
 from vueda.core.filters import VuedaFilterSet
+
+
+def strtobool(value):
+    match value:
+        case "y" | "yes" | "t" | "true" | "on" | "1":
+            return True
+        case "n" | "no" | "f" | "false" | "off" | "0":
+            return False
+    raise ValueError
 
 
 class ProductFilterSet(VuedaFilterSet):

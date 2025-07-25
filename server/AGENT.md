@@ -2,14 +2,14 @@
 
 ## Commands
 
--   **Build**: `pipenv install --dev` (setup), `python -m build` (package)
--   **Lint**: `ruff check .` (check), `ruff check --fix .` (fix)
--   **Format**: `ruff format .`
--   **Test**: `pytest` (all), `pytest tests/path/to/test_file.py::TestClass::test_method` (single test)
--   **Coverage**: `pytest --cov-config=.coveragerc && coverage combine && coverage html`
--   **Django**: `python manage.py test`, `python manage.py makemigrations`, `python manage.py migrate`
--   **API docs**: `python manage.py spectacular --color --file schema.yml`
--   **Workflow migrations**: `python manage.py makeworkflowmigrations` (after workflow changes)
+-   **Build**: `uv sync` (setup), `python -m build` (package)
+-   **Lint**: `uv run --no-sync ruff check .` (check), `uv run --no-sync ruff check --fix .` (fix)
+-   **Format**: `uv run --no-sync ruff format .`
+-   **Test**: `uv run --no-sync pytest` (all), `uv run --no-sync pytest tests/path/to/test_file.py::TestClass::test_method` (single test)
+-   **Coverage**: `uv run pytest --cov-config=.coveragerc && uv run coverage combine && uv run coverage html`
+-   **Django**: `uv run --no-sync python manage.py test`, `uv run --no-sync python manage.py makemigrations`, `uv run --no-sync python manage.py migrate`
+-   **API docs**: `uv run --no-sync python manage.py spectacular --color --file schema.yml`
+-   **Workflow migrations**: `uv run --no-sync python manage.py makeworkflowmigrations` (after workflow changes)
 
 ## Architecture
 

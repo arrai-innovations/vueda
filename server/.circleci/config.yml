@@ -2,10 +2,10 @@ version: 2.1
 orbs:
     github: arrai/github@3.0.0
     pypi: arrai/pypi@3.1.0
-    pytest: arrai/pytest@8.1.5
-    ruff: arrai/ruff@1.0.0
-    safety: arrai/safety@4.1.0
-    utils: arrai/utils@1.18.0
+    pytest: arrai/pytest@9.1.1
+    ruff: arrai/ruff@1.1.1
+    pip-audit: arrai/pip-audit@1.0.1
+    utils: arrai/utils@1.21.1
 executors:
     base:
         docker:
@@ -69,13 +69,13 @@ jobs:
                       - "SHA256:e+v8NQ5Y014IPQ28fRUTNgaFyHA8K0stDUFYNcUDTp0"
             - run:
                   name: Install Dependencies
-                  command: pipenv sync --dev
+                  command: uv sync --dev --frozen
             - run:
                   name: Copy Configuration
                   command: cp .env.circleci .env.local
             - run:
                   name: Generate Schema
-                  command: pipenv run python manage.py spectacular --color --file schema.yml
+                  command: uv run python manage.py spectacular --color --file schema.yml
             - run:
                   name: Generate Documentation
                   command: npx -y @redocly/cli build-docs schema.yml
@@ -123,7 +123,7 @@ workflows:
                   executor: python311
                   context: arrai-global
                   pytest_args: --cov -n2 --dist loadgroup
-                  pipenv_cache_key_version: "2"
+                  env_type: uv
                   config:
                       - run:
                             name: Copy config
@@ -229,18 +229,20 @@ workflows:
                               - main
     audit:
         jobs:
-            - safety/safety_fixed_ip:
-                  name: safety
+            - pip-audit/pip_audit_ip:
+                  name: pip-audit
                   context: arrai-global
-                  executor: safety/python311
+                  executor: python311-base
+                  env_type: uv
                   filters:
                       branches:
                           only:
                               - main
-            - safety/safety:
-                  name: safety-no-badge
+            - pip-audit/pip_audit:
+                  name: pip-audit-no-badge
                   context: arrai-global
-                  executor: safety/python311
+                  executor: python311-base
+                  env_type: uv
                   create_badges: false
                   filters:
                       branches:

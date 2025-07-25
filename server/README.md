@@ -2,14 +2,15 @@
 
 ![VUEDA Logo - Vue.js User Experience for Django Admin](/VUEDA.png)
 
-[![code style: ruff][]][ruff] [![code style: prettier][]][prettier] ![pytest status][] ![coverage status][] ![ruff status][] ![safety status][]
+[![code style: ruff][]][ruff] [![code style: prettier][]][prettier] ![pytest status][] ![coverage status][] ![ruff status][] ![pip-audit status][]
 
 <!--prettier-ignore-start-->
 <!--TOC-->
 
 - [About](#about)
 - [Usage](#usage)
-  - [Install](#install)
+  - [Install (pipenv)](#install-pipenv)
+  - [Install (uv)](#install-uv)
   - [Setup](#setup)
   - [Permissions](#permissions)
   - [Permission Names](#permission-names)
@@ -23,7 +24,6 @@
   - [Group Management](#group-management)
 - [Development](#development)
   - [Environment](#environment)
-  - [Dependency Management](#dependency-management)
   - [Hooks](#hooks)
   - [API Documentation Generation](#api-documentation-generation)
   - [Updating](#updating)
@@ -52,7 +52,7 @@ extended in your application, ensuring both control and adaptability.
 
 ## Usage
 
-### Install
+### Install (pipenv)
 
 1. Start a `pipenv` `Pipfile` for your project.
     ```console
@@ -79,7 +79,30 @@ extended in your application, ensuring both control and adaptability.
     ```console
     (MyVuedaServer)[MyVuedaServer]$ pipenv install
     ```
-6. Install the os python test package. For python 3.11 it is called `python3.11-test`.
+
+### Install (uv)
+
+1. Start a new `pyproject.toml` for your project.
+    ```console
+    [MyVuedaServer]$ uv init --bare
+    ```
+2. Unless already set up, add `UV_INDEX_ARRAI_USERNAME` and `UV_INDEX_ARRAI_PASSWORD` to your environment. These
+   are your credentials for the private PyPI server that hosts the release builds of `vueda-server`.
+3. Add the private PyPI index to the `pyproject.toml` file.
+    ```toml
+    [[tool.uv.index]]
+    name = "arrai"
+    url = "https://pypi.arrai.dev/simple/"
+    explicit = true
+    ```
+4. Add `vueda-server` to your project's dependencies.
+    ```console
+    [MyVuedaServer]$ uv add vueda-server
+    ```
+5. Install the packages.
+    ```console
+    [MyVuedaServer]$ uv sync
+    ```
 
 ### Setup
 
@@ -268,28 +291,16 @@ $ cd vueda-server
 Install packages:
 
 ```console
-[vueda-server]$ pipenv install --dev
-[vueda-server]$ pipenv shell
-(vueda-server)[vueda-server]$
+[vueda-server]$ uv sync
 ```
-
-### Dependency Management
-
-While `pipenv` is used as a development environment, it is a poor tool for package dependency management.
-
--   `requirements.txt` is used to manage dependencies for end-users.
--   `PipFile`'s `[dev-packages]` for development packages.
--   `test-requirements.txt` is used to manage dependencies used in unit tests.
-
-Developer changes to `requirements.txt` require re-locking the `Pipfile.lock` with `pipenv lock`. `pipenv install` does
-not see the changes otherwise.
 
 ### Hooks
 
 Setup pre-commit hooks:
 
 ```console
-(vueda-server)[vueda-server]$ pre-commit install
+[vueda-server]$ uv tool install pre-commit --with pre-commit-uv
+[vueda-server]$ pre-commit install
 pre-commit installed at .git/hooks/pre-commit
 pre-commit installed at .git/hooks/commit-msg
 ```
@@ -301,8 +312,8 @@ API documentation is generated automatically as part of the CI process when tags
 To manually generate the documentation, make sure dev packages are installed and call the following two commands:
 
 ```console
-(vueda-server)[vueda-server]$ python manage.py spectacular --color --file schema.yml
-(vueda-server)[vueda-server]$ npx -y @redocly/cli build-docs schema.yml
+[vueda-server]$ uv python manage.py spectacular --color --file schema.yml
+[vueda-server]$ npx -y @redocly/cli build-docs schema.yml
 ```
 
 The first command will generate the `schema.yml` file.
@@ -314,8 +325,8 @@ If you would like, you can get json by clicking the download button when viewing
 In development, pull new changes from the git repo and update your environment with:
 
 ```console
-(vueda-server)[vueda-server]$ git pull --ff-only
-(vueda-server)[vueda-server]$ pipenv sync --dev
+[vueda-server]$ git pull --ff-only
+[vueda-server]$ uv sync
 ```
 
 ### Tagging Releases
@@ -323,8 +334,8 @@ In development, pull new changes from the git repo and update your environment w
 Git tags are used to indicate to CircleCI that a commit is considered a release. You can make git tags like this:
 
 ```console
-(vueda-server)[vueda-server]$ git tag v1.0.1
-(vueda-server)[vueda-server]$ git push --tags
+[vueda-server]$ git tag v1.0.1
+[vueda-server]$ git push --tags
 ```
 
 Tags will have GitHub releases created and be published to our pypi index.
@@ -336,9 +347,9 @@ Tags will have GitHub releases created and be published to our pypi index.
 You'll need a database role that can make databases, if a vueda role doesn't already exist. You can create a role like this:
 
 ```console
-(vueda-server)[vueda-server]$ createuser --username postgres --pwprompt --createdb vueda
+[vueda-server]$ createuser --username postgres --pwprompt --createdb vueda
 # or
-(vueda-server)[vueda-server]$ createuser -U postgres -P -d vueda
+[vueda-server]$ createuser -U postgres -P -d vueda
 ```
 
 And you'll then need to put the connection details in your `.env.local`, like this:
@@ -352,7 +363,7 @@ Depending on your local postgres setup, you may need to add a `pg_hba.conf` entr
 ### Running Tests
 
 ```console
-(vueda-server)[vueda-server]$ pytest
+[vueda-server]$ uv run pytest
 ```
 
 ### Generating Coverage Locally
@@ -360,10 +371,10 @@ Depending on your local postgres setup, you may need to add a `pg_hba.conf` entr
 Coverage will be generated in circleci, but you can do so locally if you don't want to commit & push.
 
 ```console
-(vueda-server)[vueda-server]$ pytest --cov-config=.coveragerc
-(vueda-server)[vueda-server]$ coverage combine
-(vueda-server)[vueda-server]$ coverage html
-(vueda-server)[vueda-server]$ open htmlcov/index.html
+[vueda-server]$ uv run pytest --cov-config=.coveragerc
+[vueda-server]$ uv run coverage combine
+[vueda-server]$ uv run coverage html
+[vueda-server]$ open htmlcov/index.html
 ```
 
 [code style: ruff]: https://img.shields.io/badge/code%20style-ruff-000000.svg?style=for-the-badge
@@ -374,7 +385,7 @@ Coverage will be generated in circleci, but you can do so locally if you don't w
 [coverage status]: https://docs.arrai.dev/vueda-server/artifacts/main/pytest.coverage.svg
 [ruff status]: https://docs.arrai.dev/vueda-server/artifacts/main/ruff.svg
 [pipenv]: https://github.com/pypa/pipenv
-[safety status]: https://docs.arrai.dev/vueda-server/artifacts/main/safety.svg
+[pip-audit status]: https://docs.arrai.dev/vueda-server/artifacts/main/pip-audit.svg
 [django-filter]: https://github.com/carltongibson/django-filter
 [drf-flex-fields]: https://github.com/rsinger86/drf-flex-fields
 [drf-writable-nested]: https://github.com/beda-software/drf-writable-nested
