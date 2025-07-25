@@ -95,11 +95,16 @@ extended in your application, ensuring both control and adaptability.
     url = "https://pypi.arrai.dev/simple/"
     explicit = true
     ```
-4. Add `vueda-server` to your project's dependencies.
+4. Specify the private PyPI index as the source of the `vueda-server` package in the `pyproject.toml` file.
+    ```toml
+    [tool.uv.sources]
+    vueda-server = { index = "arrai" }
+    ```
+5. Add `vueda-server` to your project's dependencies.
     ```console
     [MyVuedaServer]$ uv add vueda-server
     ```
-5. Install the packages.
+6. Install the packages.
     ```console
     [MyVuedaServer]$ uv sync
     ```
