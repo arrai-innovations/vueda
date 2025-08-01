@@ -6,6 +6,9 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Breaking Changes
 
+downgrade quill to @2.0.2 to resolve [this](https://github.com/slab/quill/issues/4535) issue:
+_consuming projects should update their `package.json` to pin quill to `@2.0.2` as well._
+
 ### Features
 
 ### Fixes
