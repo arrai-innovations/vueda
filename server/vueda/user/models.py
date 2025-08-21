@@ -1,3 +1,6 @@
+import os
+
+from django.conf import settings
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import UserManager
@@ -5,10 +8,12 @@ from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 from django.db.models import F
 from django.utils import timezone
+from hashids import Hashids
 from simple_history.models import HistoricalRecords
 
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.models import BaseModelMeta
+from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.mixins import VUEDAPermissionsMixin
 
 
@@ -122,6 +127,21 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, VUEDAPermissions
         #     """,
         # )
         # email.send_email()
+
+    def generate_reset_url(self):
+        """
+        Generates a password reset URL for the given user.
+        """
+        token_generator = Sha3PasswordResetTokenGenerator()
+        hashids = Hashids(min_length=16)
+        return (
+            os.path.join(
+                f"https://{settings.FRONTEND_DOMAIN}{settings.FRONTEND_RESET_URL}",
+                hashids.encode(self.pk),
+            )
+            + "?token="
+            + token_generator.make_token(self)
+        )
 
 
 class AbstractVUEDAUserWithHistory(AbstractVUEDAUser):
