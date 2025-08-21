@@ -1,3 +1,4 @@
+from string import Template
 from typing import TYPE_CHECKING
 
 from django.apps.registry import Apps
@@ -14,6 +15,14 @@ def get_system_user(apps: Apps) -> "User":
 
     user_model = get_user_model()
     return user_model.objects.get(is_system=True)
+
+
+def render_template(text: str, tags: dict) -> str:
+    """
+    Replace tags in the body with their corresponding values from the tags dictionary.
+    """
+    template = Template(text)
+    return template.substitute(**tags)
 
 
 class AvailableActionsRequest:
