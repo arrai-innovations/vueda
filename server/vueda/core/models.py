@@ -69,9 +69,7 @@ class EmailTemplateBase(VuedaBaseModel):
     body = models.TextField()
     from_email = models.EmailField(max_length=255)
     bcc_email = ArrayField(models.EmailField(), default=list, verbose_name="Default bcc address(es)")
-    preview_tag_data = models.JSONField(
-        default=dict, verbose_name="Preview tag data", help_text="Data used to render the preview tag in emails"
-    )
+    preview_tag_data = models.JSONField(default=dict, help_text="Data used to render the preview tag in emails")
 
     class Meta(BaseModelMeta):
         abstract = True

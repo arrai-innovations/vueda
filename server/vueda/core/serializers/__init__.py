@@ -9,6 +9,7 @@ from rest_framework import serializers
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers.fields import AvailableActionsField
 from vueda.core.serializers.fields import TemplatedTextField
+from vueda.core.serializers.fields import TemplateTagsDataField
 from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
 
 
@@ -405,7 +406,7 @@ class VuedaReadonlySerializer(VuedaSerializer, metaclass=MakeReadonly):
 class EmailSettingsBaseSerializer(VuedaSerializer):
     subject = TemplatedTextField()
     body = TemplatedTextField()
-    preview_tag_data = serializers.JSONField(read_only=True)
+    preview_tag_data = TemplateTagsDataField(label="Legend")
 
     class Meta(VuedaSerializer.Meta):
         fields = [
