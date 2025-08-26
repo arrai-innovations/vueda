@@ -1,10 +1,14 @@
+from datetime import date
 from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
 
 from tests.conftest import BaseTestCommonModelViewSet
+from tests.models import Employee
 from tests.models import Product
+from tests.models import Timesheet
+from tests.models import TimesheetEntry
 from tests.utils import adjust_page_size
 from vueda.core.pagination import VUEDAPageNumberPagination
 
@@ -64,6 +68,7 @@ class TestPagination(BaseTestCommonModelViewSet):
             assert response_data["perPage"] == 5
             assert response_data["totalPages"] == 3
             assert response_data["totalRecords"] == len(self.page_data_arguments)
+            assert response_data["columnTotals"] == {}
 
     def test_page_size_query_param(self, settings, authenticated_client, page_data):
         settings.PAGE_SIZE_QUERY_PARAM = "our_ps"
@@ -111,3 +116,40 @@ class TestPagination(BaseTestCommonModelViewSet):
             authenticated_client.get(url, format="json")
 
             assert mocked_get_page_size._returned_page_size == 99
+
+
+@pytest.mark.django_db
+class TestColumnTotals(BaseTestCommonModelViewSet):
+    users_to_create = {
+        "test_admin@example.com": {
+            "name": "Test Admin",
+            "password": "testpass",
+            "groups": ["Timesheet Lister"],
+        },
+    }
+
+    @pytest.fixture
+    def page_data(self):
+        employee = Employee.objects.create(user=self.users["test_admin@example.com"], employee_number="E001")
+        timesheet = Timesheet.objects.create(
+            period_start=date(2024, 1, 1),
+            period_end=date(2024, 1, 7),
+            employee=employee,
+            supervisor=None,
+        )
+        TimesheetEntry.objects.create(timesheet=timesheet, date=date(2024, 1, 1), hours=1)
+        TimesheetEntry.objects.create(timesheet=timesheet, date=date(2024, 1, 2), hours=2)
+        TimesheetEntry.objects.create(timesheet=timesheet, date=date(2024, 1, 3), hours=3)
+        return TimesheetEntry.objects.all()
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        user = self.users["test_admin@example.com"]
+        api_client.force_authenticate(user=user)
+        return api_client
+
+    def test_column_totals(self, authenticated_client, page_data):
+        url = reverse("tests.timesheetentry-list")
+        response = authenticated_client.get(url, format="json")
+        assert response.status_code == 200
+        assert float(response.data["columnTotals"]["hours"]) == 6.0
