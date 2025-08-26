@@ -58,11 +58,9 @@ class AtomicModelViewSet(
 
 
 class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.GenericViewSet):
-    """
-    A ViewSet mixin that filters out rows that the user does not have access to.
-    """
+    """Filter out rows the user cannot access and expose column aggregates."""
 
-    column_totals = []
+    column_totals: list[str] = []
 
     def apply_row_level_filter(self, queryset):
         model = queryset.model
@@ -88,12 +86,11 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         return queryset
 
     def get_column_info(self, queryset):
-        column_info = {}
-        if self.column_totals:
-            for column in self.column_totals:
-                column_info[column] = queryset.aggregate(column=Sum(column))["column"]
-
-        return column_info
+        """Return aggregated totals for any fields listed in ``column_totals``."""
+        if not self.column_totals:
+            return {}
+        aggregations = {column: Sum(column) for column in self.column_totals}
+        return queryset.aggregate(**aggregations)
 
     def list(self, request, *args, **kwargs):
         """
