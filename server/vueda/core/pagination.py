@@ -23,6 +23,7 @@ class VUEDAPageNumberPagination(PageNumberPagination):
             OrderedDict(
                 [
                     ("results", data),
+                    ("columnTotals", getattr(self, "column_totals", {})),
                     ("perPage", self.get_page_size(self.request)),
                     ("totalPages", self.page.paginator.num_pages),
                     ("totalRecords", self.page.paginator.count),

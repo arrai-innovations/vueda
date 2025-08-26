@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
+from django.db.models import Sum
 from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
 from rest_framework import status
 from rest_framework import viewsets
@@ -61,6 +62,8 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
     A ViewSet mixin that filters out rows that the user does not have access to.
     """
 
+    column_totals = []
+
     def apply_row_level_filter(self, queryset):
         model = queryset.model
         row_level_permissions = getattr(model, "RowLevelPermissions", None)
@@ -84,6 +87,14 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
             # or optional_q is True, so we don't filter
         return queryset
 
+    def get_column_info(self, queryset):
+        column_info = {}
+        if self.column_totals:
+            for column in self.column_totals:
+                column_info[column] = queryset.aggregate(column=Sum(column))["column"]
+
+        return column_info
+
     def list(self, request, *args, **kwargs):
         """
         applying row level filter in get_queryset() causes problems
@@ -96,11 +107,14 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         # our addition
 
         queryset = self.apply_row_level_filter(queryset)
+        column_totals = self.get_column_info(queryset)
         # end addition
 
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
+            if hasattr(self, "paginator"):
+                self.paginator.column_totals = column_totals
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
