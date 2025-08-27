@@ -348,7 +348,7 @@ class MakeReadonly(serializers.SerializerMetaclass):
     #   /questions/23181442/how-to-hide-remove-some-methods-in-inherited-class-in-python#answer-23182583
     def __new__(cls, cls_name, cls_bases, cls_dict):
         cls_dict.setdefault("__excluded__", ())
-        out_cls = super(MakeReadonly, cls).__new__(cls, cls_name, cls_bases, cls_dict)
+        out_cls = super().__new__(cls, cls_name, cls_bases, cls_dict)
 
         def __getattribute__(self, name):  # noqa N807
             if name in cls_dict["__excluded__"]:

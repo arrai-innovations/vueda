@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 import pytest
 from django.urls import reverse
 
@@ -28,7 +30,7 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
         url = reverse("who-is")
         response = api_client.get(url, format="json")
 
-        assert response.status_code == 200
+        assert response.status_code == HTTPStatus.OK
         assert set(response.data) == {
             "id",
             "email",

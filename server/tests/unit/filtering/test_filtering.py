@@ -93,7 +93,7 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.data["totalRecords"] == 2, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 2, f"response.data: {response.data}"  # noqa: PLR2004
         assert frozenset(x["name"] for x in response.data["results"]) == frozenset({"Spray Paint", "Paint"})
 
         response = api_client.get(

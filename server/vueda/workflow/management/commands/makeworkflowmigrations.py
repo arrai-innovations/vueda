@@ -1050,7 +1050,7 @@ class Command(BaseCommand):
                 if migration_line == MIGRATION_MODIFIED_COMMENT:
                     is_modified_by_us = True
 
-                if migration_line_no > 20:
+                if migration_line_no > 20:  # noqa: PLR2004
                     break
 
         if is_modified_by_us:

@@ -205,7 +205,7 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand, BasePyTestJsonResu
 
         # Did the migration run?
         assert succeeded, results
-        assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 3
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 3  # noqa: PLR2004
 
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.Workflow.objects.filter(code="added_workflow").values()
@@ -353,7 +353,7 @@ class TestManagementCommandWorkflowAdded(BaseTestCallCommand, BasePyTestJsonResu
 
         # Did the migration reverse?
         assert succeeded, results
-        assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 2
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 2  # noqa: PLR2004
 
         assert models.Workflow.objects.filter(code="added_workflow").first() is None, models.Workflow.objects.filter(
             code="added_workflow"
@@ -449,7 +449,7 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand, BasePyTestJsonRe
 
         # Did the migrations roll back?
         # assert succeeded, results
-        assert MigrationRecorder.Migration.objects.filter(app="workflow_changed").count() == 3
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_changed").count() == 3  # noqa: PLR2004
 
         # Gather the data for the changed workflow, so we can validate it is the same after we migrate backwards.
         orig_data_workflow = convert_data_to_list_of_dicts_without_id_fields(
@@ -599,7 +599,7 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand, BasePyTestJsonRe
 
         # Did the migration run?
         assert succeeded, results
-        assert MigrationRecorder.Migration.objects.filter(app="workflow_changed").count() == 5
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_changed").count() == 5  # noqa: PLR2004
 
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.Workflow.objects.filter(code="changed_workflow_2").values()
@@ -747,7 +747,7 @@ class TestManagementCommandWorkflowChanged(BaseTestCallCommand, BasePyTestJsonRe
 
         # Did the migration reverse?
         assert succeeded, results
-        assert MigrationRecorder.Migration.objects.filter(app="workflow_changed").count() == 4
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_changed").count() == 4  # noqa: PLR2004
 
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.Workflow.objects.filter(code="changed_workflow").values()
@@ -859,7 +859,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand, BasePyTestJsonRe
 
         # Did the migrations roll back?
         # assert succeeded, results
-        assert MigrationRecorder.Migration.objects.filter(app="workflow_deleted").count() == 3
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_deleted").count() == 3  # noqa: PLR2004
 
         # Gather the data for the changed workflow, so we can validate it is the same after we migrate backwards.
         orig_data_workflow = convert_data_to_list_of_dicts_without_id_fields(
@@ -1013,7 +1013,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand, BasePyTestJsonRe
 
         # Did the migration run?
         assert succeeded, results
-        assert MigrationRecorder.Migration.objects.filter(app="workflow_deleted").count() == 5
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_deleted").count() == 5  # noqa: PLR2004
 
         assert models.Workflow.objects.filter(code="deleted_workflow").first() is None, models.Workflow.objects.filter(
             code="deleted_workflow"
@@ -1044,7 +1044,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestCallCommand, BasePyTestJsonRe
 
         # Did the migration reverse?
         assert succeeded, results
-        assert MigrationRecorder.Migration.objects.filter(app="workflow_deleted").count() == 4
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_deleted").count() == 4  # noqa: PLR2004
 
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.Workflow.objects.filter(code="deleted_workflow").values()
@@ -1120,7 +1120,7 @@ class TestManagementCommandWorkflowMulti(BaseTestCallCommand, BasePyTestJsonResu
         # for the additional functions and variables to be discovered.
         reload(migration)
 
-        assert len(migration.changed_data) == 10, migration.changed_data
+        assert len(migration.changed_data) == 10, migration.changed_data  # noqa: PLR2004
 
         # The workflow added record should be the first record, and it should have a specific history date.
         first_change = migration.changed_data[0]
@@ -1342,7 +1342,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestCallCommand, BasePyTestJso
 
         # Did the migrations roll back?
         # assert succeeded, results
-        assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 2
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 2  # noqa: PLR2004
 
         # Now we want to manually migrate forwards, skipping certain tests by using 'migration_skip_workflow_duplicates'.
         os.environ.pop("skip_migration_when_setting_up_db")
@@ -1356,7 +1356,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestCallCommand, BasePyTestJso
 
         # Did the migration run?
         assert succeeded, results
-        assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 4
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 4  # noqa: PLR2004
 
         workflow = models.Workflow.objects.filter(code="duplicates_workflow")
         assert workflow.exists(), models.Workflow.objects.values()
@@ -1370,7 +1370,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestCallCommand, BasePyTestJso
 
         # Did the migration reverse?
         assert succeeded, results
-        assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 2
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 2  # noqa: PLR2004
 
         state_codes = frozenset(models.State.objects.filter(workflow=workflow.get()).values_list("code", flat=True))
 

@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from pprint import pformat
 
 import pytest
@@ -273,8 +274,8 @@ class TestModelInfoSerializer:
 
         response = api_client.get(reverse("info.model_info-list"), format="json")
 
-        assert response.status_code == 200, str(response.data)
-        assert response.data["totalRecords"] == 12
+        assert response.status_code == HTTPStatus.OK, str(response.data)
+        assert response.data["totalRecords"] == 12  # noqa: PLR2004
 
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",
@@ -314,7 +315,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, pformat(response.data)
+        assert response.status_code == HTTPStatus.OK, pformat(response.data)
         assert response.data["verbose_name"] == kwargs["verbose_name"]
         assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
         self.check_model_actions_data(response, kwargs["expected_actions_admin"], app_label, model_name)
@@ -362,7 +363,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == 200, pformat(response.data)
+        assert response.status_code == HTTPStatus.OK, pformat(response.data)
         assert response.data["verbose_name"] == kwargs["verbose_name"]
         assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
         self.check_model_actions_data(response, kwargs["expected_actions_customer"], app_label, model_name)

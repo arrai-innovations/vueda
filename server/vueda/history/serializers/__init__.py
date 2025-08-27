@@ -11,7 +11,7 @@ class DynamicHistoricalSerializer(HistoricalModelSerializerMixin):
         historical_instance = kwargs.get("instance")
         self.different_fields = kwargs.pop("different_fields", [])
 
-        super(DynamicHistoricalSerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if historical_instance and self.different_fields:
             model_serializer = self.model_serializer(historical_instance)

@@ -174,7 +174,7 @@ def echo_and_eval(
     stdout: typing.TextIO,
     stderr: typing.TextIO,
     command: str | list[str],
-    extra_env: dict = None,
+    extra_env: dict | None = None,
     shell: bool = False,
 ):
     """
@@ -361,8 +361,8 @@ def echo_and_eval_with_cwd(
     stdout: typing.TextIO,
     stderr: typing.TextIO,
     command: str | list[str],
-    cwd: str = None,
-    extra_env: dict = None,
+    cwd: str | None = None,
+    extra_env: dict | None = None,
     shell: bool = False,
 ):
     """

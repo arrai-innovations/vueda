@@ -12,7 +12,7 @@ class Command(CreateSuperUserCommand):
     username = None
 
     def add_arguments(self, parser):
-        super(Command, self).add_arguments(parser)
+        super().add_arguments(parser)
         parser.add_argument(
             "--groups",
             action="store",
@@ -46,7 +46,7 @@ class Command(CreateSuperUserCommand):
                     plural_does="do" if missing_groups_plural else "does",
                 )
             )
-        results = super(Command, self).handle(*args, **options)
+        results = super().handle(*args, **options)
         if self.username is None:
             try:
                 self.username = options[self.username_field.name]
@@ -62,7 +62,7 @@ class Command(CreateSuperUserCommand):
         return results
 
     def get_input_data(self, field, message, default=None):
-        val = super(Command, self).get_input_data(field, message, default)
+        val = super().get_input_data(field, message, default)
         if field == self.username_field:
             # We need to store the username so that we can get the user object later.
             self.username = val
