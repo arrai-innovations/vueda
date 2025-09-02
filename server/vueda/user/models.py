@@ -1,4 +1,4 @@
-import os
+from urllib.parse import urljoin
 
 from django.conf import settings
 from django.contrib.auth.base_user import AbstractBaseUser
@@ -135,7 +135,7 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, VUEDAPermissions
         token_generator = Sha3PasswordResetTokenGenerator()
         hashids = Hashids(min_length=16)
         return (
-            os.path.join(
+            urljoin(
                 f"https://{settings.FRONTEND_DOMAIN}{settings.FRONTEND_RESET_URL}",
                 hashids.encode(self.pk),
             )

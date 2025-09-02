@@ -22,7 +22,7 @@ def render_template(text: str, tags: dict) -> str:
     Replace tags in the body with their corresponding values from the tags dictionary.
     """
     template = Template(text)
-    return template.substitute(**tags)
+    return template.safe_substitute(**tags)
 
 
 class AvailableActionsRequest:
