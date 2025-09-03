@@ -1,5 +1,6 @@
 import collections
 import operator
+from http import HTTPStatus
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -140,7 +141,7 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
 
         results = super().dispatch(request, *args, **kwargs)
 
-        if results.status_code != 200:
+        if results.status_code != HTTPStatus.OK:
             return results
 
         return super().dispatch(request, *args, **kwargs)

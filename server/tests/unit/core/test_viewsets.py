@@ -1,4 +1,5 @@
 import datetime
+from http import HTTPStatus
 
 import pytest
 from django.conf import settings
@@ -142,7 +143,9 @@ class TestProductViewSet(BaseTestModelViewSet):
         list_querystring[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]] = "supervisor"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
-        assert response.status_code == 400, f"{response.status_code} != 400, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            f"{response.status_code} != 400, response.data: {response.data}"
+        )
         assert "supervisor" in response.data, f"response.data: {response.data}"
         assert len(response.data["supervisor"]) == 1, f"supervisor data: {response.data['supervisor']}"
         assert "message" in response.data["supervisor"][0], f"supervisor data: {response.data['supervisor'][0]}"
@@ -157,7 +160,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
         self.update_expected_retrieve_response(expected_retrieve_response, instance)
 
-        assert response.status_code == 200, f"{response.status_code} != 200, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
         assert "first_history_entry" in response.data, f"Missing first_history_entry in response.data: {response.data}"
         assert "history" in response.data, f"Missing history in response.data: {response.data}"
         # The first history record should be the same as the first_history_entry.
@@ -190,7 +193,9 @@ class TestProductViewSet(BaseTestModelViewSet):
         detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,second_history_entry"}
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
 
-        assert response.status_code == 400, f"{response.status_code} != 400, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            f"{response.status_code} != 400, response.data: {response.data}"
+        )
         assert "second_history_entry" in response.data, f"response.data: {response.data}"
         assert len(response.data["second_history_entry"]) == 1, (
             f"second_history_entry data: {response.data['second_history_entry']}"
@@ -371,7 +376,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         list_querystring[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]] = "employee,supervisor"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
-        assert response.status_code == 200, f"{response.status_code} != 200, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
         response_info = {x: y for x, y in response.data.items() if x == "results"}
         current_history_id = response_info["results"][0]["current_history_id"]
         assert current_history_id is not None
@@ -393,7 +398,9 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         list_querystring[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]] = "employee,guardian"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
-        assert response.status_code == 400, f"{response.status_code} != 400, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            f"{response.status_code} != 400, response.data: {response.data}"
+        )
         assert "guardian" in response.data, f"response.data: {response.data}"
         assert len(response.data["guardian"]) == 1, f"guardian data: {response.data['guardian']}"
         assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"
@@ -421,7 +428,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         formatted_name = f" on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
         expected_retrieve_response["formatted_name"] = formatted_name
 
-        assert response.status_code == 200, f"{response.status_code} != 200, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
         assert expected_retrieve_response == response.data
 
     def test_retrieve_with_invalid_expands(self, page_data, authenticated_client, expected_retrieve_response):
@@ -430,7 +437,9 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,guardian"}
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
 
-        assert response.status_code == 400, f"{response.status_code} != 400, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            f"{response.status_code} != 400, response.data: {response.data}"
+        )
         assert "guardian" in response.data, f"response.data: {response.data}"
         assert len(response.data["guardian"]) == 1, f"guardian data: {response.data['guardian']}"
         assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"

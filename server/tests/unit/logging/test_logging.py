@@ -1,6 +1,7 @@
 import logging
 import os
 from copy import deepcopy
+from http import HTTPStatus
 from pprint import pformat
 
 import pytest
@@ -90,7 +91,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
             },
         )
 
-        assert response.status_code == 400, pformat(response.data)
+        assert response.status_code == HTTPStatus.BAD_REQUEST, pformat(response.data)
         assert "Test Error 1" in str(response.data["non_field_errors"][0])
         assert "Test Warning 1" in str(response.data["non_field_errors"][1])
         assert "Test Error 2" in str(response.data["non_field_errors"][2])
@@ -140,7 +141,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
             },
         )
 
-        assert response.status_code == 400, pformat(response.data)
+        assert response.status_code == HTTPStatus.BAD_REQUEST, pformat(response.data)
         assert "Test Error 1" in str(response.data["non_field_errors"][0])
         assert "Test Error 2" in str(response.data["non_field_errors"][1])
 
@@ -186,7 +187,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
             },
         )
 
-        assert response.status_code == 400, pformat(response.data)
+        assert response.status_code == HTTPStatus.BAD_REQUEST, pformat(response.data)
         assert "Test Warning 1" in str(response.data["non_field_errors"][0])
         assert "Test Warning 2" in str(response.data["non_field_errors"][1])
 

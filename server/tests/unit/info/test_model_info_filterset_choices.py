@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from pprint import pformat
 
 import pytest
@@ -277,14 +278,14 @@ class TestModelInfoFiltersetChoices:
         # The customer is not able to list inventory records.
         match (app_label, model_name, field_name):
             case ("store", "inventoryrecord", "is_added") | ("store", "inventoryrecord", "reason"):
-                assert response.status_code == 403, pformat(response.data)
+                assert response.status_code == HTTPStatus.FORBIDDEN, pformat(response.data)
 
             case _:
                 msg = (
                     f"DETAIL_CHOICES_FILTERING_PARAMETRIZE -> {(app_label, model_name, field_name)} -> expected_choices"
                 )
 
-                assert response.status_code == 200, f"\n\n{pformat(response.data)}"
+                assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
                 assert frozenset(result["label"] for result in response.data["results"]) == frozenset(
                     result["label"] for result in expected_choices
                 ), msg
@@ -326,7 +327,7 @@ class TestModelInfoFiltersetChoices:
 
         msg = f"DETAIL_CHOICES_FILTERING_PARAMETRIZE -> {(app_label, model_name, field_name)} -> expected_choices"
 
-        assert response.status_code == 200, f"\n\n{pformat(response.data)}"
+        assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
 
         assert frozenset(result["label"] for result in response.data["results"]) == frozenset(
             result["label"] for result in expected_choices
@@ -350,7 +351,7 @@ class TestModelInfoFiltersetChoices:
             format="json",
         )
 
-        assert response.status_code == 404, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
         assert response.data["detail"] == (
             "Invalid filter 'invalid_filterset_field'. Valid filters are disabled, "
             "distributor, id, last_ordered, name, quantity, special_care, tangible_type."

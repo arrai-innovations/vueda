@@ -1,4 +1,5 @@
 from datetime import date
+from http import HTTPStatus
 from unittest.mock import patch
 
 import pytest
@@ -64,9 +65,9 @@ class TestPagination(BaseTestCommonModelViewSet):
             url = reverse("tests.product-list")
             response = authenticated_client.get(url, format="json")
             response_data = {x: y for x, y in response.data.items() if x != "results"}
-            assert response.status_code == 200
-            assert response_data["perPage"] == 5
-            assert response_data["totalPages"] == 3
+            assert response.status_code == HTTPStatus.OK
+            assert response_data["perPage"] == 5  # noqa: PLR2004
+            assert response_data["totalPages"] == 3  # noqa: PLR2004
             assert response_data["totalRecords"] == len(self.page_data_arguments)
             assert response_data["columnTotals"] == {}
 
@@ -85,7 +86,7 @@ class TestPagination(BaseTestCommonModelViewSet):
             url = reverse("tests.product-list")
             authenticated_client.get(url, data={"our_ps": "151"}, format="json")
 
-            assert mocked_get_page_size._returned_page_size == 151
+            assert mocked_get_page_size._returned_page_size == 151  # noqa: PLR2004
 
     def test_page_query_param(self, settings, authenticated_client, page_data):
         settings.PAGE_QUERY_PARAM = "our_p"
@@ -94,10 +95,10 @@ class TestPagination(BaseTestCommonModelViewSet):
             url = reverse("tests.product-list")
             response = authenticated_client.get(url, data={"our_p": 3}, format="json")
             response_data = {x: y for x, y in response.data.items() if x != "results"}
-            assert response.status_code == 200
-            assert response_data["perPage"] == 5
-            assert response_data["totalPages"] == 3
-            assert len(response.data["results"]) == 3
+            assert response.status_code == HTTPStatus.OK
+            assert response_data["perPage"] == 5  # noqa: PLR2004
+            assert response_data["totalPages"] == 3  # noqa: PLR2004
+            assert len(response.data["results"]) == 3  # noqa: PLR2004
             assert response_data["totalRecords"] == len(self.page_data_arguments)
 
     def test_max_page_size(self, settings, authenticated_client, page_data):
@@ -114,9 +115,7 @@ class TestPagination(BaseTestCommonModelViewSet):
         with patch.object(VUEDAPageNumberPagination, "get_page_size", get_page_size) as mocked_get_page_size:
             url = reverse("tests.product-list")
             authenticated_client.get(url, format="json")
-
-            assert mocked_get_page_size._returned_page_size == 99
-
+            assert mocked_get_page_size._returned_page_size == 99  # noqa: PLR2004
 
 @pytest.mark.django_db
 class TestColumnTotals(BaseTestCommonModelViewSet):

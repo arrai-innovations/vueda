@@ -6,6 +6,7 @@ import io
 import json
 import os
 from collections import OrderedDict
+from http import HTTPStatus
 from urllib.parse import urlencode
 
 import pytest
@@ -23,6 +24,7 @@ from psycopg import sql
 from rest_framework.test import APIClient
 
 
+POSTGRES_MAX_DB_NAME_LENGTH = 63
 pytest_plugins = ["pytest_jsonreport"]
 
 
@@ -63,8 +65,8 @@ def suffix_each_test(request):
     suffix = hashlib.sha1(request.function.__name__.encode("utf-8")).hexdigest()
     db_name = f"{template_name}_{suffix}"
     # PostgreSQL has a limit of 63 characters on db names.
-    if len(db_name) > 63:
-        db_name = db_name[:63]
+    if len(db_name) > POSTGRES_MAX_DB_NAME_LENGTH:
+        db_name = db_name[:POSTGRES_MAX_DB_NAME_LENGTH]
     settings.DATABASES.get("default")["NAME"] = db_name
 
     def clean_up_db():
@@ -247,7 +249,7 @@ class BaseTestListModelViewSet:
             )
 
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
-        assert response.status_code == 200, f"{response.status_code} != 200, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
         response_info = {x: y for x, y in response.data.items() if x == "results"}
         current_history_id = response_info["results"][0]["current_history_id"]
         assert current_history_id is not None
@@ -262,7 +264,7 @@ class BaseTestDetailModelViewSet:
 
 
 class BaseTestCreateModelViewSet:
-    expected_create_status_code = 201
+    expected_create_status_code = HTTPStatus.CREATED
 
     @pytest.fixture
     def create_arguments(self):
@@ -325,7 +327,7 @@ class BaseTestCreateModelViewSet:
         )
         assert new_instance is not None
         self.update_expected_create_response(expected_create_response, new_instance)
-        if status_code == 201:
+        if status_code == HTTPStatus.CREATED:
             assert self.convert_response(response) == expected_create_response
         self.after_create(new_instance, expected_create_response)
 
@@ -369,7 +371,7 @@ class BaseTestRetrieveModelViewSet:
         instance = page_data.first()
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
         self.update_expected_retrieve_response(expected_retrieve_response, instance)
-        assert response.status_code == 200, f"{response.status_code} != 200, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
         assert response.data == expected_retrieve_response
 
 
@@ -378,15 +380,19 @@ class BaseTestDestroyModelViewSet:
         pk = page_data.first().id
         response = authenticated_client.delete(self.detail_url(pk))
         if self.has_delete_permission:
-            assert response.status_code == 204, f"{response.status_code} != 204, response.data: {response.data}"
+            assert response.status_code == HTTPStatus.NO_CONTENT, (
+                f"{response.status_code} != 204, response.data: {response.data}"
+            )
             assert not self.model.objects.filter(pk=pk).exists()
         else:
-            assert response.status_code == 403, f"{response.status_code} != 403, response.data: {response.data}"
+            assert response.status_code == HTTPStatus.FORBIDDEN, (
+                f"{response.status_code} != 403, response.data: {response.data}"
+            )
             assert self.model.objects.filter(pk=pk).exists()
 
 
 class BaseTestUpdateModelViewSet:
-    expected_update_status_code = 200
+    expected_update_status_code = HTTPStatus.OK
 
     @pytest.fixture
     def update_arguments(self, page_data):
@@ -455,7 +461,7 @@ class BaseTestUpdateModelViewSet:
         )
         assert updated_instance is not None
         self.update_expected_update_response(expected_update_response, updated_instance)
-        if status_code == 200:
+        if status_code == HTTPStatus.OK:
             assert self.convert_response(response) == expected_update_response
         self.after_update(updated_instance, expected_update_response)
 

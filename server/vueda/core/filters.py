@@ -54,8 +54,7 @@ class BaseArrayFilter(rest_framework.Filter):
         """
         # DateTimeField => DateTime
         type_name = field_class.__name__
-        if type_name.endswith("Field"):
-            type_name = type_name[:-5]
+        type_name = type_name.removesuffix("Field")
 
         # year__in => YearIn
         parts = lookup_expr.split(LOOKUP_SEP)

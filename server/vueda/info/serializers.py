@@ -635,7 +635,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             for sub_field in field.fields:
                 input_types.add(sub_field.widget.input_type)
             if len(input_types) == 1:
-                return tuple(input_types)[0]
+                return next(iter(input_types))
         # Currently no test data returns unknown, so if you get this, how did you get it?
         return "unknown"
 
