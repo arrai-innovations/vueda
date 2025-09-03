@@ -117,6 +117,7 @@ class TestPagination(BaseTestCommonModelViewSet):
             authenticated_client.get(url, format="json")
             assert mocked_get_page_size._returned_page_size == 99  # noqa: PLR2004
 
+
 @pytest.mark.django_db
 class TestColumnTotals(BaseTestCommonModelViewSet):
     users_to_create = {
@@ -137,8 +138,8 @@ class TestColumnTotals(BaseTestCommonModelViewSet):
             supervisor=None,
         )
         TimesheetEntry.objects.create(timesheet=timesheet, date=date(2024, 1, 1), hours=1)
-        TimesheetEntry.objects.create(timesheet=timesheet, date=date(2024, 1, 2), hours=2)
-        TimesheetEntry.objects.create(timesheet=timesheet, date=date(2024, 1, 3), hours=3)
+        TimesheetEntry.objects.create(timesheet=timesheet, date=date(2024, 1, 2), hours=0.5)
+        TimesheetEntry.objects.create(timesheet=timesheet, date=date(2024, 1, 3), hours=1.65)
         return TimesheetEntry.objects.all()
 
     @pytest.fixture
@@ -150,5 +151,5 @@ class TestColumnTotals(BaseTestCommonModelViewSet):
     def test_column_totals(self, authenticated_client, page_data):
         url = reverse("tests.timesheetentry-list")
         response = authenticated_client.get(url, format="json")
-        assert response.status_code == 200
-        assert float(response.data["columnTotals"]["hours"]) == 6.0
+        assert response.status_code == 200  # noqa: PLR2004
+        assert str(response.data["columnTotals"]["hours"]) == "3.15"
