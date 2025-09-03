@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
+from django.db.models import Sum
 from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
 from rest_framework import status
 from rest_framework import viewsets
@@ -57,9 +58,9 @@ class AtomicModelViewSet(
 
 
 class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.GenericViewSet):
-    """
-    A ViewSet mixin that filters out rows that the user does not have access to.
-    """
+    """Filter out rows the user cannot access and expose column aggregates."""
+
+    column_totals: list[str] = []
 
     def apply_row_level_filter(self, queryset):
         model = queryset.model
@@ -84,6 +85,13 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
             # or optional_q is True, so we don't filter
         return queryset
 
+    def get_column_info(self, queryset):
+        """Return aggregated totals for any fields listed in ``column_totals``."""
+        if not self.column_totals:
+            return {}
+        aggregations = {column: Sum(column) for column in self.column_totals}
+        return queryset.aggregate(**aggregations)
+
     def list(self, request, *args, **kwargs):
         """
         applying row level filter in get_queryset() causes problems
@@ -96,11 +104,14 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         # our addition
 
         queryset = self.apply_row_level_filter(queryset)
+        column_totals = self.get_column_info(queryset)
         # end addition
 
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
+            if hasattr(self, "paginator"):
+                self.paginator.column_totals = column_totals
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)

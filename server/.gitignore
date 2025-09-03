@@ -18,4 +18,4 @@ schema.yml
 .idea
 .vscode/*
 !.vscode/extensions.json
-.log
+*.log

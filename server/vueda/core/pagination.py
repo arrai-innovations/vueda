@@ -7,9 +7,10 @@ from rest_framework.response import Response
 
 
 class VUEDAPageNumberPagination(PageNumberPagination):
-    """
-    Adds support for pagination metadata and overrides for
-    pagination query parameters.
+    """Adds support for pagination metadata including column totals.
+
+    The class also overrides the default pagination query parameters so they
+    can be customized via settings.
     """
 
     def __init__(self):
@@ -23,6 +24,7 @@ class VUEDAPageNumberPagination(PageNumberPagination):
             OrderedDict(
                 [
                     ("results", data),
+                    ("columnTotals", getattr(self, "column_totals", {})),
                     ("perPage", self.get_page_size(self.request)),
                     ("totalPages", self.page.paginator.num_pages),
                     ("totalRecords", self.page.paginator.count),
@@ -39,9 +41,20 @@ class VUEDAPageNumberPagination(PageNumberPagination):
             total_pages = total_pages[0]
         return {
             "type": "object",
-            "required": ["results", "perPage", "totalPages", "totalRecords"],
+            "required": [
+                "results",
+                "columnTotals",
+                "perPage",
+                "totalPages",
+                "totalRecords",
+            ],
             "properties": {
                 "results": schema,
+                "columnTotals": {
+                    "type": "object",
+                    "additionalProperties": {"type": "number"},
+                    "example": {"hours": 8},
+                },
                 "perPage": {
                     "type": "integer",
                     "example": settings.MAX_PAGE_SIZE,
