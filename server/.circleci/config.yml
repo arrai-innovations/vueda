@@ -1,9 +1,9 @@
 version: 2.1
 orbs:
     github: arrai/github@3.0.0
+    lintinator: arrai/lintinator@1.1.0
     pypi: arrai/pypi@3.1.0
     pytest: arrai/pytest@9.1.1
-    ruff: arrai/ruff@1.1.1
     pip-audit: arrai/pip-audit@1.0.1
     utils: arrai/utils@1.21.1
 executors:
@@ -211,17 +211,19 @@ workflows:
             #              ignore: /.*/
     lint:
         jobs:
-            - ruff/ruff_fixed_ip:
-                  name: ruff
+            - lintinator/lint_python_fixed_ip:
+                  name: lint
                   context: arrai-global
                   executor: python311-base
+                  hooks: ruff
                   filters:
                       branches:
                           only:
                               - main
-            - ruff/ruff:
-                  name: ruff-no-badge
+            - lintinator/lint_python:
+                  name: lint-no-badge
                   executor: python311-base
+                  hooks: ruff
                   create_badges: false
                   filters:
                       branches:
