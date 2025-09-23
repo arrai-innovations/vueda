@@ -1,6 +1,7 @@
 from string import Template
 from typing import TYPE_CHECKING
 
+import sentry_sdk
 from django.apps.registry import Apps
 
 
@@ -22,7 +23,11 @@ def render_template(text: str, tags: dict) -> str:
     Replace tags in the body with their corresponding values from the tags dictionary.
     """
     template = Template(text)
-    return template.safe_substitute(**tags)
+    try:
+        return template.substitute(**tags)
+    except ValueError as exc:
+        sentry_sdk.capture_exception(exc)
+        return template.safe_substitute(**tags)
 
 
 class AvailableActionsRequest:
