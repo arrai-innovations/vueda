@@ -76,7 +76,7 @@ scopedIt("renders editor and emits updates", async () => {
     const editor = wrapper.get('input[data-qa="prime-editor"]');
     expect(editor.element.value).toBe("init");
     expect(editor.attributes("aria-required")).toBe("false");
-    expect(editor.attributes("data-editor-style")).toBe("height: 320px");
+    expect(editor.attributes("data-editor-style")).toBe("height: auto;");
 
     await editor.setValue("changed");
     expect(wrapper.emitted()["update:modelValue"][0]).toEqual(["changed"]);

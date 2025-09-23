@@ -71,7 +71,7 @@ const theme = useWidgetTheme("WidgetLabel", props, widgetContext.state, {
     hidden: toRef(props, "hidden"),
     isCardLayout: toRef(props, "isCardLayout"),
     valid: toRef(widgetContext.state.validationState, "valid"),
-    required: computed(() => props.required ?? widgetContext.state.required),
+    required: widgetContext.state.required,
     help: computed(() => props.help ?? widgetContext.state.help),
 });
 const slots = useSlots();

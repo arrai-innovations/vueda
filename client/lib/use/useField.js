@@ -131,6 +131,10 @@ export function defaultIsRequiredViolation(value) {
  * @property {(id: string) => void} unregisterIsRequiredHook - Unregisters a previously registered required-state hook.
  * @property {(hook: () => boolean | string) => string} registerIsValidHook - Registers a hook that determines if the field is valid.
  * @property {(id: string) => void} unregisterIsValidHook - Unregisters a previously registered validation-state hook.
+ *
+ * // *** Dependency Management ***
+ * @property {(hook: (dependencyValues: {[path: string]: any}) => void) => string} registerDependencyValues - Registers a field with its dependency paths.
+ * @property {(id: string) => void} unregisterDependencyValues - Unregisters a field for dependency tracking.
  */
 
 /**
@@ -721,6 +725,18 @@ export function useField(props, emit) {
             const fc = unref(formContext);
             if (fc) {
                 return fc.unregisterIsValidHook(id);
+            }
+        },
+
+        registerDependencyValues: (dependencies) => {
+            const fc = unref(formContext);
+            if (fc) {
+                return unref(formContext).registerDependencyValues(toRef(state, "name"), dependencies);
+            }
+        },
+        unregisterDependencyValues: (id) => {
+            if (unref(formContext)) {
+                unref(formContext).unregisterDependencyValues(id);
             }
         },
     };

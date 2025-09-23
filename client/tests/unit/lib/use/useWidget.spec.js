@@ -1,8 +1,9 @@
-import { expectReadOnlyFor, mockProvideInject, scopedIt, testWatches } from "@tests/unit/utils.js";
+import { expectReadOnlyFor, mockLifecycle, mockProvideInject, scopedIt, testWatches } from "@tests/unit/utils.js";
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 
 const { provideStore, mockedProvide, mockedInject } = mockProvideInject(vi);
+const { clearUnmounted, runUnmountedHooks, mockedOnUnmounted } = mockLifecycle(vi);
 vi.mock("vue", async () => {
     const original = await vi.importActual("vue");
     return {
@@ -10,6 +11,7 @@ vi.mock("vue", async () => {
         ...original,
         provide: mockedProvide,
         inject: mockedInject,
+        onUnmounted: mockedOnUnmounted,
     };
 });
 
@@ -83,6 +85,8 @@ const getFieldContextMock = (vue) => {
         unregisterIsRequiredHook: vi.fn(),
         registerIsValidHook: vi.fn(),
         unregisterIsValidHook: vi.fn(),
+        registerDependencyValues: vi.fn().mockReturnValue("dep-id"),
+        unregisterDependencyValues: vi.fn(),
     };
 };
 
@@ -97,6 +101,7 @@ describe("lib/use/useWidget.js", () => {
 
     afterEach(() => {
         provideStore.clear();
+        clearUnmounted();
         vi.clearAllMocks();
     });
 
@@ -561,6 +566,15 @@ describe("lib/use/useWidget.js", () => {
                     const { widget } = mountWidgetNoContext();
                     expect(widget.state.dependencyValues).toEqual({});
                 });
+            });
+
+            scopedIt("registers and unregisters displayDependencies with field context", () => {
+                const { fc } = mountWidgetInContext({}, { displayDependencies: ["depA"] });
+                expect(fc.registerDependencyValues).toHaveBeenCalledTimes(1);
+                const depsRef = fc.registerDependencyValues.mock.calls[0][0];
+                expect(vue.unref(depsRef)).toEqual(["depA"]);
+                runUnmountedHooks();
+                expect(fc.unregisterDependencyValues).toHaveBeenCalledWith("dep-id");
             });
         });
     });

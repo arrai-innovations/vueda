@@ -54,4 +54,9 @@ export default {
             class: "underline",
         },
     },
+    ClickToCopyText: {
+        root: {
+            class: "flex flex-row items-baseline gap-1 p-1 2xs:p-2 2xl:p-4 ",
+        },
+    },
 };

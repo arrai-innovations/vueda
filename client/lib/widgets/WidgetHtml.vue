@@ -12,6 +12,10 @@ const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
     ...THEME_OVERRIDE_PROPS,
+    editorHeight: {
+        type: String,
+        default: "auto",
+    },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
@@ -33,7 +37,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                 <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-html-inner">
                     <Editor
                         v-model="widgetContext.state.combinedValue"
-                        editor-style="height: 320px"
+                        :editor-style="`height: ${editorHeight};`"
                         :aria-required="widgetContext.state.required"
                         v-bind="$attrs"
                     />

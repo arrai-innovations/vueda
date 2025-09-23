@@ -216,6 +216,25 @@ export const defaultFieldMappings = {
             fieldProps: {},
         },
     },
+    TemplatedTextField: {
+        CharField: {
+            component: availableFields.FieldString,
+            widget: availableWidgets.WidgetPreviewableTemplate,
+            widgetProps: { type: "input" },
+        },
+        TextField: {
+            component: availableFields.FieldString,
+            widget: availableWidgets.WidgetPreviewableTemplate,
+            widgetProps: {},
+        },
+    },
+    TemplateTagsDataField: {
+        JSONField: {
+            component: availableFields.FieldObject,
+            widget: availableWidgets.WidgetTemplateLegend,
+        },
+    },
+
     URLField: {
         URLField: {
             component: availableFields.FieldURL,

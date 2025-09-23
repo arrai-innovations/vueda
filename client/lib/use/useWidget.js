@@ -1,6 +1,6 @@
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import isEqual from "lodash-es/isEqual.js";
-import { computed, inject, provide, reactive, readonly, ref, toRef, unref, watch } from "vue";
+import { computed, inject, onUnmounted, provide, reactive, readonly, ref, toRef, unref, watch } from "vue";
 
 export const WIDGET_PROPS = {
     // *** Identification & Metadata ***
@@ -67,6 +67,11 @@ export const WIDGET_PROPS = {
         default: false,
         description: "Ignore a field context even if it exists.",
     },
+    // *** Dependencies ***
+    displayDependencies: {
+        type: Array,
+        default: () => [],
+    },
 };
 
 export const WIDGET_EMITS = ["update:modelValue"];
@@ -101,6 +106,9 @@ export const WIDGET_EMITS = ["update:modelValue"];
  *
  * // *** Field Context Behavior ***
  * @property {boolean} [contextless=false] - If true, the widget ignores surrounding context like field or form.
+ *
+ * // *** Dependencies ***
+ * @property {string[]} [displayDependencies] - The widget dependencies to register with the field context, if any.
  */
 
 /**
@@ -360,6 +368,7 @@ export function useWidget(props, emit) {
             }
             return {};
         }),
+        displayDependencies: readonly(toRef(props, "displayDependencies")),
     });
     /** @type {WidgetContext} */
     const widgetContext = {
@@ -422,5 +431,15 @@ export function useWidget(props, emit) {
         },
     };
     provide(WidgetContextSymbol, widgetContext);
+    let dependencyValuesId;
+    if (unref(fieldContext)) {
+        dependencyValuesId = unref(fieldContext).registerDependencyValues(toRef(state, "displayDependencies"));
+    }
+    onUnmounted(() => {
+        if (dependencyValuesId) {
+            unref(fieldContext).unregisterDependencyValues(dependencyValuesId);
+        }
+    });
+
     return widgetContext;
 }

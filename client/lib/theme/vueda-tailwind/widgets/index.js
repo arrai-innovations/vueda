@@ -291,4 +291,38 @@ export default {
             class: ["text-red-500 dark:text-red-400", "ml-1", "cursor-help"],
         },
     },
+    WidgetPreviewableTemplate: {
+        root: {
+            class: [],
+        },
+        title: {
+            class: ["text-surface-900 dark:text-white"],
+        },
+        inner: {
+            class: ["grid lg:grid-cols-2 gap-2"],
+        },
+        editorWrapper: {
+            class: ["flex flex-col gap-2"],
+        },
+        preview: {
+            class: ["prose max-w-full flex flex-col row-start-2 row-end-3 col-start-1 col-end-3"],
+        },
+        label: {
+            class: ["row-start-1 row-end-2 col-start-1 leading-[2.3958125rem] text-surface-900/60 dark:text-white/60"],
+        },
+        previewWrapper: {
+            class: ["ml-2 mb-1 gap-1 grid grid-cols-[auto_1fr] justify-between"],
+        },
+    },
+    WidgetTemplateLegend: {
+        root: {
+            class: [],
+        },
+        inner: {
+            class: ["flex flex-col gap-2"],
+        },
+        listItem: {
+            class: ["flex flex-col sm:flex-row items-baseline px-2 sm:px-4"],
+        },
+    },
 };

@@ -52,6 +52,12 @@ export const availableWidgets = {
         async () => (await import("@vueda/widgets/WidgetGenericAutoComplete.vue")).default,
     ),
     WidgetHtml: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetHtml.vue")).default),
+    WidgetPreviewableTemplate: defineAsyncComponent(
+        async () => (await import("@vueda/widgets/WidgetPreviewableTemplate.vue")).default,
+    ),
+    WidgetTemplateLegend: defineAsyncComponent(
+        async () => (await import("@vueda/widgets/WidgetTemplateLegend.vue")).default,
+    ),
     WidgetImage: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetImage.vue")).default),
     WidgetInput: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetInput.vue")).default),
     WidgetInputNumber: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetInputNumber.vue")).default),

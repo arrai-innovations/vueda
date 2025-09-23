@@ -2,7 +2,27 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.0-beta.9 (unreleased)
+## v2.0.0-beta.10 (unreleased)
+
+### Breaking Changes
+
+### Features
+
+- **ClickToCopyText**:
+    - Component for displaying text with a copy-to-clipboard button.
+- **Templated Text Widgets**:
+    - Added `WidgetPreviewableTemplate` to edit templated text and show a live preview using tag data.
+    - Added `WidgetTemplateLegend` that displays available template tags; each tag can be copied via `ClickToCopyText`.
+    - Registered in `availableWidgets` and `fieldMappings` (`TemplatedTextField`, `TemplateTagsDataField`) and added associated theme entries.
+- **Dependency Tracking**:
+    - `useField` and `useWidget` now support registering/unregistering dependency values so widgets can react to external field data.
+
+### Fixes
+
+- **WidgetHtml**: Editor now uses automatic height instead of a fixed 320 px.
+- **WidgetLabel**: `required` state pulled directly from field context, avoiding mismatch with props.
+
+## v2.0.0-beta.9 (2025-08-01)
 
 ### Breaking Changes
 
