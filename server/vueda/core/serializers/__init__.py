@@ -8,6 +8,8 @@ from rest_framework import serializers
 
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers.fields import AvailableActionsField
+from vueda.core.serializers.fields import TemplatedTextField
+from vueda.core.serializers.fields import TemplateTagsDataField
 from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
 
 
@@ -399,3 +401,19 @@ class VuedaReadonlySerializer(VuedaSerializer, metaclass=MakeReadonly):
 
     def validate_empty_values(self, data):
         return True, None
+
+
+class EmailSettingsBaseSerializer(VuedaSerializer):
+    subject = TemplatedTextField()
+    body = TemplatedTextField()
+    preview_tag_data = TemplateTagsDataField(label="Legend")
+
+    class Meta(VuedaSerializer.Meta):
+        fields = [
+            "id",
+            "subject",
+            "body",
+            "from_email",
+            "bcc_email",
+            "preview_tag_data",
+        ]

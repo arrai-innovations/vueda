@@ -1,3 +1,4 @@
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 
@@ -43,4 +44,32 @@ class ActivatableBaseModel(models.Model):
     )
 
     class Meta:
+        abstract = True
+
+
+class SingletonModel(VuedaBaseModel):
+    class Meta(BaseModelMeta):
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        self.__class__.objects.exclude(id=self.id).delete()
+        self.id = 1
+        super(SingletonModel, self).save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        try:
+            return cls.objects.get()
+        except cls.DoesNotExist:
+            return cls()
+
+
+class EmailTemplateBase(VuedaBaseModel):
+    subject = models.CharField(max_length=255)
+    body = models.TextField()
+    from_email = models.EmailField(max_length=255)
+    bcc_email = ArrayField(models.EmailField(), default=list, verbose_name="Default bcc address(es)")
+    preview_tag_data = models.JSONField(default=dict, help_text="Data used to render the preview tag in emails")
+
+    class Meta(BaseModelMeta):
         abstract = True

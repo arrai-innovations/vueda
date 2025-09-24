@@ -70,6 +70,8 @@ def get_defaults(env: Env):
         "PASSWORD_HASHERS": [
             "django.contrib.auth.hashers.ScryptPasswordHasher",
         ],
+        "FRONTEND_DOMAIN": env("FRONTEND_DOMAIN"),
+        "FRONTEND_RESET_URL": env("FRONTEND_RESET_URL", "/reset-password"),
         "SITE_ID": env.int("SITE_ID", default=1),
         "LANGUAGE_CODE": env("LANGUAGE_CODE", default="en-us"),
         "TIME_ZONE": env("TIME_ZONE"),  # like "UTC" or "America/Edmonton"
@@ -183,6 +185,12 @@ def get_defaults(env: Env):
             }
         },
         "REST_FRAMEWORK": {
+            "DEFAULT_THROTTLE_RATES": {
+                "forgot_password": "20/hour",
+                "anon": "1000/day",
+                "user": "10000/day",
+                "dj_rest_auth": "10000/day",
+            },
             "NON_FIELD_ERRORS_KEY": "non_field_errors",
             "DEFAULT_RENDERER_CLASSES": [
                 "rest_framework.renderers.JSONRenderer",

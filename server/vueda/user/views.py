@@ -1,6 +1,6 @@
 import json
 import operator
-import os
+import textwrap
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -12,6 +12,7 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.aggregates import ArrayAgg
+from django.core.cache import cache
 from django.db.models import Case
 from django.db.models import CharField
 from django.db.models import F
@@ -30,11 +31,13 @@ from django.views.decorators.debug import sensitive_variables
 from django.views.generic import TemplateView
 from django.views.generic.detail import SingleObjectMixin
 from hashids import Hashids
+from rest_framework import status as drf_status
 from rest_framework.generics import GenericAPIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.settings import api_settings
 from rest_framework.views import APIView
 
 from vueda.core.db import Array
@@ -76,17 +79,44 @@ class WhoIsView(RetrieveAPIView):
 @conditional_extend_schema_decorator(
     summary="Forgot password",
 )
-class ForgotPasswordView(GenericAPIView):
+class VuedaForgotPasswordView(GenericAPIView):
     serializer_class = ForgotPasswordSerializer
     permission_classes = (AllowAny,)
+
+    def get_email_template(self, url, **kwargs):
+        body = textwrap.dedent(f"""
+                        Hello,
+
+                        A request has been received to have the password for your account reset.
+                        If you made this request, please click the link below to reset your password:
+
+                        {url}
+                    """).strip()
+
+        subject = "Automated Message: Password Reset Request"
+
+        return {
+            "subject": subject,
+            "body": body,
+        }
+
+    def send_email(self, email, from_email, to_email):
+        from django.core.mail import send_mail
+
+        send_mail(
+            email["subject"],
+            email["body"],
+            from_email,
+            to_email,
+            fail_silently=False,
+            html_message=email["body"],
+        )
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         try:
             email = request.data.get("email", None)
-
             active_user = (
                 get_user_model()
                 .objects.filter(
@@ -102,34 +132,25 @@ class ForgotPasswordView(GenericAPIView):
                 and active_user.has_usable_password()
                 and _unicode_ci_compare(email, active_user.email)
             ):
-                token_generator = Sha3PasswordResetTokenGenerator()
-                hashids = Hashids(min_length=16)
-                url = (  # noqa
-                    os.path.join(
-                        f"https://{settings.FRONTEND_DOMAIN}/{settings.FRONTEND_RESET_URL}",
-                        hashids.encode(active_user.pk),
+                cache_key = f"password-forgot-cooldown:{email.lower()}"
+                if cache.get(cache_key):
+                    return Response(
+                        {"result": "error", "message": "You must wait before requesting another password reset."},
+                        status=drf_status.HTTP_429_TOO_MANY_REQUESTS,
                     )
-                    + "?token="
-                    + token_generator.make_token(active_user)
+
+                cache.set(cache_key, True, timeout=60)
+                url = active_user.generate_reset_url()
+                email_template = self.get_email_template(url, user=active_user)
+                from_email = email_template.get("from_email", settings.NO_REPLY_EMAIL)
+                self.send_email(
+                    email_template,
+                    from_email,
+                    [email],
                 )
-                # todo: send email
-                # email = EmailMessageModel.objects.create(
-                #     subject=f"Password reset request for {settings.FRONTEND_DOMAIN}",
-                #     from_email=settings.DEFAULT_FROM_EMAIL,
-                #     to=[active_user.email],
-                #     body=f"""A password reset has been requested for your account at {settings.FRONTEND_DOMAIN}.
-                #
-                #     If this was not you, ignore this email and nothing will happen.  This link expires in 1 day.
-                #
-                #     To initiate the password reset process, click the link below:
-                #
-                #     {url}
-                #
-                #     If clicking the link above doesn't work, please copy and paste the URL in a browser window instead.
-                #     """,
-                # )
-                #
-                # email.send_email()
+
+            else:
+                return Response({"email": ["Email not found or user is inactive. "]}, status=400)
         except Exception as e:
             return Response({"result": "error", "message": str(e)}, content_type="application/json", status=500)
 
@@ -139,9 +160,31 @@ class ForgotPasswordView(GenericAPIView):
 @conditional_extend_schema_decorator(
     summary="Reset password",
 )
-class ResetPasswordView(GenericAPIView):
+class VuedaResetPasswordView(GenericAPIView):
     serializer_class = ResetPasswordSerializer
     permission_classes = (AllowAny,)
+
+    def get(self, request):
+        token_validator = Sha3PasswordResetTokenGenerator()
+        hashids = Hashids(min_length=16)
+
+        pk = request.query_params.get("pk")
+        token = request.query_params.get("token")
+        if not pk or not token:
+            return Response(
+                {"result": "invalid", "error": "Missing parameters."}, status=drf_status.HTTP_400_BAD_REQUEST
+            )
+
+        uid = hashids.decode(pk)[0]
+        user = get_user_model().objects.get(pk=uid)
+
+        if token_validator.check_token(user, token):
+            return Response({"result": "success", "message": "Token is valid."}, status=drf_status.HTTP_200_OK)
+        else:
+            return Response(
+                {"result": "invalid", "message": "This token is invalid or has already been used."},
+                status=drf_status.HTTP_400_BAD_REQUEST,
+            )
 
     @sensitive_variables("password", "token", "serializer.data")
     def post(self, request, *args, **kwargs):
@@ -166,16 +209,19 @@ class ResetPasswordView(GenericAPIView):
                 user.save()
 
             else:
+                non_field_error_key = api_settings.NON_FIELD_ERRORS_KEY
+
                 return Response(
-                    {"result": "error", "message": "This token is invalid or has already been used."},
-                    content_type="application/json",
+                    {non_field_error_key: ["This token is invalid or has already been used."]},
                     status=400,
                 )
 
         except Exception as e:
-            return Response({"result": "error", "message": str(e)}, content_type="application/json", status=500)
+            return Response({"result": "error", "message": str(e)}, status=500)
 
-        return Response({"result": "success", "message": "Password Updated."}, content_type="application/json")
+        return Response(
+            {"result": "success", "message": "Password Updated."},
+        )
 
 
 @conditional_extend_schema_decorator(

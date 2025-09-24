@@ -1,5 +1,7 @@
+from string import Template
 from typing import TYPE_CHECKING
 
+import sentry_sdk
 from django.apps.registry import Apps
 
 
@@ -14,6 +16,18 @@ def get_system_user(apps: Apps) -> "User":
 
     user_model = get_user_model()
     return user_model.objects.get(is_system=True)
+
+
+def render_template(text: str, tags: dict) -> str:
+    """
+    Replace tags in the body with their corresponding values from the tags dictionary.
+    """
+    template = Template(text)
+    try:
+        return template.substitute(**tags)
+    except ValueError as exc:
+        sentry_sdk.capture_exception(exc)
+        return template.safe_substitute(**tags)
 
 
 class AvailableActionsRequest:
