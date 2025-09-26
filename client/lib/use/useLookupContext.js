@@ -81,9 +81,6 @@ export function useLookupContext() {
                         handlers: {
                             list: allPagePaginatedListCrudAdaptor,
                         },
-                        paged: false,
-                        keepOldPages: false,
-                        clearListOnListIntentTriggered: false,
                     });
 
                     return { config: listConfig, instance };

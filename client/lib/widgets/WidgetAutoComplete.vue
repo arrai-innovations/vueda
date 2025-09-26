@@ -13,7 +13,7 @@ import get from "lodash-es/get.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import AutoComplete from "primevue/autocomplete";
-import { computed, reactive, ref, toRef, unref, useAttrs, useSlots } from "vue";
+import { computed, reactive, ref, toRef, unref, useAttrs, useSlots, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -98,27 +98,28 @@ const modelParams = computed(() => {
     }
     return params;
 });
+const intendToList = computed(
+    () => modelConfig.loading === false && (!!listSearch.value || !!widgetContext.state.combinedValue),
+);
 
 const modelListProps = reactive({
     target: {
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
-    params: {},
     pkKey: computedPkKey,
     params: modelParams,
-    intendToList: computed(
-        () => modelConfig.loading === false && (!!listSearch.value || !!widgetContext.state.combinedValue),
-    ),
+    intendToList: intendToList,
 });
 const modelListInstance = useList({
     props: modelListProps,
     handlers: {
         list: allPagePaginatedListCrudAdaptor,
     },
-    paged: true,
-    keepOldPages: true,
-    clearListOnListIntentTriggered: true,
+});
+
+watch(intendToList, () => {
+    modelListInstance.clearList();
 });
 const modelItem = computed(() => {
     let match = null;

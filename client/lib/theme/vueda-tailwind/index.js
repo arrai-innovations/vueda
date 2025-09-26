@@ -12,10 +12,13 @@ export default {
     ...display,
     PaginationComponent: {
         root: {
-            class: "card",
+            class: "flex flex-col sm:flex-row justify-between sm:justify-between items-center gap-2",
         },
         paginator: {
-            class: [],
+            class: ["py-2 flex-1 flex justify-center"],
+        },
+        totalRecords: {
+            class: ["p-2"],
         },
     },
     StickyBar: {

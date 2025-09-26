@@ -47,48 +47,55 @@ export const makeSearchParamsString = (searchParams) => {
  * }} args.target - The arguments for the CRUD operation. If `pk` and `action` are provided, the detail action url will be used.
  *  Otherwise, the non-detail list url will be used.
  * @param {object} args.params - The arguments for the list operation.
- * @param args.pageCallback {(
- *     newObjects: import('@arrai-innovations/reactive-helpers').ListObject[],
- *     pageData: {
- *         totalRecords: number,
- *         totalPages: number,
- *         perPage: number,
- *     }
- * ) => void} - The callback function to call with the page data.
+ * @param {Function} args.pushObjects - Callback to append fetched objects to the current list.
+ * @param {Function} args.clearObjects - Callback to clear existing objects when loading a new set.
+ * @param {import('vue').Ref<boolean>} args.isCancelled - Reactive flag indicating the request was cancelled.
+ * @param {Function} args.setPaginateInfo - Callback to update pagination metadata.
+ * @param {Function} args.setColumnTotals - Callback to update column totals metadata.
  * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<void>} A cancellable promise.
  */
-export function singlePagePaginatedListCrudAdaptor({ target, params, pageCallback }) {
+export function singlePagePaginatedListCrudAdaptor({
+    target,
+    params,
+    pushObjects,
+    clearObjects,
+    isCancelled,
+    setPaginateInfo,
+    setColumnTotals,
+}) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, pk, action } = target;
     const query = makeSearchParamsString(params);
     const url = pk ? getDetailUrl({ app, model, pk, action, query }) : getListUrl({ app, model, action, query });
+    if (!params?.[PAGE_PARAM] || params?.[PAGE_PARAM] === 1) {
+        clearObjects();
+    }
+    return cancellableFetch(url, { method: "GET", credentials: "include" }, async (response) => {
+        const responseData = await getJsonOrText(response);
 
-    return cancellableFetch(
-        url,
-        {
-            method: "GET",
-            credentials: "include",
-        },
-        async (response) => {
-            const responseData = await getJsonOrText(response);
-            if (response.status !== 200) {
-                if (isObject(responseData)) {
-                    const filterParams = Object.keys(omit(params || {}, [PAGE_PARAM, SEARCH_PARAM]));
-                    if (isObject(responseData) && filterParams.some((key) => key in responseData)) {
-                        throw new ListFilterError(response, responseData);
-                    }
+        if (response.status !== 200) {
+            if (isObject(responseData)) {
+                const filterParams = Object.keys(omit(params || {}, [PAGE_PARAM, SEARCH_PARAM]));
+                if (filterParams.some((key) => key in responseData)) {
+                    throw new ListFilterError(response, responseData);
                 }
-                throw new FetchError("Failed to fetch page list", response, responseData);
             }
+            throw new FetchError("Failed to fetch page list", response, responseData);
+        }
 
-            pageCallback(responseData[target.resultsKey], {
-                totalRecords: responseData.totalRecords,
-                totalPages: responseData.totalPages,
-                perPage: responseData.perPage,
-                page: params?.[PAGE_PARAM] || 1,
-            });
-        },
-    );
+        if (isCancelled.value) {
+            return;
+        }
+
+        setPaginateInfo({
+            totalRecords: responseData.totalRecords,
+            totalPages: responseData.totalPages,
+            perPage: responseData.perPage,
+            page: params?.[PAGE_PARAM] || 1,
+        });
+        setColumnTotals(responseData.columnTotals);
+        pushObjects(responseData[target.resultsKey]);
+    });
 }
 
 /**
@@ -102,85 +109,101 @@ export function singlePagePaginatedListCrudAdaptor({ target, params, pageCallbac
  *     action?: string,
  * }} - VUEDA specific arguments for the CRUD operation.
  * @param args.params {{ [p]: number }} - The querystring parameters for the list operation.
- * @param args.pageCallback {(
- *     newObjects: import('@arrai-innovations/reactive-helpers').ListObject[],
- *     pageData: {
- *         totalRecords: number,
- *         totalPages: number,
- *         perPage: number,
- *     }
- * ) => void} - The callback function to call with the page data.
+ * @param {Function} args.pushObjects - Callback to append fetched objects to the current list.
+ * @param {Function} args.clearObjects - Callback to clear existing objects when loading a new set.
+ * @param {import('vue').Ref<boolean>} args.isCancelled - Reactive flag indicating the request was cancelled.
+ * @param {Function} args.setPaginateInfo - Callback to update pagination metadata.
+ * @param {Function} args.setColumnTotals - Callback to update column totals metadata.
  * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<void>} - A cancellable promise.
  */
-export function allPagePaginatedListCrudAdaptor({ target, params, pageCallback }) {
-    // ### This function cannot be async, or we'll lose the ability to cancel the requests. ###
+export function allPagePaginatedListCrudAdaptor({
+    target,
+    params,
+    pushObjects,
+    clearObjects,
+    isCancelled,
+    setPaginateInfo,
+    setColumnTotals,
+}) {
     const { app, model, pk, action } = target;
-    const ourParams = { [PAGE_PARAM]: 1, ...omit(params || {}, PAGE_PARAM) };
-    const query = makeSearchParamsString(ourParams);
+    const baseUrl = pk ? getDetailUrl({ app, model, pk, action }) : getListUrl({ app, model, action });
+    if (params.page === 1) {
+        clearObjects();
+    }
     const controller = new AbortController();
-    const url = pk ? getDetailUrl({ app, model, pk, action }) : getListUrl({ app, model, action });
     const limit = pLimit(4);
-    const responses = [];
-
-    // we don't use cancellableFetch here because we need to cancel all requests, not just the first one
+    const running = [];
     const fetchPages = async () => {
-        const response = await fetch(`${url}${query}`, {
+        const ourParams = { [PAGE_PARAM]: 1, ...omit(params || {}, PAGE_PARAM) };
+        const firstUrl = `${baseUrl}${makeSearchParamsString(ourParams)}`;
+
+        const firstResp = await fetch(firstUrl, {
             method: "GET",
             credentials: "include",
             signal: controller.signal,
         });
 
-        const responseData = await getJsonOrText(response);
-        if (response.status !== 200) {
-            if (isObject(responseData)) {
+        const firstData = await getJsonOrText(firstResp);
+        if (firstResp.status !== 200) {
+            if (isObject(firstData)) {
                 const filterParams = Object.keys(omit(params || {}, [PAGE_PARAM, SEARCH_PARAM]));
-                if (isObject(responseData) && filterParams.some((key) => key in responseData)) {
-                    throw new ListFilterError(response, responseData);
+                if (filterParams.some((key) => key in firstData)) {
+                    throw new ListFilterError(firstResp, firstData);
                 }
             }
-            throw new FetchError("Failed to all page list", response, responseData);
+            throw new FetchError("Failed to fetch all page list", firstResp, firstData);
         }
 
-        pageCallback(responseData[target.resultsKey], {
-            totalRecords: responseData.totalRecords,
-            totalPages: responseData.totalPages,
-            perPage: responseData.perPage,
+        if (isCancelled.value) {
+            return;
+        }
+        clearObjects();
+        pushObjects(firstData[target.resultsKey]);
+
+        const totalPages = firstData.totalPages ?? 1;
+        setPaginateInfo({
+            totalRecords: firstData.totalRecords,
+            totalPages: totalPages,
+            perPage: firstData.perPage,
             page: 1,
         });
-
-        if (responseData.totalPages > 1) {
-            for (let i = 2; i <= responseData.totalPages; i++) {
-                const page = i;
+        setColumnTotals(firstData.columnTotals);
+        if (totalPages > 1) {
+            for (let page = 2; page <= totalPages; page++) {
                 ourParams[PAGE_PARAM] = page;
-                const nextQuery = makeSearchParamsString(ourParams);
-                responses.push(
-                    limit(() =>
-                        fetch(`${url}${nextQuery}`, {
+                const nextUrl = `${baseUrl}${makeSearchParamsString(ourParams)}`;
+
+                running.push(
+                    limit(async () => {
+                        const resp = await fetch(nextUrl, {
                             method: "GET",
                             credentials: "include",
                             signal: controller.signal,
-                        }).then(async (response) => {
-                            const data = await getJsonOrText(response);
-                            if (response.status === 200 && isObject(data)) {
-                                pageCallback(data[target.resultsKey], {
-                                    totalRecords: data.totalRecords,
-                                    totalPages: data.totalPages,
-                                    perPage: data.perPage,
-                                    page: page,
-                                });
-                            } else {
-                                throw new FetchError("Failed to fetch additional page", response, data);
-                            }
-                        }),
-                    ),
+                        });
+                        const data = await getJsonOrText(resp);
+                        if (resp.status !== 200 || !isObject(data)) {
+                            throw new FetchError("Failed to fetch additional page", resp, data);
+                        }
+                        if (!isCancelled.value) {
+                            pushObjects(data[target.resultsKey]);
+                            setPaginateInfo({
+                                totalRecords: data.totalRecords,
+                                totalPages: data.totalPages,
+                                perPage: data.perPage,
+                                page: page,
+                            });
+                            setColumnTotals(firstData.columnTotals);
+                        }
+                    }),
                 );
             }
+            await Promise.all(running);
         }
     };
 
     return CancellablePromise(fetchPages(), async () => {
         controller.abort();
-        await Promise.allSettled(responses).catch(() => {});
+        await Promise.allSettled(running).catch(() => {});
     });
 }
 

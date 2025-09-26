@@ -238,6 +238,12 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
             hasBeenFocused.value,
     );
 
+    watch(intendToSearch, (val) => {
+        if (val && !props.isLazy) {
+            searchList.clearList();
+        }
+    });
+
     const searchList = useList({
         props: reactive({
             target: {
@@ -252,9 +258,6 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
             list: (...args) =>
                 lazy.value ? singlePagePaginatedListCrudAdaptor(...args) : allPagePaginatedListCrudAdaptor(...args),
         },
-        paged: true,
-        keepOldPages: true,
-        clearListOnListIntentTriggered: computed(() => !props.isLazy),
     });
 
     const listObjects = computed(() => {

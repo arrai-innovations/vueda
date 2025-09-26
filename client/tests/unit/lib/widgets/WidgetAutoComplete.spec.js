@@ -60,7 +60,7 @@ vi.mock("@vueda/use/useWarningClass.js", () => ({
 }));
 
 let listProps;
-const listInstance = { state: reactive({ objectsInOrder: [], loading: false }) };
+let listInstance;
 const mockedUseList = vi.fn((args) => {
     listProps = args.props;
     return listInstance;
@@ -80,6 +80,7 @@ beforeEach(async () => {
     WidgetAutoComplete = (await importComponent()).default;
     mockedUseWidget.mockClear();
     listProps = undefined;
+    listInstance = { state: reactive({ objectsInOrder: [], loading: false }), clearList: vi.fn() };
 });
 
 afterEach(() => {

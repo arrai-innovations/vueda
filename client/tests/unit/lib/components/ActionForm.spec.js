@@ -93,6 +93,19 @@ const { mockedOnDeactivated, runDeactivatedHooks, clearDeactivated } = lifecycle
 
 let ActionForm, vue;
 
+function createFetchState(overrides = {}) {
+    const objectsInOrder = overrides.objectsInOrder ?? [{ id: 1 }, { id: 2 }];
+    const objectsMap = overrides.objectsMap ?? new Map(objectsInOrder.map((obj) => [String(obj.id ?? obj), obj]));
+    return {
+        errored: false,
+        error: null,
+        loading: false,
+        objectsInOrder,
+        objectsMap,
+        ...overrides,
+    };
+}
+
 function mountWithContext(options = {}) {
     const formContext = {
         state: vue.reactive({ anyError: false, submittingValues: {} }),
@@ -109,13 +122,7 @@ function mountWithContext(options = {}) {
             app: "app",
             model: "person",
             action: "activate",
-            fetchState: {
-                errored: false,
-                error: null,
-                loading: false,
-                objectsInOrder: [{ id: 1 }, { id: 2 }],
-                objects: { 1: {}, 2: {} },
-            },
+            fetchState: createFetchState(),
             runAction: runActionProp,
             ...(options.props || {}),
         },
@@ -163,7 +170,7 @@ describe("lib/components/ActionForm.vue", () => {
 
         scopedIt("shows loading placeholder when fetchState.loading", () => {
             const { wrapper } = mountWithContext({
-                props: { fetchState: { loading: true, objectsInOrder: [{ id: 1 }], objects: { 1: {} } } },
+                props: { fetchState: createFetchState({ loading: true, objectsInOrder: [{ id: 1 }] }) },
             });
             const listItems = wrapper.findAll('[data-qa="action-form-list-item"]');
             expect(listItems).toHaveLength(0);
@@ -173,15 +180,7 @@ describe("lib/components/ActionForm.vue", () => {
         scopedIt("passes error to ErrorDisplay", () => {
             const error = new Error("oops");
             const { wrapper } = mountWithContext({
-                props: {
-                    fetchState: {
-                        errored: true,
-                        error,
-                        loading: false,
-                        objectsInOrder: [{ id: 1 }],
-                        objects: { 1: {} },
-                    },
-                },
+                props: { fetchState: createFetchState({ errored: true, error, objectsInOrder: [{ id: 1 }] }) },
             });
             const err = wrapper.get('[data-qa="error-display"]');
             expect(err.attributes("errored")).toBe("true");
@@ -206,15 +205,7 @@ describe("lib/components/ActionForm.vue", () => {
     describe("Computed copy & i18n helpers", () => {
         scopedIt("actionSuccessSummary fall-back", async () => {
             const { wrapper: single } = mountWithContext({
-                props: {
-                    fetchState: {
-                        loading: false,
-                        errored: false,
-                        error: null,
-                        objectsInOrder: [{ id: 1 }],
-                        objects: { 1: {} },
-                    },
-                },
+                props: { fetchState: createFetchState({ objectsInOrder: [{ id: 1 }] }) },
             });
             await single.find('[data-qa="prime-button"]').trigger("click");
             await flushPromises();
@@ -232,7 +223,7 @@ describe("lib/components/ActionForm.vue", () => {
             const runAction = vi.fn(() => Promise.reject(error));
             const { wrapper } = mountWithContext({
                 runAction,
-                props: { fetchState: { objectsInOrder: [{ id: 1 }], objects: { 1: {} } } },
+                props: { fetchState: createFetchState({ objectsInOrder: [{ id: 1 }] }) },
             });
             await wrapper.find('[data-qa="prime-button"]').trigger("click");
             await flushPromises();
@@ -253,7 +244,10 @@ describe("lib/components/ActionForm.vue", () => {
             const runAction = vi.fn(() => Promise.reject(new Error("x")));
             const { wrapper } = mountWithContext({
                 runAction,
-                props: { actionErrorSummary: "Nope", fetchState: { objectsInOrder: [{ id: 1 }], objects: { 1: {} } } },
+                props: {
+                    actionErrorSummary: "Nope",
+                    fetchState: createFetchState({ objectsInOrder: [{ id: 1 }] }),
+                },
             });
             await wrapper.find('[data-qa="prime-button"]').trigger("click");
             await flushPromises();
@@ -289,7 +283,7 @@ describe("lib/components/ActionForm.vue", () => {
             const runAction = vi.fn(() => Promise.reject(error));
             const { wrapper } = mountWithContext({
                 runAction,
-                props: { fetchState: { objectsInOrder: [{ id: 1 }], objects: { 1: {} } } },
+                props: { fetchState: createFetchState({ objectsInOrder: [{ id: 1 }] }) },
             });
             await wrapper.find('[data-qa="prime-button"]').trigger("click");
             await flushPromises();
@@ -303,7 +297,7 @@ describe("lib/components/ActionForm.vue", () => {
             const runAction = vi.fn(() => Promise.reject(error));
             const { wrapper } = mountWithContext({
                 runAction,
-                props: { fetchState: { objectsInOrder: [{ id: 1 }], objects: { 1: {} } } },
+                props: { fetchState: createFetchState({ objectsInOrder: [{ id: 1 }] }) },
             });
             await wrapper.find('[data-qa="prime-button"]').trigger("click");
             await flushPromises();
@@ -331,7 +325,7 @@ describe("lib/components/ActionForm.vue", () => {
 
             routeQuery = {};
             const { wrapper: single } = mountWithContext({
-                props: { fetchState: { objectsInOrder: [{ id: 1 }], objects: { 1: {} } } },
+                props: { fetchState: createFetchState({ objectsInOrder: [{ id: 1 }] }) },
             });
             routerPush.mockClear();
             await single.findAll('[data-qa="prime-button"]')[1].trigger("click");
@@ -370,13 +364,7 @@ describe("lib/components/ActionForm.vue", () => {
             const wrapper2 = mountWithContext({
                 props: {
                     runAction: undefined,
-                    fetchState: {
-                        objectsInOrder: [{ id: 1 }],
-                        objects: { 1: {} },
-                        loading: false,
-                        errored: false,
-                        error: null,
-                    },
+                    fetchState: createFetchState({ objectsInOrder: [{ id: 1 }] }),
                 },
             }).wrapper;
             await wrapper2.find('[data-qa="prime-button"]').trigger("click");
@@ -407,13 +395,7 @@ describe("lib/components/ActionForm.vue", () => {
                 props: {
                     runAction: undefined,
                     submitFormValues,
-                    fetchState: {
-                        objectsInOrder: [{ id: 1 }],
-                        objects: { 1: {} },
-                        loading: false,
-                        errored: false,
-                        error: null,
-                    },
+                    fetchState: createFetchState({ objectsInOrder: [{ id: 1 }] }),
                 },
             });
             await single.find('[data-qa="prime-button"]').trigger("click");

@@ -249,7 +249,7 @@ const redirectTo = async (result) => {
                 <slot
                     :loading="combinedLoading"
                     name="selected-objects"
-                    :objects="fetchState?.objects"
+                    :objects="fetchState?.objectsMap"
                     :pks="pksAsString"
                     :theme="theme"
                 >
@@ -267,7 +267,7 @@ const redirectTo = async (result) => {
                             <field-string :field-value="pk" :label="pk" :name="pk" :readOnly="true">
                                 <widget-read-only
                                     :app="app"
-                                    :foreign-key-obj="fetchState.objects[pk]"
+                                    :foreign-key-obj="fetchState.objectsMap.get(pk)"
                                     :hidden="true"
                                     :invalid="false"
                                     :loading="combinedLoading"

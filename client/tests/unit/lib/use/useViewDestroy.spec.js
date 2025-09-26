@@ -68,13 +68,13 @@ describe("lib/use/useViewDestroy.js", () => {
         expect(useList).toHaveBeenCalledWith(
             expect.objectContaining({
                 props: expect.any(Object),
-                paged: false,
-                keepOldPages: false,
-                clearListOnListIntentTriggered: false,
+                handlers: expect.objectContaining({ list: expect.any(Function) }),
             }),
         );
 
-        const params = useList.mock.calls[0][0].props.params;
+        const listArgs = useList.mock.calls[0][0];
+        expect(listArgs.props.intendToList).toBe(result.validAndActive.value);
+        const params = listArgs.props.params;
         expect(params.id).toEqual(["123"]);
         expect(Array.isArray(params.id)).toBe(true);
 

@@ -50,7 +50,7 @@ describe("lib/use/useSearchableSelect.js", () => {
             const actual = await vi.importActual("@arrai-innovations/reactive-helpers");
             return {
                 ...actual,
-                useList: vi.fn(() => ({ state: listState })),
+                useList: vi.fn(() => ({ state: listState, clearList: vi.fn() })),
             };
         });
 

@@ -57,6 +57,11 @@ describe("lib/utils/listCrud.js", () => {
         getListUrl.mockReturnValue("/list/?p=2");
         const response = { status: 200 };
         getJsonOrText.mockResolvedValue({ items: [1], totalRecords: 1, totalPages: 1, perPage: 10 });
+        const pushObjects = vi.fn();
+        const clearObjects = vi.fn();
+        const setPaginateInfo = vi.fn();
+        const setColumnTotals = vi.fn();
+        const isCancelled = { value: false };
         cancellableFetch.mockImplementation((url, options, transform) => {
             expect(getListUrl).toHaveBeenCalledWith({
                 app: "blog",
@@ -68,9 +73,18 @@ describe("lib/utils/listCrud.js", () => {
             expect(options).toEqual({ method: "GET", credentials: "include" });
             return Promise.resolve(transform(response));
         });
-        const pageCallback = vi.fn();
-        await singlePagePaginatedListCrudAdaptor({ target, params, pageCallback });
-        expect(pageCallback).toHaveBeenCalledWith([1], { totalRecords: 1, totalPages: 1, perPage: 10, page: 2 });
+        await singlePagePaginatedListCrudAdaptor({
+            target,
+            params,
+            pushObjects,
+            clearObjects,
+            isCancelled,
+            setPaginateInfo,
+            setColumnTotals,
+        });
+        expect(pushObjects).toHaveBeenCalledWith([1]);
+        expect(setPaginateInfo).toHaveBeenCalledWith({ totalRecords: 1, totalPages: 1, perPage: 10, page: 2 });
+        expect(setColumnTotals).toHaveBeenCalledWith(undefined);
     });
 
     scopedIt("allPagePaginatedListCrudAdaptor fetches multiple pages", async () => {
@@ -83,13 +97,27 @@ describe("lib/utils/listCrud.js", () => {
         getJsonOrText
             .mockResolvedValueOnce({ items: ["a"], totalRecords: 2, totalPages: 2, perPage: 1 })
             .mockResolvedValueOnce({ items: ["b"], totalRecords: 2, totalPages: 2, perPage: 1 });
-        const pageCallback = vi.fn();
-        await allPagePaginatedListCrudAdaptor({ target, params: {}, pageCallback });
+        const pushObjects = vi.fn();
+        const clearObjects = vi.fn();
+        const setPaginateInfo = vi.fn();
+        const setColumnTotals = vi.fn();
+        const isCancelled = { value: false };
+        await allPagePaginatedListCrudAdaptor({
+            target,
+            params: {},
+            pushObjects,
+            clearObjects,
+            isCancelled,
+            setPaginateInfo,
+            setColumnTotals,
+        });
         await Promise.resolve();
         await Promise.resolve();
         expect(global.fetch).toHaveBeenCalledTimes(2);
-        expect(pageCallback).toHaveBeenNthCalledWith(1, ["a"], { totalRecords: 2, totalPages: 2, perPage: 1, page: 1 });
-        expect(pageCallback).toHaveBeenNthCalledWith(2, ["b"], { totalRecords: 2, totalPages: 2, perPage: 1, page: 2 });
+        expect(pushObjects).toHaveBeenNthCalledWith(1, ["a"]);
+        expect(pushObjects).toHaveBeenNthCalledWith(2, ["b"]);
+        expect(setPaginateInfo).toHaveBeenNthCalledWith(1, { totalRecords: 2, totalPages: 2, perPage: 1, page: 1 });
+        expect(setPaginateInfo).toHaveBeenNthCalledWith(2, { totalRecords: 2, totalPages: 2, perPage: 1, page: 2 });
     });
 
     scopedIt("defaultObjectsDelete uses cancellableFetch with csrf", async () => {

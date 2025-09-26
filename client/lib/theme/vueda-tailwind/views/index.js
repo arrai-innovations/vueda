@@ -98,6 +98,9 @@ export default {
         actionButtonGroupBar: {
             class: ["flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"],
         },
+        columnTotalCell: {
+            class: "border-t-2",
+        },
     },
     ViewHistoryList: {
         root: {

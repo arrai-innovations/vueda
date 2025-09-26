@@ -2,6 +2,7 @@ import { useList } from "@arrai-innovations/reactive-helpers";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, reactive, toRef } from "vue";
 
@@ -52,9 +53,9 @@ export function useViewDestroy(props) {
     });
     const instanceList = useList({
         props: instanceListProps,
-        paged: false,
-        keepOldPages: false,
-        clearListOnListIntentTriggered: false,
+        handlers: {
+            list: allPagePaginatedListCrudAdaptor,
+        },
     });
 
     const handleDelete = async () => {

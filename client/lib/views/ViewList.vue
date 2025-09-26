@@ -5,6 +5,7 @@ import FilterGroup from "@vueda/components/FilterGroup.vue";
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
+import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
@@ -19,6 +20,7 @@ import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { ListFilterError } from "@vueda/utils/errors.js";
+import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -138,6 +140,18 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    allowShowAllPages: {
+        type: Boolean,
+        default: true,
+    },
+    alwaysShowAllPages: {
+        type: Boolean,
+        default: false,
+    },
+    showTotalRecordNum: {
+        type: Boolean,
+        default: true,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const listSearch = ref(null);
@@ -190,6 +204,15 @@ const calculatedDisplayFields = computed(() => {
         );
     }
 });
+const showingAllPages = ref(false);
+const computedShowAllPages = computed(() => (props.alwaysShowAllPages ? true : showingAllPages.value));
+watch(computedShowAllPages, (newVal, oldVal) => {
+    if (newVal !== oldVal) {
+        listState.currentPage = 1;
+        instanceList.clearList();
+        instanceList.list();
+    }
+});
 const alwaysParamsKeys = ["o", "f", "e"];
 const listState = reactive({
     currentPage: 1,
@@ -215,9 +238,12 @@ const instanceListProps = reactive({
 });
 const instanceList = useList({
     props: instanceListProps,
-    paged: true,
-    keepOldPages: false,
-    clearListOnListIntentTriggered: false, // don't retrigger the objects grid skeleton when we change page number
+    handlers: {
+        list: (...args) =>
+            computedShowAllPages.value
+                ? allPagePaginatedListCrudAdaptor(...args)
+                : singlePagePaginatedListCrudAdaptor(...args),
+    },
 });
 watch(toRef(listState, "search"), (newSearch, oldSearch) => {
     if (newSearch !== oldSearch) {
@@ -225,7 +251,8 @@ watch(toRef(listState, "search"), (newSearch, oldSearch) => {
     }
 });
 watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, newSearch]) => {
-    if (newPage <= 1 || newPage > instanceList.state.totalPages) {
+    instanceList.clearList({ keepPagination: true });
+    if (newPage <= 1 || newPage > instanceList.state.paginateInfo?.totalPages) {
         if (newPage !== 1) {
             // if there are no valid pages, just set 1 the once.
             newPage = listState.currentPage = 1;
@@ -475,6 +502,9 @@ const searchSlotProps = reactive({
     },
     searchInputClass: theme("searchInput"),
 });
+
+const isTable = ref(true);
+const columnTotals = computed(() => instanceList.state.columnTotals || {});
 </script>
 <template>
     <div>
@@ -584,6 +614,7 @@ const searchSlotProps = reactive({
             :table-breakpoint="tableBreakpoint"
             :theme-override="themeOverride"
             @update:sorted="sorting.updateSorted"
+            @update:isTable="isTable = $event"
         >
             <template
                 v-for="slot in Object.keys(slots).filter((slot) => !specialSlots.includes(slot))"
@@ -614,12 +645,47 @@ const searchSlotProps = reactive({
                     />
                 </slot>
             </template>
+            <template #row-after-objects="slotProps">
+                <slot name="row-after-objects" v-bind="slotProps" :columnTotals="columnTotals">
+                    <div v-if="isTable && Object.keys(columnTotals).length" :class="slotProps.class" role="row">
+                        <objects-grid-body-cell
+                            v-for="(field, index) in computedFieldObjects"
+                            :key="field.name"
+                            :field="field"
+                            :obj="{}"
+                            :related-object="{}"
+                            :calculated-object="{}"
+                            :row-index="0"
+                            :column-index="index"
+                            :row-count="1"
+                            :column-count="computedFieldObjects.length"
+                            :pk-key="pkKey"
+                            :class="theme('columnTotalCell')"
+                        >
+                            <template #value>
+                                <slot :name="`field(${field.name})totals`" :value="columnTotals[field.name]">
+                                    {{ columnTotals[field.name] ?? "" }}
+                                </slot>
+                            </template>
+                        </objects-grid-body-cell>
+                    </div>
+                </slot>
+            </template>
         </objects-grid>
         <pagination-component
             v-model:current-page="listState.currentPage"
             :loading="instanceList.state.loading"
-            :rows="instanceList.state.perPage"
-            :total-records="instanceList.state.totalRecords"
-        ></pagination-component>
+            :rows="instanceList.state.paginateInfo?.perPage || 1"
+            :total-records="instanceList.state.paginateInfo?.totalRecords || 1"
+            :is-table="isTable"
+            :showingAllPages="computedShowAllPages"
+            @update:showing-all-pages="showingAllPages = $event"
+            :allow-show-all-pages="allowShowAllPages"
+            :show-total-record-num="showTotalRecordNum"
+        >
+            <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                <slot :name="slot" v-bind="slotProps || {}" />
+            </template>
+        </pagination-component>
     </div>
 </template>

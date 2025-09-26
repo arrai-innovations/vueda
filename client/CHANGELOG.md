@@ -6,8 +6,14 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Breaking Changes
 
+upgraded reactive-helpers to v21.0.0
+
 ### Features
 
+- **PaginationComponent**:
+    - Added ability to display total record counts and a "Show All Pages" option.
+- **ViewList**:
+    - Supports displaying column totals when returned.
 - **ClickToCopyText**:
     - Component for displaying text with a copy-to-clipboard button.
 - **Templated Text Widgets**:
@@ -16,6 +22,12 @@ _Actions potentially required by implementers are marked with italics._
     - Registered in `availableWidgets` and `fieldMappings` (`TemplatedTextField`, `TemplateTagsDataField`) and added associated theme entries.
 - **Dependency Tracking**:
     - `useField` and `useWidget` now support registering/unregistering dependency values so widgets can react to external field data.
+
+### Refactors
+
+- **listCrud**:
+    - pagination is manually done using calls to pushObjects() and clearObjects in CrudAdaptors
+    - adaptors handles and update the pagination information and columns total from the responseData
 
 ### Fixes
 

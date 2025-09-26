@@ -86,7 +86,6 @@ async function executeAction({ target, pks }) {
 
 const instanceList = useList({
     props: instanceListProps,
-    paged: false,
     handlers: {
         executeAction,
     },

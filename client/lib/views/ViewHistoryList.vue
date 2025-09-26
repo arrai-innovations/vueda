@@ -8,11 +8,12 @@ import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
 import { DateTime } from "luxon";
 import Button from "primevue/button";
-import { computed, inject, reactive, ref, toRef } from "vue";
+import { computed, inject, reactive, ref, toRef, useSlots, watch } from "vue";
 import { useRouter } from "vue-router";
 
 defineOptions({
@@ -53,6 +54,18 @@ const props = defineProps({
             "new",
         ],
     },
+    allowShowAllPages: {
+        type: Boolean,
+        default: true,
+    },
+    alwaysShowAllPages: {
+        type: Boolean,
+        default: false,
+    },
+    showTotalRecordNum: {
+        type: Boolean,
+        default: true,
+    },
 });
 const isTable = ref(true);
 const handleIsTableUpdate = (newValue) => {
@@ -85,9 +98,25 @@ const modelListProps = reactive({
 
 const instanceList = useList({
     props: modelListProps,
-    paged: true,
-    keepOldPages: false,
-    clearListOnListIntentTriggered: true,
+    handlers: {
+        list: (...args) =>
+            computedShowAllPages.value
+                ? allPagePaginatedListCrudAdaptor(...args)
+                : singlePagePaginatedListCrudAdaptor(...args),
+    },
+});
+
+const showingAllPages = ref(false);
+const computedShowAllPages = computed(() => (props.alwaysShowAllPages ? true : showingAllPages.value));
+watch(computedShowAllPages, (newVal, oldVal) => {
+    if (newVal !== oldVal) {
+        currentPage.value = 1;
+        instanceList.clearList();
+        instanceList.list();
+    }
+});
+watch([validAndActive, currentPage], () => {
+    instanceList.clearList({ keepPagination: true });
 });
 const titleStr = computed(() => {
     return `History of ${modelConfig.info?.verbose_name}`;
@@ -169,6 +198,7 @@ const theme = useTheme("ViewHistoryList");
 const formatHistoryDate = (date) => {
     return date ? DateTime.fromISO(date).toLocaleString(DateTime.DATETIME_MED) : "";
 };
+const slots = useSlots();
 </script>
 <template>
     <div :class="theme('root')">
@@ -226,8 +256,17 @@ const formatHistoryDate = (date) => {
 
         <pagination-component
             v-model:current-page="currentPage"
-            :rows="instanceList.state.perPage"
-            :total-records="instanceList.state.totalRecords"
-        ></pagination-component>
+            :rows="instanceList.state.paginateInfo?.perPage || 1"
+            :total-records="instanceList.state.paginateInfo?.totalRecords || 1"
+            :is-table="isTable"
+            :showingAllPages="computedShowAllPages"
+            @update:showing-all-pages="showingAllPages = $event"
+            :allow-show-all-pages="allowShowAllPages"
+            :show-total-record-num="showTotalRecordNum"
+        >
+            <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                <slot :name="slot" v-bind="slotProps || {}" />
+            </template>
+        </pagination-component>
     </div>
 </template>

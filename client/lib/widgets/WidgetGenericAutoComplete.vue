@@ -70,9 +70,6 @@ const modelListInstance = useList({
     handlers: {
         list: allPagePaginatedListCrudAdaptor,
     },
-    paged: true,
-    keepOldPages: false,
-    clearListOnListIntentTriggered: false,
 });
 const filteredOptions = computed(() => {
     if (modelListInstance.state.loading) {
