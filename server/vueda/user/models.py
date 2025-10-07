@@ -96,6 +96,11 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, VUEDAPermissions
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["name"]
+    TWO_FACTOR_AUTHENTICATION_OPTIONS = [
+        ("phone_sms", "Phone SMS"),
+        ("email", "Email"),
+        ("totp", "Time Based Key from an Authenticator App"),
+    ]
 
     formatted_name = models.GeneratedField(
         expression=F(EMAIL_FIELD),

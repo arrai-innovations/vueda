@@ -86,6 +86,7 @@ class UserSerializer(VuedaSerializer):
             "is_active",
             "last_login",
             "password_confirm",
+            "two_factor_authentication_options",
         ] + VuedaSerializer.Meta.fields
         read_only_fields = ["date_joined"]
         extra_kwargs = {"password": {"write_only": True, "required": False}}

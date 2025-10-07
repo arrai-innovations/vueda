@@ -1,6 +1,7 @@
-from dj_rest_auth.views import LoginView
+from allauth.headless.urls import urlpatterns as allauth_urlpatterns
 from dj_rest_auth.views import LogoutView
 from django.conf import settings
+from django.urls import include
 from django.urls import path
 
 from vueda.user import views
@@ -9,7 +10,7 @@ from vueda.user.views import WhoIsView
 
 urlpatterns = [
     path("who-is/", WhoIsView.as_view(), name="who-is"),
-    path("login/", LoginView.as_view(), name="login"),
+    path("_allauth/", include(allauth_urlpatterns)),
     path("logout/", LogoutView.as_view(), name="logout"),
 ]
 
