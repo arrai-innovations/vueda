@@ -197,12 +197,15 @@ def get_defaults(env: Env):
             "account_reset_password": env("FRONTEND_RESET_URL"),
             "account_signup": env("FRONTEND_LOGIN_URL"),
         },
-        "HEADLESS_ADAPTER": env("ALLAUTH_HEADLESS_ADAPTER", default="vueda.user.adapters.VuedaAllAuthAdapter"),
+        "HEADLESS_ADAPTER": env("ALLAUTH_HEADLESS_ADAPTER", default="vueda.user.adapters.VuedaAllAuthHeadlessAdapter"),
+        "ACCOUNT_ADAPTER": env("ALLAUTH_ACCOUNT_ADAPTER", default="vueda.user.adapters.VuedaAllAuthAcountAdapter"),
+        "MFA_ADAPTER": env("ALLAUTH_ACCOUNT_ADAPTER", default="vueda.user.adapters.VuedaAllAuthMFAAdapter"),
         "HEADLESS_CLIENTS": ("browser",),
         "ACCOUNT_USER_MODEL_USERNAME_FIELD": None,
         "ACCOUNT_EMAIL_VERIFICATION": "none",
         "ACCOUNT_LOGIN_METHODS": {"email"},
         "ACCOUNT_SIGNUP_FIELDS": ["email*", "password1*", "password2*"],
+        "MFA_TOTP_TOLERANCE": 5,
         "REST_FRAMEWORK": {
             "DEFAULT_THROTTLE_RATES": {
                 "forgot_password": "20/hour",

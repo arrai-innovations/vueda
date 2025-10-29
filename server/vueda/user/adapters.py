@@ -1,9 +1,14 @@
+from allauth.account.adapter import DefaultAccountAdapter
 from allauth.headless.adapter import DefaultHeadlessAdapter
+from allauth.mfa.adapter import DefaultMFAAdapter
 from django.contrib.auth import get_user_model
 from django.db import models
+from rest_framework.settings import api_settings
+
+from vueda.core.exceptions import VuedaValidationError
 
 
-class VuedaAllAuthAdapter(DefaultHeadlessAdapter):
+class VuedaAllAuthHeadlessAdapter(DefaultHeadlessAdapter):
     """
     Adapter for Vueda AllAuth integration.
     """
@@ -29,3 +34,19 @@ class VuedaAllAuthAdapter(DefaultHeadlessAdapter):
             }
         )
         return UserDc(**kwargs)
+
+
+class VuedaAllAuthAcountAdapter(DefaultAccountAdapter):
+    def validation_error(self, code, *args):
+        message = self.error_messages[code]
+        if args:
+            message = message % args
+        raise VuedaValidationError({api_settings.NON_FIELD_ERRORS_KEY: [message]})
+
+
+class VuedaAllAuthMFAAdapter(DefaultMFAAdapter):
+    def validation_error(self, code, *args):
+        message = self.error_messages[code]
+        if args:
+            message = message % args
+        raise VuedaValidationError({api_settings.NON_FIELD_ERRORS_KEY: [message]})

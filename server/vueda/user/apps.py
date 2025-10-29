@@ -1,5 +1,7 @@
 from django.apps import AppConfig
 
+from vueda.info import register
+
 
 class UserConfig(AppConfig):
     name = "vueda.user"
@@ -20,3 +22,7 @@ class UserConfig(AppConfig):
             summary="Logout user",
         )
         decorator(LogoutView)
+        from vueda.user.serializers import TOTPDeviceSerializer
+        from vueda.user.viewsets import TOTPDeviceViewSet
+
+        register(TOTPDeviceSerializer, TOTPDeviceViewSet)

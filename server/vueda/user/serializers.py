@@ -1,3 +1,5 @@
+from allauth.account.internal.flows.reauthentication import did_recently_authenticate
+from allauth.mfa.models import Authenticator
 from dj_rest_auth.serializers import TokenSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
@@ -8,7 +10,10 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaSerializer
+from vueda.user.models import TWO_FACTOR_AUTHENTICATION_OPTIONS
+from vueda.user.models import TOTPDevice
 
 
 User = get_user_model()
@@ -46,10 +51,19 @@ class WhoIsSerializer(VuedaSerializer):
     """
 
     groups = serializers.SlugRelatedField(many=True, queryset=Group.objects.all(), slug_field="name")
+    recently_logged_in = serializers.SerializerMethodField()
 
     class Meta(VuedaSerializer.Meta):
         model = User
-        fields = ["id", "email", "name", "groups", "is_superuser"] + VuedaSerializer.Meta.fields
+        fields = [
+            "id",
+            "email",
+            "name",
+            "groups",
+            "is_superuser",
+            "totp_devices",
+            "recently_logged_in",
+        ] + VuedaSerializer.Meta.fields
 
     def get_fields(self):
         fields = super().get_fields()
@@ -64,6 +78,11 @@ class WhoIsSerializer(VuedaSerializer):
             del fields["available_actions"]
 
         return fields
+
+    def get_recently_logged_in(self, _):
+        if "request" in self.context and self.context["request"].user:
+            return did_recently_authenticate(self.context["request"])
+        return None
 
 
 class UserSerializer(VuedaSerializer):
@@ -86,7 +105,6 @@ class UserSerializer(VuedaSerializer):
             "is_active",
             "last_login",
             "password_confirm",
-            "two_factor_authentication_options",
         ] + VuedaSerializer.Meta.fields
         read_only_fields = ["date_joined"]
         extra_kwargs = {"password": {"write_only": True, "required": False}}
@@ -166,3 +184,41 @@ class ResetPasswordSerializer(serializers.Serializer):
 class VuedaTokenSerializer(TokenSerializer, serializers.ModelSerializer):
     def get_fields(self):
         return {}
+
+
+class AuthenticatorSerializer(serializers.Serializer):
+    class Meta:
+        model = Authenticator
+        fields = ["id", "created_at", "last_used_at", "type"]
+
+
+class TOTPDeviceSerializer(serializers.ModelSerializer, VuedaExpandableFieldsSerializerMixin):
+    created_at = serializers.SerializerMethodField()
+    last_used_at = serializers.SerializerMethodField()
+    method = serializers.ChoiceField(
+        choices=TWO_FACTOR_AUTHENTICATION_OPTIONS,
+    )
+    formatted_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TOTPDevice
+        fields = [
+            "id",
+            "created_at",
+            "method",
+            "last_used_at",
+            "user",
+            "phone_number",
+            "email",
+            "formatted_name",
+        ]
+        read_only_fields = fields
+
+    def get_created_at(self, obj):
+        return obj.authenticator.created_at
+
+    def get_last_used_at(self, obj):
+        return obj.authenticator.last_used_at
+
+    def get_formatted_name(self, obj):
+        return obj.get_formatted_name() or None

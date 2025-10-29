@@ -2,6 +2,11 @@ import json
 import operator
 import textwrap
 
+from allauth.account.stages import LoginStageController
+from allauth.headless.account.views import LoginView
+from allauth.headless.account.views import ReauthenticateView
+from allauth.headless.mfa.views import AuthenticateView
+from allauth.mfa.internal.constants import LoginStageKey
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth import password_validation
@@ -13,6 +18,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.cache import cache
+from django.core.mail import send_mail
 from django.db.models import Case
 from django.db.models import CharField
 from django.db.models import F
@@ -31,7 +37,10 @@ from django.views.decorators.debug import sensitive_variables
 from django.views.generic import TemplateView
 from django.views.generic.detail import SingleObjectMixin
 from hashids import Hashids
+from rest_framework import status
 from rest_framework import status as drf_status
+from rest_framework.decorators import api_view
+from rest_framework.decorators import permission_classes
 from rest_framework.generics import GenericAPIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.permissions import AllowAny
@@ -47,8 +56,10 @@ from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.decorators import ensure_csrf_token
 from vueda.user.mixins import LogoutMixin
 from vueda.user.models import GroupChange
+from vueda.user.permissions import Authenticating
 from vueda.user.serializers import ForgotPasswordSerializer
 from vueda.user.serializers import ResetPasswordSerializer
+from vueda.user.utils import get_current_totp_code
 
 
 User = get_user_model()
@@ -564,3 +575,62 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                 "new_name": group_name,
             }
         )
+
+
+class VuedaAllAuthViewAdapter(APIView):
+    def dispatch(self, request, *args, **kwargs):
+        return View.dispatch(self, request, *args, **kwargs)
+
+
+class AllAuthAdapterDispatchMixin:
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        except Exception as exc:
+            self.headers = self.default_response_headers
+            response = self.handle_exception(exc)
+            return self.finalize_response(request, response, *args, **kwargs)
+
+
+class AllAuthLoginView(AllAuthAdapterDispatchMixin, LoginView, VuedaAllAuthViewAdapter):
+    pass
+
+
+class AllAuthTwoFactorAuthView(AllAuthAdapterDispatchMixin, AuthenticateView, VuedaAllAuthViewAdapter):
+    pass
+
+
+class AllAuthReauthenticateView(AllAuthAdapterDispatchMixin, ReauthenticateView, VuedaAllAuthViewAdapter):
+    pass
+
+
+@api_view(["GET", "POST"])
+@permission_classes([Authenticating])
+def totp_code(request):
+    stage = LoginStageController.enter(request, LoginStageKey.MFA_AUTHENTICATE.value)
+    user = stage.login.user
+    devices = user.totp_devices
+    if not devices.exists():
+        return Response({"detail": "No TOTP device found"}, status=status.HTTP_404_NOT_FOUND)
+    if request.method == "POST":
+        method = request.data.get("method")
+
+        device = user.totp_devices.filter(method=method).first()
+        authenticator = device.authenticator
+        secret = authenticator.data.get("secret")
+        code = get_current_totp_code(secret)
+
+        if method == "email":
+            # TODO: integrate with vdq.
+            send_mail(
+                "Automated Message: Two Factor Authentication Code",
+                f"Your TOTP code is: {code}",
+                settings.NO_REPLY_EMAIL,
+                [user.email],
+            )
+        elif method == "sms":
+            # Implement SMS sending logic here
+            # TODO: integrate with vdq.
+            pass
+
+    return Response(data={"method": devices.values_list("method", flat=True)}, status=status.HTTP_200_OK)
