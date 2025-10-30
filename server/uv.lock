@@ -429,6 +429,23 @@ wheels = [
 ]
 
 [[package]]
+name = "django-phonenumber-field"
+version = "8.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cf/65/93e52cdc84803e62be6b2b953ed7b5c7ce21d5ff75e149433c6aaba22c00/django_phonenumber_field-8.3.0.tar.gz", hash = "sha256:193b3acc3b83ff4aad95dd9530a6d01e1c7c1cecbdfa8a56159789bbb85ab0e2", size = 45239, upload-time = "2025-10-06T14:57:01.447Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f1/55/fd4a0976805a05402ca04f3938f5d999f3803471a1eef8b65a9e259e5914/django_phonenumber_field-8.3.0-py3-none-any.whl", hash = "sha256:afaf8b16693c8d64646acf7693f5a9c4a809e7f1f9b66a84dabbe04a2d6c1513", size = 69530, upload-time = "2025-10-06T14:57:00.259Z" },
+]
+
+[package.optional-dependencies]
+phonenumberslite = [
+    { name = "phonenumberslite" },
+]
+
+[[package]]
 name = "django-private-storage"
 version = "3.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -863,6 +880,24 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450, upload-time = "2023-11-25T09:07:26.339Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9e/c3/059298687310d527a58bb01f3b1965787ee3b40dce76752eda8b44e9a2c5/pexpect-4.9.0-py2.py3-none-any.whl", hash = "sha256:7236d1e080e4936be2dc3e326cec0af72acf9212a7e1d060210e70a47e253523", size = 63772, upload-time = "2023-11-25T06:56:14.81Z" },
+]
+
+[[package]]
+name = "phonenumbers"
+version = "9.0.17"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/d4/d338af7cf393df3785a0c1da81940762673cb7e1097184f48b0c8a47cdf9/phonenumbers-9.0.17.tar.gz", hash = "sha256:4f7e06b2111640cd6b2a8e36d1c2dc3c1af0f5d6ab734a2bcf4c9aec2ad80b53", size = 2298159, upload-time = "2025-10-24T07:03:35.081Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0e/c2/ef7e49c8899390ab2636d04cecb5b1e80e0345b7ef340bd493ca0fdc0619/phonenumbers-9.0.17-py2.py3-none-any.whl", hash = "sha256:180e4ec2e05f6d3150cbd63b1b6f26996f8738cd0657bcc8747fbd10184721ae", size = 2584018, upload-time = "2025-10-24T07:03:31.514Z" },
+]
+
+[[package]]
+name = "phonenumberslite"
+version = "9.0.17"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9e/e6/c2288694089b773c55e3effbf2e653b3e9ce86b5c4dac14a0bea80364b5c/phonenumberslite-9.0.17.tar.gz", hash = "sha256:bed32589834d469abacd5637ebdcfb3e67f500d8cd35a64e5fd7ed3217420e85", size = 2298311, upload-time = "2025-10-24T07:03:18.143Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a8/70/c4d617dceea51150f9be5d6c16e173845ad94b6ef4911f722d8bf9d9fe42/phonenumberslite-9.0.17-py2.py3-none-any.whl", hash = "sha256:fd0662172617302844060a375a63884e0d5a870623ca6c184f46cbc653c9a40e", size = 472477, upload-time = "2025-10-24T07:03:13.021Z" },
 ]
 
 [[package]]
@@ -1464,6 +1499,7 @@ dependencies = [
     { name = "django-cors-headers" },
     { name = "django-extensions" },
     { name = "django-filter" },
+    { name = "django-phonenumber-field", extra = ["phonenumberslite"] },
     { name = "django-private-storage" },
     { name = "django-simple-history" },
     { name = "djangorestframework" },
@@ -1472,6 +1508,7 @@ dependencies = [
     { name = "environs", extra = ["django"] },
     { name = "hashids" },
     { name = "ordered-set" },
+    { name = "phonenumbers" },
     { name = "pwned-passwords-django" },
     { name = "rest-framework-generic-relations" },
     { name = "sentry-sdk" },
@@ -1512,6 +1549,7 @@ requires-dist = [
     { name = "django-cors-headers", specifier = ">=4.3.1,<5" },
     { name = "django-extensions", specifier = ">=4.0.0,<5" },
     { name = "django-filter", specifier = ">=23.5" },
+    { name = "django-phonenumber-field", extras = ["phonenumberslite"], specifier = ">=8.1.0" },
     { name = "django-private-storage", specifier = ">=3.1.1,<4" },
     { name = "django-simple-history", specifier = ">=3.8.0,<4" },
     { name = "djangorestframework", specifier = ">=3.15.2,<4" },
@@ -1520,6 +1558,7 @@ requires-dist = [
     { name = "environs", extras = ["django"], specifier = ">=11.0.0,<12" },
     { name = "hashids", specifier = ">=1.3.1,<1.4" },
     { name = "ordered-set", specifier = ">=4.1.0,<5" },
+    { name = "phonenumbers", specifier = ">=9.0.15" },
     { name = "pwned-passwords-django", specifier = ">=5.1.0,<6" },
     { name = "rest-framework-generic-relations", specifier = ">=2.1.0,<3" },
     { name = "sentry-sdk", specifier = ">=2.10.0,<3" },

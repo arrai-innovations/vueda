@@ -192,11 +192,6 @@ def get_defaults(env: Env):
         },
         "MFA_ALLOW_UNVERIFIED_EMAIL": True,
         "HEADLESS_ONLY": True,
-        "HEADLESS_FRONTEND_URLS": {
-            "account_reset_password_from_key": env("FRONTEND_RESET_FROM_KEY_URL"),
-            "account_reset_password": env("FRONTEND_RESET_URL"),
-            "account_signup": env("FRONTEND_LOGIN_URL"),
-        },
         "HEADLESS_ADAPTER": env("ALLAUTH_HEADLESS_ADAPTER", default="vueda.user.adapters.VuedaAllAuthHeadlessAdapter"),
         "ACCOUNT_ADAPTER": env("ALLAUTH_ACCOUNT_ADAPTER", default="vueda.user.adapters.VuedaAllAuthAcountAdapter"),
         "MFA_ADAPTER": env("ALLAUTH_ACCOUNT_ADAPTER", default="vueda.user.adapters.VuedaAllAuthMFAAdapter"),

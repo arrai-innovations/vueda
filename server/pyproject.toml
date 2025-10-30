@@ -45,6 +45,8 @@ dependencies = [
     "pwned-passwords-django>=5.1.0,<6",
     "rest-framework-generic-relations>=2.1.0,<3",
     "sentry-sdk>=2.10.0,<3",
+     "django-phonenumber-field[phonenumberslite]>=8.1.0",
+    "phonenumbers>=9.0.15",
 ]
 
 [project.urls]
