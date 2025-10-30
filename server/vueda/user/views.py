@@ -633,4 +633,4 @@ def totp_code(request):
             # TODO: integrate with vdq.
             pass
 
-    return Response(data={"method": devices.values_list("method", flat=True)}, status=status.HTTP_200_OK)
+    return Response(data={"methods": devices.values_list("method", flat=True)}, status=status.HTTP_200_OK)
