@@ -221,7 +221,7 @@ class TOTPDevice(VuedaBaseModel):
     formatted_name = None
 
     def __str__(self):
-        return f"TOTP Device {self.name}"
+        return f"TOTP Device {self.method}"
 
     class Meta(BaseModelMeta):
         default_related_name = "totp_devices"
