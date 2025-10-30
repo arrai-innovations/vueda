@@ -94,7 +94,7 @@ def test_setup_requires_destination_for_email(api_rf, user, monkeypatch):
     response = TOTPDeviceViewSet.as_view({"post": "setup"})(request)
 
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.data["destination"] == ["An Email address is required for sms method"]
+    assert response.data["destination"] == ["An Email address is required for email method"]
 
 
 @pytest.mark.django_db(databases=("default", "db_logging"))
