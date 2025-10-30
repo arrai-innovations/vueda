@@ -36,7 +36,7 @@ class VuedaAllAuthHeadlessAdapter(DefaultHeadlessAdapter):
         return UserDc(**kwargs)
 
 
-class VuedaAllAuthAcountAdapter(DefaultAccountAdapter):
+class VuedaAllAuthAccountAdapter(DefaultAccountAdapter):
     def validation_error(self, code, *args):
         message = self.error_messages[code]
         if args:

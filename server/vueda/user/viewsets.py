@@ -6,9 +6,9 @@ from allauth.mfa.adapter import get_adapter
 from allauth.mfa.models import Authenticator
 from allauth.mfa.totp.internal import auth as totp_auth
 from allauth.mfa.totp.internal import flows as totp_flows
+from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
-from rest_framework import status
 from rest_framework import status as drf_status
 from rest_framework.mixins import DestroyModelMixin
 from rest_framework.permissions import IsAuthenticated
@@ -88,7 +88,7 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
             send_mail(
                 "Your TOTP Code for MFA Setup",
                 f"your code!{get_current_totp_code(secret)}",
-                "qzhou2@ualberta.ca",
+                settings.NO_REPLY_EMAIL,
                 [email],
                 fail_silently=False,
             )
@@ -99,8 +99,10 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
     def activate(self, request):
         code = request.data.get("code")
         if not code:
-            return Response({"detail": "Code is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Code is required"}, status=drf_status.HTTP_400_BAD_REQUEST)
         meta_data = request.session.get(self.TOTP_SESSION_KEY)
+        if meta_data is None:
+            raise VuedaValidationError(["No TOTP setup in progress"])
         device_type = meta_data.get("method")
         authenticator = self._get_authenticator()
         if (
@@ -134,11 +136,11 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
                     )
                 else:
                     TOTPDevice.objects.create(authenticator=authenticator, method=device_type, user=request.user)
-                return Response({"detail": "TOTP setup complete"}, status=status.HTTP_201_CREATED)
+                return Response({"detail": "TOTP setup complete"}, status=drf_status.HTTP_201_CREATED)
         except ReauthenticationRequired:
-            return Response({"detail": "Reauthentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"detail": "Reauthentication required"}, status=drf_status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": str(e)}, status=drf_status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         pk = kwargs.get("pk")
@@ -152,4 +154,4 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
             if count == len(pks):
                 Authenticator.objects.filter(user=request.user).delete()
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=drf_status.HTTP_204_NO_CONTENT)
