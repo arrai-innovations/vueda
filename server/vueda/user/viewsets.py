@@ -131,7 +131,7 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
                     TOTPDevice.objects.create(
                         authenticator=authenticator,
                         method=meta_data.get("method"),
-                        phone_number=meta_data.get("phone"),
+                        phone_number=meta_data.get("sms"),
                         user=request.user,
                     )
                 else:
