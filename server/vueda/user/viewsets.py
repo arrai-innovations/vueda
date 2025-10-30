@@ -86,8 +86,8 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
                 raise VuedaValidationError({"destination": ["An Email address is required for email method"]})
             request.session[self.TOTP_SESSION_KEY] = {"method": method, "email": email}
             send_mail(
-                "Your TOTP Code for MFA Setup",
-                f"your code!{get_current_totp_code(secret)}",
+                "TOTP Code for Two Factor Authentication Setup",
+                f"Your TOTP code is:{get_current_totp_code(secret)}",
                 settings.NO_REPLY_EMAIL,
                 [email],
                 fail_silently=False,
