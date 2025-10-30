@@ -98,7 +98,8 @@ def test_setup_requires_destination_for_email(api_rf, user, monkeypatch):
 
 
 @pytest.mark.django_db(databases=("default", "db_logging"))
-def test_setup_blocks_duplicate_method(api_rf, user):
+def test_setup_blocks_duplicate_method(api_rf, user, monkeypatch):
+    monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", lambda regenerate=False: "secret")
     authenticator = Authenticator.objects.create(user=user, type=Authenticator.Type.TOTP, data={})
     TOTPDevice.objects.create(authenticator=authenticator, method="email", user=user, email="user@example.com")
 

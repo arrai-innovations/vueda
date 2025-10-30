@@ -63,8 +63,6 @@ class WhoIsSerializer(VuedaSerializer):
             "is_superuser",
             "totp_devices",
             "recently_logged_in",
-            "totp_devices",
-            "recently_logged_in",
         ] + VuedaSerializer.Meta.fields
 
     def get_fields(self):

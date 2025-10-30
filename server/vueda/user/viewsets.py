@@ -44,14 +44,16 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
     def setup(self, request):
         authenticator = self._get_authenticator()
         method = request.data.get("method")
+        if method in ["totp", "email", "sms"]:
+            secret = totp_auth.get_totp_secret(regenerate=not authenticator)
+        else:
+            raise VuedaValidationError({"method": ["Invalid method"]})
         if (
             authenticator
             and TOTPDevice.objects.filter(authenticator=authenticator, user=request.user, method=method).exists()
         ):
             raise VuedaValidationError({"method": ["An activated TOTP device already exists with " + method]})
 
-        if method in ["totp", "email", "sms"]:
-            secret = totp_auth.get_totp_secret(regenerate=not authenticator)
         if method == "totp":
             request.session[self.TOTP_SESSION_KEY] = {
                 "method": method,
@@ -90,8 +92,6 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
                 [email],
                 fail_silently=False,
             )
-        else:
-            return Response({"detail": "Invalid method"}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(status=drf_status.HTTP_200_OK)
 
