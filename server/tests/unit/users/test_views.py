@@ -39,6 +39,8 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
             "is_superuser",
             "formatted_name",
             "available_actions",
+            "totp_devices",
+            "recently_logged_in",
         }
         assert response.data["email"] == "test_user+timesheet+reader@example.com"
         assert response.data["formatted_name"] == response.data["email"]
