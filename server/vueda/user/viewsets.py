@@ -83,7 +83,7 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
         elif method == "email":
             email = request.data.get("destination")
             if not email:
-                raise VuedaValidationError({"destination": ["An Email address is required for sms method"]})
+                raise VuedaValidationError({"destination": ["An Email address is required for email method"]})
             request.session[self.TOTP_SESSION_KEY] = {"method": method, "email": email}
             send_mail(
                 "Automated Message: Password Reset Request",
