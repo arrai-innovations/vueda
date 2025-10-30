@@ -7,6 +7,6 @@ def get_current_totp_code(secret: str) -> str:
     counters = list(yield_hotp_counters_from_time())
     if not counters:
         raise ValueError("No counters available for TOTP code generation.")
-    counter = list(reversed(counters))[0]
+    counter = next(reversed(counters))
     value = hotp_value(secret, counter)
     return format_hotp_value(value)
