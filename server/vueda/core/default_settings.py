@@ -106,6 +106,7 @@ def get_defaults(env: Env):
         "DEFAULT_AUTO_FIELD": "django.db.models.AutoField",
         "AUTHENTICATION_BACKENDS": [
             "django.contrib.auth.backends.ModelBackend",
+            "allauth.account.auth_backends.AuthenticationBackend",
         ],
         "AUTH_USER_MODEL": env("AUTH_USER_MODEL"),
         "AUTH_PASSWORD_VALIDATORS": [
@@ -137,6 +138,7 @@ def get_defaults(env: Env):
             "django.contrib.messages.middleware.MessageMiddleware",
             "django.middleware.common.BrokenLinkEmailsMiddleware",
             "simple_history.middleware.HistoryRequestMiddleware",
+            "allauth.account.middleware.AccountMiddleware",
         ],
         "DJANGO_APPS": env.list(  # environs doesn't do multiline lists, and the values here would be a bit unwieldy
             "DJANGO_APPS",
@@ -171,6 +173,10 @@ def get_defaults(env: Env):
                 "simple_history",
                 "django_filters",
                 "generic_relations",
+                "allauth",
+                "allauth.account",
+                "allauth.headless",
+                "allauth.mfa",
             ],
         ),
         "LOCAL_APPS": env.list("LOCAL_APPS", default=[]),
@@ -184,6 +190,17 @@ def get_defaults(env: Env):
                 },
             }
         },
+        "MFA_ALLOW_UNVERIFIED_EMAIL": True,
+        "HEADLESS_ONLY": True,
+        "HEADLESS_ADAPTER": env("ALLAUTH_HEADLESS_ADAPTER", default="vueda.user.adapters.VuedaAllAuthHeadlessAdapter"),
+        "ACCOUNT_ADAPTER": env("ALLAUTH_ACCOUNT_ADAPTER", default="vueda.user.adapters.VuedaAllAuthAccountAdapter"),
+        "MFA_ADAPTER": env("ALLAUTH_MFA_ADAPTER", default="vueda.user.adapters.VuedaAllAuthMFAAdapter"),
+        "HEADLESS_CLIENTS": ("browser",),
+        "ACCOUNT_USER_MODEL_USERNAME_FIELD": None,
+        "ACCOUNT_EMAIL_VERIFICATION": "none",
+        "ACCOUNT_LOGIN_METHODS": {"email"},
+        "ACCOUNT_SIGNUP_FIELDS": ["email*", "password1*", "password2*"],
+        "MFA_TOTP_TOLERANCE": 5,
         "REST_FRAMEWORK": {
             "DEFAULT_THROTTLE_RATES": {
                 "forgot_password": "20/hour",

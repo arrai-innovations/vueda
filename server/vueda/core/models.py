@@ -54,7 +54,7 @@ class SingletonModel(VuedaBaseModel):
     def save(self, *args, **kwargs):
         self.__class__.objects.exclude(id=self.id).delete()
         self.id = 1
-        super(SingletonModel, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     @classmethod
     def load(cls):

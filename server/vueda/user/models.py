@@ -1,5 +1,6 @@
 from urllib.parse import urljoin
 
+from allauth.mfa.models import Authenticator
 from django.conf import settings
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.hashers import make_password
@@ -9,10 +10,12 @@ from django.db import models
 from django.db.models import F
 from django.utils import timezone
 from hashids import Hashids
+from phonenumber_field.modelfields import PhoneNumberField
 from simple_history.models import HistoricalRecords
 
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.models import BaseModelMeta
+from vueda.core.models import VuedaBaseModel
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.mixins import VUEDAPermissionsMixin
 
@@ -196,3 +199,38 @@ class GroupChange(models.Model):
             f"({self.historical_permission_content_type_app_label}, "
             f"{self.historical_permission_content_type_model_name}"
         )
+
+
+TWO_FACTOR_AUTHENTICATION_OPTIONS = [
+    ("sms", "Phone SMS"),
+    ("email", "Email"),
+    ("totp", "Time Based Key from an Authenticator App"),
+]
+
+
+class TOTPDevice(VuedaBaseModel):
+    authenticator = models.ForeignKey(Authenticator, on_delete=models.CASCADE, related_name="device")
+    method = models.CharField(max_length=255, choices=TWO_FACTOR_AUTHENTICATION_OPTIONS)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="totp_devices",
+    )
+    phone_number = PhoneNumberField(blank=True, null=True)
+    email = models.EmailField(blank=True, default="")
+    formatted_name = None
+
+    def __str__(self):
+        return f"TOTP Device {self.method}"
+
+    class Meta(BaseModelMeta):
+        default_related_name = "totp_devices"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["authenticator", "method", "user"],
+                name="uniq_authenticator_method_user",
+            ),
+        ]
+
+    def get_formatted_name(self):
+        return self.get_method_display()
