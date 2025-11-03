@@ -12,7 +12,7 @@ from vueda.user.views import WhoIsView
 from vueda.user.views import totp_code
 
 
-urlpatterns = [
+user_patterns = [
     path("who-is/", WhoIsView.as_view(), name="who-is"),
     path("_allauth/", include(allauth_urlpatterns)),
     path("logout/", LogoutView.as_view(), name="logout"),
@@ -23,6 +23,9 @@ urlpatterns = [
     path("totp_code/", totp_code, name="totp_code"),
 ]
 
+urlpatterns = [
+    path("vueda.user/", include(user_patterns)),
+]
 
 if settings.DEBUG:
     from django.contrib.auth import views as django_views

@@ -6,7 +6,7 @@ from vueda.workflow import views
 
 
 urlpatterns = [
-    path("", include("vueda.workflow.routers")),
+    path("vueda.workflow/", include("vueda.workflow.routers")),
 ]
 if settings.DEBUG:
     urlpatterns += [
