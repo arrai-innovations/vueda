@@ -3,5 +3,5 @@ from django.urls import path
 
 
 urlpatterns = [
-    path("", include("vueda.release.routers")),
+    path("vueda.release/", include("vueda.release.routers")),
 ]
