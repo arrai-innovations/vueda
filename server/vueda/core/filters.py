@@ -11,7 +11,7 @@ from django.db import models
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.functions import Greatest
 from django.utils.translation import gettext_lazy as _
-from django_filters import ModelMultipleChoiceFilter
+from django_filters import ModelChoiceFilter
 from django_filters import rest_framework
 from ordered_set import OrderedSet
 from rest_framework.filters import SearchFilter
@@ -225,5 +225,5 @@ class VuedaSearchFilterBackend(SearchFilter):
         return queryset
 
 
-class ModelChoiceArrayFilter(BaseArrayInFilter, ModelMultipleChoiceFilter):
+class ModelChoiceArrayFilter(BaseArrayInFilter, ModelChoiceFilter):
     pass

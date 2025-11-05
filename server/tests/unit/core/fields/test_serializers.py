@@ -28,13 +28,13 @@ class TestContentTypeField:
 
     def test_to_internal_value_invalid_format(self):
         input_data = "invalidformat"
-        with pytest.raises(ValidationError, match="Invalid value."):
+        with pytest.raises(ValidationError, match=r"Invalid value\."):
             self.field.to_internal_value(input_data)
 
     def test_to_internal_value_nonexistent(self):
         input_data = "nonexistent/model"
         with pytest.raises(
-            ValidationError, match="ContentType with nonexistent/model does not exist or is not allowed."
+            ValidationError, match=r"ContentType with nonexistent/model does not exist or is not allowed\."
         ):
             self.field.to_internal_value(input_data)
 
@@ -50,7 +50,7 @@ class TestDurationSecondsField:
 
     def test_to_internal_value_invalid(self):
         input_data = "invalid"
-        with pytest.raises(ValidationError, match="Duration must be an integer number of seconds."):
+        with pytest.raises(ValidationError, match=r"Duration must be an integer number of seconds."):
             self.field.to_internal_value(input_data)
 
     def test_to_representation(self):

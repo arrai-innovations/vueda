@@ -36,7 +36,7 @@ class ObjectPermissions(DjangoObjectPermissions):
             queryset = view.get_queryset()
             model = queryset.model
             if issubclass(model, HasWorkflowModelMixin):
-                workflow = Workflow.objects.filter(content_type=model.content_type()).first()
+                workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
                 if (
                     workflow
                     and StatePermission.objects.filter(

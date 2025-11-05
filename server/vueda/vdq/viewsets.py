@@ -1,0 +1,74 @@
+from django.conf import settings
+from django.db import transaction
+from django.db.transaction import atomic
+from rest_framework import status as drf_status
+from rest_framework.generics import get_object_or_404
+from rest_framework.response import Response
+from rest_framework.viewsets import ReadOnlyModelViewSet
+
+from vueda.core.decorators import action
+from vueda.core.permissions import ObjectPermissions
+from vueda.core.viewsets import VuedaViewSet
+from vueda.vdq.constants import QUEUE_ITEM_DONE_STATES
+from vueda.vdq.filtersets import SendQueueFilterSet
+from vueda.vdq.filtersets import SentQueueFilterSet
+from vueda.vdq.models import QueueItem
+from vueda.vdq.models import SentItem
+from vueda.vdq.schedulers import schedule_queue_item
+from vueda.vdq.serializers import QueueItemSerializer
+from vueda.vdq.serializers import SentItemSerializer
+
+
+class DefaultSendQueueViewSet(VuedaViewSet, ReadOnlyModelViewSet):
+    queryset = QueueItem.objects.select_related("receiver").order_by("queued")
+    serializer_class = QueueItemSerializer
+    permission_classes = [ObjectPermissions]
+    search_fields = ["receiver__name", "receiver__email", "result"]
+    ordering_fields = ["queued", "last_updated"]
+    filterset_class = SendQueueFilterSet
+    permit_list_expands = ["anymail", "sender", "receiver", "sms"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if not hasattr(self, "request"):
+            return queryset
+
+        if "pk" in self.kwargs:
+            return queryset
+        return queryset.exclude(object_states_proxy__state__code__in=QUEUE_ITEM_DONE_STATES)
+
+
+SendQueueViewSet = getattr(settings, "SEND_QUEUE_VIEWSET", DefaultSendQueueViewSet)
+
+
+class DefaultSentItemViewSet(VuedaViewSet, ReadOnlyModelViewSet):
+    queryset = SentItem.objects.select_related("receiver").order_by("queued")
+    serializer_class = SentItemSerializer
+    permission_classes = [ObjectPermissions]
+    search_fields = ["receiver__name", "receiver__email", "result"]
+    ordering_fields = ["queued", "last_updated"]
+    filterset_class = SentQueueFilterSet
+    permit_list_expands = ["anymail", "sender", "receiver", "sms"]
+
+    @atomic
+    @action(detail=True, bulk=True, methods=["post"])
+    def resend(self, request, *args, **kwargs):
+        pk = kwargs.get("pk")
+        data = request.data
+        if pk:
+            queue_item = self.get_object()
+            new_queue_item = queue_item.clone()
+            schedule_queue_item(new_queue_item)
+
+        else:
+            pks = data.get("pks", [])
+            with transaction.atomic():
+                for pk in pks:
+                    queue_item = get_object_or_404(self.queryset, pk=pk)
+                    new_queue_item = queue_item.clone()
+                    schedule_queue_item(new_queue_item)
+
+        return Response(status=drf_status.HTTP_200_OK, data={"message": "Successfully Queued."})
+
+
+SentItemViewSet = getattr(settings, "SENT_ITEM_VIEWSET", DefaultSentItemViewSet)

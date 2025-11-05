@@ -464,8 +464,6 @@ class HasWorkflowModelMixin(models.Model):
     # there is no generic one to one, so this is plural despite the fact that there is only one
     object_states_proxy = GenericRelation(
         ObjectStateProxy,
-        content_type_field="content_type_id",
-        object_id_field="object_id",
     )
 
     class Meta:
@@ -492,13 +490,13 @@ class HasWorkflowModelMixin(models.Model):
             )
 
     @classmethod
-    def content_type(cls) -> ContentType:
+    def get_content_type(cls) -> ContentType:
         # get_for_model() is cached
         return ContentType.objects.get_for_model(cls)
 
     @property
     def workflow(self) -> Workflow | None:
-        return Workflow.objects.filter(content_type=self.content_type()).first()
+        return Workflow.objects.filter(content_type=self.get_content_type()).first()
 
     @property
     def object_state(self) -> ObjectState | None:
@@ -517,11 +515,11 @@ class HasWorkflowModelMixin(models.Model):
         if (
             user is not None
             and not WorkflowPermission.objects.filter(
-                workflow__content_type=self.content_type(),
+                workflow__content_type=self.get_content_type(),
             ).exists()
         ):
             raise PermissionDenied(
-                f"User {user.get_username()!r} does not have workflow permissions for {self.content_type()!r}"
+                f"User {user.get_username()!r} does not have workflow permissions for {self.get_content_type()!r}"
             )
         transitions = (
             Transition.objects.filter(
@@ -543,7 +541,7 @@ class HasWorkflowModelMixin(models.Model):
         """
         Returns available transitions for a list of objects.
         """
-        workflow = Workflow.objects.get(content_type=cls.content_type()).workflow
+        workflow = Workflow.objects.get(content_type=cls.get_content_type()).workflow
         if user is not None and user.has_perms(
             [
                 ".".join(permission_parts)
@@ -553,10 +551,10 @@ class HasWorkflowModelMixin(models.Model):
             ]
         ):
             raise PermissionDenied(
-                f"User {user.get_username()!r} does not have workflow permissions for {cls.content_type()!r}"
+                f"User {user.get_username()!r} does not have workflow permissions for {cls.get_content_type()!r}"
             )
         object_states = ObjectState.objects.filter(
-            workflow__content_type=cls.content_type(),
+            workflow__content_type=cls.get_content_type(),
             object_id__in=objs,
         ).values_list("state", flat=True)
         transitions = (
@@ -578,7 +576,7 @@ class HasWorkflowModelMixin(models.Model):
         # programmatic use
         if user is None:
             return True
-        workflow = Workflow.objects.get(content_type=cls.content_type())
+        workflow = Workflow.objects.get(content_type=cls.get_content_type())
         workflow_permissions = [
             ".".join(permission_parts)
             for permission_parts in WorkflowPermission.objects.filter(
@@ -600,7 +598,7 @@ class HasWorkflowModelMixin(models.Model):
         state_permission = StatePermission.objects.filter(
             state=self.workflow_state,
             permission__codename=perm.split(".")[-1],
-            permission__content_type=self.content_type(),
+            permission__content_type=self.get_content_type(),
             group__in=groups,
         ).first()
         if state_permission is None:

@@ -480,7 +480,7 @@ def static(
     """
     Run Django management command 'collectstatic', if on a live site.
     """
-    package_manager, repo_root, manage_py_dir = detect_package_manager()
+    package_manager, _, manage_py_dir = detect_package_manager()
     settings = configure_django_settings(manage_py_dir)
 
     if package_manager == "uv":
@@ -508,7 +508,7 @@ def migrate(
     """
     Run Django management command 'migrate' and 'remove_stale_contenttypes'.
     """
-    package_manager, repo_root, manage_py_dir = detect_package_manager()
+    package_manager, _, manage_py_dir = detect_package_manager()
 
     if package_manager == "uv":
         migrate_cmd = ["uv", "run", "--no-sync", "python", "manage.py", "migrate", "--traceback"]

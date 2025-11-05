@@ -133,9 +133,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
             if isinstance(range_field, RangeField):
                 try:
-                    min_value, max_value = connection.ops.integer_field_range(
-                        range_field.base_field.get_internal_type()
-                    )
+                    min_value, _ = connection.ops.integer_field_range(range_field.base_field.get_internal_type())
                 except KeyError:
                     # The field is not an integer range field.
                     pass
@@ -164,9 +162,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
             if isinstance(range_field, RangeField):
                 try:
-                    min_value, max_value = connection.ops.integer_field_range(
-                        range_field.base_field.get_internal_type()
-                    )
+                    _, max_value = connection.ops.integer_field_range(range_field.base_field.get_internal_type())
                 except KeyError:
                     # The field is not an integer range field.
                     pass

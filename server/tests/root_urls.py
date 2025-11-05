@@ -16,6 +16,7 @@ urlpatterns = [
                 path("", include("vueda.user.urls")),
                 path("", include("vueda.workflow.urls")),
                 path("", include("vueda.release.urls")),
+                path("", include("vueda.vdq.urls")),
             ]
         ),
     )

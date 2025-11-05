@@ -37,7 +37,7 @@ class HasWorkflowViewMixin:
         except PermissionDenied as e:
             super_error = e
         if issubclass(model, models.HasWorkflowModelMixin):
-            workflow = models.Workflow.objects.filter(content_type=model.content_type()).first()
+            workflow = models.Workflow.objects.filter(content_type=model.get_content_type()).first()
             if models.StatePermission.objects.filter(state__workflow=workflow).exists():
                 return True
         if super_error:

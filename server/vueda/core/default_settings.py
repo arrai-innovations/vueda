@@ -26,6 +26,9 @@ def get_defaults(env: Env):
     """
     # most envs will not have defaults, so we force them to be set
     return_dict = {
+        "CELERY_BROKER_URL": env("CELERY_BROKER_URL", default=""),
+        "TWILIO_ACCOUNT_SID": env("TWILIO_ACCOUNT_SID", default=""),
+        "TWILIO_AUTH_TOKEN": env("TWILIO_AUTH_TOKEN", default=""),
         "DEBUG": env.bool("DEBUG", default=False),
         "SECRET_KEY": env("SECRET_KEY"),  # important to not have a default
         "LOGGING": {
@@ -160,6 +163,7 @@ def get_defaults(env: Env):
                 "vueda.info",
                 "vueda.user",
                 "vueda.workflow",
+                "vueda.vdq",
                 "vueda.release",
             ],
         ),
@@ -173,6 +177,8 @@ def get_defaults(env: Env):
                 "simple_history",
                 "django_filters",
                 "generic_relations",
+                "phonenumber_field",
+                "anymail",
                 "allauth",
                 "allauth.account",
                 "allauth.headless",
@@ -291,10 +297,10 @@ def get_defaults(env: Env):
     if return_dict["EMAIL_BACKEND"] == "anymail.backends.mailgun.EmailBackend":
         return_dict.update(
             {
-                "MAILGUN_API_KEY": env("MAILGUN_API_KEY"),
-                "MAILGUN_SENDER_DOMAIN": env("MAILGUN_SENDER_DOMAIN"),
-                "MAILGUN_API_URL": env("MAILGUN_API_URL", default="https://api.mailgun.net/v3"),
-                "MAILGUN_WEBHOOK_SIGNING_KEY": env("MAILGUN_WEBHOOK_SIGNING_KEY"),
+                "ANYMAIL_MAILGUN_API_KEY": env("ANYMAIL_MAILGUN_API_KEY"),
+                "ANYMAIL_MAILGUN_SENDER_DOMAIN": env("ANYMAIL_MAILGUN_SENDER_DOMAIN"),
+                "ANYMAIL_MAILGUN_API_URL": env("ANYMAIL_MAILGUN_API_URL", default="https://api.mailgun.net/v3"),
+                "ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY": env("ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY"),
                 "WEBHOOK_SECRET": env("ANYMAIL_WEBHOOK_SECRET"),
             }
         )

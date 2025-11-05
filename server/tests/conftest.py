@@ -25,7 +25,7 @@ from rest_framework.test import APIClient
 
 
 POSTGRES_MAX_DB_NAME_LENGTH = 63
-pytest_plugins = ["pytest_jsonreport"]
+pytest_plugins = ["pytest_jsonreport", "celery.contrib.pytest"]
 
 
 @pytest.fixture

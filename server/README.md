@@ -22,6 +22,8 @@
     - [Deleting a Workflow](#deleting-a-workflow)
   - [Workflow Management Command](#workflow-management-command)
   - [Group Management](#group-management)
+  - [Set up Dispatch Queue](#set-up-dispatch-queue)
+    - [start celery worker:](#start-celery-worker)
 - [Development](#development)
   - [Environment](#environment)
   - [Hooks](#hooks)
@@ -278,6 +280,39 @@ Similar to workflow, you will need to log in.
 On this screen you can add/edit/delete groups per permission.
 
 Once the management command that will create group migrations is written, then you will be able to create the migration similar to `makeworkflowmigrations`.
+
+### Set up Dispatch Queue
+
+You need to configure the `CELERY_BROKER_URL` in your `.env` file, for example:
+
+```
+CELERY_BROKER_URL=redis://localhost:6379/3
+```
+
+For email sending, you need to have the following environment variables set in your `.env` file:
+
+```
+ANYMAIL_MAILGUN_API_KEY=
+ANYMAIL_MAILGUN_API_URL=
+ANYMAIL_WEBHOOK_SECRET=
+ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY=
+```
+
+For SMS sending, you need to have the following environment variables set in your `.env` file:
+
+```
+TWILIO_ACCOUNT_SID=""
+TWILIO_AUTH_TOKEN=""
+TWILIO_WEBHOOK_URL=""
+```
+
+you would also need to set `VDQ_URL` in your settings.py file for the attachment url to work properly.
+
+#### start celery worker:
+
+```console
+[project-server]$ DJANGO_SETTINGS_MODULE=[path/to/settings/file] celery -A vueda.vdq.celery:app worker -l info  -B --statedb=[path/to/worker/state/file]
+```
 
 ## Development
 
