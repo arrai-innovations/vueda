@@ -1,0 +1,28 @@
+from rest_framework import serializers
+
+
+class AvailableTransitionField(serializers.ListField):
+    def __init__(self):
+        kwargs = {
+            "child": serializers.CharField(read_only=True),
+            "read_only": True,
+            "required": False,
+        }
+        super().__init__(**kwargs)
+
+    def get_value(self, instance):
+        if instance is None:
+            return []
+        request = self.context.get("request")
+        if not request or not hasattr(instance, "available_transitions"):
+            return []
+        return list(instance.available_transitions(request.user).order_by("code").values_list("code", flat=True))
+
+    def get_attribute(self, instance):
+        return self.get_value(instance)
+
+    def to_internal_value(self, data):
+        raise NotImplementedError()
+
+    def to_representation(self, data):
+        return data

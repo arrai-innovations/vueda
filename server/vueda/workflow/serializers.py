@@ -4,6 +4,7 @@ from rest_framework import serializers as drf_serializers
 
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.workflow import open_api_tracebacks
+from vueda.workflow.fields import AvailableTransitionField
 from vueda.workflow.models import State
 from vueda.workflow.models import Transition
 from vueda.workflow.models import Workflow
@@ -12,9 +13,10 @@ from vueda.workflow.models import Workflow
 class HasWorkflowSerializerMixin(metaclass=drf_serializers.SerializerMetaclass):
     workflow_state_code = drf_serializers.CharField(source="workflow_state.code", read_only=True)
     workflow_state_name = drf_serializers.CharField(source="workflow_state.name", read_only=True)
+    valid_transitions = AvailableTransitionField()
 
     class Meta:
-        fields = ["workflow_state_code", "workflow_state_name"]
+        fields = ["workflow_state_code", "workflow_state_name", "valid_transitions"]
 
 
 class StateSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerializerMixin, drf_serializers.ModelSerializer):
