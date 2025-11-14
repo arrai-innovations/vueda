@@ -1,5 +1,6 @@
 import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
+import { SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { defineComponent, h, ref } from "vue";
 
 var provideStore, mockedProvide, mockedInject;
@@ -50,6 +51,20 @@ vi.mock("@vueda/router/getCrud.js", () => ({
     getCRUDForTo: vi.fn(async () => ({})),
 }));
 
+const createListPreferenceStoreMock = () => ({
+    setSorting: vi.fn(),
+    getSorting: vi.fn(),
+    setFilters: vi.fn(),
+    getFilters: vi.fn(),
+    setHiddenColumns: vi.fn(),
+    getHiddenColumns: vi.fn(),
+});
+const listPreferenceStoreMock = createListPreferenceStoreMock();
+const storeListPreferenceMock = vi.fn(() => listPreferenceStoreMock);
+vi.mock("@vueda/stores/storeListPreference.js", () => ({
+    storeListPreference: storeListPreferenceMock,
+}));
+
 const ErrorDisplayStub = defineComponent({
     name: "ErrorDisplayStub",
     setup(_, { attrs }) {
@@ -83,6 +98,7 @@ const LinkModelViewStub = defineComponent({
     },
 });
 let objectsGridProps;
+let multiSelectProps;
 const ObjectsGridStub = defineComponent({
     name: "ObjectsGridStub",
     props: ["fields"],
@@ -105,6 +121,7 @@ const PageTitleStub = defineComponent({
 });
 const PaginationComponentStub = defineComponent({
     name: "PaginationComponentStub",
+    emits: ["update:showing-all-pages"],
     setup(_, { attrs }) {
         return () => h("div", { "data-qa": "pagination-component", ...attrs });
     },
@@ -160,6 +177,24 @@ const CheckboxStub = defineComponent({
             });
     },
 });
+const MultiSelectStub = defineComponent({
+    name: "MultiSelectStub",
+    props: ["modelValue", "options", "optionValue", "optionLabel", "loading", "size"],
+    emits: ["update:modelValue"],
+    setup(props, { slots, attrs }) {
+        return () => {
+            multiSelectProps = {
+                modelValue: Array.isArray(props.modelValue) ? [...props.modelValue] : props.modelValue,
+                options: Array.isArray(props.options) ? props.options.map((option) => ({ ...option })) : props.options,
+                optionValue: props.optionValue,
+                optionLabel: props.optionLabel,
+                loading: props.loading,
+                size: props.size,
+            };
+            return h("div", { "data-qa": "multi-select", ...attrs }, slots.default ? slots.default() : null);
+        };
+    },
+});
 
 vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
 vi.mock("@vueda/components/FilterGroup.vue", () => ({ default: FilterGroupStub }));
@@ -173,6 +208,7 @@ vi.mock("primevue/inputgroup", () => ({ default: InputGroupStub }));
 vi.mock("primevue/inputtext", () => ({ default: InputTextStub }));
 vi.mock("primevue/button", () => ({ default: ButtonStub }));
 vi.mock("primevue/checkbox", () => ({ default: CheckboxStub }));
+vi.mock("primevue/multiselect", () => ({ default: MultiSelectStub }));
 
 const route = { query: {} };
 const routerPush = vi.fn();
@@ -187,11 +223,33 @@ vi.mock("vue", async () => {
     return { __esModule: true, ...actual, inject: mockedInject, provide: mockedProvide };
 });
 
-let ViewList, vue, modelConfig;
+let ViewList, vue, modelConfig, instanceList;
+
+const resetListPreferenceStoreMock = () => {
+    storeListPreferenceMock.mockClear();
+    storeListPreferenceMock.mockImplementation(() => listPreferenceStoreMock);
+    listPreferenceStoreMock.setSorting.mockReset();
+    listPreferenceStoreMock.getSorting.mockReset();
+    listPreferenceStoreMock.setFilters.mockReset();
+    listPreferenceStoreMock.getFilters.mockReset();
+    listPreferenceStoreMock.setHiddenColumns.mockReset();
+    listPreferenceStoreMock.getHiddenColumns.mockReset();
+    listPreferenceStoreMock.getHiddenColumns.mockReturnValue([]);
+    listPreferenceStoreMock.getFilters.mockReturnValue(undefined);
+    listPreferenceStoreMock.getSorting.mockReturnValue(null);
+};
 
 beforeEach(async () => {
     vue = await vi.importActual("vue");
     objectsGridProps = undefined;
+    multiSelectProps = undefined;
+    route.query = {};
+    routerPush.mockReset();
+    routerPush.mockImplementation(({ query }) => {
+        route.query = { ...(query || {}) };
+        return Promise.resolve();
+    });
+    resetListPreferenceStoreMock();
     modelConfig = vue.reactive({
         loading: vue.ref(false),
         errored: vue.ref(false),
@@ -220,7 +278,7 @@ beforeEach(async () => {
         ),
     );
     mockedUseFilteredActions.mockReturnValue(vue.reactive({ actions: [] }));
-    mockedUseList.mockReturnValue({
+    instanceList = {
         state: vue.reactive({
             loading: false,
             errored: false,
@@ -229,14 +287,16 @@ beforeEach(async () => {
             sorted: [],
             objects: [],
             objectsInOrder: [],
-            totalPages: 1,
-            totalRecords: 0,
-            perPage: 10,
             relatedObjects: [],
             calculatedObjects: [],
+            paginateInfo: { perPage: 10, totalRecords: 0, totalPages: 1 },
+            columnTotals: {},
         }),
         clearError: vi.fn(),
-    });
+        clearList: vi.fn(),
+        list: vi.fn(),
+    };
+    mockedUseList.mockReturnValue(instanceList);
     ViewList = (await import("@vueda/views/ViewList.vue")).default;
     provideStore.clear();
 });
@@ -270,5 +330,133 @@ scopedIt("translates expanded field names for ObjectsGrid", async () => {
     const fields = objectsGridProps.fields;
     expect(fields[0]).toEqual({ name: "foo__bar", label: "Foo", value: "foo.bar" });
     expect(fields[1]).toEqual({ name: "field__name", value: "field.name" });
+    wrapper.unmount();
+});
+
+scopedIt("allows toggling show all pages", async () => {
+    mockedInject.mockReturnValueOnce({});
+    modelConfig.config.allowShowAllPages = true;
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    const pagination = wrapper.get('[data-qa="pagination-component"]');
+    expect(pagination.attributes("allow-show-all-pages")).toBe("true");
+
+    const initialClearListCalls = instanceList.clearList.mock.calls.length;
+    const initialListCalls = instanceList.list.mock.calls.length;
+    wrapper.findComponent(PaginationComponentStub).vm.$emit("update:showing-all-pages", true);
+    await vue.nextTick();
+
+    expect(instanceList.clearList.mock.calls.length).toBe(initialClearListCalls + 1);
+    expect(instanceList.list.mock.calls.length).toBe(initialListCalls + 1);
+    wrapper.unmount();
+});
+
+scopedIt("passes total record count to pagination", async () => {
+    mockedInject.mockReturnValueOnce({});
+    modelConfig.config.showTotalRecordNum = true;
+    instanceList.state.paginateInfo.totalRecords = 42;
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    const pagination = wrapper.get('[data-qa="pagination-component"]');
+    expect(pagination.attributes("show-total-record-num")).toBe("true");
+    expect(pagination.attributes("total-records")).toBe("42");
+    wrapper.unmount();
+});
+
+scopedIt("renders column selector when column hiding allowed", async () => {
+    mockedInject.mockReturnValueOnce({});
+    modelConfig.config.allowColumnHiding = true;
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await vue.nextTick();
+
+    expect(wrapper.find('[data-qa="multi-select"]').exists()).toBe(true);
+    expect(multiSelectProps.modelValue).toEqual(["field__name"]);
+    expect(multiSelectProps.options).toEqual([{ label: "Field Name", value: "field__name" }]);
+    wrapper.unmount();
+});
+
+scopedIt("initializes columns using stored hidden preferences", async () => {
+    mockedInject.mockReturnValueOnce({});
+    modelConfig.config.allowColumnHiding = true;
+    modelConfig.config.displayFields = ["field__name", "other_field"];
+    modelConfig.config.fieldDetails.other_field = {};
+    listPreferenceStoreMock.getHiddenColumns.mockReturnValue(["other_field"]);
+
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await vue.nextTick();
+
+    expect(listPreferenceStoreMock.getHiddenColumns).toHaveBeenCalledWith({ app: "app", model: "model" });
+    expect(multiSelectProps.modelValue).toEqual(["field__name"]);
+    wrapper.unmount();
+});
+
+scopedIt("persists hidden column selections to the preference store", async () => {
+    mockedInject.mockReturnValueOnce({});
+    modelConfig.config.allowColumnHiding = true;
+    modelConfig.config.displayFields = ["field__name", "other_field"];
+    modelConfig.config.fieldDetails.other_field = {};
+
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await vue.nextTick();
+
+    listPreferenceStoreMock.setHiddenColumns.mockClear();
+    wrapper.findComponent(MultiSelectStub).vm.$emit("update:modelValue", ["other_field"]);
+    await vue.nextTick();
+
+    expect(listPreferenceStoreMock.setHiddenColumns).toHaveBeenCalledWith({ app: "app", model: "model" }, [
+        "field__name",
+    ]);
+    wrapper.unmount();
+});
+
+scopedIt("loads stored filters from the preference store", async () => {
+    mockedInject.mockReturnValueOnce({});
+    const storedFilters = { [SEARCH_PARAM]: "persisted" };
+    listPreferenceStoreMock.getFilters.mockReturnValue(storedFilters);
+
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await vue.nextTick();
+
+    expect(listPreferenceStoreMock.getFilters).toHaveBeenCalledWith({ app: "app", model: "model" });
+    expect(routerPush).toHaveBeenCalledWith({ query: storedFilters });
+    wrapper.unmount();
+});
+
+scopedIt("saves search queries to the preference store", async () => {
+    mockedInject.mockReturnValueOnce({});
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await vue.nextTick();
+
+    listPreferenceStoreMock.setFilters.mockClear();
+    const input = wrapper.findComponent(InputTextStub);
+    input.vm.$emit("update:model-value", "search-term");
+    await vue.nextTick();
+    input.vm.$emit("search");
+    await vue.nextTick();
+
+    expect(listPreferenceStoreMock.setFilters).toHaveBeenLastCalledWith(
+        { app: "app", model: "model" },
+        { [SEARCH_PARAM]: "search-term" },
+    );
+    wrapper.unmount();
+});
+
+scopedIt("restores stored sorting preferences", async () => {
+    mockedInject.mockReturnValueOnce({});
+    modelConfig.config.sortables = ["field1", "field2"];
+    const storedSorting = ["field1", "field2"];
+    listPreferenceStoreMock.getSorting.mockReturnValue(storedSorting);
+
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await vue.nextTick();
+
+    expect(listPreferenceStoreMock.getSorting).toHaveBeenCalledWith({ app: "app", model: "model" });
+    expect(listPreferenceStoreMock.setSorting).toHaveBeenCalledWith({ app: "app", model: "model" }, storedSorting);
     wrapper.unmount();
 });

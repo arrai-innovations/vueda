@@ -10,6 +10,7 @@ import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
+import { storeListPreference } from "@vueda/stores/storeListPreference.js";
 import { useFilteredActions } from "@vueda/use/useFilteredActions";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
@@ -23,12 +24,14 @@ import { ListFilterError } from "@vueda/utils/errors.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
+import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
+import MultiSelect from "primevue/multiselect";
 import {
     computed,
     effectScope,
@@ -152,7 +155,17 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    allowColumnHiding: {
+        type: Boolean,
+        default: false,
+    },
     ...THEME_OVERRIDE_PROPS,
+});
+const listPreferenceStore = storeListPreference();
+const isInitialized = reactive({
+    sort: false,
+    columns: false,
+    filters: false,
 });
 const listSearch = ref(null);
 const isActive = useIsActive();
@@ -174,6 +187,7 @@ const sorting = reactive({
         sorted: [],
     },
     updateSorted: (sorted) => {
+        listPreferenceStore.setSorting({ app: props.app, model: props.model }, sorted);
         assignReactiveObject(sorting.state.sorted, sorted);
     },
 });
@@ -205,7 +219,9 @@ const calculatedDisplayFields = computed(() => {
     }
 });
 const showingAllPages = ref(false);
-const computedShowAllPages = computed(() => (props.alwaysShowAllPages ? true : showingAllPages.value));
+const computedShowAllPages = computed(() =>
+    modelConfig.config?.alwaysShowAllPages || props.alwaysShowAllPages ? true : showingAllPages.value,
+);
 watch(computedShowAllPages, (newVal, oldVal) => {
     if (newVal !== oldVal) {
         listState.currentPage = 1;
@@ -213,7 +229,7 @@ watch(computedShowAllPages, (newVal, oldVal) => {
         instanceList.list();
     }
 });
-const alwaysParamsKeys = ["o", "f", "e"];
+const alwaysParamsKeys = [ORDERING_PARAM, FIELDS_PARAM, EXPAND_PARAM];
 const listState = reactive({
     currentPage: 1,
     search: "",
@@ -266,11 +282,13 @@ watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, 
     if (!newSearch) {
         delete listState.params[SEARCH_PARAM];
         const routeQuery = omit(route.query, [SEARCH_PARAM]);
+        listPreferenceStore.setFilters({ app: props.app, model: props.model }, routeQuery);
         router.push({ query: routeQuery });
     } else {
         listState.params[SEARCH_PARAM] = newSearch;
         const routeQuery = { ...route.query, [SEARCH_PARAM]: newSearch };
         if (!isEqual(routeQuery, route.query)) {
+            listPreferenceStore.setFilters({ app: props.app, model: props.model }, routeQuery);
             router.push({ query: routeQuery });
         }
     }
@@ -278,6 +296,13 @@ watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, 
 watch(
     () => route.query,
     (newQuery) => {
+        if (!isInitialized.filters) {
+            isInitialized.filters = true;
+            const storedFilters = listPreferenceStore.getFilters({ app: props.app, model: props.model });
+            if (storedFilters && isEmpty(newQuery)) {
+                router.push({ query: storedFilters });
+            }
+        }
         const searchQuery = newQuery[SEARCH_PARAM] || "";
         if (!isEqual(searchQuery, listState.search)) {
             listSearch.value = searchQuery;
@@ -314,9 +339,10 @@ watch(
         const filterQuery = omit(route.query, [SEARCH_PARAM]);
         if (!isEqual(newFilter, filterQuery)) {
             const routeQuery = {
-                [SEARCH_PARAM]: route.query[SEARCH_PARAM],
+                ...(route.query[SEARCH_PARAM] ? { [SEARCH_PARAM]: route.query[SEARCH_PARAM] } : {}),
                 ...newFilter,
             };
+            listPreferenceStore.setFilters({ app: props.app, model: props.model }, routeQuery);
             router.push({ query: routeQuery });
         }
     },
@@ -412,7 +438,9 @@ const computedFieldObjects = computed(() => {
         result.push(translateExpandedField(field));
     }
     for (const field of calculatedDisplayFields.value) {
-        result.push(translateExpandedField(field));
+        if (columns.value.includes(field.name)) {
+            result.push(translateExpandedField(field));
+        }
     }
     return result;
 });
@@ -505,6 +533,66 @@ const searchSlotProps = reactive({
 
 const isTable = ref(true);
 const columnTotals = computed(() => instanceList.state.columnTotals || {});
+const columns = ref([]);
+watch(
+    calculatedDisplayFields,
+    (newFields) => {
+        if (!isInitialized.columns) {
+            const fieldNames = newFields.map((field) => field?.name);
+
+            if (!fieldNames.length) {
+                columns.value = [];
+                return;
+            }
+            const hidden = listPreferenceStore.getHiddenColumns({ app: props.app, model: props.model }) || [];
+            const hiddenSet = new Set(hidden);
+            const visible = fieldNames.filter((name) => !hiddenSet.has(name));
+            columns.value = visible.length > 0 ? visible : [...fieldNames];
+            isInitialized.columns = true;
+        } else {
+            const fieldNames = newFields.map((field) => field?.name).filter((name) => !!name);
+            const currentColumnSet = new Set(columns.value);
+            const newFieldNames = fieldNames.filter((name) => !currentColumnSet.has(name));
+
+            if (newFieldNames.length) {
+                columns.value = [...columns.value, ...newFieldNames];
+            }
+        }
+    },
+    { immediate: true, deep: true },
+);
+watch(
+    toRef(sorting.state, "sortables"),
+    (sortables) => {
+        if (sortables && !isInitialized.sort) {
+            isInitialized.sort = true;
+            const storedSorting = listPreferenceStore.getSorting({ app: props.app, model: props.model });
+            if (storedSorting) {
+                sorting.updateSorted(storedSorting);
+            }
+        }
+    },
+    { immediate: true, deep: true },
+);
+watch(
+    columns,
+    (newColumns) => {
+        if (!isInitialized.columns) {
+            return;
+        }
+        const fieldNames = calculatedDisplayFields.value.map((field) => field?.name);
+
+        const hidden = fieldNames.filter((name) => !newColumns.includes(name));
+        listPreferenceStore.setHiddenColumns({ app: props.app, model: props.model }, hidden);
+    },
+    { deep: true },
+);
+const columnOptions = computed(() => {
+    return calculatedDisplayFields.value.map((field) => ({
+        label: field.label || memoizedStartCase(field.name),
+        value: field.name,
+    }));
+});
 </script>
 <template>
     <div>
@@ -541,7 +629,7 @@ const columnTotals = computed(() => instanceList.state.columnTotals || {});
                             </slot>
                         </template>
                     </div>
-                    <div class="flex flex-col items-end">
+                    <div :class="theme('listControlBar')">
                         <slot name="search" v-bind="searchSlotProps">
                             <InputGroup>
                                 <InputText
@@ -555,6 +643,34 @@ const columnTotals = computed(() => instanceList.state.columnTotals || {});
                                 />
                                 <Button label="Search" @click="searchSlotProps.filterList" />
                             </InputGroup>
+                        </slot>
+                        <slot
+                            v-if="modelConfig.config?.allowColumnHiding || allowColumnHiding"
+                            name="columns-select"
+                            :columns="columns"
+                            :options="columnOptions"
+                            option-value="value"
+                            option-label="label"
+                            :loading="loading"
+                            size="small"
+                        >
+                            <MultiSelect
+                                v-model="columns"
+                                :options="columnOptions"
+                                option-value="value"
+                                option-label="label"
+                                :loading="loading"
+                                size="small"
+                            >
+                                <template #value="multiSelectValueSlotProps">
+                                    <slot name="columns-select-value-label" v-bind="multiSelectValueSlotProps">
+                                        columns
+                                    </slot>
+                                </template>
+                                <template #dropdownicon="dropDownIconSlotProps">
+                                    <slot name="columns-select-dropdown-icon" v-bind="dropDownIconSlotProps" />
+                                </template>
+                            </MultiSelect>
                         </slot>
                     </div>
                 </div>
@@ -680,8 +796,8 @@ const columnTotals = computed(() => instanceList.state.columnTotals || {});
             :is-table="isTable"
             :showingAllPages="computedShowAllPages"
             @update:showing-all-pages="showingAllPages = $event"
-            :allow-show-all-pages="allowShowAllPages"
-            :show-total-record-num="showTotalRecordNum"
+            :allow-show-all-pages="modelConfig.config?.allowShowAllPages && allowShowAllPages"
+            :show-total-record-num="modelConfig.config?.showTotalRecordNum && showTotalRecordNum"
         >
             <template v-for="(_, slot) in slots" #[slot]="slotProps">
                 <slot :name="slot" v-bind="slotProps || {}" />

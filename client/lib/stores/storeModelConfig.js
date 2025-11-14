@@ -45,6 +45,10 @@ import { defineStore } from "pinia";
  * @property {string[]} routeActions - actions to configure routes for
  * @property {ActionPermissionConfig} actions - actions to display by default
  * @property {string[]} filterables - filters to display in list view
+ * @property {boolean} allowColumnHiding - whether to allow hiding columns in list view
+ * @property {boolean} showTotalRecordNum - whether to show total record count in list view
+ * @property {boolean} alwaysShowAllPages - whether to always show all pages in list view
+ * @property {boolean} allowShowAllPages - whether to allow showing all pages in list view
  * @property {string[]} sortables - field names that can be sorted in list view
  * @property {string[]} sorted - the default sort order for list view
  * @property {{fieldName: import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - each available field details, by field name
@@ -82,6 +86,10 @@ import { defineStore } from "pinia";
  * @property {{actionName: import('@vueda/stores/storeModelInfo.js').ActionInfo}} [actionDetails] - each available action details, by action name
  * @property {{filterName: import('@vueda/stores/storeModelInfo.js').FilterInfo}} [filterableDetails] - each available filter details, by filter name
  * @property {object} [formProps] - extra props to pass the form model
+ * @property {boolean} allowColumnHiding - whether to allow hiding columns in list view
+ * @property {boolean} showTotalRecordNum - whether to show total record count in list view
+ * @property {boolean} alwaysShowAllPages - whether to always show all pages in list view
+ * @property {boolean} allowShowAllPages - whether to allow showing all pages in list view
  * @property {{[fieldComponentName:string]: import('@vueda/utils/formLookups.js').FieldComponent}} [fieldComponents] - overriding components for individual fields
  * @property {object} [fieldProps] - extra props to pass a field component in a form model
  * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} [widgetComponents] - overriding components for individual widgets
@@ -140,6 +148,10 @@ const getDefaultFromModelInfo = (modelInfo) => {
             filterableDetails: cloneDeep(modelInfo.filtering || {}),
             sortablesDetails: cloneDeep(modelInfo.ordering || []),
             formProps: {},
+            allowColumnHiding: false,
+            showTotalRecordNum: true,
+            alwaysShowAllPages: false,
+            allowShowAllPages: true,
             fieldComponents: {},
             fieldProps: {},
             widgetComponents: {},
