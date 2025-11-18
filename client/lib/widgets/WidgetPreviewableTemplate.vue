@@ -1,13 +1,13 @@
 <script setup>
 import { WIDGET_EMITS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import { sanitizeMessage } from "@vueda/utils/html.js";
 import WidgetHtml from "@vueda/widgets/WidgetHtml.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
 import get from "lodash-es/get.js";
 import omit from "lodash-es/omit.js";
 import { computed } from "vue";
-import { sanitizeMessage } from "@vueda/utils/html.js";
 
 defineOptions({
     inheritAttrs: false,
@@ -34,17 +34,17 @@ const computeddisplayDependencies = computed(() => {
     const deps = props.displayDependencies;
     return deps.includes(props.tagsKey) ? deps : [...deps, props.tagsKey];
 });
-const tags_data = computed(() => {
-    return widgetContext.state.dependencyValues[props.tagsKey];
-});
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
+const tagsData = computed(() => {
+    return widgetContext.state.dependencyValues[props.tagsKey];
+});
 const renderedContent = computed(() => {
     let text = widgetContext.state.combinedValue;
-    if (tags_data.value) {
+    if (tagsData.value) {
         text = text.replace(/\$(\w+)/g, (match, varName) => {
-            return get(tags_data.value, [varName, "default"], "");
-        })
+            return get(tagsData.value, [varName, "default"], "");
+        });
     }
     return sanitizeMessage(text);
 });
