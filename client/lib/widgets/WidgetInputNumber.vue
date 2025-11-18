@@ -8,7 +8,6 @@ import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import Decimal from "decimal.js";
 import isEqual from "lodash-es/isEqual.js";
-import isObject from "lodash-es/isObject.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import Button from "primevue/button";

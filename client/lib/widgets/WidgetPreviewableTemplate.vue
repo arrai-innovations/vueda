@@ -3,11 +3,10 @@ import { WIDGET_EMITS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetHtml from "@vueda/widgets/WidgetHtml.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
-import WidgetLabel, { getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
 import get from "lodash-es/get.js";
 import omit from "lodash-es/omit.js";
-import { computed, useSlots } from "vue";
+import { computed } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -59,8 +58,6 @@ const inputComponent = computed(
 );
 
 const theme = useWidgetTheme("WidgetPreviewableTemplate");
-const slots = useSlots();
-const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-previewable-template-root">
