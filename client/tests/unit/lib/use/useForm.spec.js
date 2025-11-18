@@ -329,7 +329,7 @@ describe("lib/use/useForm.js", () => {
                     formContext.state.focused = {
                         someField1: [1, 2, 3, 4, 5],
                     };
-                    expect(formContext.state.focused).toBeNull;
+                    expect(formContext.state.focused).toBeNull();
                     expect(warnSpy).toHaveBeenCalledTimes(1);
                     expect(warnSpy).toHaveBeenCalledWith(...expectWarn("focused"));
                 });
@@ -524,7 +524,7 @@ describe("lib/use/useForm.js", () => {
                         });
 
                         const result = formContext.getFirstErrorField(["fake__description"], ["fake"]);
-                        expect(result).toBeNull;
+                        expect(result).toBeNull();
                     },
                 );
 
@@ -1710,7 +1710,7 @@ describe("lib/use/useForm.js", () => {
                     const { formContext } = getForm({
                         initialValues: { field1: "abc", field2: "def" },
                     });
-                    expect(formContext.state.focused).toBeNull;
+                    expect(formContext.state.focused).toBeNull();
 
                     const [stop, watchSpy] = testWatches(vue, formContext.state, "focused");
                     try {
@@ -1773,7 +1773,7 @@ describe("lib/use/useForm.js", () => {
                         formContext.blur("field1");
                         await flushPromises();
 
-                        expect(formContext.state.focused).toBeNull;
+                        expect(formContext.state.focused).toBeNull();
                         expect(watchFocused).toHaveBeenCalledTimes(1);
                     } finally {
                         stop();
