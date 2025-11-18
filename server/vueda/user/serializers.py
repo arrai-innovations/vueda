@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.contrib.auth import password_validation
 from django.contrib.auth.models import Group
+from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -93,6 +94,12 @@ class UserSerializer(VuedaSerializer):
     """
 
     password_confirm = serializers.CharField(write_only=True, required=False)
+    send_welcome_email_on_create = serializers.BooleanField(write_only=True, required=False, default=False)
+    TEMPORARY_PASSWORD = "TEMPORARY_DUMMY_PASSWORD"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._used_temp_password = False
 
     class Meta(VuedaSerializer.Meta):
         model = User
@@ -105,6 +112,7 @@ class UserSerializer(VuedaSerializer):
             "is_active",
             "last_login",
             "password_confirm",
+            "send_welcome_email_on_create",
         ] + VuedaSerializer.Meta.fields
         read_only_fields = ["date_joined"]
         extra_kwargs = {"password": {"write_only": True, "required": False}}
@@ -115,6 +123,19 @@ class UserSerializer(VuedaSerializer):
             ),
         }
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+    def to_internal_value(self, data):
+        self._used_temp_password = False
+        if self.instance is None:
+            send_welcome_email = data.get("send_welcome_email_on_create", False)
+            password = data.get("password")
+
+            if send_welcome_email and not password:
+                data["password"] = self.TEMPORARY_PASSWORD
+                data["password_confirm"] = self.TEMPORARY_PASSWORD
+                self._used_temp_password = True
+
+        return super().to_internal_value(data)
 
     def validate_password(self, value):
         try:
@@ -132,8 +153,15 @@ class UserSerializer(VuedaSerializer):
     def create(self, validated_data):
         if "password_confirm" in validated_data:
             validated_data.pop("password_confirm")
+        send_welcome_email_on_create = validated_data.pop("send_welcome_email_on_create", False)
         # todo: if there are groups the user shouldn't be able to add, we should validate that before here.
-        user = User.objects.create_user(**validated_data)
+        with transaction.atomic():
+            user = User.objects.create_user(**validated_data)
+            if self._used_temp_password:
+                user.set_unusable_password()
+                user.save()
+            if send_welcome_email_on_create:
+                user.send_welcome_email()
         return user
 
     def update(self, instance, validated_data):

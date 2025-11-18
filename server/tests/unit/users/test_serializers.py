@@ -5,6 +5,7 @@ from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.utils import FakeRequest
 from tests.utils import FakeView
+from vueda.user.serializers import UserSerializer
 from vueda.user.serializers import WhoIsSerializer
 
 
@@ -69,3 +70,54 @@ class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
 
         fields = serializer.get_fields()
         assert tuple(fields.keys()) == ("id", "email", "name", "totp_devices", "recently_logged_in", "formatted_name")
+
+
+@pytest.mark.django_db
+class TestUserSerializerCreate:
+    def test_create_user_without_password_sends_welcome_and_sets_unusable_password(self, monkeypatch):
+        welcome_email_calls = []
+
+        def record_welcome_email(self):
+            welcome_email_calls.append(self)
+
+        monkeypatch.setattr(get_user_model(), "send_welcome_email", record_welcome_email)
+
+        data = {
+            "email": "welcome-user@example.com",
+            "name": "Welcome User",
+            "password": "",
+            "password_confirm": "",
+            "send_welcome_email_on_create": True,
+        }
+
+        request = FakeRequest(data=data, method="POST")
+        view = FakeView(request, UserSerializer, action="create")
+        serializer = UserSerializer(data=data, context={"request": request, "view": view})
+
+        assert serializer.is_valid(), serializer.errors
+
+        user = serializer.save()
+
+        assert welcome_email_calls == [user]
+        assert user.has_usable_password() is False
+        assert user.check_password(UserSerializer.TEMPORARY_PASSWORD) is False
+
+    def test_create_user_with_manual_temporary_password_keeps_password(self):
+        data = {
+            "email": "manual-temp@example.com",
+            "name": "Manual Temp",
+            "password": UserSerializer.TEMPORARY_PASSWORD,
+            "password_confirm": UserSerializer.TEMPORARY_PASSWORD,
+            "send_welcome_email_on_create": False,
+        }
+
+        request = FakeRequest(data=data, method="POST")
+        view = FakeView(request, UserSerializer, action="create")
+        serializer = UserSerializer(data=data, context={"request": request, "view": view})
+
+        assert serializer.is_valid(), serializer.errors
+
+        user = serializer.save()
+
+        assert user.has_usable_password() is True
+        assert user.check_password(UserSerializer.TEMPORARY_PASSWORD) is True
