@@ -319,6 +319,7 @@ export function useLookupContext() {
 
     const newPromiseUnwrapper = (key, pk) => {
         let resolve, reject;
+        // eslint-disable-next-line promise/param-names
         const innerPromise = new Promise((res, rej) => {
             resolve = res;
             reject = rej;
