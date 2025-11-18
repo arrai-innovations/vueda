@@ -470,8 +470,8 @@ export const storeWorkflow = defineStore("workflow", {
             }
             return this.promises.objectHistories[key][objectPk];
         },
-        executeTransition(app, model, objectPk, transition_code, router, stateToRoute = undefined) {
-            if (!app || !model || !objectPk || !transition_code) {
+        executeTransition(app, model, objectPk, transitionCode, router, stateToRoute = undefined) {
+            if (!app || !model || !objectPk || !transitionCode) {
                 return Promise.reject(
                     new Error(
                         "storeWorkflow.fetchObjectState: app, model,objectPk and transition_code must all be provided",
@@ -481,7 +481,7 @@ export const storeWorkflow = defineStore("workflow", {
             if (!usingVuedaWorkFlow) {
                 return Promise.resolve([]);
             }
-            let body = { transition_code };
+            let body = { transition_code: transitionCode };
             const result = makeResultObject(app, model, objectPk);
             if (Array.isArray(objectPk)) {
                 body = { ...body, object_ids: objectPk };

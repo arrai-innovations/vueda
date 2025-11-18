@@ -289,7 +289,7 @@ watch(
                 data-qa="objects-grid-body-row-group-loading"
                 role="rowgroup"
             >
-                <div :class="theme('bodyRow')" role="row" v-for="x in skeletonRows" :key="x">
+                <div v-for="x in skeletonRows" :key="x" :class="theme('bodyRow')" role="row">
                     <component
                         :is="isTable ? EmptyComponent : 'div'"
                         :class="theme('cardContainer')"

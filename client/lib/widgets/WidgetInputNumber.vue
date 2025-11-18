@@ -8,7 +8,6 @@ import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import Decimal from "decimal.js";
 import isEqual from "lodash-es/isEqual.js";
-import isObject from "lodash-es/isObject.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import Button from "primevue/button";
@@ -146,9 +145,7 @@ const onPrevButtonClicked = () => {
     const currentIndex = props.unit.findIndex((item) => item.value === currentUnitValue);
     if (currentIndex === 0) {
         currentUnit.value = props.unit[props.unit.length - 1];
-    } else if (currentIndex === -1) {
-        return;
-    } else {
+    } else if (currentIndex !== -1) {
         currentUnit.value = props.unit[currentIndex - 1];
     }
 };
@@ -158,9 +155,7 @@ const onNextButtonClicked = () => {
     const currentIndex = props.unit.findIndex((item) => item.value === currentUnitValue);
     if (currentIndex === props.unit.length - 1) {
         currentUnit.value = props.unit[0];
-    } else if (currentIndex === -1) {
-        return;
-    } else {
+    } else if (currentIndex !== -1) {
         currentUnit.value = props.unit[currentIndex + 1];
     }
 };
@@ -217,11 +212,11 @@ const displayValue = computed({
                             :step="widgetStep"
                             v-bind="omit($attrs, 'value')"
                             type="number"
+                            :aria-required="widgetContext.state.required"
                             @blur="widgetContext.blur"
                             @focus="widgetContext.focus"
                             @keydown="onInputKeyDown"
                             @paste="onPaste"
-                            :aria-required="widgetContext.state.required"
                         />
                         <InputGroupAddon v-if="currentUnit">
                             <Button

@@ -39,9 +39,10 @@ export async function getJsonOrText(response) {
  * @param {string} url - The URL to fetch.
  * @param {object} [options={}] - The fetch options.
  * @param {string} messagePrefix - The error message prefix.
- * @param {import("@vueda/utils/errors.js").FetchError} [errorClass=FetchError] - The error class to throw.
+ * @param {import("@vueda/utils/errors.js").FetchError} [ErrorClass=FetchError] - The error class to throw.
  * @param {Set<number>} [emptyResponseCodes=new Set([204])] - The response codes that are considered empty.
  * @param {*} [emptyResponseValue=undefined] - The value to return if the response is empty.
+ * @param {(response: Response, data: any) => Error} [errorResolver] - Custom error factory; defaults to constructing ErrorClass.
  * @returns {CancellablePromise<{[key: string]: any}|string|[emptyResponseValue: any]>} The response data.
  * @throws {import("@vueda/utils/errors.js").FetchError} If the fetch fails, in a way that is not an empty response.
  */
@@ -49,7 +50,7 @@ export const fetchHelper = (
     url,
     options = {},
     messagePrefix,
-    errorClass = FetchError,
+    ErrorClass = FetchError,
     emptyResponseCodes = new Set([204]),
     emptyResponseValue = undefined,
     errorResolver = undefined,
@@ -57,9 +58,9 @@ export const fetchHelper = (
     const controller = new AbortController();
     if (!errorResolver) {
         errorResolver = (response, data) =>
-            errorClass.prototype instanceof Error
-                ? new errorClass(messagePrefix, response, data)
-                : errorClass(messagePrefix, response, data);
+            ErrorClass.prototype instanceof Error
+                ? new ErrorClass(messagePrefix, response, data)
+                : ErrorClass(messagePrefix, response, data);
     }
 
     const promise = new Promise((resolve, reject) => {
@@ -83,9 +84,9 @@ export const fetchHelper = (
             .catch((error) => {
                 // AbortError can be handled separately if desired.
                 reject(
-                    errorClass.prototype instanceof Error
-                        ? new errorClass(messagePrefix, error, {})
-                        : errorClass(messagePrefix, error, {}),
+                    ErrorClass.prototype instanceof Error
+                        ? new ErrorClass(messagePrefix, error, {})
+                        : ErrorClass(messagePrefix, error, {}),
                 );
             });
     });

@@ -39,6 +39,9 @@
     "url": "https://github.com/arrai-innovations/vueda-client/issues"
   },
   "homepage": "https://github.com/arrai-innovations/vueda-client#readme",
+  "overrides": {
+    "glob": "^11.0.0"
+  },
   "devDependencies": {
     "@arrai-innovations/commitlint-config": "^2.1.0",
     "@commitlint/cli": "^19.8.0",
@@ -68,6 +71,7 @@
     "jsdom": "^23.0.0",
     "lint-staged": "^15.1.0",
     "msw": "^2.0.9",
+    "neostandard": "^0.12.2",
     "pinst": "^3.0.0",
     "prettier": "^3.2.5",
     "vite": "^6.3.3",

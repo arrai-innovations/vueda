@@ -2,7 +2,6 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import ClickToCopyText from "@vueda/components/ClickToCopyText.vue";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
-import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
@@ -16,7 +15,6 @@ const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
     ...THEME_OVERRIDE_PROPS,
-    ...PASSTHROUGH_OPTION_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
@@ -37,9 +35,9 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             </template>
             <template #default="{ class: labelControlClass }">
                 <div
+                    :id="widgetContext.state.widgetId"
                     :class="combineClasses(theme('inner'), labelControlClass)"
                     data-qa="widget-template-legend-inner"
-                    :id="widgetContext.state.widgetId"
                 >
                     <slot name="default" :value="widgetContext.state.combinedValue">
                         <div v-if="widgetContext.state.combinedValue">

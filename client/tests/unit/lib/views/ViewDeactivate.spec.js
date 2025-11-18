@@ -1,5 +1,6 @@
 import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
+import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { defineComponent, h } from "vue";
 
 var provideStore, mockedProvide, mockedInject;
@@ -129,4 +130,13 @@ scopedIt("shows spinner when model config is empty", () => {
     modelConfig.info = {};
     const wrapper = mount(ViewDeactivate, { props: { app: "a", model: "b", pk: "1" } });
     expect(wrapper.find('[data-qa="spinner"]').exists()).toBe(true);
+});
+
+scopedIt("passes both field selection and ids to useList params", () => {
+    mockedInject.mockReturnValueOnce({});
+    mount(ViewDeactivate, { props: { app: "app", model: "thing", pk: "9" } });
+    const params = mockedUseList.mock.calls[0][0].props.params;
+    expect(params[FIELDS_PARAM]).toEqual({});
+    expect(Array.isArray(params.id)).toBe(true);
+    expect(params.id[0].value).toBe("9");
 });

@@ -8,7 +8,6 @@ let ignoreFn;
 let removeIgnoreFn;
 
 beforeEach(async () => {
-    globalThis.useDevLogger = () => ({ log: () => {}, warn: () => {} });
     vue = await vi.importActual("vue");
     fieldState = vue.reactive({ value: undefined });
     ignoreFn = vi.fn();
@@ -22,7 +21,6 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-    delete globalThis.useDevLogger;
     vi.resetModules();
     vi.clearAllMocks();
 });

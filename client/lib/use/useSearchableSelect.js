@@ -449,7 +449,7 @@ export function useSearchableSelect(props, widgetContext, selectRef) {
             return selectedOptionLabel.value ?? widgetContext.state.combinedValue ?? "\u00A0";
         }),
         virtualScrollerOptions: {
-            lazy: lazy,
+            lazy,
             onLazyLoad: (e) => {
                 firstVisibleIndex.value = e.first;
                 lastVisibleIndex.value = e.last;

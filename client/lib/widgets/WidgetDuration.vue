@@ -127,8 +127,8 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             show-buttons
                             suffix=" days"
                             v-bind="omit($attrs, 'value')"
-                            @update:model-value="(newValue) => updateDay(newValue)"
                             :aria-required="widgetContext.state.required"
+                            @update:model-value="(newValue) => updateDay(newValue)"
                         />
                     </div>
                     <div v-if="showHours" :class="theme('innerItem')">
@@ -143,8 +143,8 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             show-buttons
                             suffix=" hours"
                             v-bind="omit($attrs, 'value')"
-                            @update:model-value="(newValue) => updateHour(newValue)"
                             :aria-required="widgetContext.state.required"
+                            @update:model-value="(newValue) => updateHour(newValue)"
                         />
                     </div>
                     <div v-if="showMinutes" :class="theme('innerItem')">
@@ -159,8 +159,8 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             show-buttons
                             suffix=" minutes"
                             v-bind="omit($attrs, 'value')"
-                            @update:model-value="(newValue) => updateMinute(newValue)"
                             :aria-required="widgetContext.state.required"
+                            @update:model-value="(newValue) => updateMinute(newValue)"
                         />
                     </div>
                     <div v-if="showSeconds" :class="theme('innerItem')">
@@ -175,8 +175,8 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             show-buttons
                             suffix=" seconds"
                             v-bind="omit($attrs, 'value')"
-                            @update:model-value="(newValue) => updateSecond(newValue)"
                             :aria-required="widgetContext.state.required"
+                            @update:model-value="(newValue) => updateSecond(newValue)"
                         />
                     </div>
                 </div>

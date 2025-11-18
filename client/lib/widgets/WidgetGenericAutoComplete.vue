@@ -50,11 +50,9 @@ const modelListProps = reactive({
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
-    params: {
-        [FIELDS_PARAM]: toRef(props, "modelFields"),
-    },
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     params: {
+        [FIELDS_PARAM]: toRef(props, "modelFields"),
         [SEARCH_PARAM]: listSearch,
         id: computed(() => {
             if (!listSearch.value) {
@@ -95,7 +93,10 @@ const selectedObject = reactive({
 const contentObject = computed(() => {
     let match = null;
     if (filteredOptions.value && filteredOptions.value.length > 0) {
+        /* eslint-disable eqeqeq */
+        // noinspection EqualityComparisonWithCoercionJS
         match = filteredOptions.value?.find((option) => option.value == widgetContext.state.combinedValue?.object_id);
+        /* eslint-enable eqeqeq */
     }
     return match ?? widgetContext.state.combinedValue?.object_id;
 });
@@ -124,9 +125,12 @@ const search = (event) => {
 const selectedType = computed(() => {
     let match = null;
     if (dropdownOptions.value && dropdownOptions.value.length > 0) {
+        /* eslint-disable eqeqeq */
+        // noinspection EqualityComparisonWithCoercionJS
         match = dropdownOptions.value?.find(
             (option) => option.value == widgetContext.state.combinedValue?.content_type,
         );
+        /* eslint-enable eqeqeq */
     }
     return match?.value ?? widgetContext.state.combinedValue?.content_type;
 });
@@ -219,11 +223,11 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             :placeholder="hintText"
                             :pt="effectivePt"
                             :suggestions="filteredOptions"
+                            :aria-required="widgetContext.state.required"
                             @blur="widgetContext.blur"
                             @complete="search"
                             @focus="widgetContext.focus"
                             @update:model-value="(selected) => objectUpdated(selected)"
-                            :aria-required="widgetContext.state.required"
                         />
                     </div>
                 </div>

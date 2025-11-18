@@ -1,6 +1,6 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { SEARCH_PARAM } from "@vueda/utils/constants.js";
+import { FIELDS_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { defineComponent, h, nextTick, reactive } from "vue";
 
 // Stubs
@@ -135,6 +135,20 @@ scopedIt("updates search parameter after delay", async () => {
     vi.advanceTimersByTime(250);
     await nextTick();
     expect(listProps.params[SEARCH_PARAM]).toBe("foo");
+});
+
+scopedIt("passes both fields and search params to useList", async () => {
+    mount(WidgetGenericAutoComplete, {
+        props: { app: "a", model: "b", modelFields: ["id", "name"] },
+    });
+    await nextTick();
+    const keys = Object.keys(listProps.params);
+    expect(keys).toContain(FIELDS_PARAM);
+    expect(keys).toContain("id");
+    const fieldsParam = listProps.params[FIELDS_PARAM];
+    expect(fieldsParam).toEqual(["id", "name"]);
+    expect(listProps.params[SEARCH_PARAM]).toBe("");
+    expect(listProps.params.id?.value).toBeUndefined();
 });
 
 scopedIt("clicking label forwards to select", async () => {

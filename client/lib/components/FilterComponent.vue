@@ -165,9 +165,12 @@ const displayFilterValue = computed(() => {
                             : "",
                     );
                 } else {
+                    /* eslint-disable eqeqeq */
+                    // noinspection EqualityComparisonWithCoercionJS
                     labelValue = Array.isArray(options)
                         ? (options.find((choice) => choice.value == filter.value)?.label ?? "unknown")
                         : "";
+                    /* eslint-enable eqeqeq */
                 }
             }
             labelValue = labelValue ?? filter.value;

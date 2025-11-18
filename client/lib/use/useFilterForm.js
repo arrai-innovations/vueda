@@ -92,8 +92,8 @@ export function useFilterField(props, queryValue) {
             if (!newFilterDetails || isEmpty(newFilterDetails)) {
                 return;
             }
-            let newInitialValue = {};
-            let obj = FilterFieldMappings[newFilterDetails?.typeFilter];
+            const newInitialValue = {};
+            const obj = FilterFieldMappings[newFilterDetails?.typeFilter];
             if (!obj) {
                 throw new Error(`${props.filterName}: Missing mapping for filter type ${newFilterDetails?.typeFilter}`);
             }

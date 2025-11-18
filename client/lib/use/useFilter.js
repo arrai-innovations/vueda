@@ -124,13 +124,13 @@ export function useFilter(props) {
                 const fieldProps = {};
                 const widgetComponents = {};
                 const widgetProps = {};
-                let allFields = {};
-                let rangeFields = [];
+                const allFields = {};
+                const rangeFields = [];
                 const missingDetails = [];
                 const unknownTypeFilters = [];
 
                 for (const fieldName of deepUnref(filterables) || []) {
-                    let detail = filterableDetails[fieldName];
+                    const detail = filterableDetails[fieldName];
                     if (!detail) {
                         missingDetails.push(fieldName);
                         continue;

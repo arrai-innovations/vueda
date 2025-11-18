@@ -1,6 +1,5 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
-import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { useFilteredAttrs } from "@vueda/use/useFilteredAttrs.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
@@ -13,7 +12,7 @@ import isEqual from "lodash-es/isEqual.js";
 import pick from "lodash-es/pick.js";
 import { DateTime } from "luxon";
 import DatePicker from "primevue/datepicker";
-import { computed, nextTick, onMounted, reactive, ref, toRefs, unref, useSlots, useTemplateRef, watch } from "vue";
+import { computed, nextTick, reactive, ref, toRefs, unref, useSlots, useTemplateRef } from "vue";
 
 // we use these formats to handle unvalidated input.
 // unvalidated input is a workaround of datepicker not dealing with manual input well.
@@ -273,7 +272,6 @@ const maxDateAsDate = computed(() => {
                         ref="datepickerRef"
                         v-bind="datePickerAttrs"
                         :model-value="modelValue"
-                        @update:model-value="valueUpdated"
                         :clear-button-props="{
                             label: `Clear`,
                             outlined: true,
@@ -294,11 +292,12 @@ const maxDateAsDate = computed(() => {
                             outlined: true,
                             text: true,
                         }"
+                        :aria-required="widgetContext.state.required"
+                        @update:model-value="valueUpdated"
                         @blur="onBlur"
                         @focus="widgetContext.focus"
                         @input="onInput"
                         @today-click="onTodayButtonClick"
-                        :aria-required="widgetContext.state.required"
                     />
                 </div>
             </template>

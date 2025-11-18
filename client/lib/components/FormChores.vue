@@ -1,15 +1,12 @@
 <script setup>
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormHelpText from "@vueda/components/FormHelpText.vue";
-import { useSlotNameGrouper } from "@vueda/use/useSlotNameGrouper.js";
-import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { resolveSlotName } from "@vueda/utils/rendererSupport.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
-import pick from "lodash-es/pick.js";
-import { computed, inject, onMounted, unref, useAttrs, useSlots } from "vue";
+import { computed, inject, onMounted, useAttrs, useSlots } from "vue";
 
 const props = defineProps({
     name: {
@@ -72,7 +69,6 @@ const hasMessages = computed(
     () => Object.keys(propMessagesForName.value).length > 0 || Object.keys(contextMessagesForName.value).length > 0,
 );
 const slots = useSlots();
-const feedbackGroupSlotNames = useSlotNameGrouper(["feedback"], computedName.value, slots);
 const defaultFeedbackSlotName = computed(() =>
     resolveSlotName(["", `feedback`], `feedback`, computedName.value, slots),
 );

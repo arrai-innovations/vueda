@@ -52,17 +52,20 @@ const currentPageReportTemplate = computed(() => {
     }
     return "{currentPage} of {totalPages}";
 });
+const handleShowAllPagesClick = () => {
+    emit("update:showingAllPages", true);
+};
 </script>
 
 <template>
     <div :class="theme('root')">
         <slot
             name="total-records"
-            :totalRecords="totalRecords"
+            :total-records="totalRecords"
             :loading="loading"
-            :showTotalRecordNum="showTotalRecordNum"
+            :show-total-record-num="showTotalRecordNum"
         >
-            <span :class="theme('totalRecords')" v-if="showTotalRecordNum">
+            <span v-if="showTotalRecordNum" :class="theme('totalRecords')">
                 {{ loading ? "" : `${totalRecords} total results` }}
             </span>
         </slot>
@@ -79,15 +82,15 @@ const currentPageReportTemplate = computed(() => {
         </Paginator>
         <slot
             name="show-all-pages"
-            :allowShowAllPages="allowShowAllPages"
-            @click="$emit('show-all-pages')"
-            :showingAllPages="showingAllPages"
+            :allow-show-all-pages="allowShowAllPages"
+            :showing-all-pages="showingAllPages"
+            @click="handleShowAllPagesClick"
         >
             <Button
                 v-if="allowShowAllPages && !showingAllPages && totalRecords > rows"
                 type="button"
                 variant="text"
-                @click="$emit('update:showingAllPages', true)"
+                @click="handleShowAllPagesClick"
             >
                 Show All Pages
             </Button>

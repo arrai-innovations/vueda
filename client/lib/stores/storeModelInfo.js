@@ -343,12 +343,10 @@ export const storeModelInfo = defineStore("modelInfo", {
                             }),
                         );
 
-                        Object.entries(data.fields).some(([k, v]) => {
-                            if (v.pk) {
-                                data.pk = k;
-                                return true;
-                            }
-                        });
+                        const pkEntry = Object.entries(data.fields).find(([, v]) => v.pk);
+                        if (pkEntry) {
+                            data.pk = pkEntry[0];
+                        }
                         if (!data.pk) {
                             throw new Error(`storeModelInfo.fetchModelInfo: no pk field found for ${key}`);
                         }

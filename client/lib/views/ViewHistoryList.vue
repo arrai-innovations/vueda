@@ -146,8 +146,8 @@ const extraFieldObjects = computed(() => {
     return objects;
 });
 const calculatedHistoryFieldsObjects = computed(() => {
-    const history_fields = modelConfig.info?.expand?.filter((expand) => expand.name === "history")[0]?.f;
-    return history_fields ? Object.entries(history_fields).map(([key, value]) => ({ name: key, ...value })) : [];
+    const historyFields = modelConfig.info?.expand?.filter((expand) => expand.name === "history")[0]?.f;
+    return historyFields ? Object.entries(historyFields).map(([key, value]) => ({ name: key, ...value })) : [];
 });
 const computedFieldObjects = computed(() => {
     return props.fields
@@ -233,22 +233,30 @@ const slots = useSlots();
                 </template>
                 <template #field(new)="{ obj }">
                     <slot name="field(new)">
-                        <div v-if="!isTable" v-for="changed in obj.changes" :key="changed.field">
-                            {{ changed.new }}
-                        </div>
-                        <div v-else>
-                            {{ obj.new }}
-                        </div>
+                        <template v-if="!isTable">
+                            <div v-for="changed in obj.changes" :key="changed.field">
+                                {{ changed.new }}
+                            </div>
+                        </template>
+                        <template v-else>
+                            <div>
+                                {{ obj.new }}
+                            </div>
+                        </template>
                     </slot>
                 </template>
                 <template #field(old)="{ obj }">
                     <slot name="field(old)">
-                        <div v-if="!isTable" v-for="changed in obj.changes" :key="changed.field">
-                            {{ changed.old }}
-                        </div>
-                        <div v-else>
-                            {{ obj.old }}
-                        </div>
+                        <template v-if="!isTable">
+                            <div v-for="changed in obj.changes" :key="changed.field">
+                                {{ changed.old }}
+                            </div>
+                        </template>
+                        <template v-else>
+                            <div>
+                                {{ obj.old }}
+                            </div>
+                        </template>
                     </slot>
                 </template>
             </objects-grid>
@@ -259,10 +267,10 @@ const slots = useSlots();
             :rows="instanceList.state.paginateInfo?.perPage || 1"
             :total-records="instanceList.state.paginateInfo?.totalRecords || 1"
             :is-table="isTable"
-            :showingAllPages="computedShowAllPages"
-            @update:showing-all-pages="showingAllPages = $event"
+            :showing-all-pages="computedShowAllPages"
             :allow-show-all-pages="allowShowAllPages"
             :show-total-record-num="showTotalRecordNum"
+            @update:showing-all-pages="showingAllPages = $event"
         >
             <template v-for="(_, slot) in slots" #[slot]="slotProps">
                 <slot :name="slot" v-bind="slotProps || {}" />

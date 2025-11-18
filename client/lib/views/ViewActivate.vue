@@ -5,7 +5,6 @@ import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
-import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
@@ -72,7 +71,7 @@ async function executeAction({ target, pks }) {
             "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({ pks: pks }),
+        body: JSON.stringify({ pks }),
         signal: abortController.signal,
     }).then(async (response) => {
         if (response.status === 200) {

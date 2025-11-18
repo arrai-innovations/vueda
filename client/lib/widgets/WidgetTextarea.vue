@@ -44,9 +44,9 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :invalid="widgetContext.state.validationState.invalid"
                         :name="widgetContext.state.combinedName"
                         :pt="effectivePt"
+                        :aria-required="widgetContext.state.required"
                         @blur="widgetContext.blur"
                         @focus="widgetContext.focus"
-                        :aria-required="widgetContext.state.required"
                     />
                 </div>
             </template>

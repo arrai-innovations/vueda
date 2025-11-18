@@ -54,7 +54,7 @@ export const OnRetrieveErrorHandler = async ({ error, formContext, state }) => {
 function warningsFetch(app, model, action, pk, detailed) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const controller = new AbortController();
-    const queryString = detailed ? "" : makeSearchParamsString({ pks: pk, action: action });
+    const queryString = detailed ? "" : makeSearchParamsString({ pks: pk, action });
     const url = detailed
         ? getDetailUrl({ app, model, pk, action: "warnings" })
         : getListUrl({ app, model, action: "warnings", query: queryString });
@@ -160,9 +160,9 @@ export function useWarnings(app, model, formContext, view, pk, objectFormState =
             }
             if (newApp && newModel && newView) {
                 // not detailed meaning it is bulk. we don't deal with list/target less yet.
-                const detailed = newView == "update";
+                const detailed = newView === "update";
                 if (newPk) {
-                    const args = { app: newApp, model: newModel, action: newView, pk: newPk, detailed: detailed };
+                    const args = { app: newApp, model: newModel, action: newView, pk: newPk, detailed };
                     await retrieveFn(args);
                     if (state.errored) {
                         const error = state.error;

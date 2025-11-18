@@ -35,7 +35,7 @@ describe("lib/stores/storeCollapseNav.js", () => {
     });
 
     scopedIt("toggle() flips state and persists", () => {
-        const setItemSpy = vi.spyOn(window.localStorage.__proto__, "setItem");
+        const setItemSpy = vi.spyOn(Object.getPrototypeOf(window.localStorage), "setItem");
         const store = storeCollapseNav();
         expect(store.isCollapsed).toBe(false);
         store.toggle();

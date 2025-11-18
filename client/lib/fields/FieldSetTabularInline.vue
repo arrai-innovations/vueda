@@ -17,6 +17,8 @@ import Button from "primevue/button";
 import Divider from "primevue/divider";
 import { watch } from "vue";
 
+const logger = useDevLogger();
+
 defineOptions({
     inheritAttrs: false,
 });

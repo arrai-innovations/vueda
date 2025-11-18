@@ -1,7 +1,6 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
-import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useResolvedLookupObject } from "@vueda/use/useResolvedLookupObject.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
@@ -11,7 +10,7 @@ import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
-import { computed, effectScope, reactive, ref, toRef, unref, useSlots, watch } from "vue";
+import { computed, effectScope, reactive, toRef, unref, useSlots, watch } from "vue";
 
 const props = defineProps({
     ...WIDGET_PROPS,
@@ -143,7 +142,6 @@ watch(
 const theme = useWidgetTheme("WidgetReadOnly", props, widgetContext.state, {
     hidden: toRef(props, "hidden"),
 });
-const isActive = useIsActive();
 const readonlyValue = computed(() => {
     if (props.loading || resolvedReactive.loading) {
         return "\u00A0";

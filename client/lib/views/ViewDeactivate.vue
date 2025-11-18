@@ -58,8 +58,6 @@ const instanceListProps = reactive({
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     params: {
         [FIELDS_PARAM]: {},
-    },
-    params: {
         id: Array.isArray(toRef(props, "pk")) ? toRef(props, "pk") : [toRef(props, "pk")],
     },
     intendToList: validAndActive,
@@ -74,7 +72,7 @@ async function executeAction({ target, pks }) {
             "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({ pks: pks }),
+        body: JSON.stringify({ pks }),
         signal: abortController.signal,
     }).then(async (response) => {
         if (response.status === 200) {

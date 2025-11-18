@@ -137,9 +137,9 @@ describe("lib/use/useReactiveHookRegistry.js", () => {
             });
             registry.registerHook("fieldThrow", () => true);
             await flushPromises();
-            registry.computedAggregates.fieldThrow;
+            const firstAccess = registry.computedAggregates.fieldThrow;
             expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
-            expect(registry.computedAggregates.fieldThrow).toBe(true);
+            expect(firstAccess).toBe(true);
             consoleErrorSpy.mockRestore();
         });
 

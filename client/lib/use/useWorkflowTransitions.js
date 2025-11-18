@@ -47,8 +47,8 @@ export function useWorkflowTransitions(app, model, isActive) {
     }
     const workflowStore = storeWorkflow();
     const internalState = reactive({
-        app: app,
-        model: model,
+        app,
+        model,
         lastSetKey: ref(null),
         lastFetchedKey: ref(null),
         workflowTransitions: toRef(workflowStore, "workflowTransitions"),

@@ -54,7 +54,7 @@ export function makeCRUDRoutes({
     const routeDetail = {
         name: "actionrouter.detailview",
         path: `/:app/:model/:action/:pk`,
-        component: component,
+        component,
         /** @type {{[key: string]: any}} */
         props: (route) => ({
             app: route.params.app,
@@ -71,7 +71,7 @@ export function makeCRUDRoutes({
     const routeNonDetail = {
         name: "actionrouter.listview",
         path: `/:app/:model/:action/`,
-        component: component,
+        component,
         props: (route) => ({
             app: route.params.app,
             model: route.params.model,

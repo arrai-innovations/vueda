@@ -1,13 +1,13 @@
 <script setup>
 import { WIDGET_EMITS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import { sanitizeMessage } from "@vueda/utils/html.js";
 import WidgetHtml from "@vueda/widgets/WidgetHtml.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
-import WidgetLabel, { getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
 import get from "lodash-es/get.js";
 import omit from "lodash-es/omit.js";
-import { computed, useSlots } from "vue";
+import { computed } from "vue";
 
 defineOptions({
     inheritAttrs: false,
@@ -34,20 +34,19 @@ const computeddisplayDependencies = computed(() => {
     const deps = props.displayDependencies;
     return deps.includes(props.tagsKey) ? deps : [...deps, props.tagsKey];
 });
-const tags_data = computed(() => {
-    return widgetContext.state.dependencyValues[props.tagsKey];
-});
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
+const tagsData = computed(() => {
+    return widgetContext.state.dependencyValues[props.tagsKey];
+});
 const renderedContent = computed(() => {
-    const text = widgetContext.state.combinedValue;
-    if (!tags_data.value) {
-        return text;
+    let text = widgetContext.state.combinedValue;
+    if (tagsData.value) {
+        text = text.replace(/\$(\w+)/g, (match, varName) => {
+            return get(tagsData.value, [varName, "default"], "");
+        });
     }
-
-    return text.replace(/\$(\w+)/g, (match, varName) => {
-        return get(tags_data.value, [varName, "default"], "");
-    });
+    return sanitizeMessage(text);
 });
 const inputComponent = computed(
     () =>
@@ -59,8 +58,6 @@ const inputComponent = computed(
 );
 
 const theme = useWidgetTheme("WidgetPreviewableTemplate");
-const slots = useSlots();
-const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-previewable-template-root">
@@ -68,21 +65,23 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <div :class="theme('editorWrapper')" data-qa="widget-previewable-template-editor">
                 <component
                     :is="inputComponent"
-                    :displayDependencies="computeddisplayDependencies"
+                    :display-dependencies="computeddisplayDependencies"
                     :model-value="modelValue"
                     v-bind="omit($attrs, 'value')"
                     @update:model-value="emit('update:modelValue', $event)"
                 />
-                <slot name="extra-legend" :displayDependencies="widgetContext.state.dependencyValues" />
+                <slot name="extra-legend" :display-dependencies="widgetContext.state.dependencyValues" />
             </div>
             <div :class="theme('previewWrapper')">
                 <span :class="theme('label')">Preview: </span>
+                <!-- eslint-disable vue/no-v-html -->
                 <div
                     :class="theme('preview')"
-                    v-html="renderedContent"
                     :aria-labelledby="widgetContext.state.widgetId"
                     data-qa="widget-previewable-template-preview"
+                    v-html="renderedContent"
                 />
+                <!-- eslint-enable vue/no-v-html -->
             </div>
         </div>
     </div>

@@ -416,8 +416,7 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
     watch(
         [toRef(state, "itemRefs"), toRef(state, "focusIndex")],
         ([newItemRefs, newFocusIndex]) => {
-            // noinspection EqualityComparisonWithCoercionJS
-            const newItem = newItemRefs?.find?.((el) => el?.dataset?.rowIndex == newFocusIndex);
+            const newItem = newItemRefs?.find?.((el) => Number(el?.dataset?.rowIndex) === newFocusIndex);
             if (newItem) {
                 newItem.scrollIntoView({ behavior: "smooth", block: "center" });
                 focusFirstTabbableElement(newItem.parentNode);

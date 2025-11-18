@@ -16,7 +16,7 @@ const props = defineProps({
 });
 
 const { copied, copy } = useClipboard();
-const toast = useToast();
+const toastService = useToast();
 
 const onClick = () => {
     copy(props.text);
@@ -26,7 +26,7 @@ const onClick = () => {
     }
     const options =
         typeof text === "string" ? { severity: "success", summary: text } : { severity: "success", ...text };
-    toast.add(options);
+    toastService.add(options);
 };
 
 const slotProps = {
@@ -37,7 +37,7 @@ const slotProps = {
     variant: "text",
     size: "small",
     text: props.text,
-    copied: copied,
+    copied,
 };
 
 const theme = useTheme("ClickToCopyText", props);

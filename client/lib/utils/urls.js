@@ -86,7 +86,7 @@ export const getListUrl = ({ app, model, action, query = "" }) => {
  * @param [query] {string} - The query string, if any. If provided, it should start with a "?".
  * @returns {string} - The URL.
  */
-export const getDetailUrl = ({ app, model, pk, action: action, query = "" }) => {
+export const getDetailUrl = ({ app, model, pk, action, query = "" }) => {
     const urlTemplate = getUrl(action ? "modelDetailAction" : "modelDetail");
     const appStr = getServerRoutePart(app);
     const modelStr = getServerRoutePart(model);

@@ -1,11 +1,9 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
-import LazyRender from "@vueda/components/LazyRender.vue";
 import { useFieldRenderer } from "@vueda/use/useFieldRenderer.js";
-import { mergeTheme, useTheme } from "@vueda/use/useTheme.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
-import Skeleton from "primevue/skeleton";
 import { computed, inject, reactive, toRef, unref, useAttrs, useSlots } from "vue";
 
 defineOptions({
@@ -74,9 +72,9 @@ const {
 
 const themeContext = reactive({
     formModelName: toRef(props, "formModelName"),
-    fieldDetail: fieldDetail,
-    fieldProps: fieldProps,
-    widgetProps: widgetProps,
+    fieldDetail,
+    fieldProps,
+    widgetProps,
     inFieldSet: computed(() => !!fieldSetContext),
 });
 const theme = useTheme("FormModel", props, themeContext);

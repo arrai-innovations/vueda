@@ -33,10 +33,12 @@ const props = defineProps({
     filterables: {
         type: Array,
         description: "A list of the filterables to show in the filter form.",
+        default: () => [],
     },
     filterableDetails: {
         type: Object,
         description: "A dictionary of overriding filterable details.",
+        default: () => ({}),
     },
     filterFormsValues: {
         type: Object,
@@ -121,7 +123,7 @@ const resolvers = reactive({});
 watch(
     validFilterables,
     (filters) => {
-        let newFilters = deepUnref(filters);
+        const newFilters = deepUnref(filters);
         const { addedKeys, removedKeys } = keyDiff(newFilters, Object.keys(resolvers));
         for (const key of addedKeys) {
             resolversEffectScope.run(() => {
@@ -196,7 +198,7 @@ const theme = useTheme("FilterGroup", props);
             </slot>
         </div>
         <div :class="theme('messageWrapper')">
-            <error-display :error="filterError" :errored="isFilterErrored" :ignoreListFilterErrors="true">
+            <error-display :error="filterError" :errored="isFilterErrored" :ignore-list-filter-errors="true">
                 <slot name="filter-group-error-display">
                     <div>
                         {{ error.message }}

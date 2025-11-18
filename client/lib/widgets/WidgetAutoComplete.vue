@@ -109,7 +109,7 @@ const modelListProps = reactive({
     },
     pkKey: computedPkKey,
     params: modelParams,
-    intendToList: intendToList,
+    intendToList,
 });
 const modelListInstance = useList({
     props: modelListProps,
@@ -124,10 +124,12 @@ watch(intendToList, () => {
 const modelItem = computed(() => {
     let match = null;
     if (modelListInstance.state.objectsInOrder?.length > 0) {
+        /* eslint-disable eqeqeq */
         // noinspection EqualityComparisonWithCoercionJS
         match = modelListInstance.state.objectsInOrder?.find(
             (option) => get(option, unref(computedOptionValue)) == widgetContext.state.combinedValue,
         );
+        /* eslint-enable eqeqeq */
     }
     return match ?? widgetContext.state.combinedValue;
 });
@@ -196,11 +198,11 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :pt="effectivePt"
                         :suggestions="modelListInstance.state.objectsInOrder"
                         v-bind="omit($attrs, ['value'])"
+                        :aria-required="widgetContext.state.required"
                         @blur="delayedBlur"
                         @complete="search"
                         @focus="cancelBlurIfFocused"
                         @update:model-value="(selected) => valueUpdated(selected)"
-                        :aria-required="widgetContext.state.required"
                     />
                 </div>
             </template>

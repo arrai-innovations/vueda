@@ -60,8 +60,8 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             :max-file-size="1000000"
                             mode="basic"
                             name="demo[]"
-                            @uploader="upload"
                             :aria-required="widgetContext.state.required"
+                            @uploader="upload"
                         />
                     </div>
                 </div>

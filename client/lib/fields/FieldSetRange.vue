@@ -56,7 +56,7 @@ watch(
             if (props.type === "number" && lower.value > upper.value) {
                 fieldContext.updateError("range", "The first value must be less than or equal to the second value.");
             } else if (props.type === "date") {
-                let lowerDate = new Date(lower.value);
+                const lowerDate = new Date(lower.value);
                 const upperDate = new Date(upper.value);
                 if (isNaN(lowerDate.getTime()) || isNaN(upperDate.getTime())) {
                     fieldContext.updateError("range", "Invalid date.");
