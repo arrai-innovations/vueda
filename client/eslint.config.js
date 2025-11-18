@@ -19,7 +19,7 @@ const neostandardConfig = merge(
 );
 // import-x rules break in SFCs
 const disableImportXRules = Object.fromEntries(
-    Object.keys(neostandardConfig)
+    Object.keys(neostandardConfig.rules)
         .filter((ruleName) => ruleName.startsWith("import-x/"))
         .map((ruleName) => [ruleName, "off"]),
 );
@@ -132,6 +132,7 @@ const eslintConfig = [
             ...vitest.configs.recommended.rules,
             "vitest/no-conditional-expect": "off",
             "vitest/valid-expect": "off", // we want to use expect(value, message).toBe(expected), which is not supported by this rule
+            "no-var": "off", // this does not work with vitest.mock, which requires var hoisted variables
         },
     },
     eslintConfigPrettier,
