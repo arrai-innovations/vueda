@@ -233,22 +233,30 @@ const slots = useSlots();
                 </template>
                 <template #field(new)="{ obj }">
                     <slot name="field(new)">
-                        <div v-for="changed in obj.changes" v-if="!isTable" :key="changed.field">
-                            {{ changed.new }}
-                        </div>
-                        <div v-else>
-                            {{ obj.new }}
-                        </div>
+                        <template v-if="!isTable">
+                            <div v-for="changed in obj.changes" :key="changed.field">
+                                {{ changed.new }}
+                            </div>
+                        </template>
+                        <template v-else>
+                            <div>
+                                {{ obj.new }}
+                            </div>
+                        </template>
                     </slot>
                 </template>
                 <template #field(old)="{ obj }">
                     <slot name="field(old)">
-                        <div v-for="changed in obj.changes" v-if="!isTable" :key="changed.field">
-                            {{ changed.old }}
-                        </div>
-                        <div v-else>
-                            {{ obj.old }}
-                        </div>
+                        <template v-if="!isTable">
+                            <div v-for="changed in obj.changes" :key="changed.field">
+                                {{ changed.old }}
+                            </div>
+                        </template>
+                        <template v-else>
+                            <div>
+                                {{ obj.old }}
+                            </div>
+                        </template>
                     </slot>
                 </template>
             </objects-grid>
