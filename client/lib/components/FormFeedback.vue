@@ -136,8 +136,8 @@ const renderDetail = (data) => {
                             <template v-if="isObject(line)">
                                 <!-- eslint-disable-next-line vue/no-v-html -->
                                 <div v-if="allowHtml" v-html="renderDetail(line)"></div>
-                                <div v-for="[name, message] of Object.entries(line)" v-else :key="name">
-                                    {{ name }}: {{ message }}
+                                <div v-for="[name, value] of Object.entries(line)" v-else :key="name">
+                                    {{ name }}: {{ value }}
                                 </div>
                             </template>
                             <template v-else-if="allowHtml && containsHtml(line)">
