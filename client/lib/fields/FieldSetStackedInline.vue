@@ -24,6 +24,7 @@ const fieldSetInline = useFieldSetInline({
     fieldSetContext,
 });
 const theme = useTheme("FieldSetStackedInline", props);
+const logger = useDevLogger({ fieldContext: fieldSetContext });
 
 watch(
     () => fieldSetContext.state.value,

@@ -12,7 +12,6 @@ const props = defineProps({
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
-const logger = useDevLogger({ fieldContext });
 
 watch(
     toRef(fieldContext.state, "value"),

@@ -36,6 +36,7 @@ const DividerStub = defineComponent({
 });
 
 let FieldSetStackedInline, useField, useFieldSetInline, useTheme;
+const warnSpy = vi.fn();
 
 describe("lib/fields/FieldSetStackedInline.vue", () => {
     beforeEach(async () => {
@@ -52,9 +53,16 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
         vi.doMock("@vueda/use/useField.js", () => ({ FIELD_EMITS: [], useField }));
         vi.doMock("@vueda/use/useFieldSetInline.js", () => ({ FIELD_SET_INLINE_PROPS: {}, useFieldSetInline }));
         vi.doMock("@vueda/use/useTheme.js", () => ({ useTheme, THEME_OVERRIDE_PROPS: {} }));
+        vi.doMock("@vueda/use/useDevLogger.js", () => ({
+            useDevLogger: () => ({
+                warn: warnSpy,
+                log: vi.fn(),
+                error: vi.fn(),
+                info: vi.fn(),
+                debug: vi.fn(),
+            }),
+        }));
         vi.doMock("@vueda/utils/buildForm.js", () => ({ getFormChoresSlotNames: vi.fn(() => []) }));
-
-        globalThis.logger = { warn: vi.fn() };
 
         FieldSetStackedInline = (await import("@vueda/fields/FieldSetStackedInline.vue")).default;
     });
@@ -62,7 +70,7 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
     afterEach(() => {
         vi.resetModules();
         vi.clearAllMocks();
-        delete globalThis.logger;
+        warnSpy.mockClear();
     });
 
     scopedIt("logs warnings for invalid value", async () => {
@@ -86,25 +94,25 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
         useFieldSetInline.mockReturnValue(fieldSetInline);
 
         mount(FieldSetStackedInline, { props: {} });
-        expect(globalThis.logger.warn).toHaveBeenCalledWith(
+        expect(warnSpy).toHaveBeenCalledWith(
             "Expected value to be an array of objects, got:",
             fieldSetContext.state.value,
         );
 
-        globalThis.logger.warn.mockClear();
+        warnSpy.mockClear();
         fieldSetContext.state.value = [1, { id: 2 }];
         await nextTick();
-        expect(globalThis.logger.warn).toHaveBeenCalledWith("Array contains non-object elements:", 1);
+        expect(warnSpy).toHaveBeenCalledWith("Array contains non-object elements:", 1);
 
-        globalThis.logger.warn.mockClear();
+        warnSpy.mockClear();
         fieldSetContext.state.value = [null, { id: 2 }];
         await nextTick();
-        expect(globalThis.logger.warn).toHaveBeenCalledWith("Array contains non-object elements:", null);
+        expect(warnSpy).toHaveBeenCalledWith("Array contains non-object elements:", null);
 
-        globalThis.logger.warn.mockClear();
+        warnSpy.mockClear();
         fieldSetContext.state.value = [[1], { id: 2 }];
         await nextTick();
-        expect(globalThis.logger.warn).toHaveBeenCalledWith("Array contains non-object elements:", [1]);
+        expect(warnSpy).toHaveBeenCalledWith("Array contains non-object elements:", [1]);
     });
 
     scopedIt("renders create button and triggers handler", async () => {
@@ -156,11 +164,11 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
         useFieldSetInline.mockReturnValue(fieldSetInline);
 
         mount(FieldSetStackedInline, { props: {} });
-        expect(globalThis.logger.warn).not.toHaveBeenCalled();
+        expect(warnSpy).not.toHaveBeenCalled();
 
         fieldSetContext.state.value = undefined;
         await nextTick();
-        expect(globalThis.logger.warn).not.toHaveBeenCalled();
+        expect(warnSpy).not.toHaveBeenCalled();
     });
 
     scopedIt("slot interactions trigger handlers", async () => {

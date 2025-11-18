@@ -2,6 +2,8 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, nextTick, reactive } from "vue";
 
+const warnSpy = vi.fn();
+
 // Stubs for child components used in template
 const SimpleStub = (qa) =>
     defineComponent({
@@ -32,10 +34,15 @@ vi.mock("@vueda/use/useFieldSetTabularInline.js", () => ({
     useFieldSetTabularInline,
 }));
 
-// Provide a global logger used in the component's watcher
-const warnSpy = vi.fn();
-
-vi.stubGlobal("logger", { warn: warnSpy });
+vi.mock("@vueda/use/useDevLogger.js", () => ({
+    useDevLogger: () => ({
+        warn: warnSpy,
+        log: vi.fn(),
+        error: vi.fn(),
+        info: vi.fn(),
+        debug: vi.fn(),
+    }),
+}));
 
 const FieldSetTabularInline = await import("@vueda/fields/FieldSetTabularInline.vue").then((m) => m.default);
 
