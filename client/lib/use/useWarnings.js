@@ -160,7 +160,7 @@ export function useWarnings(app, model, formContext, view, pk, objectFormState =
             }
             if (newApp && newModel && newView) {
                 // not detailed meaning it is bulk. we don't deal with list/target less yet.
-                const detailed = newView == "update";
+                const detailed = newView === "update";
                 if (newPk) {
                     const args = { app: newApp, model: newModel, action: newView, pk: newPk, detailed };
                     await retrieveFn(args);

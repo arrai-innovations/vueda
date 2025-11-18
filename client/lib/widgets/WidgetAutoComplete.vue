@@ -124,10 +124,12 @@ watch(intendToList, () => {
 const modelItem = computed(() => {
     let match = null;
     if (modelListInstance.state.objectsInOrder?.length > 0) {
+        /* eslint-disable eqeqeq */
         // noinspection EqualityComparisonWithCoercionJS
         match = modelListInstance.state.objectsInOrder?.find(
             (option) => get(option, unref(computedOptionValue)) == widgetContext.state.combinedValue,
         );
+        /* eslint-enable eqeqeq */
     }
     return match ?? widgetContext.state.combinedValue;
 });

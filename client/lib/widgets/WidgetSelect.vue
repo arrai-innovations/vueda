@@ -52,8 +52,10 @@ const handleBlur = (e) => {
 const modelItem = computed(() => {
     let match = null;
     if (props.options && props.options.length > 0) {
+        /* eslint-disable eqeqeq */
         // noinspection EqualityComparisonWithCoercionJS
         match = props.options.find((option) => get(option, props.optionValue) == widgetContext.state.combinedValue);
+        /* eslint-enable eqeqeq */
     }
     return (
         (match ? get(match, props.optionValue) : widgetContext.state.combinedValue) ?? widgetContext.state.combinedValue
