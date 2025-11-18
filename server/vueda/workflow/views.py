@@ -9,6 +9,7 @@ from django.utils.timezone import now
 from django.views import View
 from django.views.generic import TemplateView
 from rest_framework.exceptions import PermissionDenied
+from simple_history.models import HistoricalChanges
 
 from vueda.user.mixins import LogoutMixin
 from vueda.workflow import models
@@ -93,7 +94,12 @@ class WorkflowOverviewView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMix
         context["models_without_workflow_row"] = []
         for model in models.HasWorkflowModelMixin.__subclasses__():
             content_type = ContentType.objects.get_for_model(model)
-            if not models.Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).exists():
+            if (
+                not issubclass(model, HistoricalChanges)
+                and not hasattr(model, "pgh_tracked_model")
+                and not model._meta.abstract
+                and not models.Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).exists()
+            ):
                 context["models_without_workflow_row"].append(
                     (content_type.app_label, content_type.model, model.__name__)
                 )
