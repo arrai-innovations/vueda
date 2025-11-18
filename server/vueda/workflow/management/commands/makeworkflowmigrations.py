@@ -1070,7 +1070,7 @@ class Command(BaseCommand):
             if selected_apps and app_label not in selected_apps:
                 continue
 
-            content_type = ContentType.objects.get_for_model(model)
+            content_type = ContentType.objects.get_for_model(model, for_concrete_model=False)
 
             if issubclass(model, models.HasWorkflowModelMixin):
                 if app_label not in apps_with_workflow:
