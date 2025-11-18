@@ -50,11 +50,9 @@ const modelListProps = reactive({
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
-    params: {
-        [FIELDS_PARAM]: toRef(props, "modelFields"),
-    },
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     params: {
+        [FIELDS_PARAM]: toRef(props, "modelFields"),
         [SEARCH_PARAM]: listSearch,
         id: computed(() => {
             if (!listSearch.value) {

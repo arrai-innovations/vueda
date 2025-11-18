@@ -58,8 +58,6 @@ const instanceListProps = reactive({
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
     params: {
         [FIELDS_PARAM]: {},
-    },
-    params: {
         id: Array.isArray(toRef(props, "pk")) ? toRef(props, "pk") : [toRef(props, "pk")],
     },
     intendToList: validAndActive,
