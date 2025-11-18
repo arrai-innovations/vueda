@@ -62,6 +62,7 @@ describe("lib/store/storeModelChoices.js", () => {
 
     scopedIt("deduplicates concurrent fetchChoices calls", async () => {
         let resolve;
+        // eslint-disable-next-line promise/param-names
         const promise = new Promise((r) => {
             resolve = r;
         });
