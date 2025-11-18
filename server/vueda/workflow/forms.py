@@ -16,8 +16,13 @@ class WorkflowAddForm(forms.ModelForm):
             pk__in=[
                 content_type.pk
                 for content_type in ContentType.objects.all()
-                if content_type.model_class() is not None
-                and issubclass(content_type.model_class(), HistoricalChanges)
+                if content_type.model_class() is None
+                or content_type.model_class() is not None
+                and (
+                    issubclass(content_type.model_class(), HistoricalChanges)
+                    or hasattr(content_type.model_class(), "pgh_tracked_model")
+                    or content_type.model_class()._meta.abstract
+                )
                 or content_type.app_label in ("workflow", "auth", "contenttypes", "sessions", "sites")
             ]
         ).order_by("app_label", "model"),

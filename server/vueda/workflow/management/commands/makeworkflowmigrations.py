@@ -1070,12 +1070,15 @@ class Command(BaseCommand):
             if selected_apps and app_label not in selected_apps:
                 continue
 
-            content_type = ContentType.objects.get_for_model(model)
+            content_type = ContentType.objects.get_for_model(model, for_concrete_model=False)
+
+            app_config = django_apps.get_app_config(app_label)
 
             if issubclass(model, models.HasWorkflowModelMixin):
                 if app_label not in apps_with_workflow:
                     apps_with_workflow[app_label] = {
                         "app_name": model_meta.app_config.name,
+                        "path": app_config.path,
                         "model_to_content_type_ids": {},
                     }
                 apps_with_workflow[app_label]["model_to_content_type_ids"][model_name] = content_type.pk
@@ -1088,6 +1091,7 @@ class Command(BaseCommand):
                     if app_label not in apps_with_workflow:
                         apps_with_workflow[app_label] = {
                             "app_name": model_meta.app_config.name,
+                            "path": app_config.path,
                             "content_type_ids": [],
                         }
                     apps_with_workflow[app_label]["content_type_ids"].append(content_type.pk)
@@ -1505,6 +1509,7 @@ class Command(BaseCommand):
 
         for app_label, model_data in self._get_apps_with_workflow(selected_apps).items():
             app_name = model_data["app_name"]
+            app_path = model_data["path"]
 
             show_migration_results = self._call_command("showmigrations", app_label)
             if not show_migration_results:  # Erred.  The reason will be printed to the console via the command.
@@ -1522,7 +1527,7 @@ class Command(BaseCommand):
             }
 
             for migration_name in migration_names:
-                migration_path = os.path.join(*app_name.split("."), "migrations", f"{migration_name}.py")
+                migration_path = os.path.join(app_path, "migrations", f"{migration_name}.py")
                 django_date = self._get_generated_date_for_vueda_generated_migration(migration_path)
                 if django_date:
                     migration_data["history_change_reasons"].append(f"Workflow Migration - {migration_name}")
