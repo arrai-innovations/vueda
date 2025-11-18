@@ -52,6 +52,9 @@ const currentPageReportTemplate = computed(() => {
     }
     return "{currentPage} of {totalPages}";
 });
+const handleShowAllPagesClick = () => {
+    emit("update:showingAllPages", true);
+};
 </script>
 
 <template>
@@ -81,13 +84,13 @@ const currentPageReportTemplate = computed(() => {
             name="show-all-pages"
             :allow-show-all-pages="allowShowAllPages"
             :showing-all-pages="showingAllPages"
-            @click="$emit('show-all-pages')"
+            @click="handleShowAllPagesClick"
         >
             <Button
                 v-if="allowShowAllPages && !showingAllPages && totalRecords > rows"
                 type="button"
                 variant="text"
-                @click="$emit('update:showingAllPages', true)"
+                @click="handleShowAllPagesClick"
             >
                 Show All Pages
             </Button>
