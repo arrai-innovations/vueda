@@ -409,7 +409,7 @@ onMounted(() => {
         toRef(() => sorting.state.sorted),
     );
     emit("selected", readonly(selectedObjects));
-    emit("loading", loading);
+    emit("loading", loading.value);
     emit("related-objects", readonly(instanceList.state.relatedObjects));
     emit("calculated-objects", readonly(instanceList.state.calculatedObjects));
 });
@@ -730,7 +730,7 @@ const columnOptions = computed(() => {
             :table-breakpoint="tableBreakpoint"
             :theme-override="themeOverride"
             @update:sorted="sorting.updateSorted"
-            @update:isTable="isTable = $event"
+            @update:is-table="isTable = $event"
         >
             <template
                 v-for="slot in Object.keys(slots).filter((slot) => !specialSlots.includes(slot))"
@@ -762,7 +762,7 @@ const columnOptions = computed(() => {
                 </slot>
             </template>
             <template #row-after-objects="slotProps">
-                <slot name="row-after-objects" v-bind="slotProps" :columnTotals="columnTotals">
+                <slot name="row-after-objects" v-bind="slotProps" :column-totals="columnTotals">
                     <div v-if="isTable && Object.keys(columnTotals).length" :class="slotProps.class" role="row">
                         <objects-grid-body-cell
                             v-for="(field, index) in computedFieldObjects"
@@ -794,10 +794,10 @@ const columnOptions = computed(() => {
             :rows="instanceList.state.paginateInfo?.perPage || 1"
             :total-records="instanceList.state.paginateInfo?.totalRecords || 1"
             :is-table="isTable"
-            :showingAllPages="computedShowAllPages"
-            @update:showing-all-pages="showingAllPages = $event"
+            :showing-all-pages="computedShowAllPages"
             :allow-show-all-pages="modelConfig.config?.allowShowAllPages && allowShowAllPages"
             :show-total-record-num="modelConfig.config?.showTotalRecordNum && showTotalRecordNum"
+            @update:showing-all-pages="showingAllPages = $event"
         >
             <template v-for="(_, slot) in slots" #[slot]="slotProps">
                 <slot :name="slot" v-bind="slotProps || {}" />

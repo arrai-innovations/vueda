@@ -65,9 +65,9 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                                 :name="widgetContext.state.combinedName"
                                 :pt="effectivePt"
                                 range
+                                :aria-required="widgetContext.state.required"
                                 @change="widgetContext.focus"
                                 @slideend="widgetContext.blur"
-                                :aria-required="widgetContext.state.required"
                             />
                         </div>
                     </div>

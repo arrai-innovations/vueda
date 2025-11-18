@@ -109,7 +109,7 @@ const modelListProps = reactive({
     },
     pkKey: computedPkKey,
     params: modelParams,
-    intendToList: intendToList,
+    intendToList,
 });
 const modelListInstance = useList({
     props: modelListProps,
@@ -196,11 +196,11 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :pt="effectivePt"
                         :suggestions="modelListInstance.state.objectsInOrder"
                         v-bind="omit($attrs, ['value'])"
+                        :aria-required="widgetContext.state.required"
                         @blur="delayedBlur"
                         @complete="search"
                         @focus="cancelBlurIfFocused"
                         @update:model-value="(selected) => valueUpdated(selected)"
-                        :aria-required="widgetContext.state.required"
                     />
                 </div>
             </template>

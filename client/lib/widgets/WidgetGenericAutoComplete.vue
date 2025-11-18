@@ -219,11 +219,11 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             :placeholder="hintText"
                             :pt="effectivePt"
                             :suggestions="filteredOptions"
+                            :aria-required="widgetContext.state.required"
                             @blur="widgetContext.blur"
                             @complete="search"
                             @focus="widgetContext.focus"
                             @update:model-value="(selected) => objectUpdated(selected)"
-                            :aria-required="widgetContext.state.required"
                         />
                     </div>
                 </div>

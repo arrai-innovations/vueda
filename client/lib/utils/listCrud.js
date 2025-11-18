@@ -163,7 +163,7 @@ export function allPagePaginatedListCrudAdaptor({
         const totalPages = firstData.totalPages ?? 1;
         setPaginateInfo({
             totalRecords: firstData.totalRecords,
-            totalPages: totalPages,
+            totalPages,
             perPage: firstData.perPage,
             page: 1,
         });
@@ -190,7 +190,7 @@ export function allPagePaginatedListCrudAdaptor({
                                 totalRecords: data.totalRecords,
                                 totalPages: data.totalPages,
                                 perPage: data.perPage,
-                                page: page,
+                                page,
                             });
                             setColumnTotals(firstData.columnTotals);
                         }

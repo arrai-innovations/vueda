@@ -153,7 +153,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
     }
 
     function setFieldComponent(key, detailObject, baseExpanded = false, fieldName = key) {
-        let component = undefined;
+        let component;
         es.run(() => {
             component = computed(() => {
                 if ((deepUnref(state.computedFields) || []).includes(fieldName)) {
@@ -182,7 +182,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
     }
 
     function setFieldComponentProps(key, detailObject, fieldName = key) {
-        let componentProps = undefined;
+        let componentProps;
         es.run(() => {
             componentProps = computed(() => {
                 const fieldLevelThemeOverride = getFieldLevelThemeOverride(fieldName);
@@ -219,7 +219,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
     }
 
     function setWidgetComponent(key, detailObject, baseExpanded = false, fieldName = key) {
-        let widget = undefined;
+        let widget;
         es.run(() => {
             widget = computed(() => {
                 if (getIsReadOnly(fieldName, detailObject.readOnly)) {
@@ -248,7 +248,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
     }
 
     function setWidgetComponentProps(key, detailObject, isExpandedField = false, field = {}, fieldName = key) {
-        let widget = undefined;
+        let widget;
         es.run(() => {
             widget = computed(() => {
                 const fieldLevelThemeOverride = getFieldLevelThemeOverride(fieldName, true);

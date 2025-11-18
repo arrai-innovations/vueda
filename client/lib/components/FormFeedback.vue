@@ -135,7 +135,7 @@ const renderDetail = (data) => {
                         >
                             <template v-if="isObject(line)">
                                 <div v-if="allowHtml" v-html="renderDetail(line)"></div>
-                                <div v-else v-for="[name, message] of Object.entries(line)" :key="name">
+                                <div v-for="[name, message] of Object.entries(line)" v-else :key="name">
                                     {{ name }}: {{ message }}
                                 </div>
                             </template>

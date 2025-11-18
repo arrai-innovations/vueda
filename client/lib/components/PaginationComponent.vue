@@ -58,11 +58,11 @@ const currentPageReportTemplate = computed(() => {
     <div :class="theme('root')">
         <slot
             name="total-records"
-            :totalRecords="totalRecords"
+            :total-records="totalRecords"
             :loading="loading"
-            :showTotalRecordNum="showTotalRecordNum"
+            :show-total-record-num="showTotalRecordNum"
         >
-            <span :class="theme('totalRecords')" v-if="showTotalRecordNum">
+            <span v-if="showTotalRecordNum" :class="theme('totalRecords')">
                 {{ loading ? "" : `${totalRecords} total results` }}
             </span>
         </slot>
@@ -79,9 +79,9 @@ const currentPageReportTemplate = computed(() => {
         </Paginator>
         <slot
             name="show-all-pages"
-            :allowShowAllPages="allowShowAllPages"
+            :allow-show-all-pages="allowShowAllPages"
+            :showing-all-pages="showingAllPages"
             @click="$emit('show-all-pages')"
-            :showingAllPages="showingAllPages"
         >
             <Button
                 v-if="allowShowAllPages && !showingAllPages && totalRecords > rows"

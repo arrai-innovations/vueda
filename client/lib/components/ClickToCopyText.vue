@@ -37,7 +37,7 @@ const slotProps = {
     variant: "text",
     size: "small",
     text: props.text,
-    copied: copied,
+    copied,
 };
 
 const theme = useTheme("ClickToCopyText", props);

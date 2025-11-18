@@ -47,7 +47,7 @@ const remainingSlotNames = computed(() => {
 <template>
     <form @submit.prevent="applyFilter">
         <div :class="theme('outer')">
-            <slot :name="resolvedSlotNames.header.name" :class="theme('heading')" :filterLabel="filterLabel">
+            <slot :name="resolvedSlotNames.header.name" :class="theme('heading')" :filter-label="filterLabel">
                 <h1 :class="theme('heading')">Filter by {{ filterLabel }}</h1>
             </slot>
             <field-renderer :form-model="filterModel" :form-model-name="filterName" :is-filter="true">

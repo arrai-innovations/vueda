@@ -104,8 +104,8 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                                 mode="basic"
                                 name="files[]"
                                 :pt="effectivePt"
-                                @uploader="upload"
                                 :aria-required="widgetContext.state.required"
+                                @uploader="upload"
                             >
                             </FileUpload>
                         </slot>

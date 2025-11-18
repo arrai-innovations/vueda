@@ -68,20 +68,20 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <div :class="theme('editorWrapper')" data-qa="widget-previewable-template-editor">
                 <component
                     :is="inputComponent"
-                    :displayDependencies="computeddisplayDependencies"
+                    :display-dependencies="computeddisplayDependencies"
                     :model-value="modelValue"
                     v-bind="omit($attrs, 'value')"
                     @update:model-value="emit('update:modelValue', $event)"
                 />
-                <slot name="extra-legend" :displayDependencies="widgetContext.state.dependencyValues" />
+                <slot name="extra-legend" :display-dependencies="widgetContext.state.dependencyValues" />
             </div>
             <div :class="theme('previewWrapper')">
                 <span :class="theme('label')">Preview: </span>
                 <div
                     :class="theme('preview')"
-                    v-html="renderedContent"
                     :aria-labelledby="widgetContext.state.widgetId"
                     data-qa="widget-previewable-template-preview"
+                    v-html="renderedContent"
                 />
             </div>
         </div>

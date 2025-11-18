@@ -147,7 +147,7 @@ const onPrevButtonClicked = () => {
     if (currentIndex === 0) {
         currentUnit.value = props.unit[props.unit.length - 1];
     } else if (currentIndex === -1) {
-        return;
+        
     } else {
         currentUnit.value = props.unit[currentIndex - 1];
     }
@@ -159,7 +159,7 @@ const onNextButtonClicked = () => {
     if (currentIndex === props.unit.length - 1) {
         currentUnit.value = props.unit[0];
     } else if (currentIndex === -1) {
-        return;
+        
     } else {
         currentUnit.value = props.unit[currentIndex + 1];
     }
@@ -217,11 +217,11 @@ const displayValue = computed({
                             :step="widgetStep"
                             v-bind="omit($attrs, 'value')"
                             type="number"
+                            :aria-required="widgetContext.state.required"
                             @blur="widgetContext.blur"
                             @focus="widgetContext.focus"
                             @keydown="onInputKeyDown"
                             @paste="onPaste"
-                            :aria-required="widgetContext.state.required"
                         />
                         <InputGroupAddon v-if="currentUnit">
                             <Button

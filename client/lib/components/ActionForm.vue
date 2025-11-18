@@ -153,7 +153,7 @@ const handleConfirm = async () => {
         await actionPromise;
         toast.add({
             severity: "success",
-            summary: summary,
+            summary,
             life: 15000,
         });
         await redirectTo("success");
@@ -264,7 +264,7 @@ const redirectTo = async (result) => {
                             :class="theme('listItem')"
                             data-qa="action-form-list-item"
                         >
-                            <field-string :field-value="pk" :label="pk" :name="pk" :readOnly="true">
+                            <field-string :field-value="pk" :label="pk" :name="pk" :read-only="true">
                                 <widget-read-only
                                     :app="app"
                                     :foreign-key-obj="fetchState.objectsMap.get(pk)"

@@ -233,7 +233,7 @@ const slots = useSlots();
                 </template>
                 <template #field(new)="{ obj }">
                     <slot name="field(new)">
-                        <div v-if="!isTable" v-for="changed in obj.changes" :key="changed.field">
+                        <div v-for="changed in obj.changes" v-if="!isTable" :key="changed.field">
                             {{ changed.new }}
                         </div>
                         <div v-else>
@@ -243,7 +243,7 @@ const slots = useSlots();
                 </template>
                 <template #field(old)="{ obj }">
                     <slot name="field(old)">
-                        <div v-if="!isTable" v-for="changed in obj.changes" :key="changed.field">
+                        <div v-for="changed in obj.changes" v-if="!isTable" :key="changed.field">
                             {{ changed.old }}
                         </div>
                         <div v-else>
@@ -259,10 +259,10 @@ const slots = useSlots();
             :rows="instanceList.state.paginateInfo?.perPage || 1"
             :total-records="instanceList.state.paginateInfo?.totalRecords || 1"
             :is-table="isTable"
-            :showingAllPages="computedShowAllPages"
-            @update:showing-all-pages="showingAllPages = $event"
+            :showing-all-pages="computedShowAllPages"
             :allow-show-all-pages="allowShowAllPages"
             :show-total-record-num="showTotalRecordNum"
+            @update:showing-all-pages="showingAllPages = $event"
         >
             <template v-for="(_, slot) in slots" #[slot]="slotProps">
                 <slot :name="slot" v-bind="slotProps || {}" />

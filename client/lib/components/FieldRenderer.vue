@@ -74,9 +74,9 @@ const {
 
 const themeContext = reactive({
     formModelName: toRef(props, "formModelName"),
-    fieldDetail: fieldDetail,
-    fieldProps: fieldProps,
-    widgetProps: widgetProps,
+    fieldDetail,
+    fieldProps,
+    widgetProps,
     inFieldSet: computed(() => !!fieldSetContext),
 });
 const theme = useTheme("FormModel", props, themeContext);

@@ -96,10 +96,10 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         :options="props.options"
                         :pt="effectivePt"
                         show-clear
+                        :aria-required="widgetContext.state.required"
                         @blur="handleBlur"
                         @focus="handleFocus"
                         @update:model-value="(selected) => valueUpdated(selected)"
-                        :aria-required="widgetContext.state.required"
                     />
                 </div>
             </template>

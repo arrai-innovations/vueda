@@ -70,9 +70,9 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             :name="widgetContext.state.combinedName"
                             :pt="effectivePt"
                             :type="type"
+                            :aria-required="widgetContext.state.required"
                             @blur="widgetContext.blur"
                             @focus="widgetContext.focus"
-                            :aria-required="widgetContext.state.required"
                         />
                         <slot v-if="$slots.suffix" name="suffix" />
                     </component>

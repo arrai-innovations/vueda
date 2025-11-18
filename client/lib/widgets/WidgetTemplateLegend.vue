@@ -37,9 +37,9 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             </template>
             <template #default="{ class: labelControlClass }">
                 <div
+                    :id="widgetContext.state.widgetId"
                     :class="combineClasses(theme('inner'), labelControlClass)"
                     data-qa="widget-template-legend-inner"
-                    :id="widgetContext.state.widgetId"
                 >
                     <slot name="default" :value="widgetContext.state.combinedValue">
                         <div v-if="widgetContext.state.combinedValue">

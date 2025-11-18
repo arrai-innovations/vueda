@@ -273,7 +273,6 @@ const maxDateAsDate = computed(() => {
                         ref="datepickerRef"
                         v-bind="datePickerAttrs"
                         :model-value="modelValue"
-                        @update:model-value="valueUpdated"
                         :clear-button-props="{
                             label: `Clear`,
                             outlined: true,
@@ -294,11 +293,12 @@ const maxDateAsDate = computed(() => {
                             outlined: true,
                             text: true,
                         }"
+                        :aria-required="widgetContext.state.required"
+                        @update:model-value="valueUpdated"
                         @blur="onBlur"
                         @focus="widgetContext.focus"
                         @input="onInput"
                         @today-click="onTodayButtonClick"
-                        :aria-required="widgetContext.state.required"
                     />
                 </div>
             </template>

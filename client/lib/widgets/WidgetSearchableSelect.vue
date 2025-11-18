@@ -70,19 +70,19 @@ const handleLabelClick = (e) => unref(selectRef)?.onContainerClick?.(e);
                         :option-group-label="searchableSelect.optionGroupLabel"
                         :option-group-children="searchableSelect.optionGroupChildren"
                         :virtual-scroller-options="searchableSelect.virtualScrollerOptions"
-                        @before-show="searchableSelect.onBeforeShow"
-                        @change="searchableSelect.onChange"
-                        @hide="searchableSelect.onHide"
                         :aria-labelledby="widgetContext.state.widgetId"
                         :disabled="widgetContext.state.disabled"
                         fluid
                         :invalid="widgetContext.state.validationState.invalid"
                         :pt="effectivePt"
                         show-clear
-                        @blur="widgetContext.blur"
-                        @focus="widgetContext.focus"
                         :aria-required="widgetContext.state.required"
                         :empty-message="searchableSelect.emptyMessage"
+                        @before-show="searchableSelect.onBeforeShow"
+                        @change="searchableSelect.onChange"
+                        @hide="searchableSelect.onHide"
+                        @blur="widgetContext.blur"
+                        @focus="widgetContext.focus"
                     >
                         <template #value>
                             <template v-if="widgetContext.state.combinedValue">
@@ -96,8 +96,8 @@ const handleLabelClick = (e) => unref(selectRef)?.onContainerClick?.(e);
                             <div class="py-1.5 px-2 w-full flex">
                                 <InputText
                                     :id="widgetContext.state.widgetId"
-                                    class="w-full"
                                     v-model="searchableSelect.query"
+                                    class="w-full"
                                     placeholder="Type to Search"
                                 ></InputText>
                             </div>

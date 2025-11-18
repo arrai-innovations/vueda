@@ -17,7 +17,7 @@ export function useSubForm({ parentPath }) {
     /** @type {import('@vueda/use/useForm').FormContext} */
     const state = reactive({
         // *** Meta Information ***
-        parentPath: parentPath,
+        parentPath,
 
         // *** Values & Initial State ***
         values: {},
