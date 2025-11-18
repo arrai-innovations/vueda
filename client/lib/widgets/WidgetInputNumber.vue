@@ -146,9 +146,7 @@ const onPrevButtonClicked = () => {
     const currentIndex = props.unit.findIndex((item) => item.value === currentUnitValue);
     if (currentIndex === 0) {
         currentUnit.value = props.unit[props.unit.length - 1];
-    } else if (currentIndex === -1) {
-        
-    } else {
+    } else if (currentIndex !== -1) {
         currentUnit.value = props.unit[currentIndex - 1];
     }
 };
@@ -158,9 +156,7 @@ const onNextButtonClicked = () => {
     const currentIndex = props.unit.findIndex((item) => item.value === currentUnitValue);
     if (currentIndex === props.unit.length - 1) {
         currentUnit.value = props.unit[0];
-    } else if (currentIndex === -1) {
-        
-    } else {
+    } else if (currentIndex !== -1) {
         currentUnit.value = props.unit[currentIndex + 1];
     }
 };
