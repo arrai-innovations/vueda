@@ -33,10 +33,12 @@ const props = defineProps({
     filterables: {
         type: Array,
         description: "A list of the filterables to show in the filter form.",
+        default: () => [],
     },
     filterableDetails: {
         type: Object,
         description: "A dictionary of overriding filterable details.",
+        default: () => ({}),
     },
     filterFormsValues: {
         type: Object,
