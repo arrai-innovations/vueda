@@ -58,6 +58,7 @@ const theme = useTheme(
                     <slot name="icon" v-bind="slotProps" />
                 </template>
                 <template v-if="allowHtml && containsHtml(computedHelp)">
+                    <!-- eslint-disable-next-line vue/no-v-html -->
                     <div v-html="computedHelp" />
                 </template>
                 <template v-else>

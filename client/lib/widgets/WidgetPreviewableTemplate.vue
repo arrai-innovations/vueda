@@ -7,6 +7,7 @@ import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
 import get from "lodash-es/get.js";
 import omit from "lodash-es/omit.js";
 import { computed } from "vue";
+import { sanitizeMessage } from "@vueda/utils/html.js";
 
 defineOptions({
     inheritAttrs: false,
@@ -39,14 +40,13 @@ const tags_data = computed(() => {
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 const renderedContent = computed(() => {
-    const text = widgetContext.state.combinedValue;
-    if (!tags_data.value) {
-        return text;
+    let text = widgetContext.state.combinedValue;
+    if (tags_data.value) {
+        text = text.replace(/\$(\w+)/g, (match, varName) => {
+            return get(tags_data.value, [varName, "default"], "");
+        })
     }
-
-    return text.replace(/\$(\w+)/g, (match, varName) => {
-        return get(tags_data.value, [varName, "default"], "");
-    });
+    return sanitizeMessage(text);
 });
 const inputComponent = computed(
     () =>
@@ -74,12 +74,14 @@ const theme = useWidgetTheme("WidgetPreviewableTemplate");
             </div>
             <div :class="theme('previewWrapper')">
                 <span :class="theme('label')">Preview: </span>
+                <!-- eslint-disable vue/no-v-html -->
                 <div
                     :class="theme('preview')"
                     :aria-labelledby="widgetContext.state.widgetId"
                     data-qa="widget-previewable-template-preview"
                     v-html="renderedContent"
                 />
+                <!-- eslint-enable vue/no-v-html -->
             </div>
         </div>
     </div>
