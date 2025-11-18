@@ -34,7 +34,7 @@ describe("lib/stores/storeDarkMode.js", () => {
     });
 
     scopedIt("toggle() flips state and persists", () => {
-        const setItemSpy = vi.spyOn(window.localStorage.__proto__, "setItem");
+        const setItemSpy = vi.spyOn(Object.getPrototypeOf(window.localStorage), "setItem");
         const store = storeDarkMode();
         expect(store.isDark).toBe(false);
         store.toggle();
