@@ -39,6 +39,9 @@
     "url": "https://github.com/arrai-innovations/vueda-client/issues"
   },
   "homepage": "https://github.com/arrai-innovations/vueda-client#readme",
+  "overrides": {
+    "glob": "^11.0.0"
+  },
   "devDependencies": {
     "@arrai-innovations/commitlint-config": "^2.1.0",
     "@commitlint/cli": "^19.8.0",
