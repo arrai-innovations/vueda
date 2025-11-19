@@ -1,6 +1,5 @@
 import json
 import operator
-import textwrap
 
 from allauth.account.stages import LoginStageController
 from allauth.headless.account.views import LoginView
@@ -18,7 +17,6 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.cache import cache
-from django.core.mail import send_mail
 from django.db.models import Case
 from django.db.models import CharField
 from django.db.models import F
@@ -53,6 +51,7 @@ from vueda.core.db import Array
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
+from vueda.user.adapters import get_adapter
 from vueda.user.decorators import ensure_csrf_token
 from vueda.user.mixins import LogoutMixin
 from vueda.user.models import GroupChange
@@ -94,35 +93,6 @@ class VuedaForgotPasswordView(GenericAPIView):
     serializer_class = ForgotPasswordSerializer
     permission_classes = (AllowAny,)
 
-    def get_email_template(self, url, **kwargs):
-        body = textwrap.dedent(f"""
-                        Hello,
-
-                        A request has been received to have the password for your account reset.
-                        If you made this request, please click the link below to reset your password:
-
-                        {url}
-                    """).strip()
-
-        subject = "Automated Message: Password Reset Request"
-
-        return {
-            "subject": subject,
-            "body": body,
-        }
-
-    def send_email(self, email, from_email, to_email):
-        from django.core.mail import send_mail
-
-        send_mail(
-            email["subject"],
-            email["body"],
-            from_email,
-            to_email,
-            fail_silently=False,
-            html_message=email["body"],
-        )
-
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -150,16 +120,13 @@ class VuedaForgotPasswordView(GenericAPIView):
                         status=drf_status.HTTP_429_TOO_MANY_REQUESTS,
                     )
 
-                cache.set(cache_key, True, timeout=60)
                 url = active_user.generate_reset_url()
-                email_template = self.get_email_template(url, user=active_user)
-                from_email = email_template.get("from_email", settings.NO_REPLY_EMAIL)
-                self.send_email(
-                    email_template,
-                    from_email,
-                    [email],
-                )
-
+                context = {
+                    "user": active_user,
+                    "reset_url": url,
+                }
+                get_adapter().send_mail(email, active_user.name, "forgot_password", context)
+                cache.set(cache_key, True, timeout=60)
             else:
                 return Response({"email": ["Email not found or user is inactive. "]}, status=400)
         except Exception as e:
@@ -612,25 +579,25 @@ def totp_code(request):
     devices = user.totp_devices
     if not devices.exists():
         return Response({"detail": "No TOTP device found"}, status=status.HTTP_404_NOT_FOUND)
-    if request.method == "POST":
-        method = request.data.get("method")
 
-        device = user.totp_devices.filter(method=method).first()
-        authenticator = device.authenticator
-        secret = authenticator.data.get("secret")
-        code = get_current_totp_code(secret)
+    if request.method == "GET":
+        methods = list(devices.values_list("method", flat=True))
+        return Response({"methods": methods}, status=status.HTTP_200_OK)
+    method = request.data.get("method")
+    device = devices.filter(method=method).select_related("authenticator").first()
+    if not device:
+        return Response({"detail": "No device for requested method"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if method == "email":
-            # TODO: integrate with vdq.
-            send_mail(
-                "Automated Message: Two Factor Authentication Code",
-                f"Your TOTP code is: {code}",
-                settings.NO_REPLY_EMAIL,
-                [user.email],
-            )
-        elif method == "sms":
-            # Implement SMS sending logic here
-            # TODO: integrate with vdq.
-            pass
-
-    return Response(data={"methods": devices.values_list("method", flat=True)}, status=status.HTTP_200_OK)
+    authenticator = device.authenticator
+    secret = authenticator.data.get("secret")
+    code = get_current_totp_code(secret)
+    context = {"code": code}
+    adapter = get_adapter()
+    send_action = {
+        "email": lambda: adapter.send_mail(device.email, user.name, "totp_code", context),
+        "sms": lambda: adapter.send_sms(device.phone_number, user.name, "totp_code", context),
+    }.get(method)
+    if not send_action:
+        return Response({"detail": "Unsupported method"}, status=status.HTTP_400_BAD_REQUEST)
+    send_action()
+    return Response(status=status.HTTP_204_NO_CONTENT)

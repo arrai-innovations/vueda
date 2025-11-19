@@ -115,21 +115,15 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, VUEDAPermissions
         return f"{self.email}"
 
     def send_welcome_email(self):
-        pass
-        # name = self.name or self.get_username()
-        # todo: send email
-        # email = EmailMessageModel.objects.create(
-        #     subject="Welcome To Treature",
-        #     from_email=settings.DEFAULT_FROM_EMAIL,
-        #     to=[self.email],
-        #     body=f"""Welcome,
-        #     {name}
-        #
-        #     Visit the site at:
-        #     https://{settings.FRONTEND_DOMAIN}
-        #     """,
-        # )
-        # email.send_email()
+        from vueda.user.adapters import get_adapter
+
+        url = self.generate_reset_url()
+        context = {
+            "reset_url": url,
+            "login_url": f"https://{settings.FRONTEND_DOMAIN}{settings.FRONTEND_LOGIN_URL}",
+            "support_email": settings.SUPPORT_EMAIL,
+        }
+        get_adapter().send_mail(self.email, self.name, "welcome_user", context)
 
     def generate_reset_url(self):
         """
@@ -139,7 +133,7 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, VUEDAPermissions
         hashids = Hashids(min_length=16)
         return (
             urljoin(
-                f"https://{settings.FRONTEND_DOMAIN}{settings.FRONTEND_RESET_URL}",
+                f"https://{settings.FRONTEND_DOMAIN}{settings.FRONTEND_RESET_URL}/",
                 hashids.encode(self.pk),
             )
             + "?token="

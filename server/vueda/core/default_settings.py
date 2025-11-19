@@ -28,6 +28,7 @@ def get_defaults(env: Env):
     return_dict = {
         "CELERY_BROKER_URL": env("CELERY_BROKER_URL", default=""),
         "TWILIO_ACCOUNT_SID": env("TWILIO_ACCOUNT_SID", default=""),
+        "TWILIO_CALLER_ID": env("TWILIO_CALLER_ID", default=""),
         "TWILIO_AUTH_TOKEN": env("TWILIO_AUTH_TOKEN", default=""),
         "DEBUG": env.bool("DEBUG", default=False),
         "SECRET_KEY": env("SECRET_KEY"),  # important to not have a default
@@ -74,6 +75,7 @@ def get_defaults(env: Env):
             "django.contrib.auth.hashers.ScryptPasswordHasher",
         ],
         "FRONTEND_DOMAIN": env("FRONTEND_DOMAIN"),
+        "FRONTEND_LOGIN_URL": env("FRONTEND_LOGIN_URL"),
         "FRONTEND_RESET_URL": env("FRONTEND_RESET_URL", "/reset-password"),
         "SITE_ID": env.int("SITE_ID", default=1),
         "LANGUAGE_CODE": env("LANGUAGE_CODE", default="en-us"),
@@ -84,6 +86,7 @@ def get_defaults(env: Env):
         "DATABASES": {"default": env.dj_db_url("DATABASE_URL")},  # like "postgres://user:password@host:5432/dbname"
         "EMAIL_BACKEND": env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"),
         "EMAIL_TIMEOUT": 5,
+        "EMAIL_SUBJECT_PREFIX": env("EMAIL_SUBJECT_PREFIX", default=""),
         "SESSION_ENGINE": "django.contrib.sessions.backends.cache",
         "SESSION_COOKIE_HTTPONLY": True,
         "SESSION_COOKIE_SECURE": True,
@@ -93,6 +96,8 @@ def get_defaults(env: Env):
         "SECURE_HSTS_SECONDS": env.int("SECURE_HSTS_SECONDS", default=31536000),  # 1 year
         "SECURE_PROXY_SSL_HEADER": ("HTTP_X_FORWARDED_PROTO", "https"),
         "SECURE_REFERRER_POLICY": env("SECURE_REFERRER_POLICY", default="same-origin") or None,
+        "SITE_NAME": env("SITE_NAME"),
+        "SUPPORT_EMAIL": env("SUPPORT_EMAIL"),
         "CSRF_COOKIE_HTTPONLY": False,  # csrf expects this value in post requests, so our client's js needs to be able to read it
         "CSRF_TRUSTED_ORIGINS": env.list("CSRF_TRUSTED_ORIGINS"),
         "CSRF_COOKIE_SECURE": True,
@@ -167,6 +172,7 @@ def get_defaults(env: Env):
                 "vueda.release",
             ],
         ),
+        "VUEDA_USER_ADAPTER": env("VUEDA_USER_ADAPTER", default="vueda.user.adapters.DefaultUserAdapter"),
         "THIRD_PARTY_APPS": env.list(
             "THIRD_PARTY_APPS",
             default=[

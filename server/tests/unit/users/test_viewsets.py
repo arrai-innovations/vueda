@@ -3,9 +3,12 @@ from http import HTTPStatus
 import pytest
 from allauth.mfa.models import Authenticator
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from django.urls import reverse
 
+from vueda.user.models import TWO_FACTOR_AUTHENTICATION_OPTIONS
 from vueda.user.models import TOTPDevice
+from vueda.user.serializers import TOTPDeviceSerializer
 from vueda.user.viewsets import TOTPDeviceViewSet
 
 
@@ -119,3 +122,34 @@ def test_activate_creates_device(api_client, user, monkeypatch):
     assert response.status_code == HTTPStatus.CREATED
     assert TOTPDevice.objects.filter(user=user, method="totp").exists()
     assert response.data == {"detail": "TOTP setup complete"}
+
+
+@override_settings(TWILIO_ACCOUNT_SID="", TWILIO_AUTH_TOKEN="", TWILIO_CALLER_ID="")
+def test_available_methods_excludes_sms_without_twilio():
+    serializer = TOTPDeviceSerializer()
+    assert all(choice[0] != "sms" for choice in serializer.fields["method"].choices)
+
+
+@override_settings(TWILIO_ACCOUNT_SID="TESTSID", TWILIO_AUTH_TOKEN="TESTAUTH", TWILIO_CALLER_ID="TESTCALLER")
+def test_available_methods_return_full_choices_with_twilio_setup():
+    serializer = TOTPDeviceSerializer()
+    methods = list(serializer.fields["method"].choices)
+    all_methods = [choice[0] for choice in TWO_FACTOR_AUTHENTICATION_OPTIONS]
+    assert "sms" in methods
+    assert set(methods) == set(all_methods)
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+@override_settings(TWILIO_ACCOUNT_SID="", TWILIO_AUTH_TOKEN="", TWILIO_CALLER_ID="")
+def test_setup_sms_returns_validation_error_when_twilio_unavailable(api_client, user, monkeypatch):
+    monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", lambda regenerate=False: "secret")
+    api_client.force_authenticate(user=user)
+
+    response = api_client.post(
+        reverse("vueda_user.totpdevice-setup"),
+        {"method": "sms", "destination": "+15551230000"},
+        format="json",
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.data["method"] == ["SMS method is not available."]

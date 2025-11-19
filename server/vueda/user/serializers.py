@@ -13,7 +13,7 @@ from rest_framework.exceptions import ValidationError
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaSerializer
-from vueda.user.models import TWO_FACTOR_AUTHENTICATION_OPTIONS
+from vueda.user.fields import TOTPMethodChoiceField
 from vueda.user.models import TOTPDevice
 
 
@@ -223,9 +223,7 @@ class AuthenticatorSerializer(serializers.Serializer):
 class TOTPDeviceSerializer(serializers.ModelSerializer, VuedaExpandableFieldsSerializerMixin):
     created_at = serializers.SerializerMethodField()
     last_used_at = serializers.SerializerMethodField()
-    method = serializers.ChoiceField(
-        choices=TWO_FACTOR_AUTHENTICATION_OPTIONS,
-    )
+    method = TOTPMethodChoiceField()
     formatted_name = serializers.SerializerMethodField()
 
     class Meta:

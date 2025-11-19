@@ -6,8 +6,6 @@ from allauth.mfa.adapter import get_adapter
 from allauth.mfa.models import Authenticator
 from allauth.mfa.totp.internal import auth as totp_auth
 from allauth.mfa.totp.internal import flows as totp_flows
-from django.conf import settings
-from django.core.mail import send_mail
 from django.db import transaction
 from rest_framework import status as drf_status
 from rest_framework.mixins import DestroyModelMixin
@@ -18,6 +16,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.viewsets import VuedaViewSet
+from vueda.user.adapters import get_adapter as vueda_get_adapter
 from vueda.user.filtersets import TOTPDeviceFilterSet
 from vueda.user.models import TOTPDevice
 from vueda.user.serializers import TOTPDeviceSerializer
@@ -44,10 +43,13 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
     def setup(self, request):
         authenticator = self._get_authenticator()
         method = request.data.get("method")
-        if method in ["totp", "email", "sms"]:
-            secret = totp_auth.get_totp_secret(regenerate=not authenticator)
-        else:
+        serializer = self.get_serializer()
+        if method not in serializer.fields["method"].choices:
+            if method == "sms":
+                raise VuedaValidationError({"method": ["SMS method is not available."]})
             raise VuedaValidationError({"method": ["Invalid method"]})
+
+        secret = totp_auth.get_totp_secret(regenerate=not authenticator)
         if (
             authenticator
             and TOTPDevice.objects.filter(authenticator=authenticator, user=request.user, method=method).exists()
@@ -78,20 +80,20 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
                 raise VuedaValidationError({"destination": ["Phone number is required for sms method"]})
 
             request.session[self.TOTP_SESSION_KEY] = {"method": method, "sms": phone}
-            # TODO: integrate with vdq .
+            context = {
+                "code": get_current_totp_code(secret),
+            }
+            vueda_get_adapter().send_sms(phone, request.user.name, "totp_code", context)
 
         elif method == "email":
             email = request.data.get("destination")
             if not email:
                 raise VuedaValidationError({"destination": ["An Email address is required for email method"]})
             request.session[self.TOTP_SESSION_KEY] = {"method": method, "email": email}
-            send_mail(
-                "TOTP Code for Two Factor Authentication Setup",
-                f"Your TOTP code is:{get_current_totp_code(secret)}",
-                settings.NO_REPLY_EMAIL,
-                [email],
-                fail_silently=False,
-            )
+            context = {
+                "code": get_current_totp_code(secret),
+            }
+            vueda_get_adapter().send_mail(email, request.user.name, "totp_code", context)
 
         return Response(status=drf_status.HTTP_200_OK)
 
