@@ -95,6 +95,28 @@ describe("lib/use/useReactiveHookRegistry.js", () => {
 
             expect(registry.computedAggregates.field1).toBeUndefined();
         });
+        scopedIt("recomputes aggregates when additional hooks are registered", async () => {
+            registry.registerHook("field1", () => false);
+            await flushPromises();
+
+            registry.registerHook("field1", () => true);
+            await flushPromises();
+
+            expect(registry.computedAggregates.field1).toBe(true);
+        });
+
+        scopedIt("updates aggregates when the last truthy hook is unregistered", async () => {
+            const truthyHookId = registry.registerHook("field1", () => true);
+            registry.registerHook("field1", () => false);
+            await flushPromises();
+
+            expect(registry.computedAggregates.field1).toBe(true);
+
+            registry.unregisterHook(truthyHookId);
+            await flushPromises();
+
+            expect(registry.computedAggregates.field1).toBe(false);
+        });
     });
 
     describe("effect scope cleanup", () => {

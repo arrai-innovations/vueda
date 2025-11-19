@@ -59,4 +59,36 @@ export default {
             class: "flex flex-row items-baseline gap-1 p-1 2xs:p-2 2xl:p-4 ",
         },
     },
+    MobileSortComponent: {
+        drawer: {
+            class: ["!h-auto"],
+        },
+        drawerInner: {
+            class: ["flex flex-col gap-4"],
+        },
+        draggable: {
+            class: ["flex flex-col gap-2"],
+        },
+        draggableItem: {
+            class: ["flex flex-row rounded-lg border border-surface-200 p-3"],
+        },
+        draggableItemInner: {
+            class: ["select-none flex flex-row gap-3 items-center justify-between grow flex-1"],
+        },
+        dragHandle: {
+            class: ["drag-handle cursor-grab active:cursor-grabbing p-1"],
+        },
+        sortOrderText: {
+            class: ["w-3 text-sm font-semibold text-surface-500"],
+        },
+        select: {
+            class: ["w-full"],
+        },
+        sortInlineActionBar: {
+            class: ["flex flex-row content-baseline justify-end"],
+        },
+        actionBar: {
+            class: ["flex flex-col gap-2"],
+        },
+    },
 };

@@ -125,6 +125,23 @@ export function testWatches(vue, props, pos, neg = false, deep = false) {
 export const expectReadOnlyFor = (name) =>
     new RegExp(`(?:target is readonly.*${name}|${name}.*target is readonly|trap returned falsish.*${name})`);
 
+/**
+ * Expect that executing the callback triggers a Vue readonly warning for the given property name.
+ *
+ * Vue 3.5.19 switched to give warnings instead of throwing an error when updating a nested readonly
+ *
+ * @param {() => void} fn - The function expected to trigger a readonly warning.
+ * @param {string} name - The property involved in the readonly assignment.
+ */
+export const expectReadOnlyWarning = (fn, name) => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    fn();
+    const calls = warnSpy.mock.calls.map((args) => String(args[0]));
+    warnSpy.mockRestore();
+    const matched = calls.some((message) => expectReadOnlyFor(name).test(message));
+    expect(matched).toBe(true);
+};
+
 export const mockVueRouterLifecycle = (vi) => {
     const leaveFns = [];
     const updateFns = [];

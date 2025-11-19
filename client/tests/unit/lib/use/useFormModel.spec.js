@@ -271,7 +271,7 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(state.fieldComponents.score).toBe(availableFields.FieldString);
+            expect(state.fieldComponents.score).toStrictEqual(availableFields.FieldString);
         });
         scopedIt("uses prop.fields when both prop and config supply fields", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -615,7 +615,7 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(state.fieldComponents.amount).toBe(
+            expect(state.fieldComponents.amount).toStrictEqual(
                 defaultFieldMappings.ModelField.GeneratedField.FloatField.component,
             );
         });
@@ -642,7 +642,7 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(state.fieldComponents.kind).toBe(choiceFieldMappings.ChoiceField.CharField.component);
+            expect(state.fieldComponents.kind).toStrictEqual(choiceFieldMappings.ChoiceField.CharField.component);
         });
         scopedIt("uses many field / widget mappings when many=true", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -700,8 +700,8 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(state.fieldComponents.summary).toBe(FieldCustom);
-            expect(state.widgetComponents.summary).toBe(WidgetCustom);
+            expect(state.fieldComponents.summary).toStrictEqual(FieldCustom);
+            expect(state.widgetComponents.summary).toStrictEqual(WidgetCustom);
         });
         scopedIt("uses WidgetReadOnly when field.readOnly is true", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -728,7 +728,7 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(state.widgetComponents.title).toBe(availableWidgets.WidgetReadOnly);
+            expect(state.widgetComponents.title).toStrictEqual(availableWidgets.WidgetReadOnly);
         });
         scopedIt("uses manyWidget for choice fields when many=true", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -752,7 +752,7 @@ describe("lib/use/useFormModel.js", () => {
             modelConfig.config.fieldDetails = props.fieldDetails;
             await flushPromises();
 
-            expect(state.widgetComponents.status).toBe(availableWidgets.WidgetMultiSelect);
+            expect(state.widgetComponents.status).toStrictEqual(availableWidgets.WidgetMultiSelect);
         });
         scopedIt("infers FieldSetStackedInline for expanded many fields", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -781,7 +781,7 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(state.fieldComponents.tags).toBe(availableFields.FieldSetStackedInline);
+            expect(state.fieldComponents.tags).toStrictEqual(availableFields.FieldSetStackedInline);
         });
         scopedIt("resolves field component names passed as strings", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -808,7 +808,7 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(state.fieldComponents.title).toBe(availableFields.FieldSetTabularInline);
+            expect(state.fieldComponents.title).toStrictEqual(availableFields.FieldSetTabularInline);
         });
         scopedIt("resolves widget names from props", async () => {
             const { availableWidgets } = await import("@vueda/utils/formLookups.js");
@@ -835,7 +835,7 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(state.widgetComponents.notes).toBe(availableWidgets.WidgetTextarea);
+            expect(state.widgetComponents.notes).toStrictEqual(availableWidgets.WidgetTextarea);
         });
         scopedIt("returns null widget for base expanded fields", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");

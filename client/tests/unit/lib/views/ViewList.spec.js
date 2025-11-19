@@ -101,10 +101,19 @@ let objectsGridProps;
 let multiSelectProps;
 const ObjectsGridStub = defineComponent({
     name: "ObjectsGridStub",
-    props: ["fields"],
+    props: ["fields", "sorted"],
+    emits: ["update:isTable", "update:sorted"],
     setup(props, { slots, attrs }) {
         objectsGridProps = props;
         return () => h("div", { "data-qa": "objects-grid", ...attrs }, slots.default ? slots.default() : null);
+    },
+});
+const MobileSortComponentStub = defineComponent({
+    name: "MobileSortComponentStub",
+    props: ["visible", "sorted", "sortables"],
+    emits: ["update:visible", "update:sorted"],
+    setup(props, { slots, attrs }) {
+        return () => h("div", { "data-qa": "mobile-sort-component", ...attrs }, slots.default ? slots.default() : null);
     },
 });
 const PageTitleStub = defineComponent({
@@ -201,14 +210,15 @@ vi.mock("@vueda/components/FilterGroup.vue", () => ({ default: FilterGroupStub }
 vi.mock("@vueda/components/FormFeedback.vue", () => ({ default: FormFeedbackStub }));
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 vi.mock("@vueda/components/ObjectsGrid.vue", () => ({ default: ObjectsGridStub }));
+vi.mock("@vueda/components/MobileSortComponent.vue", () => ({ default: MobileSortComponentStub }));
 vi.mock("@vueda/components/PageTitle.vue", () => ({ default: PageTitleStub }));
 vi.mock("@vueda/components/PaginationComponent.vue", () => ({ default: PaginationComponentStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
-vi.mock("primevue/inputgroup", () => ({ default: InputGroupStub }));
-vi.mock("primevue/inputtext", () => ({ default: InputTextStub }));
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
-vi.mock("primevue/checkbox", () => ({ default: CheckboxStub }));
-vi.mock("primevue/multiselect", () => ({ default: MultiSelectStub }));
+vi.mock("primevue/inputgroup", () => ({ __esModule: true, default: InputGroupStub }));
+vi.mock("primevue/inputtext", () => ({ __esModule: true, default: InputTextStub }));
+vi.mock("primevue/button", () => ({ __esModule: true, default: ButtonStub }));
+vi.mock("primevue/checkbox", () => ({ __esModule: true, default: CheckboxStub }));
+vi.mock("primevue/multiselect", () => ({ __esModule: true, default: MultiSelectStub }));
 
 const route = { query: {} };
 const routerPush = vi.fn();
@@ -262,6 +272,7 @@ beforeEach(async () => {
             verboseNamePlural: "items",
             actionDetails: {},
             fetchFields: [],
+            sortables: [],
         },
     });
     mockedUseModelConfig.mockReturnValue(modelConfig);
@@ -333,6 +344,27 @@ scopedIt("translates expanded field names for ObjectsGrid", async () => {
     wrapper.unmount();
 });
 
+scopedIt("renders the mobile sort component when sortables exist and table view is hidden", async () => {
+    mockedInject.mockReturnValueOnce({});
+    const wrapper = mount(ViewList, {
+        props: {
+            app: "app",
+            model: "model",
+        },
+    });
+
+    expect(wrapper.find('[data-qa="mobile-sort-component"]').exists()).toBe(false);
+
+    modelConfig.config.sortables = ["name"];
+    await vue.nextTick();
+
+    await wrapper.findComponent(ObjectsGridStub).vm.$emit("update:isTable", false);
+    await vue.nextTick();
+
+    expect(wrapper.find('[data-qa="mobile-sort-component"]').exists()).toBe(true);
+    wrapper.unmount();
+});
+
 scopedIt("allows toggling show all pages", async () => {
     mockedInject.mockReturnValueOnce({});
     modelConfig.config.allowShowAllPages = true;
@@ -369,7 +401,6 @@ scopedIt("renders column selector when column hiding allowed", async () => {
     const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
     await vue.nextTick();
     await vue.nextTick();
-
     expect(wrapper.find('[data-qa="multi-select"]').exists()).toBe(true);
     expect(multiSelectProps.modelValue).toEqual(["field__name"]);
     expect(multiSelectProps.options).toEqual([{ label: "Field Name", value: "field__name" }]);
@@ -458,5 +489,119 @@ scopedIt("restores stored sorting preferences", async () => {
 
     expect(listPreferenceStoreMock.getSorting).toHaveBeenCalledWith({ app: "app", model: "model" });
     expect(listPreferenceStoreMock.setSorting).toHaveBeenCalledWith({ app: "app", model: "model" }, storedSorting);
+    wrapper.unmount();
+});
+scopedIt("applies stored sorting to ObjectsGrid on mount", async () => {
+    mockedInject.mockReturnValueOnce({});
+    modelConfig.config.sortables = ["created_at", "name"];
+    const storedSorting = ["-created_at"];
+    listPreferenceStoreMock.getSorting.mockReturnValue(storedSorting);
+
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await vue.nextTick();
+
+    expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual(storedSorting);
+    wrapper.unmount();
+});
+scopedIt("propagates mobile sorting updates to preferences and params", async () => {
+    mockedInject.mockReturnValueOnce({});
+    modelConfig.config.sortables = ["name", "created_at"];
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+
+    await vue.nextTick();
+    await wrapper.findComponent(ObjectsGridStub).vm.$emit("update:isTable", false);
+    await vue.nextTick();
+
+    wrapper.findComponent(MobileSortComponentStub).vm.$emit("update:sorted", ["-name", "created_at"]);
+    await vue.nextTick();
+
+    expect(listPreferenceStoreMock.setSorting).toHaveBeenCalledWith({ app: "app", model: "model" }, [
+        "-name",
+        "created_at",
+    ]);
+    wrapper.unmount();
+});
+
+scopedIt("appends new display fields without resetting hidden preferences", async () => {
+    mockedInject.mockReturnValueOnce({});
+    modelConfig.config.allowColumnHiding = true;
+    modelConfig.config.displayFields = ["field1", "field2"];
+    modelConfig.config.fieldDetails = {
+        field1: {},
+        field2: {},
+        field3: {},
+    };
+    let hiddenPreference = ["field1"];
+    listPreferenceStoreMock.getHiddenColumns.mockImplementation(() => hiddenPreference);
+    listPreferenceStoreMock.setHiddenColumns.mockImplementation((_, hidden) => {
+        hiddenPreference = hidden;
+    });
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await vue.nextTick();
+    expect(listPreferenceStoreMock.getHiddenColumns).toHaveBeenCalledTimes(1);
+
+    modelConfig.config.displayFields = ["field1", "field2", "field3"];
+
+    await vue.nextTick();
+
+    expect(wrapper.vm.columns).toContain("field3");
+    expect(listPreferenceStoreMock.getHiddenColumns).toHaveBeenCalledTimes(1);
+    expect(listPreferenceStoreMock.setHiddenColumns).toHaveBeenCalledWith({ app: "app", model: "model" }, ["field1"]);
+    expect(hiddenPreference).toEqual(["field1"]);
+    wrapper.unmount();
+});
+
+scopedIt("keeps filter parameters when clearing search input", async () => {
+    mockedInject.mockReturnValueOnce({});
+    route.query = { [SEARCH_PARAM]: "search-term", filter: "status" };
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await vue.nextTick();
+
+    listPreferenceStoreMock.setFilters.mockClear();
+    routerPush.mockClear();
+
+    const input = wrapper.findComponent(InputTextStub);
+    input.vm.$emit("update:model-value", "");
+    await vue.nextTick();
+    input.vm.$emit("search");
+    await vue.nextTick();
+
+    expect(listPreferenceStoreMock.setFilters).toHaveBeenCalledWith(
+        { app: "app", model: "model" },
+        { filter: "status" },
+    );
+    expect(routerPush).toHaveBeenCalledWith({ query: { filter: "status" } });
+    expect(objectsGridProps.sorted).toEqual([]);
+    wrapper.unmount();
+});
+
+scopedIt("renders the mobile sorter only when table view is off and sortables exist", async () => {
+    mockedInject.mockReturnValueOnce({});
+    modelConfig.config.sortables = ["name"];
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await wrapper.findComponent(ObjectsGridStub).vm.$emit("update:isTable", false);
+    await vue.nextTick();
+
+    expect(wrapper.find('[data-qa="mobile-sort-component"]').exists()).toBe(true);
+    modelConfig.config.sortables = [];
+    await vue.nextTick();
+
+    expect(wrapper.find('[data-qa="mobile-sort-component"]').exists()).toBe(false);
+    wrapper.unmount();
+});
+
+scopedIt("does not navigate when there are no stored filters", async () => {
+    mockedInject.mockReturnValueOnce({});
+    listPreferenceStoreMock.getFilters.mockReturnValue(undefined);
+
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await vue.nextTick();
+
+    expect(routerPush).not.toHaveBeenCalled();
     wrapper.unmount();
 });

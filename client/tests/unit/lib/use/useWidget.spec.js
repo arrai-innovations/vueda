@@ -1,4 +1,4 @@
-import { expectReadOnlyFor, mockLifecycle, mockProvideInject, scopedIt, testWatches } from "@tests/unit/utils.js";
+import { expectReadOnlyWarning, mockLifecycle, mockProvideInject, scopedIt, testWatches } from "@tests/unit/utils.js";
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 
@@ -240,7 +240,9 @@ describe("lib/use/useWidget.js", () => {
                     const { widget } = mountWidgetNoContext({});
                     const { widgetId } = widget.state;
                     expect(widgetId).toBe("4fxcm49g2j9kfv9yqdpilq");
-                    expect(() => (widget.state.widgetId = "fakeId")).toThrow(expectReadOnlyFor("widgetId"));
+                    expectReadOnlyWarning(() => {
+                        widget.state.widgetId = "fakeId";
+                    }, "widgetId");
                 });
             });
             describe("combinedName", () => {

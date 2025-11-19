@@ -153,7 +153,7 @@ export function useReactiveHookRegistry(aggregatorFn) {
     if (!aggregatorFn) {
         aggregatorFn = (values) => values.some(identity);
     }
-    const groupToIds = {};
+    const groupToIds = reactive({});
     const registryFns = {};
     const registryGroups = reactive({});
     /** @type {ComputedAggregates} */

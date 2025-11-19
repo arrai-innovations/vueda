@@ -154,6 +154,9 @@ export default {
         filterGroupBar: {
             class: ["w-full"],
         },
+        sortComponentDiv: {
+            class: ["flex flex-row justify-end"],
+        },
         objectsGrid: {
             class: ["w-full"],
         },

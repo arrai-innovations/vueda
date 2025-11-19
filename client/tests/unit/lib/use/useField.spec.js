@@ -1,5 +1,5 @@
 import { del } from "@arrai-innovations/reactive-helpers";
-import { expectReadOnlyFor, mockLifecycle, mockProvideInject, scopedIt } from "@tests/unit/utils.js";
+import { expectReadOnlyWarning, mockLifecycle, mockProvideInject, scopedIt } from "@tests/unit/utils.js";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 import capitalize from "lodash-es/capitalize.js";
@@ -804,7 +804,9 @@ describe("lib/use/useField.js", () => {
                     const { field } = mountFieldNoContext({ name: "someName" });
                     expect(field.state.name).toEqual("someName");
 
-                    expect(() => (field.state.name = "updatedSomeName")).toThrow(expectReadOnlyFor("name"));
+                    expectReadOnlyWarning(() => {
+                        field.state.name = "updatedSomeName";
+                    }, "name");
                 });
             });
             describe("formModelName", () => {
@@ -812,9 +814,9 @@ describe("lib/use/useField.js", () => {
                     const { field } = mountFieldNoContext({ formModelName: "someFormModelName" });
                     expect(field.state.formModelName).toEqual("someFormModelName");
 
-                    expect(() => (field.state.formModelName = "updatedSomeFormModelName")).toThrow(
-                        expectReadOnlyFor("formModelName"),
-                    );
+                    expectReadOnlyWarning(() => {
+                        field.state.formModelName = "updatedSomeFormModelName";
+                    }, "formModelName");
                 });
             });
             describe("clearServerErrorDependents", () => {
@@ -824,11 +826,9 @@ describe("lib/use/useField.js", () => {
                     });
                     expect(field.state.clearServerErrorDependents).toEqual(["someDependentName"]);
 
-                    expect(() =>
-                        field.state.clearServerErrorDependents
-                            .push("someNewDependentName")
-                            .toThrow(expectReadOnlyFor("clearServerErrorDependents")),
-                    );
+                    expectReadOnlyWarning(() => {
+                        field.state.clearServerErrorDependents = ["someNewDependentName"];
+                    }, "clearServerErrorDependents");
                 });
             });
             describe("validationDependencies", () => {
@@ -838,11 +838,9 @@ describe("lib/use/useField.js", () => {
                     });
                     expect(field.state.validationDependencies).toEqual(["someDependencyName"]);
 
-                    expect(() =>
-                        field.state.validationDependencies
-                            .push("someNewDependencyName")
-                            .toThrow(expectReadOnlyFor("validationDependencies")),
-                    );
+                    expectReadOnlyWarning(() => {
+                        field.state.validationDependencies = ["someNewDependencyName"];
+                    }, "validationDependencies");
                 });
             });
             describe("readOnly", () => {
@@ -850,7 +848,9 @@ describe("lib/use/useField.js", () => {
                     const { field } = mountFieldNoContext({ readOnly: true });
                     expect(field.state.readOnly).toBe(true);
 
-                    expect(() => (field.state.readOnly = false)).toThrow(expectReadOnlyFor("readOnly"));
+                    expectReadOnlyWarning(() => {
+                        field.state.readOnly = false;
+                    }, "readOnly");
                 });
             });
         });
@@ -987,7 +987,9 @@ describe("lib/use/useField.js", () => {
                         valid: true,
                     });
 
-                    expect(() => (field.state.valid = false)).toThrow(expectReadOnlyFor("valid"));
+                    expectReadOnlyWarning(() => {
+                        field.state.valid = false;
+                    }, "valid");
                 });
                 scopedIt(
                     "should clear validation error when valid changes from false to true without form context",
@@ -1016,14 +1018,18 @@ describe("lib/use/useField.js", () => {
                         label: "Some Label",
                     });
 
-                    expect(() => (field.state.label = "Some Label")).toThrow(expectReadOnlyFor("label"));
+                    expectReadOnlyWarning(() => {
+                        field.state.label = "Some Label";
+                    }, "label");
                 });
             });
             describe("help", () => {
                 scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldNoContext({});
 
-                    expect(() => (field.state.help = "some help")).toThrow(expectReadOnlyFor("help"));
+                    expectReadOnlyWarning(() => {
+                        field.state.help = "some help";
+                    }, "help");
                 });
             });
         });
@@ -1139,34 +1145,36 @@ describe("lib/use/useField.js", () => {
                 scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
 
-                    expect(() => (field.state.valueIsInitial = "some value")).toThrow(
-                        expectReadOnlyFor("valueIsInitial"),
-                    );
+                    expectReadOnlyWarning(() => {
+                        field.state.valueIsInitial = "some value";
+                    }, "valueIsInitial");
                 });
             });
             describe("initialValueUnset", () => {
                 scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
 
-                    expect(() => (field.state.initialValueUnset = "some value")).toThrow(
-                        expectReadOnlyFor("initialValueUnset"),
-                    );
+                    expectReadOnlyWarning(() => {
+                        field.state.initialValueUnset = "some value";
+                    }, "initialValueUnset");
                 });
             });
             describe("valueUnset", () => {
                 scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
 
-                    expect(() => (field.state.valueUnset = "some value")).toThrow(expectReadOnlyFor("valueUnset"));
+                    expectReadOnlyWarning(() => {
+                        field.state.valueUnset = "some value";
+                    }, "valueUnset");
                 });
             });
             describe("valueRequiredViolation", () => {
                 scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
 
-                    expect(() => (field.state.valueRequiredViolation = "some value")).toThrow(
-                        expectReadOnlyFor("valueRequiredViolation"),
-                    );
+                    expectReadOnlyWarning(() => {
+                        field.state.valueRequiredViolation = "some value";
+                    }, "valueRequiredViolation");
                 });
             });
         });
@@ -1175,8 +1183,9 @@ describe("lib/use/useField.js", () => {
                 scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
 
-                    expect(() => (field.state.messages = { code: "some other message" })).toThrow();
-                    // a [Vue warn] is expected here.
+                    expectReadOnlyWarning(() => {
+                        field.state.messages = { code: "some other message" };
+                    }, "messages");
                     field.state.messages.code = "some error";
                     expect(field.state.messages).toEqual({});
                 });
@@ -1185,8 +1194,9 @@ describe("lib/use/useField.js", () => {
                 scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
 
-                    expect(() => (field.state.errors = { code: "some other error" })).toThrow();
-                    // a [Vue warn] is expected here.
+                    expectReadOnlyWarning(() => {
+                        field.state.errors = { code: "some other error" };
+                    }, "errors");
                     field.state.errors.code = "some error";
                     expect(field.state.errors).toEqual({});
                 });
@@ -1441,9 +1451,9 @@ describe("lib/use/useField.js", () => {
                         validationDependencies: ["some", "thing"],
                     });
 
-                    expect(() => (field.state.dependencyValues = ["some", "values"])).toThrow(
-                        expectReadOnlyFor("dependencyValues"),
-                    );
+                    expectReadOnlyWarning(() => {
+                        field.state.dependencyValues = ["some", "values"];
+                    }, "dependencyValues");
                 });
             });
         });

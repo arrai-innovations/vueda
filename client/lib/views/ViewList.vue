@@ -4,6 +4,7 @@ import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FilterGroup from "@vueda/components/FilterGroup.vue";
 import FormFeedback from "@vueda/components/FormFeedback.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
+import MobileSortComponent from "@vueda/components/MobileSortComponent.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
@@ -533,10 +534,18 @@ const searchSlotProps = reactive({
 
 const isTable = ref(true);
 const columnTotals = computed(() => instanceList.state.columnTotals || {});
+const mobileSortDrawerVisible = ref(false);
+const sortablesList = computed(() => unref(sorting.state.sortables) || []);
+const canShowMobileSorter = computed(() => !isTable.value && sortablesList.value.length > 0);
+watch([isTable, sortablesList], ([newIsTable, newSortables]) => {
+    if (newIsTable || !newSortables.length) {
+        mobileSortDrawerVisible.value = false;
+    }
+});
 const columns = ref([]);
 watch(
     calculatedDisplayFields,
-    (newFields) => {
+    (newFields, oldFields) => {
         if (!isInitialized.columns) {
             const fieldNames = newFields.map((field) => field?.name);
 
@@ -551,8 +560,8 @@ watch(
             isInitialized.columns = true;
         } else {
             const fieldNames = newFields.map((field) => field?.name).filter((name) => !!name);
-            const currentColumnSet = new Set(columns.value);
-            const newFieldNames = fieldNames.filter((name) => !currentColumnSet.has(name));
+            const oldFieldNames = oldFields.map((field) => field?.name).filter((name) => !!name);
+            const newFieldNames = fieldNames.filter((name) => !oldFieldNames.includes(name));
 
             if (newFieldNames.length) {
                 columns.value = [...columns.value, ...newFieldNames];
@@ -697,6 +706,21 @@ const columnOptions = computed(() => {
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>
             </filter-group>
+            <div :class="theme('sortComponentDiv')">
+                <mobile-sort-component
+                    v-if="canShowMobileSorter"
+                    v-model:visible="mobileSortDrawerVisible"
+                    :header="`Sort ${memoizedStartCase(modelConfig.config?.verboseNamePlural || 'items')}`"
+                    :field-details="modelConfig.config?.fieldDetails || {}"
+                    :sortables="sortablesList"
+                    :sorted="sorting.state.sorted"
+                    @update:sorted="sorting.updateSorted"
+                >
+                    <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                        <slot :name="slot" v-bind="slotProps || {}" />
+                    </template>
+                </mobile-sort-component>
+            </div>
         </sticky-bar>
 
         <slot name="additional-errors" />
