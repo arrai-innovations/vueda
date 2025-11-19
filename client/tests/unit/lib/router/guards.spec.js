@@ -43,7 +43,13 @@ describe("lib/router/guards.js", () => {
         getConfig.mockReset();
         fetchWorkflowTransition.mockReset();
 
-        userStore = { initialized: false, loggedIn: false, loggedInUser: {}, fetchCurrentUser };
+        userStore = {
+            initialized: false,
+            loggedIn: false,
+            loggedInUser: {},
+            recentlyLoggedIn: false,
+            fetchCurrentUser,
+        };
         modelInfoStore = { fetchModelInfo, actions: [] };
         modelConfigStore = { getConfig };
         workflowStore = { fetchWorkflowTransition };
@@ -161,5 +167,38 @@ describe("lib/router/guards.js", () => {
         const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
         expect(toast.add).toHaveBeenCalledWith({ summary: "Action Not Found", severity: "error" });
         expect(result).toEqual({ name: "nf" });
+    });
+
+    scopedIt("requireRecentAuth fetches status when unknown and allows access", async () => {
+        const router = { resolve: vi.fn((r) => r) };
+        const to = { fullPath: "/secure" };
+        userStore.recentlyLoggedIn = undefined;
+        fetchCurrentUser.mockImplementation(async () => {
+            userStore.recentlyLoggedIn = true;
+        });
+        const result = await guards.requireRecentAuth({ name: "reauth" }, to, router, {});
+        expect(fetchCurrentUser).toHaveBeenCalled();
+        expect(result).toBeUndefined();
+    });
+
+    scopedIt("requireRecentAuth skips fetch and redirects when not recent", async () => {
+        const router = { resolve: vi.fn((route) => ({ ...route, query: { from: "existing" } })) };
+        const to = { fullPath: "/secure" };
+        userStore.recentlyLoggedIn = false;
+        const result = await guards.requireRecentAuth({ name: "reauth" }, to, router, {});
+        expect(fetchCurrentUser).not.toHaveBeenCalled();
+        expect(result).toEqual({ name: "reauth", query: { from: "existing", redirect: "/secure" } });
+    });
+
+    scopedIt("requireRecentAuth redirects after refreshing stale session", async () => {
+        const router = { resolve: vi.fn((route) => ({ ...route, query: { next: "" } })) };
+        const to = { fullPath: "/secure" };
+        userStore.recentlyLoggedIn = undefined;
+        fetchCurrentUser.mockImplementation(async () => {
+            userStore.recentlyLoggedIn = false;
+        });
+        const result = await guards.requireRecentAuth({ name: "reauth" }, to, router, {});
+        expect(fetchCurrentUser).toHaveBeenCalled();
+        expect(result).toEqual({ name: "reauth", query: { next: "", redirect: "/secure" } });
     });
 });

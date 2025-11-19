@@ -34,15 +34,15 @@ vi.mock("vue-router", () => ({
     useRouter: () => ({ back: routerBack }),
 }));
 
-const ActionFormStub = defineComponent({
-    name: "ActionFormStub",
+const ModelActionFormStub = defineComponent({
+    name: "ModelActionFormStub",
     props: ["app", "model", "action"],
     setup(props, { attrs, slots }) {
         return () =>
             h(
                 "div",
                 {
-                    "data-qa": "action-form",
+                    "data-qa": "model-action-form",
                     "data-app": props.app,
                     "data-model": props.model,
                     "data-action": props.action,
@@ -52,8 +52,8 @@ const ActionFormStub = defineComponent({
             );
     },
 });
-vi.mock("@vueda/components/ActionForm.vue", () => ({
-    default: ActionFormStub,
+vi.mock("@vueda/components/ModelActionForm.vue", () => ({
+    default: ModelActionFormStub,
 }));
 
 const ButtonStub = defineComponent({
@@ -155,7 +155,7 @@ scopedIt("passes props and attrs to ActionForm, sets title and forwards slots", 
     expect(page.attributes("data-title")).toBe("EDIT PERSON");
     expect(page.find('[data-slot="button"] [data-qa="custom-return"]').exists()).toBe(true);
 
-    const af = wrapper.find('[data-qa="action-form"]');
+    const af = wrapper.find('[data-qa="model-action-form"]');
     expect(af.attributes("data-app")).toBe("myApp");
     expect(af.attributes("data-model")).toBe("person");
     expect(af.attributes("data-action")).toBe("edit");
@@ -165,6 +165,7 @@ scopedIt("passes props and attrs to ActionForm, sets title and forwards slots", 
     const formArg = mockedUseForm.mock.calls[0][0];
     expect(vue.isReactive(formArg)).toBe(false);
     expect(vue.isRef(formArg.initialValues)).toBe(true);
+    expect(formArg.initialValues.value).toEqual({ id1: null, id2: null });
     expect(mockedUseTheme).toHaveBeenCalledWith("ViewAction", expect.any(Object));
 });
 
@@ -176,4 +177,21 @@ scopedIt("calls router.back when return button clicked", async () => {
 
     await wrapper.find('[data-qa="prime-button"]').trigger("click");
     expect(routerBack).toHaveBeenCalled();
+});
+
+scopedIt("initialValues uses pk string when provided", () => {
+    mockedInject.mockReturnValueOnce({});
+    mount(ViewAction, { props: { app: "app", model: "model", action: "do", pk: "identifier" } });
+    const formArg = mockedUseForm.mock.calls[0][0];
+    expect(formArg.initialValues.value).toEqual({ identifier: null });
+});
+
+scopedIt("initialFormValues override computed initial values", () => {
+    mockedInject.mockReturnValueOnce({});
+    const initialFormValues = { custom: "value" };
+    mount(ViewAction, {
+        props: { app: "app", model: "model", action: "do", initialFormValues },
+    });
+    const formArg = mockedUseForm.mock.calls[0][0];
+    expect(formArg.initialValues.value).toStrictEqual(initialFormValues);
 });

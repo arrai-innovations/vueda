@@ -1,6 +1,6 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
-import ActionForm from "@vueda/components/ActionForm.vue";
+import ModelActionForm from "@vueda/components/ModelActionForm.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
@@ -96,11 +96,11 @@ const rootClass = computed(() => combineClasses(theme.root, props.class));
             </template>
         </PageTitle>
         <slot :action="action" :app="app" :form-context="formContext" :model="model" :pk="pk">
-            <action-form :action="action" :app="app" :model="model" v-bind="$attrs">
+            <model-action-form :action="action" :app="app" :model="model" v-bind="$attrs">
                 <template v-for="(_, slot) in omit(slots, ['before-list'])" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>
-            </action-form>
+            </model-action-form>
         </slot>
     </div>
 </template>

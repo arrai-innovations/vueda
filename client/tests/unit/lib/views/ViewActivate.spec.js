@@ -30,25 +30,27 @@ vi.mock("@vueda/use/useModelConfig.js", () => ({
     useModelConfig: mockedUseModelConfig,
 }));
 
-const ActionFormStub = defineComponent({
-    name: "ActionFormStub",
-    props: ["app", "model", "action", "objects", "runAction", "state"],
-    setup(props, { slots, attrs }) {
+const ModelActionFormStub = defineComponent({
+    name: "ModelActionFormStub",
+    props: ["app", "model", "action", "runAction", "fetchState"],
+    setup(props, { attrs, slots }) {
         return () =>
             h(
                 "div",
                 {
-                    "data-qa": "action-form",
+                    "data-qa": "model-action-form",
                     "data-app": props.app,
                     "data-model": props.model,
                     "data-action": props.action,
                     ...attrs,
                 },
-                Object.keys(slots).map((n) => h("div", { "data-slot": n }, slots[n] ? slots[n]() : null)),
+                Object.keys(slots).map((name) => h("div", { "data-slot": name }, slots[name] ? slots[name]() : null)),
             );
     },
 });
-vi.mock("@vueda/components/ActionForm.vue", () => ({ default: ActionFormStub }));
+vi.mock("@vueda/components/ModelActionForm.vue", () => ({
+    default: ModelActionFormStub,
+}));
 
 const LoadingSpinnerBlockStub = defineComponent({
     name: "LoadingSpinnerBlockStub",
@@ -102,13 +104,13 @@ scopedIt("renders spinner when model config info is empty", () => {
     modelConfig.info = {};
     const wrapper = mount(ViewActivate, { props: { app: "app", model: "model", pk: "1" } });
     expect(wrapper.find('[data-qa="loading-spinner-block"]').exists()).toBe(true);
-    expect(wrapper.find('[data-qa="action-form"]').exists()).toBe(false);
+    expect(wrapper.find('[data-qa="model-action-form"]').exists()).toBe(false);
 });
 
 scopedIt("passes props to ActionForm when loaded", () => {
     mockedInject.mockReturnValueOnce({});
     const wrapper = mount(ViewActivate, { props: { app: "myApp", model: "myModel", pk: "id123" } });
-    const af = wrapper.find('[data-qa="action-form"]');
+    const af = wrapper.find('[data-qa="model-action-form"]');
     expect(af.exists()).toBe(true);
     expect(af.attributes("data-app")).toBe("myApp");
     expect(af.attributes("data-model")).toBe("myModel");
@@ -118,7 +120,7 @@ scopedIt("passes props to ActionForm when loaded", () => {
 scopedIt("runAction executes list action and throws on error", async () => {
     mockedInject.mockReturnValueOnce({});
     const wrapper = mount(ViewActivate, { props: { app: "app", model: "model", pk: "1" } });
-    const runAction = wrapper.findComponent(ActionFormStub).props("runAction");
+    const runAction = wrapper.findComponent(ModelActionFormStub).props("runAction");
     await expect(runAction()).resolves.not.toThrow();
     expect(mockInstanceList.executeAction).toHaveBeenCalled();
     mockInstanceList.state.errored = true;

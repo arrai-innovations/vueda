@@ -1,9 +1,8 @@
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
-import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
-import isObject from "lodash-es/isObject.js";
 import { defineStore } from "pinia";
 
 /**
@@ -34,7 +33,28 @@ export class InvalidResetPasswordLinkError extends FetchError {
         this.name = "InvalidResetPasswordLinkError";
     }
 }
+export class UnauthorizedError extends FetchError {
+    /**
+     * Creates an instance of UnauthorizedError.
+     * @param {string} messagePrefix - The prefix for the error message.
+     * @param {Response} [response] - The response object associated with the error.
+     * @param {object|string} [responseData] - The data returned in the response.
+     */
+    constructor(messagePrefix, response, responseData) {
+        super(messagePrefix, response, responseData);
+        this.name = "UnauthorizedError";
+    }
+}
 
+const authErrorResolver = (response, data) => {
+    if (response.status === 400) {
+        return new FormValidationError(data, response);
+    }
+    if (response.status === 401 || response.status === 403) {
+        return new UnauthorizedError("Unauthorized", response, data);
+    }
+    return new UserError("Unexpected error occurred", response, data);
+};
 /**
  * @typedef {import('pinia').Store<
  *   'user',
@@ -98,234 +118,474 @@ export const storeUser = defineStore("user", {
         errored: false,
         /** @type {Promise<void>|null} */
         initializingPromise: null,
+        recentlyLoggedIn: false,
+        pendingFlow: null,
     }),
     actions: {
-        async fetchCurrentUser() {
-            let response;
+        fetchCurrentUser() {
             if (this.initialized) {
                 this.initialized = false;
             }
             this.loading = true;
             this.error = null;
             this.errored = false;
-            try {
-                try {
-                    response = await fetch(`${httpOrHttpsHostname}${getUrl("userCurrentUser")}`, {
-                        method: "GET",
-                        credentials: "include",
-                    });
-                } catch (error) {
-                    throw new UserError("Error requesting current user", error, {});
-                }
-                const responseData = await getJsonOrText(response);
-                if (!response.ok || !isObject(responseData)) {
-                    // noinspection ExceptionCaughtLocallyJS
-                    throw new UserError("Unexpected current user response", response, responseData);
-                }
-                // non-logged in users still 200, just empty user.
-                const user = responseData;
-                this.loggedIn = !!user.id;
-                this.loggedInUser = user;
-            } catch (error) {
-                this.error = error;
-                this.errored = true;
-                throw error;
-            } finally {
-                this.loading = false;
-                if (!this.initialized) {
-                    this.initialized = true;
-                }
-            }
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${getUrl("userCurrentUser")}`,
+                { method: "GET" },
+                "Error requesting current user",
+                UserError,
+            )
+                .then((user) => {
+                    // non-logged in users still 200, just empty user.
+                    this.loggedIn = !!user.id;
+                    this.recentlyLoggedIn = user.recently_logged_in;
+                    this.loggedInUser = user;
+                })
+                .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
+                    throw error;
+                })
+                .finally(() => {
+                    this.loading = false;
+                    if (!this.initialized) {
+                        this.initialized = true;
+                    }
+                });
         },
-        async login(payload) {
-            let response;
+        login(payload) {
             this.loading = true;
             this.error = null;
             this.errored = false;
-            try {
-                try {
-                    response = await fetch(`${httpOrHttpsHostname}${getUrl("userLogin")}`, {
-                        method: "POST",
-                        headers: {
-                            "X-CSRFToken": getCSRFValue(),
-                            "Content-Type": "application/json",
-                        },
-                        credentials: "include",
-                        body: JSON.stringify(payload),
-                    });
-                } catch (error) {
-                    throw new UserError("Error sending authentication request", error, {});
-                }
-                const responseData = await getJsonOrText(response);
-                if (response.status === 204) {
-                    // no content
+            this.pendingFlow = null;
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${getUrl("userLogin")}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFValue(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                },
+                "Error sending authentication request",
+                UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
+            )
+                .then(() => {
                     return this.fetchCurrentUser();
-                }
-                let error;
-                if (response.status === 400) {
-                    // bad request
-                    // return instead of throw, avoiding the local catch and not getting added to the error state
-                    error = new FormValidationError(responseData, response);
-                } else {
-                    error = new UserError("Unexpected authentication response", response, responseData);
-                }
-                throw error;
-            } catch (error) {
-                this.error = error;
-                this.errored = true;
-                // throw error;
-            } finally {
-                this.loading = false;
-            }
+                })
+                .catch((error) => {
+                    // Handle specific error cases
+                    this._handle_error(error);
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
         },
-        async logout() {
+        logout() {
             if (!this.loggedIn) {
-                // why call logout if you're not logged in?
-                // confirm the user state
-                await this.fetchCurrentUser();
-                if (!this.loggedIn) {
-                    return;
-                }
+                return this.fetchCurrentUser().then(() => {
+                    if (!this.loggedIn) {
+                        return Promise.resolve();
+                    }
+                    return this._performLogout();
+                });
             }
-            let response;
+            return this._performLogout();
+        },
+        _performLogout() {
             this.loading = true;
             this.error = null;
             this.errored = false;
-            try {
-                try {
-                    response = await fetch(`${httpOrHttpsHostname}${getUrl("userLogout")}`, {
-                        method: "POST",
-                        headers: {
-                            "X-CSRFToken": getCSRFValue(),
-                            "Content-Type": "application/json",
-                        },
-                        credentials: "include",
-                    });
-                } catch (error) {
-                    throw new UserError("Error sending logout request", error, {});
-                }
-                const responseData = await getJsonOrText(response);
-                if (response.status === 200) {
+            this.pendingFlow = null;
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${getUrl("userLogout")}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFValue(),
+                        "Content-Type": "application/json",
+                    },
+                },
+                "Error sending logout request",
+                UserError,
+            )
+                .then(() => {
                     return this.fetchCurrentUser();
-                }
-                throw new UserError("Unexpected logout response", response, responseData);
-            } catch (error) {
-                this.error = error;
-                this.errored = true;
-                throw error;
-            } finally {
-                this.loading = false;
-            }
+                })
+                .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
+                    throw error;
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
         },
-        async forgotPassword(payload) {
-            let response;
+        reauthenticate(payload) {
             this.loading = true;
             this.error = null;
             this.errored = false;
-            try {
-                try {
-                    response = await fetch(`${httpOrHttpsHostname}${getUrl("forgotPassword")}`, {
-                        method: "POST",
-                        headers: {
-                            "X-CSRFToken": getCSRFValue(),
-                            "Content-Type": "application/json",
-                        },
-                        credentials: "include",
-                        body: JSON.stringify(payload),
-                    });
-                } catch (error) {
-                    throw new UserError("Error sending authentication request", error, {});
-                }
-                const responseData = await getJsonOrText(response);
-                if (response.status === 200) {
-                    return responseData;
-                }
-                let error;
-                if (response.status === 400) {
-                    // bad request
-                    // return instead of throw, avoiding the local catch and not getting added to the error state
-                    error = new FormValidationError(responseData, response);
-                } else {
-                    error = new UserError("Unexpected error occurred", response, responseData);
-                }
-                throw error;
-            } catch (error) {
-                this.error = error;
-                this.errored = true;
-                // throw error;
-            } finally {
-                this.loading = false;
-            }
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${getUrl("reauthenticate")}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFValue(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                },
+                "Error sending authentication request",
+                UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
+            )
+                .then(() => {
+                    this.pendingFlow = null;
+                    return this.fetchCurrentUser();
+                })
+                .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
+                    throw error;
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
         },
-        async resetPassword(payload) {
-            let response;
+        forgotPassword(payload) {
             this.loading = true;
             this.error = null;
             this.errored = false;
-            try {
-                try {
-                    response = await fetch(`${httpOrHttpsHostname}${getUrl("resetPassword")}`, {
-                        method: "POST",
-                        headers: {
-                            "X-CSRFToken": getCSRFValue(),
-                            "Content-Type": "application/json",
-                        },
-                        credentials: "include",
-                        body: JSON.stringify(payload),
-                    });
-                } catch (error) {
-                    throw new UserError("Error sending authentication request", error, {});
-                }
-                const responseData = await getJsonOrText(response);
-                if (response.status === 200) {
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${getUrl("forgotPassword")}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFValue(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                },
+                "Error sending authentication request",
+                UserError,
+            )
+                .then((responseData) => {
                     return responseData;
-                }
-                let error;
-                if (response.status === 400) {
-                    error = new FormValidationError(responseData, response);
-                } else {
-                    error = new UserError("Unexpected error occurred", response, responseData);
-                }
-                throw error;
-            } catch (error) {
-                this.error = error;
-                this.errored = true;
-            } finally {
-                this.loading = false;
-            }
+                })
+                .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
+                    throw error;
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
         },
-        async checkResetLinkIsValid(params) {
-            let response;
+        _handle_error(error) {
+            if (error instanceof UnauthorizedError) {
+                const flows = error.responseData?.data?.flows;
+                if (flows && flows.length > 0) {
+                    this.pendingFlow = flows.at(-1);
+                }
+                return this.fetchCurrentUser();
+            }
+            this.error = error;
+            this.errored = true;
+            throw error;
+        },
+        setupTOTPDevice(payload) {
             this.loading = true;
             this.error = null;
             this.errored = false;
-            try {
-                try {
-                    const url = getUrl("isResetLinkValid").replace("{pk}", params.pk).replace("{token}", params.token);
-                    response = await fetch(`${httpOrHttpsHostname}${url}`, {
-                        method: "GET",
-                        credentials: "include",
-                    });
-                } catch (error) {
-                    throw new UserError("Error sending authentication request", error, {});
-                }
-                const responseData = await getJsonOrText(response);
-                if (response.status === 200) {
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${getUrl("setupTOTPDevice")}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFValue(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                },
+                "Error sending authentication request",
+                UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
+            )
+                .then((responseData) => {
                     return responseData;
-                }
-                let error;
-                if (response.status === 400) {
-                    error = new InvalidResetPasswordLinkError(responseData, response);
-                } else {
-                    error = new UserError("Unexpected error occurred", response, responseData);
-                }
-                throw error;
-            } catch (error) {
-                this.error = error;
-                this.errored = true;
-            } finally {
-                this.loading = false;
-            }
+                })
+                .catch((error) => {
+                    this._handle_error(error);
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        },
+        activateTOTPDevice(payload) {
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${getUrl("activateTOTPDevice")}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFValue(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                },
+                "Error sending authentication request",
+                UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
+            )
+                .then(() => {
+                    // Refresh user totp device data
+                    return this.fetchCurrentUser();
+                })
+                .catch((error) => {
+                    this._handle_error(error);
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        },
+        twoFactorAuthenticate(payload) {
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${getUrl("twoFactorAuthenticate")}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFValue(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                },
+                "Error sending authentication request",
+                UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
+            )
+                .then(() => {
+                    this.pendingFlow = null;
+                    return this.fetchCurrentUser();
+                })
+                .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
+                    throw error;
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        },
+        resetPassword(payload) {
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${getUrl("resetPassword")}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFValue(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                },
+                "Error sending authentication request",
+                UserError,
+            )
+                .then((responseData) => {
+                    return responseData;
+                })
+                .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
+                    throw error;
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        },
+        checkResetLinkIsValid(params) {
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+
+            const url = getUrl("isResetLinkValid").replace("{pk}", params.pk).replace("{token}", params.token);
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${url}`,
+                { method: "GET" },
+                "Error sending authentication request",
+                UserError,
+                undefined,
+                undefined,
+                (response, data) => {
+                    if (response.status === 400) {
+                        return new InvalidResetPasswordLinkError(response, data);
+                    }
+                    return new UserError("Unexpected error occurred", response, data);
+                },
+            )
+                .then((responseData) => {
+                    return responseData;
+                })
+                .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
+                    throw error;
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        },
+        getTwoFactorAuthMethod() {
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+
+            const url = getUrl("getTOTPCode");
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${url}`,
+                { method: "GET" },
+                "Error sending authentication request",
+                UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
+            )
+                .then((responseData) => {
+                    return responseData;
+                })
+                .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
+                    throw error;
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        },
+        sendTwoFactorAuthenticationCode(payload) {
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+            const url = getUrl("getTOTPCode");
+            return fetchHelper(
+                `${httpOrHttpsHostname}${url}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFValue(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                },
+
+                "Error sending authentication request",
+                UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
+            )
+                .then((responseData) => {
+                    return responseData;
+                })
+                .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
+                    throw error;
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        },
+        generateRecoveryCode() {
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+
+            const url = getUrl("recoveryCodes");
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${url}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFValue(),
+                        "Content-Type": "application/json",
+                    },
+                },
+                "Error sending authentication request",
+                UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
+            )
+                .then((responseData) => {
+                    return responseData;
+                })
+                .catch((error) => {
+                    this._handle_error(error);
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        },
+        getRecoveryCodes() {
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+
+            const url = getUrl("recoveryCodes");
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${url}`,
+                { method: "GET" },
+                "Error sending authentication request",
+                UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
+            )
+                .then((responseData) => {
+                    return responseData;
+                })
+                .catch((error) => {
+                    if (error.response?.status === 404) {
+                        return this.generateRecoveryCode();
+                    }
+                    this._handle_error(error);
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
         },
         async init() {
             if (!this.initialized) {

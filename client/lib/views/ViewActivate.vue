@@ -1,7 +1,7 @@
 <script setup>
 import { useList } from "@arrai-innovations/reactive-helpers";
-import ActionForm from "@vueda/components/ActionForm.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
+import ModelActionForm from "@vueda/components/ModelActionForm.vue";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig";
@@ -102,15 +102,16 @@ const handleActivate = async () => {
 
 <template>
     <div v-if="!isEmpty(modelConfig.info)">
-        <action-form
+        <model-action-form
             action="activate"
             :app="app"
             :model="model"
             :objects="instanceList.state.objects"
             :run-action="handleActivate"
-            :state="instanceList.state"
+            :fetch-state="instanceList.state"
+            v-bind="$attrs"
         >
-        </action-form>
+        </model-action-form>
     </div>
     <div v-else><loading-spinner-block /></div>
 </template>

@@ -598,14 +598,16 @@ const columnOptions = computed(() => {
     <div>
         <page-title :loading="instanceList.state.loading" :title="titleStr">
             <template #button>
-                <template
-                    v-for="actionName in targetlessActions"
-                    :key="getCRUDName({ app: app, model: model, view: actionName })"
-                >
-                    <slot :name="targetlessActionButtonSlotName.name" v-bind="buttonSlotProps[actionName]">
-                        <link-model-view v-bind="buttonSlotProps[actionName]" />
-                    </slot>
-                </template>
+                <slot name="targetless-action-buttons" :targetless-actions="targetlessActions">
+                    <template
+                        v-for="actionName in targetlessActions"
+                        :key="getCRUDName({ app: app, model: model, view: actionName })"
+                    >
+                        <slot :name="targetlessActionButtonSlotName.name" v-bind="buttonSlotProps[actionName]">
+                            <link-model-view v-bind="buttonSlotProps[actionName]" />
+                        </slot>
+                    </template>
+                </slot>
             </template>
             <template #under-actions>
                 <div :class="theme('underActionsBar')" data-qa="view-list-under-actions">

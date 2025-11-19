@@ -28,15 +28,15 @@ vi.mock("@arrai-innovations/reactive-helpers", async () => {
     };
 });
 
-const ActionFormStub = defineComponent({
-    name: "ActionFormStub",
+const ModelActionFormStub = defineComponent({
+    name: "ModelActionFormStub",
     props: ["app", "model", "action"],
     setup(props, { attrs, slots }) {
         return () =>
             h(
                 "div",
                 {
-                    "data-qa": "action-form",
+                    "data-qa": "model-action-form",
                     "data-app": props.app,
                     "data-model": props.model,
                     "data-action": props.action,
@@ -46,8 +46,8 @@ const ActionFormStub = defineComponent({
             );
     },
 });
-vi.mock("@vueda/components/ActionForm.vue", () => ({
-    default: ActionFormStub,
+vi.mock("@vueda/components/ModelActionForm.vue", () => ({
+    default: ModelActionFormStub,
 }));
 const LoadingSpinnerBlockStub = defineComponent({
     name: "LoadingSpinnerBlockStub",

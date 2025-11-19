@@ -8,7 +8,7 @@ import isString from "lodash-es/isString.js";
  * @param {string} message - The message to escape.
  * @returns {string} - The escaped message.
  */
-const escapeHtml = (message) => {
+export const escapeHtml = (message) => {
     const map = {
         "&amp;": "&",
         "&lt;": "<",

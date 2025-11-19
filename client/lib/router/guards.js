@@ -90,6 +90,45 @@ export async function requireAuth(redirectTo, to, router, pinia) {
 }
 
 /**
+ * Require the user to be recently authenticated.
+ *
+ * @example
+ * ```js
+ * import { requireRecentAuth } from "@vueda/router/guards";
+ * import { createRouter } from "vue-router";
+ *
+ * const router = createRouter({
+ *   routes: [
+ *     {
+ *       path: "/:app/:model/setup",
+ *       name: "setup-device",
+ *       component: () => import('@/views/ViewAuthRequired.vue'),
+ *       beforeEnter: (to, from) => requireRecentAuth({ name: "reauthenticate" }, to, router),
+ *     },
+ *     // other routes
+ *   ],
+ * });
+ *
+ * export default router;
+ * ```
+ * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if not recently authenticated.
+ * @param {import('vue-router').RouteLocationNormalized} to - The target route.
+ * @param {import('vue-router').Router} router - The router instance.
+ * @param {import('pinia').Pinia} pinia - The Pinia instance.
+ * @returns {Promise<import('vue-router').RouteLocationNormalizedLoaded|void>} The redirect route if needed.
+ */
+export async function requireRecentAuth(redirectTo, to, router, pinia) {
+    const resolvedRedirectTo = resolveRedirect(redirectTo, router);
+    const userStore = storeUser(pinia);
+    if (userStore.recentlyLoggedIn !== false) {
+        await userStore.fetchCurrentUser();
+    }
+    if (!userStore.recentlyLoggedIn) {
+        return { ...resolvedRedirectTo, query: { ...resolvedRedirectTo.query, redirect: to.fullPath } };
+    }
+}
+
+/**
  * Require the user to be unauthenticated, like for a login page.
  *
  * @example

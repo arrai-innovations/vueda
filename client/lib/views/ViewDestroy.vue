@@ -1,6 +1,6 @@
 <script setup>
-import ActionForm from "@vueda/components/ActionForm.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
+import ModelActionForm from "@vueda/components/ModelActionForm.vue";
 import { useViewDestroy } from "@vueda/use/useViewDestroy.js";
 import isEmpty from "lodash-es/isEmpty.js";
 
@@ -35,15 +35,16 @@ const { modelConfig, handleDelete, instanceList } = useViewDestroy(props);
 
 <template>
     <div v-if="!isEmpty(modelConfig.info)">
-        <action-form
+        <model-action-form
             action="destroy"
             :app="app"
             :model="model"
             :pk="pk"
             :run-action="handleDelete"
-            :state="instanceList.state"
+            :fetch-state="instanceList.state"
+            v-bind="$attrs"
         >
-        </action-form>
+        </model-action-form>
     </div>
     <div v-else><loading-spinner-block /></div>
 </template>

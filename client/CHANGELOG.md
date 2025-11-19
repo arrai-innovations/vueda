@@ -10,6 +10,16 @@ upgraded reactive-helpers to v21.0.0
 
 ### Features
 
+- **AuthForm**:
+    - Base form for authorization-related views. Handles submission error and redirecting user to reauthenticate when required.
+- **ViewRecoveryCodes**:
+    - Fetches and displays valid recovery codes with multiple save options. Automatically generates new set if none exist. User can also generate new set of recovery codes in the view.
+- **ViewSetupDevice**:
+    - Allows adding new 2FA device. Shows TOTP QR code and secret for apps, or calls backend to send SMS/email.
+- **AuthorizingForm**:
+    - Handles automatic redirecting after login or 2FA auth. Base form for pre-authorization views for example `login`, `forgotPassword` and `twoFactorAuth`.
+- **ViewTwoFactorAuth**:
+    - Allows user to choose which configured 2FA method to use for authorization.
 - **PaginationComponent**:
     - Added ability to display total record counts and a "Show All Pages" option.
 - **ViewList**:
@@ -22,9 +32,14 @@ upgraded reactive-helpers to v21.0.0
     - Registered in `availableWidgets` and `fieldMappings` (`TemplatedTextField`, `TemplateTagsDataField`) and added associated theme entries.
 - **Dependency Tracking**:
     - `useField` and `useWidget` now support registering/unregistering dependency values so widgets can react to external field data.
+- **ModelActionForm**:
+    - Contains model-related functionality previously in ActionForm. ActionForm kept minimal for AuthForm, AuthorizingForm, and ModelActionForm reuse.
+- **storeUser**:
 
 ### Refactors
 
+- **storeUser**:
+    - Converted all functions to return Promises instead of async.
 - **listCrud**:
     - pagination is manually done using calls to pushObjects() and clearObjects in CrudAdaptors
     - adaptors handles and update the pagination information and columns total from the responseData

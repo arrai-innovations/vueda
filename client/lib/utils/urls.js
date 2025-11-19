@@ -22,6 +22,13 @@ const defaultUrls = {
     workflowObjectState: "/routes/vueda.workflow/workflows/:app/:model/object-state/:pk/",
     workflowObjectTransitions: "/routes/vueda.workflow/workflows/:app/:model/object-transitions/:pk/",
     workflowStates: "/routes/vueda.workflow/workflows/states/",
+    setupTOTPDevice: "/routes/vueda.user/totpdevice/setup/",
+    checkReauthentication: "/routes/vueda.user/totpdevice/check_reauthentication/",
+    activateTOTPDevice: "/routes/vueda.user/totpdevice/activate/",
+    reauthenticate: "/routes/vueda.user/reauthenticate/",
+    getTOTPCode: "/routes/vueda.user/totp_code/",
+    twoFactorAuthenticate: "/routes/vueda.user/2fa/authenticate/",
+    recoveryCodes: "/routes/vueda.user/_allauth/browser/v1/account/authenticators/recovery-codes",
 };
 
 const customUrls = {};
@@ -69,7 +76,7 @@ export const resetCustomUrls = () => {
  */
 export const getListUrl = ({ app, model, action, query = "" }) => {
     const urlTemplate = getUrl(action ? "modelAction" : "modelList");
-    let url = urlTemplate.replace(":app", getServerRoutePart(app)).replace(":model", getServerRoutePart(model));
+    let url = urlTemplate.replace(":app", app.toLowerCase()).replace(":model", getServerRoutePart(model));
     if (action) {
         url = url.replace(":action_name", getServerActionName(action));
     }
@@ -88,7 +95,7 @@ export const getListUrl = ({ app, model, action, query = "" }) => {
  */
 export const getDetailUrl = ({ app, model, pk, action, query = "" }) => {
     const urlTemplate = getUrl(action ? "modelDetailAction" : "modelDetail");
-    const appStr = getServerRoutePart(app);
+    const appStr = app.toLowerCase();
     const modelStr = getServerRoutePart(model);
     const pkStr = unwrapNested(pk);
     const actionStr = getServerActionName(action);

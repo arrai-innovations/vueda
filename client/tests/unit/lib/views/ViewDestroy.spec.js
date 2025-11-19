@@ -8,17 +8,22 @@ vi.mock("@vueda/use/useViewDestroy.js", () => ({
     useViewDestroy: mockedUseViewDestroy,
 }));
 
-const ActionFormStub = defineComponent({
-    name: "ActionFormStub",
-    props: ["app", "model", "pk", "runAction", "state", "action"],
-    setup(props) {
+const ModelActionFormStub = defineComponent({
+    name: "ModelActionFormStub",
+    props: ["app", "model", "action", "runAction", "fetchState"],
+    setup(props, { attrs, slots }) {
         return () =>
-            h("div", {
-                "data-qa": "action-form",
-                "data-app": props.app,
-                "data-model": props.model,
-                "data-pk": Array.isArray(props.pk) ? props.pk.join(",") : props.pk,
-            });
+            h(
+                "div",
+                {
+                    "data-qa": "model-action-form",
+                    "data-app": props.app,
+                    "data-model": props.model,
+                    "data-action": props.action,
+                    ...attrs,
+                },
+                Object.keys(slots).map((name) => h("div", { "data-slot": name }, slots[name] ? slots[name]() : null)),
+            );
     },
 });
 
@@ -28,8 +33,9 @@ const LoadingSpinnerStub = defineComponent({
         return () => h("div", { "data-qa": "spinner" });
     },
 });
-
-vi.mock("@vueda/components/ActionForm.vue", () => ({ default: ActionFormStub }));
+vi.mock("@vueda/components/ModelActionForm.vue", () => ({
+    default: ModelActionFormStub,
+}));
 vi.mock("@vueda/components/LoadingSpinnerBlock.vue", () => ({ default: LoadingSpinnerStub }));
 
 let ViewDestroy;
@@ -47,12 +53,10 @@ scopedIt("renders ActionForm when model config is loaded", () => {
 
     const wrapper = mount(ViewDestroy, { props: { app: "app1", model: "thing", pk: "5" } });
 
-    const af = wrapper.getComponent(ActionFormStub);
+    const af = wrapper.getComponent(ModelActionFormStub);
     expect(af.props("app")).toBe("app1");
     expect(af.props("model")).toBe("thing");
-    expect(af.props("pk")).toBe("5");
-    expect(af.props("runAction")).toBe(handleDelete);
-    expect(af.props("state")).toBe(state);
+    expect(af.props("fetchState")).toBe(state);
     expect(wrapper.find('[data-qa="spinner"]').exists()).toBe(false);
 
     const arg = mockedUseViewDestroy.mock.calls[0][0];
@@ -68,5 +72,5 @@ scopedIt("renders a loading spinner while model info is empty", () => {
     const wrapper = mount(ViewDestroy, { props: { app: "a", model: "b", pk: "1" } });
 
     expect(wrapper.find('[data-qa="spinner"]').exists()).toBe(true);
-    expect(wrapper.findComponent(ActionFormStub).exists()).toBe(false);
+    expect(wrapper.findComponent(ModelActionFormStub).exists()).toBe(false);
 });
