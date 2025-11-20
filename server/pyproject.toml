@@ -195,7 +195,7 @@ max-complexity = 20
 include-package-data = false
 
 [tool.setuptools.package-data]
-"*" = ["*.css", "*.html", "*.jinja2", "*.js", "*.sql"]
+"*" = ["*.css", "*.html", "*.jinja2", "*.js", "*.sql", "*.txt"]
 
 [tool.setuptools.packages.find]
 include = ["vueda*"]
