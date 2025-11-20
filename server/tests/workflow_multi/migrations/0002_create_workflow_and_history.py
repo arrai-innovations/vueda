@@ -19,7 +19,7 @@ def make_sure_permissions_exist(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ("workflow_multi", "0001_initial"),
-        ("vueda_workflow", "0002_statepermission_historical_group_name_and_more"),
+        ("vueda_workflow", "0005_historicaltransitionsource_fail_with_silent_and_more"),
     ]
 
     operations = [

@@ -348,6 +348,8 @@ class TransitionSource(SimpleHistoryModelMixin):
         "State",
         on_delete=models.PROTECT,
     )
+    # This transition would fail and not raise an exception if applied from this source state.
+    fail_with_silent = models.BooleanField(default=False)
 
     class Meta(BaseModelMeta):
         default_related_name = "transition_sources"
@@ -521,16 +523,23 @@ class HasWorkflowModelMixin(models.Model):
             raise PermissionDenied(
                 f"User {user.get_username()!r} does not have workflow permissions for {self.get_content_type()!r}"
             )
+        transitions = self.fast_available_transitions()
+        return transitions.filter(pk__in=[t.id for t in transitions if self.check_transition_permission(t, user)])
+
+    def fast_available_transitions(self) -> QuerySet[Transition]:
+        """
+        Returns available transitions for this object without permission checks.
+        """
         transitions = (
             Transition.objects.filter(
                 workflow=self.workflow,
                 transition_sources__source=self.workflow_state,
+                transition_sources__fail_with_silent=False,
             )
-            .exclude(transition_permissions__isnull=True)
             .select_related("target")
             .all()
         )
-        return transitions.filter(pk__in=[t.id for t in transitions if self.check_transition_permission(t, user)])
+        return transitions
 
     @classmethod
     def available_transitions_for(
@@ -637,8 +646,21 @@ class HasWorkflowModelMixin(models.Model):
                 workflow=self.workflow,
                 code=transition_code,
             )
-        except Transition.DoesNotExist:
-            raise ValueError(f"Transition {transition_code!r} does not exist for workflow {self.workflow.code!r}.")
+        except Transition.DoesNotExist as e:
+            raise Transition.DoesNotExist(
+                f"Transition {transition_code!r} does not exist for workflow {self.workflow.code!r}."
+            ) from e
+
+    def should_fail_silently(self, transition: Transition) -> bool:
+        """
+        Check if transition should fail silently.
+        """
+        transition_source = TransitionSource.objects.filter(
+            transition=transition,
+            source=self.workflow_state,
+            fail_with_silent=True,
+        ).first()
+        return transition_source
 
     def apply_transition(self, transition_code: str, user: User | None = None) -> tuple[State, int | None]:
         """
@@ -675,8 +697,30 @@ class HasWorkflowModelMixin(models.Model):
             return transition.target, object_state.history.latest().history_id
         return transition.target, None
 
+    def fast_transition(self, transition_code):
+        transition: Transition = self.get_transition(transition_code)
+        transitions = self.fast_available_transitions()
+        if transition not in transitions:
+            if self.should_fail_silently(transition):
+                self.on_transition_fail_silently(transition)
+                return
+            raise InvalidTransitionError(
+                f"Transition {transition_code!r} not available from state {self.workflow_state.code!r}"
+            )
+
+        object_state = self.object_state
+        object_state.state = transition.target
+        object_state.save()
+        self.on_transition(transition)
+
     def on_transition(self, transition: Transition, user: User | None = None):
         """
         Override this method to add custom logic on transition.
+        """
+        pass
+
+    def on_transition_fail_silently(self, transition: Transition, user: User | None = None):
+        """
+        Override this method to add custom logic on transition fail silently.
         """
         pass

@@ -932,7 +932,8 @@ class Migration(migrations.Migration):
                 history_relation_id,
                 history_user_id,
                 source_id,
-                transition_id
+                transition_id,
+                fail_with_silent
             )
             SELECT
                 T.id,
@@ -942,7 +943,8 @@ class Migration(migrations.Migration):
                 T.id,
                 USER_SYSTEM.id,
                 T.source_id,
-                T.transition_id
+                T.transition_id,
+                T.fail_with_silent
             FROM
                 vueda_workflow_transitionsource T,
                 USER_SYSTEM

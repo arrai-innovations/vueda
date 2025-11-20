@@ -12,7 +12,6 @@ from vueda.vdq.models import QueueItem
 from vueda.vdq.models import SentItem
 from vueda.vdq.models import SMSQueueItem
 from vueda.vdq.utils import lock_queue_item
-from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.models import Transition
 
 
@@ -41,7 +40,7 @@ def test_lock_queue_item_returns_locked_instance(sender, receiver):
 @pytest.mark.django_db
 def test_fast_transition_invalid_code_raises(sender, receiver):
     qi = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
-    with pytest.raises(InvalidTransitionError):
+    with pytest.raises(Transition.DoesNotExist):
         qi.fast_transition("queued")
 
 

@@ -1673,7 +1673,8 @@ class Migration(migrations.Migration):
                 vueda_workflow_transitionsource
                 (
                     transition_id,
-                    source_id
+                    source_id,
+                    fail_with_silent
                 )
             VALUES
                 (
@@ -1708,7 +1709,8 @@ class Migration(migrations.Migration):
                                 WHERE
                                     code = 'added_workflow'
                             )
-                    )
+                    ),
+                    FALSE
                 ),
                 (
                     (
@@ -1742,7 +1744,8 @@ class Migration(migrations.Migration):
                                 WHERE
                                     code = 'added_workflow'
                             )
-                    )
+                    ),
+                    FALSE
                 ),
                 (
                     (
@@ -1776,7 +1779,8 @@ class Migration(migrations.Migration):
                                 WHERE
                                     code = 'added_workflow'
                             )
-                    )
+                    ),
+                    FALSE
                 );""",
             reverse_sql="""
             DELETE FROM
@@ -1815,7 +1819,8 @@ class Migration(migrations.Migration):
                     history_relation_id,
                     history_user_id,
                     source_id,
-                    transition_id
+                    transition_id,
+                    fail_with_silent
                 )
                 SELECT
                     T.id,
@@ -1825,7 +1830,8 @@ class Migration(migrations.Migration):
                     T.id,
                     USER_SYSTEM.id,
                     T.source_id,
-                    T.transition_id
+                    T.transition_id,
+                    T.fail_with_silent
                 FROM
                     vueda_workflow_transitionsource T,
                     USER_SYSTEM
@@ -1865,7 +1871,8 @@ class Migration(migrations.Migration):
                     history_relation_id,
                     history_user_id,
                     source_id,
-                    transition_id
+                    transition_id,
+                    fail_with_silent
                 )
                 SELECT
                     T.id,
@@ -1875,7 +1882,8 @@ class Migration(migrations.Migration):
                     T.id,
                     USER_SYSTEM.id,
                     T.source_id,
-                    T.transition_id
+                    T.transition_id,
+                    T.fail_with_silent
                 FROM
                     vueda_workflow_transitionsource T,
                     USER_SYSTEM
@@ -1915,7 +1923,8 @@ class Migration(migrations.Migration):
                     history_relation_id,
                     history_user_id,
                     source_id,
-                    transition_id
+                    transition_id,
+                    fail_with_silent
                 )
                 SELECT
                     T.id,
@@ -1925,7 +1934,8 @@ class Migration(migrations.Migration):
                     T.id,
                     USER_SYSTEM.id,
                     T.source_id,
-                    T.transition_id
+                    T.transition_id,
+                    T.fail_with_silent
                 FROM
                     vueda_workflow_transitionsource T,
                     USER_SYSTEM

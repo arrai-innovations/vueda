@@ -20,9 +20,7 @@ from vueda.core.models import BaseModelMeta
 from vueda.core.models import VuedaBaseModel
 from vueda.vdq.celery import cancel_task
 from vueda.vdq.constants import QUEUE_ITEM_DONE_STATES
-from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.models import HasWorkflowModelMixin
-from vueda.workflow.models import Transition
 
 
 class BaseSender(VuedaBaseModel):
@@ -134,23 +132,6 @@ class QueueItem(VuedaBaseModel, HasWorkflowModelMixin):
             max_age = getattr(settings, "VDQ_MAX_FILES_AGE_IN_SECONDS", None)
             if max_age == 0:
                 self.delete_files()
-
-    def fast_transition(self, transition_code):
-        try:
-            transition = Transition.objects.get(
-                workflow=self.workflow,
-                code=transition_code,
-                transition_sources__source=self.workflow_state,
-            )
-
-        except Transition.DoesNotExist:
-            raise InvalidTransitionError(
-                f"Transition {transition_code!r} not available from state {self.workflow_state.code!r}"
-            )
-        object_state = self.object_state
-        object_state.state = transition.target
-        object_state.save()
-        self.on_transition(transition)
 
 
 def validate_mimetype(value: str):

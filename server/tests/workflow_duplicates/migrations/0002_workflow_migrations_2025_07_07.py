@@ -820,6 +820,7 @@ def handle_transition_source(apps, changed_item, *, reversing=False):
                     "id",
                     "source_id",
                     "transition_id",
+                    "fail_with_silent",
                 ),
             )
             historical_transition_source.objects.create(**data)
@@ -900,7 +901,7 @@ def get_id_values_from_dict(id_data, reversing=False):
 class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("vueda_workflow", "0002_statepermission_historical_group_name_and_more"),
+        ("vueda_workflow", "0005_historicaltransitionsource_fail_with_silent_and_more"),
         ("workflow_duplicates", "0001_initial"),
     ]
 

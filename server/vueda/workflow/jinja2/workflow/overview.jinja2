@@ -129,10 +129,19 @@
                                         <code class="transition">{{ transition.code }}</code>&emsp;
                                         <code class="name">{{ transition.name }}</code>&emsp;
                                         <code class="state">
-                                            ({{ ', '.join(transition.transition_sources.values_list('source__code', flat=True)) }})
+                                            ({{ ', '.join(transition.transition_sources.filter(fail_with_silent=False).values_list('source__code', flat=True)) }})
                                         </code>
                                         &emsp;to&emsp;
                                         <code class="state">{{ transition.target.code }}</code>
+                                        <p>
+                                            {% if transition.transition_sources.filter(fail_with_silent=True).exists() %}
+                                                Fail with silent when fast transitioned from states:
+                                                <code class="state">
+                                                    {{ ', '.join(transition.transition_sources.filter(fail_with_silent=True).values_list('source__code', flat=True)) }}
+                                                </code>
+                                            {% endif %}
+                                        </p>
+
                                     </h4>
                                     <div class="control">
                                         {{ edit_transition[workflow.pk][transition.pk] }}

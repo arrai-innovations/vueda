@@ -298,6 +298,7 @@ changed_data = [
             },
             "source_id": {"code": "state_1", "workflow_id": {"code": "deleted_workflow"}},
             "transition_id": {"code": "go_to_state_2", "workflow_id": {"code": "deleted_workflow"}},
+            "fail_with_silent": False,
         },
         "history_date": datetime.datetime(2024, 5, 13, 20, 10, 17, tzinfo=datetime.UTC),
         "history_type": "added",
@@ -311,6 +312,7 @@ changed_data = [
             },
             "source_id": {"code": "state_2", "workflow_id": {"code": "deleted_workflow"}},
             "transition_id": {"code": "go_to_state_1", "workflow_id": {"code": "deleted_workflow"}},
+            "fail_with_silent": False,
         },
         "history_date": datetime.datetime(2024, 5, 13, 20, 10, 18, tzinfo=datetime.UTC),
         "history_type": "added",
@@ -324,6 +326,7 @@ changed_data = [
             },
             "source_id": {"code": "state_3", "workflow_id": {"code": "deleted_workflow"}},
             "transition_id": {"code": "go_to_state_1", "workflow_id": {"code": "deleted_workflow"}},
+            "fail_with_silent": False,
         },
         "history_date": datetime.datetime(2024, 5, 13, 20, 10, 19, tzinfo=datetime.UTC),
         "history_type": "added",
@@ -1024,6 +1027,7 @@ def handle_transition_source(apps, changed_item, *, reversing=False):
                     "id",
                     "source_id",
                     "transition_id",
+                    "fail_with_silent",
                 ),
             )
             historical_transition_source.objects.create(**data)
