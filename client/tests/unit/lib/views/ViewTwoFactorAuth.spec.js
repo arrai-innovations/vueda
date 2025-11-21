@@ -118,7 +118,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         useIsActiveMock.mockReturnValue(activeRef);
         userStore = reactive({
             loggedIn: false,
-            getTwoFactorAuthMethod: vi.fn().mockResolvedValue({ method: [] }),
+            getTwoFactorAuthMethod: vi.fn().mockResolvedValue({ methods: [] }),
             sendTwoFactorAuthenticationCode: vi.fn().mockResolvedValue({}),
             twoFactorAuthenticate: vi.fn().mockResolvedValue({}),
         });
@@ -127,7 +127,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
     });
 
     scopedIt("fetches 2fa methods when activated", async () => {
-        userStore.getTwoFactorAuthMethod.mockResolvedValue({ method: ["sms"] });
+        userStore.getTwoFactorAuthMethod.mockResolvedValue({ methods: ["sms"] });
         const wrapper = mount(ViewTwoFactorAuth);
         activeRef.value = true;
         await flushPromises();

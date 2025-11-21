@@ -80,7 +80,7 @@ watch([isActive, toRef(userStore, "loggedIn")], async ([newActive, newloggedIn])
     if (newActive && !newloggedIn) {
         try {
             const response = await userStore.getTwoFactorAuthMethod();
-            methods.value = response?.method;
+            methods.value = response?.methods;
         } catch (error) {
             if (error instanceof UnauthorizedError) {
                 toast.add({

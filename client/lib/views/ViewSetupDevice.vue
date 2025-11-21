@@ -57,7 +57,7 @@ const form = reactive({
 });
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const deviceTypes = computed(() => {
-    return modelConfig?.config?.fieldDetails["methods"]?.choices || [];
+    return modelConfig?.config?.fieldDetails["method"]?.choices || [];
 });
 
 const route = useRoute();
