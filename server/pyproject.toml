@@ -215,6 +215,7 @@ omit = [
     "*/migrations/*",
     "*/open_api*",
     "*tests*",
+    "*/spectacular_hooks.py",
 ]
 
 [tool.coverage.report]
