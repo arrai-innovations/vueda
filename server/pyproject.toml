@@ -62,7 +62,7 @@ vueda = "vueda.__main__:main"
 [dependency-groups]
 dev = [
     # lint related, sync with .pre-commit-config.yaml
-    "ruff ==0.12.10",
+    "ruff ==0.14.6",
     # test/dev related
     "django_extensions ==4.0.0",
     "django-view-manager ==1.0.4",
@@ -162,8 +162,6 @@ ignore = [
     "SIM105",
     # flake8-simplify: developers are a better judge as to when to use ternaries
     "SIM108",
-    # pyupgrade: non-pep604-isinstance - slower?
-    "UP038",
 ]
 
 [tool.ruff.lint.per-file-ignores]
