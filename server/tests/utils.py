@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from importlib import import_module
 
 from django.apps import apps
+from django.conf import settings
 from django.http import QueryDict
 from django.test import override_settings
 from django.test.utils import extend_sys_path
@@ -129,9 +130,13 @@ class BaseTestMigrations:
             else:
                 shutil.copytree(source_migrations_dir, target_migrations_dir)
 
+            # TODO: Test this change in django with all tests.  If it is fine, a pull request and
+            #   new test could get created for django, and then this wouldn't be a customization.
             with extend_sys_path(temp_dir):
                 new_module = os.path.basename(target_dir) + ".migrations"
-                with self.settings(MIGRATION_MODULES={app_label: new_module}):
+                migration_modules = settings.MIGRATION_MODULES
+                migration_modules[app_label] = new_module
+                with self.settings(MIGRATION_MODULES=migration_modules):
                     yield target_migrations_dir
 
 
