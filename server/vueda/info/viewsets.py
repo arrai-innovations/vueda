@@ -49,7 +49,7 @@ class ModelInfoViewSet(FlexFieldsMixin, ReadOnlyModelViewSet):
 
     def initial(self, request, *args, **kwargs):
         if "app_label" in self.kwargs and "model" in self.kwargs:
-            content_types = ContentType.objects.all().filter(
+            content_types = ContentType.objects.filter(
                 pk__in=get_registered_content_types(), app_label=self.kwargs["app_label"], model=self.kwargs["model"]
             )
 
@@ -59,7 +59,7 @@ class ModelInfoViewSet(FlexFieldsMixin, ReadOnlyModelViewSet):
         return super().initial(request, *args, **kwargs)
 
     def get_queryset(self):
-        return ContentType.objects.all().filter(pk__in=get_registered_content_types())
+        return ContentType.objects.filter(pk__in=get_registered_content_types())
 
     def get_object(self):
         obj = generics.get_object_or_404(
@@ -147,7 +147,7 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
         return super().dispatch(request, *args, **kwargs)
 
     def initial(self, request, *args, **kwargs):
-        content_types = ContentType.objects.all().filter(
+        content_types = ContentType.objects.filter(
             pk__in=get_registered_content_types(), app_label=self.choices_app_label, model=self.choices_model
         )
 
@@ -165,7 +165,7 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
         return "formatted_name"
 
     def get_content_type_instance(self):
-        content_types = ContentType.objects.all().filter(
+        content_types = ContentType.objects.filter(
             pk__in=get_registered_content_types(), app_label=self.choices_app_label, model=self.choices_model
         )
         self.content_type_instance = content_type_instance = content_types.first()

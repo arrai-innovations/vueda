@@ -57,7 +57,7 @@ class SimpleHistoryViewSetMixin:
         user_model = get_user_model()
         user_cache = {}
         instance = self.get_object()
-        history_queryset = instance.history.all().order_by("-history_date")
+        history_queryset = instance.history.order_by("-history_date")
         page = self.paginate_queryset(history_queryset)
         if self.paginator.page.has_next():
             next_page_number = self.paginator.page.next_page_number()

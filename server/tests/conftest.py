@@ -455,7 +455,7 @@ class BaseTestUpdateModelViewSet:
         response = authenticated_client.put(
             self.detail_url(page_data.first().id) + qs, data=update_arguments, format="json"
         )
-        updated_instance = self.model.objects.all().first()
+        updated_instance = self.model.objects.first()
         assert response.status_code == status_code, (
             f"{response.status_code} != {status_code}, response.data: {response.data}"
         )
