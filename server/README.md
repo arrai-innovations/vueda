@@ -263,10 +263,6 @@ Some additional options were added to the management command, mainly for testing
 
 `--keep-history-date` - If this is specified, then when migrations are run, the history that is created for the changes will use the history dates from the history records that were created when the workflow was created/edited/deleted. This is mainly used for testing.
 
-`--env-guarded-operations` - This causes created migrations to not run the migration sql, when the environment variable.
-
-`skip_migration_when_setting_up_db` is 'true'. When testing, we use this to basically fake and roll back a migration, then remove the environment variable and run the migrations manually. This is probably only needed for tests.
-
 <!-- #todo: document -->
 
 ### Group Management

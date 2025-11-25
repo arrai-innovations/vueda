@@ -2,11 +2,6 @@
 
 from django.db import migrations
 
-from vueda.workflow import custom_migration_operations
-
-
-SKIPPABLE_ENV_VARIABLE = "migration_skip_workflow_duplicates"
-
 
 class Migration(migrations.Migration):
     dependencies = [
@@ -14,7 +9,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -110,10 +105,8 @@ class Migration(migrations.Migration):
                     )
                     AND
                     history_date = '2025-01-01 1:00:10';""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -208,10 +201,8 @@ class Migration(migrations.Migration):
                     )
                     AND
                     history_date = '2025-01-01 1:00:11';""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -316,10 +307,8 @@ class Migration(migrations.Migration):
                     )
                     AND
                     history_date = '2025-01-01 1:00:12';""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -406,10 +395,8 @@ class Migration(migrations.Migration):
                     )
                     AND
                     history_date = '2025-01-01 1:00:13';""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -474,7 +461,5 @@ class Migration(migrations.Migration):
                     )
                     AND
                     history_date = '2025-01-01 1:00:14';""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
     ]

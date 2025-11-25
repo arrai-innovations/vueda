@@ -23,7 +23,6 @@ from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
 from django.db.transaction import atomic
 
 from vueda.workflow import models
-from vueda.workflow.custom_migration_operations import SkippableRunSQL
 
 
 #############################################################################
@@ -76,9 +75,6 @@ DELETED = "deleted"
 NEWLINE = os.linesep
 INDENT8 = "        "
 
-GUARDED_TEXT = """    if os.environ.get("skip_migration_when_setting_up_db", "").lower() == "true":  # For testing.
-        return
-"""
 
 # Add a comment right after the Django generated comment, to help find our created migrations.
 # This way we can find the last one we did, parse the generated date from the Django comment,
@@ -937,17 +933,6 @@ class Command(BaseCommand):
             "--dry-run",
             action="store_true",
             help="Just show what migrations would be made; don't actually write them.",
-        )
-        parser.add_argument(
-            "--env-guarded-operations",
-            action="store_true",
-            help=(
-                "This causes created migrations to not run the migration sql, when the environment "
-                "variable 'skip_migration_when_setting_up_db' is 'true'.  In a test you can "
-                "use this to fake and roll back a migration, then update the environment "
-                "variable and run the migration manually.  If not set, the test for the "
-                "environment variable will not be added into the migration."
-            ),
         )
         parser.add_argument(
             "--import-instead",
@@ -1981,15 +1966,6 @@ class Command(BaseCommand):
 
             lines[dependencies_index + 1 : dependencies_index + 1] = dependency_data
 
-            if self.env_guarded_operations:
-                forwards = forwards.split("\n")
-                forwards[1:1] = [GUARDED_TEXT]
-                forwards = "\n".join(forwards)
-
-                backwards = backwards.split("\n")
-                backwards[1:1] = [GUARDED_TEXT]
-                backwards = "\n".join(backwards)
-
             copied_code = [
                 f'''{NEWLINE}history_change_reason = "Workflow Migration - {migration_name.replace(".py", "")}"''',
                 f'{NEWLINE}migration_app_label = "{app_label}"',
@@ -1997,7 +1973,6 @@ class Command(BaseCommand):
                 f"{NEWLINE}changed_data = {pformat(changed_data, width=20)}{NEWLINE}{NEWLINE}",
                 f"{forwards}{NEWLINE}{NEWLINE}",
                 f"{backwards}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(SkippableRunSQL)}{NEWLINE}{NEWLINE}",
             ]
 
             if not self.import_instead:
@@ -2178,7 +2153,6 @@ class Command(BaseCommand):
     @atomic
     def handle(self, *app_labels, **options):
         self.dry_run = options["dry_run"]
-        self.env_guarded_operations = options["env_guarded_operations"]
         self.import_instead = options["import_instead"]
         self.debug = options["debug"]
 

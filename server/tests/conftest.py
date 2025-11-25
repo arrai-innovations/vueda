@@ -3,8 +3,6 @@ import contextlib
 import hashlib
 import importlib
 import io
-import json
-import os
 from collections import OrderedDict
 from http import HTTPStatus
 from urllib.parse import urlencode
@@ -25,7 +23,7 @@ from rest_framework.test import APIClient
 
 
 POSTGRES_MAX_DB_NAME_LENGTH = 63
-pytest_plugins = ["pytest_jsonreport", "celery.contrib.pytest"]
+pytest_plugins = ["celery.contrib.pytest"]
 
 
 @pytest.fixture
@@ -479,7 +477,6 @@ class BaseTestModelViewSet(
 
 
 class BaseTestCallCommand:
-    # @staticmethod
     def call_command(self, *args):
         """
         Call a management command and capture the results.
@@ -509,45 +506,3 @@ class BaseTestCallCommand:
         # Return the results.
         out.seek(0)
         return True, out.readlines()
-
-
-class BasePyTestJsonResults:
-    @staticmethod
-    def handle_json_results(json_report_file, subprocess_exception_text):
-        with open(json_report_file, "rb") as f:
-            json_results = json.load(f)
-
-        if os.path.exists(json_report_file):
-            os.remove(json_report_file)
-
-        if "error" in json_results["summary"]:
-            for test in json_results["tests"]:
-                if test["outcome"] == "error":
-                    if "longrepr" in test["setup"]:
-                        pytest.fail(subprocess_exception_text + test["setup"]["longrepr"])
-
-                    elif "longrepr" in test["call"]:
-                        pytest.fail(subprocess_exception_text + test["call"]["longrepr"])
-
-                    elif "longrepr" in test["teardown"]:
-                        pytest.fail(subprocess_exception_text + test["teardown"]["longrepr"])
-
-                    else:
-                        # Not sure what the error was in, so give the entire error object back.
-                        pytest.fail(subprocess_exception_text + str(test))
-
-        if "failed" in json_results["summary"]:
-            for test in json_results["tests"]:
-                if test["outcome"] == "failed":
-                    if "longrepr" in test["setup"]:
-                        pytest.fail(subprocess_exception_text + test["setup"]["longrepr"])
-
-                    elif "longrepr" in test["call"]:
-                        pytest.fail(subprocess_exception_text + test["call"]["longrepr"])
-
-                    elif "longrepr" in test["teardown"]:
-                        pytest.fail(subprocess_exception_text + test["teardown"]["longrepr"])
-
-                    else:
-                        # Not sure what the error was in, so give the entire dictionary as the error.
-                        pytest.fail(subprocess_exception_text + str(test))

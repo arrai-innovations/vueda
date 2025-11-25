@@ -2,11 +2,6 @@
 
 from django.db import migrations
 
-from vueda.workflow import custom_migration_operations
-
-
-SKIPPABLE_ENV_VARIABLE = "migration_skip_workflow_deleted"
-
 
 class Migration(migrations.Migration):
     dependencies = [
@@ -14,7 +9,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -62,10 +57,8 @@ class Migration(migrations.Migration):
                             W.code = 'deleted_workflow'
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 DELETE FROM
                     vueda_workflow_transitionsource
@@ -194,10 +187,8 @@ class Migration(migrations.Migration):
                         ),
                         FALSE
                     );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -249,10 +240,8 @@ class Migration(migrations.Migration):
                             W.code = 'deleted_workflow'
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 DELETE FROM
                     vueda_workflow_transitionpermission
@@ -392,10 +381,8 @@ class Migration(migrations.Migration):
                                 )
                         )
                     );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -443,10 +430,8 @@ class Migration(migrations.Migration):
                             code = 'deleted_workflow'
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 DELETE FROM
                     vueda_workflow_transition
@@ -553,10 +538,8 @@ class Migration(migrations.Migration):
                                 )
                         )
                     );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -632,10 +615,8 @@ class Migration(migrations.Migration):
                             )
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 DELETE FROM
                     vueda_workflow_statepermission
@@ -804,10 +785,8 @@ class Migration(migrations.Migration):
                         'WorkflowDeletedAdmin',
                         TRUE
                     );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -851,10 +830,8 @@ class Migration(migrations.Migration):
                             code = 'deleted_workflow'
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 DELETE FROM
                     vueda_workflow_initialstate
@@ -901,10 +878,8 @@ class Migration(migrations.Migration):
                                 )
                         )
                     );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -950,10 +925,8 @@ class Migration(migrations.Migration):
                             code = 'deleted_workflow'
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 DELETE FROM
                     vueda_workflow_state
@@ -1011,10 +984,8 @@ class Migration(migrations.Migration):
                                 code = 'deleted_workflow'
                         )
                     );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -1064,10 +1035,8 @@ class Migration(migrations.Migration):
                             code = 'deleted_workflow'
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 DELETE FROM
                     vueda_workflow_workflowpermission
@@ -1151,10 +1120,8 @@ class Migration(migrations.Migration):
                         'workflow_deleted',
                         'workflowdeleted'
                     );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 DELETE FROM
                     auth_group_permissions
@@ -1215,10 +1182,8 @@ class Migration(migrations.Migration):
                             )
                         )
                     );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 DELETE FROM
                     auth_group
@@ -1237,10 +1202,8 @@ class Migration(migrations.Migration):
                     (
                         'WorkflowDeletedWorker'
                     );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -1283,10 +1246,8 @@ class Migration(migrations.Migration):
                 WHERE
                     W.code = 'deleted_workflow';""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 DELETE FROM
                     vueda_workflow_workflow
@@ -1318,7 +1279,5 @@ class Migration(migrations.Migration):
                     'workflow_deleted',
                     'workflowdeleted'
                 );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
     ]

@@ -5,11 +5,6 @@ from django.contrib.auth.management import create_permissions
 from django.db import DEFAULT_DB_ALIAS
 from django.db import migrations
 
-from vueda.workflow import custom_migration_operations
-
-
-SKIPPABLE_ENV_VARIABLE = "migration_skip_workflow_added"
-
 
 def make_sure_permissions_exist(apps, schema_editor):
     app = django_apps.get_app_config("workflow_added")
@@ -29,7 +24,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(make_sure_permissions_exist, reverse_code=migrations.RunPython.noop),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
             INSERT INTO
                 vueda_workflow_workflow
@@ -61,10 +56,8 @@ class Migration(migrations.Migration):
                 vueda_workflow_workflow
             WHERE
                 code = 'added_workflow';""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -107,10 +100,8 @@ class Migration(migrations.Migration):
                 WHERE
                     W.code = 'added_workflow';""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
             INSERT INTO
                 vueda_workflow_workflowpermission
@@ -180,10 +171,8 @@ class Migration(migrations.Migration):
                     WHERE
                         code = 'added_workflow'
                 );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -234,10 +223,8 @@ class Migration(migrations.Migration):
                     )
                     AND W.historical_permission_codename = 'can_do_something';""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -288,10 +275,8 @@ class Migration(migrations.Migration):
                     )
                     AND W.historical_permission_codename = 'can_do_something_else';""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
             INSERT INTO
                 vueda_workflow_state
@@ -349,10 +334,8 @@ class Migration(migrations.Migration):
                         WHERE
                             code = 'added_workflow'
                     );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -399,10 +382,8 @@ class Migration(migrations.Migration):
                     )
                     AND S.code = 'state_1';""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -449,10 +430,8 @@ class Migration(migrations.Migration):
                     )
                     AND S.code = 'state_2';""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -499,10 +478,8 @@ class Migration(migrations.Migration):
                     )
                     AND S.code = 'state_3';""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 INSERT INTO
                     vueda_workflow_initialstate
@@ -549,10 +526,8 @@ class Migration(migrations.Migration):
                         WHERE
                             code = 'added_workflow'
                     );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -596,10 +571,8 @@ class Migration(migrations.Migration):
                             code = 'added_workflow'
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 INSERT INTO
                     vueda_workflow_statepermission
@@ -789,10 +762,8 @@ class Migration(migrations.Migration):
                     historical_permission_content_type_model_name = 'workflowadded'
                     AND
                     historical_group_name = 'WorkflowAddedAdmin';""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -868,10 +839,8 @@ class Migration(migrations.Migration):
                             )
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -947,10 +916,8 @@ class Migration(migrations.Migration):
                             )
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -1026,10 +993,8 @@ class Migration(migrations.Migration):
                             )
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
             INSERT INTO
                 vueda_workflow_transition
@@ -1115,10 +1080,8 @@ class Migration(migrations.Migration):
                     WHERE
                         code = 'added_workflow'
                 );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -1167,10 +1130,8 @@ class Migration(migrations.Migration):
                     )
                     AND T.code = 'go_to_state_1';""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -1219,10 +1180,8 @@ class Migration(migrations.Migration):
                     )
                     AND T.code = 'go_to_state_2';""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -1271,10 +1230,8 @@ class Migration(migrations.Migration):
                     )
                     AND T.code = 'go_to_state_3';""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
             INSERT INTO
                 vueda_workflow_transitionpermission
@@ -1414,10 +1371,8 @@ class Migration(migrations.Migration):
                     WHERE
                         W.code = 'added_workflow'
                 );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -1470,10 +1425,8 @@ class Migration(migrations.Migration):
                     )
                     AND T.historical_permission_codename = 'can_do_something';""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -1526,10 +1479,8 @@ class Migration(migrations.Migration):
                     )
                     AND T.historical_permission_codename = 'can_do_something_else';""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -1582,10 +1533,8 @@ class Migration(migrations.Migration):
                     )
                     AND T.historical_permission_codename = 'update_workflowadded';""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
             INSERT INTO
                 vueda_workflow_transitionsource
@@ -1714,10 +1663,8 @@ class Migration(migrations.Migration):
                     WHERE
                         W.code = 'added_workflow'
                 );""",
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -1766,10 +1713,8 @@ class Migration(migrations.Migration):
                             AND WS.code = 'state_1'
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -1818,10 +1763,8 @@ class Migration(migrations.Migration):
                             AND WS.code = 'state_2'
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
-        custom_migration_operations.SkippableRunSQL(
+        migrations.RunSQL(
             sql="""
                 WITH USER_SYSTEM AS (
                     SELECT
@@ -1870,7 +1813,5 @@ class Migration(migrations.Migration):
                             AND WS.code = 'state_3'
                     );""",
             reverse_sql=migrations.RunSQL.noop,
-            skippable=True,
-            skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
     ]
