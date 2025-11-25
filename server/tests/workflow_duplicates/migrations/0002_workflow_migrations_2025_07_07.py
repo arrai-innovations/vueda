@@ -874,7 +874,6 @@ def get_id_values_from_dict(id_data, reversing=False):
 class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("vueda_workflow", "0005_historicaltransitionsource_fail_with_silent_and_more"),
         ("workflow_duplicates", "0001_initial"),
     ]
 
