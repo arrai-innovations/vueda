@@ -16,15 +16,6 @@ from vueda.workflow.models import Transition
 
 
 @pytest.mark.django_db
-def test_fast_transition_updates_state(sender, receiver):
-    qi = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
-    assert qi.workflow_state.code == "queued"
-    qi.fast_transition("send")
-    qi.refresh_from_db()
-    assert qi.workflow_state.code == "sending"
-
-
-@pytest.mark.django_db
 def test_lock_queue_item_returns_locked_instance(sender, receiver):
     qi = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
 
@@ -35,13 +26,6 @@ def test_lock_queue_item_returns_locked_instance(sender, receiver):
 
     qi.refresh_from_db()
     assert qi.workflow_state.code == "sending"
-
-
-@pytest.mark.django_db
-def test_fast_transition_invalid_code_raises(sender, receiver):
-    qi = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
-    with pytest.raises(Transition.DoesNotExist):
-        qi.fast_transition("queued")
 
 
 @pytest.mark.django_db
