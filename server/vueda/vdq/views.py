@@ -72,7 +72,6 @@ class TwilioSMSWebhook(APIView):
                 check_previously_received_message_sid.delay(message_sid, message_status)
             else:
                 handler = TwilioQueueItemHandler()
-                # TODO: catch InvalidTransitionError, determine if we ignore or tell twilio it failed:https://trello.com/c/Wge5rKSS/11-handle-errors-on-vdq-webhook-transitions
                 handler.update_sms_qi(qi, message_status, message=message, webhook=True, error_code=error_code)
         return Response(status=204)
 

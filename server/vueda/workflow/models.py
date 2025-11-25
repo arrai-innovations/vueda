@@ -550,7 +550,7 @@ class HasWorkflowModelMixin(models.Model):
         """
         Returns available transitions for a list of objects.
         """
-        workflow = Workflow.objects.get(content_type=cls.get_content_type()).workflow
+        workflow = Workflow.objects.get(content_type=cls.get_content_type())
         if user is not None and user.has_perms(
             [
                 ".".join(permission_parts)
