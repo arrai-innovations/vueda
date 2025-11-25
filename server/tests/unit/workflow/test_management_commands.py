@@ -11,10 +11,6 @@ from tests.utils import info_register_aware_modify_settings
 from vueda.workflow import models
 
 
-# TODO: When there is time, a good test to have, would be one where we run
-# "makeworkflowmigrations" twice, so we can confirm that works correctly.
-
-
 def convert_data_to_list_of_dicts_without_id_fields(queryset):
     data = []
 
@@ -1152,6 +1148,15 @@ class TestManagementCommandWorkflowMulti(BaseTestMigrations, BaseTestCallCommand
                 "history_type": "added",
                 "model_name": "workflow",
             }, first_change
+
+            # Run makeworkflowmigrations again, to verify no changes are detected.
+            succeeded, results = self.call_command(
+                "makeworkflowmigrations", "workflow_multi", "--import-instead", "--debug", "all"
+            )
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            assert "No workflow changes detected.\n" in results, results
 
 
 class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCommand):
