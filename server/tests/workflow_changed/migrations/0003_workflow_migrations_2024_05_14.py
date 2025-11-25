@@ -2,7 +2,6 @@
 # Modified using VUEDA makeworkflowmigrations command.  Please do not delete this comment.
 import copy
 import datetime
-import os
 
 from django.apps import apps as django_apps
 from django.contrib.auth.management import create_permissions
@@ -1112,32 +1111,6 @@ def make_sure_permissions_exist(apps, schema_editor):
 def make_sure_permissions_exist(apps, schema_editor):
     app = django_apps.get_app_config(migration_app_label)
     create_permissions(app, interactive=False)
-
-
-class SkippableRunSQL(migrations.RunSQL):
-    def __init__(
-        self,
-        *args,
-        skippable=False,
-        skippable_env_variable="migration_skip",
-        skip_all_env_variable="skip_migration_when_setting_up_db",
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-
-        self.skippable = skippable
-        self.skippable_env_variable = skippable_env_variable
-        self.skip_all_env_variable = skip_all_env_variable
-
-    def _run_sql(self, *args, **kwargs):
-        skip_all = os.environ.get(self.skip_all_env_variable, "").lower() == "true"
-        skip = self.skippable and os.environ.get(self.skippable_env_variable, "").lower() == "true"
-
-        if skip_all:
-            return
-
-        if not skip:
-            super()._run_sql(*args, **kwargs)
 
 
 class Migration(migrations.Migration):

@@ -2,7 +2,6 @@
 # Modified using VUEDA makeworkflowmigrations command.  Please do not delete this comment.
 import copy
 import datetime
-import os
 
 from django.apps import apps as django_apps
 from django.conf import settings
@@ -159,32 +158,6 @@ def backwards_migrate_workflow(apps, schema_editor):
 
             case "transitionsource":
                 handle_transition_source(apps, changed_item, reversing=True)
-
-
-class SkippableRunSQL(migrations.RunSQL):
-    def __init__(
-        self,
-        *args,
-        skippable=False,
-        skippable_env_variable="migration_skip",
-        skip_all_env_variable="skip_migration_when_setting_up_db",
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-
-        self.skippable = skippable
-        self.skippable_env_variable = skippable_env_variable
-        self.skip_all_env_variable = skip_all_env_variable
-
-    def _run_sql(self, *args, **kwargs):
-        skip_all = os.environ.get(self.skip_all_env_variable, "").lower() == "true"
-        skip = self.skippable and os.environ.get(self.skippable_env_variable, "").lower() == "true"
-
-        if skip_all:
-            return
-
-        if not skip:
-            super()._run_sql(*args, **kwargs)
 
 
 def make_sure_permissions_exist(apps, schema_editor):
@@ -901,7 +874,6 @@ def get_id_values_from_dict(id_data, reversing=False):
 class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("vueda_workflow", "0005_historicaltransitionsource_fail_with_silent_and_more"),
         ("workflow_duplicates", "0001_initial"),
     ]
 

@@ -502,7 +502,7 @@ class HasWorkflowModelMixin(models.Model):
 
     @property
     def object_state(self) -> ObjectState | None:
-        osp = self.object_states_proxy.all().first()
+        osp = self.object_states_proxy.first()
         return osp and osp.object_state
 
     @property

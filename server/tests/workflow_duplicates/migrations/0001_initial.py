@@ -7,7 +7,9 @@ from django.db import models
 class Migration(migrations.Migration):
     initial = True
 
-    dependencies = []
+    dependencies = [
+        ("vueda_workflow", "__latest__"),
+    ]
 
     operations = [
         migrations.CreateModel(

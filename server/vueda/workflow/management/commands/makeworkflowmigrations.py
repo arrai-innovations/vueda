@@ -10,6 +10,7 @@ from pathlib import Path
 from pprint import pformat
 
 from django.apps import apps as django_apps
+from django.conf import settings
 from django.contrib.auth.management import create_permissions
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
@@ -18,10 +19,10 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.management import BaseCommand
 from django.core.management import call_command
 from django.db import migrations
+from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
 from django.db.transaction import atomic
 
 from vueda.workflow import models
-from vueda.workflow.custom_migration_operations import SkippableRunSQL
 
 
 #############################################################################
@@ -74,9 +75,6 @@ DELETED = "deleted"
 NEWLINE = os.linesep
 INDENT8 = "        "
 
-GUARDED_TEXT = """    if os.environ.get("skip_migration_when_setting_up_db", "").lower() == "true":  # For testing.
-        return
-"""
 
 # Add a comment right after the Django generated comment, to help find our created migrations.
 # This way we can find the last one we did, parse the generated date from the Django comment,
@@ -937,17 +935,6 @@ class Command(BaseCommand):
             help="Just show what migrations would be made; don't actually write them.",
         )
         parser.add_argument(
-            "--env-guarded-operations",
-            action="store_true",
-            help=(
-                "This causes created migrations to not run the migration sql, when the environment "
-                "variable 'skip_migration_when_setting_up_db' is 'true'.  In a test you can "
-                "use this to fake and roll back a migration, then update the environment "
-                "variable and run the migration manually.  If not set, the test for the "
-                "environment variable will not be added into the migration."
-            ),
-        )
-        parser.add_argument(
             "--import-instead",
             action="store_true",
             help=(
@@ -1059,6 +1046,20 @@ class Command(BaseCommand):
 
         return False
 
+    def _get_migrations_path(self, app_config):
+        app_label = app_config.label
+        if app_label in settings.MIGRATION_MODULES:
+            module_name = settings.MIGRATION_MODULES[app_label]
+        else:
+            module_name = f"{app_config.name}.{MIGRATIONS_MODULE_NAME}"
+
+        try:
+            module = importlib.import_module(module_name)
+        except ModuleNotFoundError:
+            return None
+
+        return module.__path__[0] if module.__path__ else None
+
     def _get_apps_with_workflow(self, selected_apps=()):
         apps_with_workflow = {}
 
@@ -1073,13 +1074,14 @@ class Command(BaseCommand):
 
             content_type = ContentType.objects.get_for_model(model, for_concrete_model=False)
 
-            app_config = django_apps.get_app_config(app_label)
-
             if issubclass(model, models.HasWorkflowModelMixin):
+                app_config = django_apps.get_app_config(app_label)
+                migrations_path = self._get_migrations_path(app_config)
+
                 if app_label not in apps_with_workflow:
                     apps_with_workflow[app_label] = {
                         "app_name": model_meta.app_config.name,
-                        "path": app_config.path,
+                        "migrations_path": migrations_path,
                         "model_to_content_type_ids": {},
                     }
                 apps_with_workflow[app_label]["model_to_content_type_ids"][model_name] = content_type.pk
@@ -1092,7 +1094,6 @@ class Command(BaseCommand):
                     if app_label not in apps_with_workflow:
                         apps_with_workflow[app_label] = {
                             "app_name": model_meta.app_config.name,
-                            "path": app_config.path,
                             "content_type_ids": [],
                         }
                     apps_with_workflow[app_label]["content_type_ids"].append(content_type.pk)
@@ -1112,6 +1113,7 @@ class Command(BaseCommand):
                     workflow_id = (
                         models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
                         .values_list("id", flat=True)
+                        .order_by("history_date")
                         .first()
                     )
                     state_ids = frozenset(
@@ -1129,6 +1131,7 @@ class Command(BaseCommand):
                     workflow_id = (
                         models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
                         .values_list("id", flat=True)
+                        .order_by("history_date")
                         .first()
                     )
                     records = workflow_model.history.filter(workflow_id=workflow_id)
@@ -1144,6 +1147,7 @@ class Command(BaseCommand):
                     workflow_id = (
                         models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
                         .values_list("id", flat=True)
+                        .order_by("history_date")
                         .first()
                     )
                     state_ids = frozenset(
@@ -1161,6 +1165,7 @@ class Command(BaseCommand):
                     workflow_id = (
                         models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
                         .values_list("id", flat=True)
+                        .order_by("history_date")
                         .first()
                     )
                     records = workflow_model.history.filter(workflow_id=workflow_id)
@@ -1176,6 +1181,7 @@ class Command(BaseCommand):
                     workflow_id = (
                         models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
                         .values_list("id", flat=True)
+                        .order_by("history_date")
                         .first()
                     )
                     transition_ids = frozenset(
@@ -1195,6 +1201,7 @@ class Command(BaseCommand):
                     workflow_id = (
                         models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
                         .values_list("id", flat=True)
+                        .order_by("history_date")
                         .first()
                     )
                     source_ids = frozenset(
@@ -1215,6 +1222,7 @@ class Command(BaseCommand):
                     workflow_id = (
                         models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
                         .values_list("id", flat=True)
+                        .order_by("history_date")
                         .first()
                     )
                     records = workflow_model.history.filter(workflow_id=workflow_id)
@@ -1281,7 +1289,7 @@ class Command(BaseCommand):
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
-    def _recursive_compile_changed_item(self, query):
+    def _recursive_compile_changed_item(self, query, *, history_date=None):
         # Using filter and first, or last for historical records, in case things have been deleted.
         query = get_id_values_from_dict(query, reversing=True)
 
@@ -1303,27 +1311,48 @@ class Command(BaseCommand):
 
                 case "source_id":
                     sub_query = self._recursive_compile_changed_item(query.pop("source_id"))
-                    historical_state = models.HistoricalState.objects.filter(**sub_query).last()
+                    if history_date is not None:
+                        sub_query["history_date__lte"] = history_date
+                    historical_state = (
+                        models.HistoricalState.objects.filter(**sub_query).order_by("history_date").last()
+                    )
+
                     query["source_id"] = historical_state.id if historical_state else None
 
                 case "state_id":
                     sub_query = self._recursive_compile_changed_item(query.pop("state_id"))
-                    historical_state = models.HistoricalState.objects.filter(**sub_query).last()
+                    if history_date is not None:
+                        sub_query["history_date__lte"] = history_date
+                    historical_state = (
+                        models.HistoricalState.objects.filter(**sub_query).order_by("history_date").last()
+                    )
                     query["state_id"] = historical_state.id if historical_state else None
 
                 case "target_id":
                     sub_query = self._recursive_compile_changed_item(query.pop("target_id"))
-                    historical_state = models.HistoricalState.objects.filter(**sub_query).last()
+                    if history_date is not None:
+                        sub_query["history_date__lte"] = history_date
+                    historical_state = (
+                        models.HistoricalState.objects.filter(**sub_query).order_by("history_date").last()
+                    )
                     query["target_id"] = historical_state.id if historical_state else None
 
                 case "transition_id":
                     sub_query = self._recursive_compile_changed_item(query.pop("transition_id"))
-                    historical_transition = models.HistoricalTransition.objects.filter(**sub_query).last()
+                    if history_date is not None:
+                        sub_query["history_date__lte"] = history_date
+                    historical_transition = (
+                        models.HistoricalTransition.objects.filter(**sub_query).order_by("history_date").last()
+                    )
                     query["transition_id"] = historical_transition.id if historical_transition else None
 
                 case "workflow_id":
                     sub_query = self._recursive_compile_changed_item(query.pop("workflow_id"))
-                    historical_workflow = models.HistoricalWorkflow.objects.filter(**sub_query).last()
+                    if history_date is not None:
+                        sub_query["history_date__lte"] = history_date
+                    historical_workflow = (
+                        models.HistoricalWorkflow.objects.filter(**sub_query).order_by("history_date").last()
+                    )
                     query["workflow_id"] = historical_workflow.id if historical_workflow else None
 
         return query
@@ -1343,6 +1372,7 @@ class Command(BaseCommand):
 
     def _get_history_obj_from_change(self, model_name, changed_item, historical_queryset):
         history_type_text = changed_item["history_type"]
+        history_date = changed_item["history_date"]
         match history_type_text:
             case "added":
                 history_type = "+"
@@ -1355,90 +1385,98 @@ class Command(BaseCommand):
         match model_name:
             case "initialstate":
                 initialstate_query = copy.deepcopy(changed_item["changes"])
-                initialstate_query = self._recursive_compile_changed_item(initialstate_query)
+                initialstate_query = self._recursive_compile_changed_item(initialstate_query, history_date=history_date)
                 del initialstate_query["id"]
 
                 historical_queryset = historical_queryset.filter(**initialstate_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.first()
+                historical_obj = historical_queryset.order_by("history_date").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "state":
                 state_query = copy.deepcopy(changed_item["changes"])
-                state_query = self._recursive_compile_changed_item(state_query)
+                state_query = self._recursive_compile_changed_item(state_query, history_date=history_date)
                 del state_query["id"]
 
                 historical_queryset = historical_queryset.filter(**state_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.first()
+                historical_obj = historical_queryset.order_by("history_date").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "statepermission":
                 statepermission_query = copy.deepcopy(changed_item["changes"])
-                statepermission_query = self._recursive_compile_changed_item(statepermission_query)
+                statepermission_query = self._recursive_compile_changed_item(
+                    statepermission_query, history_date=history_date
+                )
                 del statepermission_query["id"]
 
                 historical_queryset = historical_queryset.filter(**statepermission_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.first()
+                historical_obj = historical_queryset.order_by("history_date").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "transition":
                 transition_query = copy.deepcopy(changed_item["changes"])
-                transition_query = self._recursive_compile_changed_item(transition_query)
+                transition_query = self._recursive_compile_changed_item(transition_query, history_date=history_date)
                 del transition_query["id"]
 
                 historical_queryset = historical_queryset.filter(**transition_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.first()
+                historical_obj = historical_queryset.order_by("history_date").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "transitionpermission":
                 transitionpermission_query = copy.deepcopy(changed_item["changes"])
-                transitionpermission_query = self._recursive_compile_changed_item(transitionpermission_query)
+                transitionpermission_query = self._recursive_compile_changed_item(
+                    transitionpermission_query, history_date=history_date
+                )
                 del transitionpermission_query["id"]
 
                 historical_queryset = historical_queryset.filter(**transitionpermission_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.first()
+                historical_obj = historical_queryset.order_by("history_date").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "transitionsource":
                 transitionsource_query = copy.deepcopy(changed_item["changes"])
-                transitionsource_query = self._recursive_compile_changed_item(transitionsource_query)
+                transitionsource_query = self._recursive_compile_changed_item(
+                    transitionsource_query, history_date=history_date
+                )
                 del transitionsource_query["id"]
 
                 historical_queryset = historical_queryset.filter(**transitionsource_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.first()
+                historical_obj = historical_queryset.order_by("history_date").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "workflow":
                 workflow_query = copy.deepcopy(changed_item["changes"])
-                workflow_query = self._recursive_compile_changed_item(workflow_query)
+                workflow_query = self._recursive_compile_changed_item(workflow_query, history_date=history_date)
                 del workflow_query["id"]
 
                 historical_queryset = historical_queryset.filter(**workflow_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.first()
+                historical_obj = historical_queryset.order_by("history_date").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "workflowpermission":
                 workflowpermission_query = copy.deepcopy(changed_item["changes"])
-                workflowpermission_query = self._recursive_compile_changed_item(workflowpermission_query)
+                workflowpermission_query = self._recursive_compile_changed_item(
+                    workflowpermission_query, history_date=history_date
+                )
                 del workflowpermission_query["id"]
 
                 historical_queryset = historical_queryset.filter(**workflowpermission_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.first()
+                historical_obj = historical_queryset.order_by("history_date").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
         return historical_obj
@@ -1510,7 +1548,7 @@ class Command(BaseCommand):
 
         for app_label, model_data in self._get_apps_with_workflow(selected_apps).items():
             app_name = model_data["app_name"]
-            app_path = model_data["path"]
+            migrations_path = model_data["migrations_path"]
 
             show_migration_results = self._call_command("showmigrations", app_label)
             if not show_migration_results:  # Erred.  The reason will be printed to the console via the command.
@@ -1524,11 +1562,12 @@ class Command(BaseCommand):
                 "history_by_model_name": {},
                 "history_change_reasons": [],
                 "migrations": {},
+                "migrations_path": migrations_path,
                 "models_to_content_type_ids": model_data["model_to_content_type_ids"],
             }
 
             for migration_name in migration_names:
-                migration_path = os.path.join(app_path, "migrations", f"{migration_name}.py")
+                migration_path = os.path.join(migrations_path, f"{migration_name}.py")
                 django_date = self._get_generated_date_for_vueda_generated_migration(migration_path)
                 if django_date:
                     migration_data["history_change_reasons"].append(f"Workflow Migration - {migration_name}")
@@ -1964,15 +2003,6 @@ class Command(BaseCommand):
 
             lines[dependencies_index + 1 : dependencies_index + 1] = dependency_data
 
-            if self.env_guarded_operations:
-                forwards = forwards.split("\n")
-                forwards[1:1] = [GUARDED_TEXT]
-                forwards = "\n".join(forwards)
-
-                backwards = backwards.split("\n")
-                backwards[1:1] = [GUARDED_TEXT]
-                backwards = "\n".join(backwards)
-
             copied_code = [
                 f'''{NEWLINE}history_change_reason = "Workflow Migration - {migration_name.replace(".py", "")}"''',
                 f'{NEWLINE}migration_app_label = "{app_label}"',
@@ -1980,7 +2010,6 @@ class Command(BaseCommand):
                 f"{NEWLINE}changed_data = {pformat(changed_data, width=20)}{NEWLINE}{NEWLINE}",
                 f"{forwards}{NEWLINE}{NEWLINE}",
                 f"{backwards}{NEWLINE}{NEWLINE}",
-                f"{inspect.getsource(SkippableRunSQL)}{NEWLINE}{NEWLINE}",
             ]
 
             if not self.import_instead:
@@ -2161,7 +2190,6 @@ class Command(BaseCommand):
     @atomic
     def handle(self, *app_labels, **options):
         self.dry_run = options["dry_run"]
-        self.env_guarded_operations = options["env_guarded_operations"]
         self.import_instead = options["import_instead"]
         self.debug = options["debug"]
 
@@ -2194,7 +2222,6 @@ class Command(BaseCommand):
         all_migrated_data = self._get_vueda_generated_migration_data_per_app(app_labels)
         all_migrated_data = self._get_history_compared_to_existing_changes(all_migrated_data)
 
-        content_types = {x.pk: x for x in ContentType.objects.all()}
         changes_by_app = {}
 
         for app_name, app_data in all_migrated_data.items():
@@ -2216,46 +2243,41 @@ class Command(BaseCommand):
 
                     if unmatched.exists():
                         content_type_id = app_data["models_to_content_type_ids"][model_name]
-                        model = content_types[content_type_id].model_class()
-                        model_meta = model._meta
+                        changes_by_app[app_label]["migrations_path"] = app_data["migrations_path"]
 
-                        changes_by_app[app_label]["migrations_path"] = os.path.join(
-                            model_meta.app_config.path, "migrations"
-                        )
+                        for new_record in unmatched:
+                            match new_record.history_type:
+                                case "+":
+                                    old_record = None
+                                    history_date = new_record.history_date
 
-                    for new_record in unmatched:
-                        match new_record.history_type:
-                            case "+":
-                                old_record = None
-                                history_date = new_record.history_date
+                                case "~":
+                                    old_record = queryset.filter(
+                                        pk__lt=new_record.pk,
+                                        id=new_record.id,
+                                    ).first()
+                                    history_date = new_record.history_date
 
-                            case "~":
-                                old_record = queryset.filter(
-                                    pk__lt=new_record.pk,
-                                    id=new_record.id,
-                                ).first()
-                                history_date = new_record.history_date
+                                case "-":
+                                    old_record = new_record
+                                    new_record = None
+                                    history_date = old_record.history_date
 
-                            case "-":
-                                old_record = new_record
-                                new_record = None
-                                history_date = old_record.history_date
+                            history_type, history_diff = get_history_diff(old_record, new_record)
 
-                        history_type, history_diff = get_history_diff(old_record, new_record)
+                            historical_change = {
+                                "diff": history_diff,
+                                "type": history_type,
+                                "date": history_date,
+                            }
 
-                        historical_change = {
-                            "diff": history_diff,
-                            "type": history_type,
-                            "date": history_date,
-                        }
-
-                        historical_record = self._convert_historical_change(
-                            historical_change,
-                            content_type_id,
-                            workflow_model_name,
-                            workflow_model_field_names_to_attname,
-                        )
-                        changes_by_app[app_label]["changes"].append(historical_record)
+                            historical_record = self._convert_historical_change(
+                                historical_change,
+                                content_type_id,
+                                workflow_model_name,
+                                workflow_model_field_names_to_attname,
+                            )
+                            changes_by_app[app_label]["changes"].append(historical_record)
 
         changes_by_app = self.clean_changes_by_app(changes_by_app)
 

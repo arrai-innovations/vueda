@@ -1,79 +1,102 @@
 import os
+import pathlib
+import shutil
+import tempfile
 from contextlib import contextmanager
+from importlib import import_module
+from importlib import reload
 
+from django.apps import apps
+from django.conf import settings
 from django.http import QueryDict
+from django.test import modify_settings
+from django.test import override_settings
+from django.test.utils import extend_sys_path
+from django.utils.module_loading import module_dir
+
+from vueda.info import registration
 
 
-def clean_migrations(which_app=None):
-    workflow_added_migrations_data = {
-        "tests/workflow_added/migrations": (
-            "__init__.py",
-            "0001_initial.py",
-            "0002_create_workflow_added_workflow.py",
-        ),
-    }
-    workflow_changed_migrations_data = {
-        "tests/workflow_changed/migrations": (
-            "__init__.py",
-            "0001_initial.py",
-            "0002_create_workflow_changed_permissions.py",
-            "0003_workflow_migrations_2024_05_14.py",
-            "0004_change_workflow.py",
-        ),
-    }
-    workflow_deleted_migrations_data = {
-        "tests/workflow_deleted/migrations": (
-            "__init__.py",
-            "0001_initial.py",
-            "0002_create_workflow_deleted_permissions.py",
-            "0003_workflow_migrations_2024_05_13.py",
-            "0004_delete_workflow.py",
-        ),
-    }
-    workflow_duplicates_migrations_data = {
-        "tests/workflow_duplicates/migrations": (
-            "__init__.py",
-            "0001_initial.py",
-            "0002_workflow_migrations_2025_07_07.py",
-            "0003_create_state_history_records.py",
-        ),
-    }
-    workflow_multi_migrations_data = {
-        "tests/workflow_multi/migrations": (
-            "__init__.py",
-            "0001_initial.py",
-            "0002_create_workflow_and_history.py",
-        ),
-    }
-    match which_app:
-        case "workflow_added":
-            existing_migration_data = workflow_added_migrations_data
+# This is a decorator.
+class info_register_aware_modify_settings(modify_settings):  # noqa N801
+    """
+    When django calls enable, it reruns the ready functions for all apps. This
+    results in `register(TOTPDeviceSerializer, TOTPDeviceViewSet)` getting
+    called a second time, which we don't allow. So, we need to clear the
+    registry before we enable the second time.
+    """
 
-        case "workflow_changed":
-            existing_migration_data = workflow_changed_migrations_data
+    def enable(self):
+        registration.get_empty_registry()
+        super().enable()
 
-        case "workflow_deleted":
-            existing_migration_data = workflow_deleted_migrations_data
 
-        case "workflow_duplicates":
-            existing_migration_data = workflow_duplicates_migrations_data
+class BaseTestMigrations:
+    @staticmethod
+    def reload_module(results, migration_dir):
+        for item in results:
+            if item.find(migration_dir) != -1:
+                item = item.strip().rsplit(".", 1)[0]
+                item_path = pathlib.Path(item)
+                path_parts = item_path.parts[-3:]
+                path = ".".join(path_parts)
+                module = import_module(path)
+                reload(module)
+                return module
 
-        case "workflow_multi":
-            existing_migration_data = workflow_multi_migrations_data
+    # Copied from django with no changes:
+    # https://github.com/django/django/blob/14fb36e0b083ea963220602d01386cc0fb2c40e4/django/test/testcases.py#L393-L398
+    def settings(self, **kwargs):
+        """
+        A context manager that temporarily sets a setting and reverts to the
+        original value when exiting the context.
+        """
+        return override_settings(**kwargs)
 
-        case _:
-            existing_migration_data = {}
-            existing_migration_data.update(workflow_added_migrations_data)
-            existing_migration_data.update(workflow_changed_migrations_data)
-            existing_migration_data.update(workflow_deleted_migrations_data)
-            existing_migration_data.update(workflow_duplicates_migrations_data)
-            existing_migration_data.update(workflow_multi_migrations_data)
+    # Copied from django with no changes:
+    # //github.com/django/django/blob/14fb36e0b083ea963220602d01386cc0fb2c40e4/tests/migrations/test_base.py#L186-L222
+    @contextmanager
+    def temporary_migration_module(self, app_label="migrations", module=None):
+        """
+        Allows testing management commands in a temporary migrations module.
 
-    for path, existing_migrations in existing_migration_data.items():
-        for root, _dirs, files in os.walk(path):
-            for filename in files:
-                if filename not in existing_migrations:
-                    os.remove(os.path.join(root, filename))
+        Wrap all invocations to makemigrations and squashmigrations with this
+        context manager in order to avoid creating migration files in your
+        source tree inadvertently.
+
+        Takes the application label that will be passed to makemigrations or
+        squashmigrations and the Python path to a migrations module.
+
+        The migrations module is used as a template for creating the temporary
+        migrations module. If it isn't provided, the application's migrations
+        module is used, if it exists.
+
+        Returns the filesystem path to the temporary migrations module.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target_dir = tempfile.mkdtemp(dir=temp_dir)
+            with open(os.path.join(target_dir, "__init__.py"), "w"):
+                pass
+            target_migrations_dir = os.path.join(target_dir, "migrations")
+
+            if module is None:
+                module = apps.get_app_config(app_label).name + ".migrations"
+
+            try:
+                source_migrations_dir = module_dir(import_module(module))
+            except (ImportError, ValueError):
+                pass
+            else:
+                shutil.copytree(source_migrations_dir, target_migrations_dir)
+
+            # TODO: Test this change in django with all tests.  If it is fine, a pull request and
+            #   new test could get created for django, and then this wouldn't be a customization.
+            with extend_sys_path(temp_dir):
+                new_module = os.path.basename(target_dir) + ".migrations"
+                migration_modules = settings.MIGRATION_MODULES
+                migration_modules[app_label] = new_module
+                with self.settings(MIGRATION_MODULES=migration_modules):
+                    yield target_migrations_dir
 
 
 class FakeRequest:
