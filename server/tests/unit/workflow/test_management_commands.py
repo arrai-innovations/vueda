@@ -3,11 +3,11 @@ import datetime
 
 import pytest
 from django.db.migrations.recorder import MigrationRecorder
-from django.test import modify_settings
 from django.test import override_settings
 
 from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
+from tests.utils import info_register_aware_modify_settings
 from vueda.workflow import models
 
 
@@ -55,7 +55,7 @@ class TestManagementCommandWorkflow(BaseTestMigrations, BaseTestCallCommand):
             "workflow_multi": "tests.workflow_multi",
         },
     )
-    @modify_settings(
+    @info_register_aware_modify_settings(
         INSTALLED_APPS={
             "append": [
                 "tests.workflow_added",
@@ -143,7 +143,7 @@ class TestManagementCommandWorkflowAdded(BaseTestMigrations, BaseTestCallCommand
             "workflow_added": "tests.workflow_added",
         },
     )
-    @modify_settings(
+    @info_register_aware_modify_settings(
         INSTALLED_APPS={
             "append": [
                 "tests.workflow_added",
@@ -397,7 +397,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             "workflow_changed": "tests.workflow_changed",
         },
     )
-    @modify_settings(
+    @info_register_aware_modify_settings(
         INSTALLED_APPS={
             "append": [
                 "tests.workflow_changed",
@@ -806,7 +806,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             "workflow_deleted": "tests.workflow_deleted",
         },
     )
-    @modify_settings(
+    @info_register_aware_modify_settings(
         INSTALLED_APPS={
             "append": [
                 "tests.workflow_deleted",
@@ -1101,7 +1101,7 @@ class TestManagementCommandWorkflowMulti(BaseTestMigrations, BaseTestCallCommand
             "workflow_multi": "tests.workflow_multi",
         },
     )
-    @modify_settings(
+    @info_register_aware_modify_settings(
         INSTALLED_APPS={
             "append": [
                 "tests.workflow_multi",
@@ -1202,7 +1202,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
             "workflow_duplicates": "tests.workflow_duplicates",
         },
     )
-    @modify_settings(
+    @info_register_aware_modify_settings(
         INSTALLED_APPS={
             "append": [
                 "tests.workflow_duplicates",

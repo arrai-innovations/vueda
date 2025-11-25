@@ -9,9 +9,26 @@ from importlib import reload
 from django.apps import apps
 from django.conf import settings
 from django.http import QueryDict
+from django.test import modify_settings
 from django.test import override_settings
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
+
+from vueda.info import registration
+
+
+# This is a decorator.
+class info_register_aware_modify_settings(modify_settings):  # noqa N801
+    """
+    When django calls enable, it reruns the ready functions for all apps. This
+    results in `register(TOTPDeviceSerializer, TOTPDeviceViewSet)` getting
+    called a second time, which we don't allow. So, we need to clear the
+    registry before we enable the second time.
+    """
+
+    def enable(self):
+        registration.get_empty_registry()
+        super().enable()
 
 
 class BaseTestMigrations:
