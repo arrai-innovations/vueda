@@ -122,7 +122,7 @@ workflows:
                   name: pytest
                   executor: python311
                   context: arrai-global
-                  pytest_args: --cov -n2 --dist loadgroup
+                  pytest_args: --cov -n2
                   env_type: uv
                   config:
                       - run:

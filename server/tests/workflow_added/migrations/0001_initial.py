@@ -2,9 +2,17 @@
 
 import django.db.models.deletion
 import simple_history.models
+from django.apps import apps as django_apps
 from django.conf import settings
+from django.contrib.auth.management import create_permissions
 from django.db import migrations
 from django.db import models
+
+
+def make_sure_permissions_exist(apps, schema_editor):
+    for app_name in ("vueda_workflow", "workflow_added"):
+        app = django_apps.get_app_config(app_name)
+        create_permissions(app, interactive=False)
 
 
 class Migration(migrations.Migration):
@@ -81,5 +89,91 @@ class Migration(migrations.Migration):
                 "get_latest_by": ("history_date", "history_id"),
             },
             bases=(simple_history.models.HistoricalChanges, models.Model),
+        ),
+        migrations.RunPython(
+            code=make_sure_permissions_exist,
+            reverse_code=migrations.RunPython.noop,
+        ),
+        migrations.RunSQL(
+            sql="""
+            INSERT INTO
+                auth_group
+                (
+                    name
+                )
+            VALUES
+                (
+                    'WorkflowAddedAdmin'
+                ),
+                (
+                    'WorkflowAddedWorker'
+                );""",
+            reverse_sql="""
+            DELETE FROM
+                auth_group
+            WHERE
+                name IN ('WorkflowAddedAdmin', 'WorkflowAddedWorker');""",
+        ),
+        migrations.RunSQL(
+            sql="""
+            INSERT INTO
+                auth_group_permissions
+                (
+                    group_id,
+                    permission_id
+                )
+            VALUES
+                (
+                    (SELECT id FROM auth_group WHERE name = 'WorkflowAddedAdmin'),
+                    (
+                        SELECT
+                            id
+                        FROM
+                            auth_permission
+                        WHERE
+                            codename = 'can_do_something'
+                            AND content_type_id IN (
+                                SELECT
+                                    id
+                                FROM
+                                    django_content_type
+                                WHERE
+                                    app_label = 'workflow_added'
+                                    AND model = 'workflowadded'
+                            )
+                    )
+                ),
+                (
+                    (SELECT id FROM auth_group WHERE name = 'WorkflowAddedWorker'),
+                    (
+                        SELECT
+                            id
+                        FROM
+                            auth_permission
+                        WHERE
+                            codename = 'can_do_something_else'
+                            AND content_type_id IN (
+                                SELECT
+                                    id
+                                FROM
+                                    django_content_type
+                                WHERE
+                                    app_label = 'workflow_added'
+                                    AND model = 'workflowadded'
+                            )
+                    )
+                );""",
+            reverse_sql="""
+            DELETE FROM
+                auth_group_permissions
+            WHERE
+                group_id IN (
+                    SELECT
+                        id
+                    FROM
+                        auth_group
+                    WHERE
+                        name IN ('WorkflowAddedAdmin', 'WorkflowAddedWorker')
+                );""",
         ),
     ]

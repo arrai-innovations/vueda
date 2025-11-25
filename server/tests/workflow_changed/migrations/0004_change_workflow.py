@@ -23,7 +23,14 @@ class Migration(migrations.Migration):
                 code = 'changed_workflow_2'
             WHERE
                 code = 'changed_workflow';""",
-            reverse_sql=migrations.RunSQL.noop,
+            reverse_sql="""
+            UPDATE
+                vueda_workflow_workflow
+            SET
+                name = 'Changed Workflow',
+                code = 'changed_workflow'
+            WHERE
+                code = 'changed_workflow_2';""",
             skippable=True,
             skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
@@ -143,7 +150,40 @@ class Migration(migrations.Migration):
                 )
                 AND
                 historical_permission_codename = 'can_do_something';""",
-            reverse_sql=migrations.RunSQL.noop,
+            reverse_sql="""
+            INSERT INTO
+                vueda_workflow_workflowpermission
+                (
+                    workflow_id,
+                    permission_id,
+                    historical_permission_codename,
+                    historical_permission_content_type_app_label,
+                    historical_permission_content_type_model_name
+                )
+            VALUES
+                (
+                    (SELECT id FROM vueda_workflow_workflow WHERE code = 'changed_workflow_2'),
+                    (
+                        SELECT
+                            id
+                        FROM
+                            auth_permission
+                        WHERE
+                            codename = 'can_do_something'
+                            AND content_type_id = (
+                                SELECT
+                                    id
+                                FROM
+                                    django_content_type
+                                WHERE
+                                    app_label = 'workflow_changed'
+                                    AND model = 'workflowchanged'
+                        )
+                    ),
+                    'can_do_something',
+                    'workflow_changed',
+                    'workflowchanged'
+                );""",
             skippable=True,
             skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
@@ -198,7 +238,56 @@ class Migration(migrations.Migration):
                                 AND model = 'workflowchanged'
                         )
                 );""",
-            reverse_sql=migrations.RunSQL.noop,
+            reverse_sql="""
+            UPDATE
+                vueda_workflow_workflowpermission
+            SET
+                permission_id = (
+                    SELECT
+                        id
+                    FROM
+                        auth_permission
+                    WHERE
+                        codename = 'can_do_something_else'
+                        AND content_type_id = (
+                            SELECT
+                                id
+                            FROM
+                                django_content_type
+                            WHERE
+                                app_label = 'workflow_changed'
+                                AND model = 'workflowchanged'
+                    )
+                ),
+                historical_permission_codename = 'can_do_something_else'
+            WHERE
+                workflow_id = (
+                    SELECT
+                        id
+                    FROM
+                        vueda_workflow_workflow
+                    WHERE
+                        code = 'changed_workflow_2'
+                )
+                AND
+                permission_id = (
+                    SELECT
+                        id
+                    FROM
+                        auth_permission
+                    WHERE
+                        codename = 'can_do_something'
+                        AND
+                        content_type_id = (
+                            SELECT
+                                id
+                            FROM
+                                django_content_type
+                            WHERE
+                                app_label = 'workflow_changed'
+                                AND model = 'workflowchanged'
+                        )
+                );""",
             skippable=True,
             skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
@@ -299,7 +388,21 @@ class Migration(migrations.Migration):
                     'workflow_changed',
                     'workflowchanged'
                 );""",
-            reverse_sql=migrations.RunSQL.noop,
+            reverse_sql="""
+            DELETE FROM
+                vueda_workflow_workflowpermission
+            WHERE
+                workflow_id = (
+                    SELECT
+                        id
+                    FROM
+                        vueda_workflow_workflow
+                    WHERE
+                        code = 'changed_workflow_2'
+                )
+                AND
+                historical_permission_codename = 'can_do_another_thing';
+            """,
             skippable=True,
             skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
@@ -388,7 +491,35 @@ class Migration(migrations.Migration):
                     WHERE
                         code = 'changed_workflow_2'
                 );""",
-            reverse_sql=migrations.RunSQL.noop,
+            reverse_sql="""
+            UPDATE
+                vueda_workflow_initialstate
+            SET
+                state_id = (
+                    SELECT
+                        id
+                    FROM
+                        vueda_workflow_state
+                    WHERE
+                        code = 'state_1'
+                        AND workflow_id = (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'changed_workflow_2'
+                        )
+                )
+            WHERE
+                workflow_id IN (
+                    SELECT
+                        id
+                    FROM
+                        vueda_workflow_workflow
+                    WHERE
+                        code = 'changed_workflow_2'
+                );""",
             skippable=True,
             skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
@@ -474,7 +605,23 @@ class Migration(migrations.Migration):
                 )
                 AND
                 code = 'state_1';""",
-            reverse_sql=migrations.RunSQL.noop,
+            reverse_sql="""
+            UPDATE
+                vueda_workflow_state
+            SET
+                name = 'State 1',
+                code = 'state_1'
+            WHERE
+                workflow_id IN (
+                    SELECT
+                        id
+                    FROM
+                        vueda_workflow_workflow
+                    WHERE
+                        code = 'changed_workflow_2'
+                )
+                AND
+                code = 'state_1_a';""",
             skippable=True,
             skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
@@ -576,7 +723,54 @@ class Migration(migrations.Migration):
                 historical_permission_codename = 'can_do_something'
                 AND
                 historical_group_name = 'WorkflowChangedAdmin';""",
-            reverse_sql=migrations.RunSQL.noop,
+            reverse_sql="""
+            UPDATE
+                vueda_workflow_statepermission
+            SET
+                permission_id = (
+                    SELECT
+                            id
+                        FROM
+                            auth_permission
+                        WHERE
+                            codename = 'can_do_something'
+                            AND content_type_id = (
+                                SELECT
+                                    id
+                                FROM
+                                    django_content_type
+                                WHERE
+                                    app_label = 'workflow_changed'
+                                    AND model = 'workflowchanged'
+                        )
+                ),
+                historical_permission_codename = 'can_do_something',
+                group_id = (
+                    SELECT id FROM auth_group WHERE name = 'WorkflowChangedAdmin'
+                ),
+                historical_group_name = 'WorkflowChangedAdmin',
+                grant_or_deny = FALSE
+            WHERE
+                state_id IN (
+                    SELECT
+                        id
+                    FROM
+                        vueda_workflow_state
+                    WHERE
+                        code = 'state_1_a'
+                        AND workflow_id = (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'changed_workflow_2'
+                        )
+                )
+                AND
+                historical_permission_codename = 'can_do_another_thing'
+                AND
+                historical_group_name = 'WorkflowChangedWorker';""",
             skippable=True,
             skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
@@ -686,7 +880,40 @@ class Migration(migrations.Migration):
                 AND
                 code = 'go_to_state_2';
                 ;""",
-            reverse_sql=migrations.RunSQL.noop,
+            reverse_sql="""
+            UPDATE
+                vueda_workflow_transition
+            SET
+                name = 'Go To State 2',
+                code = 'go_to_state_2',
+                target_id = (
+                    SELECT
+                        id
+                    FROM
+                        vueda_workflow_state
+                    WHERE
+                        code = 'state_2'
+                        AND workflow_id = (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'changed_workflow_2'
+                        )
+                )
+            WHERE
+                workflow_id IN (
+                    SELECT
+                        id
+                    FROM
+                        vueda_workflow_workflow
+                    WHERE
+                        code = 'changed_workflow_2'
+                )
+                AND
+                code = 'go_to_state_1_a';
+                ;""",
             skippable=True,
             skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
@@ -786,7 +1013,47 @@ class Migration(migrations.Migration):
                 )
                 AND
                 historical_permission_codename = 'can_do_something';""",
-            reverse_sql=migrations.RunSQL.noop,
+            reverse_sql="""
+            UPDATE
+                vueda_workflow_transitionpermission
+            SET
+                permission_id = (
+                    SELECT
+                        id
+                    FROM
+                        auth_permission
+                    WHERE
+                        codename = 'can_do_something'
+                        AND content_type_id = (
+                            SELECT
+                                id
+                            FROM
+                                django_content_type
+                            WHERE
+                                app_label = 'workflow_changed'
+                                AND model = 'workflowchanged'
+                    )
+                ),
+                historical_permission_codename = 'can_do_something'
+            WHERE
+                transition_id IN (
+                    SELECT
+                        id
+                    FROM
+                        vueda_workflow_transition
+                    WHERE
+                        code = 'go_to_state_1_a'
+                        AND workflow_id = (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'changed_workflow_2'
+                        )
+                )
+                AND
+                historical_permission_codename = 'can_do_another_thing';""",
             skippable=True,
             skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),
@@ -908,7 +1175,60 @@ class Migration(migrations.Migration):
                                 code = 'changed_workflow_2'
                         )
                 );""",
-            reverse_sql=migrations.RunSQL.noop,
+            reverse_sql="""
+            UPDATE
+                vueda_workflow_transitionsource
+            SET
+                source_id = (
+                    SELECT
+                        id
+                    FROM
+                        vueda_workflow_state
+                    WHERE
+                        code = 'state_1_a'
+                        AND workflow_id = (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'changed_workflow_2'
+                        )
+                )
+            WHERE
+                transition_id IN (
+                    SELECT
+                        id
+                    FROM
+                        vueda_workflow_transition
+                    WHERE
+                        code = 'go_to_state_1_a'
+                        AND workflow_id = (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'changed_workflow_2'
+                        )
+                )
+                AND
+                source_id IN (
+                    SELECT
+                        id
+                    FROM
+                        vueda_workflow_state
+                    WHERE
+                        code = 'state_2'
+                        AND workflow_id = (
+                            SELECT
+                                id
+                            FROM
+                                vueda_workflow_workflow
+                            WHERE
+                                code = 'changed_workflow_2'
+                        )
+                );""",
             skippable=True,
             skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
         ),

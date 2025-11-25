@@ -10,6 +10,7 @@ from pathlib import Path
 from pprint import pformat
 
 from django.apps import apps as django_apps
+from django.conf import settings
 from django.contrib.auth.management import create_permissions
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
@@ -18,6 +19,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.management import BaseCommand
 from django.core.management import call_command
 from django.db import migrations
+from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
 from django.db.transaction import atomic
 
 from vueda.workflow import models
@@ -1059,6 +1061,20 @@ class Command(BaseCommand):
 
         return False
 
+    def _get_migrations_path(self, app_config):
+        app_label = app_config.label
+        if app_label in settings.MIGRATION_MODULES:
+            module_name = settings.MIGRATION_MODULES[app_label]
+        else:
+            module_name = f"{app_config.name}.{MIGRATIONS_MODULE_NAME}"
+
+        try:
+            module = importlib.import_module(module_name)
+        except ModuleNotFoundError:
+            return None
+
+        return module.__path__[0] if module.__path__ else None
+
     def _get_apps_with_workflow(self, selected_apps=()):
         apps_with_workflow = {}
 
@@ -1073,13 +1089,14 @@ class Command(BaseCommand):
 
             content_type = ContentType.objects.get_for_model(model, for_concrete_model=False)
 
-            app_config = django_apps.get_app_config(app_label)
-
             if issubclass(model, models.HasWorkflowModelMixin):
+                app_config = django_apps.get_app_config(app_label)
+                migrations_path = self._get_migrations_path(app_config)
+
                 if app_label not in apps_with_workflow:
                     apps_with_workflow[app_label] = {
                         "app_name": model_meta.app_config.name,
-                        "path": app_config.path,
+                        "migrations_path": migrations_path,
                         "model_to_content_type_ids": {},
                     }
                 apps_with_workflow[app_label]["model_to_content_type_ids"][model_name] = content_type.pk
@@ -1092,7 +1109,6 @@ class Command(BaseCommand):
                     if app_label not in apps_with_workflow:
                         apps_with_workflow[app_label] = {
                             "app_name": model_meta.app_config.name,
-                            "path": app_config.path,
                             "content_type_ids": [],
                         }
                     apps_with_workflow[app_label]["content_type_ids"].append(content_type.pk)
@@ -1510,7 +1526,7 @@ class Command(BaseCommand):
 
         for app_label, model_data in self._get_apps_with_workflow(selected_apps).items():
             app_name = model_data["app_name"]
-            app_path = model_data["path"]
+            migrations_path = model_data["migrations_path"]
 
             show_migration_results = self._call_command("showmigrations", app_label)
             if not show_migration_results:  # Erred.  The reason will be printed to the console via the command.
@@ -1524,11 +1540,12 @@ class Command(BaseCommand):
                 "history_by_model_name": {},
                 "history_change_reasons": [],
                 "migrations": {},
+                "migrations_path": migrations_path,
                 "models_to_content_type_ids": model_data["model_to_content_type_ids"],
             }
 
             for migration_name in migration_names:
-                migration_path = os.path.join(app_path, "migrations", f"{migration_name}.py")
+                migration_path = os.path.join(migrations_path, f"{migration_name}.py")
                 django_date = self._get_generated_date_for_vueda_generated_migration(migration_path)
                 if django_date:
                     migration_data["history_change_reasons"].append(f"Workflow Migration - {migration_name}")
@@ -2194,7 +2211,6 @@ class Command(BaseCommand):
         all_migrated_data = self._get_vueda_generated_migration_data_per_app(app_labels)
         all_migrated_data = self._get_history_compared_to_existing_changes(all_migrated_data)
 
-        content_types = {x.pk: x for x in ContentType.objects.all()}
         changes_by_app = {}
 
         for app_name, app_data in all_migrated_data.items():
@@ -2216,46 +2232,41 @@ class Command(BaseCommand):
 
                     if unmatched.exists():
                         content_type_id = app_data["models_to_content_type_ids"][model_name]
-                        model = content_types[content_type_id].model_class()
-                        model_meta = model._meta
+                        changes_by_app[app_label]["migrations_path"] = app_data["migrations_path"]
 
-                        changes_by_app[app_label]["migrations_path"] = os.path.join(
-                            model_meta.app_config.path, "migrations"
-                        )
+                        for new_record in unmatched:
+                            match new_record.history_type:
+                                case "+":
+                                    old_record = None
+                                    history_date = new_record.history_date
 
-                    for new_record in unmatched:
-                        match new_record.history_type:
-                            case "+":
-                                old_record = None
-                                history_date = new_record.history_date
+                                case "~":
+                                    old_record = queryset.filter(
+                                        pk__lt=new_record.pk,
+                                        id=new_record.id,
+                                    ).first()
+                                    history_date = new_record.history_date
 
-                            case "~":
-                                old_record = queryset.filter(
-                                    pk__lt=new_record.pk,
-                                    id=new_record.id,
-                                ).first()
-                                history_date = new_record.history_date
+                                case "-":
+                                    old_record = new_record
+                                    new_record = None
+                                    history_date = old_record.history_date
 
-                            case "-":
-                                old_record = new_record
-                                new_record = None
-                                history_date = old_record.history_date
+                            history_type, history_diff = get_history_diff(old_record, new_record)
 
-                        history_type, history_diff = get_history_diff(old_record, new_record)
+                            historical_change = {
+                                "diff": history_diff,
+                                "type": history_type,
+                                "date": history_date,
+                            }
 
-                        historical_change = {
-                            "diff": history_diff,
-                            "type": history_type,
-                            "date": history_date,
-                        }
-
-                        historical_record = self._convert_historical_change(
-                            historical_change,
-                            content_type_id,
-                            workflow_model_name,
-                            workflow_model_field_names_to_attname,
-                        )
-                        changes_by_app[app_label]["changes"].append(historical_record)
+                            historical_record = self._convert_historical_change(
+                                historical_change,
+                                content_type_id,
+                                workflow_model_name,
+                                workflow_model_field_names_to_attname,
+                            )
+                            changes_by_app[app_label]["changes"].append(historical_record)
 
         changes_by_app = self.clean_changes_by_app(changes_by_app)
 

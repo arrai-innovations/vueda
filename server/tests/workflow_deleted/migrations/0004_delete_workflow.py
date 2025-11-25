@@ -191,7 +191,8 @@ class Migration(migrations.Migration):
                                     WHERE
                                         code = 'deleted_workflow'
                                 )
-                        )
+                        ),
+                        FALSE
                     );""",
             skippable=True,
             skippable_env_variable=SKIPPABLE_ENV_VARIABLE,
