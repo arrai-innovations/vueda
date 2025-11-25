@@ -194,7 +194,7 @@ const handleCancelClick = async (e) => {
                             :loading="combinedLoading"
                             name="cancel-button"
                             verb="cancel"
-                            :handle-cancel-click="handleCancelClick"
+                            @click="handleCancelClick"
                         >
                             <Button label="Cancel, go back" :loading="combinedLoading" @click="handleCancelClick" />
                         </slot>

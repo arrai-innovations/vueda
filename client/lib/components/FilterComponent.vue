@@ -330,7 +330,6 @@ watch(
             </slot>
             <slot
                 :class="theme('dropdownButton')"
-                :do-toggle="doToggle"
                 :filter-details="filterDetails"
                 :filter-name="filterName"
                 :has-filter-value="hasFilterValue"
@@ -339,6 +338,7 @@ watch(
                 :remove-filter="removeFilter"
                 severity="info"
                 :show-state="internalShowState"
+                @click="doToggle"
             >
                 <Button
                     :class="theme('dropdownButton')"
