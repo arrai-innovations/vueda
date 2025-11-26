@@ -1,4 +1,3 @@
-# Models to use with info.
 from django.db import models
 
 from vueda.core.models import VuedaBaseModel
