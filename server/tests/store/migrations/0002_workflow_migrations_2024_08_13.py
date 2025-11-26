@@ -1264,7 +1264,7 @@ def get_id_values_from_dict(id_data, reversing=False):
 class Migration(migrations.Migration):
     dependencies = [
         ("store", "0001_initial"),
-        ("vueda_workflow", "0005_historicaltransitionsource_fail_with_silent_and_more"),
+        ("vueda_workflow", "__latest__"),
     ]
 
     operations = [
