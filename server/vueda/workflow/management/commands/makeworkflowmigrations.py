@@ -20,7 +20,9 @@ from django.core.management import BaseCommand
 from django.core.management import call_command
 from django.db import migrations
 from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
+from django.db.models import Count
 from django.db.transaction import atomic
+from django.utils import timezone
 
 from vueda.workflow import models
 
@@ -121,8 +123,12 @@ def forwards_migrate_workflow(apps, schema_editor):
             case "transitionsource":
                 handle_transition_source(apps, changed_item)
 
+    handle_state_objects(apps)
+
 
 def backwards_migrate_workflow(apps, schema_editor):
+    handle_state_objects(apps, reversing=True)
+
     # Make sure we go through the changed_data in reverse order, so we undo things correctly.
     for changed_item in reversed(copy.deepcopy(changed_data)):  # Copied, so tests can migrate forwards and backwards.
         match changed_item["history_type"]:
@@ -812,6 +818,71 @@ def handle_transition_source(apps, changed_item, *, reversing=False):
             add_history_to_data(data, transition_source, "-", changed_item["history_date"])
             historical_transition_source.objects.create(**data)
             transition_source.delete()
+
+
+def manage_state_objects(
+    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
+):
+    if reversing:
+        # Delete all object states
+        workflow_obj_state_class.objects.filter(workflow=workflow).delete()
+
+    else:
+        initial_state = workflow.initial_state
+        for obj in obj_class.objects.all():
+            if not workflow_obj_state_class.objects.filter(workflow=workflow, object_id=obj.pk).exists():
+                historical_records = historical_workflow_obj_state_class.objects.filter(
+                    workflow=workflow,
+                    object_id=obj.pk,
+                )
+                original_historical_records_count = historical_records.count()
+                obj_state_obj = workflow_obj_state_class.objects.create(
+                    workflow=workflow,
+                    object_id=obj.id,
+                    state=initial_state.state,
+                )
+                # We are running through a migration, so we need to create history.
+                if original_historical_records_count == historical_records.count():
+                    historical_workflow_obj_state_class.objects.create(
+                        id=obj_state_obj.pk,
+                        workflow=workflow,
+                        object_id=obj.id,
+                        state=initial_state.state,
+                        history_date=timezone.now(),
+                        history_relation=obj_state_obj,
+                        history_type="+",
+                    )
+            else:
+                # If a workflows initial state has changed, and an object hasn't been changed, then switch it to the new initial state.
+                obj_state = (
+                    workflow_obj_state_class.objects.filter(workflow=workflow, object_id=obj.pk)
+                    .exclude(state_id=initial_state.state_id)
+                    .first()
+                )
+                if obj_state is not None:
+                    # TODO: When this is switched to django-pghistory, we will need to add context before the
+                    #   ObjectState update, so we can use that to know the object state hasn't been changed,
+                    #   since it is possible for the initial state on a workflow to change multiple times.
+                    history_count = historical_workflow_obj_state_class.objects.filter(
+                        workflow=workflow, object_id=obj.pk
+                    ).aggregate(count=Count("history_id"))
+                    if history_count is not None and history_count["count"] == 1:
+                        workflow_obj_state_class.objects.filter(pk=obj_state.pk).update(state_id=initial_state.state_id)
+                        historical_workflow_obj_state_class.objects.filter(workflow=workflow, object_id=obj.pk).update(
+                            state_id=initial_state.state_id
+                        )
+
+
+def handle_state_objects(apps, *, reversing=False):
+    model_historical_object_state = apps.get_model("vueda_workflow", "HistoricalObjectState")
+    model_object_state = apps.get_model("vueda_workflow", "ObjectState")
+    model_workflow = apps.get_model("vueda_workflow", "Workflow")
+
+    for workflow in model_workflow.objects.all():
+        model_obj = apps.get_model(workflow.historical_app_label, workflow.historical_model)
+        manage_state_objects(
+            workflow, model_obj, model_object_state, model_historical_object_state, reversing=reversing
+        )
 
 
 def add_history_to_data(history_data, obj, history_type, history_date, fields=()):
@@ -2024,6 +2095,8 @@ class Command(BaseCommand):
                         f"{inspect.getsource(handle_transition)}{NEWLINE}{NEWLINE}",
                         f"{inspect.getsource(handle_transition_permission)}{NEWLINE}{NEWLINE}",
                         f"{inspect.getsource(handle_transition_source)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(handle_state_objects)}{NEWLINE}{NEWLINE}",
+                        f"{inspect.getsource(manage_state_objects)}{NEWLINE}{NEWLINE}",
                         f"{inspect.getsource(add_history_to_data)}{NEWLINE}{NEWLINE}",
                         f"{inspect.getsource(apply_and_save_changes)}{NEWLINE}{NEWLINE}",
                         f"{inspect.getsource(get_id_values_from_item)}{NEWLINE}{NEWLINE}",
@@ -2069,6 +2142,10 @@ class Command(BaseCommand):
                         f"import handle_transition_permission{NEWLINE}",
                         "from vueda.workflow.management.commands.makeworkflowmigrations "
                         f"import handle_transition_source{NEWLINE}",
+                        "from vueda.workflow.management.commands.makeworkflowmigrations "
+                        f"import handle_state_objects{NEWLINE}",
+                        "from vueda.workflow.management.commands.makeworkflowmigrations "
+                        f"import manage_state_objects{NEWLINE}",
                         "from vueda.workflow.management.commands.makeworkflowmigrations "
                         f"import make_sure_permissions_exist{NEWLINE}",
                     ]
@@ -2280,6 +2357,11 @@ class Command(BaseCommand):
                             changes_by_app[app_label]["changes"].append(historical_record)
 
         changes_by_app = self.clean_changes_by_app(changes_by_app)
+
+        for workflow in models.Workflow.objects.all():
+            model_class = workflow.content_type.model_class()
+            if model_class is not None:
+                manage_state_objects(workflow, model_class, models.ObjectState, models.HistoricalObjectState)
 
         if not changes_by_app:
             self.stdout.write(self.style.SUCCESS("No workflow changes detected."))

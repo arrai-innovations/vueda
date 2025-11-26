@@ -1,5 +1,6 @@
 import ast
 import datetime
+import time
 
 import pytest
 from django.db.migrations.recorder import MigrationRecorder
@@ -1389,3 +1390,308 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
             state_codes = frozenset(models.State.objects.filter(workflow=workflow.get()).values_list("code", flat=True))
 
             assert state_codes == {"delete_1", "delete_2", "delete_3", "delete_4", "not_used_by_test"}
+
+
+class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCallCommand):
+    @override_settings(
+        MIGRATION_MODULES={
+            "workflow_initial_state": "tests.workflow_initial_state",
+        },
+    )
+    @info_register_aware_modify_settings(
+        INSTALLED_APPS={
+            "append": [
+                "tests.workflow_initial_state",
+            ],
+        }
+    )
+    @pytest.mark.django_db
+    def test_workflow_object_states_created(self):
+        """
+        This test validates that workflow object state objects are
+        successfully created when they don't exist for objects when:
+            1. During the creation of a workflow migration.
+            2. When a workflow migration is run.
+        """
+        with self.temporary_migration_module(app_label="workflow_initial_state") as migration_dir:
+            # No migrations should have run yet.
+            assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 0
+
+            # Migrate forwards to 0003.
+            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0003")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # We should have run migration 0001 to 0003.
+            assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 3  # noqa PLR2004
+
+            workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 0
+
+            # Create the generated migration 0005.
+            succeeded, results = self.call_command(
+                "makeworkflowmigrations",
+                "workflow_initial_state",
+                "--import-instead",
+            )
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Reload 0005, because we rewrote it after it would have imported it.
+            # assert results, "No results were captured when makeworkflowmigrations was called."
+            self.reload_module(results, migration_dir)
+
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            assert set(models.ObjectState.objects.filter(workflow=workflow).values_list("state__code", flat=True)) == {
+                "first"
+            }
+
+            # Roll back to 0001.
+            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0001")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Migrate to 0002.
+            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0002")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Fake 0003.
+            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0003", "--fake")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Workflow was deleted when rolling back to 0002.
+            assert models.ObjectState.objects.count() == 0
+
+            # Migrate forwards.
+            succeeded, results = self.call_command("migrate", "workflow_initial_state")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            assert set(models.ObjectState.objects.filter(workflow=workflow).values_list("state__code", flat=True)) == {
+                "first"
+            }
+
+    @override_settings(
+        MIGRATION_MODULES={
+            "workflow_initial_state": "tests.workflow_initial_state",
+        },
+    )
+    @info_register_aware_modify_settings(
+        INSTALLED_APPS={
+            "append": [
+                "tests.workflow_initial_state",
+            ],
+        }
+    )
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_initial_state_changed(self):
+        """
+        This test validates that when an initial state changes, any objects that haven't been
+        modified from the previous initial state will be transitioned to the new initial state.
+        Some objects have been moved into different states, to verify that
+        """
+        from tests.workflow_initial_state.models import WorkflowInitialState
+
+        with self.temporary_migration_module(app_label="workflow_initial_state") as migration_dir:
+            # No migrations should have run yet.
+            assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 0
+
+            # Migrate forwards to 0003.
+            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0003")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # We should have run migration 0001 to 0003.
+            assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 3  # noqa PLR2004
+
+            workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 0
+
+            state_first = models.State.objects.get(code="first")
+            state_second = models.State.objects.get(code="second")
+            state_third = models.State.objects.get(code="third")
+            state_fourth = models.State.objects.get(code="fourth")
+
+            test_1 = WorkflowInitialState.objects.get(name="Test1")
+            test_2 = WorkflowInitialState.objects.get(name="Test2")
+            test_3 = WorkflowInitialState.objects.get(name="Test3")
+            test_4 = WorkflowInitialState.objects.get(name="Test4")
+            test_5 = WorkflowInitialState.objects.get(name="Test5")
+
+            test_1.create_object_state()
+            test_2.create_object_state()
+            test_3.create_object_state()
+            test_4.create_object_state()
+            test_5.create_object_state()
+
+            workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+
+            # test_1 remains in the original object state
+            test_2.update_object_state(state_second)
+            test_3.update_object_state(state_third)
+            test_4.update_object_state(state_fourth)
+            test_5.update_object_state(state_fourth)
+            test_5.update_object_state(state_first)
+
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 10  # noqa PLR2004
+
+            # Change the initial state to fourth.
+            initial_state = workflow.initial_state
+            initial_state.state = state_fourth
+            initial_state.save()
+
+            # Run makeworkflowmigrations, which should update initial object states, when applicable.
+            succeeded, results = self.call_command(
+                "makeworkflowmigrations",
+                "workflow_initial_state",
+                "--dry-run",
+            )
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            assert test_1.object_state.state.code == "fourth"
+            assert test_2.object_state.state.code == "second"
+            assert test_3.object_state.state.code == "third"
+            assert test_4.object_state.state.code == "fourth"
+            assert test_5.object_state.state.code == "first"
+
+            # Clean up the object states, so we can start fresh.
+            models.ObjectState.objects.filter(workflow=workflow).delete()
+            models.HistoricalObjectState.objects.filter(workflow=workflow).delete()
+
+            # Reset initial_state.
+            initial_state = workflow.initial_state
+            initial_state.state = state_first
+            initial_state.save()
+
+            # Roll back to 0001.
+            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0001")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Migrate forwards to 0003.
+            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0003")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # We should have run migration 0001 to 0003.
+            assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 3  # noqa PLR2004
+
+            # Create the generated migration 0004.
+            succeeded, results = self.call_command(
+                "makeworkflowmigrations",
+                "workflow_initial_state",
+                "--import-instead",
+            )
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Reload 0004, because we rewrote it after it would have imported it.
+            # assert results, "No results were captured when makeworkflowmigrations was called."
+            self.reload_module(results, migration_dir)
+
+            state_first = models.State.objects.get(code="first")
+            state_second = models.State.objects.get(code="second")
+            state_third = models.State.objects.get(code="third")
+            state_fourth = models.State.objects.get(code="fourth")
+
+            workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
+            assert set(models.ObjectState.objects.filter(workflow=workflow).values_list("state__code", flat=True)) == {
+                "first"
+            }
+
+            # Change the initial state to fourth.
+            initial_state = workflow.initial_state
+            initial_state.state = state_fourth
+            initial_state.save()
+
+            assert set(models.ObjectState.objects.filter(workflow=workflow).values_list("state__code", flat=True)) == {
+                "first"
+            }
+
+            time.sleep(0.1)
+
+            # Create the generated migration 0005.
+            succeeded, results = self.call_command(
+                "makeworkflowmigrations",
+                "workflow_initial_state",
+                "--import-instead",
+            )
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Reload 0005, because we rewrote it after it would have imported it.
+            # assert results, "No results were captured when makeworkflowmigrations was called."
+            self.reload_module(results, migration_dir)
+
+            # Clean up the object states, so we can start fresh.
+            models.ObjectState.objects.filter(workflow=workflow).delete()
+            models.HistoricalObjectState.objects.filter(workflow=workflow).delete()
+
+            # Roll back to 0001.
+            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0001")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Migrate to 0002.
+            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0002")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Fake 0003.
+            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0003", "--fake")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Migrate to 0004.
+            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0004")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+
+            state_first = models.State.objects.get(code="first")
+            state_second = models.State.objects.get(code="second")
+            state_third = models.State.objects.get(code="third")
+            state_fourth = models.State.objects.get(code="fourth")
+
+            test_1 = WorkflowInitialState.objects.get(name="Test1")
+            test_2 = WorkflowInitialState.objects.get(name="Test2")
+            test_3 = WorkflowInitialState.objects.get(name="Test3")
+            test_4 = WorkflowInitialState.objects.get(name="Test4")
+            test_5 = WorkflowInitialState.objects.get(name="Test5")
+
+            # test_1 remains in the original object state
+            test_2.update_object_state(state_second)
+            test_3.update_object_state(state_third)
+            test_4.update_object_state(state_fourth)
+            test_5.update_object_state(state_fourth)
+            test_5.update_object_state(state_first)
+
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 10  # noqa PLR2004
+
+            # Migrate forwards.
+            succeeded, results = self.call_command("migrate", "workflow_initial_state")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # The historical counts should stay the same, since we should have updated test_1 to the new initial state.
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 10  # noqa PLR2004
+
+            assert test_1.object_state.state.code == "fourth"
+            assert test_2.object_state.state.code == "second"
+            assert test_3.object_state.state.code == "third"
+            assert test_4.object_state.state.code == "fourth"
+            assert test_5.object_state.state.code == "first"
