@@ -2,7 +2,6 @@ from string import Template
 from typing import TYPE_CHECKING
 
 import sentry_sdk
-from django.apps.registry import Apps
 
 
 if TYPE_CHECKING:
@@ -11,7 +10,7 @@ if TYPE_CHECKING:
     User = get_user_model()
 
 
-def get_system_user(apps: Apps) -> "User":
+def get_system_user() -> "User":
     from django.contrib.auth import get_user_model
 
     user_model = get_user_model()
