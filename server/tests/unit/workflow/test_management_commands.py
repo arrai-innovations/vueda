@@ -799,7 +799,6 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             assert data == orig_data_transition_source
 
 
-@pytest.mark.django_db
 class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallCommand):
     @override_settings(
         MIGRATION_MODULES={
@@ -1156,9 +1155,7 @@ class TestManagementCommandWorkflowMulti(BaseTestMigrations, BaseTestCallCommand
             }, first_change
 
             # Run makeworkflowmigrations again, to verify no changes are detected.
-            succeeded, results = self.call_command(
-                "makeworkflowmigrations", "workflow_multi", "--import-instead", "--debug", "all"
-            )
+            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_multi", "--import-instead")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -1251,7 +1248,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
             if not succeeded:
                 pytest.fail("".join(results))
 
-            # Reload 0005, because we rewrote it after it would have imported it.
+            # Reload 0004, because we rewrote it after it would have imported it.
             assert results, "No results were captured when makeworkflowmigrations was called."
             self.reload_module(results, migration_dir)
 
@@ -1605,9 +1602,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             # assert results, "No results were captured when makeworkflowmigrations was called."
             self.reload_module(results, migration_dir)
 
-            state_first = models.State.objects.get(code="first")
-            state_second = models.State.objects.get(code="second")
-            state_third = models.State.objects.get(code="third")
             state_fourth = models.State.objects.get(code="fourth")
 
             workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
