@@ -63,6 +63,7 @@ class TestManagementCommandWorkflow(BaseTestMigrations, BaseTestCallCommand):
             ],
         }
     )
+    @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_no_app_label_specified(self):
         with (
@@ -147,6 +148,7 @@ class TestManagementCommandWorkflowAdded(BaseTestMigrations, BaseTestCallCommand
             ],
         }
     )
+    @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_added(self):
         with self.temporary_migration_module(app_label="workflow_added") as migration_dir:
@@ -401,6 +403,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             ],
         }
     )
+    @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_changed(self):
         with self.temporary_migration_module(app_label="workflow_changed") as migration_dir:
@@ -810,6 +813,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             ],
         }
     )
+    @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_deleted(self):
         with self.temporary_migration_module(app_label="workflow_deleted") as migration_dir:
@@ -1105,6 +1109,7 @@ class TestManagementCommandWorkflowMulti(BaseTestMigrations, BaseTestCallCommand
             ],
         }
     )
+    @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_multi(self):
         with self.temporary_migration_module(app_label="workflow_multi") as migration_dir:
@@ -1215,6 +1220,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
             ],
         }
     )
+    @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_duplicates(self):
         """
@@ -1405,6 +1411,7 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             ],
         }
     )
+    @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_object_states_created(self):
         """
