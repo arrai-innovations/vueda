@@ -846,14 +846,15 @@ def manage_state_objects(
                     historical_workflow_obj_state_class.objects.create(
                         id=obj_state_obj.pk,
                         workflow=workflow,
-                        object_id=obj.id,
+                        object_id=obj.pk,
                         state=initial_state.state,
                         history_date=timezone.now(),
                         history_relation=obj_state_obj,
                         history_type="+",
                     )
             else:
-                # If a workflows initial state has changed, and an object hasn't been changed, then switch it to the new initial state.
+                # If a workflow's initial state has changed, and an object
+                # hasn't been changed, then switch it to the new initial state.
                 obj_state = (
                     workflow_obj_state_class.objects.filter(workflow=workflow, object_id=obj.pk)
                     .exclude(state_id=initial_state.state_id)

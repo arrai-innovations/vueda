@@ -1432,7 +1432,7 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 0
 
-            # Create the generated migration 0005.
+            # Create the generated migration 0004.
             succeeded, results = self.call_command(
                 "makeworkflowmigrations",
                 "workflow_initial_state",
@@ -1441,7 +1441,7 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             if not succeeded:
                 pytest.fail("".join(results))
 
-            # Reload 0005, because we rewrote it after it would have imported it.
+            # Reload 0004, because we rewrote it after it would have imported it.
             # assert results, "No results were captured when makeworkflowmigrations was called."
             self.reload_module(results, migration_dir)
 
