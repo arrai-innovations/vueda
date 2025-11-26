@@ -686,15 +686,11 @@ class HasWorkflowModelMixin(models.Model):
                 allowed_or_denied_or_denied_with_message
                 or f"Transition {transition.code!r} not available from state {self.workflow_state.code!r}"
             )
-        object_state = self.object_state
-        object_state._history_user = user if user is not None else get_system_user()
-        object_state._change_reason = f"Transition {transition.code!r} applied."
-        object_state.state = transition.target
-        object_state.save()
+        self.update_object_state(transition.target, user=user, change_reason=f"Transition {transition.code!r} applied.")
         self.on_transition(transition, user)
-        if hasattr(object_state, "history"):
+        if hasattr(self.object_state, "history"):
             # return the new latest history record id
-            return transition.target, object_state.history.latest().history_id
+            return transition.target, self.object_state.history.latest().history_id
         return transition.target, None
 
     def fast_transition(self, transition_code):
@@ -707,11 +703,19 @@ class HasWorkflowModelMixin(models.Model):
             raise InvalidTransitionError(
                 f"Transition {transition_code!r} not available from state {self.workflow_state.code!r}"
             )
-
-        object_state = self.object_state
-        object_state.state = transition.target
-        object_state.save()
+        self.update_object_state(transition.target)
         self.on_transition(transition)
+
+    def update_object_state(self, state, *, user=None, change_reason=None):  # Used in tests
+        """
+        Sets the history user to the system user if a user isn't passed in.
+        """
+        object_state = self.object_state
+        object_state.state = state
+        object_state._history_user = user if user is not None else get_system_user()
+        if change_reason is not None:
+            object_state._change_reason = change_reason
+        object_state.save()
 
     def on_transition(self, transition: Transition, user: User | None = None):
         """
