@@ -376,15 +376,6 @@ def test_timeout_queue_item(queue_item_sms):
 
 @pytest.mark.django_db
 def test_handle_bounce_updates_states(monkeypatch, queue_item_email):
-    original_save = QueueItem.save
-
-    def patched_save(self, *args, **kwargs):
-        update_fields = kwargs.get("update_fields")
-        if isinstance(update_fields, str):
-            kwargs["update_fields"] = [update_fields]
-        return original_save(self, *args, **kwargs)
-
-    monkeypatch.setattr(QueueItem, "save", patched_save)
     sender = queue_item_email.sender
     receiver = queue_item_email.receiver
 
