@@ -161,7 +161,10 @@ scopedIt("renders actions and transitions", async () => {
         read: { detail: true },
     };
     instanceState.object = { available_actions: ["activate", "update", "destroy", "read"] };
-    objectTransitions.transitions = [{ name: "complete" }, { name: "approve" }];
+    objectTransitions.transitions = [
+        { name: "complete", code: "complete" },
+        { name: "approve", code: "approve" },
+    ];
     const wrapper = mountWithContext();
     await vue.nextTick();
     const views = wrapper.findAll('[data-qa="link-model-view"]').map((n) => n.attributes("data-view"));

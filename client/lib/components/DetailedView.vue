@@ -279,7 +279,7 @@ const availableActions = computed(() => {
 });
 
 const availableTransitions = computed(() => {
-    return objectTransitions.transitions?.map((t) => t.name);
+    return objectTransitions.transitions?.map((t) => t.code);
 });
 const detailActions = computed(() =>
     availableActions.value.filter((n) => {

@@ -32,7 +32,7 @@ export const useLinkModelView = (props) => {
             }
         }
         // Check workflow transitions
-        return (workflow.transitions || []).some((t) => t.name === localActionName);
+        return (workflow.transitions || []).some((t) => t.code === localActionName);
     });
 
     const pkValid = computed(() => {

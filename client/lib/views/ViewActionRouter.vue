@@ -63,7 +63,7 @@ watch(
             actionComponentRef.value = () => ViewActionNotFound;
         } else if (actionsObj?.length || transitionObjects?.length) {
             const action = actionsObj.find((action) => action.name === actionName);
-            const transition = transitionObjects.find((transition) => transition.name === actionName);
+            const transition = transitionObjects.find((transition) => transition.code === actionName);
             if (!action && !transition) {
                 actionComponentRef.value = () => ViewActionNotFound;
             } else if (Object.keys(crudComponents).includes(actionStr)) {

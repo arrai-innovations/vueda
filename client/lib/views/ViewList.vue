@@ -416,7 +416,7 @@ onMounted(() => {
 });
 
 const availableTransitions = computed(() => {
-    return new Set(workflow.transitions.map((transition) => transition.name));
+    return new Set(workflow.transitions.map((transition) => transition.code));
 });
 
 const translateExpandedField = (field) => {
