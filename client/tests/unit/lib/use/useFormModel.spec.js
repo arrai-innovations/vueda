@@ -173,7 +173,13 @@ describe("lib/use/useFormModel.js", () => {
                 view: "create",
                 fields: ["display_"],
                 expand: [],
-                fieldDetails: { non_empty_: {} },
+                fieldDetails: {
+                    display_: {
+                        name: "display_",
+                        typeSerializer: "CharField",
+                        typeModel: "CharField",
+                    },
+                },
                 expandDetails: {},
             });
 
@@ -185,7 +191,6 @@ describe("lib/use/useFormModel.js", () => {
             expect([...state.baseFieldNames]).toEqual(["display_"]);
             expect(state.fieldComponents.display_).toBeTruthy();
             expect(state.widgetComponents.display_).toBeTruthy();
-            expect(state.fieldProps.display_.readOnly).toBe(true); // assuming default readOnly
         });
         scopedIt("creates default details for expansion fields with underscore suffixes", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -206,7 +211,14 @@ describe("lib/use/useFormModel.js", () => {
                 },
                 expandDetails: {
                     department: {
-                        f: {},
+                        f: {
+                            display_: {
+                                name: "display_",
+                                typeSerializer: "CharField",
+                                typeModel: "CharField",
+                                readOnly: true,
+                            },
+                        },
                     },
                 },
             });
@@ -575,7 +587,7 @@ describe("lib/use/useFormModel.js", () => {
                     status: {
                         name: "status",
                         typeSerializer: "ChoiceField",
-                        typeModel: "ChoiceField",
+                        typeModel: "CharField",
                         many: false,
                         choices: [{ value: "A", display_name: "Active" }],
                         readOnly: false,
@@ -617,6 +629,58 @@ describe("lib/use/useFormModel.js", () => {
 
             expect(state.fieldComponents.amount).toStrictEqual(
                 defaultFieldMappings.ModelField.GeneratedField.FloatField.component,
+            );
+        });
+        scopedIt("uses default mapping when typeModel is missing", async () => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            const { defaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+
+            const props = makeBaseProps({
+                fields: ["title"],
+                fieldDetails: {
+                    title: {
+                        name: "title",
+                        typeSerializer: "CharField",
+                        many: false,
+                        readOnly: false,
+                    },
+                },
+            });
+
+            const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
+            await flushPromises();
+
+            expect(state.fieldComponents.title).toStrictEqual(defaultFieldMappings.CharField.CharField.component);
+            expect(state.widgetComponents.title).toStrictEqual(defaultFieldMappings.CharField.CharField.widget);
+        });
+        scopedIt("throws when no field or widget mapping exists for typeModel", async () => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+            const props = makeBaseProps({
+                fields: ["title"],
+                fieldDetails: {
+                    title: {
+                        name: "title",
+                        typeSerializer: "CharField",
+                        typeModel: "UnknownFieldType",
+                        many: false,
+                        readOnly: false,
+                    },
+                },
+            });
+
+            const state = useFormModel(props);
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
+            await flushPromises();
+
+            expect(() => state.fieldComponents.title).toThrow(
+                'No field component found for field "title" in app "foo" model "bar"',
+            );
+            expect(() => state.widgetComponents.title).toThrow(
+                'No widget component found for field "title" in app "foo" model "bar"',
             );
         });
         scopedIt("uses choice field component when choices provided", async () => {

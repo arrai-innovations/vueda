@@ -3,7 +3,31 @@ import { buildForm } from "@vueda/utils/buildForm.js";
 import { choiceFieldMappings, defaultFieldMappings, manyFieldMappings } from "@vueda/utils/fieldMappings.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
+import isNil from "lodash-es/isNil.js";
 import { provide, reactive, readonly, shallowReactive, toRef, watch } from "vue";
+
+/**
+ * Resolve the mapping for a typeSerializer, falling back to the default mapping when typeModel is unknown.
+ *
+ * @template T
+ * @param {{[key:string]: {[typeModel:string]: T}}} mapping - The mapping object keyed by typeSerializer and typeModel.
+ * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - Field info containing the typeSerializer/typeModel.
+ * @returns {T|undefined} The matched mapping or the default entry for the serializer.
+ */
+const getTypeMapping = (mapping, field) => {
+    const serializerMapping = mapping[field.typeSerializer];
+    if (!serializerMapping) {
+        return undefined;
+    }
+    const hasTypeModel = !isNil(field.typeModel) && field.typeModel !== "";
+    if (hasTypeModel && serializerMapping[field.typeModel]) {
+        return serializerMapping[field.typeModel];
+    }
+    if (!hasTypeModel) {
+        return Object.values(serializerMapping).find((entry) => entry?.default) || undefined;
+    }
+    return undefined;
+};
 
 /**
  * Get the field component for a given Django field type.
@@ -12,17 +36,17 @@ import { provide, reactive, readonly, shallowReactive, toRef, watch } from "vue"
  * @returns {import('@vueda/utils/filterLookups.js').FieldComponent} The field component.
  */
 const getFieldComponent = (field) => {
+    const defaultMapping = getTypeMapping(defaultFieldMappings, field);
     let component;
     if (field.typeModel === "GeneratedField" && field.typeSerializer === "ModelField") {
-        component = defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.[field.typeDb]?.component;
+        component = defaultMapping?.[field.typeDb]?.component;
     }
     if (field.choices) {
-        component = choiceFieldMappings[field.typeSerializer]?.[field.typeModel]?.component;
+        component = getTypeMapping(choiceFieldMappings, field)?.component;
     } else if (field.many) {
-        component =
-            manyFieldMappings[field.typeSerializer]?.[field.typeModel]?.component || availableFields.FieldSetMany;
+        component = getTypeMapping(manyFieldMappings, field)?.component || availableFields.FieldSetMany;
     }
-    return component || defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.component;
+    return component || defaultMapping?.component;
 };
 /**
  * Get the default widget for a given field object.
@@ -34,14 +58,15 @@ const getWidgetComponent = (field) => {
     if (field.readOnly) {
         return availableWidgets.WidgetReadOnly;
     }
+    const defaultMapping = getTypeMapping(defaultFieldMappings, field);
     let widget;
     if (field.choices) {
-        const fieldObject = choiceFieldMappings[field.typeSerializer]?.[field.typeModel];
+        const fieldObject = getTypeMapping(choiceFieldMappings, field);
         widget = field.many ? fieldObject?.manyWidget : fieldObject?.widget;
     } else if (field.many) {
-        widget = manyFieldMappings[field.typeSerializer]?.[field.typeModel]?.widget;
+        widget = getTypeMapping(manyFieldMappings, field)?.widget;
     }
-    return widget ?? defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.widget;
+    return widget ?? defaultMapping?.widget;
 };
 
 /**
@@ -51,16 +76,17 @@ const getWidgetComponent = (field) => {
  * @returns {{[fieldName:string]: {[key:string]: any}}|undefined} widgetProps - The default widget props
  */
 const getWidgetProps = (field) => {
+    const defaultMapping = getTypeMapping(defaultFieldMappings, field);
     let baseProps;
     if (field.typeModel === "GeneratedField" && field.typeSerializer === "ModelField") {
-        baseProps = defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.[field.typeDb]?.widgetProps;
+        baseProps = defaultMapping?.[field.typeDb]?.widgetProps;
     }
     if (field.choices) {
         baseProps = field.many ? choiceFieldMappings[field.typeSerializer]?.[field.typeModel]?.manyWidgetProps : {};
     } else if (field.many) {
         baseProps = manyFieldMappings[field.typeSerializer]?.[field.typeModel]?.widgetProps;
     }
-    return { ...defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.widgetProps, ...(baseProps ?? {}) };
+    return { ...defaultMapping?.widgetProps, ...(baseProps ?? {}) };
 };
 
 /**
@@ -70,14 +96,15 @@ const getWidgetProps = (field) => {
  * @returns {{[fieldName:string]: {[key:string]: any}}|undefined} fieldProps - The default field props
  */
 const getFieldProps = (field) => {
+    const defaultMapping = getTypeMapping(defaultFieldMappings, field);
     let baseProps;
     if (field.typeModel === "GeneratedField" && field.typeSerializer === "ModelField") {
-        baseProps = defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.[field.typeDb]?.fieldProps;
+        baseProps = defaultMapping?.[field.typeDb]?.fieldProps;
     }
     if (field.many && !field.choices) {
         baseProps = manyFieldMappings[field.typeSerializer]?.[field.typeModel]?.fieldProps;
     }
-    return { ...defaultFieldMappings[field.typeSerializer]?.[field.typeModel]?.fieldProps, ...(baseProps ?? {}) };
+    return { ...defaultMapping?.fieldProps, ...(baseProps ?? {}) };
 };
 /**
  * @typedef {object} UseFormModelRawState

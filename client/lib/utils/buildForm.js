@@ -175,7 +175,12 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     // let props and modelConfig not pass actual components
                     return availableFields[customField];
                 }
-                return customField || availableFields.FieldString;
+                if (!customField) {
+                    throw new Error(
+                        `No field component found for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
+                    );
+                }
+                return customField;
             });
         });
         return component;
@@ -240,7 +245,12 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     // Allow props and modelConfig to pass component names
                     return availableWidgets[customWidget];
                 }
-                return customWidget || availableWidgets.WidgetInput;
+                if (!customWidget) {
+                    throw new Error(
+                        `No widget component found for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
+                    );
+                }
+                return customWidget;
             });
         });
 
