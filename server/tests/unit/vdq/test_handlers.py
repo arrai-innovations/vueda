@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 from types import SimpleNamespace
 
@@ -424,5 +425,23 @@ def test_handle_bounce_updates_states(monkeypatch, queue_item_email):
 @pytest.mark.django_db
 def test_handle_bounce_unknown_message(caplog):
     event = SimpleNamespace(message_id="unknown", event_type="delivered", esp_event={})
-    handle_bounce(None, event, "esp")
+    with caplog.at_level(logging.WARNING):
+        handle_bounce(None, event, "esp")
+
     assert "Tracking event" in caplog.text
+
+
+@pytest.mark.django_db
+def test_handle_bounce_logs_and_raises(caplog, monkeypatch):
+    event = SimpleNamespace(message_id="raise", event_type="delivered", esp_event={"raw": True})
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(QueueItem.objects, "select_for_update", boom)
+
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(RuntimeError):
+            handle_bounce(None, event, "esp")
+
+    assert "There was an error while processing tracking event" in caplog.text

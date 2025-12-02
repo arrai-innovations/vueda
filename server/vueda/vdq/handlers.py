@@ -261,8 +261,8 @@ def handle_bounce(sender, event, esp_name, **kwargs):
                 case _:
                     logger.info("Unhandled event %s for QueueItem %s. Raw: %s", event.event_type, qi.pk, raw_esp_event)
     except Exception as e:
-        logger.error(
-            "There was an error while processing tracking event for a QueueItem.\nRaw event: %s\n Error Detail: %r",
+        logger.exception(
+            "There was an error while processing tracking event for a QueueItem.\nRaw event: %s\n",
             event,
-            e,
         )
+        raise e
