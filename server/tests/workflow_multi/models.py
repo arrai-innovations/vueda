@@ -1,4 +1,3 @@
-# Models to use with info.
 from django.contrib.postgres import fields as postgres_fields
 from django.db import models
 

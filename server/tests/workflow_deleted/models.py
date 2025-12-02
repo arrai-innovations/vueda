@@ -1,5 +1,3 @@
-# Models to use with info.
-
 from django.db import models
 
 from vueda.history.models import VuedaHistoryBaseModel
