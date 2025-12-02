@@ -228,45 +228,41 @@ def timeout_queue_item(queue_item, timeout_hours):
 
 @receiver(tracking)
 def handle_bounce(sender, event, esp_name, **kwargs):
-    qi = QueueItem.objects.filter(anymail__message_id=event.message_id).first()
-    if not qi:
-        logger.warning("Tracking event %s for unknown message_id=%s", event.event_type, event.message_id)
-        return
-    with lock_queue_item(qi.id, skip_locked=False):
-        try:
+    try:
+        with transaction.atomic():
+            qi = QueueItem.objects.select_for_update().filter(anymail__message_id=event.message_id).first()
+            if not qi:
+                logger.warning("Tracking event %s for unknown message_id=%s", event.event_type, event.message_id)
+                return
             raw_esp_event = event.esp_event
-
             match event.event_type:
                 case "delivered":
                     qi.result = ""
-                    qi.save(update_fields="result")
-
+                    qi.save(update_fields=["result"])
                     qi.fast_transition("succeed")
                 case "queued" | "sent":
                     pass
                 case "bounced" | "rejected":
                     reason = getattr(event, "reject_reason", "unknown")
                     qi.result = f"Email Rejected or Bounced. Reject Reason: {reason}"
-                    qi.save(update_fields="result")
-
+                    qi.save(update_fields=["result"])
                     qi.fast_transition("error")
                     logger.warning("Bounced email for QueueItem %s. Raw: %s", qi.pk, raw_esp_event)
-
                 case "failed":
                     qi.result = "Email Failed."
-                    qi.save(update_fields="result")
-
+                    qi.save(update_fields=["result"])
                     qi.fast_transition("error")
                     logger.error("Failed email for QueueItem %s. Raw: %s", qi.pk, raw_esp_event)
                 case "delayed":
                     qi.result = (
                         "ESP delayed. It should automatically retry later and hit back with another bounce again"
                     )
-                    qi.save(update_fields="result")
+                    qi.save(update_fields=["result"])
                 case _:
                     logger.info("Unhandled event %s for QueueItem %s. Raw: %s", event.event_type, qi.pk, raw_esp_event)
-
-        except Exception:
-            logger.exception(
-                "There was an error while processing tracking event for QueueItem %s.Raw: %s", qi.pk, raw_esp_event
-            )
+    except Exception as e:
+        logger.exception(
+            "There was an error while processing tracking event for a QueueItem.\nRaw event: %s\n",
+            event,
+        )
+        raise e
