@@ -338,7 +338,7 @@ class SentItemManager(models.Manager):
 class SentItem(QueueItem):
     objects = SentItemManager()
 
-    class Meta:
+    class Meta(BaseModelMeta):
         proxy = True
         verbose_name = "Sent Item"
 
