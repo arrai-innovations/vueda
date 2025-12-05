@@ -15,6 +15,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.viewsets import VuedaViewSet
 from vueda.user.adapters import get_adapter as vueda_get_adapter
 from vueda.user.filtersets import TOTPDeviceFilterSet
@@ -146,9 +147,10 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
 
     def destroy(self, request, *args, **kwargs):
         pk = kwargs.get("pk")
-        pks = [pk]
-        if not pk:
-            pks = request.data.get("pks", [])
+        serializer_data = {"pks": [pk]} if pk else request.data
+        serializer = PrimaryKeyListSerializer(data=serializer_data)
+        serializer.is_valid(raise_exception=True)
+        pks = serializer.validated_data["pks"]
         with transaction.atomic():
             queryset = self.get_queryset().filter(pk__in=pks)
             count = self.get_queryset().count()

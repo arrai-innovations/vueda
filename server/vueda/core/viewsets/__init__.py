@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.models import ActivatableBaseModel
+from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.history.viewsets import SimpleHistoryViewSetMixin
 
 
@@ -307,13 +308,9 @@ class DeactivateActionViewSetMixin:
                 status=200,
             )
 
-        pks = request.data.get("pks", [])
-        if not isinstance(pks, list):
-            return Response({"error": "pks must be a list of primary keys."}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            pks = [int(pk) for pk in pks]
-        except ValueError:
-            return Response({"error": "All primary keys must be valid integers."}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = PrimaryKeyListSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        pks = serializer.validated_data["pks"]
 
         queryset = self.get_queryset()
         queryset = queryset.filter(pk__in=pks)
@@ -360,13 +357,9 @@ class DeactivateActionViewSetMixin:
                 status=200,
             )
 
-        pks = request.data.get("pks", [])
-        if not isinstance(pks, list):
-            return Response({"error": "pks must be a list of primary keys."}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            pks = [int(pk) for pk in pks]
-        except ValueError:
-            return Response({"error": "All primary keys must be valid integers."}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = PrimaryKeyListSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        pks = serializer.validated_data["pks"]
 
         queryset = self.get_queryset()
         queryset = queryset.filter(pk__in=pks)
@@ -406,23 +399,25 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
             self.perform_destroy(instance)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        pks = request.data.get("pks", [])
-        if not len(pks):
-            return Response({"error": "no pks provided"}, status=status.HTTP_400_BAD_REQUEST)
-        if not isinstance(pks, list):
-            return Response({"error": "pks must be a list of primary keys."}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            pks = [int(pk) for pk in pks]
-        except ValueError:
-            return Response({"error": "All primary keys must be valid integers."}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = PrimaryKeyListSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        pks = serializer.validated_data["pks"]
 
         queryset = self.get_queryset()
         queryset = queryset.filter(pk__in=pks)
+        if len(pks) != queryset.count():
+            found_pks = set(queryset.values_list("pk", flat=True))
+            missing_pks = set(pks) - found_pks
+            errors = {}
+            for missing_pk in missing_pks:
+                errors[missing_pk] = [f"Object with pk={missing_pk} does not exist."]
+            raise VuedaValidationError(errors)
 
-        self.destroy_validation(queryset)
-        count, _ = queryset.delete()
+        with transaction.atomic():
+            self.destroy_validation(queryset)
+            queryset.delete()
 
-        return Response({"status": f"{count} objects deleted."}, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_allowed_extra_actions(self, request, *, instance=None):
         """

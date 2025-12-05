@@ -8,6 +8,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from vueda.core.decorators import action
 from vueda.core.permissions import ObjectPermissions
+from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.viewsets import VuedaViewSet
 from vueda.vdq.constants import QUEUE_ITEM_DONE_STATES
 from vueda.vdq.filtersets import SendQueueFilterSet
@@ -54,15 +55,17 @@ class DefaultSentItemViewSet(VuedaViewSet, ReadOnlyModelViewSet):
     @action(detail=True, bulk=True, methods=["post"])
     def resend(self, request, *args, **kwargs):
         pk = kwargs.get("pk")
-        data = request.data
+
         if pk:
             queue_item = self.get_object()
             new_queue_item = queue_item.clone()
             schedule_queue_item(new_queue_item)
 
         else:
-            pks = data.get("pks", [])
             with transaction.atomic():
+                serializer = PrimaryKeyListSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                pks = serializer.validated_data["pks"]
                 for pk in pks:
                     queue_item = get_object_or_404(self.queryset, pk=pk)
                     new_queue_item = queue_item.clone()

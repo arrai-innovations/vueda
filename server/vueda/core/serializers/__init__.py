@@ -13,6 +13,20 @@ from vueda.core.serializers.fields import TemplateTagsDataField
 from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
 
 
+class PrimaryKeyListSerializer(serializers.Serializer):
+    pks = serializers.ListField(
+        child=serializers.IntegerField(error_messages={"invalid": "Primary keys must be valid integers."}),
+        allow_empty=False,
+        error_messages={
+            "not_a_list": "pks must be a list of primary keys.",
+            "empty": "pks list cannot be empty.",
+        },
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
 class NoExtraFieldsSerializerMixin:
     """
     Explode on extra fields, but it is not the default behavior of DRF.

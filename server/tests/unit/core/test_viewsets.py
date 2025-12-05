@@ -188,6 +188,16 @@ class TestProductViewSet(BaseTestModelViewSet):
         del expected_retrieve_response["available_actions"]
         assert first_history_entry == expected_retrieve_response
 
+    def test_bulk_destroy_without_delete_permission(self, page_data, authenticated_client):
+        pks = list(page_data.values_list("pk", flat=True))
+
+        response = authenticated_client.delete(self.list_url(), data={"pks": pks}, format="json")
+
+        assert response.status_code == HTTPStatus.FORBIDDEN, (
+            f"{response.status_code} != 403, response.data: {response.data}"
+        )
+        assert self.model.objects.filter(pk__in=pks).count() == len(pks)
+
     def test_retrieve_with_invalid_expands(self, page_data, authenticated_client, expected_retrieve_response):
         instance = page_data.first()
         detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,second_history_entry"}
@@ -449,3 +459,39 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
             "supervisor, foo, history, first_history_entry, last_history_entry."
         ), f"guardian message: {response.data['guardian'][0]['message']}"
         assert "employee" not in response.data, f"response.data: {response.data}"
+
+    def test_destroy_returns_no_content_for_detailed(self, page_data, authenticated_client):
+        instance = page_data.first()
+        response = authenticated_client.delete(self.detail_url(instance.id))
+
+        assert response.status_code == HTTPStatus.NO_CONTENT, (
+            f"{response.status_code} != 204, response.data: {response.data}"
+        )
+        assert not self.model.objects.filter(pk=instance.pk).exists()
+
+    def test_bulk_destroy_returns_no_content(self, page_data, authenticated_client):
+        initial_count = self.model.objects.count()
+        pks = list(page_data.values_list("pk", flat=True)[:2])
+
+        response = authenticated_client.delete(self.list_url(), data={"pks": pks}, format="json")
+
+        assert response.status_code == HTTPStatus.NO_CONTENT, (
+            f"{response.status_code} != 204, response.data: {response.data}"
+        )
+        assert self.model.objects.filter(pk__in=pks).count() == 0
+        assert self.model.objects.count() == initial_count - len(pks)
+
+    def test_bulk_destroy_with_missing_objects(self, page_data, authenticated_client):
+        existing_pk = page_data.first().pk
+        missing_pk = max(page_data.values_list("pk", flat=True)) + 100
+        pks = [existing_pk, missing_pk]
+
+        response = authenticated_client.delete(self.list_url(), data={"pks": pks}, format="json")
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            f"{response.status_code} != 400, response.data: {response.data}"
+        )
+        error_key = missing_pk if missing_pk in response.data else str(missing_pk)
+        assert error_key in response.data
+        assert str(response.data[error_key][0]) == f"Object with pk={missing_pk} does not exist."
+        assert self.model.objects.filter(pk=existing_pk).exists()

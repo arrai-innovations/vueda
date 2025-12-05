@@ -14,6 +14,7 @@ from tests.serializers import TimesheetSerializer
 from tests.serializers import TimesheetSerializerExclude
 from tests.utils import FakeRequest
 from tests.utils import FakeView
+from vueda.core.serializers import PrimaryKeyListSerializer
 
 
 @pytest.mark.django_db
@@ -517,3 +518,29 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
         assert obj.period_start == date(2024, 2, 5)
         assert obj.period_end == date(2024, 2, 29)
         assert obj.employee == employee
+
+
+class TestPrimaryKeyListSerializer:
+    def test_valid_pk_list(self):
+        serializer = PrimaryKeyListSerializer(data={"pks": [1, 2, 3]})
+
+        assert serializer.is_valid()
+        assert serializer.validated_data["pks"] == [1, 2, 3]
+
+    def test_rejects_non_integer_values(self):
+        serializer = PrimaryKeyListSerializer(data={"pks": [1, "abc"]})
+
+        assert not serializer.is_valid()
+        assert serializer.errors["pks"][1][0] == "Primary keys must be valid integers."
+
+    def test_requires_list_input(self):
+        serializer = PrimaryKeyListSerializer(data={"pks": "1"})
+
+        assert not serializer.is_valid()
+        assert serializer.errors["pks"][0] == "pks must be a list of primary keys."
+
+    def test_requires_data(self):
+        serializer = PrimaryKeyListSerializer(data={"pks": []})
+
+        assert not serializer.is_valid()
+        assert serializer.errors["pks"][0] == "pks list cannot be empty."
