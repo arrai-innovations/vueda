@@ -340,10 +340,10 @@ TransitionSourceFormSet = forms.inlineformset_factory(
     extra=1,
     fields=[
         "source",
-        "fail_with_silent",
+        "ignored",
     ],
     help_texts={
-        "fail_with_silent": _("fast transition will fail and not throw an error if attempted from this source state"),
+        "ignored": _("fast transition will be ignored and not throw an error if attempted from this source state"),
     },
     fk_name="transition",
     formset=FilteredTransitionSelectsInlineFormset,

@@ -825,6 +825,10 @@ class Migration(migrations.Migration):
         ("vueda_vdq", "0004_alter_queueitem_done_since_alter_queueitem_object_id"),
     ]
 
+    run_before = [
+        ("vueda_workflow", "0006_rename_fail_with_silent_historicaltransitionsource_ignored_and_more"),
+    ]
+
     operations = [
         migrations.RunPython(
             code=make_sure_permissions_exist,

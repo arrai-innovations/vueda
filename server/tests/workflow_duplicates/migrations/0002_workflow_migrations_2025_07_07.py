@@ -793,7 +793,7 @@ def handle_transition_source(apps, changed_item, *, reversing=False):
                     "id",
                     "source_id",
                     "transition_id",
-                    "fail_with_silent",
+                    "ignored",
                 ),
             )
             historical_transition_source.objects.create(**data)

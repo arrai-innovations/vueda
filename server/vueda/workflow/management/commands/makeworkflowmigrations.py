@@ -19,6 +19,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.management import BaseCommand
 from django.core.management import call_command
 from django.db import migrations
+from django.db.migrations import operations
 from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
 from django.db.models import Count
 from django.db.transaction import atomic
@@ -792,7 +793,7 @@ def handle_transition_source(apps, changed_item, *, reversing=False):
                     "id",
                     "source_id",
                     "transition_id",
-                    "fail_with_silent",
+                    "ignored",
                 ),
             )
             historical_transition_source.objects.create(**data)
@@ -1442,7 +1443,17 @@ class Command(BaseCommand):
             return queryset.exclude(pk__in=previously_matched_pks)
         return queryset
 
-    def _get_history_obj_from_change(self, model_name, changed_item, historical_queryset):
+    def _replace_renamed_fields(self, query, workflow_model_field_names_to_attname):
+        for old_name, new_name in workflow_model_field_names_to_attname.items():
+            if old_name in query:
+                query[new_name] = query[old_name]
+                del query[old_name]
+
+        return query
+
+    def _get_history_obj_from_change(
+        self, model_name, changed_item, historical_queryset, workflow_model_field_names_to_attname
+    ):
         history_type_text = changed_item["history_type"]
         history_date = changed_item["history_date"]
         match history_type_text:
@@ -1460,6 +1471,10 @@ class Command(BaseCommand):
                 initialstate_query = self._recursive_compile_changed_item(initialstate_query, history_date=history_date)
                 del initialstate_query["id"]
 
+                initialstate_query = self._replace_renamed_fields(
+                    initialstate_query, workflow_model_field_names_to_attname
+                )
+
                 historical_queryset = historical_queryset.filter(**initialstate_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
@@ -1470,6 +1485,8 @@ class Command(BaseCommand):
                 state_query = copy.deepcopy(changed_item["changes"])
                 state_query = self._recursive_compile_changed_item(state_query, history_date=history_date)
                 del state_query["id"]
+
+                state_query = self._replace_renamed_fields(state_query, workflow_model_field_names_to_attname)
 
                 historical_queryset = historical_queryset.filter(**state_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
@@ -1484,6 +1501,10 @@ class Command(BaseCommand):
                 )
                 del statepermission_query["id"]
 
+                statepermission_query = self._replace_renamed_fields(
+                    statepermission_query, workflow_model_field_names_to_attname
+                )
+
                 historical_queryset = historical_queryset.filter(**statepermission_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
@@ -1494,6 +1515,8 @@ class Command(BaseCommand):
                 transition_query = copy.deepcopy(changed_item["changes"])
                 transition_query = self._recursive_compile_changed_item(transition_query, history_date=history_date)
                 del transition_query["id"]
+
+                transition_query = self._replace_renamed_fields(transition_query, workflow_model_field_names_to_attname)
 
                 historical_queryset = historical_queryset.filter(**transition_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
@@ -1508,6 +1531,10 @@ class Command(BaseCommand):
                 )
                 del transitionpermission_query["id"]
 
+                transitionpermission_query = self._replace_renamed_fields(
+                    transitionpermission_query, workflow_model_field_names_to_attname
+                )
+
                 historical_queryset = historical_queryset.filter(**transitionpermission_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
@@ -1521,6 +1548,10 @@ class Command(BaseCommand):
                 )
                 del transitionsource_query["id"]
 
+                transitionsource_query = self._replace_renamed_fields(
+                    transitionsource_query, workflow_model_field_names_to_attname
+                )
+
                 historical_queryset = historical_queryset.filter(**transitionsource_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
@@ -1531,6 +1562,8 @@ class Command(BaseCommand):
                 workflow_query = copy.deepcopy(changed_item["changes"])
                 workflow_query = self._recursive_compile_changed_item(workflow_query, history_date=history_date)
                 del workflow_query["id"]
+
+                workflow_query = self._replace_renamed_fields(workflow_query, workflow_model_field_names_to_attname)
 
                 historical_queryset = historical_queryset.filter(**workflow_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
@@ -1545,6 +1578,10 @@ class Command(BaseCommand):
                 )
                 del workflowpermission_query["id"]
 
+                workflowpermission_query = self._replace_renamed_fields(
+                    workflowpermission_query, workflow_model_field_names_to_attname
+                )
+
                 historical_queryset = historical_queryset.filter(**workflowpermission_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
@@ -1553,7 +1590,26 @@ class Command(BaseCommand):
 
         return historical_obj
 
-    def _get_history_compared_to_existing_changes(self, all_migrated_data):
+    def add_renamed_fields_and_models_to_attr_names(self, workflow_model_field_names_to_attname):
+        for migration_name in self._get_migration_names_from_show_migrations("vueda_workflow"):
+            module_name = f"vueda.workflow.{MIGRATIONS_MODULE_NAME}.{migration_name}"
+
+            try:
+                module = importlib.import_module(module_name)
+            except ModuleNotFoundError:
+                return None
+
+            for operation in module.Migration.operations:
+                model_name = getattr(operation, "model_name", None)
+                if (
+                    isinstance(operation, operations.RenameField)
+                    and model_name in workflow_model_field_names_to_attname
+                ):
+                    workflow_model_field_names_to_attname[model_name][operation.old_name] = operation.new_name
+
+        return workflow_model_field_names_to_attname
+
+    def _get_history_compared_to_existing_changes(self, all_migrated_data, workflow_model_field_names_to_attname):
         # Because of the potential that the history dates may not match, we need to parse the
         # changes we find against the changes that we have in existing workflow migrations.
         for app_migrated_data in all_migrated_data.values():
@@ -1595,7 +1651,10 @@ class Command(BaseCommand):
                                 continue
 
                             history_obj = self._get_history_obj_from_change(
-                                workflow_model_name, changed_item, historical_queryset
+                                workflow_model_name,
+                                changed_item,
+                                historical_queryset,
+                                workflow_model_field_names_to_attname[workflow_model_name],
                             )
                             if history_obj is not None:
                                 existing_history_pks.add(history_obj.pk)
@@ -2284,6 +2343,9 @@ class Command(BaseCommand):
             sys.exit(2)
 
         workflow_model_field_names_to_attname = get_attr_names_for_workflow_models()
+        workflow_model_field_names_to_attname = self.add_renamed_fields_and_models_to_attr_names(
+            workflow_model_field_names_to_attname
+        )
 
         # Since we are not using the history date anymore, to handle multiple history records that have identical data
         # like the following, we need to keep a cache of the history record pks that we have matched to existing
@@ -2298,7 +2360,9 @@ class Command(BaseCommand):
         self.matched_history_records = {}
 
         all_migrated_data = self._get_vueda_generated_migration_data_per_app(app_labels)
-        all_migrated_data = self._get_history_compared_to_existing_changes(all_migrated_data)
+        all_migrated_data = self._get_history_compared_to_existing_changes(
+            all_migrated_data, workflow_model_field_names_to_attname
+        )
 
         changes_by_app = {}
 

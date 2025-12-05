@@ -474,11 +474,11 @@ changed_data = [
             "id": {
                 "source_id": {"code": "cancelled", "workflow_id": {"code": "order_fulfillment"}},
                 "transition_id": {"code": "cancel_order", "workflow_id": {"code": "order_fulfillment"}},
-                "fail_with_silent": True,
+                "ignored": True,
             },
             "source_id": {"code": "cancelled", "workflow_id": {"code": "order_fulfillment"}},
             "transition_id": {"code": "cancel_order", "workflow_id": {"code": "order_fulfillment"}},
-            "fail_with_silent": True,
+            "ignored": True,
         },
         "history_date": datetime.datetime(2024, 8, 12, 16, 25, 37, 618729, tzinfo=datetime.UTC),
         "history_type": "added",

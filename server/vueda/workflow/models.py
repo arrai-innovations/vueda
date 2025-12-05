@@ -348,8 +348,8 @@ class TransitionSource(SimpleHistoryModelMixin):
         "State",
         on_delete=models.PROTECT,
     )
-    # This transition would fail and not raise an exception if applied from this source state.
-    fail_with_silent = models.BooleanField(default=False)
+    # This transition is intentionally ignored (no-op) when applied from this source state.
+    ignored = models.BooleanField(default=False)
 
     class Meta(BaseModelMeta):
         default_related_name = "transition_sources"
@@ -534,7 +534,7 @@ class HasWorkflowModelMixin(models.Model):
             Transition.objects.filter(
                 workflow=self.workflow,
                 transition_sources__source=self.workflow_state,
-                transition_sources__fail_with_silent=False,
+                transition_sources__ignored=False,
             )
             .select_related("target")
             .all()
@@ -651,16 +651,15 @@ class HasWorkflowModelMixin(models.Model):
                 f"Transition {transition_code!r} does not exist for workflow {self.workflow.code!r}."
             ) from e
 
-    def should_fail_silently(self, transition: Transition) -> bool:
+    def should_ignore_transition_from_state(self, transition: Transition) -> bool:
         """
-        Check if transition should fail silently.
+        Return True if the transition should be treated as a no-op from the current state.
         """
-        transition_source = TransitionSource.objects.filter(
+        return TransitionSource.objects.filter(
             transition=transition,
             source=self.workflow_state,
-            fail_with_silent=True,
-        ).first()
-        return transition_source
+            ignored=True,
+        ).exists()
 
     def apply_transition(self, transition_code: str, user: User | None = None) -> tuple[State, int | None]:
         """
@@ -697,8 +696,8 @@ class HasWorkflowModelMixin(models.Model):
         transition: Transition = self.get_transition(transition_code)
         transitions = self.fast_available_transitions()
         if transition not in transitions:
-            if self.should_fail_silently(transition):
-                self.on_transition_fail_silently(transition)
+            if self.should_ignore_transition_from_state(transition):
+                self.on_transition_ignored(transition)
                 return
             raise InvalidTransitionError(
                 f"Transition {transition_code!r} not available from state {self.workflow_state.code!r}"
@@ -723,8 +722,8 @@ class HasWorkflowModelMixin(models.Model):
         """
         pass
 
-    def on_transition_fail_silently(self, transition: Transition, user: User | None = None):
+    def on_transition_ignored(self, transition: Transition, user: User | None = None):
         """
-        Override this method to add custom logic on transition fail silently.
+        Override this method to add custom logic when a transition is intentionally ignored.
         """
         pass

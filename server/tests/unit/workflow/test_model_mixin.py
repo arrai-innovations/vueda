@@ -105,7 +105,7 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
         admin_group = Group.objects.get(name="Admin")
         assert customer_order.check_state_permission("store.update_orderitem", [admin_group]) is None
 
-    def test_should_fail_silently(self, customer_order):
+    def test_should_ignore_transition_from_state(self, customer_order):
         cancelled_state = State.objects.get(code="cancelled", workflow__code="order_fulfillment")
         cancel_transition = Transition.objects.get(
             workflow=customer_order.workflow,
@@ -117,7 +117,7 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
         object_state.save()
 
         assert not customer_order.fast_available_transitions().exists()
-        assert customer_order.should_fail_silently(cancel_transition)
+        assert customer_order.should_ignore_transition_from_state(cancel_transition)
 
     def test_apply_transition_fails_with_request_context(self, customer_order, workflow_user, monkeypatch):
         cancelled_state = State.objects.get(code="cancelled", workflow__code="order_fulfillment")
@@ -131,7 +131,7 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
         with pytest.raises(InvalidTransitionError):
             customer_order.apply_transition("cancel_order")
 
-    def test_fast_transition_handles_fail_silently(self, customer_order):
+    def test_fast_transition_handles_ignored_state(self, customer_order):
         cancelled_state = State.objects.get(code="cancelled", workflow__code="order_fulfillment")
         cancel_transition = Transition.objects.get(
             workflow=customer_order.workflow,
@@ -143,7 +143,7 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
         object_state.save()
 
         on_fail_mock = Mock()
-        customer_order.on_transition_fail_silently = on_fail_mock
+        customer_order.on_transition_ignored = on_fail_mock
 
         customer_order.fast_transition(cancel_transition.code)
 

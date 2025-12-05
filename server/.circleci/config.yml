@@ -1,10 +1,10 @@
 version: 2.1
 orbs:
-    github: arrai/github@3.0.0
+    github: arrai/github@5.0.0
     lintinator: arrai/lintinator@2.1.0
     pypi: arrai/pypi@3.1.0
     pytest: arrai/pytest@9.1.1
-    pip-audit: arrai/pip-audit@1.0.1
+    pip-audit: arrai/pip-audit@1.0.3
     utils: arrai/utils@1.21.1
 executors:
     base:
