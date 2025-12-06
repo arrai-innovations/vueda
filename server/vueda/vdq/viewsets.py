@@ -15,6 +15,7 @@ from vueda.vdq.filtersets import SendQueueFilterSet
 from vueda.vdq.filtersets import SentQueueFilterSet
 from vueda.vdq.models import QueueItem
 from vueda.vdq.models import SentItem
+from vueda.vdq.permissions import QueueItemObjectPermission
 from vueda.vdq.schedulers import schedule_queue_item
 from vueda.vdq.serializers import QueueItemSerializer
 from vueda.vdq.serializers import SentItemSerializer
@@ -45,7 +46,7 @@ SendQueueViewSet = getattr(settings, "SEND_QUEUE_VIEWSET", DefaultSendQueueViewS
 class DefaultSentItemViewSet(VuedaViewSet, ReadOnlyModelViewSet):
     queryset = SentItem.objects.select_related("receiver").order_by("queued")
     serializer_class = SentItemSerializer
-    permission_classes = [ObjectPermissions]
+    permission_classes = [QueueItemObjectPermission]
     search_fields = ["receiver__name", "receiver__email", "result"]
     ordering_fields = ["queued", "last_updated"]
     filterset_class = SentQueueFilterSet
