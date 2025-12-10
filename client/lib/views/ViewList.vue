@@ -815,10 +815,11 @@ const columnOptions = computed(() => {
             </template>
         </objects-grid>
         <pagination-component
+            v-if="instanceList.state.paginateInfo?.totalRecords > 0"
             v-model:current-page="listState.currentPage"
             :loading="instanceList.state.loading"
-            :rows="instanceList.state.paginateInfo?.perPage || 1"
-            :total-records="instanceList.state.paginateInfo?.totalRecords || 1"
+            :rows="instanceList.state.paginateInfo?.perPage"
+            :total-records="instanceList.state.paginateInfo?.totalRecords"
             :is-table="isTable"
             :showing-all-pages="computedShowAllPages"
             :allow-show-all-pages="modelConfig.config?.allowShowAllPages && allowShowAllPages"

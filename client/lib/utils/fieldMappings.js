@@ -1,4 +1,5 @@
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
+import merge from "lodash-es/merge.js";
 
 export const defaultFieldMappings = {
     BooleanField: {
@@ -176,12 +177,16 @@ export const defaultFieldMappings = {
     },
     ModelField: {
         GeneratedField: {
+            CharField: {
+                component: availableFields.FieldString,
+                widget: availableWidgets.WidgetReadOnly,
+                default: true,
+            },
             FloatField: {
                 component: availableFields.FieldNumber,
                 fieldProps: {
                     maxFractionDigits: 2,
                 },
-                default: true,
             },
             default: true,
         },
@@ -604,3 +609,33 @@ export const filterFieldMapping = {
         widget: availableWidgets.WidgetInputNumber,
     },
 };
+
+/**
+ * Merge custom field mappings into the default set used for forms.
+ *
+ * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
+ * @returns {typeof defaultFieldMappings} The updated default field mappings.
+ */
+export function mergeDefaultFieldMappings(customMappings) {
+    return merge(defaultFieldMappings, customMappings);
+}
+
+/**
+ * Merge custom field mappings used when building filter forms.
+ *
+ * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
+ * @returns {typeof filterFieldMapping} The updated filter field mappings.
+ */
+export function mergeFilterFieldMapping(customMappings) {
+    return merge(filterFieldMapping, customMappings);
+}
+
+/**
+ * Merge custom field mappings used for many-to-many selections.
+ *
+ * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
+ * @returns {typeof manyFieldMappings} The updated many-to-many field mappings.
+ */
+export function mergeManyFieldMappings(customMappings) {
+    return merge(manyFieldMappings, customMappings);
+}

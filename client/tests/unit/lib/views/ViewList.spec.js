@@ -368,6 +368,7 @@ scopedIt("renders the mobile sort component when sortables exist and table view 
 scopedIt("allows toggling show all pages", async () => {
     mockedInject.mockReturnValueOnce({});
     modelConfig.config.allowShowAllPages = true;
+    instanceList.state.paginateInfo.totalRecords = 5;
     const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
     await vue.nextTick();
     const pagination = wrapper.get('[data-qa="pagination-component"]');
@@ -380,6 +381,18 @@ scopedIt("allows toggling show all pages", async () => {
 
     expect(instanceList.clearList.mock.calls.length).toBe(initialClearListCalls + 1);
     expect(instanceList.list.mock.calls.length).toBe(initialListCalls + 1);
+    wrapper.unmount();
+});
+scopedIt("hides pagination when there are no records", async () => {
+    mockedInject.mockReturnValueOnce({});
+    instanceList.state.paginateInfo.totalRecords = 0;
+
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+
+    await vue.nextTick();
+
+    expect(wrapper.find('[data-qa="pagination-component"]').exists()).toBe(false);
+
     wrapper.unmount();
 });
 
