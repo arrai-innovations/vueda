@@ -200,6 +200,42 @@ scopedIt("forgotPassword stores validation error", async () => {
     expect(store.loading).toBe(false);
 });
 
+scopedIt("changePassword posts payload", async () => {
+    const payload = { old_password: "old", new_password1: "new", new_password2: "new" };
+    getUrl.mockReturnValue("/change/");
+    fetchHelper.mockResolvedValue({ ok: true });
+
+    const store = storeUser();
+    await expect(store.changePassword(payload)).resolves.toEqual({ ok: true });
+
+    expectFetchHelperCall(
+        0,
+        "http://host/change/",
+        {
+            method: "POST",
+            headers: { "X-CSRFToken": "csrftoken", "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        },
+        "Error sending authentication request",
+    );
+    expect(store.error).toBeNull();
+    expect(store.errored).toBe(false);
+    expect(store.loading).toBe(false);
+});
+
+scopedIt("changePassword stores validation error", async () => {
+    const { FormValidationError } = await vi.importActual("@vueda/utils/errors.js");
+    getUrl.mockReturnValue("/change/");
+    const error = new FormValidationError({ old_password: ["wrong"] });
+    fetchHelper.mockRejectedValue(error);
+
+    const store = storeUser();
+    await expect(store.changePassword({ old_password: "old" })).rejects.toBe(error);
+    expect(store.error).toBe(error);
+    expect(store.errored).toBe(true);
+    expect(store.loading).toBe(false);
+});
+
 scopedIt("resetPassword returns data on success", async () => {
     const data = { ok: true };
     getUrl.mockReturnValue("/reset/");

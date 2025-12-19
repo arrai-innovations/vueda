@@ -73,12 +73,10 @@ const OnSubmissionErrorHandler = async ({ error, formContext, toast }) => {
     }
     return await defaultOnSubmissionError({ error, formContext, toast });
 };
-const redirectTo = async (action) => {
-    if (action === "cancel") {
-        const returnPath = route.query?.returnPath;
-        if (returnPath) {
-            await router.push(returnPath);
-        }
+const redirectTo = async () => {
+    const returnPath = route.query?.returnPath;
+    if (returnPath) {
+        await router.push(returnPath);
     }
 };
 </script>

@@ -292,6 +292,36 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        changePassword(payload) {
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${getUrl("changePassword")}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFValue(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                },
+                "Error sending authentication request",
+                UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
+            )
+                .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
+                    throw error;
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        },
         _handle_error(error) {
             if (error instanceof UnauthorizedError) {
                 const flows = error.responseData?.data?.flows;
