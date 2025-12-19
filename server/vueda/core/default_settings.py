@@ -246,6 +246,7 @@ def get_defaults(env: Env):
             "USER_DETAILS_SERIALIZER": "vueda.user.serializers.WhoIsSerializer",
             "TOKEN_MODEL": None,
             "TOKEN_SERIALIZER": "vueda.user.serializers.VuedaTokenSerializer",
+            "OLD_PASSWORD_FIELD_ENABLED": True,
         },
         "REST_FLEX_FIELDS": {
             "EXPAND_PARAM": "e",

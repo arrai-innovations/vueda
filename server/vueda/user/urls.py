@@ -1,5 +1,6 @@
 from allauth.headless.urls import urlpatterns as allauth_urlpatterns
 from dj_rest_auth.views import LogoutView
+from dj_rest_auth.views import PasswordChangeView
 from django.conf import settings
 from django.urls import include
 from django.urls import path
@@ -21,6 +22,7 @@ user_patterns = [
     path("reauthenticate/", AllAuthReauthenticateView.as_api_view(client="browser"), name="reauthenticate"),
     path("", include("vueda.user.routers")),
     path("totp_code/", totp_code, name="totp_code"),
+    path("change_password/", PasswordChangeView.as_view(), name="change_password"),
 ]
 
 urlpatterns = [
