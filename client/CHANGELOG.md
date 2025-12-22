@@ -2,7 +2,35 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.0-beta.10 (unreleased)
+## v2.0.0 (unreleased)
+
+## v2.0.0-beta.14 (2025-12-10)
+
+### Features
+
+- **ViewList**: Hide the paginator when no records are returned.
+- **Field Mappings**: Allow consuming projects to merge in custom field mappings.
+
+## v2.0.0-beta.13 (2025-12-02)
+
+### Features
+
+- **Field Mappings**: Fall back to the first available mapping when `typeModel` is missing.
+
+## v2.0.0-beta.12 (2025-11-25)
+
+### Fixes
+
+- **ActionForm**: Slot click handlers now pass the function directly to `onClick`.
+- **FilterGroup**: Defaults filterables to `null` so empty filter props are allowed.
+
+## v2.0.0-beta.11 (2025-11-21)
+
+### Fixes
+
+- **ViewSetupDevice/ViewTwoFactorAuth**: Fixed a typo in the device method field.
+
+## v2.0.0-beta.10 (2025-11-19)
 
 ### Breaking Changes
 
@@ -24,8 +52,13 @@ upgraded reactive-helpers to v21.0.0
     - Added ability to display total record counts and a "Show All Pages" option.
 - **ViewList**:
     - Supports displaying column totals when returned.
+- **ViewList**:
+    - Added column hiding and persisted list preferences.
+    - Allows list preference configuration for column visibility and pagination options.
 - **ClickToCopyText**:
     - Component for displaying text with a copy-to-clipboard button.
+- **MobileSortComponent**:
+    - Added a mobile-friendly sorting UI and ViewList integration.
 - **Templated Text Widgets**:
     - Added `WidgetPreviewableTemplate` to edit templated text and show a live preview using tag data.
     - Added `WidgetTemplateLegend` that displays available template tags; each tag can be copied via `ClickToCopyText`.
@@ -48,6 +81,10 @@ upgraded reactive-helpers to v21.0.0
 
 - **WidgetHtml**: Editor now uses automatic height instead of a fixed 320 px.
 - **WidgetLabel**: `required` state pulled directly from field context, avoiding mismatch with props.
+- **PaginationComponent**: Slot click now mirrors the default click behavior.
+- **WidgetPreviewableTemplate**: Sanitizes templated content before rendering.
+- **ViewDeactivate/WidgetGenericAutoComplete**: Deduped list params for deactivate/generic autocomplete flows.
+- **FieldSetStackedInline/FieldSetTabularInline**: Avoided undefined logger usage during fieldset operations.
 
 ## v2.0.0-beta.9 (2025-08-01)
 
