@@ -135,7 +135,7 @@ describe("lib/views/ViewSetupDevice.vue", () => {
         const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
         wrapper.vm.form.values = { method: "sms", destination: "123" };
         const runAction = wrapper.findComponent(AuthFormStub).props("runAction");
-        await runAction({ method: "sms", destination: "123" });
+        await runAction({ formValues: { method: "sms", destination: "123" } });
         expect(userStore.setupTOTPDevice).toHaveBeenCalledWith({ destination: "123", method: "sms" });
     });
 
@@ -143,7 +143,7 @@ describe("lib/views/ViewSetupDevice.vue", () => {
         const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
         wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
         const runAction = wrapper.findComponent(AuthFormStub).props("runAction");
-        await runAction({ code: "654321" });
+        await runAction({ formValues: { code: "654321" } });
         expect(userStore.activateTOTPDevice).toHaveBeenCalledWith({ code: "654321" });
     });
 

@@ -40,7 +40,7 @@ const userStore = storeUser();
 const totpSvgDataUri = ref("");
 const totpSecret = ref("");
 const totpSecretDialogVisible = ref(false);
-const handleSubmit = (formValues) => {
+const handleSubmit = ({ formValues }) => {
     if (step.value === STEPS.CHOOSE) {
         return userStore.setupTOTPDevice({
             destination: formValues.destination,

@@ -187,6 +187,22 @@ describe("lib/store/storeWorkflow.js", () => {
         expect(router.push).toHaveBeenCalledWith("/closed");
     });
 
+    scopedIt("executeTransition adds Dry-Run header when performing dry run", async () => {
+        mockedFetchHelper.mockResolvedValue({
+            new_state: { state: { code: "closed" } },
+            new_transitions: [],
+        });
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+        store.objectStates[key] = { 1: {} };
+        store.objectTransitions[key] = { 1: {} };
+
+        await store.executeTransition("app", "model", "1", "close", undefined, undefined, true);
+
+        const options = mockedFetchHelper.mock.calls[0][1];
+        expect(options.headers["Dry-Run"]).toBe("true");
+    });
+
     scopedIt("initializeObjectTransitions creates structures", () => {
         const store = storeWorkflow();
         store.initializeObjectTransitions("app", "model");

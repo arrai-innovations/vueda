@@ -61,8 +61,12 @@ const props = defineProps({
         type: String,
         default: "PUT",
     },
+    enableDryRun: {
+        type: Boolean,
+        default: true,
+    },
 });
-const formContext = inject(FormContextSymbol, null);
+const formContext = inject(FormContextSymbol);
 
 const router = useRouter();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
@@ -128,22 +132,24 @@ const redirectTo = async (result) => {
         });
     }
 };
-const defaultRunAction = () => {
+const defaultRunAction = ({ formValues, dryRun }) => {
     const isDestroy = props.action === "destroy";
+    const headers = {
+        "X-CSRFToken": getCSRFValue(),
+        "Content-Type": "application/json",
+    };
+    if (dryRun) {
+        headers["Dry-Run"] = "true";
+    }
     return fetchHelper(
         unref(bulk)
             ? getListUrl({ app: props.app, model: props.model, action: props.action })
             : getDetailUrl({ app: props.app, model: props.model, pk: pks.value[0], action: props.action }),
         {
             method: isDestroy ? "DELETE" : props.requestMethod,
-            headers: {
-                "X-CSRFToken": getCSRFValue(),
-                "Content-Type": "application/json",
-            },
+            headers,
             body: (() => {
-                const formData = props.transformSubmitDataFn
-                    ? props.transformSubmitDataFn(formContext.state.submittingValues)
-                    : undefined;
+                const formData = props.transformSubmitDataFn ? props.transformSubmitDataFn(formValues) : undefined;
 
                 if (unref(bulk)) {
                     return JSON.stringify({ pks: unref(pks), ...(formData || {}) });
@@ -163,6 +169,9 @@ const defaultRunAction = () => {
 };
 const theme = useTheme("ModelActionForm", props);
 const slots = useSlots();
+const dryRun = computed(
+    () => !!(props.app && props.model && props.action && props.enableDryRun && pks.value.length > 0),
+);
 </script>
 
 <template>
@@ -170,6 +179,7 @@ const slots = useSlots();
         :action-state="fetchState"
         :redirect-to="redirectTo"
         :run-action="defaultRunAction"
+        :ready-to-dry-run="dryRun"
         v-bind="$attrs"
         :action-error-summary="actionErrorSummaryComputed"
         :action-success-summary="actionSuccessSummaryComputed"
@@ -218,7 +228,10 @@ const slots = useSlots();
                 </slot>
             </div>
             <div :class="theme('message')" data-qa="action-form-message">
-                <slot name="confirm-message">
+                <slot v-if="formContext.state.anyError" name="confirm-error-message">
+                    <p>Please see the error message above.</p>
+                </slot>
+                <slot v-else name="confirm-message">
                     <p>{{ computedConfirmMessage }}</p>
                 </slot>
             </div>

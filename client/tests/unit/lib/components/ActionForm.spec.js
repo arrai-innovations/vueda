@@ -187,7 +187,7 @@ describe("lib/components/ActionForm.vue", () => {
             const { wrapper } = mountActionForm({ runAction, redirectTo });
             await wrapper.find("form").trigger("submit.prevent");
             await flushPromises();
-            expect(runAction).toHaveBeenCalledWith({});
+            expect(runAction).toHaveBeenCalledWith({ dryRun: false, formValues: {} });
             expect(redirectTo).toHaveBeenCalledWith("success");
             expect(toastAdd).toHaveBeenCalledWith(
                 expect.objectContaining({ severity: "success", summary: "Action Succeeded" }),
@@ -208,6 +208,25 @@ describe("lib/components/ActionForm.vue", () => {
             expect(handler).toHaveBeenCalledWith("ok");
             expect(redirectTo).not.toHaveBeenCalled();
             expect(toastAdd).not.toHaveBeenCalledWith(expect.objectContaining({ severity: "success" }));
+        });
+
+        scopedIt("performs dry run automatically when ready", async () => {
+            const runAction = vi.fn(() => Promise.resolve("ok"));
+            const onSubmissionSuccessHandler = vi.fn();
+            const redirectTo = vi.fn();
+            const { wrapper } = mountActionForm({
+                runAction,
+                redirectTo,
+                onSubmissionSuccessHandler,
+            });
+
+            await wrapper.setProps({ readyToDryRun: true });
+            await flushPromises();
+
+            expect(runAction).toHaveBeenCalledWith({ dryRun: true, formValues: {} });
+            expect(onSubmissionSuccessHandler).not.toHaveBeenCalled();
+            expect(toastAdd).not.toHaveBeenCalled();
+            expect(redirectTo).not.toHaveBeenCalled();
         });
 
         scopedIt("handles default error flow", async () => {

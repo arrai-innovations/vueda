@@ -114,7 +114,7 @@ describe("lib/views/ViewChangePassword.vue", () => {
         const runAction = wrapper.findComponent(AuthFormStub).props("runAction");
 
         await expect(
-            runAction({ old_password: "current", new_password1: "new", new_password2: "confirm" }),
+            runAction({ formValues: { old_password: "current", new_password1: "new", new_password2: "confirm" } }),
         ).resolves.toEqual({ ok: true });
 
         expect(changePasswordMock).toHaveBeenCalledWith({

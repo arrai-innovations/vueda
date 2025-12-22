@@ -12,7 +12,7 @@ import { computed, inject, reactive, toRef } from "vue";
  * @property {boolean} validAndActive - Whether the current context has a valid app/model/pk and is active.
  * @property {import('@vueda/use/useModelConfig.js').ModelConfig} modelConfig - The model config for the current app/model.
  * @property {import('@arrai-innovations/reactive-helpers/use/useList.js').ListManager} instanceList - The list context of instances to destroy.
- * @property {() => Promise<void>} handleDelete - Attempts to delete the instance(s). Throws on failure.
+ * @property {(options: { dryRun?: boolean }) => Promise<void>} handleDelete - Attempts to delete the instance(s). Throws on failure.
  */
 
 /**
@@ -58,8 +58,8 @@ export function useViewDestroy(props) {
         },
     });
 
-    const handleDelete = async () => {
-        await instanceList.bulkDelete();
+    const handleDelete = async ({ dryRun }) => {
+        await instanceList.bulkDelete({ dryRun });
         if (instanceList.state.errored) {
             throw instanceList.state.error;
         }

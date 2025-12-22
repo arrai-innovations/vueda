@@ -88,14 +88,20 @@ describe("lib/use/useViewDestroy.js", () => {
         const spy = vi.spyOn(mockInstanceList, "bulkDelete");
 
         // no error expected
-        await expect(result.handleDelete()).resolves.not.toThrow();
+        await expect(result.handleDelete({})).resolves.not.toThrow();
         expect(spy).toHaveBeenCalled();
 
         // simulate error
         mockInstanceList.state.errored = true;
         mockInstanceList.state.error = new Error("delete failed");
 
-        await expect(result.handleDelete()).rejects.toThrow("delete failed");
+        await expect(result.handleDelete({})).rejects.toThrow("delete failed");
+    });
+
+    scopedIt("handleDelete forwards dryRun flag to bulkDelete", async () => {
+        const result = useViewDestroy(props);
+        await result.handleDelete({ dryRun: true });
+        expect(mockInstanceList.bulkDelete).toHaveBeenCalledWith({ dryRun: true });
     });
 
     scopedIt("validAndActive is false if isActive is false", async () => {

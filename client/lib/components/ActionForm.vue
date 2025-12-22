@@ -4,17 +4,25 @@ import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import { defaultOnSubmissionError, defaultOnSubmitNotAnyModified } from "@vueda/use/useObjectForm.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { FormValidationError } from "@vueda/utils/errors.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
-import { computed, inject, nextTick, onDeactivated, onUnmounted, reactive } from "vue";
+import { computed, inject, nextTick, onDeactivated, onUnmounted, reactive, watch } from "vue";
 
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    /**
+     * Function to execute the action
+     * @param {Object} options - Action execution options
+     * @param {Object} options.formValues - Form values to submit
+     * @param {boolean} options.dryRun - Whether this is a dry run validation
+     * @returns {Promise} Promise that resolves with the action result
+     */
     runAction: {
         type: Function,
         default: undefined,
@@ -51,6 +59,10 @@ const props = defineProps({
         type: Function,
         default: undefined,
     },
+    readyToDryRun: {
+        type: Boolean,
+        default: false,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const toast = useToast();
@@ -67,11 +79,11 @@ const combinedError = computed(() => {
 const combinedErrored = computed(() => !!combinedError.value);
 const combinedLoading = computed(() => loadingCombine(props.actionState.loading, actionFormState.loading));
 
-const formContext = inject(FormContextSymbol, null);
+const formContext = inject(FormContextSymbol);
 let actionPromise = null;
-const handleConfirm = async () => {
+const handleConfirm = async (dryRun = false) => {
     formContext.setAllTouched();
-    if (props.hasInput) {
+    if (props.hasInput && !dryRun) {
         await nextTick();
         if (!formContext.state.anyModified) {
             await defaultOnSubmitNotAnyModified({ toast });
@@ -100,8 +112,14 @@ const handleConfirm = async () => {
     actionFormState.errored = false;
     actionFormState.error = null;
     try {
-        actionPromise = props.runAction(formContext.state.submittingValues);
+        actionPromise = props.runAction({
+            formValues: formContext.state.submittingValues,
+            dryRun,
+        });
         const response = await actionPromise;
+        if (dryRun) {
+            return;
+        }
 
         if (props.onSubmissionSuccessHandler) {
             props.onSubmissionSuccessHandler(response);
@@ -116,6 +134,12 @@ const handleConfirm = async () => {
             }
         }
     } catch (error) {
+        if (dryRun) {
+            if (error instanceof FormValidationError) {
+                formContext.handleServerFormValidationError(error);
+            }
+            return;
+        }
         const errorHandler = props.onSubmissionErrorHandler || defaultOnSubmissionError;
         const handled = await errorHandler({ error, formContext, toast });
         if (!handled) {
@@ -155,6 +179,15 @@ const handleCancelClick = async (e) => {
         await props.redirectTo("cancel");
     }
 };
+
+watch(
+    () => props.readyToDryRun,
+    async (newVal) => {
+        if (newVal) {
+            await handleConfirm(true);
+        }
+    },
+);
 </script>
 
 <template>
@@ -162,7 +195,7 @@ const handleCancelClick = async (e) => {
         <error-display :error="combinedError" :errored="combinedErrored" :ignore-form-validation-errors="true" />
         <div :class="theme('inner')" data-qa="action-form-inner">
             <form-chores :class="theme('nonFieldErrorBlock')" :variant="null" />
-            <form @submit.prevent="handleConfirm">
+            <form @submit.prevent="handleConfirm()">
                 <slot
                     name="action-form-inner"
                     v-bind="{
@@ -186,8 +219,11 @@ const handleCancelClick = async (e) => {
                             name="confirm-button"
                             verb="confirm"
                             type="submit"
+                            :disabled="formContext.state.anyError"
                         >
-                            <Button :loading="combinedLoading" type="submit">Yes, continue</Button>
+                            <Button :loading="combinedLoading" type="submit" :disabled="formContext.state.anyError"
+                                >Yes, continue</Button
+                            >
                         </slot>
                         <slot
                             label="Cancel, go back"

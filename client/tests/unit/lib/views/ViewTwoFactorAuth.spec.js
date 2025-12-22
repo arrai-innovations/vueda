@@ -189,7 +189,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
 
     scopedIt("handleSubmit delegates to store", async () => {
         const wrapper = mount(ViewTwoFactorAuth);
-        await wrapper.vm.handleSubmit({ code: "000000" });
+        await wrapper.vm.handleSubmit({ formValues: { code: "000000" } });
         expect(userStore.twoFactorAuthenticate).toHaveBeenCalledWith({ code: "000000" });
     });
 

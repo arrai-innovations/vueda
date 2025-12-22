@@ -57,7 +57,7 @@ const handleSendCode = async () => {
         });
     }
 };
-const handleSubmit = (formValues) => {
+const handleSubmit = ({ formValues }) => {
     return userStore.twoFactorAuthenticate({
         code: formValues.code,
     });

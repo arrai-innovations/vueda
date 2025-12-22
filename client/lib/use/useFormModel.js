@@ -283,6 +283,9 @@ export function useFormModel(props) {
                 }
                 for (const field of allFields) {
                     const { fieldName, fieldDetail, baseExpanded, isExpandedField } = field;
+                    if (fieldDetail.action === true) {
+                        continue;
+                    }
                     if (!isExpandedField) {
                         baseFieldNames.add(fieldName);
                     } else {

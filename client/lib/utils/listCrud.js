@@ -216,23 +216,27 @@ export function allPagePaginatedListCrudAdaptor({
  *    model: string,
  *    action?: string,
  * }} args.target - The arguments for the CRUD operation.
- * @param pks {string[]} - The PKs of the objects to delete.
+ * @param {string[]} args.pks - The PKs of the objects to delete.
+ * @param {boolean} [args.dryRun] - When true, sends the request in dry-run mode.
  * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<void>} - A cancellable promise.
  */
-export function defaultObjectsDelete({ target, pks }) {
+export function defaultObjectsDelete({ target, pks, dryRun }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
     const url = getListUrl({ app, model, action });
-
+    const headers = {
+        "X-CSRFToken": getCSRFValue(),
+        "Content-Type": "application/json",
+    };
+    if (dryRun) {
+        headers["Dry-Run"] = "true";
+    }
     return cancellableFetch(
         url,
         {
             method: "DELETE",
             credentials: "include",
-            headers: {
-                "X-CSRFToken": getCSRFValue(),
-                "Content-Type": "application/json",
-            },
+            headers,
             // VUEDA's bulk functionality customization of destroy always take pks, regardless of the name of the pk key
             // reactive-helpers provides the pkKey in our args, but we ignore it.
             body: JSON.stringify({ pks }),

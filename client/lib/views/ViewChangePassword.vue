@@ -15,7 +15,7 @@ const formProps = reactive({
 });
 const userStore = storeUser();
 
-const handleSubmit = (formValues) => {
+const handleSubmit = ({ formValues }) => {
     return userStore.changePassword({
         old_password: formValues.old_password,
         new_password1: formValues.new_password1,

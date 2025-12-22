@@ -174,6 +174,7 @@ const executeTransitionUrl = (result) => {
  *             transition_code: string,
  *             router?: import('vue-router').Router,
  *             stateToRoute?: Record<string, any>,
+ *             dryRun?: boolean,
  *         ) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<any>
  *     }
  * >} WorkflowStore
@@ -470,7 +471,7 @@ export const storeWorkflow = defineStore("workflow", {
             }
             return this.promises.objectHistories[key][objectPk];
         },
-        executeTransition(app, model, objectPk, transitionCode, router, stateToRoute = undefined) {
+        executeTransition(app, model, objectPk, transitionCode, router, stateToRoute = undefined, dryRun = false) {
             if (!app || !model || !objectPk || !transitionCode) {
                 return Promise.reject(
                     new Error(
@@ -494,6 +495,7 @@ export const storeWorkflow = defineStore("workflow", {
                     headers: {
                         "Content-Type": "application/json",
                         "X-CSRFToken": getCSRFValue(),
+                        ...(dryRun ? { "Dry-Run": "true" } : {}),
                     },
                     method: "PATCH",
                     body: JSON.stringify(body),

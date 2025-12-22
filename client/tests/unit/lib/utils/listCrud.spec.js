@@ -138,4 +138,17 @@ describe("lib/utils/listCrud.js", () => {
         await defaultObjectsDelete({ target, pks: ["1", "2"] });
         expect(cancellableFetch).toHaveBeenCalled();
     });
+
+    scopedIt("defaultObjectsDelete sets Dry-Run header when requested", async () => {
+        const { defaultObjectsDelete } = listCrud;
+        const target = { app: "blog", model: "post" };
+        getListUrl.mockReturnValue("/list");
+        const response = { status: 204 };
+        cancellableFetch.mockImplementation((url, options, transform) => {
+            expect(options.headers["Dry-Run"]).toBe("true");
+            return Promise.resolve(transform(response));
+        });
+        await defaultObjectsDelete({ target, pks: ["1", "2"], dryRun: true });
+        expect(cancellableFetch).toHaveBeenCalled();
+    });
 });

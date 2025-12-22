@@ -7,7 +7,7 @@ import { defineComponent, h } from "vue";
 
 const ActionFormStub = defineComponent({
     name: "ActionFormStub",
-    props: ["actionState", "runAction", "redirectTo", "actionSuccessSummary", "actionErrorSummary"],
+    props: ["actionState", "runAction", "redirectTo", "actionSuccessSummary", "actionErrorSummary", "readyToDryRun"],
     setup(props, { slots }) {
         return () =>
             h(
@@ -122,6 +122,7 @@ function mountModelActionForm(options = {}) {
             actionErrorSummary: options.actionErrorSummary,
             transformSubmitDataFn: options.transformSubmitDataFn,
             requestMethod: options.requestMethod,
+            enableDryRun: options.enableDryRun,
         },
         slots: options.slots,
         global: {
@@ -205,6 +206,20 @@ describe("lib/components/ModelActionForm.vue", () => {
         });
     });
 
+    describe("Dry run readiness", () => {
+        scopedIt("enables dry run when required props and primary keys are ready", () => {
+            const { wrapper } = mountModelActionForm();
+            const stub = wrapper.getComponent(ActionFormStub);
+            expect(stub.props("readyToDryRun")).toBe(true);
+        });
+
+        scopedIt("disables dry run when enableDryRun is false", () => {
+            const { wrapper } = mountModelActionForm({ enableDryRun: false });
+            const stub = wrapper.getComponent(ActionFormStub);
+            expect(stub.props("readyToDryRun")).toBe(false);
+        });
+    });
+
     describe("defaultRunAction", () => {
         scopedIt("constructs bulk destroy request", async () => {
             fetchHelper.responseData = { ok: true };
@@ -213,7 +228,7 @@ describe("lib/components/ModelActionForm.vue", () => {
                 requestMethod: "PATCH",
             });
             const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
-            await runAction();
+            await runAction({});
             expect(getListUrl).toHaveBeenCalledWith({ app: "app", model: "person", action: "activate" });
             expect(fetchHelper).toHaveBeenCalledWith(
                 "/list-url/activate",
@@ -232,7 +247,7 @@ describe("lib/components/ModelActionForm.vue", () => {
                 requestMethod: "POST",
             });
             const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
-            await runAction();
+            await runAction({});
             expect(getDetailUrl).toHaveBeenCalledWith({ app: "app", model: "person", pk: 5, action: "activate" });
             const opts = fetchHelper.mock.calls[0][1];
             expect(opts.method).toBe("POST");
@@ -247,7 +262,7 @@ describe("lib/components/ModelActionForm.vue", () => {
                 transformSubmitDataFn,
             });
             const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
-            await runAction();
+            await runAction({});
             const body = JSON.parse(fetchHelper.mock.calls[0][1].body);
             expect(body).toEqual({ pks: [9, 10], custom: true });
             expect(transformSubmitDataFn).toHaveBeenCalled();
@@ -259,7 +274,7 @@ describe("lib/components/ModelActionForm.vue", () => {
             fetchHelper.responseData = { field: ["bad"] };
             const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
             const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
-            await expect(runAction()).rejects.toBeInstanceOf(FormValidationError);
+            await expect(runAction({})).rejects.toBeInstanceOf(FormValidationError);
         });
 
         scopedIt("returns FetchError for other failures", async () => {
@@ -267,7 +282,17 @@ describe("lib/components/ModelActionForm.vue", () => {
             fetchHelper.response = new Response(null, { status: 500 });
             const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
             const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
-            await expect(runAction()).rejects.toBeInstanceOf(FetchError);
+            await expect(runAction({})).rejects.toBeInstanceOf(FetchError);
+        });
+
+        scopedIt("adds Dry-Run header when performing dry run", async () => {
+            fetchHelper.responseData = { ok: true };
+            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 11 }] } });
+
+            await wrapper.vm.defaultRunAction({ dryRun: true, formValues: {} });
+
+            const options = fetchHelper.mock.calls[0][1];
+            expect(options.headers["Dry-Run"]).toBe("true");
         });
     });
 
