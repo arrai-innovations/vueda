@@ -52,7 +52,6 @@ upgraded reactive-helpers to v21.0.0
     - Added ability to display total record counts and a "Show All Pages" option.
 - **ViewList**:
     - Supports displaying column totals when returned.
-- **ViewList**:
     - Added column hiding and persisted list preferences.
     - Allows list preference configuration for column visibility and pagination options.
 - **ClickToCopyText**:
