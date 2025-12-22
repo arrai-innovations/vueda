@@ -168,6 +168,25 @@ def test_queue_item_on_transition_done_triggers_file_cleanup(monkeypatch, sender
     assert delete_calls == [True]
 
 
+@override_settings(VDQ_MAX_FILES_AGE_IN_SECONDS=0)
+@pytest.mark.django_db
+def test_queue_item_on_transition_dry_run_skips_file_cleanup(monkeypatch, sender, receiver, email_queue_item):
+    email_queue_item.fast_transition("send")
+    email_queue_item.fast_transition("await")
+    email_queue_item.fast_transition("succeed")
+
+    delete_calls = []
+
+    def record_delete():
+        delete_calls.append(True)
+
+    email_queue_item.delete_files = record_delete
+
+    email_queue_item.on_transition(SimpleNamespace(code="succeed"), dry_run=True)
+
+    assert delete_calls == []
+
+
 @pytest.mark.django_db
 def test_anymail_attachment_save_populates_metadata(tmp_path):
     with override_settings(MEDIA_ROOT=tmp_path):

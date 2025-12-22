@@ -115,7 +115,7 @@ class QueueItem(VuedaBaseModel, HasWorkflowModelMixin):
             return not (self.method == "email" and self.workflow.code == "delayed" and is_cancel_or_retry)
         return False
 
-    def on_transition(self, transition, user=None):
+    def on_transition(self, transition, user=None, dry_run=False):
         if transition.code in ("retry", "cancel") and self.task_id:
             cancel_task(self.task_id)
             self.task_id = ""
@@ -128,7 +128,7 @@ class QueueItem(VuedaBaseModel, HasWorkflowModelMixin):
             self.save(update_fields=["result"])
             schedule_queue_item(self)
 
-        elif self.workflow_state.code in QUEUE_ITEM_DONE_STATES:
+        elif not dry_run and self.workflow_state.code in QUEUE_ITEM_DONE_STATES:
             max_age = getattr(settings, "VDQ_MAX_FILES_AGE_IN_SECONDS", None)
             if max_age == 0:
                 self.delete_files()

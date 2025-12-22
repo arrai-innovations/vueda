@@ -8,6 +8,8 @@ from tests.conftest import BaseTestModelViewSet
 from tests.models import Employee
 from tests.models import Product
 from tests.models import Timesheet
+from tests.viewsets import TimesheetViewSet
+from vueda.core.exceptions import VuedaValidationError
 
 
 @pytest.mark.django_db
@@ -459,6 +461,28 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
             "supervisor, foo, history, first_history_entry, last_history_entry."
         ), f"guardian message: {response.data['guardian'][0]['message']}"
         assert "employee" not in response.data, f"response.data: {response.data}"
+
+    def test_destroy_dry_run_skips_commit(self, page_data, authenticated_client):
+        instance = page_data.first()
+
+        response = authenticated_client.delete(self.detail_url(instance.id), HTTP_DRY_RUN="true")
+
+        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
+        assert self.model.objects.filter(pk=instance.pk).exists()
+
+    def test_destroy_dry_run_returns_validation_error(self, page_data, authenticated_client, monkeypatch):
+        def fail_validation(self, objs):
+            raise VuedaValidationError({"detail": ["Destroy validation failed."]})
+
+        monkeypatch.setattr(TimesheetViewSet, "destroy_validation", fail_validation)
+
+        instance = page_data.first()
+        response = authenticated_client.delete(self.detail_url(instance.id), HTTP_DRY_RUN="true")
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            f"{response.status_code} != 400, response.data: {response.data}"
+        )
+        assert self.model.objects.filter(pk=instance.pk).exists()
 
     def test_destroy_returns_no_content_for_detailed(self, page_data, authenticated_client):
         instance = page_data.first()

@@ -9,6 +9,7 @@ from rest_framework import viewsets as drf_viewsets
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
 
+from vueda.core.decorators import DRY_RUN_HEADER
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.models import ActivatableBaseModel
@@ -393,9 +394,12 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
 
     def destroy(self, request, **kwargs):
         pk = kwargs.get("pk")
+        dry_run = request.headers.get(DRY_RUN_HEADER, "false").lower() == "true"
         if pk:
             instance = self.get_object()
             self.destroy_validation((instance,))
+            if dry_run:
+                return Response(status=status.HTTP_200_OK)
             self.perform_destroy(instance)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -413,9 +417,10 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
                 errors[missing_pk] = [f"Object with pk={missing_pk} does not exist."]
             raise VuedaValidationError(errors)
 
-        with transaction.atomic():
-            self.destroy_validation(queryset)
-            queryset.delete()
+        self.destroy_validation(queryset)
+        if dry_run:
+            return Response(status=status.HTTP_200_OK)
+        queryset.delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

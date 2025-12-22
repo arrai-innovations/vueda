@@ -1296,6 +1296,20 @@ EXPECTED_RESULTS = [
                     "method_names": ["post"],
                     "parameters": ["pk"],
                 },
+                {
+                    "name": "dry-run-outer",
+                    "bulk": True,
+                    "description": "dry-run-outer store.cart",
+                    "detail": False,
+                    "method_names": ["post"],
+                },
+                {
+                    "name": "dry-run-inner",
+                    "bulk": True,
+                    "description": "dry-run-inner store.cart",
+                    "detail": False,
+                    "method_names": ["post"],
+                },
             ],
             "expected_actions_customer": [
                 {
@@ -1312,6 +1326,20 @@ EXPECTED_RESULTS = [
                     "detail": True,
                     "method_names": ["post"],
                     "parameters": ["pk"],
+                },
+                {
+                    "name": "dry-run-outer",
+                    "bulk": True,
+                    "description": "dry-run-outer store.cart",
+                    "detail": False,
+                    "method_names": ["post"],
+                },
+                {
+                    "name": "dry-run-inner",
+                    "bulk": True,
+                    "description": "dry-run-inner store.cart",
+                    "detail": False,
+                    "method_names": ["post"],
                 },
             ],
             "expected_expands": [

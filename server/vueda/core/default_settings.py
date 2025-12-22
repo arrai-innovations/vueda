@@ -281,6 +281,7 @@ def get_defaults(env: Env):
                 "user-agent",
                 "x-csrftoken",
                 "x-requested-with",
+                "dry-run",
             ],
             "CORS_EXPOSE_HEADERS": [
                 "content-disposition",

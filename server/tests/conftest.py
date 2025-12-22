@@ -16,6 +16,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.management import call_command
 from django.db import models
+from django.test import TransactionTestCase
 from django.urls import reverse
 from psycopg import connect
 from psycopg import sql
@@ -24,6 +25,9 @@ from rest_framework.test import APIClient
 
 POSTGRES_MAX_DB_NAME_LENGTH = 63
 pytest_plugins = ["celery.contrib.pytest"]
+
+# Avoid truncating the test database between after each transactional tests, we'll handle it ourselves in suffix_each_test.
+TransactionTestCase._fixture_teardown = lambda self: None
 
 
 @pytest.fixture
@@ -41,7 +45,7 @@ def suffix_each_test(request):
     `pytest-xdist`, specifically for PostgreSQL.
 
     This fixture is automatically applied to each test function. It is designed to operate with Django's test framework
-    in a `pytest` environment. It explicitly targets asynchronous test functions. It generates a unique db name to the
+    in a `pytest` environment. It explicitly targets asynchronous test functions or transactional tests. It generates a unique db name to the
     base database name provided by `pytest-django`. This unique name ensures that each test is executed in database
     isolation, which makes parallel test execution using `pytest-xdist` more sane.
 
@@ -53,7 +57,11 @@ def suffix_each_test(request):
 
     You must configure your Django settings to use the 'TEST_POSTGRES_DB' setting for the PostgreSQL server connection.
     """
-    if not asyncio.iscoroutinefunction(request.function):
+
+    marker = request.node.get_closest_marker("django_db")
+    is_transactional = marker.kwargs.get("transaction", False) if marker else False
+
+    if not asyncio.iscoroutinefunction(request.function) and not is_transactional:
         # Skip synchronous tests
         return
 
@@ -75,7 +83,7 @@ def suffix_each_test(request):
         try:
             conn.autocommit = True
             cur = conn.cursor()
-            sql_str = sql.SQL("DROP DATABASE {};").format(sql.Identifier(db_name))
+            sql_str = sql.SQL("DROP DATABASE {} with (force);").format(sql.Identifier(db_name))
             cur.execute(sql_str)
             cur.close()
         finally:
@@ -93,7 +101,6 @@ def suffix_each_test(request):
         )
         cur.execute(sql_str)
         cur.close()
-
         request.addfinalizer(clean_up_db)
     finally:
         if conn is not None:

@@ -661,7 +661,9 @@ class HasWorkflowModelMixin(models.Model):
             ignored=True,
         ).exists()
 
-    def apply_transition(self, transition_code: str, user: User | None = None) -> tuple[State, int | None]:
+    def apply_transition(
+        self, transition_code: str, user: User | None = None, dry_run: bool = False
+    ) -> tuple[State, int | None]:
         """
         Apply a transition to the object.
         """
@@ -686,7 +688,7 @@ class HasWorkflowModelMixin(models.Model):
                 or f"Transition {transition.code!r} not available from state {self.workflow_state.code!r}"
             )
         self.update_object_state(transition.target, user=user, change_reason=f"Transition {transition.code!r} applied.")
-        self.on_transition(transition, user)
+        self.on_transition(transition, user, dry_run)
         if hasattr(self.object_state, "history"):
             # return the new latest history record id
             return transition.target, self.object_state.history.latest().history_id
@@ -716,7 +718,7 @@ class HasWorkflowModelMixin(models.Model):
             object_state._change_reason = change_reason
         object_state.save()
 
-    def on_transition(self, transition: Transition, user: User | None = None):
+    def on_transition(self, transition: Transition, user: User | None = None, dry_run: bool = False):
         """
         Override this method to add custom logic on transition.
         """

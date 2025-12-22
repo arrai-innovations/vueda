@@ -11,6 +11,7 @@ from rest_framework.exceptions import APIException
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework.settings import api_settings
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.status import HTTP_404_NOT_FOUND
 from rest_framework.utils.serializer_helpers import ReturnDict
@@ -28,6 +29,10 @@ def debug_stack_exception_handler(exc, context):
     """
     Custom exception handler which adds the exception class name to the response.
     """
+    if isinstance(exc, VuedaValidationError) and isinstance(exc.detail, list):
+        # VuedaValidationErrors raise as a list are non-field errors
+        exc.detail = {api_settings.NON_FIELD_ERRORS_KEY: exc.detail}
+
     response = exception_handler(exc, context)
     if response is None:
         # the exception was not handled by the default exception handler

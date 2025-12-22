@@ -140,14 +140,20 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         if "object_id" in self.request_kwargs:
             instance = self.get_object()
             with transaction.atomic():
-                locked_instance = (
-                    instance.__class__.objects.select_for_update(skip_locked=True).filter(pk=instance.pk).first()
-                )
-                if not locked_instance:
-                    raise VuedaValidationError("This object cannot be updated right now. Please try again.")
+                if not request.dry_run:
+                    locked_instance = (
+                        instance.__class__.objects.select_for_update(skip_locked=True).filter(pk=instance.pk).first()
+                    )
+                    if not locked_instance:
+                        raise VuedaValidationError("This object cannot be updated right now. Please try again.")
+
+                    instance = locked_instance
+
                 # apply_transition does the permission checks
                 try:
-                    state, current_history_id = locked_instance.apply_transition(transition_code, user=request.user)
+                    state, current_history_id = instance.apply_transition(
+                        transition_code, user=request.user, dry_run=request.dry_run
+                    )
 
                     response_data = {
                         "new_state": {
@@ -155,7 +161,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                             "name": state.name,
                         },
                         "new_transitions": list(
-                            locked_instance.available_transitions(request.user).order_by("name").values("code", "name")
+                            instance.available_transitions(request.user).order_by("name").values("code", "name")
                         ),
                     }
                     if current_history_id:
@@ -173,14 +179,20 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             with transaction.atomic():
                 for object_id in object_ids:
                     instance = get_object_or_404(self.get_workflow().content_type.model_class(), pk=object_id)
-                    locked_instance = (
-                        instance.__class__.objects.select_for_update(skip_locked=True).filter(pk=instance.pk).first()
-                    )
-                    if not locked_instance:
-                        error[object_id] = ["This object cannot be updated right now. Please try again."]
-                        continue
+                    if not request.dry_run:
+                        locked_instance = (
+                            instance.__class__.objects.select_for_update(skip_locked=True)
+                            .filter(pk=instance.pk)
+                            .first()
+                        )
+                        if not locked_instance:
+                            error[object_id] = ["This object cannot be updated right now. Please try again."]
+                            continue
+                        instance = locked_instance
                     try:
-                        state, current_history_id = locked_instance.apply_transition(transition_code, user=request.user)
+                        state, current_history_id = instance.apply_transition(
+                            transition_code, user=request.user, dry_run=request.dry_run
+                        )
                     except (PermissionDenied, InvalidTransitionError) as e:
                         error[object_id] = [str(e)]
                         continue
@@ -194,7 +206,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                             "name": state.name,
                         },
                         "new_transitions": list(
-                            locked_instance.available_transitions(request.user).order_by("name").values("code", "name")
+                            instance.available_transitions(request.user).order_by("name").values("code", "name")
                         ),
                     }
                     if current_history_id:

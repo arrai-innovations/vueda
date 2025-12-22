@@ -7,9 +7,11 @@ from rest_framework.response import Response
 import tests.store.filtersets as my_filtersets
 import tests.store.models as my_models
 import tests.store.serializers as my_serializers
+from tests.models import Product
 from tests.permissions import IsAdminUser
 from tests.permissions import IsCartOrOrderCreator
 from vueda.core.decorators import action
+from vueda.core.exceptions import VuedaValidationError
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import VuedaHistoryViewSet
 from vueda.core.viewsets import VuedaViewSet
@@ -68,6 +70,18 @@ class CartViewSet(VuedaViewSet):
     permit_list_expands = ["cart_items", "customer"]
     permit_retrieve_expands = ["cart_items", "customer"]
     ordering_fields = ["customer__user__email", "last_modified"]
+
+    @action(detail=False, methods=["post"], permission_classes=(), bulk=True)
+    def dry_run_outer(self, request):
+        return self.dry_run_inner(request)
+
+    @action(detail=False, methods=["post"], permission_classes=(), bulk=True)
+    def dry_run_inner(self, request):
+        if request.data.get("fail"):
+            raise VuedaValidationError({"detail": ["Action failed"]})
+
+        Product.objects.create(name="Dry Run Product", available_for_sale=True, buzz_words=[])
+        return Response({"created": True})
 
     @action(detail=True, methods=["post"], permission_classes=(IsCartOrOrderCreator,))
     def create_order(self, request, pk):
