@@ -43,7 +43,7 @@ const renderedContent = computed(() => {
     let text = widgetContext.state.combinedValue;
     if (tagsData.value) {
         text = text.replace(/\$(\w+)/g, (match, varName) => {
-            return get(tagsData.value, [varName, "default"], "");
+            return get(tagsData.value, varName, "");
         });
     }
     return sanitizeMessage(text);

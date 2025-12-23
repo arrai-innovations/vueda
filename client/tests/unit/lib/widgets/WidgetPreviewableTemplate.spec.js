@@ -89,7 +89,7 @@ describe("lib/widgets/WidgetPreviewableTemplate.vue", () => {
             global: { provide: { [FieldContextSymbol]: fc } },
         });
         expect(fc.registerDependencyValues).toHaveBeenCalledTimes(1);
-        fc.state.dependencyValues.preview_tag_data = { name: { default: "World" } };
+        fc.state.dependencyValues.preview_tag_data = { name: "World" };
         await flushPromises();
         expect(wrapper.get('[data-qa="widget-previewable-template-preview"]').text()).toBe("Hello World");
         await wrapper.unmount();
