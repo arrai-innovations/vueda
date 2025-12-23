@@ -2,7 +2,18 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.0 (unreleased)
+## v2.0.0 (2025-12-23)
+
+### Fixes
+
+- **WidgetPreviewableTemplate**: fixed expected preview_tags_data format
+
+### Features
+
+- **ModelActionForm**: Added support for dry-run actions
+    - run actions in dry-run mode by default now.
+    - A prop `enableDryRun` can be set to false to disable dry run.
+    - A dictionary containing formValues and a dryRun boolean flag is now passed to the runAction function instead of just formValues.
 
 ## v2.0.0-beta.14 (2025-12-10)
 
