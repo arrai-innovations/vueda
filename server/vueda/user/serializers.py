@@ -193,7 +193,7 @@ class ResetPasswordSerializer(serializers.Serializer):
         extra_kwargs = {"password": {"write_only": True, "required": True}, "password_confirm": {"required": True}}
 
     def validate(self, data):
-        if data["password"] > data["password_confirm"]:
+        if data["password"] != data["password_confirm"]:
             raise VuedaValidationError("Password and Confirm Password must be the same.")
 
         return data
