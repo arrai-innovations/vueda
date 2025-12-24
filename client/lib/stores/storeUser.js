@@ -279,6 +279,9 @@ export const storeUser = defineStore("user", {
                 },
                 "Error sending authentication request",
                 UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
@@ -448,6 +451,9 @@ export const storeUser = defineStore("user", {
                 },
                 "Error sending authentication request",
                 UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;

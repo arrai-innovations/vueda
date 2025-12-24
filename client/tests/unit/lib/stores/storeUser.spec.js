@@ -11,6 +11,7 @@ vi.mock("@vueda/utils/connectionHostname.js", () => ({ httpOrHttpsHostname: "htt
 
 let storeUser;
 let UnauthorizedError;
+let FormValidationErrorClass;
 
 beforeEach(async () => {
     setActivePinia(createPinia());
@@ -18,6 +19,7 @@ beforeEach(async () => {
     getCSRFValue.mockClear();
     fetchHelper.mockReset();
     ({ storeUser, UnauthorizedError } = await import("@vueda/stores/storeUser.js"));
+    ({ FormValidationError: FormValidationErrorClass } = await vi.importActual("@vueda/utils/errors.js"));
 });
 
 afterEach(() => {
@@ -270,6 +272,144 @@ scopedIt("resetPassword stores error on fetch failure", async () => {
     expect(store.error).toBe(error);
     expect(store.errored).toBe(true);
     expect(store.loading).toBe(false);
+});
+
+scopedIt("login treats 400 responses as FormValidationError", async () => {
+    getUrl.mockReturnValue("/login/");
+    fetchHelper.mockImplementation((...fetchArgs) => {
+        const resolver = fetchArgs[6];
+        return Promise.reject(resolver({ status: 400 }, { detail: "invalid" }));
+    });
+
+    const store = storeUser();
+    await expect(store.login({ username: "u", password: "p" })).rejects.toBeInstanceOf(FormValidationErrorClass);
+});
+
+scopedIt("reauthenticate treats 400 responses as FormValidationError", async () => {
+    getUrl.mockReturnValue("/reauth/");
+    fetchHelper.mockImplementation((...fetchArgs) => {
+        const resolver = fetchArgs[6];
+        return Promise.reject(resolver({ status: 400 }, { detail: "invalid" }));
+    });
+
+    const store = storeUser();
+    await expect(store.reauthenticate({ method: "app" })).rejects.toBeInstanceOf(FormValidationErrorClass);
+});
+
+scopedIt("forgotPassword treats 400 responses as FormValidationError", async () => {
+    getUrl.mockReturnValue("/forgot/");
+    fetchHelper.mockImplementation((...fetchArgs) => {
+        const resolver = fetchArgs[6];
+        return Promise.reject(resolver({ status: 400 }, { detail: "invalid" }));
+    });
+
+    const store = storeUser();
+    await expect(store.forgotPassword({ email: "test@example.com" })).rejects.toBeInstanceOf(FormValidationErrorClass);
+});
+
+scopedIt("changePassword treats 400 responses as FormValidationError", async () => {
+    getUrl.mockReturnValue("/change/");
+    fetchHelper.mockImplementation((...fetchArgs) => {
+        const resolver = fetchArgs[6];
+        return Promise.reject(resolver({ status: 400 }, { detail: "invalid" }));
+    });
+
+    const store = storeUser();
+    await expect(
+        store.changePassword({ old_password: "old", new_password1: "new", new_password2: "new" }),
+    ).rejects.toBeInstanceOf(FormValidationErrorClass);
+});
+
+scopedIt("setupTOTPDevice treats 400 responses as FormValidationError", async () => {
+    getUrl.mockReturnValue("/setup/");
+    fetchHelper.mockImplementation((...fetchArgs) => {
+        const resolver = fetchArgs[6];
+        return Promise.reject(resolver({ status: 400 }, { detail: "invalid" }));
+    });
+
+    const store = storeUser();
+    await expect(store.setupTOTPDevice({ method: "app" })).rejects.toBeInstanceOf(FormValidationErrorClass);
+});
+
+scopedIt("activateTOTPDevice treats 400 responses as FormValidationError", async () => {
+    getUrl.mockReturnValue("/activate/");
+    fetchHelper.mockImplementation((...fetchArgs) => {
+        const resolver = fetchArgs[6];
+        return Promise.reject(resolver({ status: 400 }, { detail: "invalid" }));
+    });
+
+    const store = storeUser();
+    await expect(store.activateTOTPDevice({ code: "123456" })).rejects.toBeInstanceOf(FormValidationErrorClass);
+});
+
+scopedIt("twoFactorAuthenticate treats 400 responses as FormValidationError", async () => {
+    getUrl.mockReturnValue("/2fa/");
+    fetchHelper.mockImplementation((...fetchArgs) => {
+        const resolver = fetchArgs[6];
+        return Promise.reject(resolver({ status: 400 }, { detail: "invalid" }));
+    });
+
+    const store = storeUser();
+    await expect(store.twoFactorAuthenticate({ code: "123456" })).rejects.toBeInstanceOf(FormValidationErrorClass);
+});
+
+scopedIt("resetPassword treats 400 responses as FormValidationError", async () => {
+    getUrl.mockReturnValue("/reset/");
+    fetchHelper.mockImplementation((...fetchArgs) => {
+        const resolver = fetchArgs[6];
+        return Promise.reject(resolver({ status: 400 }, { detail: "invalid" }));
+    });
+
+    const store = storeUser();
+    await expect(store.resetPassword({ password: "p", password_confirm: "p" })).rejects.toBeInstanceOf(
+        FormValidationErrorClass,
+    );
+});
+
+scopedIt("getTwoFactorAuthMethod treats 400 responses as FormValidationError", async () => {
+    getUrl.mockReturnValue("/totp/");
+    fetchHelper.mockImplementation((...fetchArgs) => {
+        const resolver = fetchArgs[6];
+        return Promise.reject(resolver({ status: 400 }, { detail: "invalid" }));
+    });
+
+    const store = storeUser();
+    await expect(store.getTwoFactorAuthMethod()).rejects.toBeInstanceOf(FormValidationErrorClass);
+});
+
+scopedIt("sendTwoFactorAuthenticationCode treats 400 responses as FormValidationError", async () => {
+    getUrl.mockReturnValue("/totp/");
+    fetchHelper.mockImplementation((...fetchArgs) => {
+        const resolver = fetchArgs[6];
+        return Promise.reject(resolver({ status: 400 }, { detail: "invalid" }));
+    });
+
+    const store = storeUser();
+    await expect(store.sendTwoFactorAuthenticationCode({ method: "email" })).rejects.toBeInstanceOf(
+        FormValidationErrorClass,
+    );
+});
+
+scopedIt("generateRecoveryCode treats 400 responses as FormValidationError", async () => {
+    getUrl.mockReturnValue("/recovery/");
+    fetchHelper.mockImplementation((...fetchArgs) => {
+        const resolver = fetchArgs[6];
+        return Promise.reject(resolver({ status: 400 }, { detail: "invalid" }));
+    });
+
+    const store = storeUser();
+    await expect(store.generateRecoveryCode()).rejects.toBeInstanceOf(FormValidationErrorClass);
+});
+
+scopedIt("getRecoveryCodes treats 400 responses as FormValidationError", async () => {
+    getUrl.mockReturnValue("/recovery/");
+    fetchHelper.mockImplementation((...fetchArgs) => {
+        const resolver = fetchArgs[6];
+        return Promise.reject(resolver({ status: 400 }, { detail: "invalid" }));
+    });
+
+    const store = storeUser();
+    await expect(store.getRecoveryCodes()).rejects.toBeInstanceOf(FormValidationErrorClass);
 });
 
 scopedIt("checkResetLinkIsValid stores invalid link error", async () => {

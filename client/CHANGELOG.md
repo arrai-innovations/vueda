@@ -2,6 +2,12 @@
 
 _Actions potentially required by implementers are marked with italics._
 
+## v2.0.1 (unreleased)
+
+### Fixes
+
+- **storeUser**: resetPassword and forgotPassword now treats 400 responses as FormValidationError
+
 ## v2.0.0 (2025-12-23)
 
 ### Fixes
