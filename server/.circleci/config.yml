@@ -72,7 +72,7 @@ jobs:
                   command: uv sync --dev --frozen
             - run:
                   name: Copy Configuration
-                  command: cp .env.circleci .env.local
+                  command: cp config.circleci.toml config.local.toml
             - run:
                   name: Generate Schema
                   command: uv run python manage.py spectacular --color --file schema.yml
@@ -127,7 +127,7 @@ workflows:
                   config:
                       - run:
                             name: Copy config
-                            command: cp .env.circleci .env.local
+                            command: cp config.circleci.toml config.local.toml
                   filters: # filters required since `build_*` has filters
                       branches:
                           only: /.*/

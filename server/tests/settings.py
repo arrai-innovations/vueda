@@ -2,17 +2,15 @@ import decimal
 from copy import deepcopy
 from pathlib import Path
 
-from environs import Env
-
+from vueda.core.config import TomlEnv
+from vueda.core.config import load_toml
 from vueda.core.default_settings import get_defaults
 
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent
-env = Env()
 
-# OS environment variables > .env.local > .env
-env.read_env(str(ROOT_DIR / ".env.local"))
-env.read_env(str(ROOT_DIR / ".env"))
+
+env = TomlEnv({**load_toml(ROOT_DIR / "config.toml"), **load_toml(ROOT_DIR / "config.local.toml")})
 
 
 locals().update(get_defaults(env))

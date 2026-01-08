@@ -1,6 +1,5 @@
 import argparse
 import os
-import os.path
 import sys
 from signal import SIGINT
 from traceback import format_exception_only
@@ -24,44 +23,24 @@ def version_for_main(subparsers):
 
 def setup_django_settings_module():
     """
-    use environs to check .env.local then .env for DEBUG. If not set, default to False.
-    if DEBUG is True, use config.settings.local, else use config.settings.production
+    Default to config.settings.local when DJANGO_SETTINGS_MODULE is unset.
     """
-    from environs import Env
-
     from vueda.update import detect_package_manager
 
-    # Find the manage.py directory where .env files should be located
+    # Find the manage.py directory so Django imports resolve correctly
     try:
         _, _, manage_py_dir = detect_package_manager()
     except Exception:
         # Fallback to current directory if detection fails
         manage_py_dir = os.getcwd()
 
-    # Check that .env exists in the manage.py directory
-    env_path = os.path.join(manage_py_dir, ".env")
-    if not os.path.isfile(env_path):
-        print(f"ERROR: No .env file found in {manage_py_dir}", file=sys.stderr)
-        sys.exit(1)
-
-    # Change to manage.py directory to read .env files
-    original_cwd = os.getcwd()
     try:
-        os.chdir(manage_py_dir)
-        env = Env()
-        env.read_env(".env.local")
-        env.read_env(".env")
-
-        debug = env.bool("DEBUG", default=False)
-
         if not os.environ.get("DJANGO_SETTINGS_MODULE"):
-            os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.local" if debug else "config.settings.production"
-
+            os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.local"
         # Add manage.py directory to path for Django imports
         sys.path.append(manage_py_dir)
     finally:
-        # Restore original directory
-        os.chdir(original_cwd)
+        pass
 
 
 def main():

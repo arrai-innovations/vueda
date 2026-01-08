@@ -295,11 +295,11 @@ _package_manager_cache = None
 
 def configure_django_settings(manage_py_dir):
     """
-    Configure Django settings from the correct directory so .env files are found.
+    Configure Django settings from the correct directory so relative config lookups work.
     """
     original_cwd = os.getcwd()
     try:
-        # Change to manage.py directory so Django can find .env files
+        # Change to manage.py directory so Django settings can resolve relative paths.
         os.chdir(manage_py_dir)
         from django.conf import settings
 

@@ -279,13 +279,13 @@ Once the management command that will create group migrations is written, then y
 
 ### Set up Dispatch Queue
 
-You need to configure the `CELERY_BROKER_URL` in your `.env` file, for example:
+You need to configure the `CELERY_BROKER_URL` in your environment (or whatever config loader your project uses), for example:
 
 ```
 CELERY_BROKER_URL=redis://localhost:6379/3
 ```
 
-For email sending, you need to have the following environment variables set in your `.env` file:
+For email sending, you need to have the following environment variables set (via env vars or your config loader):
 
 ```
 ANYMAIL_MAILGUN_API_KEY=
@@ -294,7 +294,7 @@ ANYMAIL_WEBHOOK_SECRET=
 ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY=
 ```
 
-For SMS sending, you need to have the following environment variables set in your `.env` file:
+For SMS sending, you need to have the following environment variables set (via env vars or your config loader):
 
 ```
 TWILIO_ACCOUNT_SID=""
@@ -388,7 +388,7 @@ You'll need a database role that can make databases, if a vueda role doesn't alr
 [vueda-server]$ createuser -U postgres -P -d vueda
 ```
 
-And you'll then need to put the connection details in your `.env.local`, like this:
+And you'll then need to put the connection details in your local config (e.g. `.env.local` or TOML), like this:
 
 ```console
 DATABASE_URL="postgresql://vueda:password@/vueda"

@@ -1,6 +1,7 @@
 __pycache__
 .pytest_cache/
 .env*.local
+config.local.toml
 .coverage
 .coverage.*
 htmlcov

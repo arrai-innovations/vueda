@@ -1,27 +1,59 @@
+from __future__ import annotations
+
 import logging
 import os
+from typing import Protocol
 
 from django.db.backends.postgresql.psycopg_any import IsolationLevel
-from environs import Env
 
 
-def get_defaults(env: Env):
+class EnvLike(Protocol):
+    def __call__(self, key: str, default: object = ...) -> object: ...
+    def bool(self, key: str, default: object = ...) -> bool: ...
+    def str(self, key: str, default: object = ...) -> str: ...
+    def int(self, key: str, default: object = ...) -> int: ...
+    def float(self, key: str, default: object = ...) -> float: ...
+    def decimal(self, key: str, default: object = ...) -> object: ...
+    def dict(self, key: str, default: object = ..., **kwargs: object) -> dict[object, object]: ...
+    def tuple(self, key: str, default: object = ..., **kwargs: object) -> tuple[object, ...]: ...
+    def json(self, key: str, default: object = ...) -> object: ...
+    def datetime(self, key: str, default: object = ...) -> object: ...
+    def date(self, key: str, default: object = ...) -> object: ...
+    def time(self, key: str, default: object = ...) -> object: ...
+    def timedelta(self, key: str, default: object = ...) -> object: ...
+    def path(self, key: str, default: object = ...) -> object: ...
+    def url(self, key: str, default: object = ...) -> object: ...
+    def uuid(self, key: str, default: object = ...) -> object: ...
+    def log_level(self, key: str, default: object = ...) -> int: ...
+    def enum(self, key: str, enum_cls: type[object], default: object = ..., **kwargs: object) -> object: ...
+    def list(self, key: str, default: object = ..., **kwargs: object) -> list[object]: ...
+    def dj_db_url(self, key: str, default: object = ..., **kwargs: object) -> dict[str, object]: ...
+    def dj_email_url(self, key: str, default: object = ..., **kwargs: object) -> dict[str, object]: ...
+    def dj_cache_url(self, key: str, default: object = ..., **kwargs: object) -> dict[str, object]: ...
+
+
+def get_defaults(env: EnvLike):
     """
     Get a sane and consistent set of default django settings, dotenv lookup keys & defaults and return them as a dict.
 
     You can put this in your settings modules like so:
 
     ```python
-    from environs import Env
+    # Environs-style adapter:
+    # from environs import Env
+    # env = Env()
+    # env.read_env(str(ROOT_DIR / ".env.local"))
+    # env.read_env(str(ROOT_DIR / ".env"))
+
+    # TOML adapter:
+    from vueda.core.config import TomlEnv, load_toml
     from vueda.core.default_settings import get_defaults
-    env = Env
-    env.read_env(str(ROOT_DIR / ".env.local"))
-    env.read_env(str(ROOT_DIR / ".env"))
+    env = TomlEnv({**load_toml(ROOT_DIR / "config.toml"), **load_toml(ROOT_DIR / "config.local.toml")})
 
     locals().update(get_defaults(env))
     ```
 
-    :param env:
+    :param env: Env-like adapter providing __call__, bool, int, float, list, and dj_db_url.
     :return: dict of default settings
     """
     # most envs will not have defaults, so we force them to be set
@@ -148,7 +180,7 @@ def get_defaults(env: Env):
             "simple_history.middleware.HistoryRequestMiddleware",
             "allauth.account.middleware.AccountMiddleware",
         ],
-        "DJANGO_APPS": env.list(  # environs doesn't do multiline lists, and the values here would be a bit unwieldy
+        "DJANGO_APPS": env.list(  # some env loaders don't do multiline lists, and the values here would be unwieldy
             "DJANGO_APPS",
             default=[
                 "django.contrib.auth",
@@ -376,7 +408,7 @@ def get_defaults(env: Env):
     return return_dict
 
 
-def get_production_defaults(env: Env):
+def get_production_defaults(env: EnvLike):
     """
     Additional settings for production environments, causing env to require things that aren't required in development.
     """
