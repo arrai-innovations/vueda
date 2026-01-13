@@ -5,8 +5,11 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.contrib.auth import password_validation
 from django.contrib.auth.models import Group
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import validate_email
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
+from phonenumber_field.validators import validate_international_phonenumber
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -218,6 +221,36 @@ class AuthenticatorSerializer(serializers.Serializer):
     class Meta:
         model = Authenticator
         fields = ["id", "created_at", "last_used_at", "type"]
+
+
+class TOTPSetupSerializer(serializers.Serializer):
+    method = TOTPMethodChoiceField(
+        required=True,
+    )
+    destination = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, data):
+        method = data.get("method")
+        destination = data.get("destination")
+
+        if method == "email":
+            if not destination:
+                raise VuedaValidationError({"destination": "Email address is required for email method."})
+            try:
+                validate_email(destination)
+            except DjangoValidationError:
+                raise VuedaValidationError({"destination": "Enter a valid email address."})
+
+        elif method == "sms":
+            if not destination:
+                raise VuedaValidationError({"destination": "Phone number is required for SMS method."})
+
+            try:
+                validate_international_phonenumber(destination)
+            except DjangoValidationError:
+                raise VuedaValidationError({"destination": "Enter a valid phone number."})
+
+        return data
 
 
 class TOTPDeviceSerializer(serializers.ModelSerializer, VuedaExpandableFieldsSerializerMixin):

@@ -241,6 +241,7 @@ def get_defaults(env: EnvLike):
         "MFA_ADAPTER": env("ALLAUTH_MFA_ADAPTER", default="vueda.user.adapters.VuedaAllAuthMFAAdapter"),
         "HEADLESS_CLIENTS": ("browser",),
         "ACCOUNT_USER_MODEL_USERNAME_FIELD": None,
+        "ACCOUNT_REAUTHENTICATION_TIMEOUT": env("ACCOUNT_REAUTHENTICATION_TIMEOUT", default=300),
         "ACCOUNT_EMAIL_VERIFICATION": "none",
         "ACCOUNT_LOGIN_METHODS": {"email"},
         "ACCOUNT_SIGNUP_FIELDS": ["email*", "password1*", "password2*"],

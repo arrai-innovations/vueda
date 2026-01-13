@@ -48,6 +48,7 @@ from rest_framework.settings import api_settings
 from rest_framework.views import APIView
 
 from vueda.core.db import Array
+from vueda.core.exceptions import VuedaValidationError
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
@@ -557,6 +558,14 @@ class AllAuthAdapterDispatchMixin:
             self.headers = self.default_response_headers
             response = self.handle_exception(exc)
             return self.finalize_response(request, response, *args, **kwargs)
+
+    def handle_invalid_input(self, data):
+        # Some of the AllAuth views use customized invalid input handler to record invalid attempts.
+        super().handle_invalid_input(data)
+        errors = {}
+        for field, error_list in data.errors.items():
+            errors[field] = error_list
+        raise VuedaValidationError(errors)
 
 
 class AllAuthLoginView(AllAuthAdapterDispatchMixin, LoginView, VuedaAllAuthViewAdapter):

@@ -1,8 +1,12 @@
 from functools import wraps
 
+from allauth.account.internal.flows.reauthentication import raise_if_reauthentication_required
+from allauth.core.exceptions import ReauthenticationRequired
 from django.db import transaction
+from rest_framework import status as drf_status
 from rest_framework.decorators import action as rf_action
 from rest_framework.permissions import SAFE_METHODS
+from rest_framework.response import Response
 
 
 DRY_RUN_HEADER = "Dry-Run"
@@ -37,3 +41,15 @@ def action(methods=None, detail=None, bulk=False, url_path=None, url_name=None, 
         return wrapped_func
 
     return decorator
+
+
+def recent_auth_required(func):
+    @wraps(func)
+    def _wrapped_view(view_set_instance, request, *args, **kwargs):
+        try:
+            raise_if_reauthentication_required(request)
+            return func(view_set_instance, request, *args, **kwargs)
+        except ReauthenticationRequired:
+            return Response({"detail": "Reauthentication required"}, status=drf_status.HTTP_401_UNAUTHORIZED)
+
+    return _wrapped_view
