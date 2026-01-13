@@ -214,9 +214,7 @@ export const mockEventListener = (vi) => {
  * @param {number} [timeout] - The timeout for the test.
  */
 export const scopedIt = (name, fn, timeout) => {
-    // eslint-disable-next-line vitest/expect-expect
     it(
-        // eslint-disable-next-line vitest/valid-title
         name,
         async () => {
             const { effectScope } = await vi.importActual("vue");
@@ -252,7 +250,6 @@ export const scopedIt = (name, fn, timeout) => {
  * @param {string} name - The name of the test.
  */
 scopedIt.todo = (name) => {
-    // eslint-disable-next-line vitest/valid-title
     it.todo(name);
 };
 /**

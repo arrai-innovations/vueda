@@ -24,6 +24,8 @@
     "coverage": "npm test -- run --coverage",
     "prepare": "npx --no-install husky",
     "docs": "echo \"#todo: setup jsdoc to markdown\"",
+    "lint": "npx eslint --no-warn-ignored .",
+    "format": "npx prettier --check .",
     "eslint": "npx eslint --fix .",
     "prettier": "npx prettier --write .",
     "build:types": "tsc",

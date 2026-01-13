@@ -131,8 +131,32 @@ const eslintConfig = [
         rules: {
             ...vitest.configs.recommended.rules,
             "vitest/no-conditional-expect": "off",
+            "vitest/no-standalone-expect": [
+                "error",
+                {
+                    additionalTestBlockFunctions: [
+                        "scopedIt",
+                        "scopedIt.only",
+                        "scopedIt.skip",
+                        "scopedIt.concurrent",
+                        "scopedIt.sequential",
+                        "scopedIt.fails",
+                        "scopedIt.todo",
+                        "scopedIt.each",
+                        "scopedIt.for",
+                    ],
+                },
+            ],
             "vitest/valid-expect": "off", // we want to use expect(value, message).toBe(expected), which is not supported by this rule
             "no-var": "off", // this does not work with vitest.mock, which requires var hoisted variables
+        },
+    },
+    {
+        name: "tests (helpers)",
+        files: ["tests/unit/utils.js"],
+        rules: {
+            "vitest/expect-expect": "off",
+            "vitest/valid-title": "off",
         },
     },
     eslintConfigPrettier,
