@@ -1,0 +1,88 @@
+<script setup>
+import { WIDGET_EMITS, useWidget } from "@vueda/use/useWidget.js";
+import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import { sanitizeMessage } from "@vueda/utils/html.js";
+import WidgetHtml from "@vueda/widgets/WidgetHtml.vue";
+import WidgetInput from "@vueda/widgets/WidgetInput.vue";
+import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
+import get from "lodash-es/get.js";
+import omit from "lodash-es/omit.js";
+import { computed } from "vue";
+
+defineOptions({
+    inheritAttrs: false,
+});
+const props = defineProps({
+    type: {
+        type: String,
+        default: "editor",
+    },
+    modelValue: {
+        type: [String, Number, Array],
+        default: undefined,
+    },
+    displayDependencies: {
+        type: Array,
+        default: () => [],
+    },
+    tagsKey: {
+        type: String,
+        default: "preview_tag_data",
+    },
+});
+const computeddisplayDependencies = computed(() => {
+    const deps = props.displayDependencies;
+    return deps.includes(props.tagsKey) ? deps : [...deps, props.tagsKey];
+});
+const emit = defineEmits([...WIDGET_EMITS]);
+const widgetContext = useWidget(props, emit);
+const tagsData = computed(() => {
+    return widgetContext.state.dependencyValues[props.tagsKey];
+});
+const renderedContent = computed(() => {
+    let text = widgetContext.state.combinedValue;
+    if (tagsData.value) {
+        text = text.replace(/\$(\w+)/g, (match, varName) => {
+            return get(tagsData.value, varName, "");
+        });
+    }
+    return sanitizeMessage(text);
+});
+const inputComponent = computed(
+    () =>
+        ({
+            editor: WidgetHtml,
+            input: WidgetInput,
+            textarea: WidgetTextarea,
+        })[props.type] || WidgetHtml,
+);
+
+const theme = useWidgetTheme("WidgetPreviewableTemplate");
+</script>
+<template>
+    <div :class="theme('root')" data-qa="widget-previewable-template-root">
+        <div :class="theme('inner')" data-qa="widget-previewable-template-inner">
+            <div :class="theme('editorWrapper')" data-qa="widget-previewable-template-editor">
+                <component
+                    :is="inputComponent"
+                    :display-dependencies="computeddisplayDependencies"
+                    :model-value="modelValue"
+                    v-bind="omit($attrs, 'value')"
+                    @update:model-value="emit('update:modelValue', $event)"
+                />
+                <slot name="extra-legend" :display-dependencies="widgetContext.state.dependencyValues" />
+            </div>
+            <div :class="theme('previewWrapper')">
+                <span :class="theme('label')">Preview: </span>
+                <!-- eslint-disable vue/no-v-html -->
+                <div
+                    :class="theme('preview')"
+                    :aria-labelledby="widgetContext.state.widgetId"
+                    data-qa="widget-previewable-template-preview"
+                    v-html="renderedContent"
+                />
+                <!-- eslint-enable vue/no-v-html -->
+            </div>
+        </div>
+    </div>
+</template>

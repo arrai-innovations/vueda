@@ -1,0 +1,32 @@
+# Logs
+logs
+*.log
+*.log*
+Pipfile
+Pipfile.lock
+node_modules
+dist
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# unit coverage
+coverage
+
+# npm pack'd file
+arrai-innovations-vueda-*.tgz
+
+# eslint
+.eslintcache
+
+# TypeScript build artifacts
+types/

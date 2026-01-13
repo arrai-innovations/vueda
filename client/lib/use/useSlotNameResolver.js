@@ -1,0 +1,74 @@
+import { deepUnref } from "@arrai-innovations/reactive-helpers";
+import { computed, effectScope, reactive, readonly } from "vue";
+import { useSlots } from "vue";
+
+/**
+ * @typedef {object} ResolvedSlotRawName
+ * @property {import('vue').ComputedRef<boolean>} exists - Whether any passed slots will match any of the slot names.
+ * @property {import('vue').ComputedRef<string|undefined>} name - The name of the most specific slot that was passed.
+ * @property {import('vue').ComputedRef<string[]>} possibleNames - The slot names that were passed.
+ * @property {function():void} stop - A function to stop the effect scope.
+ */
+
+/**
+ * @typedef {
+ *     string[]|
+ *     import('vue').Ref<string[]>|
+ *     import('vue').Ref<import('vue').Ref<string>[]>|
+ *     import('vue').Ref<string>[]
+ * } SlotNamesInOrderOfPrecedence - The slot names to check for, in order of precedence.
+ */
+
+/**
+ * @typedef {import('vue').DeepReadonly<import('vue').UnwrapNestedRefs<ResolvedSlotRawName>>} ResolvedSlotName - The resolved slot name instance.
+ */
+
+/**
+ * Helper to resolve the most specific slot name from a list of candidates in order of precedence.
+ *
+ * @param {SlotNamesInOrderOfPrecedence} slotNamesInOrderOfPrecedence - The slot names to check for, in order of
+ *  precedence.
+ * @param {{[slotName: string]: any}} [slots] - The slots object to check against. If not provided, the current
+ *  instance's slots will be used.
+ * @returns {ResolvedSlotName} - The resolved slot name.
+ * @example
+ * ```vue
+ * <script setup>
+ * import { useSlotNameResolver } from '@vueda/use/useSlotNameResolver.js';
+ *
+ * // some reactive/dynamic logic
+ * const myFieldName = computed(() => 'myField');
+ * const mySlotsNames = computed(() => ([
+ *   `field(${unref(myFieldName)})mySlot`, `field-mySlot`, 'mySlot'
+ * ]));
+ * const mySlot = useSlotNameResolver(mySlotsNames);
+ * </script>
+ * <template>
+ *     ...
+ *     <!-- translate outside slot names to mySlot -->
+ *     <some-sub-component>
+ *       <template name="mySlot">
+ *         <slot v-if="mySlot.exists" :name="mySlot.name" />
+ *       </template>
+ *     </some-sub-component>
+ *     ...
+ * </template>
+ * ```
+ */
+export function useSlotNameResolver(slotNamesInOrderOfPrecedence, slots) {
+    if (!slots) {
+        slots = useSlots();
+    }
+    const es = effectScope();
+    let returnObject = {};
+    es.run(() => {
+        const possibleNames = computed(() => deepUnref(slotNamesInOrderOfPrecedence));
+        const exists = computed(() => possibleNames.value.some((slotName) => !!deepUnref(slots)[slotName]));
+        const name = computed(() => possibleNames.value.find((slotName) => deepUnref(slots)[slotName]));
+        returnObject = { exists, name, possibleNames };
+    });
+    returnObject.stop = () => {
+        es.stop();
+    };
+    return readonly(reactive(returnObject));
+}

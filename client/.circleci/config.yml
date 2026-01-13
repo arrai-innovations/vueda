@@ -1,0 +1,198 @@
+version: 2.1
+orbs:
+    eslint: arrai/eslint@7.10.3
+    prettier: arrai/prettier@5.9.3
+    npm: arrai/npm@3.0.3
+    github: arrai/github@3.0.0
+executors:
+    base:
+        docker:
+            - image: cimg/base:current
+jobs:
+    run_pipeline:
+        parameters:
+            vcs:
+                type: enum
+                enum: [bitbucket, github]
+                default: github
+            org:
+                type: string
+                default: ${CIRCLE_PROJECT_USERNAME}
+            project:
+                type: string
+            token:
+                type: string
+                default: ${CIRCLECI_API_TOKEN}
+        executor: base
+        resource_class: small
+        steps:
+            - run:
+                  name: Run Pipeline
+                  command: |
+                      curl --location \
+                           --request POST "https://circleci.com/api/v2/project/<<parameters.vcs>>/<<parameters.org>>/<<parameters.project>>/pipeline" \
+                           --header 'Content-Type: application/json' \
+                           --user "<<parameters.token>>:"
+    verify_release_version:
+        executor: base
+        resource_class: small
+        steps:
+            - checkout
+            - run:
+                  name: Check that the tag version matches the release.
+                  command: |
+                      PACKAGE_VERSION=$(jq -r '.version' package.json)
+                      if [ "$CIRCLE_TAG" != "v$PACKAGE_VERSION" ]; then
+                          echo "Git tag ($CIRCLE_TAG) does not match the package version (v$PACKAGE_VERSION)"
+                          exit 1
+                      fi
+workflows:
+    test:
+        jobs:
+            - npm/coverage:
+                  name: tests
+                  context:
+                      - arrai-global
+                  resource_class: medium+
+                  filters:
+                      branches:
+                          only:
+                              - main
+            - npm/coverage:
+                  name: tests-no-badge
+                  context:
+                      - arrai-global
+                  resource_class: medium+
+                  create_badges: false
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore:
+                              - main
+            # - run_pipeline:
+            #       name: run-sems-client-pipeline-main
+            #       project: sems-client
+            #       filters:
+            #           branches:
+            #               only:
+            #                   - main
+            # - run_pipeline:
+            #       name: run-wayfinders-client-pipeline-main
+            #       project: wayfinders-client
+            #       filters:
+            #           branches:
+            #               only:
+            #                   - main
+            - verify_release_version:
+                  name: verify-release-version
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore: /.*/
+            - npm/publish:
+                  name: publish
+                  context: arrai-private-package-publishing
+                  requires:
+                      - verify-release-version
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore: /.*/
+            - github/create_release:
+                  name: release_on_github
+                  context: arrai-global
+                  requires:
+                      - publish
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore: /.*/
+            # - run_pipeline:
+            #       name: run-sems-client-pipeline-tag
+            #       requires:
+            #           - release_on_github
+            #       project: sems-client
+            #       filters:
+            #           tags:
+            #               only: /.*/
+            #           branches:
+            #               ignore: /.*/
+            # - run_pipeline:
+            #       name: run-wayfinders-client-pipeline-tag
+            #       requires:
+            #           - release_on_github
+            #       project: wayfinders-client
+            #       filters:
+            #           tags:
+            #               only: /.*/
+            #           branches:
+            #               ignore: /.*/
+    lint:
+        jobs:
+            - eslint/eslint_fixed_ip:
+                  name: eslint
+                  context: arrai-global
+                  files: "."
+                  wd: "."
+                  config:
+                      - run:
+                            name: NPM
+                            command: npm ci
+                  filters:
+                      branches:
+                          only:
+                              - main
+            - eslint/eslint:
+                  name: eslint-no-badge
+                  context: arrai-global
+                  files: "."
+                  wd: "."
+                  config:
+                      - run:
+                            name: NPM
+                            command: npm ci
+                  create_badges: false
+                  filters:
+                      branches:
+                          ignore:
+                              - main
+            - prettier/code_style_fixed_ip:
+                  name: prettier
+                  context: arrai-global
+                  filters:
+                      branches:
+                          only:
+                              - main
+            - prettier/code_style:
+                  name: prettier-no-badge
+                  context: arrai-global
+                  create_badges: false
+                  filters:
+                      branches:
+                          ignore:
+                              - main
+    audit:
+        jobs:
+            - npm/audit_fixed_ip:
+                  name: audit
+                  context:
+                      - arrai-global
+                  skip_dev: false
+                  filters:
+                      branches:
+                          only:
+                              - main
+            - npm/audit:
+                  name: audit-no-badge
+                  context:
+                      - arrai-global
+                  skip_dev: false
+                  create_badges: false
+                  filters:
+                      branches:
+                          ignore:
+                              - main
