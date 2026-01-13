@@ -2,7 +2,13 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.1 (unreleased)
+## v2.0.2 (unreleased)
+
+### Fixes
+
+- **storeUser**: `_handle_error` only deals with parsing pendingFlows from returned response data now. Methods including `setupTOTPDevice`, `activateTOTPDevice` `generateRecoveryCode` and `getRecoveryCodes` stopped swallowing `UnauthorizedError`
+
+## v2.0.1 (2025-12-24)
 
 ### Fixes
 

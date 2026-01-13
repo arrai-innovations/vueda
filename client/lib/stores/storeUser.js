@@ -122,13 +122,15 @@ export const storeUser = defineStore("user", {
         pendingFlow: null,
     }),
     actions: {
-        fetchCurrentUser() {
+        fetchCurrentUser({ preserveError = false } = {}) {
             if (this.initialized) {
                 this.initialized = false;
             }
             this.loading = true;
-            this.error = null;
-            this.errored = false;
+            if (!preserveError) {
+                this.error = null;
+                this.errored = false;
+            }
 
             return fetchHelper(
                 `${httpOrHttpsHostname}${getUrl("userCurrentUser")}`,
@@ -143,8 +145,10 @@ export const storeUser = defineStore("user", {
                     this.loggedInUser = user;
                 })
                 .catch((error) => {
-                    this.error = error;
-                    this.errored = true;
+                    if (!preserveError) {
+                        this.error = error;
+                        this.errored = true;
+                    }
                     throw error;
                 })
                 .finally(() => {
@@ -180,8 +184,12 @@ export const storeUser = defineStore("user", {
                     return this.fetchCurrentUser();
                 })
                 .catch((error) => {
-                    // Handle specific error cases
                     this._handle_error(error);
+                    if (!this.pendingFlow) {
+                        this.error = error;
+                        this.errored = true;
+                        throw error;
+                    }
                 })
                 .finally(() => {
                     this.loading = false;
@@ -331,11 +339,8 @@ export const storeUser = defineStore("user", {
                 if (flows && flows.length > 0) {
                     this.pendingFlow = flows.at(-1);
                 }
-                return this.fetchCurrentUser();
+                return this.fetchCurrentUser({ preserveError: true }).catch(() => undefined);
             }
-            this.error = error;
-            this.errored = true;
-            throw error;
         },
         setupTOTPDevice(payload) {
             this.loading = true;
@@ -362,7 +367,10 @@ export const storeUser = defineStore("user", {
                     return responseData;
                 })
                 .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
                     this._handle_error(error);
+                    throw error;
                 })
                 .finally(() => {
                     this.loading = false;
@@ -394,7 +402,10 @@ export const storeUser = defineStore("user", {
                     return this.fetchCurrentUser();
                 })
                 .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
                     this._handle_error(error);
+                    throw error;
                 })
                 .finally(() => {
                     this.loading = false;
@@ -588,7 +599,10 @@ export const storeUser = defineStore("user", {
                     return responseData;
                 })
                 .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
                     this._handle_error(error);
+                    throw error;
                 })
                 .finally(() => {
                     this.loading = false;
@@ -617,7 +631,10 @@ export const storeUser = defineStore("user", {
                     if (error.response?.status === 404) {
                         return this.generateRecoveryCode();
                     }
+                    this.error = error;
+                    this.errored = true;
                     this._handle_error(error);
+                    throw error;
                 })
                 .finally(() => {
                     this.loading = false;

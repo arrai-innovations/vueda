@@ -117,6 +117,10 @@ const handleConfirm = async (dryRun = false) => {
             dryRun,
         });
         const response = await actionPromise;
+        if (props.actionState.errored) {
+            await handleError(props.actionState.error, dryRun);
+            return;
+        }
         if (dryRun) {
             return;
         }
@@ -134,30 +138,33 @@ const handleConfirm = async (dryRun = false) => {
             }
         }
     } catch (error) {
-        if (dryRun) {
-            if (error instanceof FormValidationError) {
-                formContext.handleServerFormValidationError(error);
-            }
-            return;
-        }
-        const errorHandler = props.onSubmissionErrorHandler || defaultOnSubmissionError;
-        const handled = await errorHandler({ error, formContext, toast });
-        if (!handled) {
-            actionFormState.errored = true;
-            actionFormState.error = error;
-            toast.add({
-                severity: "error",
-                summary: props.actionErrorSummary || "Action Failed",
-                detail: actionFormState.error,
-                life: 15000,
-            });
-        }
+        await handleError(error, dryRun);
     } finally {
         actionPromise = null;
         actionFormState.loading = false;
     }
 };
 
+const handleError = async (error, dryRun) => {
+    if (dryRun) {
+        if (error instanceof FormValidationError) {
+            formContext.handleServerFormValidationError(error);
+        }
+        return;
+    }
+    const errorHandler = props.onSubmissionErrorHandler || defaultOnSubmissionError;
+    const handled = await errorHandler({ error, formContext, toast });
+    if (!handled) {
+        actionFormState.errored = true;
+        actionFormState.error = error;
+        toast.add({
+            severity: "error",
+            summary: props.actionErrorSummary || "Action Failed",
+            detail: actionFormState.error,
+            life: 15000,
+        });
+    }
+};
 const theme = useTheme("ActionForm", props);
 
 onDeactivated(() => {

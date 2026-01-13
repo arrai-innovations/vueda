@@ -142,6 +142,20 @@ scopedIt("fetchCurrentUser stores error on invalid data", async () => {
     expect(store.errored).toBe(true);
 });
 
+scopedIt("fetchCurrentUser preserves error state when requested", async () => {
+    const error = new Error("existing");
+    getUrl.mockReturnValue("/current/");
+    fetchHelper.mockResolvedValue({ id: 4 });
+
+    const store = storeUser();
+    store.error = error;
+    store.errored = true;
+
+    await store.fetchCurrentUser({ preserveError: true });
+
+    expect(store.error).toBe(error);
+    expect(store.errored).toBe(true);
+});
 scopedIt("login stores validation error on bad request", async () => {
     const { FormValidationError } = await vi.importActual("@vueda/utils/errors.js");
     getUrl.mockReturnValue("/login/");
@@ -154,6 +168,20 @@ scopedIt("login stores validation error on bad request", async () => {
     expect(store.error).toBe(error);
     expect(store.errored).toBe(true);
     expect(store.loading).toBe(false);
+});
+
+scopedIt("login handles UnauthorizedError by refetching user and setting error state", async () => {
+    const error = new UnauthorizedError("Unauthorized");
+    getUrl.mockReturnValue("/login/");
+    fetchHelper.mockRejectedValueOnce(error);
+
+    const store = storeUser();
+    const fetchCurrentUser = vi.spyOn(store, "fetchCurrentUser").mockResolvedValue();
+    await expect(store.login({ username: "u", password: "p" })).rejects.toBe(error);
+
+    expect(fetchCurrentUser).toHaveBeenCalledWith({ preserveError: true });
+    expect(store.errored).toBe(true);
+    expect(store.error).toBe(error);
 });
 
 scopedIt("login stores error on fetch failure", async () => {
@@ -342,6 +370,18 @@ scopedIt("activateTOTPDevice treats 400 responses as FormValidationError", async
     await expect(store.activateTOTPDevice({ code: "123456" })).rejects.toBeInstanceOf(FormValidationErrorClass);
 });
 
+scopedIt("activateTOTPDevice throw UnauthorizedError with empty pending flows", async () => {
+    getUrl.mockReturnValue("/activate/");
+    const store = storeUser();
+    const error = new UnauthorizedError("Unauthorized");
+    fetchHelper.mockRejectedValueOnce(error);
+    const fetchCurrentUser = vi.spyOn(store, "fetchCurrentUser").mockResolvedValue();
+    await expect(store.activateTOTPDevice({ method: "app" })).rejects.toBe(error);
+    expect(fetchCurrentUser).toHaveBeenCalledWith({ preserveError: true });
+    expect(store.error).toBe(error);
+    expect(store.errored).toBe(true);
+});
+
 scopedIt("twoFactorAuthenticate treats 400 responses as FormValidationError", async () => {
     getUrl.mockReturnValue("/2fa/");
     fetchHelper.mockImplementation((...fetchArgs) => {
@@ -468,19 +508,32 @@ scopedIt("_handle_error stores pending flow on unauthorized error", async () => 
     await store._handle_error(error);
 
     expect(store.pendingFlow).toBe("step2");
-    expect(store.fetchCurrentUser).toHaveBeenCalled();
+    expect(store.errored).toBe(false);
+    expect(store.error).toBe(null);
 });
 
-scopedIt("setupTOTPDevice forwards errors through _handle_error", async () => {
+scopedIt("setupTOTPDevice throw UnauthorizedError", async () => {
     getUrl.mockReturnValue("/setup/");
     const store = storeUser();
     const error = new UnauthorizedError("Unauthorized");
-    const spy = vi.spyOn(store, "_handle_error").mockResolvedValue();
-    fetchHelper.mockRejectedValue(error);
+    fetchHelper.mockRejectedValueOnce(error);
+    const fetchCurrentUser = vi.spyOn(store, "fetchCurrentUser").mockResolvedValue();
+    await expect(store.setupTOTPDevice({ method: "app" })).rejects.toBe(error);
+    expect(fetchCurrentUser).toHaveBeenCalledWith({ preserveError: true });
+    expect(store.error).toBe(error);
+    expect(store.errored).toBe(true);
+});
 
-    await expect(store.setupTOTPDevice({ method: "app" })).resolves.toBeUndefined();
-    expect(spy).toHaveBeenCalledWith(error);
-    spy.mockRestore();
+scopedIt("getRecoveryCodes throw UnauthorizedError", async () => {
+    getUrl.mockReturnValue("/recovery/");
+    const store = storeUser();
+    const error = new UnauthorizedError("Unauthorized");
+    fetchHelper.mockRejectedValueOnce(error);
+    const fetchCurrentUser = vi.spyOn(store, "fetchCurrentUser").mockResolvedValue();
+    await expect(store.getRecoveryCodes({ method: "app" })).rejects.toBe(error);
+    expect(fetchCurrentUser).toHaveBeenCalledWith({ preserveError: true });
+    expect(store.error).toBe(error);
+    expect(store.errored).toBe(true);
 });
 
 scopedIt("getRecoveryCodes generates codes when none exist", async () => {

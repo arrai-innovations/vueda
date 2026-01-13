@@ -100,6 +100,7 @@ const redirectTo = async () => {
                 v-bind="$attrs"
                 :on-submission-error-handler="OnSubmissionErrorHandler"
                 :redirect-to="redirectTo"
+                :action-state="userStore"
             >
                 <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />
