@@ -12,6 +12,7 @@
     "lib",
     "types",
     "README.md",
+    "LICENSE",
     "VUEDA.png",
     "index.js"
   ],
@@ -36,7 +37,7 @@
     "url": "git+https://github.com/arrai-innovations/vueda-client.git"
   },
   "author": "Arrai Innovations Inc. <developers@arrai.com>",
-  "license": "UNLICENSED",
+  "license": "BSD-3-Clause",
   "bugs": {
     "url": "https://github.com/arrai-innovations/vueda-client/issues"
   },
