@@ -1,0 +1,361 @@
+version: 2.1
+
+orbs:
+  github: arrai/github@5.0.0
+  lintinator: arrai/lintinator@2.1.1
+  pypi: arrai/pypi@3.1.0
+  pytest: arrai/pytest@9.1.1
+  pip-audit: arrai/pip-audit@1.0.4
+  utils: arrai/utils@1.21.1
+
+executors:
+  base:
+    docker:
+      - image: cimg/base:current
+  python311:
+    docker:
+      - image: cimg/python:3.11
+      - image: cimg/postgres:15.12
+      - image: cimg/redis:6.2
+  python311-base:
+    docker:
+      - image: cimg/python:3.11
+  python311-node:
+    docker:
+      - image: cimg/python:3.11-node
+  node-lts:
+    docker:
+      - image: cimg/node:lts
+
+jobs:
+  run_pipeline:
+    parameters:
+      vcs:
+        type: enum
+        enum: [bitbucket, github]
+        default: github
+      org:
+        type: string
+        default: ${CIRCLE_PROJECT_USERNAME}
+      project:
+        type: string
+      token:
+        type: string
+        default: ${CIRCLECI_API_TOKEN}
+    executor: base
+    resource_class: small
+    steps:
+      - run:
+          name: Run Pipeline
+          command: |
+            curl --location \
+                 --request POST "https://circleci.com/api/v2/project/<<parameters.vcs>>/<<parameters.org>>/<<parameters.project>>/pipeline" \
+                 --header 'Content-Type: application/json' \
+                 --user "<<parameters.token>>:"
+
+  server-build:
+    executor: python311-base
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Verify Git Tag Matches Python Version
+          command: |
+            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null)
+            if [ $? -ne 0 ]; then
+              echo "No exact match Git tag found."
+              exit 1
+            fi
+            if [[ "$GIT_TAG" != server-v* ]]; then
+              echo "Tag $GIT_TAG is not a server release tag."
+              exit 1
+            fi
+            TAG_VERSION="${GIT_TAG#server-v}"
+            PYTHON_VERSION=$(cd server && python -c "import vueda; print(vueda.__version__)")
+            if [ "$TAG_VERSION" == "$PYTHON_VERSION" ]; then
+              echo "Git tag matches the Python version: $GIT_TAG"
+              exit 0
+            else
+              echo "Git tag ($GIT_TAG) does not match the Python version ($PYTHON_VERSION)."
+              exit 1
+            fi
+      - run:
+          name: Build Package
+          command: |
+            cd server
+            pip install --user --upgrade build
+            python -m build --wheel
+            cd ..
+            rm -rf dist
+            mkdir -p dist
+            cp server/dist/* dist/
+      - save_cache:
+          paths:
+            - ~/project/dist
+          key: build-{{ arch }}-{{ .Environment.CIRCLE_WORKFLOW_ID }}
+
+  server-docs:
+    executor: python311-node
+    resource_class: medium
+    circleci_ip_ranges: true
+    steps:
+      - checkout
+      - utils/add_ssh_config:
+          hostname: tools.arrai.dev
+          host: tools.arrai.dev
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:NfqZXcPtWKzH+WVKDsNH5WGNzaBA30iyp5iYQgXjG0M"
+      - run:
+          name: Install Dependencies
+          command: |
+            cd server
+            uv sync --dev --frozen
+      - run:
+          name: Copy Configuration
+          command: |
+            cd server
+            cp config.circleci.toml config.local.toml
+      - run:
+          name: Generate Schema
+          command: |
+            cd server
+            uv run python manage.py spectacular --color --file schema.yml
+      - run:
+          name: Generate Documentation
+          command: |
+            cd server
+            npx -y @redocly/cli build-docs schema.yml
+      - run:
+          name: Bundle Documentation
+          command: |
+            rm -rf docs/
+            mkdir -p -m 0750 docs/$CIRCLE_TAG/
+            mv server/redoc-static.html docs/$CIRCLE_TAG/index.html
+      - utils/rsync_folder:
+          when: on_success
+          folder: ~/project/docs/
+          remote_folder: /
+          delete: false
+          host: tools.arrai.dev
+
+  client-verify-release-version:
+    executor: node-lts
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Check that the tag version matches the release.
+          command: |
+            if [[ "$CIRCLE_TAG" != client-v* ]]; then
+              echo "Tag $CIRCLE_TAG is not a client release tag."
+              exit 1
+            fi
+            PACKAGE_VERSION=$(jq -r '.version' client/package.json)
+            TAG_VERSION="${CIRCLE_TAG#client-v}"
+            if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
+              echo "Git tag ($CIRCLE_TAG) does not match the package version (v$PACKAGE_VERSION)"
+              exit 1
+            fi
+
+  client-test:
+    executor: node-lts
+    resource_class: medium+
+    steps:
+      - checkout
+      - utils/add_npm_config
+      - run:
+          name: Install Dependencies
+          command: pnpm install
+      - run:
+          name: Run Tests
+          command: pnpm -C client test
+
+  client-publish:
+    executor: node-lts
+    resource_class: small
+    steps:
+      - checkout
+      - utils/add_npm_config
+      - run:
+          name: Install Dependencies
+          command: pnpm install
+      - run:
+          name: Publish
+          command: pnpm -C client publish
+
+workflows:
+  server-test:
+    jobs:
+      - pytest/pytest:
+          name: server-pytest
+          executor: python311
+          context: arrai-global
+          wd: server
+          pytest_args: --cov -n2 --dist loadgroup
+          env_type: uv
+          config:
+            - run:
+                name: Copy config
+                command: |
+                  cd server
+                  cp config.circleci.toml config.local.toml
+          filters:
+            branches:
+              only: /.*/
+            tags:
+              only: /^server-v.*/
+      - server-docs:
+          name: server-docs
+          context: arrai-global
+          filters:
+            tags:
+              only: /^server-v.*/
+            branches:
+              ignore: /.*/
+      - server-build:
+          name: server-build
+          requires:
+            - server-pytest
+          filters:
+            tags:
+              only: /^server-v.*/
+            branches:
+              ignore: /.*/
+      - github/create_release:
+          name: server-release-on-github
+          context: arrai-global
+          requires:
+            - server-build
+          filters:
+            tags:
+              only: /^server-v.*/
+            branches:
+              ignore: /.*/
+      - pypi/upload_release:
+          name: server-publish
+          context: arrai-private-package-publishing
+          cache_key: build-{{ arch }}-{{ .Environment.CIRCLE_WORKFLOW_ID }}
+          requires:
+            - server-build
+          filters:
+            tags:
+              only: /^server-v.*/
+            branches:
+              ignore: /.*/
+
+  client-test:
+    jobs:
+      - client-test:
+          name: client-test
+          context:
+            - arrai-global
+          filters:
+            branches:
+              only: /.*/
+            tags:
+              only: /^client-v.*/
+      - client-verify-release-version:
+          name: client-verify-release-version
+          filters:
+            tags:
+              only: /^client-v.*/
+            branches:
+              ignore: /.*/
+      - client-publish:
+          name: client-publish
+          context: arrai-private-package-publishing
+          requires:
+            - client-verify-release-version
+          filters:
+            tags:
+              only: /^client-v.*/
+            branches:
+              ignore: /.*/
+      - github/create_release:
+          name: client-release-on-github
+          context: arrai-global
+          requires:
+            - client-publish
+          filters:
+            tags:
+              only: /^client-v.*/
+            branches:
+              ignore: /.*/
+
+  lint:
+    jobs:
+      - lintinator/lint_python_fixed_ip:
+          name: lint
+          context: arrai-global
+          executor: lintinator/python311
+          hooks: ruff prettier eslint doctoc
+          hook_manager: lefthook
+          install_deps: false
+          setup:
+            - utils/add_npm_config
+            - run:
+                name: Install tooling
+                command: |
+                  if ! [ -x "$(command -v uv)" ]; then
+                    curl -LsSf https://astral.sh/uv/install.sh | bash
+                  fi
+                  export COREPACK_HOME="$HOME/.local/share/corepack"
+                  export PATH="$HOME/.local/bin:$PATH"
+                  printf '%s\n' '#!/usr/bin/env bash' 'exec corepack pnpm "$@"' > "$HOME/.local/bin/pnpm"
+                  chmod +x "$HOME/.local/bin/pnpm"
+                  corepack pnpm --version
+                  corepack pnpm install --no-frozen-lockfile
+                  uv sync --all-groups --all-packages
+          filters:
+            branches:
+              only:
+                - main
+      - lintinator/lint_python:
+          name: lint-no-badge
+          executor: lintinator/python311
+          hooks: ruff prettier eslint doctoc
+          hook_manager: lefthook
+          create_badges: false
+          install_deps: false
+          setup:
+            - utils/add_npm_config
+            - run:
+                name: Install tooling
+                command: |
+                  if ! [ -x "$(command -v uv)" ]; then
+                    curl -LsSf https://astral.sh/uv/install.sh | bash
+                  fi
+                  export COREPACK_HOME="$HOME/.local/share/corepack"
+                  export PATH="$HOME/.local/bin:$PATH"
+                  printf '%s\n' '#!/usr/bin/env bash' 'exec corepack pnpm "$@"' > "$HOME/.local/bin/pnpm"
+                  chmod +x "$HOME/.local/bin/pnpm"
+                  corepack pnpm --version
+                  corepack pnpm install --no-frozen-lockfile
+                  uv sync --all-groups --all-packages
+          filters:
+            branches:
+              ignore:
+                - main
+
+  audit:
+    jobs:
+      - pip-audit/pip_audit_ip:
+          name: pip-audit
+          context: arrai-global
+          executor: python311-base
+          env_type: uv
+          filters:
+            branches:
+              only:
+                - main
+      - pip-audit/pip_audit:
+          name: pip-audit-no-badge
+          context: arrai-global
+          executor: python311-base
+          env_type: uv
+          create_badges: false
+          filters:
+            branches:
+              ignore:
+                - main

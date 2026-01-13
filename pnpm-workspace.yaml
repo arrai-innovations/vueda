@@ -1,0 +1,12 @@
+packages:
+  - client
+  - server
+
+ignoredBuiltDependencies:
+  - lefthook
+
+onlyBuiltDependencies:
+  - esbuild
+  - msw
+  - unrs-resolver
+  - vue-demi
