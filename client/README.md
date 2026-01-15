@@ -1,6 +1,6 @@
-# vueda-client
+# VUEDA Client
 
-![VUEDA Logo - Vue.js User Experience for Django Admin](/VUEDA.png)
+![VUEDA logo - vueda - vue.js user experience for django administration](/docs/assets/logo-text.png)
 
 [![code style: prettier][]][prettier] ![tests][] [![coverage: status][]][coverage] ![eslint][] ![audit][]
 
@@ -37,18 +37,18 @@
 
 ## About
 
-[vueda-client] offers a dynamic Vue.js frontend framework, tailored
+[VUEDA Client][vueda-client] offers a dynamic Vue.js frontend framework, tailored
 for seamless integration with Django REST Framework backends and designed to
-complement [vueda-server]. This client library enables rapid development of
+complement [VUEDA Server][vueda-server]. This client library enables rapid development of
 reactive user interfaces in Django-Vue projects. It features components and
 composables for efficient form handling, CRUD operations, and dynamic routing.
 These tools allow client-side configuration and leverage server-supplied model
 and field metadata to drive forms, fields, views, and routes dynamically.
-Prioritizing developer flexibility, [vueda-client] provides extensive
+Prioritizing developer flexibility, [VUEDA Client][vueda-client] provides extensive
 customization and theming options for its default components. It also includes
 authentication, navigation, and permission management features, all
 crafted to integrate smoothly with the corresponding backend
-services of [vueda-server].
+services of [VUEDA Server][vueda-server].
 
 ## Install
 
@@ -115,16 +115,17 @@ services of [vueda-server].
 Clone the repository and install the dependencies:
 
 ```console
-$ git clone git://github.com/arrai-innovations/vueda-client.git
-$ cd vueda-client
-[vueda-client]$ npm install --include=dev
+$ git clone https://github.com/arrai-innovations/vueda.git
+$ cd vueda
+[vueda]$ cd client
+[client]$ npm install --include=dev
 ```
 
 Installing without dev dependencies will not work as husky is a dev dependency and is called in prepare.
 
 ### Running Locally
 
-As a library, `vueda-client` is not intended to be run as a standalone application.
+As a library, VUEDA Client is not intended to be run as a standalone application.
 It is designed to be integrated into a Vue.js project, where it will be served by the Django backend.
 However, you can use the example server & client to run the library locally.
 
@@ -151,13 +152,13 @@ However, you can use the example server & client to run the library locally.
    [vueda-example-server]$ npm install
    [vueda-example-server]$ pipenv install
    ```
-6. Use the local version of `vueda-client` in the example client:
+6. Use the local version of VUEDA Client in the example client:
     ```console
-    [vueda-example-client]$ npm link ../vueda-client
+    [vueda-example-client]$ npm link ../vueda/client
     ```
-7. Use the local version of `vueda-server` in the example server:
+7. Use the local version of VUEDA Server in the example server:
     ```console
-    [vueda-example-server]$ pipenv run pip install -e ../vueda-server
+    [vueda-example-server]$ pipenv run pip install -e ../vueda/server
     ```
 8. Run the server:
     ```console
@@ -178,7 +179,7 @@ $ npm run test
 
 #### Writing Tests
 
-[vueda-client] has unit tests for its components and composables. These tests are written using the [@testing-library/vue] library. The tests are located in the `tests` directory. The tests run using [vitest].
+[VUEDA Client][vueda-client] has unit tests for its components and composables. These tests are written using the [@testing-library/vue] library. The tests are located in the `tests` directory. The tests run using [vitest].
 
 #### Coverage
 
@@ -220,7 +221,7 @@ See [CHANGELOG.md](./CHANGELOG.md) for a complete list of changes by version.
 [eslint]: https://docs.arrai.dev/vueda-client/artifacts/main/eslint.svg
 [audit]: https://docs.arrai.dev/vueda-client/artifacts/main/npm-audit.svg
 [tests]: https://docs.arrai.dev/vueda-client/artifacts/main/tests.svg
-[vueda-client]: https://github.com/arrai-innovations/vueda-client
-[vueda-server]: https://github.com/arrai-innovations/vueda-server
+[vueda-client]: ./README.md
+[vueda-server]: ../server/README.md
 [@testing-library/vue]: https://github.com/testing-library/vue-testing-library
 [vitest]: https://github.com/vitest-dev/vitest

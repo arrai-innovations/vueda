@@ -1,0 +1,12 @@
+{% extends "default/module.html.jinja2" %}
+
+{% block head %}
+  {{ super() }}
+  <link rel="stylesheet" href="/vueda/assets/brand.css">
+{% endblock %}
+
+{% block nav_title %}
+  <a class="pdoc-nav-title" href="/vueda/reference/index.html">
+    <img src="/vueda/assets/logo-cube.svg" alt="vueda - vue.js user experience for django administration" style="max-height: 28px;" />
+  </a>
+{% endblock %}

@@ -1,0 +1,96 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+:root {
+  --vueda-blue: #1e88e5;
+  --vueda-green: #2bb673;
+  --arrai-blue: #1b3f91;
+  --arrai-cyan: #00a7d1;
+  --ink: #0f172a;
+  --muted: #475569;
+  --paper: #f8fafc;
+  --accent: #0ea5e9;
+
+  --md-text-font: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --md-code-font: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --md-primary-fg-color: var(--arrai-blue);
+  --md-accent-fg-color: var(--accent);
+}
+
+body {
+  font-family: var(--md-text-font);
+  color: var(--ink);
+  background: linear-gradient(180deg, #f3f6fb 0%, #ffffff 240px) fixed;
+}
+
+a {
+  color: var(--accent);
+}
+
+a:hover {
+  color: var(--vueda-blue);
+}
+
+.md-header {
+  background: linear-gradient(90deg, #142a66 0%, #1b3f91 60%, #1e88e5 100%);
+}
+
+.md-header__title {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.md-nav__title {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4 {
+  letter-spacing: -0.01em;
+}
+
+.md-typeset code {
+  font-family: var(--md-code-font);
+}
+
+.brand-lockup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+  margin: 24px 0 32px;
+}
+
+.brand-lockup img {
+  max-height: 56px;
+}
+
+.brand-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+}
+
+/* pdoc overrides */
+.pdoc-content {
+  font-family: var(--md-text-font);
+}
+
+.pdoc-content h1,
+.pdoc-content h2,
+.pdoc-content h3 {
+  letter-spacing: -0.01em;
+}
+
+.pdoc-content a {
+  color: var(--accent);
+}
+
+.pdoc-sidebar {
+  background: #f1f5f9;
+  border-right: 1px solid #e2e8f0;
+}

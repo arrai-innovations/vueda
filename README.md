@@ -1,6 +1,6 @@
 # VUEDA Monorepo
 
-![VUEDA Logo - Vue.js User Experience for Django Admin](/VUEDA.png)
+![VUEDA logo - vueda - vue.js user experience for django administration](/docs/assets/logo-text.png)
 
 Links:
 - [Server docs](./server/README.md)
@@ -27,15 +27,15 @@ routing helpers that consume the API and render forms, lists, and detail views
 dynamically.
 
 See the package‑specific docs for details:
-- [vueda-server](./server/README.md)
-- [vueda-client](./client/README.md)
+- [VUEDA Server](./server/README.md)
+- [VUEDA Client](./client/README.md)
 
 ## Repository Layout
 
 ```
 /
-  server/   # Django + DRF package (vueda-server)
-  client/   # Vue 3 component library (vueda-client)
+  server/   # Django + DRF package (VUEDA Server)
+  client/   # Vue 3 component library (VUEDA Client)
 ```
 
 ## Getting Started
