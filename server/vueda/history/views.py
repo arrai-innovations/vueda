@@ -7,7 +7,7 @@ from rest_framework import status as drf_status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from vueda.history.serialiers import WhoIsSerializer
+from vueda.history.serializers.users import WhoIsSerializer
 from vueda.user.views import WhoIsView as CoreWhoIsView
 from vueda.workflow.views import WorkflowView
 
