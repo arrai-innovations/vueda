@@ -1,8 +1,10 @@
 """Minimal Django settings for documentation builds."""
+
 from pathlib import Path
 
 from vueda.core.config import TomlEnv
 from vueda.core.default_settings import get_defaults
+
 
 ROOT_DIR = Path(__file__).resolve().parent
 
