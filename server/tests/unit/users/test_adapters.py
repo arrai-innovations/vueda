@@ -31,7 +31,7 @@ def test_send_sms_requires_destination(monkeypatch):
     TWILIO_ACCOUNT_SID="TESTSID",
     TWILIO_AUTH_TOKEN="TESTAUTH",
     TWILIO_CALLER_ID="+15551239999",
-    SITE_NAME="Vueda",
+    SITE_NAME="VUEDA",
 )
 @pytest.mark.django_db
 def test_send_sms_sends_message(monkeypatch):
@@ -43,7 +43,7 @@ def test_send_sms_sends_message(monkeypatch):
             "email/totp_code_message.txt",
         ]
         assert context["code"] == "123456"
-        assert context["site_name"] == "Vueda"
+        assert context["site_name"] == "VUEDA"
         return "Use code 123456"
 
     captured = {}
@@ -71,9 +71,9 @@ def test_send_sms_sends_message(monkeypatch):
 
 
 @override_settings(
-    SITE_NAME="Vueda",
+    SITE_NAME="VUEDA",
     NO_REPLY_EMAIL="no-reply@example.com",
-    EMAIL_SUBJECT_PREFIX="[Vueda] ",
+    EMAIL_SUBJECT_PREFIX="[VUEDA] ",
 )
 @pytest.mark.django_db
 def test_send_mail_sends_message(monkeypatch):
@@ -133,7 +133,7 @@ def test_send_mail_sends_message(monkeypatch):
     assert sender.email == "no-reply@example.com"
     assert receivers[0].name == "Test User"
     assert receivers[0].email == "user@example.com"
-    assert captured["subject"] == "[Vueda] Daily Code"
+    assert captured["subject"] == "[VUEDA] Daily Code"
     assert captured["text"] == "Use code 123456"
     assert captured["html"] == "<p>Use code 123456</p>"
     assert captured["origin"] is None
