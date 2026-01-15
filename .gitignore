@@ -20,3 +20,9 @@ logs
 *.njsproj
 *.sln
 *.sw?
+site/
+docs/api/server/
+docs/api/client/
+docs/api/schema.yml
+docs/api/rest.html
+docs/reference/api/
