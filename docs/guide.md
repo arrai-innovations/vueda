@@ -1,5 +1,38 @@
 # Implementor Guide
 
+<!--prettier-ignore-start-->
+<!--TOC-->
+
+- [Implementor Guide](#implementor-guide)
+  - [Introduction](#introduction)
+  - [Architecture Overview](#architecture-overview)
+  - [Design Principles](#design-principles)
+    - [Server-Side Principles](#server-side-principles)
+    - [Client-Side Principles](#client-side-principles)
+  - [Key Concepts](#key-concepts)
+    - [Server-Side Concepts](#server-side-concepts)
+      - [Models and Serializers](#models-and-serializers)
+      - [Permissions and Authentication](#permissions-and-authentication)
+      - [Views and ViewSets](#views-and-viewsets)
+      - [Routing and URLs](#routing-and-urls)
+      - [Filters and Search](#filters-and-search)
+      - [Flexfields and Pagination](#flexfields-and-pagination)
+    - [Client-Side Concepts](#client-side-concepts)
+      - [Components and Composition API](#components-and-composition-api)
+      - [State Management](#state-management)
+      - [API Interaction](#api-interaction)
+      - [Theming and Customization](#theming-and-customization)
+  - [Server-Client Contract](#server-client-contract)
+    - [Primary Key (PK) Discipline](#primary-key-pk-discipline)
+  - [Customization and Extensibility](#customization-and-extensibility)
+    - [Server-Side Customization](#server-side-customization)
+    - [Client-Side Customization](#client-side-customization)
+  - [Opinionated Defaults](#opinionated-defaults)
+  - [Permissions, Security, and Trust Boundaries](#permissions-security-and-trust-boundaries)
+
+<!--TOC-->
+<!--prettier-ignore-end-->
+
 ## Introduction
 
 VUEDA is a server-side & client-side framework designed to simplify the development of 
