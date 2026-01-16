@@ -1,13 +1,17 @@
 import { defineConfig } from 'vitepress';
 
+const base = '/vueda/';
+
 export default defineConfig({
   title: 'VUEDA',
   description: 'Implementor guide, changelog, and reference for VUEDA.',
   lastUpdated: true,
-  base: '/vueda/',
+  base,
   outDir: '../site',
   head: [
-    ['link', { rel: 'icon', href: '/assets/logo-cube.svg' }],
+    ['link', { rel: 'icon', href: `${base}assets/logo-cube.svg` }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: `${base}assets/logo-cube.png` }],
+    ['link', { rel: 'apple-touch-icon', href: `${base}assets/logo-cube.png` }],
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
     [
