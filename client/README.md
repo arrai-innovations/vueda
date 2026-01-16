@@ -5,34 +5,34 @@
 [![code style: prettier][]][prettier] ![tests][] [![coverage: status][]][coverage] ![eslint][] ![audit][]
 
 <!-- prettier-ignore-start -->
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+<!--TOC-->
 
-- [About](#about)
-- [Install](#install)
-- [Usage](#usage)
-  - [JSDocs](#jsdocs)
-  - [Forms](#forms)
-  - [CRUD Operation Views](#crud-operation-views)
-  - [Dynamic Routing](#dynamic-routing)
-  - [Authentication](#authentication)
-  - [Navigation](#navigation)
-  - [Permissions](#permissions)
-  - [Theming](#theming)
-  - [Customization](#customization)
-- [Development](#development)
-  - [Environment](#environment)
-  - [Running Locally](#running-locally)
-  - [Testing](#testing)
-    - [Running Tests](#running-tests)
-    - [Writing Tests](#writing-tests)
-    - [Coverage](#coverage)
-  - [Reporting Bugs](#reporting-bugs)
-  - [Getting my changes into the main branch](#getting-my-changes-into-the-main-branch)
-  - [Making a Release](#making-a-release)
-  - [Changelog](#changelog)
+- [VUEDA Client](#vueda-client)
+  - [About](#about)
+  - [Install](#install)
+  - [Usage](#usage)
+    - [JSDocs](#jsdocs)
+    - [Forms](#forms)
+    - [CRUD Operation Views](#crud-operation-views)
+    - [Dynamic Routing](#dynamic-routing)
+    - [Authentication](#authentication)
+    - [Navigation](#navigation)
+    - [Permissions](#permissions)
+    - [Theming](#theming)
+    - [Customization](#customization)
+  - [Development](#development)
+    - [Environment](#environment)
+    - [Running Locally](#running-locally)
+    - [Testing](#testing)
+      - [Running Tests](#running-tests)
+      - [Writing Tests](#writing-tests)
+      - [Coverage](#coverage)
+    - [Reporting Bugs](#reporting-bugs)
+    - [Getting my changes into the main branch](#getting-my-changes-into-the-main-branch)
+    - [Making a Release](#making-a-release)
+    - [Changelog](#changelog)
 
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+<!--TOC-->
 <!-- prettier-ignore-end -->
 
 ## About
@@ -147,11 +147,11 @@ However, you can use the example server & client to run the library locally.
     $ git clone https://github.com/arrai-innovations/vueda-example-server.git
     ```
 4. Install the dependencies:
-5. ```console
-   $ cd vueda-example-server
-   [vueda-example-server]$ npm install
-   [vueda-example-server]$ pipenv install
-   ```
+    ```console
+    $ cd vueda-example-server
+    [vueda-example-server]$ npm install
+    [vueda-example-server]$ pipenv install
+    ```
 6. Use the local version of VUEDA Client in the example client:
     ```console
     [vueda-example-client]$ npm link ../vueda/client

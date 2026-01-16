@@ -6,16 +6,18 @@ Links:
 - [Server docs](./server/README.md)
 - [Client docs](./client/README.md)
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+<!--prettier-ignore-start-->
+<!--TOC-->
 
-- [About](#about)
-- [Repository Layout](#repository-layout)
-- [Getting Started](#getting-started)
-- [Checks and Tests](#checks-and-tests)
-- [Release Tags](#release-tags)
+- [VUEDA Monorepo](#vueda-monorepo)
+  - [About](#about)
+  - [Repository Layout](#repository-layout)
+  - [Getting Started](#getting-started)
+  - [Checks and Tests](#checks-and-tests)
+  - [Release Tags](#release-tags)
 
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+<!--TOC-->
+<!--prettier-ignore-end-->
 
 ## About
 

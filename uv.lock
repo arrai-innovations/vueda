@@ -5,6 +5,7 @@ requires-python = ">=3.11, <3.14"
 [manifest]
 members = [
     "vueda",
+    "vueda-workspace",
 ]
 
 [[package]]
@@ -2192,7 +2193,6 @@ dev = [
     { name = "gunicorn" },
     { name = "ipdb" },
     { name = "jinja2" },
-    { name = "md-toc" },
     { name = "psycopg", extra = ["c"] },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -2254,7 +2254,6 @@ dev = [
     { name = "gunicorn", specifier = ">=21.2.0" },
     { name = "ipdb", specifier = ">=0.13.13" },
     { name = "jinja2", specifier = ">=3.1.2" },
-    { name = "md-toc", specifier = ">=8.2.2" },
     { name = "psycopg", extras = ["c"], specifier = ">=3.1.15,<4" },
     { name = "pytest", specifier = ">=7.4.3" },
     { name = "pytest-cov", specifier = ">=4.1.0" },
@@ -2271,6 +2270,21 @@ docs = [
     { name = "mkdocs-material", specifier = ">=9.6.0" },
     { name = "pdoc", specifier = ">=14.7.0" },
 ]
+
+[[package]]
+name = "vueda-workspace"
+version = "0.0.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "md-toc" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "md-toc", specifier = ">=8.2.2" }]
 
 [[package]]
 name = "watchdog"
