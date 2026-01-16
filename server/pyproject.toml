@@ -86,8 +86,6 @@ dev = [
     "drf-spectacular >=0.28.0,<0.29",
 ]
 docs = [
-    "mkdocs >=1.6.1",
-    "mkdocs-material >=9.6.0",
     "pdoc >=14.7.0",
 ]
 

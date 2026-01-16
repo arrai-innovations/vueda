@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Build MkDocs guide/changelog and pdoc reference with Django initialized."""
+"""Build VitePress guide/changelog and pdoc reference with Django initialized."""
 from __future__ import annotations
 
 import argparse
@@ -19,7 +19,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build documentation outputs.")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--reference-only", action="store_true", help="Only build pdoc reference output.")
-    group.add_argument("--mkdocs-only", action="store_true", help="Only build MkDocs guide/changelog output.")
+    group.add_argument("--mkdocs-only", action="store_true", help="Only build docs site output.")
     return parser.parse_args()
 
 
@@ -40,7 +40,7 @@ def main() -> int:
 
         django.setup()
 
-        reference_root = DOCS_DIR / "api" / "server"
+        reference_root = DOCS_DIR / "public" / "api" / "server"
         if reference_root.exists():
             shutil.rmtree(reference_root)
         reference_root.mkdir(parents=True, exist_ok=True)
@@ -59,7 +59,7 @@ def main() -> int:
         )
 
     if not args.reference_only:
-        result = subprocess.run(["mkdocs", "build"], check=False)
+        result = subprocess.run(["pnpm", "exec", "vitepress", "build", "docs"], check=False)
         exit_code = result.returncode
 
     return exit_code

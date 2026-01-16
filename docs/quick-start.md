@@ -9,24 +9,6 @@ If you already have an existing Django or Vue project, this guide is still
 useful as a reference for how VUEDA expects projects to be structured, but it
 does not attempt to provide conversion steps.
 
-<!--prettier-ignore-start-->
-<!--TOC-->
-
-- [VUEDA Quick Start Guide](#vueda-quick-start-guide)
-  - [Prerequisites](#prerequisites)
-  - [Repository Layout](#repository-layout)
-    - [Server](#server)
-    - [Client](#client)
-  - [Create the Monorepo](#create-the-monorepo)
-  - [Server Setup (Django + VUEDA Server)](#server-setup-django--vueda-server)
-  - [Client Setup (Vue + VUEDA Client)](#client-setup-vue--vueda-client)
-  - [Run Locally](#run-locally)
-  - [Tooling Notes (ruff, eslint, prettier, md-toc)](#tooling-notes-ruff-eslint-prettier-md-toc)
-  - [CI Notes (CircleCI Orbs)](#ci-notes-circleci-orbs)
-
-<!--TOC-->
-<!--prettier-ignore-end-->
-
 ## Prerequisites
 
 - [Python 3.11+](https://www.python.org/downloads/)

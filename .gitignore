@@ -21,8 +21,14 @@ logs
 *.sln
 *.sw?
 site/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
 docs/api/server/
 docs/api/client/
 docs/api/schema.yml
 docs/api/rest.html
 docs/reference/api/
+docs/public/api/server/
+docs/public/api/client/
+docs/public/api/schema.yml
+docs/public/api/rest.html

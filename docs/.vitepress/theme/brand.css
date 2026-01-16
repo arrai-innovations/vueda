@@ -10,16 +10,22 @@
   --paper: #f8fafc;
   --accent: #0ea5e9;
 
-  --md-text-font: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --md-code-font: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --md-primary-fg-color: var(--arrai-blue);
-  --md-accent-fg-color: var(--accent);
+  --vp-font-family-base: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --vp-font-family-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --vp-c-brand-1: var(--arrai-blue);
+  --vp-c-brand-2: var(--accent);
+  --vp-c-brand-3: var(--vueda-blue);
 }
 
 body {
-  font-family: var(--md-text-font);
+  font-family: var(--vp-font-family-base);
   color: var(--ink);
   background: linear-gradient(180deg, #f3f6fb 0%, #ffffff 240px) fixed;
+}
+
+.dark body {
+  color: var(--vp-c-text-1);
+  background: var(--vp-c-bg);
 }
 
 a {
@@ -30,29 +36,17 @@ a:hover {
   color: var(--vueda-blue);
 }
 
-.md-header {
-  background: linear-gradient(90deg, #142a66 0%, #1b3f91 60%, #1e88e5 100%);
+.mermaid {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
 }
 
-.md-header__title {
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.md-nav__title {
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.md-typeset h1,
-.md-typeset h2,
-.md-typeset h3,
-.md-typeset h4 {
-  letter-spacing: -0.01em;
-}
-
-.md-typeset code {
-  font-family: var(--md-code-font);
+.dark .mermaid {
+  background: var(--vp-c-bg-alt);
+  border-color: var(--vp-c-divider);
 }
 
 .brand-lockup {
@@ -75,9 +69,15 @@ a:hover {
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
 }
 
+.dark .brand-card {
+  border-color: var(--vp-c-divider);
+  background: var(--vp-c-bg-alt);
+  box-shadow: none;
+}
+
 /* pdoc overrides */
 .pdoc-content {
-  font-family: var(--md-text-font);
+  font-family: var(--vp-font-family-base);
 }
 
 .pdoc-content h1,
@@ -93,4 +93,9 @@ a:hover {
 .pdoc-sidebar {
   background: #f1f5f9;
   border-right: 1px solid #e2e8f0;
+}
+
+.dark .pdoc-sidebar {
+  background: var(--vp-c-bg-alt);
+  border-right: 1px solid var(--vp-c-divider);
 }

@@ -70,7 +70,7 @@ pre-commit:
     fix-md-toc:
       stage_fixed: true
       run: |
-        files="$(git diff --name-only --cached -- '*.md' | rg -v '/AGENT\\.md$|/AGENTS\\.md$')"
+        files="$(git diff --name-only --cached --diff-filter=d -- '*.md' | rg -v '/AGENT\\.md$|/AGENTS\\.md$')"
         if [ -n "$files" ]; then
           uv run --no-sync python -m md_toc -p github $files
         fi

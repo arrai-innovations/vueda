@@ -1,8 +1,8 @@
 # VUEDA Server Documentation
 
 <div class="brand-lockup">
-  <img src="../assets/logo-text.svg" alt="vueda - vue.js user experience for django administration" />
-  <img src="../assets/arrai-logo.svg" alt="arrai innovations - software for success" />
+  <img :src="withBase('/assets/logo-text.svg')" alt="vueda - vue.js user experience for django administration" />
+  <img :src="withBase('/assets/arrai-logo.svg')" alt="arrai innovations - software for success" />
 </div>
 
 Welcome to the implementor-facing documentation for VUEDA Server.
@@ -22,3 +22,7 @@ Welcome to the implementor-facing documentation for VUEDA Server.
 - Browse the [Reference](reference/index.md).
 
 </div>
+
+<script setup>
+import { withBase } from 'vitepress';
+</script>

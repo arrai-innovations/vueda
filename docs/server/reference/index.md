@@ -1,6 +1,6 @@
 # Reference
 
-This section is generated with pdoc and lives under `docs/api/server/`.
+This section is generated with pdoc and lives under `docs/public/api/server/`.
 
 ## Generate locally
 
@@ -8,4 +8,4 @@ This section is generated with pdoc and lives under `docs/api/server/`.
 uv run --no-sync python scripts/build_docs.py --reference-only
 ```
 
-The template injects `docs/assets/brand.css` so the reference site matches the guide.
+The template injects `docs/public/assets/brand.css` so the reference site matches the guide.

@@ -34,17 +34,18 @@ fix-client:
   cd {{justfile_directory()}}/client && pnpm run eslint && pnpm run prettier
 
 docs:
-  cd {{justfile_directory()}} && uv run --no-sync mkdocs build
+  cd {{justfile_directory()}} && pnpm exec vitepress build docs
 
 docs-serve:
-  cd {{justfile_directory()}} && uv run --no-sync mkdocs serve --dev-addr 0.0.0.0:8000
+  cd {{justfile_directory()}} && pnpm exec vitepress dev docs --host 0.0.0.0 --port 8000
 
 docs-api:
   cd {{justfile_directory()}} && uv run --no-sync python scripts/build_docs.py --reference-only
 
 docs-rest:
-  cd {{justfile_directory()}}/server && uv run --no-sync python manage.py spectacular --color --file ../docs/api/schema.yml
-  cd {{justfile_directory()}} && npx -y @redocly/cli build-docs docs/api/schema.yml -o docs/api/rest.html
+  mkdir -p {{justfile_directory()}}/docs/public/api
+  cd {{justfile_directory()}}/server && uv run --no-sync python manage.py spectacular --color --file ../docs/public/api/schema.yml
+  cd {{justfile_directory()}} && npx -y @redocly/cli build-docs docs/public/api/schema.yml -o docs/public/api/rest.html
 
 docs-all:
   just docs-api

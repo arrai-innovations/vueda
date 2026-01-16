@@ -4,8 +4,10 @@
   "scripts": {},
   "devDependencies": {
     "@arrai-innovations/commitlint-config": "^2.1.0",
-    "@commitlint/cli": "^19.8.1",
+    "@vue/compiler-sfc": "^3.5.13",
     "concurrently": "^9.2.1",
-    "lefthook": "^1.13.6"
+    "lefthook": "^1.13.6",
+    "vitepress": "^1.6.4",
+    "vue": "^3.5.13"
   }
 }
