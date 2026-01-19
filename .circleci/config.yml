@@ -182,7 +182,7 @@ jobs:
           command: pnpm install
       - run:
           name: Publish
-          command: pnpm -C client publish
+          command: pnpm -C client publish --no-git-checks
 
 workflows:
   server-test:
