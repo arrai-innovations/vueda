@@ -182,7 +182,9 @@ jobs:
           command: pnpm install
       - run:
           name: Publish
-          command: pnpm -C client publish --publish-branch $CIRCLE_TAG
+          command: |
+            cd client
+            pnpm publish --no-git-checks
 
 workflows:
   server-test:
