@@ -28,31 +28,6 @@ executors:
       - image: cimg/node:lts
 
 jobs:
-  run_pipeline:
-    parameters:
-      vcs:
-        type: enum
-        enum: [bitbucket, github]
-        default: github
-      org:
-        type: string
-        default: ${CIRCLE_PROJECT_USERNAME}
-      project:
-        type: string
-      token:
-        type: string
-        default: ${CIRCLECI_API_TOKEN}
-    executor: base
-    resource_class: small
-    steps:
-      - run:
-          name: Run Pipeline
-          command: |
-            curl --location \
-                 --request POST "https://circleci.com/api/v2/project/<<parameters.vcs>>/<<parameters.org>>/<<parameters.project>>/pipeline" \
-                 --header 'Content-Type: application/json' \
-                 --user "<<parameters.token>>:"
-
   server-build:
     executor: python311-base
     resource_class: small
