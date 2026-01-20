@@ -58,8 +58,7 @@ jobs:
           name: Build Package
           command: |
             cd server
-            pip install --user --upgrade build
-            python -m build --wheel
+            uv build --wheel
             cd ..
             rm -rf dist
             mkdir -p dist
