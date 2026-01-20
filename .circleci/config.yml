@@ -36,22 +36,17 @@ jobs:
       - run:
           name: Verify Git Tag Matches Python Version
           command: |
-            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null)
-            if [ $? -ne 0 ]; then
-              echo "No exact match Git tag found."
+            if [[ "$CIRCLE_TAG" != server-v* ]]; then
+              echo "Tag $CIRCLE_TAG is not a server release tag."
               exit 1
             fi
-            if [[ "$GIT_TAG" != server-v* ]]; then
-              echo "Tag $GIT_TAG is not a server release tag."
-              exit 1
-            fi
-            TAG_VERSION="${GIT_TAG#server-v}"
+            TAG_VERSION="${CIRCLE_TAG#server-v}"
             PYTHON_VERSION=$(cd server && python -c "import vueda; print(vueda.__version__)")
             if [ "$TAG_VERSION" == "$PYTHON_VERSION" ]; then
-              echo "Git tag matches the Python version: $GIT_TAG"
+              echo "Git tag matches the Python version: $CIRCLE_TAG"
               exit 0
             else
-              echo "Git tag ($GIT_TAG) does not match the Python version ($PYTHON_VERSION)."
+              echo "Git tag ($CIRCLE_TAG) does not match the Python version ($PYTHON_VERSION)."
               exit 1
             fi
       - run:
