@@ -39,6 +39,10 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
+    fetchState: {
+        type: Object,
+        default: () => ({ errored: false, error: null, loading: undefined }),
+    },
     actionState: {
         type: Object,
         default: () => ({ errored: false, error: null, loading: undefined }),
@@ -67,27 +71,27 @@ const props = defineProps({
 });
 const toast = useToast();
 
-const actionFormState = reactive({
+const localActionState = reactive({
     loading: false,
     errored: false,
     error: null,
-    submitting: false,
 });
 const combinedError = computed(() => {
-    return props.actionState.error || actionFormState.error;
+    return props.fetchState.error || localActionState.error;
 });
 const combinedErrored = computed(() => !!combinedError.value);
-const combinedLoading = computed(() => loadingCombine(props.actionState.loading, actionFormState.loading));
+const combinedLoading = computed(() => loadingCombine(props.fetchState.loading, localActionState.loading));
 
 const formContext = inject(FormContextSymbol);
 let actionPromise = null;
 const handleConfirm = async (dryRun = false) => {
     formContext.setAllTouched();
+    localActionState.loading = true;
     if (props.hasInput && !dryRun) {
         await nextTick();
         if (!formContext.state.anyModified) {
             await defaultOnSubmitNotAnyModified({ toast });
-            actionFormState.submitting = false;
+            localActionState.loading = false;
             return;
         }
         if (formContext.state.anyError) {
@@ -102,15 +106,14 @@ const handleConfirm = async (dryRun = false) => {
                     detail: `Please correct the highlighted error${plural ? "s" : ""}.`,
                     life: 10000,
                 });
-                actionFormState.submitting = false;
+                localActionState.loading = false;
                 return;
             }
         }
     }
 
-    actionFormState.loading = true;
-    actionFormState.errored = false;
-    actionFormState.error = null;
+    localActionState.errored = false;
+    localActionState.error = null;
     try {
         actionPromise = props.runAction({
             formValues: formContext.state.submittingValues,
@@ -141,7 +144,7 @@ const handleConfirm = async (dryRun = false) => {
         await handleError(error, dryRun);
     } finally {
         actionPromise = null;
-        actionFormState.loading = false;
+        localActionState.loading = false;
     }
 };
 
@@ -155,12 +158,12 @@ const handleError = async (error, dryRun) => {
     const errorHandler = props.onSubmissionErrorHandler || defaultOnSubmissionError;
     const handled = await errorHandler({ error, formContext, toast });
     if (!handled) {
-        actionFormState.errored = true;
-        actionFormState.error = error;
+        localActionState.errored = true;
+        localActionState.error = error;
         toast.add({
             severity: "error",
             summary: props.actionErrorSummary || "Action Failed",
-            detail: actionFormState.error,
+            detail: localActionState.error,
             life: 15000,
         });
     }
