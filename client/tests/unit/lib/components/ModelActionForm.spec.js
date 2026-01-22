@@ -7,7 +7,7 @@ import { defineComponent, h } from "vue";
 
 const ActionFormStub = defineComponent({
     name: "ActionFormStub",
-    props: ["actionState", "runAction", "redirectTo", "actionSuccessSummary", "actionErrorSummary", "readyToDryRun"],
+    props: ["fetchState", "runAction", "redirectTo", "actionSuccessSummary", "actionErrorSummary", "readyToDryRun"],
     setup(props, { slots }) {
         return () =>
             h(
@@ -19,7 +19,7 @@ const ActionFormStub = defineComponent({
                 },
                 [
                     slots["action-form-inner"]
-                        ? slots["action-form-inner"]({ combinedLoading: props.actionState?.loading ?? false })
+                        ? slots["action-form-inner"]({ combinedLoading: props.fetchState?.loading ?? false })
                         : null,
                     slots.default ? slots.default() : null,
                 ],

@@ -98,6 +98,7 @@ function mountActionForm(options = {}) {
         props: {
             runAction: options.runAction,
             actionState: options.actionState,
+            fetchState: options.fetchState,
             redirectTo: options.redirectTo,
             hasInput: options.hasInput,
             onSubmissionSuccessHandler: options.onSubmissionSuccessHandler,
@@ -137,7 +138,7 @@ describe("lib/components/ActionForm.vue", () => {
     describe("Rendering", () => {
         scopedIt("renders error display and default buttons", () => {
             const { wrapper } = mountActionForm({
-                actionState: { error: new Error("boom"), loading: true },
+                fetchState: { error: new Error("boom"), loading: true },
             });
             const root = wrapper.get('[data-qa="action-form-root"]');
             expect(root.exists()).toBe(true);
@@ -254,6 +255,55 @@ describe("lib/components/ActionForm.vue", () => {
             expect(handler).toHaveBeenCalled();
             expect(wrapper.find('[data-qa="error-display"]').attributes("data-error")).toBe("false");
             expect(toastAdd).not.toHaveBeenCalledWith(expect.objectContaining({ severity: "error" }));
+        });
+
+        scopedIt("actionState error should be displayed when not handled", async () => {
+            const actionState = vue.reactive({
+                error: null,
+                errored: false,
+                loading: false,
+            });
+            const runAction = vi.fn(() => {
+                actionState.error = new Error("auth error");
+                actionState.errored = true;
+                return Promise.resolve();
+            });
+
+            const { wrapper } = mountActionForm({ runAction, actionState });
+
+            await wrapper.find("form").trigger("submit.prevent");
+            await flushPromises();
+
+            const display = wrapper.get('[data-qa="error-display"]');
+            expect(display.attributes("data-error")).toBe("true");
+            expect(display.attributes("data-errored")).toBe("true");
+        });
+
+        scopedIt("does not display actionState error when handled", async () => {
+            const actionState = vue.reactive({
+                error: null,
+                errored: false,
+                loading: false,
+            });
+            const runAction = vi.fn(() => {
+                actionState.error = new Error("handled error");
+                actionState.errored = true;
+                return Promise.resolve();
+            });
+            const handler = vi.fn(async () => true); // Returns true = handled
+
+            const { wrapper } = mountActionForm({
+                runAction,
+                actionState,
+                onSubmissionErrorHandler: handler,
+            });
+
+            await wrapper.find("form").trigger("submit.prevent");
+            await flushPromises();
+
+            const display = wrapper.get('[data-qa="error-display"]');
+            expect(display.attributes("data-error")).toBe("false");
+            expect(display.attributes("data-errored")).toBe("false");
         });
     });
 
