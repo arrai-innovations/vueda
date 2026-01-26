@@ -2,6 +2,7 @@ import { useModelInfo } from "@vueda/use/useModelInfo.js";
 import { filterExpressions } from "@vueda/utils/filterLookups.js";
 import isEqual from "lodash-es/isEqual.js";
 import { readonly, ref, watch } from "vue";
+import merge from "lodash-es/merge.js";
 
 const fieldInitialValueMappings = {
     BooleanField: {
@@ -83,12 +84,22 @@ const fieldInitialValueMappings = {
         TimeField: null,
     },
     URLField: {
-        URLField: null,
+        URLField: "",
     },
     UUIDField: {
         UUIDField: null,
     },
 };
+
+/**
+ * Merge custom field initial value mappings into the default set used for forms.
+ *
+ * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
+ * @returns {typeof fieldInitialValueMappings} The updated initial value field mappings.
+ */
+export function mergeModelInitialValuesMappings(customMappings) {
+    return merge(fieldInitialValueMappings, customMappings);
+}
 
 export const getFieldInitialValue = (fieldDetail) => {
     if (fieldDetail.many) {
