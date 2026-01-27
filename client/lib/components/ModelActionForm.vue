@@ -176,7 +176,7 @@ const dryRun = computed(
 
 <template>
     <action-form
-        :action-state="fetchState"
+        :fetch-state="fetchState"
         :redirect-to="redirectTo"
         :run-action="defaultRunAction"
         :ready-to-dry-run="dryRun"
