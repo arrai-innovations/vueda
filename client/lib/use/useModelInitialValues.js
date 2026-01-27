@@ -1,8 +1,8 @@
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
 import { filterExpressions } from "@vueda/utils/filterLookups.js";
 import isEqual from "lodash-es/isEqual.js";
-import { readonly, ref, watch } from "vue";
 import merge from "lodash-es/merge.js";
+import { readonly, ref, watch } from "vue";
 
 const fieldInitialValueMappings = {
     BooleanField: {
