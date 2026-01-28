@@ -77,6 +77,7 @@ pre-commit:
         fi
     circleci-config:
       run: |
-        if git diff --name-only --cached -- '.circleci/config.yml' | rg -q .; then
-          circleci config validate -c .circleci/config.yml
-        fi
+        readarray -t files < <(git diff --name-only --cached -- '.circleci/*.yml')
+        for file in ${files[@]}; do
+            circleci config validate ${file}
+        done
