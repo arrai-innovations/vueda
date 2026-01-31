@@ -55,6 +55,7 @@ const inlineState = reactive({
 });
 const emptyObject = { empty: true };
 const toggleVisibility = vi.fn();
+const updateInitialValue = vi.fn();
 const mockedUseFieldSetInline = vi.fn(() => ({
     state: inlineState,
     resolvedSlotNames: {
@@ -80,7 +81,7 @@ let FieldSetSingularStackedInline, vue;
 beforeEach(async () => {
     vue = await vi.importActual("vue");
     fieldState = vue.reactive({ name: "fs", label: "FS", value: null });
-    fieldSetContext = { state: fieldState, blur: vi.fn(), ignore: vi.fn(), removeIgnore: vi.fn() };
+    fieldSetContext = { state: fieldState, blur: vi.fn(), ignore: vi.fn(), removeIgnore: vi.fn(), updateInitialValue };
     FieldSetSingularStackedInline = (await import("@vueda/fields/FieldSetSingularStackedInline.vue")).default;
     logger.warn.mockClear();
     fieldSetContext.blur.mockClear();
@@ -89,11 +90,21 @@ beforeEach(async () => {
     inlineState.selected.value = [];
 });
 
-scopedIt("creates inline object on mount when empty", async () => {
+scopedIt("creates inline object when fieldObjects is ready", async () => {
+    inlineState.fieldObjects = [];
     mount(FieldSetSingularStackedInline, { props: { autoCreateWhenEmpty: true } });
     await vue.nextTick();
-    expect(fieldSetContext.blur).toHaveBeenCalled();
+    expect(fieldSetContext.blur).not.toHaveBeenCalled();
+    expect(updateInitialValue).not.toHaveBeenCalled();
+    expect(fieldState.value).toBe(null);
+
+    inlineState.fieldObjects = [{name: 'test'}];
+    await vue.nextTick();
+
     expect(fieldState.value).toEqual(emptyObject);
+    expect(fieldSetContext.blur).toHaveBeenCalled();
+    expect(updateInitialValue).toHaveBeenCalled();
+
 });
 
 scopedIt("clearField clears value and blurs", () => {
