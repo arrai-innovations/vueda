@@ -1,12 +1,12 @@
 # Changelog
 
 _Actions potentially required by implementers are marked with italics._
+
 ## v2.0.4 (unreleased)
 
 ### Fixes
 
 - **FieldSetSingularStackedInline**: Wait for fieldObjects to be ready before auto-creating inline row and loading initial values in FieldSetSingularStackedInline
-
 
 ## v2.0.3 (2026-01-27)
 

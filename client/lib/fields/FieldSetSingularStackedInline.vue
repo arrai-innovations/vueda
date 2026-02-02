@@ -38,12 +38,12 @@ const addInline = () => {
 };
 
 watch(
-    [toRef(props, "autoCreateWhenEmpty"), toRef(props, "required"),toRef(fieldSetInline.state, "fieldObjects")],
+    [toRef(props, "autoCreateWhenEmpty"), toRef(props, "required"), toRef(fieldSetInline.state, "fieldObjects")],
     ([autoCreateWhenEmpty, required, fieldObjects]) => {
-    if ((autoCreateWhenEmpty || required) && !fieldSetInline.state?.value && fieldObjects?.length) {
-        fieldSetContext.updateInitialValue(fieldSetInline.getEmptyFieldObject())
-        addInline()
-    }
+        if ((autoCreateWhenEmpty || required) && !fieldSetInline.state?.value && fieldObjects?.length) {
+            fieldSetContext.updateInitialValue(fieldSetInline.getEmptyFieldObject());
+            addInline();
+        }
     },
 );
 

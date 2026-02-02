@@ -98,13 +98,12 @@ scopedIt("creates inline object when fieldObjects is ready", async () => {
     expect(updateInitialValue).not.toHaveBeenCalled();
     expect(fieldState.value).toBe(null);
 
-    inlineState.fieldObjects = [{name: 'test'}];
+    inlineState.fieldObjects = [{ name: "test" }];
     await vue.nextTick();
 
     expect(fieldState.value).toEqual(emptyObject);
     expect(fieldSetContext.blur).toHaveBeenCalled();
     expect(updateInitialValue).toHaveBeenCalled();
-
 });
 
 scopedIt("clearField clears value and blurs", () => {
