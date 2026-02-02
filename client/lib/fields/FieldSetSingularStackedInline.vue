@@ -9,7 +9,7 @@ import { useTheme } from "@vueda/use/useTheme.js";
 import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
-import { onMounted, watch } from "vue";
+import { toRef, watch } from "vue";
 
 const props = defineProps({
     ...FIELD_SET_INLINE_PROPS,
@@ -37,11 +37,15 @@ const addInline = () => {
     fieldSetContext.state.value = fieldSetInline.getEmptyFieldObject();
 };
 
-onMounted(() => {
-    if ((props.autoCreateWhenEmpty || props.required) && !fieldSetContext.state.value) {
-        addInline();
-    }
-});
+watch(
+    [toRef(props, "autoCreateWhenEmpty"), toRef(props, "required"), toRef(fieldSetInline.state, "fieldObjects")],
+    ([autoCreateWhenEmpty, required, fieldObjects]) => {
+        if ((autoCreateWhenEmpty || required) && !fieldSetInline.state?.value && fieldObjects?.length) {
+            fieldSetContext.updateInitialValue(fieldSetInline.getEmptyFieldObject());
+            addInline();
+        }
+    },
+);
 
 const clearField = () => {
     fieldSetContext.blur();

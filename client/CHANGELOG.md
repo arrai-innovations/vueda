@@ -2,7 +2,19 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.2 (unreleased)
+## v2.0.4 (unreleased)
+
+### Fixes
+
+- **FieldSetSingularStackedInline**: Wait for fieldObjects to be ready before auto-creating inline row and loading initial values in FieldSetSingularStackedInline
+
+## v2.0.3 (2026-01-27)
+
+### Fixes
+
+- **ActionForm**: Split error tracking into fetchState and actionState, and stop showing handled submit errors.
+
+## v2.0.2 (2026-01-19)
 
 ### Fixes
 
