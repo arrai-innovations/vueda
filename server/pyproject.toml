@@ -93,6 +93,8 @@ docs = [
 [tool.uv]
 default-groups = "all"
 
+# Ruff configuration (reference for docs/quick-start.md)
+# --- Ruff config start ---
 [tool.ruff]
 line-length = 120
 target-version = "py311"
@@ -194,6 +196,7 @@ lines-after-imports = 2
 
 [tool.ruff.lint.mccabe]
 max-complexity = 20
+# --- Ruff config end ---
 
 [tool.setuptools]
 include-package-data = false
