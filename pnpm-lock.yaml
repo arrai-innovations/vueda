@@ -225,6 +225,9 @@ importers:
       '@types/node':
         specifier: ^22.10.10
         version: 22.19.8
+      ajv:
+        specifier: ^8.17.1
+        version: 8.17.1
       quicktype:
         specifier: ^23.2.6
         version: 23.2.6

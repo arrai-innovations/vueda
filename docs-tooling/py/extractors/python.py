@@ -13,7 +13,7 @@ from pdoc.doc import Function
 from pdoc.doc import Module
 from pdoc.doc import Variable
 
-from ..core import Extractor
+from core import Extractor
 
 
 def _format_source_lines(value: tuple[int, int] | None) -> dict[str, int] | None:

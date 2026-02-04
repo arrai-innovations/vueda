@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from ..core import Extractor
+from core import Extractor
 
 
 class RestExtractor(Extractor):
