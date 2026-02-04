@@ -193,6 +193,66 @@ async function writeRenderedFiles(outputDir, outputs) {
   }
 }
 
+function titleForDir(dirPath) {
+  if (!dirPath) {
+    return "API Reference";
+  }
+  const parts = dirPath.split(path.sep).filter(Boolean);
+  const last = parts[parts.length - 1];
+  if (!last) {
+    return "API Reference";
+  }
+  if (last === "py") return "Python API";
+  if (last === "js") return "JavaScript API";
+  if (last === "rest") return "REST API";
+  if (last === "vue") return "Vue Components";
+  return last;
+}
+
+function addIndexPages(outputs) {
+  const dirChildren = new Map();
+  const ensureDir = (dir) => {
+    if (!dirChildren.has(dir)) {
+      dirChildren.set(dir, new Set());
+    }
+  };
+
+  for (const filePath of outputs.keys()) {
+    const dir = path.dirname(filePath);
+    ensureDir(dir);
+    dirChildren.get(dir).add(path.basename(filePath));
+
+    let current = dir;
+    while (current && current !== "." && current !== path.dirname(current)) {
+      const parent = path.dirname(current);
+      ensureDir(parent);
+      dirChildren.get(parent).add(path.basename(current));
+      if (parent === current) break;
+      current = parent;
+    }
+  }
+
+  for (const [dir, childrenSet] of dirChildren.entries()) {
+    const indexPath = path.join(dir, "index.md");
+    if (outputs.has(indexPath)) {
+      continue;
+    }
+    const children = Array.from(childrenSet).sort((a, b) => a.localeCompare(b));
+    const title = titleForDir(dir === "." ? "" : dir);
+    const lines = [];
+    lines.push("---", `title: ${title}`, "---", "");
+    lines.push(`# ${title}`, "");
+    for (const child of children) {
+      if (child === "index.md") continue;
+      const label = child.endsWith(".md") ? child.replace(/\.md$/, "") : child;
+      const linkTarget = child.endsWith(".md") ? `./${child}` : `./${child}/`;
+      lines.push(`- [${label}](${linkTarget})`);
+    }
+    lines.push("");
+    outputs.set(indexPath, lines.join("\n"));
+  }
+}
+
 async function runRender(argv) {
   const defaults = {
     typedoc: {
@@ -219,6 +279,12 @@ async function runRender(argv) {
     throw new Error("input can only be used with a single source");
   }
 
+  const combinedOutputs = new Map();
+  const outputDir = path.resolve(
+    process.cwd(),
+    argv.output || defaults[requestedSources[0]]?.output || defaults.typedoc.output
+  );
+
   for (const source of requestedSources) {
     let renderer;
     switch (source) {
@@ -239,12 +305,16 @@ async function runRender(argv) {
     }
 
     const inputPath = path.resolve(process.cwd(), argv.input || defaults[source].input);
-    const outputDir = path.resolve(process.cwd(), argv.output || defaults[source].output);
     const raw = await fs.promises.readFile(inputPath, "utf-8");
     const bundle = JSON.parse(raw);
     const outputs = renderer(bundle);
-    await writeRenderedFiles(outputDir, outputs);
+    for (const [filePath, contents] of outputs.entries()) {
+      combinedOutputs.set(filePath, contents);
+    }
   }
+
+  addIndexPages(combinedOutputs);
+  await writeRenderedFiles(outputDir, combinedOutputs);
 }
 
 yargs(hideBin(process.argv))

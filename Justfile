@@ -55,6 +55,7 @@ manage *args:
 
 # VUEDA Documentation
 docs-rebuild:
+  rm -rf {{justfile_directory()}}/docs/.vitepress/.temp {{justfile_directory()}}/docs/.vitepress/cache
   cd {{justfile_directory()}}/docs && pnpm exec vitepress build
 
 docs-serve:
