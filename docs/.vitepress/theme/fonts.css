@@ -1,0 +1,25 @@
+/* External font imports are disabled to keep VitePress builds offline-safe. */
+
+@font-face {
+  font-family: "Darker Grotesque";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("./fonts/DarkerGrotesque-VariableFont_wght.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("./fonts/JetBrainsMono-VariableFont_wght.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: italic;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("./fonts/JetBrainsMono-Italic-VariableFont_wght.ttf") format("truetype");
+}

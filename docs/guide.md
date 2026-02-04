@@ -50,7 +50,7 @@ development concepts.
 - [Introduction | Vue.js](https://vuejs.org/guide/introduction)
 - [Index | Node.js Documentation](https://nodejs.org/docs/latest/api/)
 
-**If you are looking to get a basic VUEDA setup running quickly, please refer to the [VUEDA Quick Start Guide](./quick-start.md).**
+**If you are looking to get a basic VUEDA setup running quickly, please refer to the [VUEDA Quick Start Guide](./getting-started.md).**
 
 ## Architecture Overview
 

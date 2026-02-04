@@ -29,6 +29,16 @@ export function renderHeading(level, text) {
   return `${"#".repeat(level)} ${text}`;
 }
 
+export function escapeText(value) {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 export function renderCodeInline(value) {
   if (!value) {
     return "";
