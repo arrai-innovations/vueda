@@ -5,6 +5,7 @@ import {
   formatSource,
   linkToPath,
   normalizeTitle,
+  escapeText,
   renderCodeInline,
   renderFrontmatter,
   renderHeading,
@@ -59,7 +60,7 @@ function renderEndpoint(node, index, pathMap, filePath) {
   const http = node.extensions?.openapi;
 
   if (node.description) {
-    lines.push(renderHeading(2, "Overview"), "", node.description, "");
+    lines.push(renderHeading(2, "Overview"), "", escapeText(node.description), "");
   }
 
   if (node.signatures && node.signatures.length) {
@@ -115,7 +116,7 @@ function renderEndpoint(node, index, pathMap, filePath) {
 function renderSchema(node, filePath) {
   const lines = [];
   if (node.description) {
-    lines.push(renderHeading(2, "Overview"), "", node.description, "");
+    lines.push(renderHeading(2, "Overview"), "", escapeText(node.description), "");
   }
 
   const members = formatMembers(node.members || [], "property");

@@ -150,8 +150,8 @@ async function runNormalize(argv) {
 
   const requestedSources = expandNormalizeTargets(argv.source || []);
 
-  if (requestedSources.length > 1 && (argv.input || argv.output)) {
-    throw new Error("input/output can only be used with a single source");
+  if (requestedSources.length > 1 && argv.input) {
+    throw new Error("input can only be used with a single source");
   }
 
   for (const source of requestedSources) {
@@ -215,8 +215,8 @@ async function runRender(argv) {
 
   const requestedSources = expandNormalizeTargets(argv.source || []);
 
-  if (requestedSources.length > 1 && (argv.input || argv.output)) {
-    throw new Error("input/output can only be used with a single source");
+  if (requestedSources.length > 1 && argv.input) {
+    throw new Error("input can only be used with a single source");
   }
 
   for (const source of requestedSources) {

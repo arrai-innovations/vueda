@@ -4,6 +4,7 @@ import {
   formatSource,
   linkToPath,
   normalizeTitle,
+  escapeText,
   renderCodeInline,
   renderFrontmatter,
   renderHeading,
@@ -29,6 +30,23 @@ function classDir(node, moduleFile) {
   return `${baseDir}/${slugify(node.name)}`;
 }
 
+function kindSegment(kind) {
+  switch (kind) {
+    case "property":
+      return "properties";
+    case "method":
+      return "methods";
+    case "function":
+      return "functions";
+    case "enum":
+    case "type":
+    case "interface":
+      return "types";
+    default:
+      return "members";
+  }
+}
+
 function typedocPathForNode(node, index) {
   if (node.kind === "module" || node.kind === "namespace") {
     return modulePath(node);
@@ -38,16 +56,16 @@ function typedocPathForNode(node, index) {
     const moduleAncestor = index.parentOf.get(parent.id) || parent;
     const moduleFile = modulePath(moduleAncestor);
     const dir = classDir(parent, moduleFile);
-    return `${dir}/${slugify(node.name)}.md`;
+    return `${dir}/${kindSegment(node.kind)}/${slugify(node.name)}.md`;
   }
   const moduleAncestor =
     parent?.kind === "module" ? parent : parent ? index.parentOf.get(parent.id) : null;
   if (moduleAncestor && (moduleAncestor.kind === "module" || moduleAncestor.kind === "namespace")) {
     const moduleFile = modulePath(moduleAncestor);
     const dir = moduleFile.replace(/\.md$/, "");
-    return `${dir}/${slugify(node.name)}.md`;
+    return `${dir}/${kindSegment(node.kind)}/${slugify(node.name)}.md`;
   }
-  return `js/${slugify(node.name)}.md`;
+  return `js/${kindSegment(node.kind)}/${slugify(node.name)}.md`;
 }
 
 function renderSignatures(node, filePath) {
@@ -141,7 +159,7 @@ export function renderTypeDocNode(node, index, filePath) {
   lines.push(renderHeading(1, normalizeTitle(node.name)), "");
 
   if (node.description) {
-    lines.push(renderHeading(2, "Overview"), "", node.description, "");
+    lines.push(renderHeading(2, "Overview"), "", escapeText(node.description), "");
   }
 
   const signatureBlock = renderSignatures(node, filePath);

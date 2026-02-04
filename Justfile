@@ -54,27 +54,32 @@ manage *args:
   cd {{justfile_directory()}}/server && uv run --no-sync python manage.py {{args}}
 
 # VUEDA Documentation
-# todo: rebuild these commands when the new docs-tooling package is ready
-#docs-rebuild:
-#  cd {{justfile_directory()}} && pnpm exec vitepress build docs
-#
-#docs-serve:
-#  cd {{justfile_directory()}} && pnpm exec vitepress dev docs --host 0.0.0.0 --port 8000
-#
-#docs-api:
-#  cd {{justfile_directory()}} && uv run --no-sync python scripts/build_docs.py --reference-only
-#
-#docs-rest:
-#  mkdir -p {{justfile_directory()}}/docs/.generated/api
-#  cd {{justfile_directory()}}/server && uv run --no-sync python manage.py spectacular --color --file ../docs/.generated/api/schema.yml
-#  cd {{justfile_directory()}} && npx -y @redocly/cli build-docs docs/.generated/api/schema.yml -o docs/.generated/api/rest.html
-#
-#docs:
-#  just docs-api
-#  just docs-rest
-#  just docs-serve
-#
-#docs-build:
-#  just docs-api
-#  just docs-rest
-#  just docs-rebuild
+docs-rebuild:
+  cd {{justfile_directory()}}/docs && pnpm exec vitepress build
+
+docs-serve:
+  cd {{justfile_directory()}}/docs && pnpm exec vitepress dev --host 0.0.0.0 --port 8000
+
+docs-extract:
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js extract
+
+docs-normalize:
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js normalize
+
+docs-render:
+  rm -rf {{justfile_directory()}}/docs/api
+  mkdir -p {{justfile_directory()}}/docs/api
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js render --output ../docs/api
+
+docs-api:
+  just docs-extract
+  just docs-normalize
+  just docs-render
+
+docs:
+  just docs-api
+  just docs-serve
+
+docs-build:
+  just docs-api
+  just docs-rebuild

@@ -111,7 +111,7 @@ export default defineConfig({
   markdown: {
     config: (md) => {
       configureDiagramsPlugin(md, {
-        diagramsDir: 'docs/.generated/diagrams',
+        diagramsDir: path.join(generatedRoot, 'diagrams'),
         publicPath: `${base}diagrams`,
       });
     },

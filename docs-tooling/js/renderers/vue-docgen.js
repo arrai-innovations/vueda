@@ -5,6 +5,7 @@ import {
   formatSource,
   linkToPath,
   normalizeTitle,
+  escapeText,
   renderCodeInline,
   renderFrontmatter,
   renderHeading,
@@ -98,7 +99,7 @@ export function renderVueDocgenNode(node, index, filePath) {
   lines.push(renderHeading(1, normalizeTitle(node.name)), "");
 
   if (node.description) {
-    lines.push(renderHeading(2, "Overview"), "", node.description, "");
+    lines.push(renderHeading(2, "Overview"), "", escapeText(node.description), "");
   }
 
   const propsBlock = renderProps(node);
@@ -166,7 +167,7 @@ function renderEventsPage(node, index) {
   for (const event of events) {
     lines.push(renderHeading(2, renderCodeInline(event.name)));
     if (event.description) {
-      lines.push("", event.description, "");
+      lines.push("", escapeText(event.description), "");
     } else {
       lines.push("");
     }
