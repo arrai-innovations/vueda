@@ -6,6 +6,7 @@ import path from "node:path";
 
 import { Normalizer } from "../core.js";
 import { compact } from "../utils/compact.js";
+import { getRepoRoot, normalizeSourceFile } from "../utils/source.js";
 
 const KIND_MAP = new Map([
   [1, "module"], // Project
@@ -27,10 +28,36 @@ const KIND_MAP = new Map([
   [262144, "property"], // Accessor
 ]);
 
-function docId(node, contextPath = []) {
+const KIND_NAME_MAP = new Map([
+  [1, "Project"],
+  [2, "Module"],
+  [4, "Namespace"],
+  [8, "Enum"],
+  [16, "EnumMember"],
+  [32, "Variable"],
+  [64, "Function"],
+  [128, "Class"],
+  [256, "Interface"],
+  [512, "Constructor"],
+  [1024, "Property"],
+  [2048, "Method"],
+  [4096, "CallSignature"],
+  [8192, "IndexSignature"],
+  [16384, "ConstructorSignature"],
+  [65536, "TypeLiteral"],
+  [262144, "Accessor"],
+]);
+
+function legacyId(node, contextPath = []) {
   const name = node.name || "anonymous";
   const pathPart = contextPath.length ? `${contextPath.join(".")}.` : "";
   return `typedoc:${pathPart}${name}:${node.id}`;
+}
+
+function docId(node, kind, contextPath = []) {
+  const name = node.name || "anonymous";
+  const pathPart = contextPath.length ? `${contextPath.join(".")}.` : "";
+  return `js:${kind}:${pathPart}${name}`;
 }
 
 function textFromComment(comment) {
@@ -89,16 +116,22 @@ function typeRef(type) {
   return { name: typeToString(type) };
 }
 
+const repoRoot = getRepoRoot();
+
 function sourceLocation(sources) {
   if (!sources || !sources.length) {
     return undefined;
   }
   const first = sources[0];
-  return {
-    file: first.fileName,
+  const file = normalizeSourceFile(first.fileName, repoRoot);
+  if (!file) {
+    return undefined;
+  }
+  return compact({
+    file,
     line: first.line,
     url: first.url,
-  };
+  });
 }
 
 function resolveKind(node) {
@@ -106,6 +139,13 @@ function resolveKind(node) {
     return "type";
   }
   return KIND_MAP.get(node.kind) || "type";
+}
+
+function resolveKindName(node) {
+  if (!node || typeof node.kind !== "number") {
+    return undefined;
+  }
+  return KIND_NAME_MAP.get(node.kind);
 }
 
 function signatureFromNode(signature) {
@@ -147,7 +187,7 @@ export class TypeDocNormalizer extends Normalizer {
 
     const visit = (node, contextPath = []) => {
       const kind = resolveKind(node);
-      const id = docId(node, contextPath);
+      const id = docId(node, kind, contextPath);
       const description = textFromComment(node.comment);
       const source = sourceLocation(node.sources);
 
@@ -164,9 +204,10 @@ export class TypeDocNormalizer extends Normalizer {
         extensions: {
           typedoc: {
             id: node.id,
-            kind: node.kind,
+            kind: resolveKindName(node),
             variant: node.variant,
             flags: node.flags,
+            legacyIds: [legacyId(node, contextPath)],
           },
         },
       });
@@ -176,7 +217,7 @@ export class TypeDocNormalizer extends Normalizer {
       if (Array.isArray(node.children)) {
         for (const child of node.children) {
           const childKind = resolveKind(child);
-          const childId = docId(child, [...contextPath, node.name]);
+          const childId = docId(child, childKind, [...contextPath, node.name]);
           if (
             ["module", "namespace", "class", "interface", "function", "method", "property", "enum", "type"].includes(
               childKind
@@ -196,7 +237,7 @@ export class TypeDocNormalizer extends Normalizer {
     for (const child of payload.children) {
       const kind = resolveKind(child);
       if (["module", "namespace", "class", "interface", "function", "method", "property", "enum", "type"].includes(kind)) {
-        const id = docId(child, [payload.name || "project"]);
+        const id = docId(child, kind, [payload.name || "project"]);
         roots.push(id);
         visit(child, [payload.name || "project"]);
       }

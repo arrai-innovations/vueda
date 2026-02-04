@@ -4,6 +4,7 @@
 
 import { Normalizer } from "../core.js";
 import { compact } from "../utils/compact.js";
+import { getRepoRoot, normalizeSourceFile } from "../utils/source.js";
 
 const KIND_MAP = {
   module: "module",
@@ -14,8 +15,14 @@ const KIND_MAP = {
   attribute: "property",
 };
 
-function nodeId(fullname) {
+const repoRoot = getRepoRoot();
+
+function legacyId(fullname) {
   return `pdoc:${fullname}`;
+}
+
+function nodeId(kind, fullname) {
+  return `py:${kind}:${fullname}`;
 }
 
 function typeRefFromAnnotation(annotation) {
@@ -69,7 +76,7 @@ export class PdocNormalizer extends Normalizer {
       }
 
       const kind = KIND_MAP[doc.kind] || "type";
-      const id = nodeId(doc.fullname);
+      const id = nodeId(kind, doc.fullname);
       const signatures = [];
       const signature = signatureFromDetails(doc.signature_details, doc.name);
       if (signature) {
@@ -83,10 +90,10 @@ export class PdocNormalizer extends Normalizer {
         description: doc.docstring || undefined,
         signatures: signatures.length ? signatures : undefined,
         source: doc.source_file
-          ? {
-              file: doc.source_file,
+          ? compact({
+              file: normalizeSourceFile(doc.source_file, repoRoot),
               line: doc.source_lines?.start,
-            }
+            })
           : undefined,
         extensions: {
           pdoc: {
@@ -96,6 +103,7 @@ export class PdocNormalizer extends Normalizer {
             is_external: doc.is_external,
             is_inherited: doc.is_inherited,
             is_public: doc.is_public,
+            legacyIds: [legacyId(doc.fullname)],
           },
         },
       });
@@ -109,7 +117,8 @@ export class PdocNormalizer extends Normalizer {
       if (!doc.fullname) {
         continue;
       }
-      const id = nodeId(doc.fullname);
+      const kind = KIND_MAP[doc.kind] || "type";
+      const id = nodeId(kind, doc.fullname);
       const node = nodeIndex.get(id);
       if (!node) {
         continue;
@@ -119,14 +128,18 @@ export class PdocNormalizer extends Normalizer {
       if (doc.members) {
         for (const member of doc.members) {
           if (byFullname.has(member)) {
-            children.push(nodeId(member));
+            const memberDoc = byFullname.get(member);
+            const memberKind = KIND_MAP[memberDoc.kind] || "type";
+            children.push(nodeId(memberKind, member));
           }
         }
       }
       if (doc.submodules) {
         for (const submodule of doc.submodules) {
           if (byFullname.has(submodule)) {
-            children.push(nodeId(submodule));
+            const subDoc = byFullname.get(submodule);
+            const subKind = KIND_MAP[subDoc.kind] || "type";
+            children.push(nodeId(subKind, submodule));
           }
         }
       }
@@ -136,7 +149,9 @@ export class PdocNormalizer extends Normalizer {
     }
 
     for (const name of payload.module_names || []) {
-      const rootId = nodeId(name);
+      const rootDoc = byFullname.get(name);
+      const rootKind = rootDoc ? KIND_MAP[rootDoc.kind] || "type" : "module";
+      const rootId = nodeId(rootKind, name);
       if (nodeIndex.has(rootId)) {
         roots.push(rootId);
       }

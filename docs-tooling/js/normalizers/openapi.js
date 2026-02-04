@@ -41,7 +41,7 @@ function refToLink(ref) {
     return undefined;
   }
   const name = ref.split("/").pop();
-  return `openapi:schema:${name}`;
+  return `api:schema:${name}`;
 }
 
 function schemaToTypeRef(schema) {
@@ -76,12 +76,20 @@ function responseLabel(code, response) {
   return response.description ? `${code} ${response.description}` : code;
 }
 
-function endpointId(method, pathKey) {
+function legacyEndpointId(method, pathKey) {
   return `openapi:endpoint:${method.toUpperCase()}:${pathKey}`;
 }
 
-function schemaId(name) {
+function endpointId(method, pathKey) {
+  return `api:endpoint:${method.toUpperCase()}:${pathKey}`;
+}
+
+function legacySchemaId(name) {
   return `openapi:schema:${name}`;
+}
+
+function schemaId(name) {
+  return `api:schema:${name}`;
 }
 
 export class OpenApiNormalizer extends Normalizer {
@@ -93,7 +101,7 @@ export class OpenApiNormalizer extends Normalizer {
     const nodes = [];
     const roots = [];
 
-    const apiRootId = "openapi:api";
+    const apiRootId = "api:root";
     nodes.push(
       compact({
         id: apiRootId,
@@ -149,6 +157,7 @@ export class OpenApiNormalizer extends Normalizer {
         }
 
         const responses = [];
+        let endpointReturn;
         for (const [code, response] of Object.entries(operation.responses || {})) {
           const content = response.content || {};
           let responseType;
@@ -157,6 +166,9 @@ export class OpenApiNormalizer extends Normalizer {
               responseType = schemaToTypeRef(media.schema);
               break;
             }
+          }
+          if (!endpointReturn && code.startsWith("2") && responseType) {
+            endpointReturn = responseType;
           }
           responses.push(
             compact({
@@ -185,6 +197,7 @@ export class OpenApiNormalizer extends Normalizer {
             compact({
               label: method.toUpperCase(),
               parameters: parameters.length ? parameters : undefined,
+              returns: endpointReturn,
             }),
           ],
           children: responses.length ? responses.map((r) => r.id) : undefined,
@@ -200,10 +213,11 @@ export class OpenApiNormalizer extends Normalizer {
           },
         });
 
-        nodes.push(endpointNode, ...responses);
-        nodes.find((node) => node.id === apiRootId)?.children?.push(id);
-      }
+      endpointNode.extensions.openapi.legacyIds = [legacyEndpointId(method, pathKey)];
+      nodes.push(endpointNode, ...responses);
+      nodes.find((node) => node.id === apiRootId)?.children?.push(id);
     }
+  }
 
     for (const [name, schema] of Object.entries(payload.components?.schemas || {})) {
       const members = [];
@@ -230,7 +244,7 @@ export class OpenApiNormalizer extends Normalizer {
           name,
           description: schema.description,
           members: members.length ? members : undefined,
-          extensions: { openapi: schema },
+          extensions: { openapi: { ...schema, legacyIds: [legacySchemaId(name)] } },
         })
       );
       nodes.find((node) => node.id === apiRootId)?.children?.push(schemaId(name));

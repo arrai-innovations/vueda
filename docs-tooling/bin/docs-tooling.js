@@ -15,6 +15,10 @@ import { TypeDocNormalizer } from "../js/normalizers/typedoc.js";
 import { VueDocgenNormalizer } from "../js/normalizers/vue-docgen-api.js";
 import { OpenApiNormalizer } from "../js/normalizers/openapi.js";
 import { PdocNormalizer } from "../js/normalizers/pdoc.js";
+import { renderPdocBundle } from "../js/renderers/pdoc.js";
+import { renderOpenApiBundle } from "../js/renderers/openapi.js";
+import { renderTypeDocBundle } from "../js/renderers/typedoc.js";
+import { renderVueDocgenBundle } from "../js/renderers/vue-docgen.js";
 
 const execFileAsync = promisify(execFile);
 const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..");
@@ -180,6 +184,69 @@ async function runNormalize(argv) {
   }
 }
 
+async function writeRenderedFiles(outputDir, outputs) {
+  await fs.promises.mkdir(outputDir, { recursive: true });
+  for (const [filename, contents] of outputs.entries()) {
+    const target = path.join(outputDir, filename);
+    await fs.promises.mkdir(path.dirname(target), { recursive: true });
+    await fs.promises.writeFile(target, contents);
+  }
+}
+
+async function runRender(argv) {
+  const defaults = {
+    typedoc: {
+      input: path.join(repoRoot, "docs-tooling", ".generated", "typedoc.canonical.json"),
+      output: path.join(repoRoot, "docs-tooling", ".generated", "rendered"),
+    },
+    "vue-docgen": {
+      input: path.join(repoRoot, "docs-tooling", ".generated", "vue-docgen.canonical.json"),
+      output: path.join(repoRoot, "docs-tooling", ".generated", "rendered"),
+    },
+    openapi: {
+      input: path.join(repoRoot, "docs-tooling", ".generated", "openapi.canonical.json"),
+      output: path.join(repoRoot, "docs-tooling", ".generated", "rendered"),
+    },
+    pdoc: {
+      input: path.join(repoRoot, "docs-tooling", ".generated", "pdoc.canonical.json"),
+      output: path.join(repoRoot, "docs-tooling", ".generated", "rendered"),
+    },
+  };
+
+  const requestedSources = expandNormalizeTargets(argv.source || []);
+
+  if (requestedSources.length > 1 && (argv.input || argv.output)) {
+    throw new Error("input/output can only be used with a single source");
+  }
+
+  for (const source of requestedSources) {
+    let renderer;
+    switch (source) {
+      case "typedoc":
+        renderer = renderTypeDocBundle;
+        break;
+      case "vue-docgen":
+        renderer = renderVueDocgenBundle;
+        break;
+      case "openapi":
+        renderer = renderOpenApiBundle;
+        break;
+      case "pdoc":
+        renderer = renderPdocBundle;
+        break;
+      default:
+        throw new Error(`Unknown source: ${source}`);
+    }
+
+    const inputPath = path.resolve(process.cwd(), argv.input || defaults[source].input);
+    const outputDir = path.resolve(process.cwd(), argv.output || defaults[source].output);
+    const raw = await fs.promises.readFile(inputPath, "utf-8");
+    const bundle = JSON.parse(raw);
+    const outputs = renderer(bundle);
+    await writeRenderedFiles(outputDir, outputs);
+  }
+}
+
 yargs(hideBin(process.argv))
   .command(
     "extract",
@@ -223,6 +290,30 @@ yargs(hideBin(process.argv))
           describe: "Output JSON file",
         }),
     runNormalize
+  )
+  .command(
+    "render",
+    "Render canonical JSON to Markdown files",
+    (y) =>
+      y
+        .option("source", {
+          alias: "s",
+          array: true,
+          choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc"],
+          default: ["all"],
+          describe: "Which source format to render",
+        })
+        .option("input", {
+          alias: "i",
+          type: "string",
+          describe: "Input canonical JSON file",
+        })
+        .option("output", {
+          alias: "o",
+          type: "string",
+          describe: "Output directory for rendered Markdown",
+        }),
+    runRender
   )
   .demandCommand(1)
   .strict()

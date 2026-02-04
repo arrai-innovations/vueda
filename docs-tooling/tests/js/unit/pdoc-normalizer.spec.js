@@ -57,7 +57,7 @@ describe("PdocNormalizer", () => {
     await assertCanonical(output);
 
     expect(output.source).toBe("pdoc");
-    expect(output.roots).toEqual(["pdoc:vueda.example"]);
+    expect(output.roots).toEqual(["py:module:vueda.example"]);
     expect(output.nodes.some((node) => node.kind === "class")).toBe(true);
   });
 });

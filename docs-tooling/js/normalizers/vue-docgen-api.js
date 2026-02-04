@@ -6,6 +6,7 @@ import path from "node:path";
 
 import { Normalizer } from "../core.js";
 import { compact } from "../utils/compact.js";
+import { getRepoRoot, normalizeSourceFile } from "../utils/source.js";
 
 function toTypeRef(type) {
   if (!type) {
@@ -33,8 +34,12 @@ function propDefault(value) {
   return String(value);
 }
 
-function componentId(filePath, displayName) {
+function legacyComponentId(filePath, displayName) {
   return `vue:component:${filePath}#${displayName}`;
+}
+
+function componentId(displayName) {
+  return `ui:component:${displayName}`;
 }
 
 function slotId(componentIdValue, slotName) {
@@ -44,6 +49,8 @@ function slotId(componentIdValue, slotName) {
 function eventId(componentIdValue, eventName) {
   return `${componentIdValue}:event:${eventName}`;
 }
+
+const repoRoot = getRepoRoot();
 
 export class VueDocgenNormalizer extends Normalizer {
   normalize(payload) {
@@ -61,8 +68,9 @@ export class VueDocgenNormalizer extends Normalizer {
           component.displayName ||
           component.exportName ||
           path.basename(filePath, path.extname(filePath));
-        const id = componentId(filePath, displayName);
+        const id = componentId(displayName);
 
+        const sourceFile = normalizeSourceFile(filePath, repoRoot);
         const node = compact({
           id,
           kind: "component",
@@ -70,12 +78,13 @@ export class VueDocgenNormalizer extends Normalizer {
           description: component.description || undefined,
           members: [],
           children: [],
-          source: { file: filePath },
+          source: sourceFile ? { file: sourceFile } : undefined,
           extensions: {
             vueDocgen: {
               exportName: component.exportName,
               tags: component.tags || undefined,
               sourceFiles: component.sourceFiles || undefined,
+              legacyIds: [legacyComponentId(filePath, displayName)],
             },
           },
         });
@@ -110,7 +119,7 @@ export class VueDocgenNormalizer extends Normalizer {
                 })),
               }),
             ],
-            source: { file: filePath },
+            source: sourceFile ? { file: sourceFile } : undefined,
             extensions: {
               vueDocgen: {
                 scoped: slot.scoped,
@@ -129,7 +138,7 @@ export class VueDocgenNormalizer extends Normalizer {
             kind: "event",
             name: event.name,
             description: event.description || undefined,
-            source: { file: filePath },
+            source: sourceFile ? { file: sourceFile } : undefined,
             extensions: { vueDocgen: { ...event } },
           });
           node.children.push(eventNodeId);
