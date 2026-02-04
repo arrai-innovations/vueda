@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+# Ensure docs-tooling/py is on sys.path when running as a script.
+PY_ROOT = Path(__file__).resolve().parent
+if str(PY_ROOT) not in sys.path:
+    sys.path.insert(0, str(PY_ROOT))
 
 from extractors.python import dump_modules
 
@@ -12,7 +18,7 @@ from extractors.python import dump_modules
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Dump pdoc model to JSON.")
     parser.add_argument("--spec", action="append", default=["vueda"], help="pdoc spec to include")
-    parser.add_argument("--output", default="docs-tooling/samples/pdoc.json", help="Output JSON file")
+    parser.add_argument("--output", default="docs-tooling/.generated/pdoc.json", help="Output JSON file")
     return parser.parse_args()
 
 

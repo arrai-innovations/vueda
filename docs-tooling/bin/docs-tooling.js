@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { execFile } from "node:child_process";
@@ -10,6 +11,10 @@ import { hideBin } from "yargs/helpers";
 
 import { JavaScriptExtractor } from "../js/extractors/javascript.js";
 import { ComponentsExtractor } from "../js/extractors/components.js";
+import { TypeDocNormalizer } from "../js/normalizers/typedoc.js";
+import { VueDocgenNormalizer } from "../js/normalizers/vue-docgen-api.js";
+import { OpenApiNormalizer } from "../js/normalizers/openapi.js";
+import { PdocNormalizer } from "../js/normalizers/pdoc.js";
 
 const execFileAsync = promisify(execFile);
 const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..");
@@ -68,7 +73,7 @@ async function extractComponents(outDir) {
 function resolveOutDir(outDir) {
   return outDir
     ? path.resolve(process.cwd(), outDir)
-    : path.join(repoRoot, "docs-tooling", "samples");
+    : path.join(repoRoot, "docs-tooling", ".generated");
 }
 
 function expandTargets(targets) {
@@ -78,6 +83,18 @@ function expandTargets(targets) {
     set.add("rest");
     set.add("javascript");
     set.add("components");
+    set.delete("all");
+  }
+  return Array.from(set);
+}
+
+function expandNormalizeTargets(targets) {
+  const set = new Set(targets.length ? targets : ["all"]);
+  if (set.has("all")) {
+    set.add("typedoc");
+    set.add("vue-docgen");
+    set.add("openapi");
+    set.add("pdoc");
     set.delete("all");
   }
   return Array.from(set);
@@ -107,6 +124,62 @@ async function runExtract(argv) {
   }
 }
 
+async function runNormalize(argv) {
+  const defaults = {
+    typedoc: {
+      input: path.join(repoRoot, "docs-tooling", ".generated", "typedoc.json"),
+      output: path.join(repoRoot, "docs-tooling", ".generated", "typedoc.canonical.json"),
+    },
+    "vue-docgen": {
+      input: path.join(repoRoot, "docs-tooling", ".generated", "vue-docgen.json"),
+      output: path.join(repoRoot, "docs-tooling", ".generated", "vue-docgen.canonical.json"),
+    },
+    openapi: {
+      input: path.join(repoRoot, "docs-tooling", ".generated", "openapi.json"),
+      output: path.join(repoRoot, "docs-tooling", ".generated", "openapi.canonical.json"),
+    },
+    pdoc: {
+      input: path.join(repoRoot, "docs-tooling", ".generated", "pdoc.json"),
+      output: path.join(repoRoot, "docs-tooling", ".generated", "pdoc.canonical.json"),
+    },
+  };
+
+  const requestedSources = expandNormalizeTargets(argv.source || []);
+
+  if (requestedSources.length > 1 && (argv.input || argv.output)) {
+    throw new Error("input/output can only be used with a single source");
+  }
+
+  for (const source of requestedSources) {
+    let normalizer;
+    switch (source) {
+      case "typedoc":
+        normalizer = new TypeDocNormalizer();
+        break;
+      case "vue-docgen":
+        normalizer = new VueDocgenNormalizer();
+        break;
+      case "openapi":
+        normalizer = new OpenApiNormalizer();
+        break;
+      case "pdoc":
+        normalizer = new PdocNormalizer();
+        break;
+      default:
+        throw new Error(`Unknown source: ${source}`);
+    }
+
+    const inputPath = path.resolve(process.cwd(), argv.input || defaults[source].input);
+    const outputPath = path.resolve(process.cwd(), argv.output || defaults[source].output);
+    const raw = await fs.promises.readFile(inputPath, "utf-8");
+    const payload = JSON.parse(raw);
+
+    const normalized = normalizer.normalize(payload);
+    await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
+    await fs.promises.writeFile(outputPath, JSON.stringify(normalized, null, 2));
+  }
+}
+
 yargs(hideBin(process.argv))
   .command(
     "extract",
@@ -127,7 +200,39 @@ yargs(hideBin(process.argv))
         }),
     runExtract
   )
+  .command(
+    "normalize",
+    "Normalize extracted JSON to the canonical schema",
+    (y) =>
+      y
+        .option("source", {
+          alias: "s",
+          array: true,
+          choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc"],
+          default: ["all"],
+          describe: "Which source format to normalize",
+        })
+        .option("input", {
+          alias: "i",
+          type: "string",
+          describe: "Input JSON file",
+        })
+        .option("output", {
+          alias: "o",
+          type: "string",
+          describe: "Output JSON file",
+        }),
+    runNormalize
+  )
   .demandCommand(1)
   .strict()
+  .showHelpOnFail(false)
+  .fail((msg, err) => {
+    const output = err?.message ?? msg;
+    if (output) {
+      console.error(output);
+    }
+    process.exit(1);
+  })
   .help()
   .parse();

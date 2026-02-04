@@ -16,14 +16,14 @@ export class JavaScriptExtractor extends Extractor {
     outputPath,
     entryPoints = ["../client/lib"],
     entryPointStrategy = "expand",
-    tsconfig = "samples/typedoc.tsconfig.json",
+    tsconfig = "typedoc.tsconfig.json",
     typedocConfig = "typedoc.json",
   } = {}) {
     if (!outputPath) {
       throw new Error("outputPath is required");
     }
 
-    const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..");
+    const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..", "..");
     const resolvedOutput = path.isAbsolute(outputPath)
       ? outputPath
       : path.join(repoRoot, outputPath);
