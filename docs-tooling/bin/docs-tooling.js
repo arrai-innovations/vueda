@@ -229,7 +229,6 @@ function addIndexPages(outputs) {
     }
     return `api:index:${parts.join("/")}`;
   };
-
   for (const filePath of outputs.keys()) {
     const dir = path.dirname(filePath);
     ensureDir(dir);
@@ -292,6 +291,12 @@ async function runRender(argv) {
     throw new Error("input/output can only be used with a single source");
   }
 
+  const combinedOutputs = new Map();
+  const outputDir = path.resolve(
+    process.cwd(),
+    argv.output || defaults[requestedSources[0]]?.output || defaults.typedoc.output
+  );
+
   for (const source of requestedSources) {
     let renderer;
     switch (source) {
@@ -312,12 +317,16 @@ async function runRender(argv) {
     }
 
     const inputPath = path.resolve(process.cwd(), argv.input || defaults[source].input);
-    const outputDir = path.resolve(process.cwd(), argv.output || defaults[source].output);
     const raw = await fs.promises.readFile(inputPath, "utf-8");
     const bundle = JSON.parse(raw);
     const outputs = renderer(bundle);
-    await writeRenderedFiles(outputDir, outputs);
+    for (const [filePath, contents] of outputs.entries()) {
+      combinedOutputs.set(filePath, contents);
+    }
   }
+
+  addIndexPages(combinedOutputs);
+  await writeRenderedFiles(outputDir, combinedOutputs);
 }
 
 yargs(hideBin(process.argv))

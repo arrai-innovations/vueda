@@ -32,3 +32,38 @@ fix-server:
 
 fix-client:
   cd {{justfile_directory()}}/client && pnpm run eslint && pnpm run prettier
+
+manage *args:
+  cd {{justfile_directory()}}/server && uv run --no-sync python manage.py {{args}}
+
+# VUEDA Documentation
+docs-rebuild:
+  rm -rf {{justfile_directory()}}/docs/.vitepress/.temp {{justfile_directory()}}/docs/.vitepress/cache
+  cd {{justfile_directory()}}/docs && pnpm exec vitepress build
+
+docs-serve:
+  cd {{justfile_directory()}}/docs && pnpm exec vitepress dev --host 0.0.0.0 --port 8000
+
+docs-extract:
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js extract
+
+docs-normalize:
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js normalize
+
+docs-render:
+  rm -rf {{justfile_directory()}}/docs/api
+  mkdir -p {{justfile_directory()}}/docs/api
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js render --output ../docs/api
+
+docs-api:
+  just docs-extract
+  just docs-normalize
+  just docs-render
+
+docs:
+  just docs-api
+  just docs-serve
+
+docs-build:
+  just docs-api
+  just docs-rebuild

@@ -2,6 +2,19 @@ import { defineConfig } from 'vitepress';
 
 const base = '/vueda/';
 
+const sidebarFromDir = (baseDir, baseLink) => {
+  if (!fs.existsSync(baseDir)) {
+    return [];
+  }
+  return fs
+    .readdirSync(baseDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => ({
+      text: entry.name,
+      link: `${baseLink}${entry.name}/`,
+    }));
+};
+
 export default defineConfig({
   title: 'VUEDA',
   description: 'Implementor guide, changelog, and reference for VUEDA.',
@@ -54,8 +67,20 @@ export default defineConfig({
       ],
       '/api/': [
         {
-          text: 'API',
-          items: [{ text: 'Overview', link: '/api/' }],
+          text: 'JavaScript',
+          items: sidebarFromDir(path.join(docsRoot, 'api', 'js'), '/api/js/'),
+        },
+        {
+          text: 'Python',
+          items: sidebarFromDir(path.join(docsRoot, 'api', 'py'), '/api/py/'),
+        },
+        {
+          text: 'REST',
+          items: sidebarFromDir(path.join(docsRoot, 'api', 'rest'), '/api/rest/'),
+        },
+        {
+          text: 'Vue',
+          items: sidebarFromDir(path.join(docsRoot, 'api', 'vue'), '/api/vue/'),
         },
       ],
       '/': [
