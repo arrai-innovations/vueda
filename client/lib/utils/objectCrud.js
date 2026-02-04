@@ -73,14 +73,14 @@ const getFormData = (object) => {
 /**
  * The VUEDA specific implementation for reactive-helper's object retrieve crud function.
  *
- * @params args {object} - The arguments object.
- * @params args.target {{
+ * @param args {object} - The arguments object.
+ * @param args.target {{
  *     app:string,
  *     model:string,
  *     action?:string,
  * }} - VUEDA specific arguments for the CRUD operation.
- * @params args.pk {string} - The primary key of the object to retrieve.
- * @params args.params {object} - The arguments to be passed as querystring to the retrieve action.
+ * @param args.pk {string} - The primary key of the object to retrieve.
+ * @param args.params {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
 export function defaultObjectRetrieve({ target, pk, params }) {
@@ -110,15 +110,15 @@ export function defaultObjectRetrieve({ target, pk, params }) {
 /**
  * The VUEDA specific implementation for reactive-helper's object create crud function.
  *
- * @params args {object} - The arguments object.
- * @params args.target {{
+ * @param args {object} - The arguments object.
+ * @param args.target {{
  *     app: string,
  *     model: string,
  *     action?: string,
  *     pk?: string,
  * }} - VUEDA specific arguments for the CRUD operation.
- * @params args.object {object} - The object to create.
- * @params args.params {object} - The arguments to be passed as querystring to the retrieve action.
+ * @param args.object {object} - The object to create.
+ * @param args.params {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
 export function defaultObjectCreate({ target, object, params }) {
@@ -164,14 +164,14 @@ export function defaultObjectCreate({ target, object, params }) {
 /**
  * The VUEDA specific implementation for reactive-helper's object update crud function.
  *
- * @params args {object} - The arguments object.
- * @params args.target {{
+ * @param args {object} - The arguments object.
+ * @param args.target {{
  *     app: string,
  *     model: string,
  *     action?: string,
  * }} - VUEDA specific arguments for the CRUD operation.
- * @params args.object {import("@arrai-innovations/reactive-helpers").CrudObject} - The object to update.
- * @params args.params {object} - The arguments to be passed as querystring to the retrieve action.
+ * @param args.object {import("@arrai-innovations/reactive-helpers").CrudObject} - The object to update.
+ * @param args.params {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
 export function defaultObjectUpdate({ target, object, params }) {
@@ -216,15 +216,15 @@ export function defaultObjectUpdate({ target, object, params }) {
 /**
  * The VUEDA specific implementation for reactive-helper's object patch crud function.
  *
- * @params args {object} - The arguments object.
- * @params args.target {{
+ * @param args {object} - The arguments object.
+ * @param args.target {{
  *     app: string,
  *     model: string,
  *     action?: string,
  * }} - VUEDA specific arguments for the CRUD operation.
- * @params args.pk {string} - The primary key of the object to patch.
- * @params args.partialObject {object} - The partial object to patch.
- * @params args.params {object} - The arguments to be passed as querystring to the retrieve action.
+ * @param args.pk {string} - The primary key of the object to patch.
+ * @param args.partialObject {object} - The partial object to patch.
+ * @param args.params {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
 export function defaultObjectPatch({ target, pk, partialObject, params }) {
@@ -268,10 +268,10 @@ export function defaultObjectPatch({ target, pk, partialObject, params }) {
 /**
  * The VUEDA specific implementation for reactive-helper's object delete crud function.
  *
- * @params args {object} - The arguments object.
- * @params args.target {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
- * @params args.pk {string} - The primary key of the object to delete.
- * @params args.deleteArgs {object} - The arguments to be passed to the delete function.
+ * @param args {object} - The arguments object.
+ * @param args.target {{ app:string, model:string }} - VUEDA specific arguments for the CRUD operation.
+ * @param args.pk {string} - The primary key of the object to delete.
+ * @param args.deleteArgs {object} - The arguments to be passed to the delete function.
  * @returns {Promise<void> & { cancel: () => Promise<void> }} - A cancellable promise.
  */
 export function defaultObjectDelete({ target, pk, deleteArgs }) {

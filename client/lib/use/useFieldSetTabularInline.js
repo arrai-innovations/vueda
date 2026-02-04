@@ -30,11 +30,8 @@ const handleIsTableUpdate = (state, newValue) => {
  */
 
 /**
- * @typedef {
- *   import('@vueda/use/useField.js').FieldContextRawProps &
- *   import('@vueda/use/useTheme.js').ThemeRawProps &
- *   import('@vueda/use/useFormModel.js').UseFormModelRawOverridableProps &
- *   FieldSetTabularInlineMyRawProps
+ * @typedef {import('@vueda/use/useField.js').FieldContextRawProps & import('@vueda/use/useTheme.js').ThemeRawProps &
+ *   import('@vueda/use/useFormModel.js').UseFormModelRawOverridableProps & FieldSetTabularInlineMyRawProps
  * } FieldSetTabularInlineRawProps
  */
 
@@ -51,7 +48,7 @@ const handleIsTableUpdate = (state, newValue) => {
 
 /**
  * @typedef {object} FieldSetTabularInlineRawState
- * @property {boolean} isTable=true - Whether the fieldset is displayed as a table.
+ * @property {boolean} [isTable=true] - Whether the fieldset is displayed as a table.
  * @property {import('vue').ComputedRef<object[]>} computedFieldObjects - The displayable field objects, excluding actions.
  *  If any actions exist, includes a synthetic 'item-action-bar' field first.
  * @property {import('vue').ComputedRef<object>} computedFieldProps - The computed field props, including the form
