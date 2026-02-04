@@ -45,7 +45,7 @@ describe("VueDocgenNormalizer", () => {
     await assertCanonical(output);
 
     expect(output.source).toBe("vue-docgen");
-    expect(output.roots).toEqual(["vue:component:client/lib/components/Foo.vue#Foo"]);
+    expect(output.roots).toEqual(["ui:component:Foo"]);
     expect(output.nodes.some((node) => node.kind === "slot")).toBe(true);
     expect(output.nodes.some((node) => node.kind === "event")).toBe(true);
   });
