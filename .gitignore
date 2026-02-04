@@ -32,3 +32,6 @@ docs/public/api/server/
 docs/public/api/client/
 docs/public/api/schema.yml
 docs/public/api/rest.html
+docs/.generated/
+# docs-tooling generated samples
+docs-tooling/samples/

@@ -1,5 +1,5 @@
 [tool.uv.workspace]
-members = ["server"]
+members = ["docs-tooling", "server"]
 
 [project]
 name = "vueda-workspace"

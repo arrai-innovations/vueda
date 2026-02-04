@@ -1,6 +1,54 @@
 import { defineConfig } from 'vitepress';
+import { configureDiagramsPlugin } from 'vitepress-plugin-diagrams';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import sirv from 'sirv';
 
 const base = '/vueda/';
+const docsRoot = fileURLToPath(new URL('..', import.meta.url));
+const generatedRoot = path.join(docsRoot, '.generated');
+
+const walkFiles = (dir) => {
+  if (!fs.existsSync(dir)) {
+    return [];
+  }
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  return entries.flatMap((entry) => {
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      return walkFiles(entryPath);
+    }
+    return [entryPath];
+  });
+};
+
+const generatedAssetsPlugin = () => ({
+  name: 'vueda-generated-assets',
+  configureServer(server) {
+    if (!fs.existsSync(generatedRoot)) {
+      return;
+    }
+    server.middlewares.use(
+      sirv(generatedRoot, {
+        dev: true,
+      })
+    );
+  },
+  generateBundle() {
+    if (!fs.existsSync(generatedRoot)) {
+      return;
+    }
+    for (const filePath of walkFiles(generatedRoot)) {
+      const relPath = path.relative(generatedRoot, filePath).split(path.sep).join('/');
+      this.emitFile({
+        type: 'asset',
+        fileName: relPath,
+        source: fs.readFileSync(filePath),
+      });
+    }
+  },
+});
 
 export default defineConfig({
   title: 'VUEDA',
@@ -12,24 +60,13 @@ export default defineConfig({
     ['link', { rel: 'icon', href: `${base}assets/logo-cube.svg` }],
     ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: `${base}assets/logo-cube.png` }],
     ['link', { rel: 'apple-touch-icon', href: `${base}assets/logo-cube.png` }],
-    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
-    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
-    [
-      'link',
-      {
-        rel: 'stylesheet',
-        href:
-          'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap',
-      },
-    ],
-    ['script', { src: '/assets/mermaid/mermaid.min.js' }],
   ],
   themeConfig: {
     logo: '/assets/logo-cube.svg',
     nav: [
       { text: 'About', link: '/' },
-      { text: 'Guide', link: '/guide' },
       { text: 'Quick Start', link: '/quick-start' },
+      { text: 'Guide', link: '/guide' },
       { text: 'Server', link: '/server/' },
       { text: 'Client', link: '/client/' },
       { text: 'API', link: '/api/' },
@@ -73,18 +110,17 @@ export default defineConfig({
   },
   markdown: {
     config: (md) => {
-      const defaultFence = md.renderer.rules.fence;
-      md.renderer.rules.fence = (tokens, idx, options, env, self) => {
-        const token = tokens[idx];
-        const info = token.info.trim();
-        if (info === 'mermaid') {
-          return `<div class="mermaid">${token.content}</div>`;
-        }
-        if (defaultFence) {
-          return defaultFence(tokens, idx, options, env, self);
-        }
-        return self.renderToken(tokens, idx, options);
-      };
+      configureDiagramsPlugin(md, {
+        diagramsDir: 'docs/.generated/diagrams',
+        publicPath: `${base}diagrams`,
+      });
     },
+  },
+  vite: {
+    server: {
+      // Allow reverse-proxy/custom hostnames in local dev.
+      allowedHosts: true,
+    },
+    plugins: [generatedAssetsPlugin()],
   },
 });

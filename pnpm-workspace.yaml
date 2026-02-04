@@ -1,5 +1,7 @@
 packages:
   - client
+  - docs
+  - docs-tooling
   - server
 
 ignoredBuiltDependencies:

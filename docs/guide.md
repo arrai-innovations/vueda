@@ -33,7 +33,7 @@ JavaScript utilities.
 
 ```mermaid
 flowchart LR
-    Client[VUEDA Client\nVue 3 Component Library]
+    Client[VUEDA Client / Vue 3 Component Library]
 
     subgraph DjangoApp[Shared Django Application]
         Domain[Models & Business Logic]
