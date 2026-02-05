@@ -1,4 +1,5 @@
 import { buildCanonicalIndex } from "../utils/index-canonical.js";
+import { buildVueDocgenPathMap } from "../utils/path-map.js";
 import {
   formatBindings,
   formatMembers,
@@ -9,20 +10,7 @@ import {
   renderFrontmatter,
   renderHeading,
   renderTable,
-  slugify,
 } from "./markdown.js";
-
-function componentPath(node) {
-  return `vue/components/${slugify(node.name)}.md`;
-}
-
-function slotsPath(node) {
-  return `vue/components/${slugify(node.name)}/slots.md`;
-}
-
-function eventsPath(node) {
-  return `vue/components/${slugify(node.name)}/events.md`;
-}
 
 function renderProps(node) {
   const rows = formatMembers(node.members || [], "prop");
@@ -178,14 +166,7 @@ function renderEventsPage(node, index) {
 export function renderVueDocgenBundle(bundle) {
   const index = buildCanonicalIndex(bundle);
   const outputs = new Map();
-  const pathMap = new Map();
-  for (const node of bundle.nodes) {
-    if (node.kind === "component") {
-      pathMap.set(node.id, componentPath(node));
-      pathMap.set(`${node.id}:slots`, slotsPath(node));
-      pathMap.set(`${node.id}:events`, eventsPath(node));
-    }
-  }
+  const pathMap = buildVueDocgenPathMap(bundle);
   index.pathMap = pathMap;
   for (const node of bundle.nodes) {
     if (node.kind !== "component") {
@@ -197,12 +178,12 @@ export function renderVueDocgenBundle(bundle) {
 
     const slotsPage = renderSlotsPage(node, index);
     if (slotsPage) {
-      outputs.set(slotsPath(node), slotsPage);
+      outputs.set(pathMap.get(`${node.id}:slots`), slotsPage);
     }
 
     const eventsPage = renderEventsPage(node, index);
     if (eventsPage) {
-      outputs.set(eventsPath(node), eventsPage);
+      outputs.set(pathMap.get(`${node.id}:events`), eventsPage);
     }
   }
   return outputs;

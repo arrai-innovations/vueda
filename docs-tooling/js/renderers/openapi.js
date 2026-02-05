@@ -1,4 +1,5 @@
 import { buildCanonicalIndex } from "../utils/index-canonical.js";
+import { buildOpenApiPathMap } from "../utils/path-map.js";
 import {
   formatMembers,
   formatParameters,
@@ -9,50 +10,7 @@ import {
   renderFrontmatter,
   renderHeading,
   renderTable,
-  slugify,
 } from "./markdown.js";
-
-function endpointGroup(node) {
-  const tags = node.tags || [];
-  if (tags.length) {
-    return slugify(tags[0]);
-  }
-  const pathValue = node.extensions?.openapi?.path || "";
-  const first = pathValue.split("/").filter(Boolean)[0] || "rest";
-  return slugify(first);
-}
-
-function endpointSlug(node) {
-  const idPart = node.extensions?.openapi?.operationId;
-  if (idPart) {
-    return slugify(idPart);
-  }
-  const method = node.extensions?.openapi?.method || "get";
-  const pathValue = node.extensions?.openapi?.path || "";
-  return slugify(`${method}-${pathValue}`);
-}
-
-function responseCodeFromId(node) {
-  const match = node.id.match(/:response:([^:]+)$/);
-  return match ? match[1] : slugify(node.name || "response");
-}
-
-function openapiPathForNode(node, index) {
-  if (node.kind === "schema" || node.kind === "enum") {
-    return `rest/schemas/${slugify(node.name)}.md`;
-  }
-  if (node.kind === "endpoint") {
-    return `rest/${endpointGroup(node)}/${endpointSlug(node)}.md`;
-  }
-  if (node.kind === "response") {
-    const parent = index.parentOf.get(node.id);
-    if (parent && parent.kind === "endpoint") {
-      const base = openapiPathForNode(parent, index).replace(/\.md$/, "");
-      return `${base}/responses/${slugify(responseCodeFromId(node))}.md`;
-    }
-  }
-  return `rest/${slugify(node.name)}.md`;
-}
 
 function renderEndpoint(node, index, pathMap, filePath) {
   const lines = [];
@@ -155,10 +113,7 @@ export function renderOpenApiNode(node, index, pathMap, filePath) {
 export function renderOpenApiBundle(bundle) {
   const index = buildCanonicalIndex(bundle);
   const outputs = new Map();
-  const pathMap = new Map();
-  for (const node of bundle.nodes) {
-    pathMap.set(node.id, openapiPathForNode(node, index));
-  }
+  const pathMap = buildOpenApiPathMap(bundle, index);
   index.pathMap = pathMap;
   for (const node of bundle.nodes) {
     const filePath = pathMap.get(node.id);

@@ -193,6 +193,78 @@ async function writeRenderedFiles(outputDir, outputs) {
   }
 }
 
+function titleForDir(dirPath) {
+  if (!dirPath) {
+    return "API Reference";
+  }
+  const parts = dirPath.split(path.sep).filter(Boolean);
+  const last = parts[parts.length - 1];
+  if (!last) {
+    return "API Reference";
+  }
+  if (last === "py") return "Python API";
+  if (last === "js") return "JavaScript API";
+  if (last === "rest") return "REST API";
+  if (last === "vue") return "Vue Components";
+  return last;
+}
+
+function addIndexPages(outputs) {
+  const dirChildren = new Map();
+  const ensureDir = (dir) => {
+    if (!dirChildren.has(dir)) {
+      dirChildren.set(dir, new Set());
+    }
+  };
+
+  const indexIdForDir = (dir) => {
+    if (!dir || dir === ".") {
+      return "api:index";
+    }
+    const parts = dir.split(path.sep).filter(Boolean);
+    const rootPrefixes = new Set(["js", "py", "rest", "vue"]);
+    if (parts.length > 1 && rootPrefixes.has(parts[0])) {
+      parts.shift();
+    }
+    return `api:index:${parts.join("/")}`;
+  };
+
+  for (const filePath of outputs.keys()) {
+    const dir = path.dirname(filePath);
+    ensureDir(dir);
+    dirChildren.get(dir).add(path.basename(filePath));
+
+    let current = dir;
+    while (current && current !== "." && current !== path.dirname(current)) {
+      const parent = path.dirname(current);
+      ensureDir(parent);
+      dirChildren.get(parent).add(path.basename(current));
+      if (parent === current) break;
+      current = parent;
+    }
+  }
+
+  for (const [dir, childrenSet] of dirChildren.entries()) {
+    const indexPath = path.join(dir, "index.md");
+    if (outputs.has(indexPath)) {
+      continue;
+    }
+    const children = Array.from(childrenSet).sort((a, b) => a.localeCompare(b));
+    const title = titleForDir(dir === "." ? "" : dir);
+    const lines = [];
+    lines.push("---", `title: ${title}`, `id: ${indexIdForDir(dir)}`, "---", "");
+    lines.push(`# ${title}`, "");
+    for (const child of children) {
+      if (child === "index.md") continue;
+      const label = child.endsWith(".md") ? child.replace(/\.md$/, "") : child;
+      const linkTarget = child.endsWith(".md") ? `./${child}` : `./${child}/`;
+      lines.push(`- [${label}](${linkTarget})`);
+    }
+    lines.push("");
+    outputs.set(indexPath, lines.join("\n"));
+  }
+}
+
 async function runRender(argv) {
   const defaults = {
     typedoc: {
