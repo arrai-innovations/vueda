@@ -40,8 +40,9 @@ locals().update(get_defaults(env))
 # Override the default URLConf for documentation builds.
 ROOT_URLCONF = "doc_urls"
 
-if "SPECTACULAR_SETTINGS" in globals():
-    SPECTACULAR_SETTINGS = dict(SPECTACULAR_SETTINGS)
+spectacular_settings = globals().get("SPECTACULAR_SETTINGS")
+if spectacular_settings is not None:
+    SPECTACULAR_SETTINGS = dict(spectacular_settings)
     SPECTACULAR_SETTINGS["PREPROCESSING_HOOKS"] = [
         hook
         for hook in SPECTACULAR_SETTINGS.get("PREPROCESSING_HOOKS", [])
