@@ -76,20 +76,12 @@ function responseLabel(code, response) {
   return response.description ? `${code} ${response.description}` : code;
 }
 
-function legacyEndpointId(method, pathKey) {
-  return `openapi:endpoint:${method.toUpperCase()}:${pathKey}`;
-}
-
 function endpointId(method, pathKey) {
-  return `api:endpoint:${method.toUpperCase()}:${pathKey}`;
-}
-
-function legacySchemaId(name) {
-  return `openapi:schema:${name}`;
+  return `rest:endpoint:${method.toUpperCase()}:${pathKey}`;
 }
 
 function schemaId(name) {
-  return `api:schema:${name}`;
+  return `rest:schema:${name}`;
 }
 
 export class OpenApiNormalizer extends Normalizer {
@@ -213,7 +205,6 @@ export class OpenApiNormalizer extends Normalizer {
           },
         });
 
-      endpointNode.extensions.openapi.legacyIds = [legacyEndpointId(method, pathKey)];
       nodes.push(endpointNode, ...responses);
       nodes.find((node) => node.id === apiRootId)?.children?.push(id);
     }
@@ -244,7 +235,7 @@ export class OpenApiNormalizer extends Normalizer {
           name,
           description: schema.description,
           members: members.length ? members : undefined,
-          extensions: { openapi: { ...schema, legacyIds: [legacySchemaId(name)] } },
+          extensions: { openapi: schema },
         })
       );
       nodes.find((node) => node.id === apiRootId)?.children?.push(schemaId(name));

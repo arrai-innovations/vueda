@@ -17,10 +17,6 @@ const KIND_MAP = {
 
 const repoRoot = getRepoRoot();
 
-function legacyId(fullname) {
-  return `pdoc:${fullname}`;
-}
-
 function nodeId(kind, fullname) {
   return `py:${kind}:${fullname}`;
 }
@@ -103,7 +99,6 @@ export class PdocNormalizer extends Normalizer {
             is_external: doc.is_external,
             is_inherited: doc.is_inherited,
             is_public: doc.is_public,
-            legacyIds: [legacyId(doc.fullname)],
           },
         },
       });
