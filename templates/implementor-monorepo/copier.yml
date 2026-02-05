@@ -1,0 +1,44 @@
+_min_copier_version: "9.0.0"
+_templates_suffix: ".jinja"
+_tasks:
+  - echo "VUEDA minimal monorepo template is now in place."
+  - echo "Next steps:"
+  - echo "  - `uv sync --all-packages`"
+  - echo "  - `pnpm install`"
+  - echo "  - Create `server/config.local.toml` values (at minimum: SECRET_KEY)."
+
+project_name:
+  type: str
+  help: Human-readable project name.
+
+project_slug:
+  type: str
+  help: Folder-safe slug used in package names.
+  default: "{{ project_name | lower | replace(' ', '-') }}"
+
+python_package:
+  type: str
+  help: Python package name for your Django apps namespace.
+  default: "{{ project_slug | replace('-', '_') }}"
+
+client_package_name:
+  type: str
+  help: NPM package name for the client app.
+  default: "{{ project_slug }}-client"
+
+bind_ip:
+  type: str
+  default: "localhost"
+
+server_port:
+  type: int
+  default: 8000
+
+client_port:
+  type: int
+  default: 5173
+
+csrf_cookie_name:
+  type: str
+  help: Project-specific CSRF cookie name (avoids collisions across local dev projects).
+  default: "{{ project_slug }}-csrf-token"
