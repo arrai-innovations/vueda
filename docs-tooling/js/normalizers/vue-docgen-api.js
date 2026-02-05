@@ -34,12 +34,8 @@ function propDefault(value) {
   return String(value);
 }
 
-function legacyComponentId(filePath, displayName) {
-  return `vue:component:${filePath}#${displayName}`;
-}
-
 function componentId(displayName) {
-  return `ui:component:${displayName}`;
+  return `vue:component:${displayName}`;
 }
 
 function slotId(componentIdValue, slotName) {
@@ -84,7 +80,6 @@ export class VueDocgenNormalizer extends Normalizer {
               exportName: component.exportName,
               tags: component.tags || undefined,
               sourceFiles: component.sourceFiles || undefined,
-              legacyIds: [legacyComponentId(filePath, displayName)],
             },
           },
         });

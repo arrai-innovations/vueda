@@ -48,12 +48,6 @@ const KIND_NAME_MAP = new Map([
   [262144, "Accessor"],
 ]);
 
-function legacyId(node, contextPath = []) {
-  const name = node.name || "anonymous";
-  const pathPart = contextPath.length ? `${contextPath.join(".")}.` : "";
-  return `typedoc:${pathPart}${name}:${node.id}`;
-}
-
 function docId(node, kind, contextPath = []) {
   const name = node.name || "anonymous";
   const pathPart = contextPath.length ? `${contextPath.join(".")}.` : "";
@@ -207,7 +201,6 @@ export class TypeDocNormalizer extends Normalizer {
             kind: resolveKindName(node),
             variant: node.variant,
             flags: node.flags,
-            legacyIds: [legacyId(node, contextPath)],
           },
         },
       });
