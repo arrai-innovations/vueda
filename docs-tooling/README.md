@@ -1,73 +1,109 @@
-# Docs Tooling
+# VUEDA Docs Tooling
 
-This folder is the home for internal documentation tooling that turns multiple tool outputs into a unified docs experience in `docs/` (VitePress). It may be open sourced later, but it is not designed as a public-facing framework today.
+Internal tooling for extracting, normalizing, and rendering API documentation into the VitePress site in `docs/`.
 
-## Goals (Brainstorm)
-- Provide a single pipeline that converts tool-specific outputs into a shared, predictable schema.
-- Generate Markdown suitable for VitePress alongside authored content.
-- Keep adapters thin and focused on extraction/normalization.
-- Make outputs deterministic and easy to review in PRs.
-- Allow incremental adoption by package or tool.
-- Extend SFC documentation to cover dynamic slot names (e.g. `field(<name>)`, `header(<name>)`) via JSDoc tags or custom annotations.
+**Pipeline**
 
-## Non-Goals (For Now)
-- Replacing upstream doc tooling entirely.
-- Building a full static-site generator.
-- Real-time docs in dev server (can be explored later).
-- Plugin systems or third-party extension points.
-- Public configuration DSLs or user-facing extensibility.
+1. Extract raw data from source tools.
+2. Normalize to the canonical schema.
+3. Render Markdown bundles and write index pages.
 
-## Architecture (Brainstorm)
+Default outputs live in `docs-tooling/.generated/`:
+- Raw extracts: `typedoc.json`, `vue-docgen.json`, `openapi.json`, `pdoc.json`
+- Canonical bundles: `*.canonical.json`
+- Rendered Markdown: `rendered/`
 
-Data flow:
-1. Source tooling (pdoc, redocly, typedoc, vue-docgen-api) emits JSON.
-2. Adapters normalize tool JSON into a canonical schema.
-3. Renderers convert canonical schema into Markdown for VitePress.
-4. Output lands in `docs/` under a clear, tool-specific or package-specific path.
+The root `just docs-render` command writes rendered output to `docs/api/` for VitePress.
 
-## Layers
-- **Extractors**: invoke tools, capture JSON.
-- **Normalizers**: map tool JSON -> canonical schema.
-- **Schema**: shared types/spec for API doc nodes.
-- **Renderers**: canonical schema -> Markdown (and/or MDX later).
-- **Orchestrator**: CLI and config for running tasks.
+**Sources**
 
-## Proposed Layout
-- `docs-tooling/py/`
-  - pdoc + DRF schema extraction/adapters
-- `docs-tooling/js/`
-  - typedoc + vue-docgen extraction/adapters
-- `docs-tooling/core/`
-  - shared schema definitions
-  - markdown renderers
-- `docs-tooling/bin/`
-  - CLI entrypoints and task runners
+- TypeDoc (TypeScript) for `client/lib/`.
+- vue-docgen-api (Vue SFC) for `.vue` files in `client/lib/`.
+- DRF Spectacular (OpenAPI) from the server via `manage.py spectacular`.
+- pdoc (Python) against the server package, using `server/doc_settings.py`.
 
-## Canonical Schema (Idea)
-A shared JSON schema should be the center of gravity. Example high-level node types:
-- `Package` / `Module`
-- `Class` / `Interface`
-- `Function` / `Method`
-- `Property` / `Field`
-- `Type`
-- `Endpoint` (DRF/OpenAPI)
-- `Example` / `Code`
+**Structure**
 
-If we converge on one schema, there is **one** JSON -> Markdown path rather than four.
+- `bin/docs-tooling.js`: CLI entrypoint and task orchestrator.
+- `js/extractors/`: TypeDoc + vue-docgen extractors.
+- `js/normalizers/`: source-specific to canonical schema.
+- `js/renderers/`: canonical schema to Markdown.
+- `js/utils/`: shared helpers (slugify, path mapping, validation).
+- `py/dump_pdoc.py`: pdoc model extraction for Python docs.
+- `schema/canonical.schema.json`: canonical JSON schema.
+- `tests/`: Vitest unit tests (JS).
+- `typedoc.json`, `typedoc.tsconfig.json`: TypeDoc configuration.
 
-## Output Conventions (Idea)
-- `docs/generated/<tool or package>/...`
-- Include a small manifest file describing versions and timestamps.
-- Keep generated content in separate directories to avoid mixing with authored docs.
+**CLI**
 
-## Open Questions
-- Should we keep a single schema or accept minor variants for API vs. component docs?
-- How much should the renderer handle formatting vs. template files?
-- How do we version the schema and prevent drift?
-- Do we want generated docs to be fully deterministic (sorted, stable IDs)?
-- How should we standardize dynamic slot docs (custom JSDoc tags, docgen plugins, or a post-processor that rewrites slot entries)?
+Run from `docs-tooling/`:
 
-## Next Steps
-- Decide on a canonical schema shape.
-- Choose a CLI approach (Python, Node, or hybrid).
-- Write one adapter end-to-end to validate the pipeline.
+- Extract:
+
+```bash
+./bin/docs-tooling.js extract --target all
+```
+
+Options:
+- `--target` (`all`, `python`, `rest`, `javascript`, `components`)
+- `--out-dir` (custom output dir)
+
+- Normalize:
+
+```bash
+./bin/docs-tooling.js normalize --source all
+```
+
+Options:
+- `--source` (`all`, `typedoc`, `vue-docgen`, `openapi`, `pdoc`)
+- `--input` (single-source override)
+- `--output` (single-source override)
+
+- Render:
+
+```bash
+./bin/docs-tooling.js render --source all --output ../docs/api
+```
+
+Options:
+- `--source` (`all`, `typedoc`, `vue-docgen`, `openapi`, `pdoc`)
+- `--input` (single-source override)
+- `--output` (rendered Markdown dir)
+
+**Workflow**
+
+From repo root:
+
+- `just docs-extract`
+- `just docs-normalize`
+- `just docs-render`
+- `just docs-api` (extract + normalize + render)
+
+**Install**
+
+From repo root:
+
+```bash
+pnpm install
+uv sync --all-groups --all-packages
+```
+
+If you prefer the curated bootstrap flow:
+
+```bash
+just bootstrap
+```
+
+**Tests**
+
+JavaScript (Vitest):
+
+```bash
+pnpm -C docs-tooling test
+```
+
+Python (pytest):
+
+```bash
+cd docs-tooling && uv run --no-sync pytest
+```
