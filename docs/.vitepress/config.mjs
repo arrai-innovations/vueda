@@ -99,6 +99,7 @@ const apiLinkPlugin = (md, options = {}) => {
   const resolve = options.resolve;
   const strict = options.strict !== false;
   const pattern = /^\{@api\s+([^}]+)\}/;
+  const softbreakSpacer = ' ';
 
   md.inline.ruler.before('emphasis', 'vueda-api-link', (state, silent) => {
     const { pos } = state;
@@ -132,7 +133,30 @@ const apiLinkPlugin = (md, options = {}) => {
     const text = state.push('text', '', 0);
     text.content = entry.title || rawId;
     state.push('link_close', 'a', -1);
-    state.pos += match[0].length;
+
+    let nextPos = pos + match[0].length;
+    const char = state.src.charCodeAt(nextPos);
+    if (char === 0x0a || char === 0x0d) {
+      if (char === 0x0d) {
+        nextPos += 1;
+        if (state.src.charCodeAt(nextPos) === 0x0a) {
+          nextPos += 1;
+        }
+      } else {
+        nextPos += 1;
+      }
+      while (nextPos < state.src.length) {
+        const code = state.src.charCodeAt(nextPos);
+        if (code !== 0x20 && code !== 0x09) {
+          break;
+        }
+        nextPos += 1;
+      }
+      const spacer = state.push('text', '', 0);
+      spacer.content = softbreakSpacer;
+    }
+
+    state.pos = nextPos;
     return true;
   });
 };
