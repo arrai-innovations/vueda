@@ -217,6 +217,18 @@ function addIndexPages(outputs) {
     }
   };
 
+  const indexIdForDir = (dir) => {
+    if (!dir || dir === ".") {
+      return "api:index";
+    }
+    const parts = dir.split(path.sep).filter(Boolean);
+    const rootPrefixes = new Set(["js", "py", "rest", "vue"]);
+    if (parts.length > 1 && rootPrefixes.has(parts[0])) {
+      parts.shift();
+    }
+    return `api:index:${parts.join("/")}`;
+  };
+
   for (const filePath of outputs.keys()) {
     const dir = path.dirname(filePath);
     ensureDir(dir);
@@ -240,7 +252,7 @@ function addIndexPages(outputs) {
     const children = Array.from(childrenSet).sort((a, b) => a.localeCompare(b));
     const title = titleForDir(dir === "." ? "" : dir);
     const lines = [];
-    lines.push("---", `title: ${title}`, "---", "");
+    lines.push("---", `title: ${title}`, `id: ${indexIdForDir(dir)}`, "---", "");
     lines.push(`# ${title}`, "");
     for (const child of children) {
       if (child === "index.md") continue;

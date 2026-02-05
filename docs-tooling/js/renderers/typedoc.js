@@ -1,4 +1,5 @@
 import { buildCanonicalIndex } from "../utils/index-canonical.js";
+import { buildTypedocPathMap } from "../utils/path-map.js";
 import {
   formatParameters,
   formatSource,
@@ -10,63 +11,7 @@ import {
   renderHeading,
   renderList,
   renderTable,
-  slugify,
 } from "./markdown.js";
-
-function modulePath(node) {
-  const sourceFile = node.source?.file;
-  if (sourceFile) {
-    const withoutExt = sourceFile.replace(/\.[^.]+$/, "");
-    const scoped = withoutExt.startsWith("client/lib/")
-      ? withoutExt.slice("client/lib/".length)
-      : withoutExt;
-    return `js/${scoped}.md`;
-  }
-  return `js/${slugify(node.name)}.md`;
-}
-
-function classDir(node, moduleFile) {
-  const baseDir = moduleFile.replace(/\.md$/, "");
-  return `${baseDir}/${slugify(node.name)}`;
-}
-
-function kindSegment(kind) {
-  switch (kind) {
-    case "property":
-      return "properties";
-    case "method":
-      return "methods";
-    case "function":
-      return "functions";
-    case "enum":
-    case "type":
-    case "interface":
-      return "types";
-    default:
-      return "members";
-  }
-}
-
-function typedocPathForNode(node, index) {
-  if (node.kind === "module" || node.kind === "namespace") {
-    return modulePath(node);
-  }
-  const parent = index.parentOf.get(node.id);
-  if (parent?.kind === "class") {
-    const moduleAncestor = index.parentOf.get(parent.id) || parent;
-    const moduleFile = modulePath(moduleAncestor);
-    const dir = classDir(parent, moduleFile);
-    return `${dir}/${kindSegment(node.kind)}/${slugify(node.name)}.md`;
-  }
-  const moduleAncestor =
-    parent?.kind === "module" ? parent : parent ? index.parentOf.get(parent.id) : null;
-  if (moduleAncestor && (moduleAncestor.kind === "module" || moduleAncestor.kind === "namespace")) {
-    const moduleFile = modulePath(moduleAncestor);
-    const dir = moduleFile.replace(/\.md$/, "");
-    return `${dir}/${kindSegment(node.kind)}/${slugify(node.name)}.md`;
-  }
-  return `js/${kindSegment(node.kind)}/${slugify(node.name)}.md`;
-}
 
 function renderSignatures(node, filePath) {
   if (!node.signatures || !node.signatures.length) {
@@ -183,10 +128,7 @@ export function renderTypeDocNode(node, index, filePath) {
 export function renderTypeDocBundle(bundle) {
   const index = buildCanonicalIndex(bundle);
   const outputs = new Map();
-  const pathMap = new Map();
-  for (const node of bundle.nodes) {
-    pathMap.set(node.id, typedocPathForNode(node, index));
-  }
+  const pathMap = buildTypedocPathMap(bundle, index);
   index.pathMap = pathMap;
   for (const node of bundle.nodes) {
     const filePath = pathMap.get(node.id);
