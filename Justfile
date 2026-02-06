@@ -51,9 +51,9 @@ docs-normalize:
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js normalize
 
 docs-render:
-  rm -rf {{justfile_directory()}}/docs/api
-  mkdir -p {{justfile_directory()}}/docs/api
-  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js render --output ../docs/api
+  rm -rf {{justfile_directory()}}/docs/reference/api
+  mkdir -p {{justfile_directory()}}/docs/reference/api
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js render --output ../docs/reference/api
 
 docs-api:
   just docs-extract

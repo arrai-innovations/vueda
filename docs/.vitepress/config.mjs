@@ -8,7 +8,7 @@ import sirv from 'sirv';
 const base = '/vueda/';
 const docsRoot = fileURLToPath(new URL('..', import.meta.url));
 const generatedRoot = path.join(docsRoot, '.generated');
-const apiRoot = path.join(docsRoot, 'api');
+const apiRoot = path.join(docsRoot, 'reference', 'api');
 
 const walkFiles = (dir) => {
   if (!fs.existsSync(dir)) {
@@ -60,12 +60,12 @@ const extractHeading = (body) => {
 const apiPathForFile = (filePath) => {
   const rel = path.relative(apiRoot, filePath).split(path.sep).join('/');
   if (rel.endsWith('/index.md')) {
-    return `/api/${rel.slice(0, -'index.md'.length)}`;
+    return `/reference/api/${rel.slice(0, -'index.md'.length)}`;
   }
   if (rel === 'index.md') {
-    return '/api/';
+    return '/reference/api/';
   }
-  return `/api/${rel}`;
+  return `/reference/api/${rel}`;
 };
 
 const buildApiIndex = () => {
@@ -98,22 +98,63 @@ const apiIndex = buildApiIndex();
 const apiLinkPlugin = (md, options = {}) => {
   const resolve = options.resolve;
   const strict = options.strict !== false;
-  const pattern = /^\{@api\s+([^}]+)\}/;
+  const softbreakSpacer = ' ';
+  const parseApiLink = (src, pos) => {
+    const prefix = '{@api';
+    if (!src.startsWith(prefix, pos)) {
+      return null;
+    }
+
+    let i = pos + prefix.length;
+    if (i >= src.length || !/\s/.test(src[i])) {
+      return null;
+    }
+
+    while (i < src.length && /\s/.test(src[i])) {
+      i += 1;
+    }
+
+    const idStart = i;
+    let braceDepth = 0;
+
+    while (i < src.length) {
+      const char = src[i];
+      if (char === '{') {
+        braceDepth += 1;
+        i += 1;
+        continue;
+      }
+      if (char === '}') {
+        if (braceDepth === 0) {
+          const raw = src.slice(pos, i + 1);
+          const rawId = src.slice(idStart, i).trim();
+          if (!rawId) {
+            return null;
+          }
+          return { raw, rawId, length: raw.length };
+        }
+        braceDepth -= 1;
+      }
+      i += 1;
+    }
+
+    return null;
+  };
 
   md.inline.ruler.before('emphasis', 'vueda-api-link', (state, silent) => {
     const { pos } = state;
     if (state.src.charCodeAt(pos) !== 0x7b) {
       return false;
     }
-    const match = pattern.exec(state.src.slice(pos));
-    if (!match) {
+    const parsed = parseApiLink(state.src, pos);
+    if (!parsed) {
       return false;
     }
     if (silent) {
       return true;
     }
 
-    const rawId = match[1].trim();
+    const { raw, rawId, length } = parsed;
     const entry = resolve ? resolve(rawId) : null;
     if (!entry) {
       const hint = state.env?.relativePath || state.env?.path || 'unknown file';
@@ -122,8 +163,8 @@ const apiLinkPlugin = (md, options = {}) => {
         throw new Error(message);
       }
       const token = state.push('text', '', 0);
-      token.content = match[0];
-      state.pos += match[0].length;
+      token.content = raw;
+      state.pos += length;
       return true;
     }
 
@@ -132,7 +173,30 @@ const apiLinkPlugin = (md, options = {}) => {
     const text = state.push('text', '', 0);
     text.content = entry.title || rawId;
     state.push('link_close', 'a', -1);
-    state.pos += match[0].length;
+
+    let nextPos = pos + length;
+    const char = state.src.charCodeAt(nextPos);
+    if (char === 0x0a || char === 0x0d) {
+      if (char === 0x0d) {
+        nextPos += 1;
+        if (state.src.charCodeAt(nextPos) === 0x0a) {
+          nextPos += 1;
+        }
+      } else {
+        nextPos += 1;
+      }
+      while (nextPos < state.src.length) {
+        const code = state.src.charCodeAt(nextPos);
+        if (code !== 0x20 && code !== 0x09) {
+          break;
+        }
+        nextPos += 1;
+      }
+      const spacer = state.push('text', '', 0);
+      spacer.content = softbreakSpacer;
+    }
+
+    state.pos = nextPos;
     return true;
   });
 };
@@ -183,6 +247,7 @@ export default defineConfig({
   lastUpdated: true,
   base,
   outDir: '../site',
+  srcExclude: ['**/AGENTS.md', '**/CONTENT_PLAN.md'],
   head: [
     ['link', { rel: 'icon', href: `${base}assets/logo-cube.svg` }],
     ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: `${base}assets/logo-cube.png` }],
@@ -203,13 +268,45 @@ export default defineConfig({
     logo: '/assets/logo-cube.svg',
     nav: [
       { text: 'About', link: '/' },
-      { text: 'Guide', link: '/guide' },
-      { text: 'Quick Start', link: '/quick-start' },
-      { text: 'Server', link: '/server/' },
-      { text: 'Client', link: '/client/' },
-      { text: 'API', link: '/api/' },
+      { text: 'Start Building', link: '/start-building' },
+      { text: 'Guides', link: '/guides' },
+      { text: 'Core Concepts', link: '/core-concepts' },
+      { text: 'Reference', link: '/reference' },
     ],
     sidebar: {
+
+      '/concepts/': [
+        {
+          text: 'Concepts',
+          items: [
+            { text: 'Overview', link: '/concepts/' },
+            { text: 'Architecture', link: '/concepts/architecture' },
+            { text: 'Design Principles', link: '/concepts/design-principles' },
+            { text: 'Server-Client Contract', link: '/concepts/server-client-contract' },
+          ],
+        },
+      ],
+      '/how-to/': [
+        {
+          text: 'How-to',
+          items: [
+            { text: 'Overview', link: '/how-to/' },
+            { text: 'Add a Resource End-to-End', link: '/how-to/add-resource' },
+            { text: 'Install/Integrate Server', link: '/how-to/server-install' },
+            { text: 'Install/Integrate Client', link: '/how-to/client-install' },
+          ],
+        },
+      ],
+      '/reference/': [
+        {
+          text: 'Reference',
+          items: [
+            { text: 'Overview', link: '/reference/' },
+            { text: 'Configuration Surface', link: '/reference/configuration' },
+            { text: 'Glossary', link: '/reference/glossary' },
+          ],
+        },
+      ],
       '/server/': [
         {
           text: 'Server',
@@ -227,34 +324,23 @@ export default defineConfig({
           items: [{ text: 'Overview', link: '/client/' }],
         },
       ],
-      '/api/': [
-        {
-          text: 'JavaScript',
-          items: sidebarFromDir(path.join(docsRoot, 'api', 'js'), '/api/js/'),
-        },
-        {
-          text: 'Python',
-          items: sidebarFromDir(path.join(docsRoot, 'api', 'py'), '/api/py/'),
-        },
-        {
-          text: 'REST',
-          items: sidebarFromDir(path.join(docsRoot, 'api', 'rest'), '/api/rest/'),
-        },
-        {
-          text: 'Vue',
-          items: sidebarFromDir(path.join(docsRoot, 'api', 'vue'), '/api/vue/'),
-        },
-      ],
-      '/': [
-        {
-          text: 'Documentation',
-          items: [
-            { text: 'About', link: '/' },
-            { text: 'Guide', link: '/guide' },
-            { text: 'Quick Start', link: '/quick-start' },
-          ],
-        },
-      ],
+      // '/reference/api/': [
+      //   {
+      //     text: 'JavaScript',
+      //     items: sidebarFromDir(path.join(docsRoot, 'reference', 'api', 'js'), '/reference/api/js/'),
+      //   },
+      //   {
+      //     text: 'Python',
+      //     items: sidebarFromDir(path.join(docsRoot, 'reference', 'api', 'py'), '/reference/api/py/'),
+      //   },
+      //   {
+      //     text: 'REST',
+      //     items: sidebarFromDir(path.join(docsRoot, 'reference', 'api', 'rest'), '/reference/api/rest/'),
+      //   },
+      //   {
+      //     text: 'Vue',
+      //     items: sidebarFromDir(path.join(docsRoot, 'reference', 'api', 'vue'), '/reference/api/vue/'),
+      //   },
     },
     socialLinks: [{ icon: 'github', link: 'https://github.com/arrai-innovations/vueda' }],
   },
