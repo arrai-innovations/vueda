@@ -11,9 +11,9 @@ Internal tooling for extracting, normalizing, and rendering API documentation in
 Default outputs live in `docs-tooling/.generated/`:
 - Raw extracts: `typedoc.json`, `vue-docgen.json`, `openapi.json`, `pdoc.json`
 - Canonical bundles: `*.canonical.json`
-- Rendered Markdown: `rendered/`
+- Rendered Markdown: `docs/reference/api/` (default render destination)
 
-The root `just docs-render` command writes rendered output to `docs/api/` for VitePress.
+The root `just docs-render` command writes rendered output to `docs/reference/api/` for VitePress.
 
 **Sources**
 
@@ -62,7 +62,7 @@ Options:
 - Render:
 
 ```bash
-./bin/docs-tooling.js render --source all --output ../docs/api
+./bin/docs-tooling.js render --source all --output ../docs/reference/api
 ```
 
 Options:

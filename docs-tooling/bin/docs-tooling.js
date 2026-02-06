@@ -270,19 +270,19 @@ async function runRender(argv) {
   const defaults = {
     typedoc: {
       input: path.join(repoRoot, "docs-tooling", ".generated", "typedoc.canonical.json"),
-      output: path.join(repoRoot, "docs-tooling", ".generated", "rendered"),
+      output: path.join(repoRoot, "docs", "reference", "api"),
     },
     "vue-docgen": {
       input: path.join(repoRoot, "docs-tooling", ".generated", "vue-docgen.canonical.json"),
-      output: path.join(repoRoot, "docs-tooling", ".generated", "rendered"),
+      output: path.join(repoRoot, "docs", "reference", "api"),
     },
     openapi: {
       input: path.join(repoRoot, "docs-tooling", ".generated", "openapi.canonical.json"),
-      output: path.join(repoRoot, "docs-tooling", ".generated", "rendered"),
+      output: path.join(repoRoot, "docs", "reference", "api"),
     },
     pdoc: {
       input: path.join(repoRoot, "docs-tooling", ".generated", "pdoc.canonical.json"),
-      output: path.join(repoRoot, "docs-tooling", ".generated", "rendered"),
+      output: path.join(repoRoot, "docs", "reference", "api"),
     },
   };
 
