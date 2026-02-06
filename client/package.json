@@ -22,8 +22,6 @@
   "scripts": {
     "test": "npx --no-install vitest",
     "coverage": "npm test -- run --coverage",
-    "docs": "echo \"#todo: setup jsdoc to markdown\"",
-    "docgen:json": "node scripts/vue-docgen-json.mjs",
     "lint": "npx eslint --no-warn-ignored .",
     "format": "npx prettier --check .",
     "eslint": "npx eslint --fix .",

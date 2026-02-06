@@ -11,7 +11,7 @@ const repoRoot = path.resolve(clientRoot, '..');
 const inputDir = path.resolve(clientRoot, process.argv[2] ?? 'lib');
 const outputFile = path.resolve(
   repoRoot,
-  process.argv[3] ?? 'docs/.generated/api/client/vue-docgen.json'
+  process.argv[3] ?? 'docs-tooling/.generated/vue-docgen.json'
 );
 
 const ignoredDirs = new Set(['node_modules', 'dist', '.git', '.vitepress']);
