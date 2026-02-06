@@ -17,7 +17,15 @@ development concepts.
 - [Introduction | Vue.js](https://vuejs.org/guide/introduction)
 - [Index | Node.js Documentation](https://nodejs.org/docs/latest/api/)
 
-**If you are looking to get a basic VUEDA setup running quickly, please refer to the [VUEDA Quick Start Guide](./getting-started.md).**
+**If you are looking to get a basic VUEDA setup running quickly, please refer to the [VUEDA Quick Start](quick-start.md).**
+
+## How This Guide Fits In
+
+- For the “happy path”, see [Quick Start](quick-start.md).
+- For the scaffold walkthrough, see [Getting Started](getting-started.md).
+- For curated concept pages, see [Concepts](concepts/).
+- For task-focused recipes, see [How-to Guides](how-to/).
+- For generated reference, see [API Reference](/reference/api/).
 
 ## Architecture Overview
 

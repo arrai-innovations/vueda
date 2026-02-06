@@ -24,6 +24,8 @@ Link to new project structure, docs/project-structure.md:
 
 This guide documents the **supported, opinionated starting point** for a VUEDA-based project, focusing on the minimum install + configuration steps needed to get a VUEDA API server and a VUEDA client application talking to each other.
 
+If you want a short “happy path” overview first, start with the [Quick Start](quick-start.md).
+
 If you already have an existing Django or Vue project, this guide is still useful as a reference for how VUEDA expects projects to be structured, but it does not attempt to provide conversion steps.
 
 By the end of this guide, you will have a running Django API and Vue client connected via VUEDA, exposing a simple inventory model end-to-end.
@@ -35,8 +37,7 @@ By the end of this guide, you will have a running Django API and Vue client conn
 - A [PostgreSQL](https://www.postgresql.org/) database: for hosting your application data
 - A [Redis](https://redis.io/) instance: for caching and background task brokering
 - [Git](https://git-scm.com/): for version control
-- Access to the private package registries ([private PyPI](http://pypi.arrai.dev/) for `vueda`, [npm](https://www.npmjs.com/) for
-  `@arrai-innovations/vueda`) <!-- todo: remove when public -->
+- Access to the private package registries ([private PyPI](http://pypi.arrai.dev/) for `vueda`, [npm](https://www.npmjs.com/) for `@arrai-innovations/vueda`) <!-- todo: remove when public -->
 
 ## Recommended
 
@@ -80,298 +81,36 @@ You can also store this in an `.npmrc` file in your home directory (`~/.npmrc`):
 
 ## Project Scaffolding for this Guide
 
-Let's start by creating the basic project structure. We will create a monorepo with separate folders for the server and client.
-
-These commands create files and folders only. We will fill in their contents step by step.
+VUEDA has two `copier` templates for scaffolding a new implementor project, one with a full set of recommended DX tooling, and one minimal template without any opinionated tooling.
 
 ```console
-mkdir your-project
+# Implementor Monorepo with DX Tooling
+uvx copier copy --vcs-ref=HEAD gh:arrai-innovations/vueda/templates/implementor-monorepo-dx ./your-project
+
+# Implementor Monorepo Minimal
+uvx copier copy --vcs-ref=HEAD gh:arrai-innovations/vueda/templates/implementor-monorepo ./your-project
+```
+
+The template generates the repo layout and the minimum wiring (Django settings + URLs, Vite + router stubs) so you can jump straight to running the stack.
+
+## Install Dependencies
+
+From your new project root:
+
+### DX template (`implementor-monorepo-dx`)
+
+```console
 cd your-project
-git init
-uv init --bare
-mkdir server client
-cd server
-uv init --bare
-mkdir -p config/settings your_project tests
-touch config/__init__.py config/settings/__init__.py tests/__init__.py your_project/__init__.py
-touch manage.py config/urls.py config/asgi.py config/settings/base.py config/settings/local.py
-cd ../client
-mkdir -p src/router public tests
-pnpm init --bare --init-type module
-touch index.html vite.config.js src/main.js src/TheApp.vue 
-cd ../
+just bootstrap
 ```
 
-## Complete the Minimum Wiring
+### Minimal template (`implementor-monorepo`)
 
-With that structure in place, we can proceed with getting a new django and vue.js project setup with VUEDA installed and  configured.
-
-In the root `pyproject.toml`, configure uv as a workspace:
-```toml
-...
-[tool.uv.workspace]
-members = ["server"]
-```
-
-Similarly, in the root `pnpm-workspace.yaml`, add:
-```yaml
-packages:
-   - server
-   - client
-```
-
-In `server/pyproject.toml`, add the private PyPI index and configure `vueda` to be installed from there:
-```toml
-...
-[[tool.uv.index]]
-name = "arrai"
-url = "https://pypi.arrai.dev/simple/"
-explicit = true
-
-[tool.uv.sources]
-vueda = { index = "arrai" }
-```
-
-You can now add `vueda` as a dependency and sync the environment:
 ```console
-uv add vueda
-uv sync --all-groups
+cd your-project
+uv sync --all-packages
+pnpm install
 ```
-
-Now, we can fill in a minimal manage.py, pointing to dev settings by default. 
-`server/manage.py`:
-```python
-#!/usr/bin/env python
-import os
-import sys
-
-if __name__ == "__main__":
-   # deployments should set the DJANGO_SETTINGS_MODULE environment variable appropriately
-   # default to development settings for local dev
-   os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
-
-   from django.core.management import execute_from_command_line
-   execute_from_command_line(sys.argv)
-```
-
-Let's also add those minimal settings, starting with a base settings file for shared configuration, and a local
-development override.
-
-> [!TIP]
-> VUEDA provides a `TomlEnv` configuration loader which reads from TOML files, and a set of default settings which can be customized via that configuration. This is based on the same API as [`django-environ`](https://github.com/joke2k/django-environ), but using TOML files for configuration instead of environment variables. You can also use `django-environ` directly if you prefer that approach, passing the resulting `Env` object to `get_defaults()` instead.
-
-`server/config/settings/base.py`:
-```python
-from vueda.core.config import TomlEnv, load_toml
-from vueda.core.default_settings import get_defaults
-
-ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
-APPS_DIR = ROOT_DIR / "your_project"
-
-# VUEDA-ish toml configuration
-env = TomlEnv(
-   {
-      **load_toml(ROOT_DIR / "config.toml"),
-      **load_toml(ROOT_DIR / "config.local.toml"),
-   }
-)
-# load VUEDA defaults + configuration thereof
-locals().update(get_defaults(env))
-```
-
-`server/config/settings/local.py`:
-```python
-from config.settings.base import *
-DEBUG = True
-# Use a project-specific CSRF cookie name to avoid conflicts with other local dev projects
-CSRF_COOKIE_NAME = "your-project-csrf-token"
-# Allow Vite dev server to call Django locally (session auth + CSRF)
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-CORS_ALLOW_CREDENTIALS = True
-# Dev cookies over http (do not use in production)
-CSRF_COOKIE_SECURE = False
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SAMESITE = "Lax"
-```
-
-Finally, we can add minimal URL routing to `server/config/urls.py`:
-```python
-from django.urls import include, path
-
-# VUEDA URLs
-from vueda.info.urls import urlpatterns as vueda_info_urls
-from vueda.user.urls import urlpatterns as vueda_user_urls
-# optional VUEDA modules
-# from vueda.workflow.urls import urlpatterns as vueda_workflow_urls
-# from vueda.release.urls import urlpatterns as vueda_release_urls
-# from vueda.vdq.urls import urlpatterns as vueda_vdq_urls
-from vueda.user.views import VuedaForgotPasswordView, VuedaResetPasswordView
-
-
-urlpatterns = [
-  path(
-    "routes/",
-    include(
-      [
-        # VUEDA core
-        path("", include(vueda_info_urls)),
-        path("", include(vueda_user_urls)),
-        # optional VUEDA modules
-        # path("", include(vueda_workflow_urls)),
-        # path("", include(vueda_release_urls)),
-        # path("", include(vueda_vdq_urls)),
-
-        # VUEDA auth helpers
-        path("forgot-password/", VuedaForgotPasswordView.as_view(), name="forgot_password"),
-        path("reset-password/", VuedaResetPasswordView.as_view(), name="reset_password"),
-
-        # Application routes go here
-        # path("blog/", include("your_project.blog.urls")),
-      ]
-    ),
-  ),
-]
-```
-
-Switching over to the client, assuming the npm token is setup as in the above section, we can add `@arrai-innovations/vueda` as a dependency:
-```console
-pnpm add @arrai-innovations/vueda
-```
-
-Peer dependencies are not installed automatically by `pnpm`, so ensure you install any missing peer dependencies declared by `@arrai-innovations/vueda`. You can install them using the following command:
-```console
-pnpm view @arrai-innovations/vueda peerDependencies --json \
-| jq -r 'to_entries | map("\(.key)@\(.value)") | .[]' \
-| xargs pnpm add
-```
-
-We can then start filling in the client-side boilerplate, first with a `client/vite.config.js`:
-```js
-import { defineConfig } from "vite";
-import vue from "@vitejs/plugin-vue";
-import { vuedaViteConfig } from "@arrai-innovations/vueda/vite";
-
-export default defineConfig({
-  plugins: [vue()],
-  ...vuedaViteConfig(),
-});
-```
-
-Then add a minimal router stub in `client/src/router/index.js` (we will configure it later):
-```js
-import { requireAuth, requireInitialized, requireRecentAuth, requireUnauth } from "@vueda/router/guards.js";
-import { makeCRUDRoutes } from "@vueda/router/makeCrud.js";
-import { setCrudComponents } from "@vueda/router/routerComponent.js";
-import { getPascalCaseName } from "@vueda/utils/case.js";
-import { createRouter, createWebHistory } from "vue-router";
-
-/**
- * Create and return a new router instance.
- *
- * @param app {import('vue').App} - The Vue app instance.
- * @param pinia {import('pinia').Pinia} - The Pinia instance.
- * @returns {import('vue-router').Router} The router instance.
- */
-export function getRouter(app, pinia) {
-    const crudComponents = {}; // to be filled in later
-    setCrudComponents(crudComponents);
-    // Create the router first so it can be passed to CRUD route builders and guards.
-    const router = createRouter({
-        history: createWebHistory(import.meta.env.BASE_URL),
-        routes: [],
-    });
-    const routes = [
-      ...makeCRUDRoutes({
-        component: async () => (await import("@vueda/views/ViewActionRouter.vue")).default,
-        authRedirect: { name: "sign-in" },
-        groupsRedirect: { name: "welcome" },
-        actionRedirect: { name: "not-found" },
-        groups: [],
-        vueApp: app,
-        router,
-        pinia,
-      }),
-      {
-        path: "/:pathMatch(.*)*",
-        name: "not-found",
-        component: async () => (await import("@vueda/views/ViewNotFound.vue")).default,
-        meta: {
-          title: "Not Found",
-          titles: {
-            view: "Not Found",
-          },
-        },
-        beforeEnter: () => requireInitialized(router, pinia),
-        props: (route) => {
-          return {
-            ...(route.params || {}),
-            ...(route.query || {}),
-            title: route.meta.title,
-          };
-        },
-      },
-    ];
-
-    return router;
-}
-```
-
-We can also add a minimal Vue.js main entrypoint in `client/src/main.js`:
-```js
-import { createApp } from "vue";
-import { createPinia } from "pinia";
-import { getRouter } from "@/router";
-import TheApp from "./TheApp.vue";
-
-const app = createApp(TheApp);
-const pinia = createPinia();
-const router = getRouter(app, pinia);
-app.use(pinia);
-app.use(router);
-app.mount("#app");
-export default app;
-```
-
-And a minimal `client/index.html`:
-```html
-<!doctype html>
-<html lang="en" class="h-full transition-color duration-200">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="icon" href="/favicon.ico" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>VUEDA App</title>
-        <link rel="stylesheet" href="/src/index.css" />
-    </head>
-    <body class="h-full relative bg-zinc-100 dark:bg-zinc-800">
-        <div id="the-app" class="h-full"></div>
-        <script type="module" src="/src/main.js"></script>
-        <div id="modal-teleport"></div>
-    </body>
-</html>
-```
-
-Last for boilerplate, a minimal `client/src/TheApp.vue`:
-```vue
-<script setup>
-import Toast from "primevue/toast";
-import ConfirmDialog from "primevue/confirmdialog";
-</script>
-<template>
-   <Toast />
-   <ConfirmDialog />
-   <RouterView />
-</template>
-```
-<!-- todo: any config not covered above? -->
 
 ## Checkpoint: First Contact
 
@@ -388,9 +127,17 @@ Let's verify that everything is wired up correctly.
 > 
 > The remainer of this guide will use `localhost` for simplicity.
 
-In one console, start the VUEDA server:
+Before starting the server, ensure `server/config.local.toml` has values for `SECRET_KEY` and `DATABASE_URL`.
+
+You can run both the server and client concurrently when using the DX template via:
 
 ```console
+just serve
+```
+
+Otherwise, start the VUEDA server in one console:
+
+```
 cd server
 uv run python manage.py migrate
 uv run python manage.py runserver localhost:8000
@@ -400,8 +147,10 @@ In another console, start the VUEDA client:
 
 ```console
 cd client
-pnpx vite --host localhost:5173
+pnpm dev
 ```
+
+The `pnpm dev` command uses the client port you set up in the copier options, which defaults to `5173`.
 
 > [!TIP]
 > These ports are arbitrary, you can choose any free ports on your machine. Just ensure that the client is configured to talk to the server on the correct port (we will cover that later). You may have network/firewall restrictions on your machine necessitating different ports.
