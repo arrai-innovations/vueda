@@ -16,3 +16,6 @@ env = TomlEnv(
 
 locals().update(get_defaults(env))
 
+# This needs to be imported after any customizations to the PERMISSION_NAMES_MAPPING, so
+# all permission names can be mapped to the correct names before django starts using them.
+from vueda.core import patch_django  # noqa F401
