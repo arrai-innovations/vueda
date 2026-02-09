@@ -1,3 +1,5 @@
+import warnings
+
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
@@ -391,6 +393,16 @@ class DeactivateActionViewSetMixin:
 class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
     detail_args = ["pk"]
 
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if issubclass(cls, drf_viewsets.ReadOnlyModelViewSet):
+            warnings.warn(
+                f"{cls.__module__}.{cls.__name__} inherits from both VuedaViewSet and ReadOnlyModelViewSet. "
+                "Use VuedaReadOnlyViewSet for read-only endpoints.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+
     def destroy_validation(self, objs):
         return None
 
@@ -454,3 +466,22 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
 
 class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):
     pass
+
+
+class VuedaReadOnlyViewSet(
+    FlexFieldsMixin,
+    NoExtraFieldsForViewSetMixin,
+    ListRowLevelViewSetMixin,
+    viewsets.ReadOnlyModelViewSet,
+):
+    detail_args = ["pk"]
+
+    def get_allowed_extra_actions(self, request, *, instance=None):
+        """
+        Override this function to change if a user is allowed to do a certain action.
+        """
+        allowed_actions = set()
+        for extra_action in self.get_extra_actions():
+            allowed_actions.add(extra_action.url_name)
+
+        return allowed_actions

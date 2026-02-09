@@ -4,12 +4,11 @@ from django.db.transaction import atomic
 from rest_framework import status as drf_status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from vueda.core.decorators import action
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.serializers import PrimaryKeyListSerializer
-from vueda.core.viewsets import VuedaViewSet
+from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.vdq.constants import QUEUE_ITEM_DONE_STATES
 from vueda.vdq.filtersets import SendQueueFilterSet
 from vueda.vdq.filtersets import SentQueueFilterSet
@@ -21,7 +20,7 @@ from vueda.vdq.serializers import QueueItemSerializer
 from vueda.vdq.serializers import SentItemSerializer
 
 
-class DefaultSendQueueViewSet(VuedaViewSet, ReadOnlyModelViewSet):
+class DefaultSendQueueViewSet(VuedaReadOnlyViewSet):
     queryset = QueueItem.objects.select_related("receiver").order_by("queued")
     serializer_class = QueueItemSerializer
     permission_classes = [ObjectPermissions]
@@ -43,7 +42,7 @@ class DefaultSendQueueViewSet(VuedaViewSet, ReadOnlyModelViewSet):
 SendQueueViewSet = getattr(settings, "SEND_QUEUE_VIEWSET", DefaultSendQueueViewSet)
 
 
-class DefaultSentItemViewSet(VuedaViewSet, ReadOnlyModelViewSet):
+class DefaultSentItemViewSet(VuedaReadOnlyViewSet):
     queryset = SentItem.objects.select_related("receiver").order_by("queued")
     serializer_class = SentItemSerializer
     permission_classes = [QueueItemObjectPermission]

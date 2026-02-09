@@ -3,6 +3,7 @@ from http import HTTPStatus
 
 import pytest
 from django.conf import settings
+from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from tests.conftest import BaseTestModelViewSet
 from tests.models import Employee
@@ -10,6 +11,26 @@ from tests.models import Product
 from tests.models import Timesheet
 from tests.viewsets import TimesheetViewSet
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.viewsets import VuedaReadOnlyViewSet
+from vueda.core.viewsets import VuedaViewSet
+
+
+def test_vueda_read_only_viewset_excludes_write_actions():
+    assert hasattr(VuedaReadOnlyViewSet, "list")
+    assert hasattr(VuedaReadOnlyViewSet, "retrieve")
+    assert not hasattr(VuedaReadOnlyViewSet, "create")
+    assert not hasattr(VuedaReadOnlyViewSet, "update")
+    assert not hasattr(VuedaReadOnlyViewSet, "partial_update")
+    assert not hasattr(VuedaReadOnlyViewSet, "destroy")
+
+
+def test_vueda_viewset_warns_when_combined_with_read_only_viewset():
+    with pytest.warns(RuntimeWarning, match="inherits from both VuedaViewSet and ReadOnlyModelViewSet"):
+
+        class InvalidCombinedViewSet(VuedaViewSet, ReadOnlyModelViewSet):
+            pass
+
+    assert InvalidCombinedViewSet is not None
 
 
 @pytest.mark.django_db
