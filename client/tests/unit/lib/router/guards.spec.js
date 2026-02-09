@@ -137,7 +137,7 @@ describe("lib/router/guards.js", () => {
     });
 
     scopedIt("requireModelInfo resolves when action allowed", async () => {
-        fetchWorkflowTransition.mockResolvedValue([{ name: "other" }]);
+        fetchWorkflowTransition.mockResolvedValue([{ code: "other", name: "Other" }]);
         fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }] });
         getConfig.mockResolvedValue({ routeActions: ["list"] });
         const router = { resolve: vi.fn((r) => r) };
@@ -146,6 +146,21 @@ describe("lib/router/guards.js", () => {
         const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
         const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
         expect(result).toBe(true);
+        expect(toast.add).not.toHaveBeenCalled();
+    });
+
+    scopedIt("requireModelInfo throws when a workflow transition has no code", async () => {
+        fetchWorkflowTransition.mockResolvedValue([{ name: "MissingCodeOnly" }]);
+        fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }] });
+        getConfig.mockResolvedValue({});
+        const router = { resolve: vi.fn((r) => r) };
+        const toast = { add: vi.fn() };
+        const instance = { config: { globalProperties: { $toast: toast } } };
+        const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
+
+        await expect(guards.requireModelInfo(instance, { name: "nf" }, to, router, {})).rejects.toThrow(
+            "requireModelInfo: workflow transition is missing a string code",
+        );
         expect(toast.add).not.toHaveBeenCalled();
     });
 

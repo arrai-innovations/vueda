@@ -161,9 +161,9 @@ scopedIt("fetches transitions for each pk in array and computes intersection", a
 scopedIt("submits transition and shows success toast", async () => {
     mockedInject.mockReturnValueOnce({});
     const wrapper = mount(ViewWorkFlowTransition, { props: { app: "a", model: "m", pk: "1" } });
-    wrapper.vm.selectedAction = "A";
+    wrapper.vm.selectedAction = "a";
     await wrapper.vm.handleSubmit();
-    expect(executeTransition).toHaveBeenCalledWith("a", "m", "1", "A", expect.any(Object));
+    expect(executeTransition).toHaveBeenCalledWith("a", "m", "1", "a", expect.any(Object));
     expect(toastAdd).toHaveBeenCalledWith({ severity: "success", summary: "transition succeed" });
     expect(routerBack).toHaveBeenCalled();
 });
@@ -172,7 +172,7 @@ scopedIt("shows error toast when submission fails", async () => {
     mockedInject.mockReturnValueOnce({});
     executeTransition.mockRejectedValueOnce(new Error("fail"));
     const wrapper = mount(ViewWorkFlowTransition, { props: { app: "a", model: "m", pk: "1" } });
-    wrapper.vm.selectedAction = "A";
+    wrapper.vm.selectedAction = "a";
     await wrapper.vm.handleSubmit();
     expect(toastAdd).toHaveBeenCalledWith({ severity: "error", summary: "transition failed" });
     expect(routerBack).not.toHaveBeenCalled();

@@ -103,7 +103,9 @@ watch(
 
 const handleSubmit = async () => {
     try {
-        //TODO: server side should support bulk execute transitions
+        if (!selectedAction.value || typeof selectedAction.value !== "string") {
+            throw new Error("ViewWorkFlowTransition: selected transition code is missing or invalid.");
+        }
         if (props.pk) {
             await workflow.executeTransition(props.app, props.model, props.pk, selectedAction.value, router);
         }
@@ -140,7 +142,7 @@ const handleSubmit = async () => {
                             v-model="selectedAction"
                             :input-id="transition.code"
                             name="dynamic"
-                            :value="transition.name"
+                            :value="transition.code"
                         />
                         <label class="ml-2" :for="transition.code">{{ transition.name }}</label>
                     </div>
