@@ -551,13 +551,14 @@ class HasWorkflowModelMixin(models.Model):
         Returns available transitions for a list of objects.
         """
         workflow = Workflow.objects.get(content_type=cls.get_content_type())
-        workflow_permissions = [
-            ".".join(permission_parts)
-            for permission_parts in workflow.workflow_permissions.values_list(
-                "permission__content_type__app_label", "permission__codename"
-            )
-        ]
-        if user is not None and (not workflow_permissions or not user.has_perms(workflow_permissions)):
+        if user is not None and not user.has_perms(
+            [
+                ".".join(permission_parts)
+                for permission_parts in workflow.workflow_permissions.values_list(
+                    "permission__content_type__app_label", "permission__codename"
+                )
+            ]
+        ):
             raise PermissionDenied(
                 f"User {user.get_username()!r} does not have workflow permissions for {cls.get_content_type()!r}"
             )
