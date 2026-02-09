@@ -194,9 +194,14 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
 
         assert {transition.code for transition in transitions} == {"cancel_order", "hold_order", "pack_order"}
 
-    def test_available_transitions_for_permission_denied_path(self, customer_order, workflow_user):
+    def test_available_transitions_for_with_workflow_permissions(self, customer_order, workflow_user):
+        transitions = store_models.CustomerOrder.available_transitions_for([customer_order.id], user=workflow_user)
+
+        assert {transition.code for transition in transitions} == {"cancel_order", "hold_order", "pack_order"}
+
+    def test_available_transitions_for_permission_denied_path(self, customer_order, unauthorized_user):
         with pytest.raises(DRFPermissionDenied):
-            store_models.CustomerOrder.available_transitions_for([customer_order.id], user=workflow_user)
+            store_models.CustomerOrder.available_transitions_for([customer_order.id], user=unauthorized_user)
 
     def test_check_workflow_permission_denied(self, customer_order, unauthorized_user):
         StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
