@@ -24,7 +24,6 @@ function getTransitionActionCodes(transitions) {
         return transition.code;
     });
 }
-
 /**
  * Wait for the user to be initialized. This is useful if you're making your own
  * custom guards that need to know if the user is logged in or not.
