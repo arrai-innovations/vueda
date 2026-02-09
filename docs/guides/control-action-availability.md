@@ -89,7 +89,7 @@ status: briefing
 ## Footguns
 
 - `routeActions` is the supported route-filtering key; legacy `routerActions` is ignored with a warning.
-- Guard transition matching uses transition `name` while view-level transition matching commonly uses transition `code`; this behavior is visible in code and has limited direct integration test coverage.
+- Guard transition matching now requires transition `code`; malformed transition entries (missing code) throw explicitly during route checks.
 - `storeModelInfo` caches fetch errors; retries for the same model key do not refetch until cache reset/reload.
 - `storeWorkflow.fetchObjectTransitions` currently clears a promise slot in `objectStates` instead of `objectTransitions` (tracked by unit test setup comments), so promise lifecycle behavior needs caution.
 - Source anchors: `client/lib/router/guards.js`, `client/lib/views/ViewActionRouter.vue`, `client/lib/utils/actionMap.js`, `client/lib/stores/storeModelInfo.js`, `client/lib/stores/storeWorkflow.js`, `client/tests/unit/lib/router/guards.spec.js`, `client/tests/unit/lib/stores/storeModelInfo.spec.js`, `client/tests/unit/lib/stores/storeWorkflow.spec.js`.
