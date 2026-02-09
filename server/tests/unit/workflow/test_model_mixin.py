@@ -199,6 +199,12 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
 
         assert {transition.code for transition in transitions} == {"cancel_order", "hold_order", "pack_order"}
 
+    def test_available_transitions_for_requires_workflow_permissions(self, customer_order, workflow_user):
+        WorkflowPermission.objects.filter(workflow__content_type=customer_order.get_content_type()).delete()
+
+        with pytest.raises(DRFPermissionDenied):
+            store_models.CustomerOrder.available_transitions_for([customer_order.id], user=workflow_user)
+
     def test_available_transitions_for_permission_denied_path(self, customer_order, unauthorized_user):
         with pytest.raises(DRFPermissionDenied):
             store_models.CustomerOrder.available_transitions_for([customer_order.id], user=unauthorized_user)
@@ -208,3 +214,63 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
 
         with pytest.raises(DRFPermissionDenied):
             customer_order.check_workflow_permission(unauthorized_user)
+
+    def test_has_perm_with_obj_state_grant_can_allow_without_baseline_permission(self, customer_order, workflow_user):
+        StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
+        workflow_group = Group.objects.get(name="Order Workflow Managers")
+        read_permission = Permission.objects.get(
+            content_type=customer_order.get_content_type(),
+            codename="read_customerorder",
+        )
+        StatePermission.objects.create(
+            state=customer_order.workflow_state,
+            permission=read_permission,
+            group=workflow_group,
+            grant_or_deny=True,
+        )
+
+        assert not workflow_user.has_perm("store.read_customerorder")
+        assert workflow_user.has_perm("store.read_customerorder", obj=customer_order)
+
+    def test_has_perm_with_obj_state_deny_overrides_baseline_permission(self, customer_order, workflow_user):
+        StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
+        workflow_group = Group.objects.get(name="Order Workflow Managers")
+        delete_permission = Permission.objects.get(
+            content_type=customer_order.get_content_type(),
+            codename="delete_customerorder",
+        )
+        StatePermission.objects.create(
+            state=customer_order.workflow_state,
+            permission=delete_permission,
+            group=workflow_group,
+            grant_or_deny=False,
+        )
+
+        assert workflow_user.has_perm("store.delete_customerorder")
+        assert not workflow_user.has_perm("store.delete_customerorder", obj=customer_order)
+
+    def test_check_state_permission_with_conflicting_groups_uses_first_match(self, customer_order, workflow_user):
+        StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
+        managers_group = Group.objects.get(name="Order Workflow Managers")
+        conflicting_group = Group.objects.create(name="Order Workflow Conflicting")
+        workflow_user.groups.add(conflicting_group)
+        read_permission = Permission.objects.get(
+            content_type=customer_order.get_content_type(),
+            codename="read_customerorder",
+        )
+
+        first_rule = StatePermission.objects.create(
+            state=customer_order.workflow_state,
+            permission=read_permission,
+            group=managers_group,
+            grant_or_deny=True,
+        )
+        StatePermission.objects.create(
+            state=customer_order.workflow_state,
+            permission=read_permission,
+            group=conflicting_group,
+            grant_or_deny=False,
+        )
+
+        grant_or_deny = customer_order.check_state_permission("store.read_customerorder", workflow_user.groups.all())
+        assert grant_or_deny is first_rule.grant_or_deny
