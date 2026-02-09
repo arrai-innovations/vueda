@@ -7,6 +7,8 @@ from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import viewsets as drf_viewsets
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.exceptions import NotAuthenticated
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from vueda.core.decorators import DRY_RUN_HEADER
@@ -64,20 +66,20 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
 
     column_totals: list[str] = []
 
-    def apply_row_level_filter(self, queryset):
+    def apply_row_level_filter(self, queryset, perm_type="list"):
         model = queryset.model
         row_level_permissions = getattr(model, "RowLevelPermissions", None)
 
-        permission_list_name = "list"
-        if "list" in PERMISSION_NAMES_MAPPING:
-            permission_list_name = PERMISSION_NAMES_MAPPING["list"]
+        permission_name = perm_type
+        if perm_type in PERMISSION_NAMES_MAPPING:
+            permission_name = PERMISSION_NAMES_MAPPING[perm_type]
 
         if row_level_permissions is not None:
             optional_q = row_level_permissions.check_queryset(
                 queryset,
-                f"{model._meta.app_label}.{permission_list_name}_{model._meta.model_name}",
+                f"{model._meta.app_label}.{permission_name}_{model._meta.model_name}",
                 self.request.user,
-                "list",
+                perm_type,
             )
             if isinstance(optional_q, Q):
                 return queryset.filter(optional_q)
@@ -392,6 +394,19 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
     def destroy_validation(self, objs):
         return None
 
+    def apply_object_permission_filter(self, queryset):
+        """
+        Keep only objects the current request can access at object-permission level.
+        """
+        allowed_ids = []
+        for instance in queryset:
+            try:
+                self.check_object_permissions(self.request, instance)
+            except (NotAuthenticated, PermissionDenied):
+                continue
+            allowed_ids.append(instance.pk)
+        return queryset.filter(pk__in=allowed_ids)
+
     def destroy(self, request, **kwargs):
         pk = kwargs.get("pk")
         dry_run = request.headers.get(DRY_RUN_HEADER, "false").lower() == "true"
@@ -409,6 +424,8 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
 
         queryset = self.get_queryset()
         queryset = queryset.filter(pk__in=pks)
+        queryset = self.apply_row_level_filter(queryset, perm_type="delete")
+        queryset = self.apply_object_permission_filter(queryset)
         if len(pks) != queryset.count():
             found_pks = set(queryset.values_list("pk", flat=True))
             missing_pks = set(pks) - found_pks
