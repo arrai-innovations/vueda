@@ -85,7 +85,7 @@ status: briefing
 
 ## Footguns
 
-- `storeModelConfig` uses `routeActions`, but `requireModelInfo` currently checks `routerActions`; this naming mismatch can make route filtering overrides appear ineffective.
+- `routeActions` is the supported route-filtering key; there has been confusion with `routerActions` in the past, which is now ignored with a warning.
 - If `displayFields` includes fields absent from `fetchFields`, list/read/update rendering may show missing values.
 - Overriding `submitFields` without validating server serializer acceptance can cause form submission failures.
 - Treating template route paths as universal project structure can mislead non-template adopters.
