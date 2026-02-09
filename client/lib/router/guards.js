@@ -5,6 +5,8 @@ import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import isEmpty from "lodash-es/isEmpty.js";
 
+let warnedAboutRouterActions = false;
+
 /**
  * Wait for the user to be initialized. This is useful if you're making your own
  * custom guards that need to know if the user is logged in or not.
@@ -274,8 +276,14 @@ export async function requireModelInfo(instance, redirectTo, to, router, pinia) 
             pinia,
         );
         let actions = infoStore.actions.map((action) => action.name);
-        if (configStore.routerActions) {
-            actions = actions.filter((action) => configStore.routerActions.includes(action));
+        if ("routerActions" in configStore && configStore.routerActions !== undefined && !warnedAboutRouterActions) {
+            warnedAboutRouterActions = true;
+            console.warn(
+                "requireModelInfo: config.routerActions is deprecated and ignored. Use config.routeActions instead.",
+            );
+        }
+        if (Array.isArray(configStore.routeActions)) {
+            actions = actions.filter((action) => configStore.routeActions.includes(action));
         }
         if (transitionStore) {
             actions = actions.concat(transitionStore.map((t) => t.name));

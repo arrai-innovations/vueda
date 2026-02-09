@@ -35,6 +35,7 @@ vi.mock("@vueda/utils/actionMap.js", () => ({
 
 describe("lib/router/guards.js", () => {
     let guards;
+    let warnSpy;
 
     beforeEach(async () => {
         vi.resetModules();
@@ -42,6 +43,7 @@ describe("lib/router/guards.js", () => {
         fetchModelInfo.mockReset();
         getConfig.mockReset();
         fetchWorkflowTransition.mockReset();
+        warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
         userStore = {
             initialized: false,
@@ -55,6 +57,9 @@ describe("lib/router/guards.js", () => {
         workflowStore = { fetchWorkflowTransition };
 
         guards = await import("@vueda/router/guards.js");
+    });
+    afterEach(() => {
+        warnSpy?.mockRestore();
     });
 
     scopedIt("waitForInitialising fetches user when needed", async () => {
@@ -134,7 +139,7 @@ describe("lib/router/guards.js", () => {
     scopedIt("requireModelInfo resolves when action allowed", async () => {
         fetchWorkflowTransition.mockResolvedValue([{ name: "other" }]);
         fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }] });
-        getConfig.mockResolvedValue({ routerActions: ["list"] });
+        getConfig.mockResolvedValue({ routeActions: ["list"] });
         const router = { resolve: vi.fn((r) => r) };
         const toast = { add: vi.fn() };
         const instance = { config: { globalProperties: { $toast: toast } } };
@@ -159,7 +164,7 @@ describe("lib/router/guards.js", () => {
     scopedIt("requireModelInfo redirects when action not found", async () => {
         fetchWorkflowTransition.mockResolvedValue([]);
         fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }] });
-        getConfig.mockResolvedValue({ routerActions: ["list"] });
+        getConfig.mockResolvedValue({ routeActions: ["list"] });
         const router = { resolve: vi.fn((r) => r) };
         const toast = { add: vi.fn() };
         const instance = { config: { globalProperties: { $toast: toast } } };
@@ -167,6 +172,25 @@ describe("lib/router/guards.js", () => {
         const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
         expect(toast.add).toHaveBeenCalledWith({ summary: "Action Not Found", severity: "error" });
         expect(result).toEqual({ name: "nf" });
+    });
+
+    scopedIt("requireModelInfo warns once for legacy routerActions and ignores it", async () => {
+        fetchWorkflowTransition.mockResolvedValue([]);
+        fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }, { name: "create" }] });
+        getConfig.mockResolvedValue({ routerActions: ["list"] });
+        const router = { resolve: vi.fn((r) => r) };
+        const toast = { add: vi.fn() };
+        const instance = { config: { globalProperties: { $toast: toast } } };
+
+        const createRoute = { params: { app: "a", model: "b", action: "create" }, fullPath: "/a/b/create" };
+        const listRoute = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
+
+        await expect(guards.requireModelInfo(instance, { name: "nf" }, createRoute, router, {})).resolves.toBe(true);
+        await expect(guards.requireModelInfo(instance, { name: "nf" }, listRoute, router, {})).resolves.toBe(true);
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        expect(warnSpy).toHaveBeenCalledWith(
+            "requireModelInfo: config.routerActions is deprecated and ignored. Use config.routeActions instead.",
+        );
     });
 
     scopedIt("requireRecentAuth fetches status when unknown and allows access", async () => {
