@@ -37,7 +37,18 @@ pre-commit:
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
-        pnpm -C client exec prettier --check .
+        scoped_files="$(rg --files .circleci client docs docs-tooling server \
+          -g '*.md' -g '*.js' -g '*.mjs' -g '*.cjs' -g '*.json' -g '*.yml' -g '*.yaml')"
+        root_files="$(rg --files \
+          -g '*.md' -g '*.js' -g '*.mjs' -g '*.cjs' -g '*.json' -g '*.yml' -g '*.yaml' \
+          | rg -v '/')"
+        files="$(printf '%s\n%s\n' "$scoped_files" "$root_files" \
+          | rg -v '^$|^docs/(reference/api/|public/api/|[.]generated/)|(^|/)(AGENT[.]md|AGENTS[.]md|pnpm-lock[.]yaml|package-lock[.]json|uv[.]lock)$|[.]min[.]js$')"
+        if [ -n "$files" ]; then
+          files="$(printf '%s\n' "$files" | sed 's|^|../|')"
+          cd client
+          pnpm exec prettier --check $files
+        fi
     md-toc:
       run: |
         if [ -z "${CI:-}" ]; then
@@ -69,10 +80,14 @@ pre-commit:
     fix-client-prettier:
       stage_fixed: true
       run: |
-        files="$(git diff --name-only --cached -- 'client/**' | rg '\\.(less|scss|css|vue|markdown|json|md|yml|yaml|html)$')"
+        files="$(git diff --name-only --cached --diff-filter=d \
+          | rg '^([.]circleci/|client/|docs/|docs-tooling/|server/|[^/]+$)' \
+          | rg '[.](js|mjs|cjs|json|md|yml|yaml)$' \
+          | rg -v '^docs/(reference/api/|public/api/|[.]generated/)|(^|/)(AGENT[.]md|AGENTS[.]md|pnpm-lock[.]yaml|package-lock[.]json|uv[.]lock)$|[.]min[.]js$')"
         if [ -n "$files" ]; then
-          files="$(printf '%s\n' "$files" | sed 's|^client/||')"
-          pnpm -C client exec prettier --write $files
+          files="$(printf '%s\n' "$files" | sed 's|^|../|')"
+          cd client
+          pnpm exec prettier --write $files
         fi
     fix-md-toc:
       stage_fixed: true
