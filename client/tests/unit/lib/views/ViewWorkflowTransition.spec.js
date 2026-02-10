@@ -87,8 +87,8 @@ const fetchObjectTransitions = vi.fn();
 const executeTransition = vi.fn();
 
 const workflowStore = {
-    workflowTransitions: { app: { model: { transitions: [] } } },
-    objectTransitions: [],
+    workflowTransitions: { "a.m": [] },
+    objectTransitions: { "a.m": {} },
     loading: false,
     fetchWorkflowTransition,
     fetchObjectTransitions,
@@ -100,6 +100,7 @@ vi.mock("@vueda/stores/storeWorkflow.js", () => ({
 }));
 
 vi.mock("@vueda/utils/case.js", () => ({
+    getAppModelDotName: ({ app, model }) => `${app}.${model}`,
     memoizedStartCase: (s) => s,
 }));
 
@@ -109,12 +110,12 @@ vi.mock("vue", async () => {
     return { __esModule: true, ...actual, inject: mockedInject, provide: mockedProvide };
 });
 
-let ViewWorkFlowTransition, vue;
+let ViewWorkflowTransition, vue;
 
 beforeEach(async () => {
     vue = await vi.importActual("vue");
     mockedUseModelConfig.mockReturnValue(vue.reactive({ info: { verbose_name: "Thing" } }));
-    ViewWorkFlowTransition = (await import("@vueda/views/ViewWorkFlowTransition.vue")).default;
+    ViewWorkflowTransition = (await import("@vueda/views/ViewWorkflowTransition.vue")).default;
     provideStore.clear();
     fetchWorkflowTransition.mockClear();
     fetchObjectTransitions.mockClear();
@@ -129,29 +130,29 @@ afterEach(() => {
 
 scopedIt("calls useLookupContext if lookup context is missing", () => {
     mockedInject.mockReturnValueOnce(null);
-    mount(ViewWorkFlowTransition, { props: { app: "a", model: "b", pk: "1" } });
+    mount(ViewWorkflowTransition, { props: { app: "a", model: "b", pk: "1" } });
     expect(mockedUseLookupContext).toHaveBeenCalled();
 });
 
 scopedIt("fetches transitions for each pk in array and computes intersection", async () => {
     mockedInject.mockReturnValueOnce({});
-    workflowStore.objectTransitions = [
-        {
-            id: "1",
-            transitions: [
-                { code: "a", name: "A" },
-                { code: "b", name: "B" },
-            ],
+    workflowStore.objectTransitions = {
+        "a.m": {
+            1: {
+                transitions: [
+                    { code: "a", name: "A" },
+                    { code: "b", name: "B" },
+                ],
+            },
+            2: {
+                transitions: [
+                    { code: "a", name: "A" },
+                    { code: "c", name: "C" },
+                ],
+            },
         },
-        {
-            id: "2",
-            transitions: [
-                { code: "a", name: "A" },
-                { code: "c", name: "C" },
-            ],
-        },
-    ];
-    const wrapper = mount(ViewWorkFlowTransition, { props: { app: "a", model: "m", pk: ["1", "2"] } });
+    };
+    const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: ["1", "2"] } });
     await vue.nextTick();
     expect(fetchObjectTransitions).toHaveBeenCalledWith("a", "m", "1");
     expect(fetchObjectTransitions).toHaveBeenCalledWith("a", "m", "2");
@@ -160,7 +161,7 @@ scopedIt("fetches transitions for each pk in array and computes intersection", a
 
 scopedIt("submits transition and shows success toast", async () => {
     mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewWorkFlowTransition, { props: { app: "a", model: "m", pk: "1" } });
+    const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
     wrapper.vm.selectedAction = "a";
     await wrapper.vm.handleSubmit();
     expect(executeTransition).toHaveBeenCalledWith("a", "m", "1", "a", expect.any(Object));
@@ -171,7 +172,7 @@ scopedIt("submits transition and shows success toast", async () => {
 scopedIt("shows error toast when submission fails", async () => {
     mockedInject.mockReturnValueOnce({});
     executeTransition.mockRejectedValueOnce(new Error("fail"));
-    const wrapper = mount(ViewWorkFlowTransition, { props: { app: "a", model: "m", pk: "1" } });
+    const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
     wrapper.vm.selectedAction = "a";
     await wrapper.vm.handleSubmit();
     expect(toastAdd).toHaveBeenCalledWith({ severity: "error", summary: "transition failed" });
