@@ -117,9 +117,6 @@ describe("lib/store/storeWorkflow.js", () => {
         mockedFetchHelper.mockResolvedValue(stateData);
         const store = storeWorkflow();
         const key = getAppModelDotName({ app: "app", model: "model" });
-        store.objectStates[key] = {};
-        store.promises.objectStates[key] = {};
-        store.errors.objectStates[key] = {};
 
         const result = await store.fetchObjectState("app", "model", "1");
         expect(result).toBeUndefined();
@@ -128,6 +125,23 @@ describe("lib/store/storeWorkflow.js", () => {
         mockedFetchHelper.mockClear();
         await store.fetchObjectState("app", "model", "1");
         expect(mockedFetchHelper).not.toHaveBeenCalled();
+    });
+
+    scopedIt("fetchObjectState initializes per-model containers on cold call", async () => {
+        mockedFetchHelper.mockResolvedValue({ state: { code: "draft" } });
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+
+        expect(store.objectStates[key]).toBeUndefined();
+        expect(store.promises.objectStates[key]).toBeUndefined();
+        expect(store.errors.objectStates[key]).toBeUndefined();
+
+        await expect(store.fetchObjectState("app", "model", "1")).resolves.toBeUndefined();
+
+        expect(store.objectStates[key]).toBeTypeOf("object");
+        expect(store.promises.objectStates[key]).toBeTypeOf("object");
+        expect(store.errors.objectStates[key]).toBeTypeOf("object");
+        expect(store.promises.objectStates[key]["1"]).toBeUndefined();
     });
 
     scopedIt("fetchObjectTransitions stores and caches transitions", async () => {
@@ -149,12 +163,11 @@ describe("lib/store/storeWorkflow.js", () => {
     scopedIt("fetchObjectTransitions clears in-flight promise entry", async () => {
         mockedFetchHelper.mockResolvedValue({ transitions: [] });
         const store = storeWorkflow();
-        store.initializeObjectTransitions("app", "model");
         const key = getAppModelDotName({ app: "app", model: "model" });
-
-        expect(store.promises.objectTransitions[key]).toEqual({});
+        expect(store.promises.objectTransitions[key]).toBeUndefined();
 
         await expect(store.fetchObjectTransitions("app", "model", "1")).resolves.toBeUndefined();
+        expect(store.promises.objectTransitions[key]).toBeTypeOf("object");
         expect(store.promises.objectTransitions[key]["1"]).toBeUndefined();
     });
 
@@ -163,9 +176,6 @@ describe("lib/store/storeWorkflow.js", () => {
         mockedFetchHelper.mockResolvedValue(historyData);
         const store = storeWorkflow();
         const key = getAppModelDotName({ app: "app", model: "model" });
-        store.objectHistories[key] = {};
-        store.promises.objectHistories[key] = {};
-        store.errors.objectHistories[key] = {};
 
         const result = await store.fetchObjectHistory("app", "model", "1");
         expect(result).toBeUndefined();
@@ -174,6 +184,23 @@ describe("lib/store/storeWorkflow.js", () => {
         mockedFetchHelper.mockClear();
         await store.fetchObjectHistory("app", "model", "1");
         expect(mockedFetchHelper).not.toHaveBeenCalled();
+    });
+
+    scopedIt("fetchObjectHistory initializes per-model containers on cold call", async () => {
+        mockedFetchHelper.mockResolvedValue({ history: [] });
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+
+        expect(store.objectHistories[key]).toBeUndefined();
+        expect(store.promises.objectHistories[key]).toBeUndefined();
+        expect(store.errors.objectHistories[key]).toBeUndefined();
+
+        await expect(store.fetchObjectHistory("app", "model", "1")).resolves.toBeUndefined();
+
+        expect(store.objectHistories[key]).toBeTypeOf("object");
+        expect(store.promises.objectHistories[key]).toBeTypeOf("object");
+        expect(store.errors.objectHistories[key]).toBeTypeOf("object");
+        expect(store.promises.objectHistories[key]["1"]).toBeUndefined();
     });
 
     scopedIt("executeTransition updates state and pushes route", async () => {
