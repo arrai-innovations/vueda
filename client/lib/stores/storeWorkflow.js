@@ -418,7 +418,7 @@ export const storeWorkflow = defineStore("workflow", {
                         throw e;
                     })
                     .finally(() => {
-                        delete this.promises.objectStates[key][objectPk];
+                        delete this.promises.objectTransitions[key][objectPk];
                     });
             }
             return this.promises.objectTransitions[key][objectPk];

@@ -136,9 +136,6 @@ describe("lib/store/storeWorkflow.js", () => {
         const store = storeWorkflow();
         store.initializeObjectTransitions("app", "model");
         const key = getAppModelDotName({ app: "app", model: "model" });
-        // initializeObjectTransitions does not create this.promises.objectStates
-        // but fetchObjectTransitions mistakenly deletes from it
-        store.promises.objectStates[key] = {};
 
         const result = await store.fetchObjectTransitions("app", "model", "1");
         expect(result).toBeUndefined();
@@ -147,6 +144,18 @@ describe("lib/store/storeWorkflow.js", () => {
         mockedFetchHelper.mockClear();
         await store.fetchObjectTransitions("app", "model", "1");
         expect(mockedFetchHelper).not.toHaveBeenCalled();
+    });
+
+    scopedIt("fetchObjectTransitions clears in-flight promise entry", async () => {
+        mockedFetchHelper.mockResolvedValue({ transitions: [] });
+        const store = storeWorkflow();
+        store.initializeObjectTransitions("app", "model");
+        const key = getAppModelDotName({ app: "app", model: "model" });
+
+        expect(store.promises.objectTransitions[key]).toEqual({});
+
+        await expect(store.fetchObjectTransitions("app", "model", "1")).resolves.toBeUndefined();
+        expect(store.promises.objectTransitions[key]["1"]).toBeUndefined();
     });
 
     scopedIt("fetchObjectHistory stores and caches history", async () => {
