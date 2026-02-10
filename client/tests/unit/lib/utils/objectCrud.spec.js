@@ -58,7 +58,6 @@ describe("lib/utils/objectCrud.js", () => {
             expect(url).toBe("detail-url");
             expect(opts.method).toBe("GET");
             expect(opts.credentials).toBe("include");
-            expect(opts.signal).toBeInstanceOf(AbortSignal);
             return transform(response);
         });
 
@@ -148,7 +147,6 @@ describe("lib/utils/objectCrud.js", () => {
                 "Content-Type": "application/json",
             });
             expect(opts.body).toBe(JSON.stringify({ title: "hi" }));
-            expect(opts.signal).toBeInstanceOf(AbortSignal);
             return transform(response);
         });
 
@@ -302,7 +300,6 @@ describe("lib/utils/objectCrud.js", () => {
             expect(opts.credentials).toBe("include");
             expect(opts.headers).toEqual({ "X-CSRFToken": "csrftoken", "Content-Type": "application/json" });
             expect(opts.body).toBe(JSON.stringify(object));
-            expect(opts.signal).toBeInstanceOf(AbortSignal);
             return transform(response);
         });
 

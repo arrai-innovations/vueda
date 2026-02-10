@@ -87,7 +87,6 @@ export function defaultObjectRetrieve({ target, pk, params }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
     const query = params ? makeSearchParamsString(params) : "";
-    const controller = new AbortController();
     const url = getDetailUrl({ app, model, pk, action, query });
 
     return cancellableFetch(
@@ -95,7 +94,6 @@ export function defaultObjectRetrieve({ target, pk, params }) {
         {
             method: "GET",
             credentials: "include",
-            signal: controller.signal,
         },
         async (response) => {
             const responseData = await getJsonOrText(response);
@@ -179,7 +177,6 @@ export function defaultObjectUpdate({ target, object, params }) {
     const { app, model, action } = target;
     const pk = object.id;
     const query = params ? makeSearchParamsString(params) : "";
-    const controller = new AbortController();
     const url = getDetailUrl({ app, model, pk, action, query });
 
     const hasFile = Object.values(object).some((value) => value instanceof File || value instanceof Blob);
@@ -198,7 +195,6 @@ export function defaultObjectUpdate({ target, object, params }) {
             headers,
             credentials: "include",
             body,
-            signal: controller.signal,
         },
         async (response) => {
             const responseData = await getJsonOrText(response);
@@ -231,7 +227,6 @@ export function defaultObjectPatch({ target, pk, partialObject, params }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
     const query = params ? makeSearchParamsString(params) : "";
-    const controller = new AbortController();
     const url = getDetailUrl({ app, model, pk, action, query });
 
     const hasFile = Object.values(partialObject).some((value) => value instanceof File || value instanceof Blob);
@@ -250,7 +245,6 @@ export function defaultObjectPatch({ target, pk, partialObject, params }) {
             headers,
             credentials: "include",
             body,
-            signal: controller.signal,
         },
         async (response) => {
             const responseData = await getJsonOrText(response);
