@@ -22,11 +22,15 @@ Core Concepts explains the "why" behind VUEDA defaults and the contracts that le
 - [Error and Validation Contract](error-and-validation-contract.md): Validation payload shapes, `non_field_errors`, and client form handling.
 - [Primary Key and Identifier Discipline](pk-and-identifier-discipline.md): Expected identifier formats and conversion across Python/JS boundaries.
 
+## Compatibility and Boundaries
+
+- [DRF Ecosystem Compatibility Boundaries](drf-ecosystem-deviations.md): Hub for where VUEDA intentionally constrains or extends DRF-ecosystem defaults to preserve a contract-first, metadata-driven system.
+- [Nested Write Compatibility](nested-write-compatibility.md): How flex-fields and nested-writable behavior is composed and constrained for nested writes.
+
 ## Authorization and Behavior
 
 - [Permission Model (CRUDL + Object + State)](permission-model.md): Full permission evaluation model in VUEDA.
-- [Authorization vs UI Semantics](authorization-vs-ui-semantics.md): Why UI visibility and server authorization are intentionally distinct.
-- [Why VUEDA Does Not Use Django Permissions on the Client](why-no-django-permissions-in-client.md): Avoid overloading server permissions for UI concerns; client checks are guidance, server checks are enforcement.
+- [Authorization vs UI Semantics](authorization-vs-ui-semantics.md): Why UI visibility and route semantics differ from server authorization, including why client-side Django-permission evaluation is not authoritative.
 - [Action Contract and Availability](action-contract-and-availability.md): `available_actions`, route actions, group filtering, and safe fallback behavior.
 - [Workflow as a Permission Overlay](workflow-permission-overlay.md): State permissions, transition permissions, and row-level outcomes.
 - [Row-Level Permission Filtering](row-level-permission-filtering.md): Queryset/object checks and list filtering guarantees.

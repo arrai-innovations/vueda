@@ -9,8 +9,9 @@ status: briefing
 
 ## Intent and Scope
 
-- Define what metadata is authoritative for dynamic client behavior: model fields, actions, expands, ordering, filtering, and permissions.
-- Define where that metadata comes from on the server and how it is consumed on the client.
+- Define the authoritative metadata contract exposed by model-info and related choices endpoints: fields, actions, expands, ordering, filtering, and permissions.
+- Define server authority and client responsibilities for metadata lifecycle: registration, derivation, normalization, caching, and route/action gating.
+- Establish contract-level invariants and failure surfaces for permission-sensitive visibility and metadata integrity (including PK and choice semantics).
 - Treat generated API docs as index pointers, not as the final source of truth for behavior details.
 - Source anchors: `server/vueda/info/serializers.py`, `server/vueda/info/viewsets.py`, `client/lib/stores/storeModelInfo.js`, `client/lib/router/guards.js`, `client/lib/views/ViewActionRouter.vue`.
 
