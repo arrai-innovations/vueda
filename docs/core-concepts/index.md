@@ -46,4 +46,3 @@ Core Concepts explains the "why" behind VUEDA defaults and the contracts that le
 
 - [Configuration Surface and Defaults](configuration-surface-and-defaults.md): VUEDA defaults, required settings, and security-sensitive options.
 - [VDQ and Background Work Model](vdq-and-background-work.md): Queue item lifecycle, transition hooks, and async execution boundaries.
-- [Schema and Documentation Generation Model](schema-and-doc-generation.md): How DRF/OpenAPI and docs-tooling feed generated reference docs.
