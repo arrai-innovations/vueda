@@ -29,6 +29,34 @@ to use a different (read: shorter) title in the sidebar or browser tabs than the
 - `plan`: focused on planning and outlining documentation content; not intended for end-user consumption; may include brainstorming notes and technical references without detailed explanations or how-to steps
 - `index`: focused on organizing and linking to other documentation pages; may include brief summaries but not detailed explanations or how-to steps
 
+## Diátaxis Types
+
+A way to understand the Diátaxis Types is as an authoring contract:
+
+- Tutorial
+  Goal: Teach by doing.
+  Step-by-step, linear, success-oriented.
+  Assumes no prior success.
+  Outcome: the reader completes a task.
+
+- How-to Guide
+  Goal: Solve a specific problem.
+  Task-focused, non-linear, assumes baseline competence.
+  Explains how to achieve X in this system.
+  Outcome: the reader accomplishes a concrete objective.
+
+- Explanation
+  Goal: Build understanding.
+  Describes what is true about the system: boundaries, contracts, invariants, lifecycle, authority, failure modes.
+  No steps. No task flow. No prescriptions.
+  Outcome: the reader understands why/how the system behaves as it does.
+
+- Reference
+  Goal: Provide facts.
+  Authoritative, exhaustive, structured lookup.
+  Lists APIs, options, fields, commands, schemas.
+  Outcome: the reader finds specific information.
+
 ## Generated API docs
 API references for REST, Python, JavaScript, and Vue.js components are generated from source code and stored under `docs/reference/api/`.
 
