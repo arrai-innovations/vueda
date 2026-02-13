@@ -241,3 +241,27 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         assert not Product.objects.filter(pk=apple.pk).exists()
         assert not Product.objects.filter(pk=mango.pk).exists()
         assert Product.objects.filter(pk=banana.pk).exists()
+
+    def test_detail_destroy_product_allowed_by_row_level_permissions(self, api_client):
+        user = self.users["test_customer_deleter@example.com"]
+        api_client.force_authenticate(user=user)
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+        apple = Product.objects.get(name="Apple")
+
+        detail_url = reverse("tests.product-detail", args=(apple.pk,))
+        response = api_client.delete(detail_url, format="json")
+
+        self.assert_response(response, 204)
+        assert not Product.objects.filter(pk=apple.pk).exists()
+
+    def test_detail_destroy_product_denied_by_row_level_permissions(self, api_client):
+        user = self.users["test_customer_deleter@example.com"]
+        api_client.force_authenticate(user=user)
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+        banana = Product.objects.get(name="Banana")
+
+        detail_url = reverse("tests.product-detail", args=(banana.pk,))
+        response = api_client.delete(detail_url, format="json")
+
+        self.assert_response(response, 404)
+        assert Product.objects.filter(pk=banana.pk).exists()
