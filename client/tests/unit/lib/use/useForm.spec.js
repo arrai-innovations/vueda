@@ -23,8 +23,6 @@ const expectWarn = (name) => [
     `[Vue warn] Set operation on key "${name}" failed: target is readonly.`,
     expect.anything(),
 ];
-const reservedServerCodeMsg =
-    'Error code "server" is reserved for server-originated validation and cannot be set from local validation. Use a non-reserved code (e.g. "validate" or custom) for client validation.';
 
 describe("lib/use/useForm.js", () => {
     let vue, useForm;
@@ -1044,12 +1042,6 @@ describe("lib/use/useForm.js", () => {
                         scopedIt(`should require a message for ${label.toLowerCase()}`, () => {
                             const { formContext } = getForm({});
                             expect(() => formContext[updateMethod]("field1", "required")).toThrow(missingMessageMsg);
-                        });
-                        scopedIt(`should reject reserved server code for ${label.toLowerCase()}`, () => {
-                            const { formContext } = getForm({});
-                            expect(() => formContext[updateMethod]("field1", "server", "Some value")).toThrow(
-                                reservedServerCodeMsg,
-                            );
                         });
 
                         scopedIt(`should update a ${label.toLowerCase()} for a field`, async () => {

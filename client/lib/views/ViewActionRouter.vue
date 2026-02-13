@@ -7,7 +7,7 @@ import { getPascalCaseName } from "@vueda/utils/case.js";
 import ViewAction from "@vueda/views/ViewAction.vue";
 import ViewActionNotFound from "@vueda/views/ViewActionNotFound.vue";
 import ViewLoading from "@vueda/views/ViewLoading.vue";
-import ViewWorkflowTransition from "@vueda/views/ViewWorkflowTransition.vue";
+import ViewWorkFlowTransition from "@vueda/views/ViewWorkFlowTransition.vue";
 import { computedAsync } from "@vueuse/core";
 import { ref, toRef, watch } from "vue";
 
@@ -58,7 +58,7 @@ watch(
         if (loading) {
             actionComponentRef.value = () => ViewLoading;
         } else if (actionName === "transition") {
-            actionComponentRef.value = () => ViewWorkflowTransition;
+            actionComponentRef.value = () => ViewWorkFlowTransition;
         } else if (!actionsObj && !transitionObjects) {
             actionComponentRef.value = () => ViewActionNotFound;
         } else if (actionsObj?.length || transitionObjects?.length) {

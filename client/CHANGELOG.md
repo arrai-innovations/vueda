@@ -4,12 +4,6 @@ _Actions potentially required by implementers are marked with italics._
 
 ## v2.0.4 (unreleased)
 
-### Breaking Changes
-
-- **makeCrud**:
-    - `makeCRUDRoutes` now requires `actionRedirect` (e.g. `{ name: "not-found" }`) so missing model/action guard paths cannot attempt to resolve a null redirect.
-      _If you were relying on the previous default, pass an explicit redirect route that is not gated by `requireModelInfo` to avoid redirect loops._
-
 ### Fixes
 
 - **FieldSetSingularStackedInline**: Wait for fieldObjects to be ready before auto-creating inline row and loading initial values in FieldSetSingularStackedInline

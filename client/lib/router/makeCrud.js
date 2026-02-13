@@ -9,7 +9,7 @@ import { requireAuth, requireGroups, requireModelInfo } from "@vueda/router/guar
  * @param {string} [params.authRedirect=null] - The route to redirect to if the user is not authenticated.
  * @param {string[]} [params.groups=null] - The groups required to access the views.
  * @param {object} [params.groupsRedirect=null] - The route to redirect to if the user is not in the required groups.
- * @param {object} params.actionRedirect - The route to redirect if model/action not found.
+ * @param {object} [params.actionRedirect=null] - The route to redirect if action not found.
  * @param {import('vue').App} params.vueApp - The Vue app instance.
  * @param {import('vue-router').Router} params.router - The Vue router instance.
  * @param {import('pinia').Pinia} params.pinia - The Pinia instance.
@@ -26,11 +26,6 @@ export function makeCRUDRoutes({
     router,
     pinia,
 }) {
-    if (!actionRedirect) {
-        throw new Error(
-            "makeCRUDRoutes: actionRedirect is required (e.g. { name: 'not-found' }) so guards can redirect on missing model/action.",
-        );
-    }
     const beforeEnter = [];
     if (authRedirect) {
         beforeEnter.push((to) => requireAuth(authRedirect, to, router, pinia));

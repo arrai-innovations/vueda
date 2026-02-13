@@ -27,7 +27,6 @@ dependencies = [
     "ansicolors>=1.1.8,<2",
     "argparse-color-formatter>=2.0.0.post1,<3",
     "asgi-cors-middleware>=0.0.2,<0.1",
-    "channels>=4.2.0,<5",
     "dj-rest-auth>=6.0.0,<7",
     "django-anymail[mailgun,sendgrid,sparkpost]>=13.0,<14",
     "django-allauth[mfa]>=65.12.0",
@@ -72,8 +71,8 @@ dev = [
     "django-view-manager ==1.0.4",
     "coverage >=7.3.3",
     "ipdb >=0.13.13",
+    "md-toc >=8.2.2",
     "pytest >=7.4.3",
-    "pytest-watcher >=0.4.3",
     "pytest-cov >=4.1.0",
     "pytest-django >=4.7.0",
     "pytest-order >=1.2.0",
@@ -86,12 +85,111 @@ dev = [
     "redis >=5.2.1",
     "drf-spectacular >=0.28.0,<0.29",
 ]
-docs = [
-    "pdoc >=14.7.0",
-]
 
 [tool.uv]
 default-groups = "all"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = [
+    # entries from .gitignore are excluded by default
+    ".circleci",
+    ".git",
+    ".github",
+]
+
+[tool.ruff.lint]
+select = [
+    # flake8-builtins: https://docs.astral.sh/ruff/rules/#flake8-builtins-a
+    "A",
+    # flake8-bugbear: https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
+    "B0",
+    # flake8-comprehensions: https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
+    "C4",
+    # mccabe: https://docs.astral.sh/ruff/rules/#mccabe-c90
+    "C90",
+    # flake8-django: https://docs.astral.sh/ruff/rules/#flake8-django-dj
+    "DJ",
+    # pycodestyle: https://docs.astral.sh/ruff/rules/#pycodestyle-e-w
+    "E",
+    "W",
+    # pyflakes: https://docs.astral.sh/ruff/rules/#pyflakes-f
+    "F",
+    # flake8-fixme: https://docs.astral.sh/ruff/rules/#flake8-fixme-fix
+    "FIX",
+    # flake8-logging-format: https://docs.astral.sh/ruff/rules/#flake8-logging-format-g
+    "G",
+    # isort: https://docs.astral.sh/ruff/rules/#isort-i
+    "I",
+    # flake8-no-pep420 https://docs.astral.sh/ruff/rules/#flake8-no-pep420-inp
+    "INP",
+    # pep8-naming: https://docs.astral.sh/ruff/rules/#pep8-naming-n
+    "N",
+    # pylint: https://docs.astral.sh/ruff/rules/#pylint-pl
+    "PLC",
+    "PLE",
+    "PLR2004",
+    # flake8-quotes: https://docs.astral.sh/ruff/rules/#flake8-quotes-q
+    "Q",
+    # ruff: https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+    "RUF",
+    # flake8-simplify: https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
+    "SIM",
+    # flake8-debugger: https://docs.astral.sh/ruff/rules/#flake8-debugger-t10
+    "T10",
+    # flake8-print: https://docs.astral.sh/ruff/rules/#flake8-print-t20
+    "T20",
+    # flake8-tidy-imports: https://docs.astral.sh/ruff/rules/#flake8-tidy-imports-tid
+    "TID",
+    # pyupgrade: https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "UP",
+]
+ignore = [
+    # pycodestyle: let the reformatter deal with long lines
+    "E501",
+    # pyflakes: we are already covered by F401, thanks.
+    "F811",
+    # flake8-fixme: "todo" comments are fine
+    "FIX002",
+    # pylint: imports not at the top of the file are OK
+    "PLC0415",
+    # ruff: use unpacking rather than + to concatenate collections. TODO: review
+    "RUF005",
+    # ruff: don't care about annotations
+    "RUF012",
+    # ruff: our preference is not to add parentheses to chained operators
+    "RUF021",
+    # flake8-simplify: try-except-pass is fine
+    "SIM105",
+    # flake8-simplify: developers are a better judge as to when to use ternaries
+    "SIM108",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    # django-flake8: don't care about missing __str__
+    "DJ008",
+    # flake8-sim: don't care about code simplification in tests
+    "SIM",
+    # flake8-print: allow print() in tests
+    "T201"
+]
+"vueda/__main__.py" = [
+    # flake8-print: allow print() in scripts
+    "T201"
+]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "vueda",
+    "tests",
+]
+force-single-line = true
+lines-after-imports = 2
+
+[tool.ruff.lint.mccabe]
+max-complexity = 20
 
 [tool.setuptools]
 include-package-data = false

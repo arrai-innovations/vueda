@@ -5,9 +5,6 @@ import globals from "globals";
 import merge from "lodash-es/merge.js";
 import neostandard from "neostandard";
 
-// Flat config note: we prefer composing small, explicit blocks instead of one
-// big object. This makes it easier for downstream apps to delete/extend pieces.
-
 // skip jsx/react, skip files rules
 const neostandardConfig = merge(
     {},
@@ -15,34 +12,27 @@ const neostandardConfig = merge(
         .filter((config) => !["neostandard/jsx", "neostandard/react"].includes(config.name))
         .map((config) => {
             if (config.files) {
-                // Apply the base rules globally; file globs in upstream presets
-                // can be too narrow for monorepo layouts.
                 delete config.files;
             }
             return config;
         }),
 );
-
 // import-x rules break in SFCs
 const disableImportXRules = Object.fromEntries(
     Object.keys(neostandardConfig.rules)
         .filter((ruleName) => ruleName.startsWith("import-x/"))
         .map((ruleName) => [ruleName, "off"]),
 );
-
-// Vue preset ships with file globs; remove them to let us scope manually.
+// don't apply rules non-vue SFC/js files
 const vueConfig = merge(
     {},
     ...pluginVue.configs["flat/recommended"].map((ruleObj) => {
         if (ruleObj.files) {
-            // We'll re-apply SFC rules with our own glob below.
             delete ruleObj.files;
         }
         return ruleObj;
     }),
 );
-
-// Restrict barrel imports from lodash-es to encourage consistent direct imports.
 const restrictedImportsRules = {
     "no-restricted-imports": [
         "error",
@@ -108,8 +98,6 @@ const restrictedImportsRules = {
         },
     ],
 };
-
-// Final ESLint configuration object
 const eslintConfig = [
     {
         name: "always (overrides)",
@@ -119,8 +107,6 @@ const eslintConfig = [
             ...neostandardConfig.rules,
             ...restrictedImportsRules,
             ...disableImportXRules,
-            // Keep linting strict in library code; the preset is intentionally
-            // light on stylistic rules so Prettier can own formatting.
             curly: "error",
             "no-console": process.env.NODE_ENV === "production" ? "error" : "off",
             "no-debugger": process.env.NODE_ENV === "production" ? "error" : "off",
@@ -129,7 +115,6 @@ const eslintConfig = [
     {
         name: "SFCs",
         files: ["lib/**/*.vue"],
-        // Vue-specific rules scoped to actual component files.
         ...vueConfig,
     },
     {
@@ -174,12 +159,9 @@ const eslintConfig = [
             "vitest/valid-title": "off",
         },
     },
-    // Disable conflicting rules so Prettier is the formatting source of truth.
     eslintConfigPrettier,
-    // Ignore build artifacts and generated output.
     { ignores: ["node_modules", "dist", "types", "coverage"] },
     {
-        // Global language options for all files that don't override them.
         languageOptions: {
             ecmaVersion: "latest",
             globals: {

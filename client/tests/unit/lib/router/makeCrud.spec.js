@@ -16,7 +16,6 @@ describe("lib/router/makeCrud.js", () => {
     const vueApp = {};
     const router = {};
     const pinia = {};
-    const actionRedirect = { name: "not-found" };
 
     beforeEach(async () => {
         vi.resetModules();
@@ -27,7 +26,7 @@ describe("lib/router/makeCrud.js", () => {
     });
 
     scopedIt("builds routes with default options", () => {
-        const [detail, list] = makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+        const [detail, list] = makeCRUDRoutes({ component, vueApp, router, pinia });
 
         expect(detail).toEqual(
             expect.objectContaining({
@@ -50,7 +49,7 @@ describe("lib/router/makeCrud.js", () => {
 
         const to = { params: { app: "a", model: "b", action: "c", pk: "1" } };
         guards[0](to);
-        expect(requireModelInfo).toHaveBeenCalledWith(vueApp, actionRedirect, to, router, pinia);
+        expect(requireModelInfo).toHaveBeenCalledWith(vueApp, null, to, router, pinia);
     });
 
     scopedIt("adds prefix and guards when provided", () => {
@@ -98,7 +97,7 @@ describe("lib/router/makeCrud.js", () => {
     });
 
     scopedIt("list route props splits pk query", () => {
-        const [, list] = makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+        const [, list] = makeCRUDRoutes({ component, vueApp, router, pinia });
 
         const props = list.props({
             params: { app: "app", model: "model", action: "list" },
@@ -114,7 +113,7 @@ describe("lib/router/makeCrud.js", () => {
     });
 
     scopedIt("detail route props read from params", () => {
-        const [detail] = makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+        const [detail] = makeCRUDRoutes({ component, vueApp, router, pinia });
 
         const props = detail.props({
             params: { app: "foo", model: "bar", action: "detail", pk: "42" },
@@ -126,9 +125,5 @@ describe("lib/router/makeCrud.js", () => {
             action: "detail",
             pk: "42",
         });
-    });
-
-    scopedIt("throws when actionRedirect is missing", () => {
-        expect(() => makeCRUDRoutes({ component, vueApp, router, pinia })).toThrow("makeCRUDRoutes: actionRedirect");
     });
 });

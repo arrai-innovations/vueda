@@ -32,12 +32,37 @@ const modelFilterChoicesUrl = (app, model, field) =>
 /**
  * A store for lookup choices for a particular model field.
  *
- * @typedef {import('pinia').Store<{
- *     choices: { [appModelDotName: string]: { [fieldPath: string]: unknown } },
- *     filterChoices: { [appModelDotName: string]: { [fieldPath: string]: unknown } },
- *     promises: { [appModelDotName: string]: { [fieldPath: string]: Promise<unknown> } },
- *     filterPromises: { [appModelDotName: string]: { [fieldPath: string]: Promise<unknown> } },
- * }, {}, {}>} ModelChoicesStore
+ * @typedef {import('pinia').store<{
+ *     choices: {
+ *        [appModelDotName: string]: {
+ *            [fieldPath: string]: {
+ *
+ *            },
+ *        },
+ *     },
+ *     filterChoices: {
+ *        [appModelDotName: string]: {
+ *            [fieldPath: string]: {
+ *
+ *            },
+ *        },
+ *     },
+ *     promises: {
+ *         [appModelDotName: string]: {
+ *             [fieldPath: string]: {
+ *
+ *             },
+ *         },
+ *     }
+ *         filterPromises: {
+ *         [appModelDotName: string]: {
+ *             [fieldPath: string]: {
+ *
+ *             },
+ *         },
+ *     }
+ *
+ * }>}
  */
 export const storeModelChoices = defineStore("modelChoices", {
     state: () => ({

@@ -9,25 +9,24 @@ from vueda.core.fields import form as core_form
 from vueda.workflow import models
 
 
-def _workflow_content_type_queryset():
-    # Remove the historical content types, vueda.workflow, and django.contrib apps.
-    excluded_ids = [
-        content_type.pk
-        for content_type in ContentType.objects.all()
-        if content_type.model_class() is None
-        or content_type.model_class() is not None
-        and (
-            issubclass(content_type.model_class(), HistoricalChanges)
-            or hasattr(content_type.model_class(), "pgh_tracked_model")
-            or content_type.model_class()._meta.abstract
-        )
-        or content_type.app_label in ("workflow", "auth", "contenttypes", "sessions", "sites")
-    ]
-    return ContentType.objects.exclude(pk__in=excluded_ids).order_by("app_label", "model")
-
-
 class WorkflowAddForm(forms.ModelForm):
-    content_type = core_form.ContentTypeModelChoiceField(queryset=ContentType.objects.none())
+    # Remove the historical content types, vueda.workflow, and django.contrib apps.
+    content_type = core_form.ContentTypeModelChoiceField(
+        queryset=ContentType.objects.exclude(
+            pk__in=[
+                content_type.pk
+                for content_type in ContentType.objects.all()
+                if content_type.model_class() is None
+                or content_type.model_class() is not None
+                and (
+                    issubclass(content_type.model_class(), HistoricalChanges)
+                    or hasattr(content_type.model_class(), "pgh_tracked_model")
+                    or content_type.model_class()._meta.abstract
+                )
+                or content_type.app_label in ("workflow", "auth", "contenttypes", "sessions", "sites")
+            ]
+        ).order_by("app_label", "model"),
+    )
     name = forms.CharField(max_length=255, required=True)
 
     class Meta:
@@ -38,9 +37,6 @@ class WorkflowAddForm(forms.ModelForm):
             "code",
         ]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["content_type"].queryset = _workflow_content_type_queryset()
 
 class WorkflowEditForm(forms.ModelForm):
     name = forms.CharField(max_length=255, required=True)
@@ -54,24 +50,22 @@ class WorkflowEditForm(forms.ModelForm):
 
 
 class RemoveHistoricalPermissionsForm(forms.ModelForm):
-    permission = forms.ModelChoiceField(queryset=Permission.objects.none())
+    # Remove the historical content types.
+    permission = forms.ModelChoiceField(
+        queryset=Permission.objects.exclude(
+            content_type_id__in=[
+                content_type.pk
+                for content_type in ContentType.objects.all()
+                if content_type.model_class() is not None and issubclass(content_type.model_class(), HistoricalChanges)
+            ]
+        ).order_by("content_type__app_label", "content_type__model", "codename")
+    )
 
     class Meta:
         model = models.WorkflowPermission
         fields = [
             "permission",
         ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        excluded_ids = [
-            content_type.pk
-            for content_type in ContentType.objects.all()
-            if content_type.model_class() is not None and issubclass(content_type.model_class(), HistoricalChanges)
-        ]
-        self.fields["permission"].queryset = Permission.objects.exclude(
-            content_type_id__in=excluded_ids
-        ).order_by("content_type__app_label", "content_type__model", "codename")
 
 
 class ValidateStateNotUsedForm(forms.ModelForm):

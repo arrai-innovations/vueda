@@ -93,11 +93,6 @@ const theme = useTheme(
 );
 const renderDetail = (data) => {
     const detail = data.detail;
-    if (typeof detail !== "string") {
-        throw new Error(
-            "Structured feedback object must include a string 'detail' template (e.g. { detail: '...', ... }).",
-        );
-    }
     return detail.replace(/\$\{(\w+)\}/g, (_, key) => {
         const value = data[key];
         if (Array.isArray(value)) {

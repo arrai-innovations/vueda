@@ -54,7 +54,17 @@ Scripts defined in `package.json`:
 
 ## Git Hooks
 
-Git hooks are managed by **lefthook** at the repo root. See `lefthook.yml` for the current hook behavior.
+This project uses **husky** with **lint-staged**. On each commit:
+
+- `eslint` and `prettier` run on staged `.js`, `.ts`, and `.vue` files.
+
+- `doctoc` updates Markdown tables of contents.
+
+- `prettier` formats staged supported file types.
+
+- `.circleci/config.yml` is validated with `circleci config validate`.
+
+- Commit messages are checked with `commitlint`.
 
 ---
 

@@ -123,16 +123,6 @@ function validateMessage(message) {
     }
 }
 
-const RESERVED_SERVER_CODE = "server";
-
-const validateReservedServerCode = (code, allowReservedServerCode = false) => {
-    if (!allowReservedServerCode && code === RESERVED_SERVER_CODE) {
-        throw new Error(
-            'Error code "server" is reserved for server-originated validation and cannot be set from local validation. Use a non-reserved code (e.g. "validate" or custom) for client validation.',
-        );
-    }
-};
-
 /**
  *
  * @param {'error'|'message'} kind - The kind of error or message to update.
@@ -142,11 +132,10 @@ const validateReservedServerCode = (code, allowReservedServerCode = false) => {
  * @param {string} message - The message to update.
  * @private
  */
-const updateErrorOrMessage = (kind, state, name, code, message, allowReservedServerCode = false) => {
+const updateErrorOrMessage = (kind, state, name, code, message) => {
     validateName(name);
     validateCode(code);
     validateMessage(message);
-    validateReservedServerCode(code, allowReservedServerCode);
     const collection = kind === "error" ? state.errors : state.messages;
     const anyFlagKey = kind === "error" ? "anyError" : "anyMessage";
     if (!isEqual(collection[name]?.[code], message)) {
@@ -352,10 +341,10 @@ const handleServerFormValidationError = (state, error) => {
     const messages = error.messages;
     const errors = error.errors;
     for (const [name, message] of Object.entries(messages)) {
-        updateErrorOrMessage("message", state, name, RESERVED_SERVER_CODE, message, true);
+        updateMessage(state, name, "server", message);
     }
     for (const [name, error] of Object.entries(errors)) {
-        updateErrorOrMessage("error", state, name, RESERVED_SERVER_CODE, error, true);
+        updateError(state, name, "server", error);
     }
 };
 
@@ -382,8 +371,6 @@ const clearServerErrors = (state, name, clearServerErrorDependents = []) => {
     deleteError(state, name, "server");
     deleteMessage(state, name, "server");
 
-    // Intentionally one-hop clearing: each recursive call omits dependents, so we do not
-    // traverse a dependent graph (and cannot loop on A<->B dependent declarations).
     for (const dep of clearServerErrorDependents) {
         let resolvedName = dep;
         if (dep.includes("$parent") && name.includes(".")) {

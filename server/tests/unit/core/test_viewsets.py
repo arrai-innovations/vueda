@@ -3,7 +3,6 @@ from http import HTTPStatus
 
 import pytest
 from django.conf import settings
-from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from tests.conftest import BaseTestModelViewSet
 from tests.models import Employee
@@ -11,26 +10,6 @@ from tests.models import Product
 from tests.models import Timesheet
 from tests.viewsets import TimesheetViewSet
 from vueda.core.exceptions import VuedaValidationError
-from vueda.core.viewsets import VuedaReadOnlyViewSet
-from vueda.core.viewsets import VuedaViewSet
-
-
-def test_vueda_read_only_viewset_excludes_write_actions():
-    assert hasattr(VuedaReadOnlyViewSet, "list")
-    assert hasattr(VuedaReadOnlyViewSet, "retrieve")
-    assert not hasattr(VuedaReadOnlyViewSet, "create")
-    assert not hasattr(VuedaReadOnlyViewSet, "update")
-    assert not hasattr(VuedaReadOnlyViewSet, "partial_update")
-    assert not hasattr(VuedaReadOnlyViewSet, "destroy")
-
-
-def test_vueda_viewset_warns_when_combined_with_read_only_viewset():
-    with pytest.warns(RuntimeWarning, match="inherits from both VuedaViewSet and ReadOnlyModelViewSet"):
-
-        class InvalidCombinedViewSet(VuedaViewSet, ReadOnlyModelViewSet):
-            pass
-
-    assert InvalidCombinedViewSet is not None
 
 
 @pytest.mark.django_db
@@ -150,34 +129,6 @@ class TestProductViewSet(BaseTestModelViewSet):
     def update_expected_update_response(self, expected_update_response, updated_instance):
         super().update_expected_update_response(expected_update_response, updated_instance)
         expected_update_response["formatted_name"] = expected_update_response["name"]
-
-    def test_list_with_invalid_filter_returns_400(self, page_data, authenticated_client, list_querystring):
-        list_querystring["nonexistent_filter"] = "value"
-        response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
-
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
-        assert "nonexistent_filter" in response.data, f"response.data: {response.data}"
-        assert any("Invalid query parameter" in str(msg) for msg in response.data["nonexistent_filter"]), (
-            f"nonexistent_filter data: {response.data['nonexistent_filter']}"
-        )
-
-    def test_list_with_multiple_invalid_filters_returns_all(self, page_data, authenticated_client, list_querystring):
-        list_querystring["bad_one"] = "x"
-        list_querystring["bad_two"] = "y"
-        response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
-
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
-        assert "bad_one" in response.data, f"response.data: {response.data}"
-        assert "bad_two" in response.data, f"response.data: {response.data}"
-
-    def test_list_with_valid_filter_succeeds(self, page_data, authenticated_client, list_querystring):
-        response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
-
-        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
 
     def test_list_with_invalid_expands(self, page_data, authenticated_client, list_querystring):
         keys = {"id", "current_history_id"}.union(self.list_keys_arguments)

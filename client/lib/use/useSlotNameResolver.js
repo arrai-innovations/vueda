@@ -11,8 +11,12 @@ import { useSlots } from "vue";
  */
 
 /**
- * @typedef {(string[]|import('vue').Ref<string[]>|import('vue').Ref<import('vue').Ref<string>[]>|import('vue').Ref<string>[])} SlotNamesInOrderOfPrecedence
- *  - The slot names to check for, in order of precedence.
+ * @typedef {
+ *     string[]|
+ *     import('vue').Ref<string[]>|
+ *     import('vue').Ref<import('vue').Ref<string>[]>|
+ *     import('vue').Ref<string>[]
+ * } SlotNamesInOrderOfPrecedence - The slot names to check for, in order of precedence.
  */
 
 /**

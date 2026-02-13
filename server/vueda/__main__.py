@@ -46,7 +46,7 @@ def setup_django_settings_module():
 def main():
     parser = argparse.ArgumentParser(
         prog="vueda",
-        description="VUEDA CLI Interface",
+        description="Vueda CLI Interface",
     )
 
     subparsers = parser.add_subparsers(

@@ -13,6 +13,7 @@
     "types",
     "README.md",
     "LICENSE",
+    "VUEDA.png",
     "index.js"
   ],
   "directories": {
@@ -22,6 +23,8 @@
   "scripts": {
     "test": "npx --no-install vitest",
     "coverage": "npm test -- run --coverage",
+    "prepare": "npx --no-install husky",
+    "docs": "echo \"#todo: setup jsdoc to markdown\"",
     "lint": "npx eslint --no-warn-ignored .",
     "format": "npx prettier --check .",
     "eslint": "npx eslint --fix .",
@@ -56,6 +59,7 @@
     "@vitest/eslint-plugin": "^1.1.43",
     "@vue/test-utils": "^2.4.6",
     "del-cli": "^6.0.0",
+    "doctoc": "^2.1.0",
     "eslint": "^9.24.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.31.0",
@@ -65,16 +69,18 @@
     "flush-promises": "^1.0.2",
     "glob-promise": "^6.0.5",
     "globals": "^15.15.0",
+    "husky": "^9.1.7",
     "jsdoc": "^4.0.2",
     "jsdom": "^23.0.0",
+    "lint-staged": "^15.1.0",
     "msw": "^2.0.9",
     "neostandard": "^0.12.2",
+    "pinst": "^3.0.0",
     "prettier": "^3.2.5",
     "typescript": "^5.9.3",
     "vite": "^6.3.3",
     "vite-plugin-circular-dependency": "^0.2.1",
     "vitest": "^3.1.2",
-    "vue-docgen-api": "^4.79.2",
     "vue-eslint-parser": "^10.1.3"
   },
   "peerDependencies": {

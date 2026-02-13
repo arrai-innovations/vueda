@@ -20,7 +20,7 @@ from vueda.vdq.schedulers import add_sms
 
 class VuedaAllAuthHeadlessAdapter(DefaultHeadlessAdapter):
     """
-    Adapter for VUEDA AllAuth integration.
+    Adapter for Vueda AllAuth integration.
     """
 
     def user_as_dataclass(self, user):
