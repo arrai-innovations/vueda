@@ -139,7 +139,7 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
 ]
 
 
-class TestData(BaseTestUserMixin, BaseTestGroupMixin):
+class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
@@ -226,7 +226,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
 class TestModelInfoFiltersetChoices:
     @pytest.fixture
     def test_data(self):
-        return TestData()
+        return VuedaTestData()
 
     @staticmethod
     def register_viewsets():
