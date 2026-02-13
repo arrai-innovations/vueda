@@ -315,6 +315,7 @@ workflows:
                 - main
       - lintinator/lint_python:
           name: lint-no-badge
+          context: arrai-global
           executor: lintinator/python311
           hooks: ruff prettier eslint doctoc
           hook_manager: lefthook
