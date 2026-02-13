@@ -14,9 +14,9 @@ This page explains the contract itself: what shapes are produced, how they are c
 ```mermaid
 flowchart TD
     subgraph Server
-        VVE["VuedaValidationError\n(is_warning=False)"]
-        VVW["VuedaValidationError\n(is_warning=True)"]
-        EH["Exception Handler\n+ serverStack"]
+        VVE["VuedaValidationError<br/>(is_warning=False)"]
+        VVW["VuedaValidationError<br/>(is_warning=True)"]
+        EH["Exception Handler<br/>+ serverStack"]
     end
 
     VVE -- "field: [msg]" --> EH
@@ -24,26 +24,26 @@ flowchart TD
     EH -- "HTTP 400" --> GATE
 
     subgraph Client["Client Adapter"]
-        GATE{{"Status\n= 400?"}}
-        FVE["FormValidationError\nconstructor"]
+        GATE{{"Status<br/>= 400?"}}
+        FVE["FormValidationError<br/>constructor"]
     end
 
     GATE -- "Yes" --> FVE
-    GATE -- "No" --> FE["FetchError\n(no form feedback)"]
+    GATE -- "No" --> FE["FetchError<br/>(no form feedback)"]
 
-    FVE -- "flatten & split\non .warnings regex" --> SPLIT
+    FVE -- "flatten & split<br/>on .warnings regex" --> SPLIT
 
     subgraph FormState["Form State (useForm)"]
-        SPLIT{{"Path contains\n.warnings?"}}
-        ERR["state.errors[field].server\n— blocks submission"]
-        MSG["state.messages[field].server\n— non-blocking warning"]
+        SPLIT{{"Path contains<br/>.warnings?"}}
+        ERR["state.errors[field].server<br/>— blocks submission"]
+        MSG["state.messages[field].server<br/>— non-blocking warning"]
     end
 
     SPLIT -- "No" --> ERR
     SPLIT -- "Yes" --> MSG
 
-    ERR --> RENDER_E["FormFeedback type=error\nseverity=error (red)"]
-    MSG --> RENDER_W["FormFeedback type=message\nseverity=warn (yellow)"]
+    ERR --> RENDER_E["FormFeedback type=error<br/>severity=error (red)"]
+    MSG --> RENDER_W["FormFeedback type=message<br/>severity=warn (yellow)"]
 
     style Server fill:#f8f4e8,stroke:#c9a227
     style Client fill:#e8f0f8,stroke:#2768c9
