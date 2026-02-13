@@ -169,13 +169,14 @@ export function defaultObjectCreate({ target, object, params }) {
  *     action?: string,
  * }} - VUEDA specific arguments for the CRUD operation.
  * @param args.object {import("@arrai-innovations/reactive-helpers").CrudObject} - The object to update.
+ * @param args.pkKey {string} - The primary key field name on the object. Defaults to `id`.
  * @param args.params {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
-export function defaultObjectUpdate({ target, object, params }) {
+export function defaultObjectUpdate({ target, object, pkKey = "id", params }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
-    const pk = object.id;
+    const pk = object[pkKey];
     const query = params ? makeSearchParamsString(params) : "";
     const url = getDetailUrl({ app, model, pk, action, query });
 
