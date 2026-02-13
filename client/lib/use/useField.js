@@ -191,6 +191,15 @@ export function isUnsetValue(value) {
 
 const defaultRequiredMessage = "This field is required.";
 const defaultValidationFailedMessage = "Validation Failed";
+const reservedServerCode = "server";
+const reservedServerCodeError =
+    'Error code "server" is reserved for server-originated validation and cannot be set from local validation. Use a non-reserved code (e.g. "validate" or custom) for client validation.';
+
+const validateNonReservedCode = (code) => {
+    if (code === reservedServerCode) {
+        throw new Error(reservedServerCodeError);
+    }
+};
 
 /* v8 ignore start */
 /**
@@ -563,6 +572,7 @@ export function useField(props, emit) {
 
         // *** Error Handling ***
         updateError: (code, errorMessage) => {
+            validateNonReservedCode(code);
             const fc = unref(formContext);
             if (fc) {
                 fc.updateError(state.name, code, errorMessage);
@@ -598,6 +608,7 @@ export function useField(props, emit) {
 
         // *** Messages ***
         updateMessage: (code, message) => {
+            validateNonReservedCode(code);
             const fc = unref(formContext);
             if (fc) {
                 fc.updateMessage(state.name, code, message);

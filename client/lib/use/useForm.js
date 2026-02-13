@@ -123,6 +123,16 @@ function validateMessage(message) {
     }
 }
 
+const RESERVED_SERVER_CODE = "server";
+
+const validateReservedServerCode = (code, allowReservedServerCode = false) => {
+    if (!allowReservedServerCode && code === RESERVED_SERVER_CODE) {
+        throw new Error(
+            'Error code "server" is reserved for server-originated validation and cannot be set from local validation. Use a non-reserved code (e.g. "validate" or custom) for client validation.',
+        );
+    }
+};
+
 /**
  *
  * @param {'error'|'message'} kind - The kind of error or message to update.
@@ -132,10 +142,11 @@ function validateMessage(message) {
  * @param {string} message - The message to update.
  * @private
  */
-const updateErrorOrMessage = (kind, state, name, code, message) => {
+const updateErrorOrMessage = (kind, state, name, code, message, allowReservedServerCode = false) => {
     validateName(name);
     validateCode(code);
     validateMessage(message);
+    validateReservedServerCode(code, allowReservedServerCode);
     const collection = kind === "error" ? state.errors : state.messages;
     const anyFlagKey = kind === "error" ? "anyError" : "anyMessage";
     if (!isEqual(collection[name]?.[code], message)) {
@@ -341,10 +352,10 @@ const handleServerFormValidationError = (state, error) => {
     const messages = error.messages;
     const errors = error.errors;
     for (const [name, message] of Object.entries(messages)) {
-        updateMessage(state, name, "server", message);
+        updateErrorOrMessage("message", state, name, RESERVED_SERVER_CODE, message, true);
     }
     for (const [name, error] of Object.entries(errors)) {
-        updateError(state, name, "server", error);
+        updateErrorOrMessage("error", state, name, RESERVED_SERVER_CODE, error, true);
     }
 };
 
