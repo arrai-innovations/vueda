@@ -66,7 +66,7 @@ pre-commit:
       exclude:
         - AGENT.md
         - AGENTS.md
-      run: pnpm pnpm exec doctoc --github -u --notitle {staged_files}
+      run: pnpm exec doctoc --github -u --notitle {staged_files}
     circleci-config:
       run: |
         readarray -t files < <(git diff --name-only --cached -- '.circleci/*.yml')
