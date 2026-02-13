@@ -8,6 +8,8 @@ import set from "lodash-es/set.js";
 
 const { provideStore, mockedProvide, mockedInject } = mockProvideInject(vi);
 const { clearUnmounted, unmountedFunctions, mockedOnUnmounted } = mockLifecycle(vi);
+const reservedServerCodeMsg =
+    'Error code "server" is reserved for server-originated validation and cannot be set from local validation. Use a non-reserved code (e.g. "validate" or custom) for client validation.';
 vi.mock("vue", async () => {
     const original = await vi.importActual("vue");
     return {
@@ -1638,6 +1640,11 @@ describe("lib/use/useField.js", () => {
                     await flushPromises();
 
                     expect(field.state[stateKey]).toEqual({});
+                });
+                scopedIt(`should reject reserved server code without a form context`, async () => {
+                    const { field } = mountFieldNoContext();
+                    await flushPromises();
+                    expect(() => field[updateMethod]("server", "Some value")).toThrow(reservedServerCodeMsg);
                 });
             });
             describe(`${deleteMethod}`, () => {
