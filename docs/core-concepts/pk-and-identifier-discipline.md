@@ -2,55 +2,71 @@
 title: Primary Key and Identifier Discipline
 type: explanation
 audience: implementor
-status: briefing
+status: draft
 ---
 
 # Primary Key and Identifier Discipline
 
-## Intent and Scope
+VUEDA does not assume that every model's primary key is named `id`. Instead, identifier authority flows from the server's serializer metadata through client normalization and into routing, CRUD transport, and lookup caching. Each layer discovers the PK field name from metadata rather than hardcoding it, with a small number of documented exceptions where the system uses fixed conventions.
 
-- Define identifier authority boundaries across model-info metadata, client normalization, routing, and object/list CRUD transport.
-- Define the wire-shape contracts for single-object identifiers vs multi-object identifier sets.
-- Define stable invariants relied on by model config and lookup caches when PK field names are not `id`.
-- Source anchors: `server/vueda/info/serializers.py`, `server/vueda/info/viewsets.py`, `client/lib/stores/storeModelInfo.js`, `client/lib/stores/storeModelConfig.js`, `client/lib/router/getCrud.js`, `client/lib/router/makeCrud.js`, `client/lib/use/useLookupContext.js`, `client/lib/utils/objectCrud.js`, `client/lib/utils/listCrud.js`.
+This page explains where identifier authority lives at each boundary, how single-object and multi-object identifiers are transported, and how the client normalizes and caches PK information. For the model-info metadata contract that generates field and PK metadata, see [Field and Expand Semantics](./field-and-expand-semantics). For practical steps on wiring choice and lookup fields that depend on identifier resolution, see [Model Choices, Lookup Fields, and Dynamic Options](../guides/choices-and-lookups).
 
-## Non-goals
+## Boundary and Ownership
 
-- Not a walkthrough for implementing custom PK models.
-- Not a complete reference for workflow/history identifier behavior.
-- Not a guarantee that all generated API schema examples match runtime coercion paths.
+The server is the authority over which field is the primary key. This authority is expressed through model-info metadata: the `model_fields` response marks one field with `pk: true`, derived from the alignment between the serializer field name and `model._meta.pk.name`. The client discovers and caches this field name at model-info fetch time and uses it for all downstream identifier operations.
 
-## Key Concepts
+The boundary is strict in one direction: the client never tells the server which field is the PK. The server's metadata is the single source of truth. If the server's serializer does not include the model's PK field in `Meta.fields`, or if the field name does not match `model._meta.pk.name`, the `pk: true` marker will be absent and the client will fail at normalization time.
 
-### PK designation is serializer-derived metadata
+## PK Authority and Metadata Source
 
-- What it is: model-info marks the canonical identifier field with `pk: true` when serializer field name equals `model._meta.pk.name`.
-- Why it exists: identifier authority is serializer contract output, not a hard-coded client assumption about `id`.
-- Where it lives: `server/vueda/info/serializers.py` (`ModelInfoSerializer.get_model_fields_data`), `server/tests/unit/info/test_model_info.py`.
+The PK marker is set during model-info serialization. `ModelInfoSerializer.get_model_fields_data` iterates the canonical serializer's fields and compares each field name against the model's `_meta.pk.name`. The matching field receives `pk: true` in its metadata entry. All other fields receive no `pk` key (the absence is semantically equivalent to `pk: false`).
 
-### Client PK key is discovered, validated, and cached
+This comparison is name-based, not type-based. A serializer field named `slug` on a model whose `_meta.pk.name` is `slug` will receive `pk: true`. A serializer field named `id` on the same model will not, even if it is an `IntegerField`. The name must match exactly.
 
-- What it is: client normalizes `model_fields`, derives `data.pk` from the field carrying `pk: true`, and rejects payloads with no PK marker.
-- Why it exists: downstream config, form, and routing surfaces require a stable field-name identifier key.
-- Where it lives: `client/lib/stores/storeModelInfo.js`, `client/tests/unit/lib/stores/storeModelInfo.spec.js`, `client/lib/stores/storeModelConfig.js`, `client/tests/unit/lib/stores/storeModelConfig.spec.js`.
+The metadata does not carry the PK field's type separately from its regular field type metadata. The client treats the PK as an opaque value — it stores, transmits, and compares PK values without type-specific logic. This works because the server's metadata already includes the field's type descriptor (`integer`, `string`, `uuid`, etc.), and the client's rendering and validation layers use that type information generically.
 
-### Identifier transport uses separate single vs multi-object channels
+## Client PK-Key Normalization and Caching
 
-- What it is: detail routes carry one `pk` in route params; list/bulk-style routes encode many IDs in query `pk` as comma-separated text.
-- Why it exists: one route family carries object identity in path, while multi-object context stays list-oriented.
-- Where it lives: `client/lib/router/makeCrud.js`, `client/lib/router/getCrud.js`, `client/tests/unit/lib/router/makeCrud.spec.js`, `client/tests/unit/lib/router/getCrud.spec.js`.
+When `storeModelInfo` receives a model-info response, the normalization step scans the `fields` map for the entry carrying `pk: true` and extracts its key as `data.pk`. This is a hard requirement: if no field carries the marker, `storeModelInfo` throws `"no pk field found for {key}"` and caches the error. Subsequent requests for the same `app.model` key short-circuit to the cached error without retrying the network fetch. The only recovery is to recreate the store instance (typically by reloading the application).
 
-### Choice identifier values are string-oriented at model-info boundaries
+Once `data.pk` is set, downstream consumers use it to resolve identifiers without assuming a field name:
 
-- What it is: metadata/choices generation casts many identifier-like values to strings (`str(value)`/`Cast(..., CharField())`), including related-model PK choice values.
-- Why it exists: client-side comparison and query construction avoid Python numeric/UUID type variance.
-- Where it lives: `server/vueda/info/serializers.py` (`get_model_field_choices`, `get_model_filtering_choices`), `server/vueda/info/viewsets.py` (`ModelInfoChoicesViewSet.get_queryset`), `server/tests/unit/info/test_model_info_filterset_choices.py`.
+- **Model config** excludes the PK field from default `displayFields`, `fetchFields`, and `submitFields`. The exclusion uses `data.pk` as the key to filter, not a hardcoded `"id"`.
+- **Routing** uses `params.pk` as the route parameter name for detail views, independent of the model's actual PK field name. The route parameter is always named `pk`; its value is the PK field's value for the specific object.
+- **CRUD operations** accept `pk` as a parameter on retrieve, patch, and delete functions. `defaultObjectUpdate` accepts a `pkKey` parameter (defaulting to `"id"`) to resolve the identifier from the submitted object.
+- **Lookup context** coerces PK values to strings before cache-key comparison, ensuring that numeric and string representations of the same identifier map to the same cache entry.
 
-### Lookup cache keying coerces identifiers to string
+## Identifier Transport Shapes
 
-- What it is: lookup-context manager acquisition and object requests coerce `pkKey` and object `pk` with `+ ""` before manager reuse and map keying.
-- Why it exists: cache keys remain stable when callers provide numeric-like vs string-like identifiers.
-- Where it lives: `client/lib/use/useLookupContext.js`, `client/tests/unit/lib/use/useLookupContext.spec.js`.
+VUEDA uses two distinct transport shapes for object identifiers, depending on whether the context is single-object or multi-object.
+
+**Single-object transport** uses a route parameter. Detail routes carry the PK value in the URL path: `/:app/:model/:action/:pk`. The route parameter is always named `pk` regardless of the model's actual PK field name. `getDetailUrl` constructs the URL by interpolating the PK value into the `:pk` position. The PK value is unwrapped through `unwrapNested` before interpolation, handling cases where the value arrives as a nested reactive reference.
+
+**Multi-object transport** uses a query parameter. List-context operations that reference multiple objects (such as multi-select navigation) encode the PK values as a comma-separated string in `query.pk`. `getCRUDForTo` splits this string to recover the individual values, and `makeCRUDRoutes` joins selected PKs with commas when constructing navigation targets.
+
+**Bulk delete transport** uses a request body. The `defaultObjectsDelete` function sends `{ pks: [...] }` as the JSON body of a DELETE request to the list endpoint. The key is always `pks`, independent of the model's PK field name — this is a fixed protocol convention between the client and the server's bulk destroy handler.
+
+The comma-delimited encoding for multi-object query parameters is lossy if a string PK value itself contains commas. Route and query reconstruction become ambiguous because `split(",")` cannot distinguish between a delimiter and a literal comma within a PK value. This is a known limitation that does not affect integer or UUID primary keys but can cause issues with free-text string PKs.
+
+## Choice Identifier Value Semantics
+
+Model-info choice endpoints and filter-choice endpoints normalize identifier values to strings at several points in the pipeline.
+
+**Field choices** (`ModelInfoChoicesViewSet`) resolve choice values from the serializer's field definition. For related-model choices (where the choices come from a queryset), the PK values are cast to strings via `Cast(..., CharField())` in the queryset annotation or via `str(value)` when iterating static choices. This ensures that the client receives string values regardless of the database column's native type (integer, UUID, etc.).
+
+**Filter choices** (`ModelInfoFilterSetChoicesViewSet`) follow the same pattern. Filter choice responses serialize `value` as a string across all tested filterset branches, including paths sourcing from raw widget choices and queryset-backed choices. The `empty_label` option, when set, prepends an empty-value entry to the choices list, with the empty value coming from filter config or default settings.
+
+This string normalization is deliberate. The client compares choice values using string equality, and query parameter values are inherently strings on the wire. By normalizing at the server boundary, the system avoids type-coercion mismatches where a numeric PK `42` and a string `"42"` would fail equality checks in JavaScript.
+
+## Observable Failure Modes
+
+**Missing PK marker causes persistent client-side failure.** If the server's model-info response does not include a field with `pk: true`, the error is thrown and cached per `app.model`. All subsequent operations for that model fail immediately. The typical cause is a serializer that does not include the model's PK field in `Meta.fields`, or a PK field name mismatch between the serializer and the model's `_meta.pk.name`.
+
+**Comma-delimited PK encoding is lossy for string PKs with commas.** The `join(",")` / `split(",")` encoding used for multi-object query parameters cannot round-trip PK values that contain literal commas. This affects route construction and navigation state recovery for models with free-text string primary keys.
+
+**`defaultObjectUpdate` requires correct `pkKey` for non-`id` PKs.** The function accepts a `pkKey` parameter that defaults to `"id"`. Callers using models with a non-`id` PK field must pass the correct `pkKey`; omitting it causes `object[pkKey]` to resolve to `undefined`, and the resulting detail URL will contain `undefined` as the PK segment.
+
+**`throwOnUndefinedPk` error text references detail views for non-detail contexts.** The `getCRUDForTo` guard throws when it encounters an undefined PK on action metadata, but the error message says "detail views" regardless of the actual action context. This mismatch can obscure diagnosis when the error is triggered during list-context navigation that happens to carry PK metadata.
 
 ## Relevant Implementation Surface
 
@@ -81,30 +97,3 @@ status: briefing
 - `{@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectUpdate}`
 - `{@api js:module:@arrai-innovations/vueda.utils/listCrud}`
 - `{@api js:function:@arrai-innovations/vueda.utils/listCrud.defaultObjectsDelete}`
-
-## Contracts and Invariants
-
-- `model_fields` carries PK membership as field metadata (`pk: true`) from serializer/model alignment. Anchors: `server/vueda/info/serializers.py`, `server/tests/unit/info/test_model_info.py`.
-- Client model-info normalization must find one PK marker; missing marker is a hard error (`no pk field found`) and the error is cached per `app.model`. Anchors: `client/lib/stores/storeModelInfo.js`, `client/tests/unit/lib/stores/storeModelInfo.spec.js`.
-- Default model config excludes the PK field from default `displayFields`, `fetchFields`, and `submitFields`. Anchors: `client/lib/stores/storeModelConfig.js`, `client/tests/unit/lib/stores/storeModelConfig.spec.js`.
-- Detail route identity is `params.pk`; list route multi-selection identity is `query.pk` split/joined on commas. Anchors: `client/lib/router/makeCrud.js`, `client/lib/router/getCrud.js`, `client/tests/unit/lib/router/makeCrud.spec.js`, `client/tests/unit/lib/router/getCrud.spec.js`.
-- Bulk delete payload identifier key is always `{ pks: [...] }`, independent of model-specific PK field name. Anchors: `client/lib/utils/listCrud.js`.
-- Lookup-context manager requests coerce `pkKey` and object PK to strings before key comparison/reuse. Anchors: `client/lib/use/useLookupContext.js`, `client/tests/unit/lib/use/useLookupContext.spec.js`.
-- Choice endpoints primarily expose string identifier values for model-backed choices. Anchors: `server/vueda/info/serializers.py`, `server/vueda/info/viewsets.py`.
-- Filter-choice responses serialize `value` as string across tested filterset branches (including paths sourcing from raw widget choices and queryset-backed choices). Anchors: `server/vueda/info/serializers.py`, `server/vueda/info/viewsets.py`, `server/tests/unit/info/test_model_info_filterset_choices.py`.
-
-## Footguns
-
-- Missing PK marker in model-info causes persistent client-side failure for that `app.model` until store state is reset/recreated; repeated fetches short-circuit to cached error. Anchors: `client/lib/stores/storeModelInfo.js`, `client/tests/unit/lib/stores/storeModelInfo.spec.js`.
-- Comma-delimited array PK encoding (`join(",")`/`split(",")`) is lossy if a string PK itself contains commas; route/query reconstruction is ambiguous. Anchors: `client/lib/router/getCrud.js`, `client/lib/router/makeCrud.js`.
-- `defaultObjectUpdate` extracts identifier from `object.id` rather than metadata-derived PK field name, which can drift from non-`id` PK models. Anchors: `client/lib/utils/objectCrud.js`, `client/lib/stores/storeModelInfo.js`.
-- `throwOnUndefinedPk` guard in `getCRUDForTo` throws on non-detail action metadata while the error text says detail views; this mismatch can obscure diagnosis. Anchors: `client/lib/router/getCrud.js`, `client/tests/unit/lib/router/getCrud.spec.js`.
-
-## Suggested Outline
-
-- `## Boundary and Ownership`
-- `## PK Authority and Metadata Source`
-- `## Identifier Transport Shapes`
-- `## Client PK-Key Normalization and Caching`
-- `## Choice Identifier Value Semantics`
-- `## Observable Failure Modes`
