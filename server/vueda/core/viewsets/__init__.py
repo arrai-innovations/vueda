@@ -128,9 +128,9 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
 class NoExtraFieldsForViewSetMixin:
     """
     Mixin for DRF ViewSets to validate query parameters against filter and serializer fields.
-    It returns a 500 error for any query parameter that is not recognized as a valid field or
-    an explicitly allowed extra field. It handles validation for both filter class fields and
-    fields specified in REST Flex Fields settings.
+    It raises a VuedaValidationError (400) for any query parameter that is not recognized as a
+    valid field or an explicitly allowed extra field. It handles validation for both filter class
+    fields and fields specified in REST Flex Fields settings.
     """
 
     @staticmethod
@@ -222,7 +222,7 @@ class NoExtraFieldsForViewSetMixin:
 
     def list(self, request, *args, **kwargs):
         """
-        if you provide fields to filter by that are not filtered by the filter class, you get a 500 error
+        If you provide fields to filter by that are not filtered by the filter class, you get a 400 error.
         """
         if hasattr(self, "filterset_class"):
             fields = set()
@@ -239,12 +239,15 @@ class NoExtraFieldsForViewSetMixin:
                     fields.add(f"{filter_name}__{filter_obj.lookup_expr}")
             # pagination and expanding are allowed
             fields.update(self.get_extra_allowed_fields())
-            for key in request.query_params:
-                if key not in fields:
-                    return Response(
-                        {"detail": f"Invalid query parameter: '{key}'"},
-                        status=500,
-                    )
+            extra_keys = set(request.query_params) - fields
+            if extra_keys:
+                valid_filters = sorted(fields - set(self.get_extra_allowed_fields()))
+                raise VuedaValidationError(
+                    {
+                        key: [f"Invalid query parameter.  Valid filters are {', '.join(valid_filters)}."]
+                        for key in extra_keys
+                    }
+                )
         serializer = self.get_serializer()
 
         results = self.validate_flex_field_param(request, serializer)
