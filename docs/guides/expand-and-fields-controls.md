@@ -87,7 +87,7 @@ status: briefing
 - Expanded nested serializers omit `available_actions` by default in expanded payloads.
 - Client default `displayFields`/`fetchFields`/`submitFields` omit PK, but list/read requests inject PK for fetch correctness.
 - Empty `expand` config disables expansion flattening (`expand__subfield` keys are not populated in `fieldDetails`).
-- List query params outside filter + allowed extras currently return `500`, not `400`.
+- List query params outside filter + allowed extras return `400` with field-keyed validation errors, consistent with flex-field and serializer validation.
 - Source anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/core/serializers/__init__.py`, `server/tests/unit/core/test_viewsets.py`, `server/tests/unit/core/test_serializers.py`, `client/lib/utils/constants.js`, `client/lib/utils/objectCrud.js`, `client/tests/unit/lib/utils/objectCrud.spec.js`, `client/lib/stores/storeModelConfig.js`, `client/lib/views/ViewList.vue`, `client/lib/components/DetailedView.vue`, `client/tests/unit/lib/stores/storeModelConfig.spec.js`.
 
 ## Footguns
@@ -102,10 +102,16 @@ status: briefing
 
 ```md
 ## Goal and Preconditions
+
 ## Server Expand and Field Allow-Lists
+
 ## Client Default Field/Expand Strategy
+
 ## List and Detail Request Param Wiring
+
 ## Validation and Error-Handling Checks
+
 ## Verification Checklist
+
 ## Troubleshooting
 ```

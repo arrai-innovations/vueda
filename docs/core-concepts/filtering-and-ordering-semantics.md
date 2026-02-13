@@ -110,7 +110,7 @@ status: briefing
 
 ## Footguns
 
-- Unknown list query key returns HTTP 500 (`detail: "Invalid query parameter: '...'"`), not HTTP 400; client list adapters surface this as fetch/filter failure state. Anchors: `server/vueda/core/viewsets/__init__.py`, `client/lib/utils/listCrud.js`.
+- Unknown list query key returns HTTP 400 with a field-keyed validation error (`Invalid query parameter.  Valid filters are ...`), consistent with flex-field validation. Anchors: `server/vueda/core/viewsets/__init__.py`, `client/lib/utils/listCrud.js`.
 - If no search fields use the `V:` prefix, ranked search is bypassed and DRF `SearchFilter` behavior applies. Anchors: `server/vueda/core/filters.py#L154`, `server/vueda/core/filters.py#L156`.
 - Invalid filter-choice field returns HTTP 404 with contract text naming valid filters, which can present as missing-choice UI state rather than validation feedback on the originating list view. Anchors: `server/vueda/info/viewsets.py`, `server/tests/unit/info/test_model_info_filterset_choices.py`.
 - Missing related-model formatted-name lookup path can produce HTTP 500 during filter-choice resolution (`Cannot resolve keyword 'formatted_name'...`). Anchors: `server/vueda/info/viewsets.py`, `server/tests/unit/info/test_model_info_err.py`.

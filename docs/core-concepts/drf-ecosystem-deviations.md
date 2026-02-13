@@ -60,7 +60,7 @@ status: briefing
 
 ## Footguns
 
-- A typo in a list query key can surface as HTTP 500 (`Invalid query parameter`) instead of a 4xx validation response. Source anchors: `server/vueda/core/viewsets/__init__.py#L223`.
+- A typo in a list query key surfaces as HTTP 400 with a field-keyed validation error (`Invalid query parameter.  Valid filters are ...`). Source anchors: `server/vueda/core/viewsets/__init__.py#L223`.
 - Extra request payload keys trigger field-keyed validation errors at the top-level serializer boundary; nested serializer payload drift is not validated here. Source anchors: `server/vueda/core/serializers/__init__.py#L40`.
 
 ## Suggested Outline
