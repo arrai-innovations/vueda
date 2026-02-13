@@ -113,6 +113,15 @@ class TestProductViewSet(BaseTestModelViewSet):
     def update_expected_create_response(self, expected_create_response, new_instance):
         super().update_expected_create_response(expected_create_response, new_instance)
         expected_create_response["formatted_name"] = expected_create_response["name"]
+        expected_create_response["available_actions"] = [
+            "list",
+            "retrieve",
+            "update",
+            "partial_update",
+            "destroy",
+            "current",
+            "history-list",
+        ]
 
     def update_expected_retrieve_response(self, expected_retrieve_response, instance):
         super().update_expected_retrieve_response(expected_retrieve_response, instance)
@@ -122,6 +131,7 @@ class TestProductViewSet(BaseTestModelViewSet):
             "retrieve",
             "update",
             "partial_update",
+            "destroy",
             "current",
             "history-list",
         ]
@@ -129,6 +139,15 @@ class TestProductViewSet(BaseTestModelViewSet):
     def update_expected_update_response(self, expected_update_response, updated_instance):
         super().update_expected_update_response(expected_update_response, updated_instance)
         expected_update_response["formatted_name"] = expected_update_response["name"]
+        expected_update_response["available_actions"] = [
+            "list",
+            "retrieve",
+            "update",
+            "partial_update",
+            "destroy",
+            "current",
+            "history-list",
+        ]
 
     def test_list_with_invalid_expands(self, page_data, authenticated_client, list_querystring):
         keys = {"id", "current_history_id"}.union(self.list_keys_arguments)

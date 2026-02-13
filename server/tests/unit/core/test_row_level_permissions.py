@@ -20,6 +20,12 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
             ("tests", "Product", "list"),
             ("tests", "Product", "purchase"),
         ],
+        "Customer Deleter": [
+            ("tests", "Product", "read"),
+            ("tests", "Product", "list"),
+            ("tests", "Product", "delete"),
+            ("tests", "Product", "purchase"),
+        ],
         "Employee": [
             ("tests", "Product", "read"),
             ("tests", "Product", "list"),
@@ -42,6 +48,11 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
             "name": "Test Customer",
             "password": "testpass",
             "groups": ["Customer"],
+        },
+        "test_customer_deleter@example.com": {
+            "name": "Test Customer Deleter",
+            "password": "testpass",
+            "groups": ["Customer Deleter"],
         },
         "test_employee@example.com": {
             "name": "Test Employee",
@@ -189,3 +200,68 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         )
         self.assert_response(response, 200)
         assert not response.data["results"]
+
+    def test_bulk_destroy_products_mixed_row_level_permissions(self, api_client):
+        user = self.users["test_customer_deleter@example.com"]
+        api_client.force_authenticate(user=user)
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+        apple = Product.objects.get(name="Apple")
+        banana = Product.objects.get(name="Banana")
+
+        list_url = reverse("tests.product-list")
+        response = api_client.delete(
+            list_url,
+            data={"pks": [apple.pk, banana.pk]},
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        error_key = banana.pk if banana.pk in response.data else str(banana.pk)
+        assert error_key in response.data
+        assert str(response.data[error_key][0]) == f"Object with pk={banana.pk} does not exist."
+        assert Product.objects.filter(pk=apple.pk).exists()
+        assert Product.objects.filter(pk=banana.pk).exists()
+
+    def test_bulk_destroy_products_allowed_by_row_level_permissions(self, api_client):
+        user = self.users["test_customer_deleter@example.com"]
+        api_client.force_authenticate(user=user)
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+        apple = Product.objects.get(name="Apple")
+        mango = Product.objects.get(name="Mango")
+        banana = Product.objects.get(name="Banana")
+
+        list_url = reverse("tests.product-list")
+        response = api_client.delete(
+            list_url,
+            data={"pks": [apple.pk, mango.pk]},
+            format="json",
+        )
+
+        self.assert_response(response, 204)
+        assert not Product.objects.filter(pk=apple.pk).exists()
+        assert not Product.objects.filter(pk=mango.pk).exists()
+        assert Product.objects.filter(pk=banana.pk).exists()
+
+    def test_detail_destroy_product_allowed_by_row_level_permissions(self, api_client):
+        user = self.users["test_customer_deleter@example.com"]
+        api_client.force_authenticate(user=user)
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+        apple = Product.objects.get(name="Apple")
+
+        detail_url = reverse("tests.product-detail", args=(apple.pk,))
+        response = api_client.delete(detail_url, format="json")
+
+        self.assert_response(response, 204)
+        assert not Product.objects.filter(pk=apple.pk).exists()
+
+    def test_detail_destroy_product_denied_by_row_level_permissions(self, api_client):
+        user = self.users["test_customer_deleter@example.com"]
+        api_client.force_authenticate(user=user)
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+        banana = Product.objects.get(name="Banana")
+
+        detail_url = reverse("tests.product-detail", args=(banana.pk,))
+        response = api_client.delete(detail_url, format="json")
+
+        self.assert_response(response, 404)
+        assert Product.objects.filter(pk=banana.pk).exists()
