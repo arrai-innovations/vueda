@@ -255,10 +255,18 @@ class TestModelInfoSerializer:
                         assert value == expected_model_filter[key], f"{failure_msg} -> {key}"
 
     @staticmethod
-    def check_model_ordering_data(response_data, expected_data, app_label, model_name):
-        data = response_data.data["model_ordering"]
+    def check_model_ordering_data(response_data, expected_ordering_data, app_label, model_name):
+        ordering_data = response_data.data["model_ordering"]
+        assert ordering_data["model_default"] == expected_ordering_data["model_default"], (
+            f'"{app_label}", "{model_name}" -> "expected_ordering" -> "model_default"'
+        )
+        assert ordering_data["viewset_default"] == expected_ordering_data["viewset_default"], (
+            f'"{app_label}", "{model_name}" -> "expected_ordering" -> "viewset_default"'
+        )
+        expected_data = expected_ordering_data["viewset_fields"]
+        data = ordering_data["viewset_fields"]
         assert {x["name"] for x in data} == {x["name"] for x in expected_data}, (
-            f'"{app_label}", "{model_name}" -> "expected_ordering"'
+            f'"{app_label}", "{model_name}" -> "expected_ordering" -> "viewset_fields"'
         )
         for model_order in data:
             for expected_model_order in expected_data:

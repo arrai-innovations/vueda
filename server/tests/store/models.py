@@ -23,7 +23,7 @@ class Customer(HasWorkflowModelMixin, VuedaHistoryBaseModel):
     formatted_name_lookup_expression = "data__formatted_name"
 
     class Meta(BaseModelMeta):
-        pass
+        ordering = ["user__name"]
 
 
 class CustomerData(models.Model):
@@ -107,7 +107,7 @@ class Cart(VuedaBaseModel):
     formatted_name = None
 
     class Meta(VuedaBaseModel.Meta):
-        pass
+        ordering = [F("expected_delivery_time").asc(nulls_first=True)]
 
     def get_formatted_name(self):
         if self.customer and self.customer.user:

@@ -499,9 +499,15 @@ EXPECTED_RESULTS = [
                     ],
                 },
             },
-            "expected_ordering": [
-                {"name": "name", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [
+                    {"name": "name", "ascending": True, "type": "alpha"},
+                ],
+                "viewset_fields": [
+                    {"name": "name", "type": "alpha"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_distributor", "name": "Can create distributor"},
                 {"codename": "delete_distributor", "name": "Can delete distributor"},
@@ -578,7 +584,11 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [],
+                "viewset_fields": [],
+            },
             "expected_permissions": [
                 {"codename": "create_optiontype", "name": "Can create option type"},
                 {"codename": "delete_optiontype", "name": "Can delete option type"},
@@ -1239,9 +1249,15 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "user__email", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "model_default": [
+                    {"name": "user__name", "ascending": True, "type": "alpha"},
+                ],
+                "viewset_default": [],
+                "viewset_fields": [
+                    {"name": "user__email", "type": "alpha"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_customer", "name": "Can create customer"},
                 {"codename": "delete_customer", "name": "Can delete customer"},
@@ -1648,10 +1664,23 @@ EXPECTED_RESULTS = [
                     "type_filter": "TimeField",
                 },
             },
-            "expected_ordering": [
-                {"name": "customer__user__email", "type": "alpha"},
-                {"name": "last_modified", "type": "datetime"},
-            ],
+            "expected_ordering": {
+                "model_default": [
+                    {"name": "expected_delivery_time", "type": "numeric", "ascending": True, "nulls_first": True},
+                ],
+                "viewset_default": [
+                    {
+                        "ascending": True,
+                        "name": "expected_delivery_time",
+                        "nulls_first": True,
+                        "type": "numeric",
+                    },
+                ],
+                "viewset_fields": [
+                    {"name": "customer__user__email", "type": "alpha"},
+                    {"name": "last_modified", "type": "datetime"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_cart", "name": "Can create cart"},
                 {"codename": "delete_cart", "name": "Can delete cart"},
@@ -2456,12 +2485,16 @@ EXPECTED_RESULTS = [
                     "type_filter": "ChoiceField",
                 },
             },
-            "expected_ordering": [
-                {"name": "order_number", "type": "numeric"},
-                {"name": "customer__user__email", "type": "alpha"},
-                {"name": "when", "type": "datetime"},
-                {"name": "order_state", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [],
+                "viewset_fields": [
+                    {"name": "order_number", "type": "numeric"},
+                    {"name": "customer__user__email", "type": "alpha"},
+                    {"name": "when", "type": "datetime"},
+                    {"name": "order_state", "type": "alpha"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_customerorder", "name": "Can create customer order"},
                 {"codename": "delete_customerorder", "name": "Can delete customer order"},
@@ -2596,9 +2629,13 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "name", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [],
+                "viewset_fields": [
+                    {"name": "name", "type": "alpha"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_inventoryrecordreason", "name": "Can create inventory entry reason"},
                 {"codename": "delete_inventoryrecordreason", "name": "Can delete inventory entry reason"},
@@ -3818,11 +3855,15 @@ EXPECTED_RESULTS = [
                     "type_filter": "ModelChoiceField",
                 },
             },
-            "expected_ordering": [
-                {"name": "distributor__name", "type": "alpha"},
-                {"name": "name", "type": "alpha"},
-                {"name": "disabled", "type": "boolean"},
-            ],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [],
+                "viewset_fields": [
+                    {"name": "distributor__name", "type": "alpha"},
+                    {"name": "name", "type": "alpha"},
+                    {"name": "disabled", "type": "boolean"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_product", "name": "Can create product"},
                 {"codename": "delete_product", "name": "Can delete product"},
@@ -4855,13 +4896,17 @@ EXPECTED_RESULTS = [
                     "type_filter": "CharField",
                 },
             },
-            "expected_ordering": [
-                {"name": "name", "type": "alpha"},
-                {"name": "option_type", "type": "alpha"},
-                {"name": "sku", "type": "alpha"},
-                {"name": "gtin", "type": "alpha"},
-                {"name": "price", "type": "numeric"},
-            ],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [],
+                "viewset_fields": [
+                    {"name": "name", "type": "alpha"},
+                    {"name": "option_type", "type": "alpha"},
+                    {"name": "sku", "type": "alpha"},
+                    {"name": "gtin", "type": "alpha"},
+                    {"name": "price", "type": "numeric"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_productoption", "name": "Can create product option"},
                 {"codename": "delete_productoption", "name": "Can delete product option"},
@@ -5230,11 +5275,15 @@ EXPECTED_RESULTS = [
                     "type_filter": "DecimalRangeField",
                 },
             },
-            "expected_ordering": [
-                {"name": "customer_order__order_number", "type": "numeric"},
-                {"name": "product_option__name", "type": "alpha"},
-                {"name": "quantity", "type": "numeric"},
-            ],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [],
+                "viewset_fields": [
+                    {"name": "customer_order__order_number", "type": "numeric"},
+                    {"name": "product_option__name", "type": "alpha"},
+                    {"name": "quantity", "type": "numeric"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_orderitem", "name": "Can create ORDER item"},
                 {"codename": "delete_orderitem", "name": "Can delete ORDER item"},
@@ -5977,11 +6026,15 @@ EXPECTED_RESULTS = [
                     "type_filter": "DateTimeRangeField",
                 },
             },
-            "expected_ordering": [
-                {"name": "when", "type": "datetime"},
-                {"name": "reason", "type": "alpha"},
-                {"name": "quantity", "type": "numeric"},
-            ],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [],
+                "viewset_fields": [
+                    {"name": "when", "type": "datetime"},
+                    {"name": "reason", "type": "alpha"},
+                    {"name": "quantity", "type": "numeric"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_inventoryrecord", "name": "Can create inventory entry"},
                 {"codename": "delete_inventoryrecord", "name": "Can delete inventory entry"},
@@ -6279,10 +6332,14 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "product_option__name", "type": "alpha"},
-                {"name": "quantity", "type": "numeric"},
-            ],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [],
+                "viewset_fields": [
+                    {"name": "product_option__name", "type": "alpha"},
+                    {"name": "quantity", "type": "numeric"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_cartitem", "name": "Can create cart item"},
                 {"codename": "delete_cartitem", "name": "Can delete cart item"},
@@ -6480,9 +6537,13 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "name", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [],
+                "viewset_fields": [
+                    {"name": "name", "type": "alpha"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_packingbox", "name": "Can create Packing Box"},
                 {"codename": "delete_packingbox", "name": "Can delete Packing Box"},

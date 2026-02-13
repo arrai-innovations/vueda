@@ -1,4 +1,5 @@
 from dateutil.relativedelta import relativedelta
+from django.db.models import F
 from django.http import Http404
 from django.utils.timezone import now
 from rest_framework.exceptions import PermissionDenied
@@ -33,6 +34,7 @@ class DistributorViewSet(VuedaHistoryViewSet):
     serializer_class = my_serializers.DistributorSerializer
     filterset_class = my_filtersets.DistributorFilterSet
     ordering_fields = ["name"]
+    ordering = ["name"]
 
     def get_allowed_extra_actions(self, request, *, instance=None):
         # Make 'current' and 'history-list' not allowed for customer.
@@ -70,6 +72,7 @@ class CartViewSet(VuedaViewSet):
     permit_list_expands = ["cart_items", "customer"]
     permit_retrieve_expands = ["cart_items", "customer"]
     ordering_fields = ["customer__user__email", "last_modified"]
+    ordering = [F("expected_delivery_time").asc(nulls_first=True)]
 
     @action(detail=False, methods=["post"], permission_classes=(), bulk=True)
     def dry_run_outer(self, request):
