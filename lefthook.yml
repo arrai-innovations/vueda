@@ -7,25 +7,26 @@ pre-commit:
   parallel: false
   commands:
     ruff-check:
+      root: "server/"
       run: |
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
-        cd server
         uv run --no-sync ruff check .
     ruff-format:
+      root: "server/"
       run: |
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
-        cd server
         uv run --no-sync ruff format --check .
     eslint:
+      root: "client/"
       run: |
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
-        pnpm -C client exec eslint --no-warn-ignored --cache .
+        pnpm exec eslint --no-warn-ignored --cache .
     prettier:
       run: |
         if [ -z "${CI:-}" ]; then
@@ -37,44 +38,35 @@ pre-commit:
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
-        files="$(rg --files -g '*.md' server client | rg -v '/AGENT\.md$|/AGENTS\\.md$')"
+        files="$(rg --files -g '*.md' $PWD/server $PWD/client | rg -v '/AGENT\.md$|/AGENTS\\.md$')"
         if [ -n "$files" ]; then
           pnpm -C client exec doctoc --github -u --notitle $files
         fi
     fix-server:
       stage_fixed: true
+      root: "server/"
+      glob: "server/*.py"
       run: |
-        files="$(git diff --name-only --cached -- 'server/**' | rg '\.py$')"
-        if [ -n "$files" ]; then
-          files="$(printf '%s\n' "$files" | sed 's|^server/||')"
-          cd server
-          uv run --no-sync ruff check --fix --show-fixes $files
-          uv run --no-sync ruff format $files
-        fi
+        uv run --no-sync ruff check --fix --show-fixes {staged_files}
+        uv run --no-sync ruff format {staged_files}
     fix-client-eslint:
       stage_fixed: true
-      run: |
-        files="$(git diff --name-only --cached -- 'client/**' | rg '\.(vue|js|cjs|mjs|ts|jsx|tsx)$')"
-        if [ -n "$files" ]; then
-          files="$(printf '%s\n' "$files" | sed 's|^client/||')"
-          pnpm -C client exec eslint --no-warn-ignored --cache --fix $files
-        fi
+      root: "client/"
+      glob: "client/*.{vue,js,cjs,mjs,ts,jsx,tsx}"
+      run: pnpm exec eslint --no-warn-ignored --cache --fix {staged_files}
     fix-client-prettier:
       stage_fixed: true
-      run: |
-        files="$(git diff --name-only --cached -- 'client/**' | rg '\.(less|scss|css|vue|markdown|json|md|yml|yaml|html)$')"
-        if [ -n "$files" ]; then
-          files="$(printf '%s\n' "$files" | sed 's|^client/||')"
-          pnpm -C client exec prettier --write $files
-        fi
+      root: "client/"
+      glob: "client/*.{less,scss,css,vue,markdown,json,md,yml,yaml,html}"
+      run: pnpm exec prettier --write {staged_files}
     fix-doctoc:
       stage_fixed: true
-      run: |
-        files="$(git diff --name-only --cached -- 'client/**' | rg '\.md$' | rg -v '/AGENT\.md$|/AGENTS\.md$')"
-        if [ -n "$files" ]; then
-          files="$(printf '%s\n' "$files" | sed 's|^client/||')"
-          pnpm -C client exec doctoc --github -u --notitle $files
-        fi
+      root: "client/"
+      glob: "client/*.md"
+      exclude:
+        - AGENT.md
+        - AGENTS.md
+      run: pnpm pnpm exec doctoc --github -u --notitle {staged_files}
     circleci-config:
       run: |
         readarray -t files < <(git diff --name-only --cached -- '.circleci/*.yml')
