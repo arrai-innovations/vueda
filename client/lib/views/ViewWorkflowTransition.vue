@@ -107,7 +107,7 @@ const handleSubmit = async () => {
         if (props.pk) {
             await workflow.executeTransition(props.app, props.model, props.pk, selectedAction.value, router);
         }
-        toast.add({ severity: "success", summary: "transition succeed" });
+        toast.add({ severity: "success", summary: "transition succeeded" });
         router.back();
     } catch (error) {
         toast.add({ severity: "error", summary: "transition failed" });
