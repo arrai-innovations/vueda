@@ -176,95 +176,118 @@ class TestModelInfoSerializer:
         info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
         info.register(store_serializers.PackingBoxSerializer, store_viewsets.PackingBoxViewSet)
 
-    def check_model_actions_data(self, response_data, expected_data, app_label, model_name):
+    def check_model_actions_data(self, response_data, expected_data, expected_actions_key, app_label, model_name):
         data = response_data.data["model_actions"]
-        assert {x["name"] for x in data} == {x["name"] for x in expected_data}, "expected_actions -> {{keys}}"
+        assert {x["name"] for x in data} == {x["name"] for x in expected_data}, (
+            f'"{app_label}", "{model_name}" -> "{expected_actions_key}" -> {{keys}}'
+        )
         for model_action in data:
             for expected_model_action in expected_data:
                 if model_action["name"] == expected_model_action["name"]:
                     assert frozenset(model_action) == frozenset(expected_model_action), (
-                        f'expected_actions -> "name": "{model_action["name"]}" -> {{keys}}'
+                        f'"{app_label}", "{model_name}" -> "{expected_actions_key}" -> '
+                        f'"name": "{model_action["name"]}" -> {{keys}}'
                     )
                     for key, value in model_action.items():
                         assert value == expected_model_action[key], (
-                            f'expected_actions -> "name": "{model_action["name"]}" -> {key}'
+                            f'"{app_label}", "{model_name}" -> "{expected_actions_key}" -> '
+                            f'"name": "{model_action["name"]}" -> {key}'
                         )
 
-    def check_model_expands_data(self, response_data, expected_data):
+    def check_model_expands_data(self, response_data, expected_data, app_label, model_name):
         data = response_data.data["model_expands"]
         assert {x["name"] for x in data} == {x["name"] for x in expected_data}, "expected_expands -> {{keys}}"
         for model_expand in data:
             for expected_model_expand in expected_data:
                 if model_expand["name"] == expected_model_expand["name"]:
                     assert frozenset(model_expand) == frozenset(expected_model_expand), (
-                        f'expected_expands -> "name": "{model_expand["name"]}" -> {{keys}}'
+                        f'"{app_label}", "{model_name}" -> "expected_expands" -> "name": "{model_expand["name"]}" -> {{keys}}'
                     )
                     for key, value in model_expand.items():
                         if key == settings.REST_FLEX_FIELDS["FIELDS_PARAM"]:
                             self.check_model_fields(
                                 value,
                                 expected_model_expand[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]],
-                                f'expected_expands -> "name": "{model_expand["name"]}"',
+                                app_label,
+                                model_name,
+                                f'"{app_label}", "{model_name}" -> "expected_expands" -> "name": "{model_expand["name"]}"',
                             )
                             continue
                         assert value == expected_model_expand[key], (
-                            f'expected_expands -> "name": "{model_expand["name"]}" -> {key}'
+                            f'"{app_label}", "{model_name}" -> "expected_expands" -> "name": "{model_expand["name"]}" -> {key}'
                         )
 
-    def check_model_fields(self, data, expected_data, extra_key=None):
+    def check_model_fields(self, data, expected_data, app_label, model_name, extra_key=None):
         if extra_key is not None:
             assert frozenset(data) == frozenset(expected_data), f"{extra_key} -> FIELDS_PARAM -> {{keys}}"
         else:
-            assert frozenset(data) == frozenset(expected_data), "expected_fields -> {{keys}}"
+            assert frozenset(data) == frozenset(expected_data), (
+                f'"{app_label}", "{model_name}" -> "expected_fields -> {{keys}}'
+            )
         for field_name, field_data in data.items():
             for expected_field_name, expected_field_data in expected_data.items():
                 if field_name == expected_field_name:
                     if extra_key is not None:
                         failure_msg = f"{extra_key} -> FIELDS_PARAM -> {field_name}"
                     else:
-                        failure_msg = f"expected_fields -> {field_name}"
+                        failure_msg = f'"{app_label}", "{model_name}" -> "expected_fields" -> {field_name}'
                     assert frozenset(field_data) == frozenset(expected_field_data), f"{failure_msg} -> {{keys}}"
                     for key, value in field_data.items():
                         if key == "help_text":  # Don't worry about adding help text messages into our test data.
                             value = None
                         assert value == expected_field_data[key], f"{failure_msg} -> {key}"
 
-    def check_model_fields_data(self, response_data, expected_data):
-        self.check_model_fields(response_data.data["model_fields"], expected_data)
+    def check_model_fields_data(self, response_data, expected_data, app_label, model_name):
+        self.check_model_fields(response_data.data["model_fields"], expected_data, app_label, model_name)
 
     @staticmethod
-    def check_model_filtering_data(response_data, expected_data):
+    def check_model_filtering_data(response_data, expected_data, app_label, model_name):
         data = response_data.data["model_filtering"]
-        assert frozenset(data) == frozenset(expected_data), "expected_filtering -> {keys}"
+        assert frozenset(data) == frozenset(expected_data), (
+            f'"{app_label}", "{model_name}" -> "expected_filtering" -> {{keys}}'
+        )
         for model_filter_name, model_filter in data.items():
             for expected_model_filter_name, expected_model_filter in expected_data.items():
                 if model_filter_name == expected_model_filter_name:
-                    failure_msg = f"expected_filtering -> {model_filter_name}"
+                    failure_msg = f'"{app_label}", "{model_name}" -> "expected_filtering" -> {model_filter_name}'
                     assert frozenset(model_filter) == frozenset(expected_model_filter), f"{failure_msg} -> {{keys}}"
                     for key, value in model_filter.items():
                         assert value == expected_model_filter[key], f"{failure_msg} -> {key}"
 
     @staticmethod
-    def check_model_ordering_data(response_data, expected_data):
+    def check_model_ordering_data(response_data, expected_data, app_label, model_name):
         data = response_data.data["model_ordering"]
-        assert {x["name"] for x in data} == {x["name"] for x in expected_data}
+        assert {x["name"] for x in data} == {x["name"] for x in expected_data}, (
+            f'"{app_label}", "{model_name}" -> "expected_ordering"'
+        )
         for model_order in data:
             for expected_model_order in expected_data:
                 if model_order["name"] == expected_model_order["name"]:
-                    assert frozenset(model_order) == frozenset(expected_model_order), str(model_order)
+                    assert frozenset(model_order) == frozenset(expected_model_order), (
+                        f'"{app_label}", "{model_name}" -> "expected_ordering" -> "viewset_fields" -> "{model_order}"'
+                    )
                     for key, value in model_order.items():
-                        assert value == expected_model_order[key], str(model_order)
+                        assert value == expected_model_order[key], (
+                            f'"{app_label}", "{model_name}" -> "expected_ordering" -> "viewset_fields" -> "{model_order}"'
+                        )
 
     @staticmethod
-    def check_model_permissions_data(response_data, expected_data):
+    def check_model_permissions_data(response_data, expected_data, app_label, model_name):
         data = response_data.data["model_permissions"]
+        assert {frozenset(x) for x in data} == {frozenset(x) for x in expected_data}, (
+            f'"{app_label}", "{model_name}" -> "expected_permissions" -> {{keys}}'
+        )
         assert {x["codename"] for x in data} == {x["codename"] for x in expected_data}
         for model_permission in data:
             for expected_model_permission in expected_data:
                 if model_permission["codename"] == expected_model_permission["codename"]:
-                    assert frozenset(model_permission) == frozenset(expected_model_permission), str(model_permission)
+                    assert frozenset(model_permission) == frozenset(expected_model_permission), (
+                        f'"{app_label}", "{model_name}" -> "expected_permissions" -> "{model_permission}"'
+                    )
                     for key, value in model_permission.items():
-                        assert value == expected_model_permission[key], str(model_permission)
+                        assert value == expected_model_permission[key], (
+                            f'"{app_label}", "{model_name}" -> "expected_permissions" -> "{model_permission}"'
+                        )
 
     def test_info_list(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
@@ -318,12 +341,14 @@ class TestModelInfoSerializer:
         assert response.status_code == HTTPStatus.OK, pformat(response.data)
         assert response.data["verbose_name"] == kwargs["verbose_name"]
         assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
-        self.check_model_actions_data(response, kwargs["expected_actions_admin"], app_label, model_name)
-        self.check_model_expands_data(response, kwargs["expected_expands"])
-        self.check_model_fields_data(response, kwargs["expected_fields"])
-        self.check_model_filtering_data(response, kwargs["expected_filtering"])
-        self.check_model_ordering_data(response, kwargs["expected_ordering"])
-        self.check_model_permissions_data(response, kwargs["expected_permissions"])
+        self.check_model_actions_data(
+            response, kwargs["expected_actions_admin"], "expected_actions_admin", app_label, model_name
+        )
+        self.check_model_expands_data(response, kwargs["expected_expands"], app_label, model_name)
+        self.check_model_fields_data(response, kwargs["expected_fields"], app_label, model_name)
+        self.check_model_filtering_data(response, kwargs["expected_filtering"], app_label, model_name)
+        self.check_model_ordering_data(response, kwargs["expected_ordering"], app_label, model_name)
+        self.check_model_permissions_data(response, kwargs["expected_permissions"], app_label, model_name)
 
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",
@@ -366,9 +391,11 @@ class TestModelInfoSerializer:
         assert response.status_code == HTTPStatus.OK, pformat(response.data)
         assert response.data["verbose_name"] == kwargs["verbose_name"]
         assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
-        self.check_model_actions_data(response, kwargs["expected_actions_customer"], app_label, model_name)
-        self.check_model_expands_data(response, kwargs["expected_expands"])
-        self.check_model_fields_data(response, kwargs["expected_fields"])
-        self.check_model_filtering_data(response, kwargs["expected_filtering"])
-        self.check_model_ordering_data(response, kwargs["expected_ordering"])
-        self.check_model_permissions_data(response, kwargs["expected_permissions"])
+        self.check_model_actions_data(
+            response, kwargs["expected_actions_customer"], "expected_actions_customer", app_label, model_name
+        )
+        self.check_model_expands_data(response, kwargs["expected_expands"], app_label, model_name)
+        self.check_model_fields_data(response, kwargs["expected_fields"], app_label, model_name)
+        self.check_model_filtering_data(response, kwargs["expected_filtering"], app_label, model_name)
+        self.check_model_ordering_data(response, kwargs["expected_ordering"], app_label, model_name)
+        self.check_model_permissions_data(response, kwargs["expected_permissions"], app_label, model_name)
