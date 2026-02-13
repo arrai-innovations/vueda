@@ -23,14 +23,14 @@ class VUEDAPermissionsMixin(PermissionsMixin):
         super_value = super().has_perm(perm, obj=None)
         decision = super_value
 
-        # workflow row level permissions
-        #  you can be granted or denied permissions by workflow state, so we need to check regardless of super value
+        # Layer 2: state permissions
         grant_or_deny = None
+        has_workflow = False
         if "vueda.workflow" in settings.INSTALLED_APPS:
             from vueda.workflow.models import HasWorkflowModelMixin
 
             if isinstance(obj, HasWorkflowModelMixin) and obj.workflow:
-                # Don't raise an error if you get to this point without having a workflow set up.
+                has_workflow = True
                 grant_or_deny = obj.check_state_permission(perm, self.groups.all())
 
         if grant_or_deny is False:
@@ -39,16 +39,23 @@ class VUEDAPermissionsMixin(PermissionsMixin):
             decision = True
 
         if obj:
-            # row level permissions
             perm_type = perm.split(".")[1].split("_")[0]  # create, read, update, delete, list, etc.
             model = obj.__class__
-            # noinspection PyProtectedMember
             row_level_permissions = getattr(model, "RowLevelPermissions", None)
+
             if row_level_permissions:
-                # duck typing, if it has the method, good enough
-                result = row_level_permissions.check_instance(model, obj, perm, self, perm_type)
-                # None means row-level had no opinion; keep the decision from model+state permissions.
-                if result is not None:
-                    decision = result
+                # Layer 3: row-level (skipped if state denied)
+                if grant_or_deny is not False:
+                    result = row_level_permissions.check_instance(model, obj, perm, self, perm_type)
+                    if result is not None:
+                        decision = result
+
+                # Layer 4: workflow+row (always runs when under workflow, can override state deny)
+                if has_workflow:
+                    result = row_level_permissions.check_instance_workflow(
+                        model, obj, perm, self, perm_type, grant_or_deny
+                    )
+                    if result is not None:
+                        decision = result
 
         return bool(decision)
