@@ -382,6 +382,8 @@ const clearServerErrors = (state, name, clearServerErrorDependents = []) => {
     deleteError(state, name, "server");
     deleteMessage(state, name, "server");
 
+    // Intentionally one-hop clearing: each recursive call omits dependents, so we do not
+    // traverse a dependent graph (and cannot loop on A<->B dependent declarations).
     for (const dep of clearServerErrorDependents) {
         let resolvedName = dep;
         if (dep.includes("$parent") && name.includes(".")) {
