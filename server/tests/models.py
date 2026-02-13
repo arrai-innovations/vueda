@@ -62,6 +62,7 @@ class Timesheet(VuedaHistoryBaseModel):
 
     class Meta(VuedaHistoryBaseModel.Meta):
         default_related_name = "timesheets"
+        ordering = ["period_start", "employee__employee_number"]
 
     def __str__(self):
         return (
@@ -91,6 +92,7 @@ class TimesheetEntry(VuedaHistoryBaseModel):
 
     class Meta(VuedaHistoryBaseModel.Meta):
         default_related_name = "timesheet_entries"
+        ordering = ["date"]
 
 
 class Product(VuedaHistoryBaseModel):
@@ -100,6 +102,7 @@ class Product(VuedaHistoryBaseModel):
 
     class Meta(VuedaHistoryBaseModel.Meta):
         default_related_name = "products"
+        ordering = ["name"]
 
     class RowLevelPermissions(BaseRowLevelPermissions):
         @classmethod
