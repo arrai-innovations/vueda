@@ -165,7 +165,7 @@ scopedIt("submits transition and shows success toast", async () => {
     wrapper.vm.selectedAction = "a";
     await wrapper.vm.handleSubmit();
     expect(executeTransition).toHaveBeenCalledWith("a", "m", "1", "a", expect.any(Object));
-    expect(toastAdd).toHaveBeenCalledWith({ severity: "success", summary: "transition succeed" });
+    expect(toastAdd).toHaveBeenCalledWith({ severity: "success", summary: "transition succeeded" });
     expect(routerBack).toHaveBeenCalled();
 });
 
