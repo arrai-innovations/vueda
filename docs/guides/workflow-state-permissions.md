@@ -39,6 +39,7 @@ status: briefing
 
 - Use `StatePermission` (`grant_or_deny`) for per-state group overrides.
 - Validate overlay through `VUEDAPermissionsMixin.has_perm(..., obj=instance)` paths, since state checks are object-context checks.
+- Note: state deny blocks `check_instance` from running. For row-level logic that must override state deny (e.g. "assigned reviewer can still access denied-state items"), implement `check_instance_workflow` on the model's `RowLevelPermissions`.
 - Source anchors: `server/vueda/workflow/models.py`, `server/vueda/user/mixins.py`, `server/vueda/core/permissions.py`.
 
 ### 4. Verify transition and state endpoints against permission matrix
@@ -103,10 +104,16 @@ status: briefing
 
 ```md
 ## Goal and Preconditions
+
 ## Configure Workflow and Transition Permission Rows
+
 ## Configure State Grant/Deny Rows
+
 ## Verify Permission Matrix by State and Group
+
 ## Validate Transition Execution (Dry-Run and Commit)
+
 ## Endpoint Checks and Expected Errors
+
 ## Known Limitations and Gaps
 ```

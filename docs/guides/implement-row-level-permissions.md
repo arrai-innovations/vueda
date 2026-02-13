@@ -26,6 +26,8 @@ status: briefing
 
 - Add model `RowLevelPermissions(BaseRowLevelPermissions)` with both `check_instance(...)` and `check_queryset(...)`.
 - Keep return semantics explicit: `Q` filters list rows, `False` denies all rows, and `True` or `None` applies no additional list filter.
+- For workflow models, optionally implement `check_instance_workflow(...)` and `check_queryset_workflow(...)` for logic that needs both state and row context. These run after `check_instance`/`check_queryset` and can override any prior decision.
+- Note: `check_instance` is skipped when workflow state denies permission. Logic that must run even when state denies should go in `check_instance_workflow`.
 - Source anchors: `server/vueda/core/permissions.py`, `server/tests/models.py`.
 
 ### 2. Ensure list action executes row-level filtering
@@ -60,6 +62,8 @@ status: briefing
 - `{@api py:class:vueda.core.permissions.BaseRowLevelPermissions}`
 - `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance}`
 - `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset}`
+- `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow}`
+- `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow}`
 - `{@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}`
 - `{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}`
 - `{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.list}`
@@ -74,7 +78,8 @@ status: briefing
 
 - Row-level list filtering is opt-in per model via `Model.RowLevelPermissions`; no row-level class means no row-level list filter is applied.
 - `check_queryset` affects list visibility through `ListRowLevelViewSetMixin.list`.
-- `check_instance` affects object permission decisions through `has_perm(..., obj=...)`; returning `None` falls back to model-level permission outcome.
+- `check_instance` affects object permission decisions through `has_perm(..., obj=...)`; returning `None` falls back to model-level permission outcome. `check_instance` is skipped when workflow state denies.
+- `check_instance_workflow` runs after `check_instance` for workflow models; it receives `grant_or_deny` and can override state deny.
 - In current tests, row-level denied retrieve attempts return `404` for users with baseline read/list model permissions.
 - The permission codename passed to `check_queryset` is constructed from app/model plus `PERMISSION_NAMES_MAPPING["list"]` when configured.
 - Source anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/core/default_settings.py`, `server/vueda/user/mixins.py`, `server/tests/unit/core/test_row_level_permissions.py`, `server/tests/models.py`.
@@ -82,6 +87,7 @@ status: briefing
 ## Footguns
 
 - Implementing only `check_queryset` leaves object-level access dependent on `check_instance` fallback behavior.
+- `check_instance` is skipped when workflow state denies; any override logic that must survive state deny belongs in `check_instance_workflow`.
 - Bulk delete (`DELETE` list with `pks`) in `VuedaViewSet.destroy` does not call `apply_row_level_filter(...)` and does not perform per-object row-level checks in that method.
 - Retrieve denials may present as `404` (not `403`) under current permission flow; test client expectations explicitly.
 - Combined guarantee "row-level filtering and column totals together" is code-backed but currently not covered by a single integration test.
@@ -91,10 +97,16 @@ status: briefing
 
 ```md
 ## Goal and Preconditions
+
 ## Define RowLevelPermissions on the Model
+
 ## Wire ViewSet List Filtering
+
 ## Verify Object-Level Enforcement
+
 ## Test Matrix for Allowed and Denied Users
+
 ## Verify Pagination and Totals Behavior
+
 ## Troubleshooting and Known Gaps
 ```

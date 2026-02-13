@@ -30,16 +30,20 @@ status: briefing
 ### Model-scoped row-level hook (`RowLevelPermissions`)
 
 - What it is: An optional model attribute `RowLevelPermissions` implementing `BaseRowLevelPermissions.check_queryset(...)`
-  and `BaseRowLevelPermissions.check_instance(...)`. Anchors: `server/vueda/core/permissions.py`, `server/tests/models.py`.
+  and `BaseRowLevelPermissions.check_instance(...)`, plus optional workflow-aware hooks `check_queryset_workflow(...)` and
+  `check_instance_workflow(...)`. Anchors: `server/vueda/core/permissions.py`, `server/tests/models.py`.
 - Why it exists: Separate row visibility (queryset) from row permission decisions (instance) without forcing per-row checks
-  in list views. Anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/user/mixins.py`.
+  in list views. The workflow-aware hooks allow row-level logic that depends on state context.
+  Anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/user/mixins.py`.
 - Where it lives: `server/vueda/core/permissions.py` (base hook), per-model `RowLevelPermissions` (e.g. tests).
   Anchors: `server/vueda/core/permissions.py`, `server/tests/models.py`.
 
 ### Queryset-level filtering boundary (list + bulk-delete)
 
 - What it is: `ListRowLevelViewSetMixin.apply_row_level_filter(...)` calls `RowLevelPermissions.check_queryset(...)` and
-  applies its return value (`Q` / `False` / `True` / `None`) to the queryset. Anchors: `server/vueda/core/viewsets/__init__.py`.
+  applies its return value (`Q` / `False` / `True` / `None`) to the queryset. For workflow models, it then annotates the
+  queryset with `_state_denied` / `_state_granted` and calls `check_queryset_workflow(...)` with the same return semantics.
+  Anchors: `server/vueda/core/viewsets/__init__.py`.
 - Why it exists: Row-level filtering is applied in `list()` (not `get_queryset()`) to avoid side effects in other DRF
   actions (documented in the mixin docstring). Anchors: `server/vueda/core/viewsets/__init__.py`.
 - Where it lives: `server/vueda/core/viewsets/__init__.py` (`ListRowLevelViewSetMixin.list`, `apply_row_level_filter`).
@@ -47,9 +51,12 @@ status: briefing
 ### Instance-level decision boundary (object permissions)
 
 - What it is: When `obj` is present, `VUEDAPermissionsMixin.has_perm(...)` calls `RowLevelPermissions.check_instance(...)`
-  and treats `None` as “no row-level opinion” (keep earlier decision layers). Anchors: `server/vueda/user/mixins.py`, `server/tests/unit/workflow/test_model_mixin.py`.
-- Why it exists: Allow per-object overrides without changing baseline model permission and (optionally) workflow-state
-  overlay outcomes. Anchors: `server/vueda/user/mixins.py`, `server/tests/unit/workflow/test_model_mixin.py`.
+  and treats `None` as "no row-level opinion" (keep earlier decision layers). **`check_instance` is skipped when workflow
+  state denies permission.** For workflow models, `check_instance_workflow(...)` runs after `check_instance` and can
+  override any prior decision, including state deny. Anchors: `server/vueda/user/mixins.py`, `server/tests/unit/workflow/test_model_mixin.py`.
+- Why it exists: Allow per-object overrides without changing baseline model permission. The workflow+row layer enables
+  logic that needs both state and row context (e.g. "assigned reviewer can still see denied-state items").
+  Anchors: `server/vueda/user/mixins.py`, `server/tests/unit/workflow/test_model_mixin.py`.
 - Where it lives: `server/vueda/user/mixins.py`, model-specific `RowLevelPermissions`. Anchors: `server/vueda/user/mixins.py`, `server/vueda/core/permissions.py`.
 
 ### Pagination and aggregates are computed after row filtering
@@ -74,6 +81,8 @@ status: briefing
 - `{@api py:class:vueda.core.permissions.BaseRowLevelPermissions}`
 - `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset}`
 - `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance}`
+- `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow}`
+- `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow}`
 - `{@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}`
 - `{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}`
 - `{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.list}`
@@ -93,6 +102,9 @@ status: briefing
   - `False`: rows are filtered to `queryset.none()`.
   - `True` / `None`: no queryset filtering occurs.
     Anchors: `server/vueda/core/permissions.py`, `server/vueda/core/viewsets/__init__.py`.
+- `check_queryset_workflow(...)` has the same return semantics as `check_queryset(...)`. It only runs for workflow models and receives the queryset pre-annotated with `_state_denied` and `_state_granted`. Anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/core/permissions.py`.
+- `check_instance(...)` is skipped when workflow state denies permission (`grant_or_deny is False`). Anchors: `server/vueda/user/mixins.py`, `server/tests/unit/workflow/test_model_mixin.py`.
+- `check_instance_workflow(...)` runs after `check_instance` for workflow models and can override any prior decision including state deny; returning `None` preserves the existing decision. Anchors: `server/vueda/user/mixins.py`, `server/tests/unit/workflow/test_model_mixin.py`.
 - List row filtering occurs after DRF filter backends (`filter_queryset(self.get_queryset())`) and before pagination and
   serialization. Anchors: `server/vueda/core/viewsets/__init__.py`.
 - `columnTotals` are computed from the filtered queryset (pre-pagination) and are exposed on paginated list responses as

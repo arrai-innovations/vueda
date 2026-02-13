@@ -34,15 +34,15 @@ status: briefing
 - Why it exists: list access and detail-read access are separate contracts.
 - Where it lives: `server/vueda/core/permissions.py`, `server/tests/unit/core/test_permissions.py`.
 
-### Object decisions are layered, with later object-level checks able to override earlier model-level outcomes
+### Object decisions are layered, with strict precedence rules
 
-- What it is: `VUEDAPermissionsMixin.has_perm` starts from baseline model permission, applies workflow state grant/deny, then applies row-level `check_instance` when an object is present.
-- Why it exists: state and row policy can narrow or widen access per object without changing global model permissions.
+- What it is: `VUEDAPermissionsMixin.has_perm` evaluates four layers in order: (1) baseline model permission, (2) workflow state grant/deny, (3) row-level `check_instance` (skipped when state denies), (4) workflow+row `check_instance_workflow` (runs last, can override anything including state deny).
+- Why it exists: state and row policy can narrow or widen access per object without changing global model permissions. The workflow+row layer allows logic that needs both state and row context (e.g. "assigned reviewer can approve in Pending Review, except their own submission").
 - Where it lives: `server/vueda/user/mixins.py`, `server/vueda/workflow/models.py`, `server/tests/unit/workflow/test_model_mixin.py`.
 
 ### Queryset filtering is the list/bulk-delete row-level boundary
 
-- What it is: `check_queryset` may return `Q`, `False`, `True`, or `None`; list and bulk-delete paths apply that result before serialization or deletion.
+- What it is: `check_queryset` may return `Q`, `False`, `True`, or `None`; list and bulk-delete paths apply that result before serialization or deletion. When the model is under workflow, `check_queryset_workflow` runs after `check_queryset` with the queryset pre-annotated with `_state_denied` / `_state_granted`.
 - Why it exists: row-level visibility and bulk mutation eligibility are enforced at queryset scope.
 - Where it lives: `server/vueda/core/permissions.py`, `server/vueda/core/viewsets/__init__.py`, `server/tests/models.py`, `server/tests/unit/core/test_row_level_permissions.py`.
 
@@ -66,6 +66,8 @@ status: briefing
 - `{@api py:class:vueda.core.permissions.BaseRowLevelPermissions}`
 - `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset}`
 - `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance}`
+- `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow}`
+- `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow}`
 - `{@api py:module:vueda.user.mixins}`
 - `{@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}`
 - `{@api py:module:vueda.core.viewsets}`
@@ -100,7 +102,7 @@ status: briefing
 - Base model permissions include `create/read/update/delete/list`, and DRF default permission class is `ObjectPermissions`. Anchors: `server/vueda/core/models.py`, `server/vueda/core/default_settings.py`.
 - `ObjectPermissions` maps `GET` to `list_*` for `view.action == "list"` and `read_*` otherwise; write methods map to CRUDL codenames. Anchors: `server/vueda/core/permissions.py`, `server/tests/unit/core/test_permissions.py`.
 - Workflow-aware model-level checks can short-circuit to allow when state permissions are present, deferring final decision to object-level checks. Anchors: `server/vueda/core/permissions.py`, `server/vueda/workflow/permissions.py`, `server/vueda/workflow/views.py`.
-- Object-level decision order is: baseline model permission result, then workflow state grant/deny override, then row-level `check_instance` override (if not `None`). Anchors: `server/vueda/user/mixins.py`, `server/tests/unit/workflow/test_model_mixin.py`.
+- Object-level decision order is: (1) baseline model permission, (2) workflow state grant/deny, (3) row-level `check_instance` (skipped when state denies), (4) workflow+row `check_instance_workflow` (only for workflow models, can override any prior decision). Anchors: `server/vueda/user/mixins.py`, `server/tests/unit/workflow/test_model_mixin.py`.
 - State-rule conflict resolution is deterministic: deny wins over grant when multiple matching group rules exist. Anchors: `server/vueda/workflow/models.py`, `server/tests/unit/workflow/test_model_mixin.py`.
 - Row-level queryset hook semantics are fixed: `Q` filters rows, `False` returns empty queryset, `True`/`None` do not filter. Anchors: `server/vueda/core/permissions.py`, `server/vueda/core/viewsets/__init__.py`.
 - List and bulk-delete paths enforce queryset-level row filtering; bulk-delete also enforces object-level checks per instance before deletion. Anchors: `server/vueda/core/viewsets/__init__.py`, `server/tests/unit/core/test_row_level_permissions.py`, `server/tests/unit/core/test_viewsets.py`.

@@ -56,6 +56,8 @@ status: briefing
 
 - `{@api py:class:vueda.core.permissions.ObjectPermissions}`
 - `{@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}`
+- `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow}`
+- `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow}`
 - `{@api py:class:vueda.workflow.models.HasWorkflowModelMixin}`
 - `{@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_state_permission}`
 - `{@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_workflow_permission}`
@@ -74,7 +76,7 @@ status: briefing
 
 ## Contracts and Invariants
 
-- `VUEDAPermissionsMixin.has_perm` computes a baseline Django permission decision without passing `obj`, then overlays workflow state grant/deny when `obj` has workflow, then applies row-level `check_instance` when present; later layers override earlier layers. Anchors: `server/vueda/user/mixins.py`.
+- `VUEDAPermissionsMixin.has_perm` evaluates four layers in order: (1) baseline Django permission, (2) workflow state grant/deny, (3) row-level `check_instance` (skipped when state denies), (4) workflow+row `check_instance_workflow` (can override any prior decision including state deny). Anchors: `server/vueda/user/mixins.py`.
 - State overlay precedence is deterministic: for a given object state + permission codename + content type + group set, matching `grant_or_deny=False` denies even if a grant rule also matches. Anchors: `server/vueda/workflow/models.py`, `server/tests/unit/workflow/test_model_mixin.py`.
 - State overlay can grant object-scope permission even when baseline model permission is false, and can deny object-scope permission even when baseline is true. Anchors: `server/tests/unit/workflow/test_model_mixin.py`, `server/vueda/user/mixins.py`.
 - `ObjectPermissions.has_permission` may return `True` at model scope for workflow models when a matching _grant_ `StatePermission` exists for one of the user’s groups and the required CRUDL codename, deferring the effective decision to object-scope checks. Anchors: `server/vueda/core/permissions.py`.

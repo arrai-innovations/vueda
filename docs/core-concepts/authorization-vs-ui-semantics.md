@@ -86,7 +86,7 @@ status: briefing
 
 - REST default permission enforcement is `ObjectPermissions`, so authorization checks are server-owned even for model-info endpoints. Anchors: `server/vueda/core/default_settings.py`, `server/vueda/info/viewsets.py`.
 - CRUDL codename mapping is action-sensitive for `GET`: list routes require `list_*`; non-list `GET` requires `read_*`. Anchors: `server/vueda/core/permissions.py`, `server/tests/unit/core/test_permissions.py`.
-- `VUEDAPermissionsMixin.has_perm` composes baseline Django permission checks with workflow state and row-level overrides when object context exists. Anchors: `server/vueda/user/mixins.py`.
+- `VUEDAPermissionsMixin.has_perm` evaluates four layers: baseline Django permission, workflow state grant/deny, row-level `check_instance` (skipped on state deny), and workflow+row `check_instance_workflow` (can override any prior decision). Anchors: `server/vueda/user/mixins.py`.
 - `model_actions` are permission-filtered per request/user by running canonical viewset object-permission checks with a synthetic request and `obj=None`; extra actions are further filtered by `get_allowed_extra_actions`. Anchors: `server/vueda/info/serializers.py`, `server/tests/unit/info/test_model_info.py`, `server/tests/store/viewsets.py`.
 - `model_permissions` returns content-type permission metadata and is not filtered to currently executable actions for the requesting user. Anchors: `server/vueda/info/serializers.py`, `server/tests/unit/info/test_model_info.py`.
 - `available_actions` is per-object metadata derived from object-permission checks across standard actions, then extended with allowed extra actions; create is excluded on concrete instances. Anchors: `server/vueda/core/serializers/fields.py`, `server/tests/unit/core/test_viewsets.py`.
@@ -112,9 +112,14 @@ status: briefing
 
 ```md
 ## Authorization Authority Boundary
+
 ## Model-Scope vs Object-Scope Action Semantics
+
 ## Route Admission Semantics
+
 ## UI Affordance Filtering Layers
+
 ## Workflow Transition Action Namespace
+
 ## Divergence and Failure Signatures
 ```
