@@ -37,7 +37,7 @@ const CrudStub = defineComponent({
 vi.mock("@vueda/views/ViewLoading.vue", () => ({ default: LoadingStub }));
 vi.mock("@vueda/views/ViewAction.vue", () => ({ default: ActionStub }));
 vi.mock("@vueda/views/ViewActionNotFound.vue", () => ({ default: NotFoundStub }));
-vi.mock("@vueda/views/ViewWorkFlowTransition.vue", () => ({ default: TransitionStub }));
+vi.mock("@vueda/views/ViewWorkflowTransition.vue", () => ({ default: TransitionStub }));
 
 const modelConfig = reactive({
     loading: false,
