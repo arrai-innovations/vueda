@@ -10,6 +10,7 @@ from simple_history.models import HistoricalRecords
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.store import models as store_models
+from vueda.core.permissions import BaseRowLevelPermissions
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.models import State
 from vueda.workflow.models import StatePermission
@@ -194,12 +195,167 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
 
         assert {transition.code for transition in transitions} == {"cancel_order", "hold_order", "pack_order"}
 
-    def test_available_transitions_for_permission_denied_path(self, customer_order, workflow_user):
+    def test_available_transitions_for_with_workflow_permissions(self, customer_order, workflow_user):
+        transitions = store_models.CustomerOrder.available_transitions_for([customer_order.id], user=workflow_user)
+
+        assert {transition.code for transition in transitions} == {"cancel_order", "hold_order", "pack_order"}
+
+    def test_available_transitions_for_requires_workflow_permissions(self, customer_order, workflow_user):
+        WorkflowPermission.objects.filter(workflow__content_type=customer_order.get_content_type()).delete()
+
         with pytest.raises(DRFPermissionDenied):
             store_models.CustomerOrder.available_transitions_for([customer_order.id], user=workflow_user)
+
+    def test_available_transitions_for_permission_denied_path(self, customer_order, unauthorized_user):
+        with pytest.raises(DRFPermissionDenied):
+            store_models.CustomerOrder.available_transitions_for([customer_order.id], user=unauthorized_user)
 
     def test_check_workflow_permission_denied(self, customer_order, unauthorized_user):
         StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
 
         with pytest.raises(DRFPermissionDenied):
             customer_order.check_workflow_permission(unauthorized_user)
+
+    def test_has_perm_with_obj_state_grant_can_allow_without_baseline_permission(self, customer_order, workflow_user):
+        StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
+        workflow_group = Group.objects.get(name="Order Workflow Managers")
+        read_permission = Permission.objects.get(
+            content_type=customer_order.get_content_type(),
+            codename="read_customerorder",
+        )
+        StatePermission.objects.create(
+            state=customer_order.workflow_state,
+            permission=read_permission,
+            group=workflow_group,
+            grant_or_deny=True,
+        )
+
+        assert not workflow_user.has_perm("store.read_customerorder")
+        assert workflow_user.has_perm("store.read_customerorder", obj=customer_order)
+
+    def test_has_perm_with_obj_state_deny_overrides_baseline_permission(self, customer_order, workflow_user):
+        StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
+        workflow_group = Group.objects.get(name="Order Workflow Managers")
+        delete_permission = Permission.objects.get(
+            content_type=customer_order.get_content_type(),
+            codename="delete_customerorder",
+        )
+        StatePermission.objects.create(
+            state=customer_order.workflow_state,
+            permission=delete_permission,
+            group=workflow_group,
+            grant_or_deny=False,
+        )
+
+        assert workflow_user.has_perm("store.delete_customerorder")
+        assert not workflow_user.has_perm("store.delete_customerorder", obj=customer_order)
+
+    def test_check_state_permission_with_conflicting_groups_uses_deny_wins(self, customer_order, workflow_user):
+        StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
+        managers_group = Group.objects.get(name="Order Workflow Managers")
+        conflicting_group = Group.objects.create(name="Order Workflow Conflicting")
+        workflow_user.groups.add(conflicting_group)
+        read_permission = Permission.objects.get(
+            content_type=customer_order.get_content_type(),
+            codename="read_customerorder",
+        )
+
+        StatePermission.objects.create(
+            state=customer_order.workflow_state,
+            permission=read_permission,
+            group=managers_group,
+            grant_or_deny=True,
+        )
+        StatePermission.objects.create(
+            state=customer_order.workflow_state,
+            permission=read_permission,
+            group=conflicting_group,
+            grant_or_deny=False,
+        )
+
+        grant_or_deny = customer_order.check_state_permission("store.read_customerorder", workflow_user.groups.all())
+        assert grant_or_deny is False
+
+    def test_has_perm_with_obj_row_level_none_keeps_state_based_allowance(
+        self, customer_order, workflow_user, monkeypatch
+    ):
+        StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
+        workflow_group = Group.objects.get(name="Order Workflow Managers")
+        read_permission = Permission.objects.get(
+            content_type=customer_order.get_content_type(),
+            codename="read_customerorder",
+        )
+        StatePermission.objects.create(
+            state=customer_order.workflow_state,
+            permission=read_permission,
+            group=workflow_group,
+            grant_or_deny=True,
+        )
+
+        class TestRowLevelPermissions(BaseRowLevelPermissions):
+            @classmethod
+            def check_instance(cls, model, obj, perm, user, perm_type) -> bool | None:
+                return None
+
+        monkeypatch.setattr(store_models.CustomerOrder, "RowLevelPermissions", TestRowLevelPermissions, raising=False)
+        assert not workflow_user.has_perm("store.read_customerorder")
+        assert workflow_user.has_perm("store.read_customerorder", obj=customer_order)
+
+    def test_has_perm_with_obj_row_level_deny_overrides_prior_allow(self, customer_order, workflow_user, monkeypatch):
+        StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
+        workflow_group = Group.objects.get(name="Order Workflow Managers")
+        read_permission = Permission.objects.get(
+            content_type=customer_order.get_content_type(),
+            codename="read_customerorder",
+        )
+        StatePermission.objects.create(
+            state=customer_order.workflow_state,
+            permission=read_permission,
+            group=workflow_group,
+            grant_or_deny=True,
+        )
+
+        class TestRowLevelPermissions(BaseRowLevelPermissions):
+            @classmethod
+            def check_instance(cls, model, obj, perm, user, perm_type) -> bool | None:
+                return False
+
+        monkeypatch.setattr(store_models.CustomerOrder, "RowLevelPermissions", TestRowLevelPermissions, raising=False)
+        assert workflow_user.has_perm("store.read_customerorder", obj=customer_order) is False
+
+    def test_has_perm_with_obj_row_level_allow_overrides_prior_deny(self, customer_order, workflow_user, monkeypatch):
+        StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
+        workflow_group = Group.objects.get(name="Order Workflow Managers")
+        delete_permission = Permission.objects.get(
+            content_type=customer_order.get_content_type(),
+            codename="delete_customerorder",
+        )
+        StatePermission.objects.create(
+            state=customer_order.workflow_state,
+            permission=delete_permission,
+            group=workflow_group,
+            grant_or_deny=False,
+        )
+
+        class TestRowLevelPermissions(BaseRowLevelPermissions):
+            @classmethod
+            def check_instance(cls, model, obj, perm, user, perm_type) -> bool | None:
+                return True
+
+        monkeypatch.setattr(store_models.CustomerOrder, "RowLevelPermissions", TestRowLevelPermissions, raising=False)
+        assert workflow_user.has_perm("store.delete_customerorder")
+        assert workflow_user.has_perm("store.delete_customerorder", obj=customer_order)
+
+    def test_has_perm_with_obj_row_level_allow_overrides_baseline_deny(
+        self, customer_order, workflow_user, monkeypatch
+    ):
+        StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
+
+        class TestRowLevelPermissions(BaseRowLevelPermissions):
+            @classmethod
+            def check_instance(cls, model, obj, perm, user, perm_type) -> bool | None:
+                return True
+
+        monkeypatch.setattr(store_models.CustomerOrder, "RowLevelPermissions", TestRowLevelPermissions, raising=False)
+        assert not workflow_user.has_perm("store.read_customerorder")
+        assert workflow_user.has_perm("store.read_customerorder", obj=customer_order)

@@ -12,6 +12,7 @@ from rest_framework.settings import api_settings
 
 from tests.conftest import BaseTestUserMixin
 from tests.store import models as store_models
+from vueda.workflow.models import WorkflowPermission
 
 
 @pytest.mark.django_db(databases=("default", "db_logging"))
@@ -22,12 +23,30 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             "name": "Workflow User",
             "password": "password",
             "groups": ["Order Workflow Managers"],
-        }
+        },
+        "workflow-reader@example.com": {
+            "name": "Workflow Reader",
+            "password": "password",
+            "groups": ["Order Workflow Readers"],
+        },
+        "workflow-read-only@example.com": {
+            "name": "Workflow Read Only",
+            "password": "password",
+            "groups": ["Workflow Read Only"],
+        },
     }
 
     @pytest.fixture
     def workflow_user(self):
         return self.users["workflow-user@example.com"]
+
+    @pytest.fixture
+    def workflow_reader(self):
+        return self.users["workflow-reader@example.com"]
+
+    @pytest.fixture
+    def workflow_read_only_user(self):
+        return self.users["workflow-read-only@example.com"]
 
     @property
     def groups(self):
@@ -35,10 +54,22 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             return self._groups
 
         self._groups = []
-        group, _ = Group.objects.get_or_create(name="Order Workflow Managers")
-        permissions = Permission.objects.filter(codename__in=["fulfill_orders", "read_workflow"])
-        group.permissions.set(permissions)
-        self._groups.append(group)
+        manager_group, _ = Group.objects.get_or_create(name="Order Workflow Managers")
+        manager_permissions = Permission.objects.filter(codename__in=["fulfill_orders", "read_workflow"])
+        manager_group.permissions.set(manager_permissions)
+        self._groups.append(manager_group)
+
+        reader_group, _ = Group.objects.get_or_create(name="Order Workflow Readers")
+        reader_permissions = Permission.objects.filter(
+            codename__in=["fulfill_orders", "read_workflow", "read_customerorder"]
+        )
+        reader_group.permissions.set(reader_permissions)
+        self._groups.append(reader_group)
+
+        read_only_group, _ = Group.objects.get_or_create(name="Workflow Read Only")
+        read_only_permissions = Permission.objects.filter(codename__in=["read_workflow"])
+        read_only_group.permissions.set(read_only_permissions)
+        self._groups.append(read_only_group)
         return self._groups
 
     @pytest.fixture
@@ -74,6 +105,76 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             order_state=order_state,
             shipping_method="free",
         )
+
+    def test_object_state_returns_state_when_user_has_object_read_permission(
+        self, api_client, workflow_reader, customer_order
+    ):
+        api_client.force_authenticate(workflow_reader)
+        object_state_url = reverse(
+            "workflow.workflow-object-state",
+            kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
+        )
+
+        response = api_client.get(object_state_url, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["state"] == {"code": "new", "name": "New"}
+        assert "current_history_id" in response.data
+
+    def test_object_state_returns_403_without_object_read_permission(self, api_client, workflow_user, customer_order):
+        api_client.force_authenticate(workflow_user)
+        object_state_url = reverse(
+            "workflow.workflow-object-state",
+            kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
+        )
+
+        response = api_client.get(object_state_url, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "You do not have permission to perform this action."
+
+    def test_permitted_transitions_returns_transitions_when_user_has_workflow_permissions(
+        self, api_client, workflow_reader, customer_order
+    ):
+        workflow_permission_ids = WorkflowPermission.objects.filter(
+            workflow__content_type=customer_order.get_content_type()
+        ).values_list("permission_id", flat=True)
+        workflow_reader.user_permissions.add(*Permission.objects.filter(pk__in=workflow_permission_ids))
+        api_client.force_authenticate(workflow_reader)
+        permitted_transitions_url = reverse(
+            "workflow.workflow-permitted-transitions",
+            kwargs={"app_label": "store", "model": "customerorder"},
+        )
+
+        response = api_client.get(permitted_transitions_url, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert isinstance(response.data, list)
+        assert "pack_order" in {transition["code"] for transition in response.data}
+
+    def test_permitted_transitions_returns_403_without_workflow_permissions(self, api_client, workflow_read_only_user):
+        api_client.force_authenticate(workflow_read_only_user)
+        permitted_transitions_url = reverse(
+            "workflow.workflow-permitted-transitions",
+            kwargs={"app_label": "store", "model": "customerorder"},
+        )
+
+        response = api_client.get(permitted_transitions_url, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "does not have workflow permissions" in str(response.data["detail"])
+
+    def test_object_transitions_returns_state_scoped_transitions(self, api_client, workflow_user, customer_order):
+        api_client.force_authenticate(workflow_user)
+        object_transitions_url = reverse(
+            "workflow.workflow-object-transitions",
+            kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
+        )
+
+        response = api_client.get(object_transitions_url, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert {transition["code"] for transition in response.data} == {"hold_order", "pack_order"}
 
     def test_execute_transition_dry_run_detail_skips_lock_and_state_change(
         self, api_client, workflow_user, customer_order
