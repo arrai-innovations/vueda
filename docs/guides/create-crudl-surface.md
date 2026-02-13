@@ -203,7 +203,7 @@ With all pieces in place, verify the surface end-to-end:
 
 **Client shows "Action Not Found" for a valid action.** The client normalizes route action names through a static action map — for example, `read` maps to `retrieve`. If `routeActions` in client model-config is configured using client-side names (like `read`) instead of canonical server names (like `retrieve`), the guard filtering may exclude actions that should be present.
 
-**List endpoint returns 500 on filter queries.** `NoExtraFieldsForViewSetMixin` validates query parameters against the filterset class. A query parameter that does not match any declared filter or recognized framework parameter (pagination, ordering, expand, fields) will produce a 500 response. Verify that the filterset declares filters for all parameters the client sends.
+**List endpoint returns 400 on invalid filter queries.** `NoExtraFieldsForViewSetMixin` validates query parameters against the filterset class. A query parameter that does not match any declared filter or recognized framework parameter (pagination, ordering, expand, fields) will produce a field-keyed 400 response listing valid filters. Verify that the filterset declares filters for all parameters the client sends.
 
 **Duplicate registration error at startup.** The canonical serializer is unique per model. If two apps attempt to register different serializers for the same model, the second registration raises a `ValueError`. Consolidate registration to a single app.
 
