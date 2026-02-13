@@ -11,6 +11,8 @@ from django.contrib.postgres.fields import RangeField
 from django.core import validators
 from django.core.validators import StepValueValidator
 from django.db import connection
+from django.db.models import Expression
+from django.db.models import F
 from django.http import Http404
 from django.utils.functional import cached_property
 from django_filters.fields import ChoiceIterator
@@ -429,31 +431,86 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return serializer().get_expandable_fields()
 
+    def get_ordering_data(self, model, order_by, *, include_ascending=True):
+        ordering_data = {}
+
+        # Ordering expressions are mentioned near the bottom of:
+        # https://docs.djangoproject.com/en/5.2/ref/models/options/#ordering
+        if isinstance(order_by, Expression):
+            expression = order_by.expression
+
+            if isinstance(expression, F):
+                ordering_data["name"] = expression.name
+
+                fields = get_fields_from_path(model, expression.name)
+                field = fields[-1]
+
+                if include_ascending:
+                    ordering_data["ascending"] = not order_by.descending
+
+                if order_by.nulls_first:
+                    ordering_data["nulls_first"] = True
+                elif order_by.nulls_last:
+                    ordering_data["nulls_last"] = True
+
+            else:
+                raise NotImplementedError("Only model ordering expressions of type F are allowed.")
+
+        else:
+            fields = get_fields_from_path(model, order_by)
+            field = fields[-1]
+
+            if include_ascending:
+                ordering_data["ascending"] = True
+                if order_by.startswith("-"):
+                    order_by = order_by[1:]
+                    ordering_data["ascending"] = False
+
+            ordering_data["name"] = order_by
+
+        field_type = FIELD_TYPE_MAPPING.get(field.get_internal_type(), "alpha")
+        if field_type:
+            ordering_data["type"] = field_type
+
+        return ordering_data
+
     def get_model_ordering(self, instance):
         """
         Get the ordering fields for a model and their own metadata.
         """
+        ordering_data = {
+            "model_default": [],
+            "viewset_default": [],
+            "viewset_fields": [],
+        }
+
         # Similar to actions, we'll need to have a canonical viewset to determine what fields are available
         from vueda.core.viewsets import VuedaViewSet  # noqa F401
 
         viewset = self.canonical["viewset"]  # type: viewsets.VuedaViewSet
         if viewset is None:
-            return []
+            return ordering_data
 
         queryset = viewset().get_queryset()
         model = queryset.model
-        ordering_data = []
+
+        if model._meta.ordering:
+            for order_by in model._meta.ordering:
+                data = self.get_ordering_data(model, order_by)
+
+                ordering_data["model_default"].append(data)
+
+        if hasattr(viewset, "ordering"):
+            for order_by in viewset.ordering:
+                data = self.get_ordering_data(model, order_by)
+
+                ordering_data["viewset_default"].append(data)
 
         if hasattr(viewset, "ordering_fields"):
-            for field_name in viewset.ordering_fields:
-                field = get_fields_from_path(model, field_name)[-1]
-                field_type = FIELD_TYPE_MAPPING.get(field.get_internal_type(), "alpha")
-                ordering_data.append(
-                    {
-                        "name": field_name,
-                        "type": field_type,
-                    }
-                )
+            for order_by in viewset.ordering_fields:
+                data = self.get_ordering_data(model, order_by, include_ascending=False)
+
+                ordering_data["viewset_fields"].append(data)
 
         return ordering_data
 
@@ -1734,35 +1791,134 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
                     # Model Ordering
                     data["content"]["application/json"]["schema"]["properties"]["model_ordering"] = {
-                        "type": "array",
+                        "type": "object",
                         "title": "Ordering Data",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "name": {
-                                    "type": "string",
-                                    "readonly": True,
-                                    "description": "Field to order by.",
-                                    "example": "last_name",
-                                },
-                                "type": {
-                                    "type": "string",
-                                    "readonly": True,
-                                    "description": "Type of Ordering.",
-                                    "enum": [
-                                        "alpha",
-                                        "boolean",
-                                        "date",
-                                        "datetime",
-                                        "numeric",
-                                        "time",
+                        "properties": {
+                            "model_default": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                            "readonly": True,
+                                            "description": "Field to order by.",
+                                            "example": "last_name",
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "readonly": True,
+                                            "description": "Type of Ordering.",
+                                            "enum": [
+                                                "alpha",
+                                                "boolean",
+                                                "date",
+                                                "datetime",
+                                                "numeric",
+                                                "time",
+                                            ],
+                                        },
+                                        "ascending": {
+                                            "type": "boolean",
+                                            "readonly": True,
+                                            "description": "Ordering direction.",
+                                        },
+                                        "nulls_first": {
+                                            "type": "boolean",
+                                            "readonly": True,
+                                            "description": "Nulls are ordered first",
+                                        },
+                                        "nulls_last": {
+                                            "type": "boolean",
+                                            "readonly": True,
+                                            "description": "Nulls are ordered last",
+                                        },
+                                    },
+                                    "required": [
+                                        "ascending",
+                                        "name",
+                                        "type",
                                     ],
                                 },
                             },
-                            "required": [
-                                "name",
-                                "type",
-                            ],
+                            "viewset_default": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "ascending": {
+                                            "type": "boolean",
+                                            "readonly": True,
+                                            "description": "Ordering direction.",
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "readonly": True,
+                                            "description": "Field to order by.",
+                                            "example": "last_name",
+                                        },
+                                        "nulls_first": {
+                                            "type": "boolean",
+                                            "readonly": True,
+                                            "description": "Nulls are ordered first",
+                                        },
+                                        "nulls_last": {
+                                            "type": "boolean",
+                                            "readonly": True,
+                                            "description": "Nulls are ordered last",
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "readonly": True,
+                                            "description": "Type of Ordering.",
+                                            "enum": [
+                                                "alpha",
+                                                "boolean",
+                                                "date",
+                                                "datetime",
+                                                "numeric",
+                                                "time",
+                                            ],
+                                        },
+                                    },
+                                    "required": [
+                                        "ascending",
+                                        "name",
+                                        "type",
+                                    ],
+                                },
+                            },
+                            "viewset_fields": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                            "readonly": True,
+                                            "description": "Field to order by.",
+                                            "example": "last_name",
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "readonly": True,
+                                            "description": "Type of Ordering.",
+                                            "enum": [
+                                                "alpha",
+                                                "boolean",
+                                                "date",
+                                                "datetime",
+                                                "numeric",
+                                                "time",
+                                            ],
+                                        },
+                                    },
+                                    "required": [
+                                        "name",
+                                        "type",
+                                    ],
+                                },
+                            },
                         },
                     }
 
