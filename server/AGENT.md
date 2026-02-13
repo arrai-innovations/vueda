@@ -13,8 +13,8 @@
 
 ## Architecture
 
--   **Core**: Django + DRF library that provides backend for vueda-client Vue.js components
--   **Companion**: vueda-client (../../WebstormProjects/vueda-client) - Vue 3 component library consuming this API
+-   **Core**: Django + DRF library that provides backend for VUEDA Client Vue.js components
+-   **Companion**: VUEDA Client (`client/`) - Vue 3 component library consuming this API
 -   **Main modules**: `vueda/core/` (base classes), `vueda/user/` (auth), `vueda/workflow/` (state management), `vueda/history/` (audit), `vueda/info/` (meta-API)
 -   **Database**: PostgreSQL with advanced features (arrays, GIN indexes, ranges)
 -   **Base classes**: VuedaSerializer, VuedaViewSet, VuedaBaseModel with shared functionality
@@ -35,7 +35,7 @@
 
 ## Integration Notes
 
--   **Frontend**: Changes to serializers/viewsets may affect vueda-client components
+-   **Frontend**: Changes to serializers/viewsets may affect VUEDA Client components
 -   **Permissions**: Row-level permissions map to frontend component visibility
 -   **Workflow**: State changes trigger frontend UI updates via API responses
 -   **Meta-API**: `/info/` endpoints provide model metadata for dynamic frontend forms
