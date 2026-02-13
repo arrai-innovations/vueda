@@ -7,7 +7,7 @@ import { computed, toRef, unref } from "vue";
 import { useRouter } from "vue-router";
 
 /**
- * @params {import('vue').UnwrapNestedRefs<{
+ * @param {import('vue').UnwrapNestedRefs<{
  *     app: string,
  *     model: string,
  *     pk: string|string[]|undefined,
