@@ -12,14 +12,15 @@ pre-commit:
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
-        uv run --no-sync ruff check .
+        uv run --no-sync ruff check . ../scripts/check_template_parity.py
+        python "$(git rev-parse --show-toplevel)/scripts/check_template_parity.py" --scope server
     ruff-format:
       root: "server/"
       run: |
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
-        uv run --no-sync ruff format --check .
+        uv run --no-sync ruff format --check . ../scripts/check_template_parity.py
     eslint:
       root: "client/"
       run: |
@@ -27,6 +28,7 @@ pre-commit:
           exit 0
         fi
         pnpm exec eslint --no-warn-ignored --cache .
+        python "$(git rev-parse --show-toplevel)/scripts/check_template_parity.py" --scope client
     prettier:
       root: "client/"
       run: |

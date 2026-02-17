@@ -13,6 +13,12 @@ workflows:
           mapping: |
               client/.* run-client-workflows true .circleci/client.yml
               server/.* run-server-workflows true .circleci/server.yml
+              templates/.*/client/.* run-client-workflows true .circleci/client.yml
+              templates/.*/server/.* run-server-workflows true .circleci/server.yml
+              templates/.*/copier\.yml run-client-workflows true .circleci/client.yml
+              templates/.*/copier\.yml run-server-workflows true .circleci/server.yml
+              templates/.*/(README\.md|package\.json\.jinja|pnpm-workspace\.yaml\.jinja|lefthook\.yml|pyproject\.toml\.jinja) run-client-workflows true .circleci/client.yml
+              templates/.*/(README\.md|package\.json\.jinja|pnpm-workspace\.yaml\.jinja|lefthook\.yml|pyproject\.toml\.jinja) run-server-workflows true .circleci/server.yml
           base-revision: main
           config-path: .circleci/no-changes.yml
           filters:

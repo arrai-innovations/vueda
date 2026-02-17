@@ -1,0 +1,32 @@
+{
+  "name": "{{ client_package_name }}",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host {{ bind_ip }} --port {{ client_port }}",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@arrai-innovations/vueda": "*",
+    "@arrai-innovations/pro-duotone-svg-icons": "^6.6.0",
+    "@arrai-innovations/reactive-helpers": "^21.1.0",
+    "@arrai-innovations/vue-fontawesome": "^3.0.8",
+    "@floating-ui/vue": "^1.0.2",
+    "@primeuix/themes": "~1.2.1",
+    "@sentry/vue": "^9.5.0",
+    "@vueuse/core": "^13.0.0",
+    "lodash-es": "^4.17.21",
+    "luxon": "^3.5.0",
+    "pinia": "^3.0.1",
+    "primevue": "~4.3.6",
+    "quill": "2.0.2",
+    "vue": "^3.5.13",
+    "vue-draggable-next": "^2.3.0",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "vite": "^6.3.3"
+  }
+}

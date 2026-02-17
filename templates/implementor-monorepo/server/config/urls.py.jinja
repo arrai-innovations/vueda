@@ -1,0 +1,25 @@
+from django.urls import include, path
+
+from vueda.info.urls import urlpatterns as vueda_info_urls
+from vueda.user.urls import urlpatterns as vueda_user_urls
+from vueda.user.views import VuedaForgotPasswordView, VuedaResetPasswordView
+
+
+urlpatterns = [
+    path(
+        "routes/",
+        include(
+            [
+                # VUEDA core
+                path("", include(vueda_info_urls)),
+                path("", include(vueda_user_urls)),
+                # VUEDA auth helpers
+                path("forgot-password/", VuedaForgotPasswordView.as_view(), name="forgot_password"),
+                path("reset-password/", VuedaResetPasswordView.as_view(), name="reset_password"),
+                # Application routes
+                path("", include("{{ python_package }}.urls")),
+            ]
+        ),
+    ),
+]
+
