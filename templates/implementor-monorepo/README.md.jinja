@@ -1,0 +1,28 @@
+# {{ project_name }}
+
+[![Copier](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/copier-org/copier/master/img/badge/badge-grayscale-inverted-border-orange.json)](https://github.com/copier-org/copier)
+
+## Quick start
+
+### Server
+
+```bash
+cd server
+uv sync
+uv run python manage.py migrate
+uv run python manage.py runserver {{ bind_ip }}:{{ server_port }}
+```
+
+### Client
+
+```bash
+cd client
+pnpm install
+pnpm dev
+```
+
+## Notes
+
+- Server config is loaded from `server/config.toml` + `server/config.local.toml`.
+- Client Vite config is composed from `@arrai-innovations/vueda/vite`.
+

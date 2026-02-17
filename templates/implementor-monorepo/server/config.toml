@@ -1,0 +1,4 @@
+# Shared config (safe to commit).
+#
+# VUEDA expects required settings like SECRET_KEY to be provided by your config.
+

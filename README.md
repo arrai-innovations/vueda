@@ -5,6 +5,7 @@
 Links:
 - [Server docs](./server/README.md)
 - [Client docs](./client/README.md)
+- [Copier templates](./templates/README.md)
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
