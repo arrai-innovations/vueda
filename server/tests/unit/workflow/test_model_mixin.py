@@ -4,12 +4,14 @@ from unittest.mock import Mock
 import pytest
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
 from simple_history.models import HistoricalRecords
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.store import models as store_models
+from vueda.core.permissions import BaseRowLevelPermissions
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.models import State
 from vueda.workflow.models import StatePermission
@@ -203,3 +205,216 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
 
         with pytest.raises(DRFPermissionDenied):
             customer_order.check_workflow_permission(unauthorized_user)
+
+
+@pytest.mark.django_db
+class TestHasPermLayeredEvaluation(BaseTestGroupMixin, BaseTestUserMixin):
+    """Tests for the 4-layer has_perm evaluation chain: group → state → row → state+row."""
+
+    groups_to_create = {
+        "Order Editors": [
+            ("store", "CustomerOrder", "update"),
+        ],
+        "Order Viewers": [
+            ("store", "CustomerOrder", "read"),
+        ],
+        "No Perms": [],
+    }
+    users_to_create = {
+        "editor@example.com": {
+            "name": "Editor",
+            "password": "password",
+            "groups": ["Order Editors"],
+        },
+        "viewer@example.com": {
+            "name": "Viewer",
+            "password": "password",
+            "groups": ["Order Viewers"],
+        },
+        "noperms@example.com": {
+            "name": "No Perms",
+            "password": "password",
+            "groups": ["No Perms"],
+        },
+    }
+
+    @pytest.fixture
+    def editor_user(self):
+        return self.users["editor@example.com"]
+
+    @pytest.fixture
+    def viewer_user(self):
+        return self.users["viewer@example.com"]
+
+    @pytest.fixture
+    def noperms_user(self):
+        return self.users["noperms@example.com"]
+
+    @pytest.fixture
+    def customer_order(self, editor_user):
+        customer = store_models.Customer.objects.create(user=editor_user)
+        order_state = store_models.OrderState.objects.create(code="perm_test_state", name="Perm Test")
+        return store_models.CustomerOrder.objects.create(
+            order_number=Decimal("9001"),
+            customer=customer,
+            order_state=order_state,
+            shipping_method="free",
+        )
+
+    def _create_state_permission(self, customer_order, user, *, grant_or_deny, codename="update_customerorder"):
+        content_type = ContentType.objects.get_for_model(store_models.CustomerOrder)
+        permission = Permission.objects.get(codename=codename, content_type=content_type)
+        group = user.groups.first()
+        return StatePermission.objects.create(
+            state=customer_order.workflow_state,
+            permission=permission,
+            group=group,
+            grant_or_deny=grant_or_deny,
+            historical_permission_codename=permission.codename,
+            historical_permission_content_type_app_label=content_type.app_label,
+            historical_permission_content_type_model_name=content_type.model,
+            historical_group_name=group.name,
+        )
+
+    def test_state_grant_survives_row_level_none(self, customer_order, noperms_user, monkeypatch):
+        """The original bug: state grants, check_instance returns None → should be True, not False."""
+        self._create_state_permission(customer_order, noperms_user, grant_or_deny=True)
+
+        class MockRowLevel(BaseRowLevelPermissions):
+            @classmethod
+            def check_instance(cls, model, obj, perm, user, perm_type):
+                return None
+
+        monkeypatch.setattr(store_models.CustomerOrder, "RowLevelPermissions", MockRowLevel, raising=False)
+
+        assert noperms_user.has_perm("store.update_customerorder", customer_order) is True
+
+    def test_state_deny_blocks_check_instance(self, customer_order, editor_user, monkeypatch):
+        """State deny should prevent check_instance from running."""
+        self._create_state_permission(customer_order, editor_user, grant_or_deny=False)
+        check_instance_called = False
+
+        class MockRowLevel(BaseRowLevelPermissions):
+            @classmethod
+            def check_instance(cls, model, obj, perm, user, perm_type):
+                nonlocal check_instance_called
+                check_instance_called = True
+                return True
+
+        monkeypatch.setattr(store_models.CustomerOrder, "RowLevelPermissions", MockRowLevel, raising=False)
+
+        assert editor_user.has_perm("store.update_customerorder", customer_order) is False
+        assert not check_instance_called
+
+    def test_check_instance_state_overrides_state_deny(self, customer_order, editor_user, monkeypatch):
+        """check_instance_state returning True should override state deny."""
+        self._create_state_permission(customer_order, editor_user, grant_or_deny=False)
+
+        class MockRowLevel(BaseRowLevelPermissions):
+            @classmethod
+            def check_instance_state(cls, model, obj, perm, user, perm_type, grant_or_deny):
+                return True
+
+        monkeypatch.setattr(store_models.CustomerOrder, "RowLevelPermissions", MockRowLevel, raising=False)
+
+        assert editor_user.has_perm("store.update_customerorder", customer_order) is True
+
+    def test_check_instance_state_denies_despite_state_grant(self, customer_order, noperms_user, monkeypatch):
+        """check_instance_state returning False should override state grant."""
+        self._create_state_permission(customer_order, noperms_user, grant_or_deny=True)
+
+        class MockRowLevel(BaseRowLevelPermissions):
+            @classmethod
+            def check_instance_state(cls, model, obj, perm, user, perm_type, grant_or_deny):
+                return False
+
+        monkeypatch.setattr(store_models.CustomerOrder, "RowLevelPermissions", MockRowLevel, raising=False)
+
+        assert noperms_user.has_perm("store.update_customerorder", customer_order) is False
+
+    def test_check_instance_state_none_preserves_decision(self, customer_order, editor_user, monkeypatch):
+        """check_instance_state returning None should not change the decision."""
+        # No state permission → grant_or_deny=None, super=True (has model perm), check_instance=None
+        class MockRowLevel(BaseRowLevelPermissions):
+            @classmethod
+            def check_instance(cls, model, obj, perm, user, perm_type):
+                return None
+
+            @classmethod
+            def check_instance_state(cls, model, obj, perm, user, perm_type, grant_or_deny):
+                return None
+
+        monkeypatch.setattr(store_models.CustomerOrder, "RowLevelPermissions", MockRowLevel, raising=False)
+
+        # super_value=True, all hooks return None → decision stays True
+        assert editor_user.has_perm("store.update_customerorder", customer_order) is True
+
+    def test_check_instance_state_not_called_without_workflow(self, editor_user, monkeypatch):
+        """check_instance_state should not be called for non-workflow models."""
+        from tests.models import Product
+
+        product = Product.objects.create(name="Test Widget", available_for_sale=True)
+        check_instance_state_called = False
+
+        original_check_instance = Product.RowLevelPermissions.check_instance
+
+        class MockRowLevel(BaseRowLevelPermissions):
+            @classmethod
+            def check_instance(cls, model, obj, perm, user, perm_type):
+                return original_check_instance(model, obj, perm, user, perm_type)
+
+            @classmethod
+            def check_instance_state(cls, model, obj, perm, user, perm_type, grant_or_deny):
+                nonlocal check_instance_state_called
+                check_instance_state_called = True
+                return True
+
+        monkeypatch.setattr(Product, "RowLevelPermissions", MockRowLevel)
+
+        editor_user.has_perm("tests.read_product", product)
+        assert not check_instance_state_called
+
+    def test_check_instance_state_receives_grant_or_deny(self, customer_order, editor_user, monkeypatch):
+        """check_instance_state should receive the grant_or_deny value from state layer."""
+        self._create_state_permission(customer_order, editor_user, grant_or_deny=False)
+        received_grant_or_deny = None
+
+        class MockRowLevel(BaseRowLevelPermissions):
+            @classmethod
+            def check_instance_state(cls, model, obj, perm, user, perm_type, grant_or_deny):
+                nonlocal received_grant_or_deny
+                received_grant_or_deny = grant_or_deny
+                return None
+
+        monkeypatch.setattr(store_models.CustomerOrder, "RowLevelPermissions", MockRowLevel, raising=False)
+
+        editor_user.has_perm("store.update_customerorder", customer_order)
+        assert received_grant_or_deny is False
+
+    def test_row_level_grant_without_model_permission(self, customer_order, noperms_user, monkeypatch):
+        """Row-level check_instance returning True should grant access even without model-level permission."""
+
+        class MockRowLevel(BaseRowLevelPermissions):
+            @classmethod
+            def check_instance(cls, model, obj, perm, user, perm_type):
+                return True
+
+        monkeypatch.setattr(store_models.CustomerOrder, "RowLevelPermissions", MockRowLevel, raising=False)
+
+        # noperms_user has no model-level update_customerorder, but check_instance grants
+        assert noperms_user.has_perm("store.update_customerorder", customer_order) is True
+
+    def test_no_row_level_permissions_with_model_perm_grants(self, customer_order, editor_user):
+        """When no RowLevelPermissions defined and user has model permission, should return True."""
+        # CustomerOrder has no RowLevelPermissions by default
+        assert not hasattr(store_models.CustomerOrder, "RowLevelPermissions")
+        assert editor_user.has_perm("store.update_customerorder", customer_order) is True
+
+    def test_superuser_bypasses_all_layers(self, customer_order, editor_user):
+        """Superuser should always get True regardless of state or row-level logic."""
+        editor_user.is_superuser = True
+        editor_user.save()
+
+        self._create_state_permission(customer_order, editor_user, grant_or_deny=False)
+
+        assert editor_user.has_perm("store.update_customerorder", customer_order) is True

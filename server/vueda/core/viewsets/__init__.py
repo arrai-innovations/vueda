@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Exists
+from django.db.models import OuterRef
 from django.db.models import Q
 from django.db.models import Sum
 from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
@@ -72,19 +74,74 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         if "list" in PERMISSION_NAMES_MAPPING:
             permission_list_name = PERMISSION_NAMES_MAPPING["list"]
 
+        perm = f"{model._meta.app_label}.{permission_list_name}_{model._meta.model_name}"
+
         if row_level_permissions is not None:
             optional_q = row_level_permissions.check_queryset(
                 queryset,
-                f"{model._meta.app_label}.{permission_list_name}_{model._meta.model_name}",
+                perm,
                 self.request.user,
                 "list",
             )
             if isinstance(optional_q, Q):
-                return queryset.filter(optional_q)
-            if optional_q is False:
+                queryset = queryset.filter(optional_q)
+            elif optional_q is False:
                 return queryset.none()
-            # else, optional_q is None, so we don't filter
-            # or optional_q is True, so we don't filter
+            # else, optional_q is None or True, so we don't filter
+
+            # check_queryset_state: workflow-aware row-level filtering
+            if "vueda.workflow" in settings.INSTALLED_APPS:
+                from django.contrib.contenttypes.models import ContentType
+
+                from vueda.workflow.models import HasWorkflowModelMixin
+                from vueda.workflow.models import StatePermission
+                from vueda.workflow.models import Workflow
+
+                if issubclass(model, HasWorkflowModelMixin):
+                    content_type = ContentType.objects.get_for_model(model)
+                    if Workflow.objects.filter(content_type=content_type).exists():
+                        codename = perm.split(".")[-1]
+                        user = self.request.user
+
+                        state_denied_annotation = "_state_denied"
+                        state_granted_annotation = "_state_granted"
+
+                        queryset = queryset.annotate(
+                            **{
+                                state_denied_annotation: Exists(
+                                    StatePermission.objects.filter(
+                                        state=OuterRef("object_states_proxy__state"),
+                                        permission__codename=codename,
+                                        permission__content_type=content_type,
+                                        group__in=user.groups.all(),
+                                        grant_or_deny=False,
+                                    )
+                                ),
+                                state_granted_annotation: Exists(
+                                    StatePermission.objects.filter(
+                                        state=OuterRef("object_states_proxy__state"),
+                                        permission__codename=codename,
+                                        permission__content_type=content_type,
+                                        group__in=user.groups.all(),
+                                        grant_or_deny=True,
+                                    )
+                                ),
+                            }
+                        )
+
+                        state_q = row_level_permissions.check_queryset_state(
+                            queryset,
+                            perm,
+                            user,
+                            "list",
+                            state_denied_annotation,
+                            state_granted_annotation,
+                        )
+                        if isinstance(state_q, Q):
+                            queryset = queryset.filter(state_q)
+                        elif state_q is False:
+                            return queryset.none()
+
         return queryset
 
     def get_column_info(self, queryset):

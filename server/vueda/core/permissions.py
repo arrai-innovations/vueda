@@ -102,3 +102,30 @@ class BaseRowLevelPermissions:
         if user.is_superuser:
             return None
         return None
+
+    @classmethod
+    def check_instance_state(cls, model, obj, perm, user, perm_type, grant_or_deny) -> bool | None:
+        """
+        Like check_instance, but only called when the object is under workflow.
+        Receives grant_or_deny (None/True/False) from state permission resolution.
+        Runs AFTER check_instance and can override any prior decision, including state deny.
+        Return True to grant, False to deny, None to not change the decision.
+        """
+        if user.is_superuser:
+            return None
+        return None
+
+    @classmethod
+    def check_queryset_state(cls, queryset, perm, user, perm_type, state_denied_annotation, state_granted_annotation) -> Q | bool | None:
+        """
+        Like check_queryset, but only called when the model is under workflow.
+        The queryset is pre-annotated with state_denied and state_granted boolean fields.
+        Use F(state_denied_annotation) / F(state_granted_annotation) in Q expressions.
+        Return of None means do not filter based on state+row level permissions.
+        Return of True means the user has the permission without needing to check the rows.
+        Return of False means the user does not have the permission, and we can stop checking.
+        Return of Q means we need to filter the rows based on the state+row level permissions.
+        """
+        if user.is_superuser:
+            return None
+        return None
