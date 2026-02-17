@@ -6,10 +6,6 @@ function yamlEscape(value) {
   if (value === undefined || value === null) {
     return null;
   }
-  if (typeof value === "string") {
-    const needsQuote = /[:\n#]/.test(value) || value.trim() !== value;
-    return needsQuote ? JSON.stringify(value) : value;
-  }
   return JSON.stringify(value);
 }
 
@@ -54,13 +50,21 @@ export function renderCodeInline(value) {
   return `${fence} ${str} ${fence}`;
 }
 
+function escapeTableCell(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  return String(value).replace(/\|/g, "\\|");
+}
+
 export function renderTable(headers, rows) {
   if (!rows.length) {
     return "";
   }
-  const headerLine = `| ${headers.join(" | ")} |`;
-  const separator = `| ${headers.map(() => "---").join(" | ")} |`;
-  const body = rows.map((row) => `| ${row.join(" | ")} |`);
+  const escapedHeaders = headers.map(escapeTableCell);
+  const headerLine = `| ${escapedHeaders.join(" | ")} |`;
+  const separator = `| ${escapedHeaders.map(() => "---").join(" | ")} |`;
+  const body = rows.map((row) => `| ${row.map(escapeTableCell).join(" | ")} |`);
   return [headerLine, separator, ...body].join("\n");
 }
 
