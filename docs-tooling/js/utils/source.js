@@ -1,7 +1,8 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 export function getRepoRoot() {
-  return path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..", "..");
+  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 }
 
 export function normalizeSourceFile(filePath, repoRoot = getRepoRoot()) {
