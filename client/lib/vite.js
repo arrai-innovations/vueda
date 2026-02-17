@@ -9,11 +9,12 @@ const DEFAULT_EXCLUDE_PACKAGES = ["vite", "vue", "vue-router", "pinia"];
 const packageRoot = fileURLToPath(new URL(".", import.meta.url));
 
 const readVuedaPackageVersion = () => {
+    const packageJsonPath = path.resolve(packageRoot, "../package.json");
     try {
-        const packageJsonPath = path.resolve(packageRoot, "package.json");
         const contents = fs.readFileSync(packageJsonPath, "utf-8");
         return JSON.parse(contents).version || "";
     } catch {
+        console.warn("[vueda] Could not read package.json version:", packageJsonPath);
         return "";
     }
 };
