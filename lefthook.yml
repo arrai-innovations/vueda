@@ -53,20 +53,14 @@ pre-commit:
         fi
     fix-client-eslint:
       stage_fixed: true
-      run: |
-        files="$(git diff --name-only --cached -- 'client/**' | rg '\.(vue|js|cjs|mjs|ts|jsx|tsx)$')"
-        if [ -n "$files" ]; then
-          files="$(printf '%s\n' "$files" | sed 's|^client/||')"
-          pnpm -C client exec eslint --no-warn-ignored --cache --fix $files
-        fi
+      root: "client/"
+      glob: "client/*.{vue,js,cjs,mjs,ts,jsx,tsx}"
+      run: pnpm exec eslint --no-warn-ignored --cache --fix {staged_files}
     fix-client-prettier:
       stage_fixed: true
-      run: |
-        files="$(git diff --name-only --cached -- 'client/**' | rg '\.(less|scss|css|vue|markdown|json|md|yml|yaml|html)$')"
-        if [ -n "$files" ]; then
-          files="$(printf '%s\n' "$files" | sed 's|^client/||')"
-          pnpm -C client exec prettier --write $files
-        fi
+      root: "client/"
+      glob: "client/*.{less,scss,css,vue,markdown,json,md,yml,yaml,html}"
+      run: pnpm exec prettier --write {staged_files}
     fix-doctoc:
       stage_fixed: true
       run: |
