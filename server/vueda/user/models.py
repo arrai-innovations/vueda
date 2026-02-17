@@ -225,6 +225,7 @@ class TOTPDevice(VuedaBaseModel):
                 name="uniq_authenticator_method_user",
             ),
         ]
+        ordering = ["method"]
 
     def get_formatted_name(self):
         return self.get_method_display()

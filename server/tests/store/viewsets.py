@@ -33,6 +33,7 @@ class DistributorViewSet(VuedaHistoryViewSet):
     serializer_class = my_serializers.DistributorSerializer
     filterset_class = my_filtersets.DistributorFilterSet
     ordering_fields = ["name"]
+    ordering = ["name"]
 
     def get_allowed_extra_actions(self, request, *, instance=None):
         # Make 'current' and 'history-list' not allowed for customer.

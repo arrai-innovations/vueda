@@ -74,6 +74,7 @@ class Product(VuedaHistoryBaseModel):
     quantity = models.IntegerField(db_default=0)
 
     class Meta(BaseModelMeta):
+        ordering = ["name"]
         unique_together = [
             ["distributor", "name"],
         ]
@@ -107,7 +108,7 @@ class Cart(VuedaBaseModel):
     formatted_name = None
 
     class Meta(VuedaBaseModel.Meta):
-        pass
+        ordering = ["customer__user__name"]
 
     def get_formatted_name(self):
         if self.customer and self.customer.user:

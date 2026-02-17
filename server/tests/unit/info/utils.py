@@ -1,6 +1,9 @@
 import datetime
+import zoneinfo
 from decimal import Decimal
 from unittest import mock
+
+from django.conf import settings
 
 from tests.store import models as store_models
 
@@ -885,6 +888,8 @@ def create_test_data(self):
 
     # Make carts.
     carts = {}
+    tzinfo = zoneinfo.ZoneInfo(settings.TIME_ZONE)
+    tzinfo.dst(None)
     for cart_data in (
         {
             "customer_email": "test_customer_1@example.com",
@@ -898,7 +903,7 @@ def create_test_data(self):
                     "quantity": 2,
                 },
             ],
-            "last_modified": datetime.datetime(2024, 8, 10, 12, 0, 0),
+            "last_modified": datetime.datetime(2024, 8, 10, 12, 0, 0, tzinfo=tzinfo),
         },
         {
             "customer_email": "test_customer_2@example.com",
@@ -916,7 +921,7 @@ def create_test_data(self):
                     "quantity": 24,
                 },
             ],
-            "last_modified": datetime.datetime(2024, 7, 20, 6, 0, 0),
+            "last_modified": datetime.datetime(2024, 7, 20, 6, 0, 0, tzinfo=tzinfo),
         },
     ):
         with mock.patch("django.db.models.fields.timezone.now") as mocked_now:
