@@ -164,6 +164,21 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "does not have workflow permissions" in str(response.data["detail"])
 
+    def test_permitted_transitions_returns_403_when_workflow_has_no_permissions_configured(
+        self, api_client, workflow_read_only_user, customer_order
+    ):
+        WorkflowPermission.objects.filter(workflow__content_type=customer_order.get_content_type()).delete()
+        api_client.force_authenticate(workflow_read_only_user)
+        permitted_transitions_url = reverse(
+            "workflow.workflow-permitted-transitions",
+            kwargs={"app_label": "store", "model": "customerorder"},
+        )
+
+        response = api_client.get(permitted_transitions_url, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "does not have workflow permissions" in str(response.data["detail"])
+
     def test_object_transitions_returns_state_scoped_transitions(self, api_client, workflow_user, customer_order):
         api_client.force_authenticate(workflow_user)
         object_transitions_url = reverse(
