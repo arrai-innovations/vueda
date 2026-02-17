@@ -13,26 +13,28 @@ pre-commit:
     # CI-only full-repo checks (lint + format in check mode).
     # Guarded to avoid running the full suite on every local commit.
     ruff-check:
+      root: "server/"
       run: |
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
-        cd server
         uv run --no-sync ruff check .
     ruff-format:
+      root: "server/"
       run: |
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
-        cd server
         uv run --no-sync ruff format --check .
     eslint:
+      root: "client/"
       run: |
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
-        pnpm -C client exec eslint --no-warn-ignored --cache .
+        pnpm exec eslint --no-warn-ignored --cache .
     prettier:
+      root: "client/"
       run: |
         if [ -z "${CI:-}" ]; then
           exit 0
@@ -61,6 +63,8 @@ pre-commit:
     # Local staged-file fixes (fast feedback, restaged automatically).
     fix-server:
       stage_fixed: true
+      root: "server/"
+      glob: "server/*.py"
       run: |
         files="$(git diff --name-only --cached -- 'server/**' | rg '\\.py$')"
         if [ -n "$files" ]; then
@@ -99,10 +103,14 @@ pre-commit:
     # CircleCI config validation (runs locally if the CLI is installed).
     circleci-config:
       run: |
-        if git diff --name-only --cached -- '.circleci/config.yml' | rg -q .; then
-          if ! command -v circleci >/dev/null 2>&1; then
-            echo "circleci CLI not found; skipping config validation."
-            exit 0
-          fi
-          circleci config validate -c .circleci/config.yml
+        readarray -t files < <(git diff --name-only --cached -- '.circleci/*.yml')
+        if [ "${#files[@]}" -eq 0 ]; then
+          exit 0
         fi
+        if ! command -v circleci >/dev/null 2>&1; then
+          echo "circleci CLI not found; skipping config validation."
+          exit 0
+        fi
+        for file in "${files[@]}"; do
+          circleci config validate -c "$file"
+        done

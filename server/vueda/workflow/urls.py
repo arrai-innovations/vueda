@@ -10,10 +10,14 @@ urlpatterns = [
 ]
 if settings.DEBUG:
     urlpatterns += [
-        path("overview/", views.WorkflowOverviewView.as_view(), name="workflow-overview"),
-        path("add/", views.WorkflowAddView.as_view(), name="workflow-add"),
-        path("delete/<int:pk>/", views.WorkflowDeleteView.as_view(), name="workflow-delete"),
-        path("edit/<int:pk>/", views.WorkflowEditView.as_view(), name="workflow-edit"),
-        path("edit/state/<int:pk>/", views.WorkflowStateEditView.as_view(), name="state-edit"),
-        path("edit/transition/<int:pk>/", views.WorkflowTransitionEditView.as_view(), name="transition-edit"),
+        path("vueda.workflow/overview/", views.WorkflowOverviewView.as_view(), name="workflow-overview"),
+        path("vueda.workflow/add/", views.WorkflowAddView.as_view(), name="workflow-add"),
+        path("vueda.workflow/delete/<int:pk>/", views.WorkflowDeleteView.as_view(), name="workflow-delete"),
+        path("vueda.workflow/edit/<int:pk>/", views.WorkflowEditView.as_view(), name="workflow-edit"),
+        path("vueda.workflow/edit/state/<int:pk>/", views.WorkflowStateEditView.as_view(), name="state-edit"),
+        path(
+            "vueda.workflow/edit/transition/<int:pk>/",
+            views.WorkflowTransitionEditView.as_view(),
+            name="transition-edit",
+        ),
     ]

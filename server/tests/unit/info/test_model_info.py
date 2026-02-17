@@ -14,7 +14,7 @@ from tests.unit.info.utils import create_test_data
 from vueda import info
 
 
-class TestData(BaseTestUserMixin, BaseTestGroupMixin):
+class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
@@ -158,7 +158,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
 class TestModelInfoSerializer:
     @pytest.fixture
     def test_data(self):
-        return TestData()
+        return VuedaTestData()
 
     @staticmethod
     def register_viewsets():
