@@ -82,15 +82,10 @@ def check_client_parity() -> list[str]:
                 template_version = template_section.get(name)
 
                 if source_version is None:
-                    errors.append(
-                        f"{CLIENT_SOURCE.relative_to(ROOT)} is missing "
-                        f"{source_section_name}.{name}"
-                    )
+                    errors.append(f"{CLIENT_SOURCE.relative_to(ROOT)} is missing {source_section_name}.{name}")
                     continue
                 if template_version is None:
-                    errors.append(
-                        f"{rel_template} is missing {template_section_name}.{name}"
-                    )
+                    errors.append(f"{rel_template} is missing {template_section_name}.{name}")
                     continue
                 if source_version != template_version:
                     errors.append(
@@ -106,16 +101,13 @@ def check_server_template_parity() -> list[str]:
     errors: list[str] = []
     server_version = read_server_version()
     if server_version is None:
-        errors.append(
-            f"Could not parse __version__ from {SERVER_VERSION_FILE.relative_to(ROOT)}"
-        )
+        errors.append(f"Could not parse __version__ from {SERVER_VERSION_FILE.relative_to(ROOT)}")
         return errors
 
     expected_vueda_dependency = expected_server_dependency(server_version)
     if expected_vueda_dependency is None:
         errors.append(
-            f"Unsupported server version format in {SERVER_VERSION_FILE.relative_to(ROOT)}: "
-            f'"{server_version}"'
+            f'Unsupported server version format in {SERVER_VERSION_FILE.relative_to(ROOT)}: "{server_version}"'
         )
         return errors
     min_data = load_toml(SERVER_MIN_TEMPLATE)
@@ -172,12 +164,12 @@ def main() -> int:
         errors.extend(check_server_template_parity())
 
     if errors:
-        print("Template dependency parity check failed:")
+        sys.stderr.write("Template dependency parity check failed:\n")
         for error in errors:
-            print(f"- {error}")
+            sys.stderr.write(f"- {error}\n")
         return 1
 
-    print(f"Template dependency parity check passed (scope={args.scope}).")
+    sys.stdout.write(f"Template dependency parity check passed (scope={args.scope}).\n")
     return 0
 
 
