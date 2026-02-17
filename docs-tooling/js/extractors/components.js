@@ -4,6 +4,7 @@
 
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { Extractor } from "../core.js";
 import { parseMulti } from "vue-docgen-api";
@@ -31,7 +32,7 @@ export class ComponentsExtractor extends Extractor {
       throw new Error("outputPath is required");
     }
 
-    const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..", "..");
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
     const resolvedOutput = path.isAbsolute(outputPath)
       ? outputPath
       : path.join(repoRoot, outputPath);

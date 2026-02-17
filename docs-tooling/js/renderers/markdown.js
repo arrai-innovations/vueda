@@ -34,7 +34,24 @@ export function renderHeading(level, text) {
 }
 
 export function renderCodeInline(value) {
-  return value ? `\`${value}\`` : "";
+  if (!value) {
+    return "";
+  }
+
+  const str = String(value);
+  const matches = str.match(/`+/g);
+  const maxRunLength = matches ? Math.max(...matches.map((m) => m.length)) : 0;
+  const fenceLength = Math.max(1, maxRunLength + 1);
+  const fence = "`".repeat(fenceLength);
+
+  if (fenceLength === 1) {
+    // Simple case: value contains no backticks, use single backtick fence.
+    return `${fence}${str}${fence}`;
+  }
+
+  // When using multi-backtick fences, add a space inside to avoid ambiguity
+  // if the content starts or ends with backticks.
+  return `${fence} ${str} ${fence}`;
 }
 
 export function renderTable(headers, rows) {

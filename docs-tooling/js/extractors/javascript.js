@@ -6,6 +6,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { Extractor } from "../core.js";
 
@@ -23,7 +24,7 @@ export class JavaScriptExtractor extends Extractor {
       throw new Error("outputPath is required");
     }
 
-    const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..", "..");
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
     const resolvedOutput = path.isAbsolute(outputPath)
       ? outputPath
       : path.join(repoRoot, outputPath);
