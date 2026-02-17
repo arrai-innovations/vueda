@@ -41,7 +41,7 @@ function refToLink(ref) {
     return undefined;
   }
   const name = ref.split("/").pop();
-  return `api:schema:${name}`;
+  return `rest:schema:${name}`;
 }
 
 function schemaToTypeRef(schema) {
@@ -93,7 +93,7 @@ export class OpenApiNormalizer extends Normalizer {
     const nodes = [];
     const roots = [];
 
-    const apiRootId = "api:root";
+    const apiRootId = "rest:root";
     nodes.push(
       compact({
         id: apiRootId,

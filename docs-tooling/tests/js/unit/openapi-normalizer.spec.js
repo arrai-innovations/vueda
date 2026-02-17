@@ -55,7 +55,7 @@ describe("OpenApiNormalizer", () => {
     await assertCanonical(output);
 
     expect(output.source).toBe("openapi");
-    expect(output.roots).toEqual(["api:root"]);
+    expect(output.roots).toEqual(["rest:root"]);
     expect(output.nodes.some((node) => node.kind === "endpoint")).toBe(true);
     expect(output.nodes.some((node) => node.kind === "schema")).toBe(true);
   });
