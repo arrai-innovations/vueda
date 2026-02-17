@@ -12,7 +12,7 @@ This directory contains starter templates for implementor VUEDA monorepos.
 - [Copier](https://copier.readthedocs.io/)
 - [uv](https://docs.astral.sh/uv/)
 - [pnpm](https://pnpm.io/)
-- Python 3.12+
+- Python 3.11+
 - Node.js 22+
 
 ## Usage
