@@ -551,14 +551,13 @@ class HasWorkflowModelMixin(models.Model):
         Returns available transitions for a list of objects.
         """
         workflow = Workflow.objects.get(content_type=cls.get_content_type())
-        if user is not None and user.has_perms(
-            [
-                ".".join(permission_parts)
-                for permission_parts in workflow.workflow_permissions.values_list(
-                    "permission__content_type__app_label", "permission__codename"
-                )
-            ]
-        ):
+        workflow_permissions = [
+            ".".join(permission_parts)
+            for permission_parts in workflow.workflow_permissions.values_list(
+                "permission__content_type__app_label", "permission__codename"
+            )
+        ]
+        if user is not None and (not workflow_permissions or not user.has_perms(workflow_permissions)):
             raise PermissionDenied(
                 f"User {user.get_username()!r} does not have workflow permissions for {cls.get_content_type()!r}"
             )
@@ -603,16 +602,18 @@ class HasWorkflowModelMixin(models.Model):
     def check_state_permission(
         self, perm: str, groups: Iterable[str] | Iterable[int] | QuerySet["Group"]
     ) -> bool | None:
-        # for our state are there any StatePermissions related to this permission?
-        state_permission = StatePermission.objects.filter(
+        # If multiple group rules match, deny takes precedence over grant.
+        matching_rules = StatePermission.objects.filter(
             state=self.workflow_state,
             permission__codename=perm.split(".")[-1],
             permission__content_type=self.get_content_type(),
             group__in=groups,
-        ).first()
-        if state_permission is None:
-            return None
-        return state_permission.grant_or_deny
+        ).values_list("grant_or_deny", flat=True)
+        if any(rule is False for rule in matching_rules):
+            return False
+        if any(rule is True for rule in matching_rules):
+            return True
+        return None
 
     def check_transition_permission(self, transition: Transition, user: User | None = None) -> bool:
         """

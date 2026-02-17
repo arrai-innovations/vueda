@@ -246,16 +246,14 @@ const refFn = (state, el) => {
  */
 
 /**
- * @typedef {
- *   import('@vueda/use/useField.js').FieldContextRawProps &
- *   import('@vueda/use/useTheme.js').ThemeRawProps &
- *   import('@vueda/use/useFormModel.js').UseFormModelRawOverridableProps
- * } FieldSetInlineRawProps
- * @property {import('@vueda/stores/storeModelInfo.js').FieldInfo[]} [fieldObjects] - A list of field / action configuration objects.
- * @property {boolean} [visible] - Whether the fieldset is visible.
- * @property {boolean} [hidable] - Whether the fieldset can be hidden.
- * @property {string} [hiddenByDefault] - Should the fieldset be hidden by default? Can be 'always', 'never', or a VUEDA breakpoint threshold, at or above the fieldset is shown by default.
- * @property {boolean} [showCreateButton] - Whether to show the create button.
+ * @typedef {import('@vueda/use/useField.js').FieldContextRawProps & import('@vueda/use/useTheme.js').ThemeRawProps &
+ *   import('@vueda/use/useFormModel.js').UseFormModelRawOverridableProps & {
+ *     fieldObjects?: import('@vueda/stores/storeModelInfo.js').FieldInfo[],
+ *     visible?: boolean,
+ *     hidable?: boolean,
+ *     hiddenByDefault?: string,
+ *     showCreateButton?: boolean
+ *   }} FieldSetInlineRawProps
  */
 
 /**

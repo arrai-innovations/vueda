@@ -102,3 +102,33 @@ class BaseRowLevelPermissions:
         if user.is_superuser:
             return None
         return None
+
+    @classmethod
+    def check_instance_workflow(cls, model, obj, perm, user, perm_type, grant_or_deny) -> bool | None:
+        """
+        Row-level check that is workflow-aware. Only called when the object is under workflow.
+        Receives grant_or_deny (None/True/False) from state permission resolution.
+        Runs AFTER check_instance and can override any prior decision, including state deny.
+        """
+        if user.is_superuser:
+            return None
+        return None
+
+    @classmethod
+    def check_queryset_workflow(
+        cls, queryset, perm, user, perm_type, state_denied_annotation, state_granted_annotation
+    ) -> Q | bool | None:
+        """
+        Queryset-level filter that is workflow-aware. Only called when the model is under workflow.
+        The queryset is pre-annotated with state permission info.
+        Use F(state_denied_annotation) / F(state_granted_annotation) in Q expressions.
+
+        Returns:
+            None  - no workflow-specific opinion, preserve prior filtering
+            Q     - ANDed with the current queryset
+            True  - no additional restriction
+            False - empty queryset
+        """
+        if user.is_superuser:
+            return None
+        return None

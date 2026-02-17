@@ -21,45 +21,41 @@ class VUEDAPermissionsMixin(PermissionsMixin):
         if self.is_superuser:
             return True
         super_value = super().has_perm(perm, obj=None)
+        decision = super_value
 
-        # workflow row level permissions
-        #  you can be granted or denied permissions by workflow state, so we need to check regardless of super value
+        # Layer 2: state permissions
         grant_or_deny = None
+        has_workflow = False
         if "vueda.workflow" in settings.INSTALLED_APPS:
             from vueda.workflow.models import HasWorkflowModelMixin
 
             if isinstance(obj, HasWorkflowModelMixin) and obj.workflow:
-                # Don't raise an error if you get to this point without having a workflow set up.
+                has_workflow = True
                 grant_or_deny = obj.check_state_permission(perm, self.groups.all())
 
-        # `grant_or_deny` is expected to be None if obj is not a `HasWorkflowModelMixin` or if it has no workflow
-        #  or if there are no explicit state permissions for the user's groups.
-        # this leads to some interesting looking conditions below.
+        if grant_or_deny is False:
+            decision = False
+        elif grant_or_deny is True:
+            decision = True
 
-        if not super_value and not grant_or_deny:
-            return False
+        if obj:
+            perm_type = perm.split(".")[1].split("_")[0]  # create, read, update, delete, list, etc.
+            model = obj.__class__
+            row_level_permissions = getattr(model, "RowLevelPermissions", None)
 
-        if super_value or grant_or_deny:
-            if obj:
-                # workflow row level permissions
-                if grant_or_deny is False:
-                    return False
-                # row level permissions
-                perm_type = perm.split(".")[1].split("_")[0]  # create, read, update, delete, list, etc.
-                model = obj.__class__
-                # noinspection PyProtectedMember
-                row_level_permissions = getattr(model, "RowLevelPermissions", None)
-                if row_level_permissions:
-                    # duck typing, if it has the method, good enough
+            if row_level_permissions:
+                # Layer 3: row-level (skipped if state denied)
+                if grant_or_deny is not False:
                     result = row_level_permissions.check_instance(model, obj, perm, self, perm_type)
-                    # None means it didn't have an opinion, so we will just return the super value
-                    if result is None:
-                        return super_value
-                    return result
-                else:
-                    # no row level permissions defined for this model, so we will just return True
-                    return True
-            else:
-                # model level permissions
-                return True
-        return False
+                    if result is not None:
+                        decision = result
+
+                # Layer 4: workflow+row (always runs when under workflow, can override state deny)
+                if has_workflow:
+                    result = row_level_permissions.check_instance_workflow(
+                        model, obj, perm, self, perm_type, grant_or_deny
+                    )
+                    if result is not None:
+                        decision = result
+
+        return bool(decision)

@@ -4,7 +4,7 @@ import PageTitle from "@vueda/components/PageTitle.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { memoizedStartCase } from "@vueda/utils/case.js";
+import { getAppModelDotName, memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computedAsync } from "@vueuse/core";
 import isEmpty from "lodash-es/isEmpty.js";
@@ -44,70 +44,70 @@ if (!inject(LookupContextSymbol, null)) {
     useLookupContext();
 }
 
+const appModelKey = computed(() => getAppModelDotName({ app: props.app, model: props.model }));
 const titleStr = computed(() => {
     return `Transitions for ${memoizedStartCase(modelConfig.info?.verbose_name)}`;
 });
 const selectedAction = ref(null);
 
-const modelWorkFlowTransitions = computedAsync(
-    async () => {
-        try {
-            await workflow.fetchWorkflowTransition(props.app, props.model);
-            return workflow.workflowTransitions[props.app][props.model].transitions;
-        } catch (WorkflowError) {
-            return "no workflow available";
-        }
-    },
-    null, // initial state
-);
+const modelWorkflowTransitions = computedAsync(async () => {
+    try {
+        await workflow.fetchWorkflowTransition(props.app, props.model);
+        return workflow.workflowTransitions[appModelKey.value] || [];
+    } catch (error) {
+        return [];
+    }
+}, []);
+
+const transitionsForPk = (pk) => {
+    const entry = workflow.objectTransitions?.[appModelKey.value]?.[pk];
+    return entry?.transitions || [];
+};
 
 const availableTransitions = computed(() => {
-    if (Array.isArray(props.pk)) {
-        let commonTransitions = [];
-        props.pk.forEach((id, index) => {
-            const pkTransitions = workflow.objectTransitions.find((t) => t.id === id)?.transitions || [];
-            if (index === 0) {
-                commonTransitions = pkTransitions;
-            } else {
-                commonTransitions = commonTransitions.filter((t) => {
-                    return pkTransitions.some((pt) => {
-                        return pt.code === t.code;
-                    });
-                });
-            }
-        });
-        return commonTransitions;
-    } else {
-        const pkTransitions =
-            workflow.objectTransitions.find((t) => t.id === props.pk)?.transitions.map((t) => t.code) || [];
-        return pkTransitions;
+    if (!appModelKey.value) {
+        return [];
     }
+    if (Array.isArray(props.pk)) {
+        if (props.pk.length === 0) {
+            return [];
+        }
+        let common = transitionsForPk(props.pk[0]);
+        for (const pk of props.pk.slice(1)) {
+            const codes = new Set(transitionsForPk(pk).map((t) => t.code));
+            common = common.filter((t) => codes.has(t.code));
+        }
+        return common;
+    }
+    return transitionsForPk(props.pk);
 });
 
 watch(
-    () => props.pk,
-    async (pk) => {
-        if (isEmpty(pk)) {
+    [() => props.app, () => props.model, () => props.pk],
+    async ([app, model, pk]) => {
+        if (!app || !model || isEmpty(pk)) {
             return;
         }
         if (Array.isArray(pk)) {
             for (const id of pk) {
-                await workflow.fetchObjectTransitions(props.app, props.model, id);
+                await workflow.fetchObjectTransitions(app, model, id);
             }
             return;
         }
-        await workflow.fetchObjectTransitions(props.app, props.model, pk);
+        await workflow.fetchObjectTransitions(app, model, pk);
     },
     { immediate: true },
 );
 
 const handleSubmit = async () => {
     try {
-        //TODO: server side should support bulk execute transitions
+        if (!selectedAction.value || typeof selectedAction.value !== "string") {
+            throw new Error("ViewWorkflowTransition: selected transition code is missing or invalid.");
+        }
         if (props.pk) {
             await workflow.executeTransition(props.app, props.model, props.pk, selectedAction.value, router);
         }
-        toast.add({ severity: "success", summary: "transition succeed" });
+        toast.add({ severity: "success", summary: "transition succeeded" });
         router.back();
     } catch (error) {
         toast.add({ severity: "error", summary: "transition failed" });
@@ -131,7 +131,7 @@ const handleSubmit = async () => {
             </template>
         </page-title>
         <div>
-            available workflow transitions for {{ modelConfig.info?.verbose_name }} are {{ modelWorkFlowTransitions }}
+            available workflow transitions for {{ modelConfig.info?.verbose_name }} are {{ modelWorkflowTransitions }}
             <div v-if="availableTransitions.length">
                 <p>the available transitions for the select objects are</p>
                 <form @submit.prevent="handleSubmit">
@@ -140,7 +140,7 @@ const handleSubmit = async () => {
                             v-model="selectedAction"
                             :input-id="transition.code"
                             name="dynamic"
-                            :value="transition.name"
+                            :value="transition.code"
                         />
                         <label class="ml-2" :for="transition.code">{{ transition.name }}</label>
                     </div>

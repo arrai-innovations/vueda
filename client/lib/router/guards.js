@@ -5,6 +5,26 @@ import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import isEmpty from "lodash-es/isEmpty.js";
 
+let warnedAboutRouterActions = false;
+
+/**
+ * Convert transition objects into route-action identifiers.
+ * Transition `code` is the canonical machine identifier; `name` is display text only.
+ *
+ * @param {Array<{code?: string, name?: string}>} transitions
+ * @returns {string[]}
+ */
+function getTransitionActionCodes(transitions) {
+    return transitions.map((transition) => {
+        if (!transition?.code || typeof transition.code !== "string") {
+            throw new Error(
+                `requireModelInfo: workflow transition is missing a string code: ${JSON.stringify(transition)}`,
+            );
+        }
+        return transition.code;
+    });
+}
+
 /**
  * Wait for the user to be initialized. This is useful if you're making your own
  * custom guards that need to know if the user is logged in or not.
@@ -274,11 +294,17 @@ export async function requireModelInfo(instance, redirectTo, to, router, pinia) 
             pinia,
         );
         let actions = infoStore.actions.map((action) => action.name);
-        if (configStore.routerActions) {
-            actions = actions.filter((action) => configStore.routerActions.includes(action));
+        if ("routerActions" in configStore && configStore.routerActions !== undefined && !warnedAboutRouterActions) {
+            warnedAboutRouterActions = true;
+            console.warn(
+                "requireModelInfo: config.routerActions is deprecated and ignored. Use config.routeActions instead.",
+            );
+        }
+        if (Array.isArray(configStore.routeActions)) {
+            actions = actions.filter((action) => configStore.routeActions.includes(action));
         }
         if (transitionStore) {
-            actions = actions.concat(transitionStore.map((t) => t.name));
+            actions = actions.concat(getTransitionActionCodes(transitionStore));
         }
         const actionName = getActionName(to.params.action);
         if (actions.length && actions.includes(actionName)) {

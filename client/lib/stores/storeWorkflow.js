@@ -11,6 +11,29 @@ import { unref } from "vue";
 let usingVuedaWorkFlow = true;
 
 /**
+ * Ensure nested store maps exist for a particular app.model key.
+ *
+ * Some workflow fetch paths store per-object results under a two-level key:
+ * `bucket[appModelKey][objectPk]`. These containers must exist before indexing.
+ *
+ * @param {any} store
+ * @param {string} key
+ * @param {"objectStates"|"objectTransitions"|"objectHistories"} bucket
+ * @private
+ */
+const ensureWorkflowObjectBucket = (store, key, bucket) => {
+    if (!store[bucket][key]) {
+        store[bucket][key] = {};
+    }
+    if (!store.promises[bucket][key]) {
+        store.promises[bucket][key] = {};
+    }
+    if (!store.errors[bucket][key]) {
+        store.errors[bucket][key] = {};
+    }
+};
+
+/**
  * Set the usingVuedaWorkFlow value.
  *
  * @param {boolean} value - The value to set usingVuedaWorkFlow to.
@@ -340,6 +363,7 @@ export const storeWorkflow = defineStore("workflow", {
                 return Promise.resolve([]);
             }
             const key = getAppModelDotName({ app, model });
+            ensureWorkflowObjectBucket(this, key, "objectStates");
             const existing = this.objectStates[key][objectPk];
             const cachedError = this.errors.objectStates[key]?.[objectPk];
             if (existing) {
@@ -387,6 +411,7 @@ export const storeWorkflow = defineStore("workflow", {
             }
 
             const key = getAppModelDotName({ app, model });
+            ensureWorkflowObjectBucket(this, key, "objectTransitions");
             const existing = this.objectTransitions[key][objectPk];
             const cachedError = this.errors.objectTransitions[key]?.[objectPk];
             if (existing) {
@@ -418,7 +443,7 @@ export const storeWorkflow = defineStore("workflow", {
                         throw e;
                     })
                     .finally(() => {
-                        delete this.promises.objectStates[key][objectPk];
+                        delete this.promises.objectTransitions[key][objectPk];
                     });
             }
             return this.promises.objectTransitions[key][objectPk];
@@ -433,6 +458,7 @@ export const storeWorkflow = defineStore("workflow", {
                 return Promise.resolve([]);
             }
             const key = getAppModelDotName({ app, model });
+            ensureWorkflowObjectBucket(this, key, "objectHistories");
             const existing = this.objectHistories[key][objectPk];
             const cachedError = this.errors.objectHistories[key]?.[objectPk];
             if (existing) {

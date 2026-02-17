@@ -105,7 +105,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                     "permission__codename",
                 )
             ]
-            if workflow_permissions and not user.has_perms(workflow_permissions):
+            if not workflow_permissions or not user.has_perms(workflow_permissions):
                 raise PermissionDenied(
                     f"User {user.get_username()!r} does not have workflow permissions for {workflow.content_type!r}"
                 )

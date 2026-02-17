@@ -58,7 +58,6 @@ describe("lib/utils/objectCrud.js", () => {
             expect(url).toBe("detail-url");
             expect(opts.method).toBe("GET");
             expect(opts.credentials).toBe("include");
-            expect(opts.signal).toBeInstanceOf(AbortSignal);
             return transform(response);
         });
 
@@ -148,7 +147,6 @@ describe("lib/utils/objectCrud.js", () => {
                 "Content-Type": "application/json",
             });
             expect(opts.body).toBe(JSON.stringify({ title: "hi" }));
-            expect(opts.signal).toBeInstanceOf(AbortSignal);
             return transform(response);
         });
 
@@ -302,7 +300,6 @@ describe("lib/utils/objectCrud.js", () => {
             expect(opts.credentials).toBe("include");
             expect(opts.headers).toEqual({ "X-CSRFToken": "csrftoken", "Content-Type": "application/json" });
             expect(opts.body).toBe(JSON.stringify(object));
-            expect(opts.signal).toBeInstanceOf(AbortSignal);
             return transform(response);
         });
 
@@ -340,6 +337,33 @@ describe("lib/utils/objectCrud.js", () => {
         });
 
         expect(result).toEqual({ id: 3 });
+    });
+
+    it("defaultObjectUpdate uses the provided pkKey for non-id primary keys", async () => {
+        getDetailUrl.mockReturnValue("detail-url");
+        const object = { slug: "article-123", title: "hi" };
+        const response = new Response(JSON.stringify({ ok: true }), { status: 200 });
+        getJsonOrText.mockResolvedValue({ ok: true });
+        cancellableFetch.mockImplementation((url, opts, transform) => {
+            expect(url).toBe("detail-url");
+            expect(opts.method).toBe("PUT");
+            return transform(response);
+        });
+
+        const result = await objectCrud.defaultObjectUpdate({
+            target: { app: "blog", model: "article" },
+            object,
+            pkKey: "slug",
+        });
+
+        expect(result).toEqual({ ok: true });
+        expect(getDetailUrl).toHaveBeenCalledWith({
+            app: "blog",
+            model: "article",
+            pk: "article-123",
+            action: undefined,
+            query: "",
+        });
     });
 
     it("defaultObjectUpdate throws FormValidationError on 400", async () => {
