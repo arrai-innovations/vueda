@@ -9,7 +9,7 @@ import { isRef, reactive, ref, toRef, watch } from "vue";
 let isUsingWarnings = true;
 
 /**
- * Set the usingVuedaWorkFlow value.
+ * Set the usingVuedaWorkflow value.
  *
  * @param {boolean} value - The value to set isUsingWarnings to.
  */

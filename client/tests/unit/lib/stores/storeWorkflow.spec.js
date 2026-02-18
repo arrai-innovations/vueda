@@ -49,7 +49,7 @@ describe("lib/store/storeWorkflow.js", () => {
     });
 
     scopedIt("fetchWorkflowTransition resolves empty array when workflow disabled", async () => {
-        storeWorkflowModule.setUsingVuedaWorkFlow(false);
+        storeWorkflowModule.setUsingVuedaWorkflow(false);
         const store = storeWorkflow();
 
         const result = await store.fetchWorkflowTransition("app", "model");
