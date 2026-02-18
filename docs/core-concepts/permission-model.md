@@ -2,61 +2,82 @@
 title: Permission Model (CRUDL + Object + State)
 type: explanation
 audience: implementor
-status: briefing
+status: draft
 ---
 
 # Permission Model (CRUDL + Object + State)
 
-## Intent and Scope
+VUEDA enforces API authorization through a layered permission model. Every request passes through a DRF permission class that maps HTTP methods to permission codenames, a user-level permission mixin that composes baseline model permissions with workflow state overlays and row-level hooks, and viewset-level queryset filtering that controls row visibility in list and bulk-delete operations. These layers evaluate in a fixed order, and each layer can override the decision of the one before it.
 
-- Define the enforced permission boundary for CRUDL actions, object checks, row filters, and workflow-state overlays.
-- Capture authority and evaluation order across server layers: DRF permission class, user permission mixin, row-level hooks, and workflow transition gates.
-- Describe invariant behavior and observable failure surfaces for permission decisions.
-- Source anchors: `server/vueda/core/default_settings.py`, `server/vueda/core/models.py`, `server/vueda/core/permissions.py`, `server/vueda/user/mixins.py`, `server/vueda/core/viewsets/__init__.py`, `server/vueda/workflow/models.py`, `server/vueda/workflow/permissions.py`, `server/vueda/workflow/views.py`, `server/vueda/workflow/viewsets.py`, `server/tests/unit/core/test_permissions.py`, `server/tests/unit/core/test_row_level_permissions.py`, `server/tests/unit/workflow/test_model_mixin.py`, `server/tests/unit/workflow/test_viewsets.py`.
+This page explains the layers, their evaluation order, and the observable failure shapes they produce. For the boundary between server authorization and client UI affordance semantics, see [Authorization vs UI Semantics](./authorization-vs-ui-semantics). For mapping between Django's built-in permission names and VUEDA's CRUDL names, see [Map Django and VUEDA Permission Names](../guides/permission-name-mapping). For the deep mechanics of row-level queryset and instance filtering, see [Row-Level Permission Filtering](./row-level-permission-filtering). For the full workflow overlay model, including state permission data and transition gates, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
 
-## Non-goals
+## Permission Authority Layers
 
-- Not a walkthrough for assigning permissions or creating groups.
-- Not a catalog of every app/model-specific permission codename.
-- Not a client-side UI permission strategy.
+Authorization decisions flow through four layers, evaluated in order. Each layer can override the outcome of the previous one.
 
-## Key Concepts
+**Layer 1: Baseline model permission.** `VUEDAPermissionsMixin.has_perm` begins by calling Django's standard `has_perm` without passing an object. This produces a boolean based on the user's assigned permissions and group memberships, the same check that Django would perform natively. The result becomes the starting decision. Superusers short-circuit the entire evaluation and always receive `True`.
 
-### CRUDL codenames are the base contract
+**Layer 2: Workflow state overlay.** When the object under evaluation participates in a workflow and that workflow is active, `check_state_permission` evaluates `StatePermission` entries that match the object's current state, the user's groups, and the required permission codename. The result is a tri-state: `True` (grant), `False` (deny), or `None` (no opinion). A grant overrides a baseline denial; a deny overrides a baseline grant. `None` preserves the baseline decision. When multiple state-permission rules match: for example, a user belongs to two groups with conflicting rules, deny wins over grant.
 
-- What it is: VUEDA model defaults expose `create/read/update/delete/list`, and DRF defaults enforce `ObjectPermissions`.
-- Why it exists: permission codenames stay aligned with CRUDL semantics instead of Django `add/change/view`.
-- Where it lives: `server/vueda/core/models.py`, `server/vueda/core/default_settings.py`, `server/vueda/core/patch_django.py`, `server/vueda/core/permissions.py`, `server/tests/unit/core/test_permissions.py`.
+**Layer 3: Row-level instance check.** When an object is present and the model defines a `RowLevelPermissions` class, `check_instance` evaluates the object against project-defined row-level logic. The return is `True`, `False`, or `None`. A non-`None` result overrides the decision from layers 1 and 2. This layer is skipped when the workflow state overlay denied permission (layer 2 returned `False`), because the state denial is considered authoritative for non-workflow-aware row logic.
 
-### HTTP/action mapping is action-sensitive for `GET`
+**Layer 4: Workflow-aware row-level check.** When the object participates in a workflow and a `RowLevelPermissions` class exists, `check_instance_workflow` runs regardless of whether layer 2 denied permission. This hook receives the `grant_or_deny` outcome from layer 2 as an argument, allowing project-defined logic to override even a state denial. A non-`None` result from this layer becomes the final decision.
 
-- What it is: `ObjectPermissions` maps `GET` to `list_*` for list actions and `read_*` otherwise; write methods map to `create/update/delete`.
-- Why it exists: list access and detail-read access are separate contracts.
-- Where it lives: `server/vueda/core/permissions.py`, `server/tests/unit/core/test_permissions.py`.
+The layered design means that the same permission codename can produce different outcomes for different objects of the same model. Two objects in different workflow states, or two objects that trigger different row-level logic, can yield opposite authorization decisions even though the user's baseline model permission is the same for both.
 
-### Object decisions are layered, with later object-level checks able to override earlier model-level outcomes
+## CRUDL Codename and Action Mapping
 
-- What it is: `VUEDAPermissionsMixin.has_perm` starts from baseline model permission, applies workflow state grant/deny, then applies row-level `check_instance` when an object is present.
-- Why it exists: state and row policy can narrow or widen access per object without changing global model permissions.
-- Where it lives: `server/vueda/user/mixins.py`, `server/vueda/workflow/models.py`, `server/tests/unit/workflow/test_model_mixin.py`.
+VUEDA replaces Django's default permission codename vocabulary. Where Django generates `add`, `change`, `view`, and `delete` codenames, VUEDA's base model meta declares `create`, `read`, `update`, `delete`, and `list` as the default permission set. The `patch_django` module monkey-patches Django's codename generation and built-in permission creation to use these names, so permission rows in `auth_permission` carry CRUDL labels from initial migration onward. See [Map Django and VUEDA Permission Names](../guides/permission-name-mapping) for the configuration and validation details.
 
-### Queryset filtering is the list/bulk-delete row-level boundary
+The DRF permission class `ObjectPermissions` maps HTTP methods to CRUDL codenames. The mapping is straightforward for write methods: `POST` requires `create_*`, `PUT` and `PATCH` require `update_*`, and `DELETE` requires `delete_*`. For `GET`, the mapping is action-sensitive. When the viewset action is `list`, the required codename is `list_*`. For all other `GET` actions (retrieve, custom detail actions), the required codename is `read_*`. This split means that a user can have list access without detail-read access, or vice versa — the two are independent permission decisions.
 
-- What it is: `check_queryset` may return `Q`, `False`, `True`, or `None`; list and bulk-delete paths apply that result before serialization or deletion.
-- Why it exists: row-level visibility and bulk mutation eligibility are enforced at queryset scope.
-- Where it lives: `server/vueda/core/permissions.py`, `server/vueda/core/viewsets/__init__.py`, `server/tests/models.py`, `server/tests/unit/core/test_row_level_permissions.py`.
+The codename pattern is `{app_label}.{action}_{model_name}`. For a model `myapp.Widget`, the five base codenames are `myapp.create_widget`, `myapp.read_widget`, `myapp.update_widget`, `myapp.delete_widget`, and `myapp.list_widget`.
 
-### Workflow is an overlay, not a replacement
+## Object-Level Decision Precedence
 
-- What it is: workflow-aware permission paths can bypass model-level denial when state-permission rows exist, then defer final decision to object/state/transition checks.
-- Why it exists: state permissions are row-level by design and cannot be fully decided at model scope.
-- Where it lives: `server/vueda/core/permissions.py`, `server/vueda/workflow/permissions.py`, `server/vueda/workflow/views.py`, `server/vueda/workflow/models.py`.
+DRF evaluates permissions in two phases: a model-scope check (`has_permission`) that runs before the object is fetched, and an object-scope check (`has_object_permission`) that runs after the object is available.
 
-### Transition execution has independent workflow and transition gates
+The model-scope check is where VUEDA introduces its first override. For models that participate in a workflow, `ObjectPermissions.has_permission` checks whether any `StatePermission` grant rows exist for the user's groups and the required codename. If such rows exist, the model-scope check returns `True` immediately, deferring the real decision to the object-scope phase. This bypass is necessary because state permissions depend on an object's current state, which is not available at model scope. Without the bypass, a user who lacks the baseline model permission would be denied before the object is fetched, even though a state-permission grant would have allowed access to specific objects.
 
-- What it is: transition execution requires workflow-level permission, transition-level permission(s), and source-state validity.
-- Why it exists: transition authorization is distinct from CRUDL update/read permission.
-- Where it lives: `server/vueda/workflow/models.py`, `server/vueda/workflow/viewsets.py`, `server/tests/unit/workflow/test_model_mixin.py`, `server/tests/unit/workflow/test_viewsets.py`.
+The consequence of this bypass is that the failure shape changes. Without workflow state permissions, a user missing a model permission sees a `403` from the model-scope check; the object is never fetched. With workflow state permissions present (even if none apply to the user's current request), the model-scope check may pass, and the denial moves to the object-scope phase. Depending on the endpoint, this can change a `403` into a `404` (when the object-scope check causes DRF to raise `Http404` instead) or shift the error to a different point in the request lifecycle.
+
+## Queryset-Level Row Filtering
+
+Row-level filtering operates at the queryset scope, controlling which rows appear in list responses and which rows are eligible for bulk deletion. This is a separate path from the object-level permission layers described above; queryset filtering applies before pagination and serialization, while object-level checks apply to individual instances.
+
+The two hooks, `check_queryset` and `check_instance`, are independent interfaces because they serve different purposes and may intentionally implement different rules. Queryset filtering must express its logic as a `Q` object or a boolean; it operates at database scope and cannot make per-row decisions that require object state, external lookups, or expensive computation. Instance checks operate on a materialized object and can implement arbitrarily complex logic, including remote API calls or cross-system policy evaluation. This means a project may intentionally grant list visibility to rows that would be denied at instance scope, or vice versa. The two layers are designed to operate independently and may produce different outcomes.
+
+The queryset hook, `BaseRowLevelPermissions.check_queryset`, returns one of four values: a `Q` object that filters the queryset, `False` to return an empty queryset, `True` to skip filtering, or `None` to skip filtering. The viewset's `apply_row_level_filter` method applies the result. For list operations, filtering runs after DRF filter backends but before pagination, so `totalRecords` and `totalPages` in the response reflect the filtered row count. For bulk delete, the same filtering is applied to the requested PKs before object-level permission checks are applied per instance.
+
+For models under workflow, two additional queryset hooks exist: `check_queryset_workflow` operates on a queryset pre-annotated with state permission information, enabling row-level logic that accounts for workflow state.
+
+The full mechanics of queryset and instance filtering, including pagination interaction and bulk-delete eligibility contracts, are covered in [Row-Level Permission Filtering](./row-level-permission-filtering).
+
+## Workflow Overlay and Transition Gates
+
+Workflow permissions operate on the same permission codename strings as baseline CRUDL permissions. A `StatePermission` entry targets a specific workflow state, group, and permission codename with a grant-or-deny flag. This means the workflow overlay does not create a parallel authorization namespace — it modifies the outcomes of the same codenames that model-level permissions use.
+
+Transition execution is a separate authorization surface from CRUDL operations. Executing a transition requires three things: workflow-level permission (at least one `WorkflowPermission` entry exists for the user's groups and the workflow's content type), transition-level permission (at least one `TransitionPermission` entry exists for the user's groups and the specific transition), and source-state validity (the object's current state is a valid source for the transition). Transitions without transition-permission rows are treated as not permitted; there is no default-allow path.
+
+Workflow endpoints impose an additional viewset-level gate: the `vueda_workflow.read_workflow` permission must be present before any workflow endpoint (object state, permitted transitions, execute transition) processes. This check runs at the viewset `check_permissions` phase, before object-specific authorization.
+
+For a complete explanation of the workflow overlay model, including state permission evaluation, how model-scope bypass works, and the details of transition gates, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
+
+## Observable Failure Shapes
+
+Permission denials surface as different HTTP status codes, depending on the layer and endpoint that produced the denial. The mapping is not always intuitive.
+
+**Model-scope denial produces `403`.** When the DRF permission class denies at model scope (no workflow bypass, or the user lacks the baseline permission and no state-permission grants exist), the response is `403 Forbidden`. The object is never fetched.
+
+**Object-scope denial may produce `404`.** When model-scope passes but object-scope denies, DRF's default behavior can raise `Http404` instead of `PermissionDenied`, depending on how `check_object_permissions` is wired. For row-level filtered objects, a retrieve request for a filtered-out object returns `404` — the object's existence is hidden from the user. A list request with row-level filtering returns `200` with filtered or empty results, never `403`.
+
+**Bulk delete with mixed eligibility produces `400`.** When a bulk-delete request includes PKs that are partially filtered out by row-level or object-level checks, the entire operation fails. No rows are deleted. The response is a `400` with validation errors keyed by PK, using the message `"Object with pk=... does not exist."` — the same message used for genuinely missing PKs, which hides the distinction between "does not exist" and "exists but not permitted."
+
+**Workflow endpoint denial produces `403` before object checks.** If the user lacks `vueda_workflow.read_workflow`, all workflow endpoints return `403` before any object-specific logic runs. This can mask the actual authorization outcome; the user might have object-level permissions, but the viewset-level gate prevents the evaluation from reaching the point where those permissions would be evaluated.
+
+**Transition execution failures produce `400`.** When `apply_transition` raises `PermissionDenied` or `InvalidTransitionError`, the viewset converts it to a `400` validation-style response rather than a `403`. Transition failure is communicated as a validation outcome, not as an HTTP-level authorization rejection. Lock acquisition failures (when `select_for_update(skip_locked=True)` cannot acquire the row lock) also surface as `400` with the message `"This object cannot be updated right now. Please try again."`.
+
+**State-permission data changes the model-scope gate behavior.** The presence of `StatePermission` rows for a workflow activates the model-scope bypass path in `ObjectPermissions`. This means that adding or removing state-permission data can change which layer produces the denial, thereby altering the HTTP status code and error message. A model that previously returned `403` at model scope may start returning `404` at object scope (or vice versa) after state-permission rows are added or removed.
 
 ## Relevant Implementation Surface
 
@@ -94,36 +115,3 @@ status: briefing
 - `{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}`
 - `{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}`
 - `{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}`
-
-## Contracts and Invariants
-
-- Base model permissions include `create/read/update/delete/list`, and DRF default permission class is `ObjectPermissions`. Anchors: `server/vueda/core/models.py`, `server/vueda/core/default_settings.py`.
-- `ObjectPermissions` maps `GET` to `list_*` for `view.action == "list"` and `read_*` otherwise; write methods map to CRUDL codenames. Anchors: `server/vueda/core/permissions.py`, `server/tests/unit/core/test_permissions.py`.
-- Workflow-aware model-level checks can short-circuit to allow when state permissions are present, deferring final decision to object-level checks. Anchors: `server/vueda/core/permissions.py`, `server/vueda/workflow/permissions.py`, `server/vueda/workflow/views.py`.
-- Object-level decision order is: baseline model permission result, then workflow state grant/deny override, then row-level `check_instance` override (if not `None`). Anchors: `server/vueda/user/mixins.py`, `server/tests/unit/workflow/test_model_mixin.py`.
-- State-rule conflict resolution is deterministic: deny wins over grant when multiple matching group rules exist. Anchors: `server/vueda/workflow/models.py`, `server/tests/unit/workflow/test_model_mixin.py`.
-- Row-level queryset hook semantics are fixed: `Q` filters rows, `False` returns empty queryset, `True`/`None` do not filter. Anchors: `server/vueda/core/permissions.py`, `server/vueda/core/viewsets/__init__.py`.
-- List and bulk-delete paths enforce queryset-level row filtering; bulk-delete also enforces object-level checks per instance before deletion. Anchors: `server/vueda/core/viewsets/__init__.py`, `server/tests/unit/core/test_row_level_permissions.py`, `server/tests/unit/core/test_viewsets.py`.
-- Bulk-delete treats filtered-out IDs as missing and returns validation errors keyed by PK (`Object with pk=... does not exist.`). Anchors: `server/vueda/core/viewsets/__init__.py`, `server/tests/unit/core/test_row_level_permissions.py`, `server/tests/unit/core/test_viewsets.py`.
-- Workflow transition surface requires `vueda_workflow.read_workflow` at viewset level before workflow/object transition endpoints execute. Anchors: `server/vueda/workflow/viewsets.py`, `server/tests/unit/workflow/test_viewsets.py`.
-- `available_transitions` / `available_transitions_for` raise `PermissionDenied` when workflow permissions are absent for a non-`None` user; transition-level permissions are then checked per transition. Anchors: `server/vueda/workflow/models.py`, `server/tests/unit/workflow/test_model_mixin.py`.
-- `check_transition_permission` denies transitions that have no transition-permission rows (`False` path), so transition metadata must include explicit transition permission entries. Anchors: `server/vueda/workflow/models.py`.
-- `apply_transition` returns `(target_state, history_id|None)` and raises `PermissionDenied` or `InvalidTransitionError` for unauthorized/unavailable transitions. Anchors: `server/vueda/workflow/models.py`, `server/tests/unit/workflow/test_model_mixin.py`.
-
-## Footguns
-
-- Row-level denial on object reads can manifest as `404` rather than `403` on retrieve, while list still returns `200` with filtered/empty results. Anchors: `server/tests/unit/core/test_row_level_permissions.py`.
-- Bulk delete with mixed row-level eligibility fails as `400` with missing-PK errors and performs no deletion for requested rows. Anchors: `server/tests/unit/core/test_row_level_permissions.py`, `server/vueda/core/viewsets/__init__.py`.
-- Removing workflow-permission rows can break transition discovery (`available_transitions*`) with `PermissionDenied` even when transition definitions exist. Anchors: `server/tests/unit/workflow/test_model_mixin.py`, `server/vueda/workflow/models.py`.
-- Workflow endpoints can return `403` before object-specific checks if `vueda_workflow.read_workflow` is missing. Anchors: `server/vueda/workflow/viewsets.py`, `server/tests/unit/workflow/test_viewsets.py`.
-- Transition execution can fail with `400` and `This object cannot be updated right now. Please try again.` when row locks cannot be acquired. Anchors: `server/vueda/workflow/viewsets.py`, `server/tests/unit/workflow/test_viewsets.py`.
-- State-permission presence changes model-level gate behavior (defer-to-object path), which can alter failure shape between model-scope checks and object-scope checks across endpoints. Anchors: `server/vueda/core/permissions.py`, `server/vueda/workflow/permissions.py`, `server/vueda/workflow/views.py`.
-
-## Suggested Outline
-
-- `## Permission Authority Layers`
-- `## CRUDL Codename and Action Mapping`
-- `## Object-Level Decision Precedence`
-- `## Queryset-Level Row Filtering Boundary`
-- `## Workflow Overlay and Transition Gates`
-- `## Failure Surface Taxonomy`

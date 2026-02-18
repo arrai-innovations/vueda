@@ -30,9 +30,13 @@ status: briefing
 ### Model-scoped row-level hook (`RowLevelPermissions`)
 
 - What it is: An optional model attribute `RowLevelPermissions` implementing `BaseRowLevelPermissions.check_queryset(...)`
-  and `BaseRowLevelPermissions.check_instance(...)`. Anchors: `server/vueda/core/permissions.py`, `server/tests/models.py`.
-- Why it exists: Separate row visibility (queryset) from row permission decisions (instance) without forcing per-row checks
-  in list views. Anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/user/mixins.py`.
+  and `BaseRowLevelPermissions.check_instance(...)`. The two hooks are independent interfaces that may intentionally
+  implement different rules. Anchors: `server/vueda/core/permissions.py`, `server/tests/models.py`.
+- Why it exists: Separate row visibility (queryset) from row permission decisions (instance) because they operate at
+  different scopes with different constraints. Queryset filtering must express logic as `Q`/boolean at database scope;
+  instance checks operate on materialized objects and can implement arbitrarily complex logic (remote API calls,
+  cross-system policy). Projects may intentionally grant list visibility to rows denied at instance scope, or vice versa.
+  Anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/user/mixins.py`.
 - Where it lives: `server/vueda/core/permissions.py` (base hook), per-model `RowLevelPermissions` (e.g. tests).
   Anchors: `server/vueda/core/permissions.py`, `server/tests/models.py`.
 
@@ -107,9 +111,11 @@ status: briefing
 
 ## Footguns
 
-- Queryset/instance divergence:
+- Unintentional queryset/instance divergence:
   - Symptom: an object appears in list but retrieve returns `404`, or list hides an object that retrieve would allow.
   - Cause: `check_queryset(...)` and `check_instance(...)` are independent hooks with no internal consistency checks.
+    Intentional divergence (different business rules or performance trade-offs at each scope) is a valid design choice,
+    but accidental divergence produces confusing behavior. No framework-level validation warns when the two hooks disagree.
   - Anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/user/mixins.py`, `server/tests/unit/core/test_row_level_permissions.py`.
 - Non-list endpoints and custom actions:
   - Symptom: unauthorized rows included in a response produced by a custom action or overridden `list()` implementation.

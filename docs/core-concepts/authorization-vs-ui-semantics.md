@@ -2,50 +2,82 @@
 title: Authorization vs UI Semantics
 type: explanation
 audience: implementor
-status: briefing
+status: draft
 ---
 
 # Authorization vs UI Semantics
 
-## Intent and Scope
+VUEDA separates authorization from UI action semantics into two independent systems for evaluation. The server owns authorization; every API request is checked against DRF permission classes and the layered permission model described in [Permission Model](./permission-model). The client owns action visibility and route admission; deciding which views to navigate to and which buttons to render, based on metadata the server provides. The client does not evaluate Django permission codenames. It consumes action metadata that the server has already permission-filtered and uses it to make semantic decisions about navigation and affordances.
 
-- Define the boundary between server authorization authority and client action/view affordance semantics.
-- Define where action availability is computed at model scope vs object scope, and where route admission is decided.
-- Define why the client does not evaluate Django permission codenames as an authorization engine.
-- Define failure shapes when UI-semantic admission diverges from server object-level authorization.
-- Source anchors: `server/vueda/core/default_settings.py`, `server/vueda/core/permissions.py`, `server/vueda/user/mixins.py`, `server/vueda/info/serializers.py`, `server/vueda/core/serializers/fields.py`, `client/lib/router/guards.js`, `client/lib/router/makeCrud.js`, `client/lib/views/ViewActionRouter.vue`, `client/lib/use/useFilteredActions.js`, `client/lib/components/DetailedView.vue`, `client/lib/stores/storeModelInfo.js`, `client/lib/stores/storeWorkflow.js`.
+This page explains the boundary between these two systems, where each system derives its action sets, and the failure shapes that occur when they diverge. For the server-side permission layers themselves, see [Permission Model](./permission-model). For practical guidance on controlling which actions appear in the UI, see [Control Action Availability](../guides/control-action-availability).
 
-## Non-goals
+## Authorization Authority Boundary
 
-- Not a how-to for configuring route guards, model config, or permissions.
-- Not a complete permission taxonomy for CRUDL/workflow/row-level internals.
-- Not a UI design guide for button placement or interaction patterns.
+The server is the sole authority for data access and mutation rights. DRF's default permission class, `ObjectPermissions`, enforces CRUDL codename checks on every request. Object-level decisions compose baseline model permissions with workflow-state overlays and row-level hooks via `VUEDAPermissionsMixin.has_perm`. This enforcement applies uniformly: model-info endpoints, CRUDL operations, workflow endpoints, and custom actions all pass through the same permission class.
 
-## Key Concepts
+The client cannot enforce authorization. It has no access to permission codenames, group memberships, or row-level policy. What the client does have is metadata: the server tells it which actions are available, and the client uses that information to shape the UI. But metadata-driven UI shaping is not authorization. Hiding a button or blocking a route does not revoke the underlying API permission. A direct API call bypasses the client entirely and succeeds or fails based solely on server rules.
 
-### Server authorization is the authority boundary
+This asymmetry is intentional. Duplicating permission logic on the client would require shipping codename semantics, group resolution, workflow state evaluation, and row-level hook logic to the browser; this would create a parallel authorization engine that would need to stay synchronized with the server. Instead, the client delegates authorization to the server and focuses on what it can own: which views to present and which actions to surface.
 
-- What it is: API authorization is enforced server-side through default DRF permissions and view/action permission checks, with object-level decisions composed in `VUEDAPermissionsMixin.has_perm`.
-- Why it exists: client visibility and routing logic cannot enforce data access or mutation rights.
-- Where it lives: `server/vueda/core/default_settings.py`, `server/vueda/core/permissions.py`, `server/vueda/user/mixins.py`, `server/tests/unit/core/test_permissions.py`.
+## Model-Scope vs Object-Scope Action Semantics
 
-### Model-scope action metadata and object-scope action metadata are distinct
+The server provides action metadata at two distinct scopes, and the distinction matters for understanding what the client consumes.
 
-- What it is: `model_actions` are computed from canonical viewset permissions at model scope, while `available_actions` are computed against concrete objects; `model_permissions` is a model permission catalog and not an executable, user-filtered action list.
-- Why it exists: route-level and config-level affordances need model metadata, but object pages need per-instance action truth.
-- Where it lives: `server/vueda/info/serializers.py`, `server/vueda/core/serializers/fields.py`, `server/tests/unit/info/test_model_info.py`, `server/tests/unit/core/test_viewsets.py`.
+**`model_actions`** are computed at model scope. The model-info endpoint evaluates which CRUDL and extra actions the requesting user is permitted to perform, based on the canonical viewset's permission checks run with a synthetic request and no object. This produces a list of action names: `create`, `read`, `update`, `delete`, `list`, plus any extra actions permitted by `get_allowed_extra_actions`. The result is user-specific (different users may see different action sets) but not object-specific (the check does not evaluate against any particular instance). Route guards and model-level configuration consume this metadata.
 
-### Client route admission is a semantic gate, not an authorization gate
+**`available_actions`** are computed at object scope. When the server serializes an individual object, the `AvailableActionsField` runs object-level permission checks across the standard CRUDL actions (excluding `create`, which does not apply to existing instances) and appends any permitted extra actions. The result is both user-specific and object-specific: two objects of the same model may report different available actions for the same user, because workflow state or row-level hooks produce different outcomes per instance. Detail views consume this metadata to determine which action buttons to show for a specific object.
 
-- What it is: route entry checks action presence in model-info actions, optional config `routeActions`, and workflow transition codes.
-- Why it exists: avoid navigating to views without declared action semantics and avoid duplicating server permission codename logic client-side.
-- Where it lives: `client/lib/router/makeCrud.js`, `client/lib/router/guards.js`, `client/tests/unit/lib/router/guards.spec.js`.
+**`model_permissions`** is a third metadata surface that is sometimes confused with the other two. It returns the content-type permission catalogue for the model; the full set of permission codenames that exist, regardless of whether the requesting user holds them. It is not user-filtered and not an executable action list. Using `model_permissions` as the source of truth for action availability over-advertises capabilities: the UI may suggest operations that the user cannot perform.
 
-### UI action visibility is a layered affordance filter
+## Route Admission Semantics
 
-- What it is: UI-visible actions are filtered by model config/group mapping and, for detail views, intersected with server-returned `available_actions`.
-- Why it exists: support product-specific affordances while retaining object-level action truth.
-- Where it lives: `client/lib/use/useFilteredActions.js`, `client/lib/components/DetailedView.vue`, `client/lib/views/ViewList.vue`, `client/tests/unit/lib/use/useFilteredActions.spec.js`.
+Client-side route admission determines whether navigation to a view is permitted. It is a semantic gate, not an authorization gate; it checks whether the target action has been declared as available in the metadata, not whether the user holds the underlying permission codename.
+
+CRUD route generation inserts the `requireModelInfo` guard on every list and detail route. When navigation triggers, the guard fetches model-info for the target model (if not already cached), normalizes the route's action name through `getActionName` (which maps `read` to `retrieve`), and checks whether that normalized name exists in the computed action set.
+
+The action set for route admission is the union of three sources: the `model_actions` returned by the server, the optional `routeActions` configuration that constrains which actions are admitted for this model's routes, and workflow transition codes fetched from the permitted-transitions endpoint. If the target action is not found in this union, the guard redirects to the list view and shows an "Action Not Found" toast. The legacy `routerActions` configuration key is ignored, only `routeActions` constrains route admission.
+
+Route admission can succeed even if the eventual API call fails. The guard evaluates model-scope metadata, but the actual operation may be denied at object scope. A user might be admitted to a detail view because `read` exists in `model_actions`, but the specific object they navigate to might be filtered out by row-level permissions, producing a `404` on the API fetch. The route guard's purpose is to prevent navigation to views that have no declared semantics, not to pre-evaluate object-level authorization.
+
+## UI Affordance Filtering
+
+Once a route is admitted and a view renders, the actions visible in the UI are filtered through a separate layer. This filtering is an affordance decision, controlling what the user sees, not an authorization decision.
+
+`useFilteredActions` is the primary affordance filter. It takes the model's configured `actions` map (which maps action names to group requirements) and the user's group memberships, and returns the subset of actions the user should see. This is a client-side intersection: the server is not consulted for this filter. It enables product-specific affordances; a single product deployment can display a subset of actions to certain groups without changing server permissions.
+
+For list views, the visible actions are the output of `useFilteredActions`. For detail views, the visible actions are the intersection of the filtered UI actions and the server's `available_actions` for the specific object. This intersection is the bridge between the two systems: the client's affordance preferences are combined with the server's object-level permission truth. An action that passes the client's group filter but is absent from the object's `available_actions` will not render.
+
+This means that detail-view action buttons reflect real-time, per-object authorization truth. If a workflow state denies update permission on a specific object, the update button disappears from that object's detail view; not because the client evaluated a permission rule, but because the server's `available_actions` response excluded `update` for that instance.
+
+## Workflow Transition Action Namespace
+
+Workflow transitions participate in the same action namespace as CRUDL and extra actions. They are not a separate routing or affordance system — transition codes are treated as first-class action identifiers at every level where actions are evaluated.
+
+On the server, the `permitted_transitions` endpoint returns transition objects with `code` and `name` properties for transitions that the requesting user is permitted to execute. This endpoint enforces `vueda_workflow.read_workflow` at the viewset level and, at the transition level, performs permission checks per transition. The `code` property is the machine identifier; `name` is display text only.
+
+On the client, transition codes are extracted from the permitted-transitions response and appended to the action set that route guards consume. The `requireModelInfo` guard concatenates transition codes with model-info actions before checking whether the route's target action exists in the set. This means a route to a transition view is allowed only if the transition's code appears in the user's permitted transitions, which are themselves permission-filtered by the server.
+
+`ViewActionRouter` resolves views by searching both the actions array and the transitions array. When the normalized action name matches a transition code, the router renders the transition view for the workflow. When an action name with the literal value `transition` is encountered, it renders the workflow transition view directly. This parallel lookup means transitions and standard actions share a single resolution path.
+
+Detail and list views render transition buttons alongside standard action buttons. `DetailedView` extracts transition codes from the workflow store and renders them as available transitions. `ViewList` creates a set of transition codes and unions them with bulk actions for model-level rendering. In both cases, transitions appear in the same button area as CRUDL actions.
+
+Transition availability is model-scoped for route admission but can be object-scoped for execution. A route may be admitted for a transition code (because the transition appears in permitted transitions for the model), but execution on a specific object may fail if that object is not in a valid source state for the transition. This failure surfaces as a `400` validation error from `execute_transition`, not as a route rejection.
+
+## Divergence and Failure Signatures
+
+The separation between server authorization and client UI semantics creates predictable divergence points. Understanding these helps diagnose situations where the UI shows one thing, but the API does another.
+
+**UI-hidden action, API-permitted.** Removing an action from `config.actions` or constraining `routeActions` hides buttons and blocks routes, but the API permission remains intact. A direct API call (or a client-side navigation that bypasses the guard) succeeds if the server permits it. This is by design — the client controls affordances, not authorization.
+
+**Route-admitted action, object-scope denial.** The route guard admits a view because the action exists in model-scope metadata, but the API call for the specific object returns `404` (row-level filtered) or `403` (object-level denied). This happens because route admission is model-scoped and the denial is object-scoped. The user sees the view for a brief moment before the error occurs.
+
+**`model_permissions` vs `model_actions` confusion.** `model_permissions` lists all permission codenames for a content type. `model_actions` lists the actions the requesting user can perform. Using `model_permissions` to drive UI affordances suggests capabilities the user may not have. The correct source for action-driven UI is `model_actions` (model scope) or `available_actions` (object scope).
+
+**Action name normalization mismatch.** The action namespace uses `retrieve` internally, but external references may use `read`. `getActionName` normalizes `read` to `retrieve` before matching. If a custom action or route uses `read` without normalization, the guard or `ViewActionRouter` will not find a match. The symptom is an "Action Not Found" toast or a `ViewActionNotFound` render.
+
+**Transition code absence or invalidity.** If a transition lacks a string `code` in the server response, the route guard throws rather than redirecting. The navigation aborts without the standard "Action Not Found" toast. If transition-permission rows are missing on the server, the transition code never appears in permitted transitions, so the route guard redirects normally; the code is simply absent from the action set.
+
+**Cached metadata errors.** Both `storeModelInfo` and `storeWorkflow` cache fetch errors. If a model-info or permitted-transitions fetch fails (network error, 403, invalid response), the error is cached per `app.model` key. Subsequent navigation attempts for the same model short-circuit to the cached error without retrying the fetch. Recovery requires recreating the store instance (typically through component lifecycle reset).
 
 ## Relevant Implementation Surface
 
@@ -81,40 +113,3 @@ status: briefing
 - `{@api js:module:@arrai-innovations/vueda.use/useFilteredActions}`
 - `{@api js:function:@arrai-innovations/vueda.use/useFilteredActions.useFilteredActions}`
 - `{@api vue:component:ViewActionRouter}`
-
-## Contracts and Invariants
-
-- REST default permission enforcement is `ObjectPermissions`, so authorization checks are server-owned even for model-info endpoints. Anchors: `server/vueda/core/default_settings.py`, `server/vueda/info/viewsets.py`.
-- CRUDL codename mapping is action-sensitive for `GET`: list routes require `list_*`; non-list `GET` requires `read_*`. Anchors: `server/vueda/core/permissions.py`, `server/tests/unit/core/test_permissions.py`.
-- `VUEDAPermissionsMixin.has_perm` composes baseline Django permission checks with workflow state and row-level overrides when object context exists. Anchors: `server/vueda/user/mixins.py`.
-- `model_actions` are permission-filtered per request/user by running canonical viewset object-permission checks with a synthetic request and `obj=None`; extra actions are further filtered by `get_allowed_extra_actions`. Anchors: `server/vueda/info/serializers.py`, `server/tests/unit/info/test_model_info.py`, `server/tests/store/viewsets.py`.
-- `model_permissions` returns content-type permission metadata and is not filtered to currently executable actions for the requesting user. Anchors: `server/vueda/info/serializers.py`, `server/tests/unit/info/test_model_info.py`.
-- `available_actions` is per-object metadata derived from object-permission checks across standard actions, then extended with allowed extra actions; create is excluded on concrete instances. Anchors: `server/vueda/core/serializers/fields.py`, `server/tests/unit/core/test_viewsets.py`.
-- CRUD route generation always inserts `requireModelInfo` as a route guard for list and detail CRUD routes. Anchors: `client/lib/router/makeCrud.js`, `client/tests/unit/lib/router/makeCrud.spec.js`.
-- `requireModelInfo` permits navigation only when the normalized route action exists in the computed action set (model-info actions, optional `routeActions` filter, and workflow transition codes). Anchors: `client/lib/router/guards.js`, `client/tests/unit/lib/router/guards.spec.js`.
-- Legacy `config.routerActions` is ignored; only `config.routeActions` constrains route-admitted actions. Anchors: `client/lib/router/guards.js`, `client/tests/unit/lib/router/guards.spec.js`.
-- Route/view action normalization maps `read` to `retrieve` before matching. Anchors: `client/lib/utils/actionMap.js`, `client/tests/unit/lib/utils/actionMap.spec.js`, `client/lib/views/ViewActionRouter.vue`.
-- Client group-based action filtering (`useFilteredActions`) is an affordance filter over `config.actions`, not an API permission decision path. Anchors: `client/lib/use/useFilteredActions.js`, `client/tests/unit/lib/use/useFilteredActions.spec.js`.
-- Detail-view action affordances are the intersection of filtered UI actions and server object `available_actions`. Anchors: `client/lib/components/DetailedView.vue`, `server/vueda/core/serializers/fields.py`.
-- Workflow transition affordance ingestion depends on permitted-transition endpoint results; server enforces `vueda_workflow.read_workflow` and transition/workflow permission checks. Anchors: `server/vueda/workflow/viewsets.py`, `server/tests/unit/workflow/test_viewsets.py`, `client/lib/stores/storeWorkflow.js`, `client/lib/router/guards.js`.
-
-## Footguns
-
-- UI-hiding an action (`config.actions` / `routeActions`) does not revoke API permission; direct API calls can still be authorized or denied solely by server rules. Symptoms: hidden button or blocked route, but API returns success/403 based on server permissions. Anchors: `client/lib/use/useFilteredActions.js`, `client/lib/router/guards.js`, `server/vueda/core/permissions.py`.
-- Treating `model_permissions` as executable action truth can over-advertise capabilities. Symptoms: UI suggests operations that are absent from `model_actions` or denied by object-level checks. Anchors: `server/vueda/info/serializers.py`, `server/tests/unit/info/test_model_info.py`.
-- Route-admitted actions can still fail at object scope. Symptoms: route resolves, then object fetch/action returns `404` (row-level filtered) or `403`. Anchors: `client/lib/router/guards.js`, `server/tests/unit/core/test_row_level_permissions.py`, `server/vueda/core/viewsets/__init__.py`.
-- Action-name drift (`read` vs `retrieve`) causes affordance mismatches. Symptoms: `Action Not Found` toast or `ViewActionNotFound` render for routes/actions that are semantically equivalent but not normalized. Anchors: `client/lib/utils/actionMap.js`, `client/lib/router/guards.js`, `client/lib/views/ViewActionRouter.vue`.
-- Transition entries without string `code` break route guard evaluation. Symptoms: thrown error (`requireModelInfo: workflow transition is missing a string code`) and aborted navigation without guard-generated toast. Anchors: `client/lib/router/guards.js`, `client/tests/unit/lib/router/guards.spec.js`.
-- Model-info and workflow transition fetch failures are cached in stores. Symptoms: repeated navigation attempts short-circuit to the same cached error until store lifecycle reset. Anchors: `client/lib/stores/storeModelInfo.js`, `client/lib/stores/storeWorkflow.js`, `client/tests/unit/lib/stores/storeWorkflow.spec.js`.
-- `routerActions` appears configurable but is ignored. Symptoms: unexpected route access remains allowed except where `routeActions` is explicitly set. Anchors: `client/lib/router/guards.js`, `client/tests/unit/lib/router/guards.spec.js`.
-
-## Suggested Outline
-
-```md
-## Authorization Authority Boundary
-## Model-Scope vs Object-Scope Action Semantics
-## Route Admission Semantics
-## UI Affordance Filtering Layers
-## Workflow Transition Action Namespace
-## Divergence and Failure Signatures
-```
