@@ -7,7 +7,7 @@ status: draft
 
 # Authorization vs UI Semantics
 
-VUEDA separates authorization from UI action semantics into two independent systems for evaluation. The server owns authorization; every API request is checked against DRF permission classes and the layered permission model described in [Permission Model](./permission-model). The client owns action visibility and route admission; deciding which views to navigate to and which buttons to render, based on metadata the server provides. The client does not evaluate Django permission codenames. It consumes action metadata that the server has already permission-filtered and uses it to make semantic decisions about navigation and affordances.
+VUEDA separates authorization from UI action semantics into two independent systems for evaluation. The server owns authorization; every API request is checked against DRF permission classes and the layered permission model described in [Permission Model](./permission-model). The client owns action visibility and route admission; deciding which views to navigate to and which buttons to render, based on metadata the server provides. The client does not evaluate Django permission codenames. It consumes action metadata that the server has already permission-filtered and uses it to make semantic decisions about navigation and UI visibility.
 
 This page explains the boundary between these two systems, where each system derives its action sets, and the failure shapes that occur when they diverge. For the server-side permission layers themselves, see [Permission Model](./permission-model). For practical guidance on controlling which actions appear in the UI, see [Control Action Availability](../guides/control-action-availability).
 
@@ -41,17 +41,17 @@ Route admission can succeed even if the eventual API call fails. The guard evalu
 
 ## UI Affordance Filtering
 
-Once a route is admitted and a view renders, the actions visible in the UI are filtered through a separate layer. This filtering is an affordance decision, controlling what the user sees, not an authorization decision.
+Once a route is admitted and a view renders, the actions visible in the UI are filtered through a separate layer. This filtering is a UI visibility decision, controlling what the user sees, not an authorization decision.
 
-`useFilteredActions` is the primary affordance filter. It takes the model's configured `actions` map (which maps action names to group requirements) and the user's group memberships, and returns the subset of actions the user should see. This is a client-side intersection: the server is not consulted for this filter. It enables product-specific affordances; a single product deployment can display a subset of actions to certain groups without changing server permissions.
+`useFilteredActions` is the primary UI visibility filter. It takes the model's configured `actions` map (which maps action names to group requirements) and the user's group memberships, and returns the subset of actions the user should see. This is a client-side intersection: the server is not consulted for this filter. It enables product-specific visibility rules; a single product deployment can display a subset of actions to certain groups without changing server permissions.
 
-For list views, the visible actions are the output of `useFilteredActions`. For detail views, the visible actions are the intersection of the filtered UI actions and the server's `available_actions` for the specific object. This intersection is the bridge between the two systems: the client's affordance preferences are combined with the server's object-level permission truth. An action that passes the client's group filter but is absent from the object's `available_actions` will not render.
+For list views, the visible actions are the output of `useFilteredActions`. For detail views, the visible actions are the intersection of the filtered UI actions and the server's `available_actions` for the specific object. This intersection is the bridge between the two systems: the client's UI visibility rules are combined with the server's object-level permission truth. An action that passes the client's group filter but is absent from the object's `available_actions` will not render.
 
 This means that detail-view action buttons reflect real-time, per-object authorization truth. If a workflow state denies update permission on a specific object, the update button disappears from that object's detail view; not because the client evaluated a permission rule, but because the server's `available_actions` response excluded `update` for that instance.
 
 ## Workflow Transition Action Namespace
 
-Workflow transitions participate in the same action namespace as CRUDL and extra actions. They are not a separate routing or affordance system — transition codes are treated as first-class action identifiers at every level where actions are evaluated.
+Workflow transitions participate in the same action namespace as CRUDL and extra actions. They are not a separate routing or UI visibility system — transition codes are treated as first-class action identifiers at every level where actions are evaluated.
 
 On the server, the `permitted_transitions` endpoint returns transition objects with `code` and `name` properties for transitions that the requesting user is permitted to execute. This endpoint enforces `vueda_workflow.read_workflow` at the viewset level and, at the transition level, performs permission checks per transition. The `code` property is the machine identifier; `name` is display text only.
 
@@ -67,11 +67,11 @@ Transition availability is model-scoped for route admission but can be object-sc
 
 The separation between server authorization and client UI semantics creates predictable divergence points. Understanding these helps diagnose situations where the UI shows one thing, but the API does another.
 
-**UI-hidden action, API-permitted.** Removing an action from `config.actions` or constraining `routeActions` hides buttons and blocks routes, but the API permission remains intact. A direct API call (or a client-side navigation that bypasses the guard) succeeds if the server permits it. This is by design — the client controls affordances, not authorization.
+**UI-hidden action, API-permitted.** Removing an action from `config.actions` or constraining `routeActions` hides buttons and blocks routes, but the API permission remains intact. A direct API call (or a client-side navigation that bypasses the guard) succeeds if the server permits it. This is by design — the client controls what actions are shown, not authorization.
 
 **Route-admitted action, object-scope denial.** The route guard admits a view because the action exists in model-scope metadata, but the API call for the specific object returns `404` (row-level filtered) or `403` (object-level denied). This happens because route admission is model-scoped and the denial is object-scoped. The user sees the view for a brief moment before the error occurs.
 
-**`model_permissions` vs `model_actions` confusion.** `model_permissions` lists all permission codenames for a content type. `model_actions` lists the actions the requesting user can perform. Using `model_permissions` to drive UI affordances suggests capabilities the user may not have. The correct source for action-driven UI is `model_actions` (model scope) or `available_actions` (object scope).
+**`model_permissions` vs `model_actions` confusion.** `model_permissions` lists all permission codenames for a content type. `model_actions` lists the actions the requesting user can perform. Using `model_permissions` to drive UI visibility suggests capabilities the user may not have. The correct source for action-driven UI is `model_actions` (model scope) or `available_actions` (object scope).
 
 **Action name normalization mismatch.** The action namespace uses `retrieve` internally, but external references may use `read`. `getActionName` normalizes `read` to `retrieve` before matching. If a custom action or route uses `read` without normalization, the guard or `ViewActionRouter` will not find a match. The symptom is an "Action Not Found" toast or a `ViewActionNotFound` render.
 

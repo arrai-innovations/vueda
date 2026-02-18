@@ -86,7 +86,7 @@ Related setting defaults live in `vueda.core.default_settings.get_defaults`.
 ## Enforcement Boundary
 
 - Server-side permission checks are authoritative.
-- Client-side affordances (hidden/disabled actions) are UX semantics, not authorization guarantees.
+- Client-side UI behavior (hidden/disabled actions) are UX semantics, not authorization guarantees.
 - Always expect unauthorized requests to be blocked by the server.
 
 ## Related References

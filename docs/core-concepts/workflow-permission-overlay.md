@@ -10,7 +10,7 @@ status: briefing
 ## Intent and Scope
 
 - Define how workflow state permissions and transition permissions compose with baseline CRUDL permissions.
-- Define which concerns are server-authoritative (enforcement) vs client-semantic (route/action admission and affordances).
+- Define which concerns are server-authoritative (enforcement) vs client-semantic (route/action admission and UI visibility).
 - Define the observable failure surfaces when workflow overlays are configured, missing, or inconsistent.
 - Source anchors: `server/vueda/user/mixins.py`, `server/vueda/core/permissions.py`, `server/vueda/workflow/models.py`, `server/vueda/workflow/permissions.py`, `server/vueda/workflow/viewsets.py`, `server/tests/unit/workflow/test_model_mixin.py`, `server/tests/unit/workflow/test_viewsets.py`, `client/lib/stores/storeWorkflow.js`, `client/lib/router/guards.js`, `client/tests/unit/lib/stores/storeWorkflow.spec.js`, `client/tests/unit/lib/router/guards.spec.js`.
 
