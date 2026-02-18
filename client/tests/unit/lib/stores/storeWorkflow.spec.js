@@ -205,7 +205,7 @@ describe("lib/store/storeWorkflow.js", () => {
 
     scopedIt("executeTransition updates state and pushes route", async () => {
         const response = {
-            new_state: { state: { code: "closed" } },
+            new_state: { code: "closed", name: "Closed" },
             new_transitions: [{ code: "reopen", name: "Reopen" }],
         };
         mockedFetchHelper.mockResolvedValue(response);
@@ -218,14 +218,14 @@ describe("lib/store/storeWorkflow.js", () => {
 
         await store.executeTransition("app", "model", "1", "close", router, mapping);
 
-        expect(store.objectStates[key]["1"].state.code).toBe("closed");
+        expect(store.objectStates[key]["1"].code).toBe("closed");
         expect(store.objectTransitions[key]["1"].transitions).toEqual(response.new_transitions);
         expect(router.push).toHaveBeenCalledWith("/closed");
     });
 
     scopedIt("executeTransition adds Dry-Run header when performing dry run", async () => {
         mockedFetchHelper.mockResolvedValue({
-            new_state: { state: { code: "closed" } },
+            new_state: { code: "closed", name: "Closed" },
             new_transitions: [],
         });
         const store = storeWorkflow();
@@ -237,6 +237,22 @@ describe("lib/store/storeWorkflow.js", () => {
 
         const options = mockedFetchHelper.mock.calls[0][1];
         expect(options.headers["Dry-Run"]).toBe("true");
+    });
+
+    scopedIt("executeTransition still supports legacy nested state code mapping", async () => {
+        mockedFetchHelper.mockResolvedValue({
+            new_state: { state: { code: "closed" } },
+            new_transitions: [],
+        });
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+        store.objectStates[key] = { 1: {} };
+        store.objectTransitions[key] = { 1: {} };
+        const router = { push: vi.fn() };
+
+        await store.executeTransition("app", "model", "1", "close", router, { closed: "/closed" });
+
+        expect(router.push).toHaveBeenCalledWith("/closed");
     });
 
     scopedIt("initializeObjectTransitions creates structures", () => {

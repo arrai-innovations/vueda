@@ -544,8 +544,9 @@ export const storeWorkflow = defineStore("workflow", {
                     return data;
                 })
                 .finally(() => {
-                    if (router && stateToRoute && responseData?.new_state?.state?.code in stateToRoute) {
-                        router.push(stateToRoute[responseData.new_state.state.code]);
+                    const stateCode = responseData?.new_state?.code ?? responseData?.new_state?.state?.code;
+                    if (router && stateToRoute && stateCode && stateCode in stateToRoute) {
+                        router.push(stateToRoute[stateCode]);
                     }
                 });
 
