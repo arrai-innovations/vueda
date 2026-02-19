@@ -360,17 +360,229 @@ const generatedAssetsPlugin = () => ({
   },
 });
 
-const sidebarFromDir = (baseDir, baseLink) => {
-  if (!fs.existsSync(baseDir)) {
+const posixPath = (value) => value.split(path.sep).join("/");
+
+const toDocRoute = (filePath) => {
+  const rel = posixPath(path.relative(docsRoot, filePath));
+  if (rel === "index.md") {
+    return "/";
+  }
+  if (rel.endsWith("/index.md")) {
+    return `/${rel.slice(0, -"index.md".length)}`;
+  }
+  return `/${rel.replace(/\.md$/, "")}`;
+};
+
+const normalizeDocRoute = (href) => {
+  if (!href) {
+    return null;
+  }
+  const [pathPartRaw, ...hashParts] = href.split("#");
+  let pathPart = pathPartRaw || "";
+  if (!pathPart.startsWith("/")) {
+    pathPart = `/${pathPart}`;
+  }
+  pathPart = path.posix.normalize(pathPart);
+  if (pathPart === "/index") {
+    pathPart = "/";
+  } else if (pathPart.endsWith("/index")) {
+    pathPart = `${pathPart.slice(0, -"/index".length)}/`;
+  }
+  if (pathPart.endsWith(".md")) {
+    pathPart = pathPart.slice(0, -".md".length);
+  }
+  const hash = hashParts.length > 0 ? `#${hashParts.join("#")}` : "";
+  return `${pathPart}${hash}`;
+};
+
+const readDocMeta = (filePath) => {
+  const raw = fs.readFileSync(filePath, "utf-8");
+  const { frontmatter, body } = parseFrontmatter(raw);
+  const title =
+    frontmatter.title || extractHeading(body) || path.basename(filePath, ".md");
+  const orderValue = Number(frontmatter.sidebar_order);
+  const sidebarOrder = Number.isFinite(orderValue)
+    ? orderValue
+    : Number.POSITIVE_INFINITY;
+  return { title, sidebarOrder };
+};
+
+const sortDocs = (a, b) => {
+  if (a.sidebarOrder !== b.sidebarOrder) {
+    return a.sidebarOrder - b.sidebarOrder;
+  }
+  return a.text.localeCompare(b.text);
+};
+
+const resolveIndexLink = (sectionDir, rawHref) => {
+  if (!rawHref || /^https?:\/\//i.test(rawHref)) {
+    return null;
+  }
+  if (rawHref.startsWith("#")) {
+    return `/${sectionDir}/${rawHref}`;
+  }
+  if (rawHref.startsWith("/")) {
+    return normalizeDocRoute(rawHref);
+  }
+  return normalizeDocRoute(path.posix.join(`/${sectionDir}/`, rawHref));
+};
+
+const sectionGroupsFromIndex = (sectionDir) => {
+  const indexPath = path.join(docsRoot, sectionDir, "index.md");
+  if (!fs.existsSync(indexPath)) {
     return [];
   }
-  return fs
-    .readdirSync(baseDir, { withFileTypes: true })
+  const raw = fs.readFileSync(indexPath, "utf-8");
+  const { body } = parseFrontmatter(raw);
+  const lines = body.split(/\r?\n/);
+  const groups = [];
+  let currentGroup = null;
+
+  const flushGroup = () => {
+    if (currentGroup && currentGroup.items.length > 0) {
+      groups.push(currentGroup);
+    }
+  };
+
+  for (const line of lines) {
+    const headingMatch = line.match(/^##\s+(.+?)\s*$/);
+    if (headingMatch) {
+      flushGroup();
+      currentGroup = {
+        text: stripInlineMarkdown(headingMatch[1].trim()),
+        items: [],
+      };
+      continue;
+    }
+    const linkMatch = line.match(/^\s*-\s+\[([^\]]+)\]\(([^)]+)\)/);
+    if (!linkMatch || !currentGroup) {
+      continue;
+    }
+    const text = stripInlineMarkdown(linkMatch[1].trim());
+    const link = resolveIndexLink(sectionDir, linkMatch[2].trim());
+    if (!text || !link) {
+      continue;
+    }
+    if (currentGroup.items.some((item) => item.link === link)) {
+      continue;
+    }
+    currentGroup.items.push({ text, link });
+  }
+
+  flushGroup();
+  return groups;
+};
+
+const sectionItemsFromFiles = (sectionDir) => {
+  const sectionRoot = path.join(docsRoot, sectionDir);
+  if (!fs.existsSync(sectionRoot)) {
+    return [];
+  }
+  return walkFiles(sectionRoot)
+    .filter((filePath) => filePath.endsWith(".md"))
+    .filter((filePath) => path.basename(filePath) !== "index.md")
+    .map((filePath) => {
+      const { title, sidebarOrder } = readDocMeta(filePath);
+      return {
+        text: title,
+        link: toDocRoute(filePath),
+        sidebarOrder,
+      };
+    })
+    .sort(sortDocs)
+    .map(({ text, link }) => ({ text, link }));
+};
+
+const buildSectionSidebar = (sectionDir, sectionTitle) => {
+  const overviewLink = `/${sectionDir}/`;
+  const groups = sectionGroupsFromIndex(sectionDir);
+  if (groups.length > 0) {
+    const hasOverview = groups.some((group) =>
+      group.items.some((item) => item.link === overviewLink),
+    );
+    return [
+      ...(hasOverview
+        ? []
+        : [
+            {
+              text: sectionTitle,
+              items: [{ text: "Overview", link: overviewLink }],
+            },
+          ]),
+      ...groups,
+    ];
+  }
+  const fileItems = sectionItemsFromFiles(sectionDir);
+  return [
+    {
+      text: sectionTitle,
+      items: [{ text: "Overview", link: overviewLink }, ...fileItems],
+    },
+  ];
+};
+
+const buildApiSidebar = () => {
+  if (!fs.existsSync(apiRoot)) {
+    return [];
+  }
+
+  const languageDirs = fs
+    .readdirSync(apiRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
-    .map((entry) => ({
-      text: entry.name,
-      link: `${baseLink}${entry.name}/`,
-    }));
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b));
+
+  return languageDirs.map((languageDir) => {
+    const languageRoot = path.join(apiRoot, languageDir);
+    const languageIndexPath = path.join(languageRoot, "index.md");
+    const languageTitle = fs.existsSync(languageIndexPath)
+      ? readDocMeta(languageIndexPath).title
+      : languageDir;
+
+    const subdirectoryItems = fs
+      .readdirSync(languageRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort((a, b) => a.localeCompare(b))
+      .map((subDirName) => {
+        const subDirIndexPath = path.join(languageRoot, subDirName, "index.md");
+        const text = fs.existsSync(subDirIndexPath)
+          ? readDocMeta(subDirIndexPath).title
+          : subDirName;
+        const link = normalizeDocRoute(`/reference/api/${languageDir}/${subDirName}/`);
+        return { text, link };
+      });
+
+    const fileItems = fs
+      .readdirSync(languageRoot, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+      .filter((entry) => entry.name !== "index.md")
+      .map((entry) => {
+        const filePath = path.join(languageRoot, entry.name);
+        const { title, sidebarOrder } = readDocMeta(filePath);
+        return { text: title, link: toDocRoute(filePath), sidebarOrder };
+      })
+      .sort(sortDocs)
+      .map(({ text, link }) => ({ text, link }));
+
+    const overviewLink = normalizeDocRoute(`/reference/api/${languageDir}/`);
+    return {
+      text: languageTitle,
+      items: [
+        { text: "Overview", link: overviewLink },
+        ...subdirectoryItems,
+        ...fileItems,
+      ],
+    };
+  });
+};
+
+const docsSidebar = {
+  "/tutorials/": buildSectionSidebar("tutorials", "Tutorials"),
+  "/guides/": buildSectionSidebar("guides", "Guides"),
+  "/core-concepts/": buildSectionSidebar("core-concepts", "Core Concepts"),
+  "/reference/": buildSectionSidebar("reference", "Reference"),
+  "/reference/api/": buildApiSidebar(),
 };
 
 export default defineConfig({
@@ -402,83 +614,7 @@ export default defineConfig({
       { text: "Core Concepts", link: "/core-concepts" },
       { text: "Reference", link: "/reference" },
     ],
-    sidebar: {
-      "/concepts/": [
-        {
-          text: "Concepts",
-          items: [
-            { text: "Overview", link: "/concepts/" },
-            { text: "Architecture", link: "/concepts/architecture" },
-            { text: "Design Principles", link: "/concepts/design-principles" },
-            {
-              text: "Server-Client Contract",
-              link: "/concepts/server-client-contract",
-            },
-          ],
-        },
-      ],
-      "/how-to/": [
-        {
-          text: "How-to",
-          items: [
-            { text: "Overview", link: "/how-to/" },
-            { text: "Add a Resource End-to-End", link: "/how-to/add-resource" },
-            {
-              text: "Install/Integrate Server",
-              link: "/how-to/server-install",
-            },
-            {
-              text: "Install/Integrate Client",
-              link: "/how-to/client-install",
-            },
-          ],
-        },
-      ],
-      "/reference/": [
-        {
-          text: "Reference",
-          items: [
-            { text: "Overview", link: "/reference/" },
-            { text: "Configuration Surface", link: "/reference/configuration" },
-            { text: "Glossary", link: "/reference/glossary" },
-          ],
-        },
-      ],
-      "/server/": [
-        {
-          text: "Server",
-          items: [
-            { text: "Overview", link: "/server/" },
-            { text: "Implementor Guide", link: "/server/guide/implementor" },
-            { text: "Changelog", link: "/server/changelog" },
-            { text: "Reference", link: "/server/reference/" },
-          ],
-        },
-      ],
-      "/client/": [
-        {
-          text: "Client",
-          items: [{ text: "Overview", link: "/client/" }],
-        },
-      ],
-      // '/reference/api/': [
-      //   {
-      //     text: 'JavaScript',
-      //     items: sidebarFromDir(path.join(docsRoot, 'reference', 'api', 'js'), '/reference/api/js/'),
-      //   },
-      //   {
-      //     text: 'Python',
-      //     items: sidebarFromDir(path.join(docsRoot, 'reference', 'api', 'py'), '/reference/api/py/'),
-      //   },
-      //   {
-      //     text: 'REST',
-      //     items: sidebarFromDir(path.join(docsRoot, 'reference', 'api', 'rest'), '/reference/api/rest/'),
-      //   },
-      //   {
-      //     text: 'Vue',
-      //     items: sidebarFromDir(path.join(docsRoot, 'reference', 'api', 'vue'), '/reference/api/vue/'),
-      //   },
-    },
+    sidebar: docsSidebar,
     socialLinks: [
       { icon: "github", link: "https://github.com/arrai-innovations/vueda" },
     ],
