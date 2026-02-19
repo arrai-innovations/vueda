@@ -2,101 +2,127 @@
 title: Run Actions in the VUEDA Dispatch Queue (VDQ)
 type: how-to
 audience: implementor
-status: briefing
+status: draft
 ---
 
 # Run Actions in the VUEDA Dispatch Queue (VDQ)
 
-## Intent and Scope
+This guide covers implementing queue-backed execution for outbound email and SMS through VDQ, from queue item creation through async processing, retry/cancel/resend operations, and operator-facing status. It focuses on the shared patterns across both email and SMS; for provider-specific details, see [Send Email from VDQ with Anymail](./vdq-email-anymail) and [Send SMS from VDQ with Twilio](./vdq-sms-twilio).
 
-- Implement queue-backed execution for work that should not block request-response paths.
-- Cover the concrete path from queue-item creation to async processing, operator retry/cancel/resend, and status visibility.
-- Keep this as a technical briefing (contracts + touchpoints), not final tutorial prose.
-- Source anchors: `server/vueda/vdq/schedulers.py`, `server/vueda/vdq/tasks.py`, `server/vueda/vdq/handlers.py`, `server/vueda/vdq/viewsets.py`, `server/tests/unit/vdq/test_schedulers.py`, `server/tests/unit/vdq/test_tasks.py`, `server/tests/unit/vdq/test_viewsets.py`.
+The guide assumes familiarity with VDQ's persistence and lifecycle model. If you have not read [VDQ and Background Work Model](../core-concepts/vdq-and-background-work), start there; it explains the workflow state machine, transaction boundaries, and provider reconciliation patterns within which this guide operates.
 
-## Non-goals
+## Goal and Preconditions
 
-- Not a provider-specific deep dive for AnyMail/Twilio payload design.
-- Not a full workflow-permission architecture guide.
-- Not a guarantee that generated API pages are behavior-complete; code/tests are authoritative.
+The objective is a queue-backed flow where:
 
-## Key Tasks
+- Work that should not block request-response paths (email/SMS delivery) is enqueued as a `QueueItem` and processed asynchronously.
+- Enqueue failures are observable through queue item state and metadata, not silently dropped.
+- Retry, cancel, and resend operations are available through workflow transitions and viewset actions.
+- Operator-facing status is available through read-only list/detail endpoints.
 
-### 1. Create queue items with validated sender/receiver payloads
+Before you begin:
 
-- Use `add_email(...)` / `add_sms(...)` (or `add_abstract_email(...)` when enqueueing later) to create `QueueItem` records plus method-specific detail models.
-- Expect role validation (`email` for email roles, `cell` for SMS roles) before queueing.
-- Source anchors: `server/vueda/vdq/schedulers.py`, `server/vueda/vdq/handlers.py`, `server/tests/unit/vdq/test_schedulers.py`, `server/tests/unit/vdq/test_handlers.py`.
+Celery must be configured and running. VDQ uses `delay_on_commit` for task scheduling, which requires a working Celery broker and Django database transaction support.
 
-### 2. Schedule async processing and handle enqueue failures
+The `vueda.vdq` app must be in `INSTALLED_APPS`. The VDQ workflow must be applied through migrations (the workflow state machine for `QueueItem` is defined in VDQ's migration files).
 
-- Use `schedule_queue_item(...)` to call `send_message.delay_on_commit(...)`.
-- If broker enqueue fails, queue item transitions to `errored` and stores a failure message in `result`.
-- Source anchors: `server/vueda/vdq/schedulers.py`, `server/tests/unit/vdq/test_schedulers.py`.
+For email: Anymail must be configured with a valid provider backend. For SMS: Twilio credentials (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`) must be set.
 
-### 3. Map worker execution and state transitions
+## Queue Item Creation
 
-- `send_message` locks the row, transitions to `sending`, and dispatches by method (`email` or `sms`).
-- Email send transitions to `awaiting` on Anymail `sent/queued`; otherwise records result and transitions to `errored`.
-- SMS send records provider status/message SID and transitions to `awaiting`; Twilio failures transition to `errored`.
-- Source anchors: `server/vueda/vdq/tasks.py`, `server/vueda/vdq/handlers.py`, `server/tests/unit/vdq/test_tasks.py`, `server/tests/unit/vdq/test_handlers.py`.
+Use the scheduler entrypoints to create queue items with validated payloads:
 
-### 4. Wire retry/cancel/resend operations
+**`add_email(...)`** creates one `QueueItem(method="email")` per recipient (across `to`, `cc`, and `bcc` inputs) plus associated `AnyMailQueueItem` detail rows, and immediately schedules async processing. Sender and receiver roles must have email values; `validate_email_role` enforces this before queueing.
 
-- Retry/cancel run through workflow execute-transition on `QueueItem`; non-dry-run retry clears prior result/task metadata and re-schedules.
-- Sent-item resend clones completed items and schedules a new queue item.
-- Source anchors: `server/vueda/vdq/models.py`, `server/vueda/vdq/viewsets.py`, `server/tests/unit/vdq/test_models.py`, `server/tests/unit/vdq/test_viewsets.py`.
+**`add_sms(sender, receiver, body)`** creates one `QueueItem(method="sms")` plus one `SMSQueueItem`, and immediately schedules async processing. Both sender and receiver must have a `cell` value; `validate_sms_role` enforces this.
 
-### 5. Expose operational status and callbacks
+**`add_abstract_email(...)`** creates the queue item and detail records without immediate scheduling. Use this when you need to create the queue item in one transaction and schedule it later (e.g., after additional setup or validation).
 
-- Use queue and sent-item list/detail endpoints for operator-facing status.
-- Use Twilio webhook to update SMS queue items by message SID; use attachment endpoint for authenticated attachment retrieval.
-- Source anchors: `server/vueda/vdq/viewsets.py`, `server/vueda/vdq/views.py`, `server/tests/unit/vdq/test_viewsets.py`, `server/tests/unit/vdq/test_views.py`.
+Each queue item receives the workflow's initial state on creation. The `QueueItem` row holds shared fields (sender, receiver, method, result, task metadata), while method-specific detail rows hold provider-specific data (Anymail `message_id`, Twilio `message_sid`).
+
+## Scheduling and Worker Dispatch
+
+`schedule_queue_item(...)` publishes a Celery task using `send_message.delay_on_commit(...)`. The task is published only after the current database transaction commits, preventing workers from racing on uncommitted rows.
+
+If the broker's enqueue fails (due to connectivity issues or serialization errors), the queue item transitions to `errored`, and the exception text is stored in the `result` field. The failure is persistent and observable, not silently dropped.
+
+On the worker side, `send_message` acquires a row lock (`SELECT ... FOR UPDATE SKIP LOCKED`) before processing. If the lock cannot be acquired (another worker or callback holds it), the task silently skips the item. This prevents deadlocks at the cost of occasional skipped processing, which is recovered by Celery retry or periodic tasks.
+
+The worker transitions the queue item to `sending`, then dispatches to the method-specific handler:
+
+- **Email**: `send_email` constructs and sends an `EmailMultiAlternatives` message through Anymail. On success, records `message_id` and transitions to `awaiting`. On failure, records error detail and transitions to `errored`.
+- **SMS**: `send_sms` calls `twilio_client.messages.create(...)`. On success, records `message_sid` and status text, transitions to `awaiting`. On Twilio API failure, transitions to `errored`.
+
+For transient email failures, the Celery task auto-retries with backoff. The `QueueProcessor.on_retry` callback records `task_id` and `retry_delay` on the queue item and transitions it to `delayed`. Non-transient failures propagate to `on_failure`, which appends traceback text to `result` and transitions to `errored`.
+
+## Retry and Cancel Flow
+
+Retry and cancel operations run through the workflow execute-transition endpoint on `QueueItem`. These are permission-checked transitions; they use `apply_transition`, not `fast_transition`.
+
+**Retry** (non-dry-run): cancels the prior Celery task if one is tracked (`task_id`), clears `task_id`, `retry_delay`, and `result` fields, then re-schedules the queue item via `schedule_queue_item`. The queue item returns to the processing pipeline from the beginning.
+
+**Cancel**: transitions the queue item to the `cancelled` state. Late provider callbacks (delivery confirmations that arrive after cancellation) are handled via ignored transition sources; they are accepted without error or state change.
+
+Both operations require appropriate workflow-level and transition-level permissions. The `QueueItem` model defines `can_cancel` and `can_retry` permission references, but the enforcement path is workflow-dependent. Verify permission behaviour through the execute-transition endpoint, not through direct model method calls.
+
+Retry and cancel assume the underlying operation is idempotent. VDQ does not enforce idempotency at the framework layer. If your email/SMS provider does not handle duplicate sends gracefully, build deduplication into your send handler.
+
+## Sent Item Resend Flow
+
+Resend operates on completed items in the sent history, not on active queue items. `SentItem.clone()` creates a new `QueueItem` in the workflow initial state, duplicating the sender, receiver, method, and available method-specific detail rows (AnyMail detail, SMS detail). The clone is then scheduled via `schedule_queue_item`.
+
+Resend is exposed as an explicit extra action on the sent-item viewset, gated by the `vueda_vdq.can_resend` permission. Both single-item resend (by PK) and bulk resend are available.
+
+The cloned item is a fully independent queue item; it gets its own workflow state, Celery task, and provider correlation identifiers. There is no link back to the original sent item beyond sharing the same sender/receiver/content.
+
+## Status Surfaces and Callbacks
+
+**Active queue endpoint** (`/vueda.vdq/queueitem/`): lists queue items not in done states. Provides operator visibility into items that are queued, sending, awaiting, delayed, or errored.
+
+**Sent history endpoint** (`/vueda.vdq/sentitem/`): lists queue items in done states (cancelled, succeeded, unconfirmed). Provides history visibility.
+
+**Detail endpoints**: both queue and sent-item detail endpoints resolve items by PK regardless of state.
+
+**Attachment endpoint** (`/vueda.vdq/attachments/{id}/`): serves attachment files with authentication required. The view does not perform object-level permission checks; any authenticated user can fetch an attachment by ID.
+
+**Twilio webhook** (`/vueda.vdq/twilio-status-callback/`): accepts Twilio status updates with signature validation. Known `MessageSid` values update the corresponding queue item. Unknown SIDs trigger a deferred lookup task.
+
+Default VDQ viewsets inherit `VuedaReadOnlyViewSet`, so the baseline surface is read-only. Extra actions (resend) are explicitly added by the decorator.
+
+## Verification Checklist
+
+After implementing VDQ flows, verify:
+
+- Queue item creation succeeds with valid sender/receiver payloads.
+- Role validation rejects invalid sender/receiver data before queueing.
+- Broker enqueue failures produce an `errored` queue item with a recorded exception, not a silent failure.
+- Worker dispatch acquires the row lock and transitions through `sending` to `awaiting` on success.
+- Provider failures transition to `errored` with descriptive `result` text.
+- Retry clears prior task metadata and re-schedules successfully.
+- Cancel transitions to `cancelled` and late callbacks do not raise errors.
+- Resend clones a sent item and schedules a new independent queue item.
+- Active queue list excludes done-state items; sent history list includes only done-state items.
+
+## Known Gaps
+
+**Cancel/retry permission enforcement is workflow-path dependent.** The `can_cancel`/`can_retry` permission references on `QueueItem` are not independently codename-enforced in VDQ viewset tests. Permission behaviour flows through the workflow execute-transition path, which has its own permission gates.
+
+**`VuedaViewSet` + `ReadOnlyModelViewSet` inheritance conflict.** Custom queue/sent viewset overrides that combine `VuedaViewSet` with `ReadOnlyModelViewSet` can accidentally reintroduce writable action methods and schema noise. VUEDA core now emits a runtime warning for this inheritance pattern. Use `VuedaReadOnlyViewSet` instead.
+
+**Retry/cancel idempotency is not framework-enforced.** VDQ does not prevent duplicate sends if a retry races with a previous send attempt that is still in flight. Build deduplication into provider-specific handlers if needed.
 
 ## Relevant Implementation Surface
 
 - Python:
-- `{@api py:module:vueda.vdq}`
-- `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}`
+    - `{@api py:module:vueda.vdq}`
+    - `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}`
 - REST:
-- `{@api rest:endpoint:GET:/vueda.vdq/queueitem/}`
-- `{@api rest:endpoint:GET:/vueda.vdq/sentitem/}`
-- `{@api rest:endpoint:POST:/vueda.vdq/sentitem/resend/}`
-- `{@api rest:endpoint:POST:/vueda.vdq/sentitem/{id}/resend/}`
-- `{@api rest:endpoint:POST:/vueda.vdq/twilio-status-callback/}`
-- `{@api rest:endpoint:GET:/vueda.vdq/attachments/{id}/}`
-- `{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}`
-- `{@api rest:schema:DefaultQueueItem}`
-- `{@api rest:schema:DefaultSentItem}`
-
-## Contracts and Invariants
-
-- Queue-item done states are currently treated as `cancelled`, `succeeded`, and `unconfirmed`; send-queue list excludes these states, while detail fetch still allows them.
-- Default VDQ queue/sent viewsets now inherit `VuedaReadOnlyViewSet`, so baseline surface is read-only for queue/sent resources, with explicit extra actions (for example resend) added by decorator.
-- `QueueProcessor.on_retry` records `task_id` and retry delay (when available) and transitions queue item to `delayed`.
-- Retry transition behavior (non-dry-run): cancels prior Celery task if present, clears `task_id`/`retry_delay`/`result`, then re-schedules.
-- `SentItem.clone()` carries sender/receiver/method and duplicates available AnyMail/SMS detail into a fresh `queued` item.
-- Attachment cleanup is email-only and deletes a shared attachment only after all linked queue items are done; cleanup on transition is gated by `VDQ_MAX_FILES_AGE_IN_SECONDS == 0` and skipped in dry-run.
-- Twilio webhook enforces signature validation, updates existing queue items when SID is found, and enqueues deferred lookup when missing.
-- Source anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/vdq/constants.py`, `server/vueda/vdq/viewsets.py`, `server/vueda/vdq/tasks.py`, `server/vueda/vdq/models.py`, `server/vueda/vdq/views.py`, `server/tests/unit/core/test_viewsets.py`, `server/tests/unit/vdq/test_viewsets.py`, `server/tests/unit/vdq/test_tasks.py`, `server/tests/unit/vdq/test_models.py`, `server/tests/unit/vdq/test_views.py`.
-
-## Footguns
-
-- `QueueItem` defines `can_cancel`/`can_retry` permissions, but only resend-specific permission checks are explicit in VDQ viewset permission code; cancel/retry checks are workflow-path dependent and not documented as codename-enforced in VDQ tests.
-- `QueueItem.allow_transition(...)` contains a condition using `self.workflow.code == "delayed"`; `delayed` is a state code, so this guard may not apply as intended.
-- Combining `VuedaViewSet` with `ReadOnlyModelViewSet` on custom queue/sent overrides can accidentally re-introduce writable action methods and schema noise; core now emits a runtime warning to catch this pattern.
-- Retry/cancel safety assumes your queued operation is idempotent; VDQ does not enforce idempotency at the framework layer.
-- Source anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/vdq/models.py`, `server/vueda/vdq/permissions.py`, `server/vueda/vdq/viewsets.py`, `server/tests/unit/core/test_viewsets.py`, `server/tests/unit/vdq/test_permissions.py`.
-
-## Suggested Outline
-
-```md
-## Goal and Preconditions
-## Queue Item Creation
-## Scheduling and Worker Dispatch
-## Retry and Cancel Flow
-## Sent Item Resend Flow
-## Status Surfaces and Callbacks
-## Verification Checklist
-## Known Gaps
-```
+    - `{@api rest:endpoint:GET:/vueda.vdq/queueitem/}`
+    - `{@api rest:endpoint:GET:/vueda.vdq/sentitem/}`
+    - `{@api rest:endpoint:POST:/vueda.vdq/sentitem/resend/}`
+    - `{@api rest:endpoint:POST:/vueda.vdq/sentitem/{id}/resend/}`
+    - `{@api rest:endpoint:POST:/vueda.vdq/twilio-status-callback/}`
+    - `{@api rest:endpoint:GET:/vueda.vdq/attachments/{id}/}`
+    - `{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}`
+    - `{@api rest:schema:DefaultQueueItem}`
+    - `{@api rest:schema:DefaultSentItem}`

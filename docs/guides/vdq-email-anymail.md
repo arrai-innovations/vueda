@@ -2,117 +2,153 @@
 title: Send Email from VDQ with Anymail
 type: how-to
 audience: implementor
-status: briefing
+status: draft
 ---
 
 # Send Email from VDQ with Anymail
 
-## Intent and Scope
+This guide covers implementing queued outbound email through VDQ using Anymail as the provider — including queue item creation, attachment handling, async dispatch, tracking event reconciliation, and the resend path. It focuses on email-specific behaviour; for shared VDQ patterns (scheduling, retry/cancel, status endpoints), see [Run Actions in the VUEDA Dispatch Queue (VDQ)](./vdq-actions).
 
-- Implement queued outbound email through VDQ using Anymail, including attachment handling and queue-state visibility.
-- Cover the concrete flow: queue item creation (`add_email`), async dispatch (`send_message` -> `send_email`), and post-send status updates (Anymail tracking events).
-- Keep this as technical scoping/contract briefing, not final tutorial prose.
-- Source anchors: `server/vueda/vdq/schedulers.py`, `server/vueda/vdq/tasks.py`, `server/vueda/vdq/handlers.py`, `server/vueda/vdq/urls.py`, `server/tests/unit/vdq/test_schedulers.py`, `server/tests/unit/vdq/test_handlers.py`, `server/tests/unit/vdq/test_tasks.py`.
+The guide assumes familiarity with VDQ's persistence and lifecycle model. If you have not read [VDQ and Background Work Model](../core-concepts/vdq-and-background-work), start there.
 
-## Non-goals
+## Goal and Preconditions
 
-- Not a provider setup guide (DNS, API keys, provider dashboard configuration).
-- Not a generic VDQ workflow-permissions deep dive beyond email-specific retry/resend touchpoints.
-- Not a guarantee that generated REST pages are behavior-complete; verify runtime contracts in source/tests.
+The objective is a queue-backed email flow where:
 
-## Key Tasks
+- Email messages are enqueued with validated sender/receiver roles and optional attachments.
+- Each recipient receives an independent `QueueItem`, enabling per-recipient status tracking.
+- Async dispatch sends through Anymail and transitions queue items through the workflow lifecycle.
+- Tracking events (delivery confirmation, bounces) update queue item state asynchronously.
+- Transient provider failures are retried automatically with backoff.
+- Operators can inspect status and resend completed items.
 
-### 1. Create queue items via scheduler entrypoints
+Before you begin:
 
-- Use `add_email(...)` for immediate enqueue, or `add_abstract_email(...)` when creation without immediate schedule is needed.
-- Ensure sender/receiver roles have email values (`validate_email_role`).
-- Expect one `QueueItem` per recipient across `to + cc + bcc`.
-- Source anchors: `server/vueda/vdq/schedulers.py`, `server/vueda/vdq/handlers.py`, `server/tests/unit/vdq/test_schedulers.py`, `server/tests/unit/vdq/test_handlers.py`.
+Anymail must be configured with a valid provider backend (Mailgun, SendGrid, etc.), and the provider's API credentials must be set. DNS (SPF/DKIM) configuration is provider-specific and outside VDQ's scope.
 
-### 2. Pass and persist attachment payloads safely
+The `vueda.vdq` URL configuration must include Anymail's tracking URLs so that webhook-based tracking events are received. Ensure `vueda.vdq` URLs are included in your project's URL configuration.
 
-- Attachment input accepts either mapping payloads (`{"filename": {mimetype, file, ...}}`) or prebuilt `AnyMailQueueItemAttachment` sequence.
-- Inline attachments use `content_disposition_is_inline` + `content_id_string`; regular attachments are attached as files.
-- Attachment model save populates metadata such as `file_size`/detected mimetype when possible.
-- Source anchors: `server/vueda/vdq/schedulers.py`, `server/vueda/vdq/models.py`, `server/vueda/vdq/handlers.py`, `server/tests/unit/vdq/test_schedulers.py`, `server/tests/unit/vdq/test_models.py`, `server/tests/unit/vdq/test_handlers.py`.
+Celery must be configured and running.
 
-### 3. Schedule async send and handle broker errors
+## Queue Item Creation API
 
-- `schedule_queue_item(...)` uses `send_message.delay_on_commit(...)`.
-- Broker/enqueue errors transition queue items to `errored` and write failure text in `result`.
-- Source anchors: `server/vueda/vdq/schedulers.py`, `server/tests/unit/vdq/test_schedulers.py`.
+Use `add_email(...)` to create and immediately schedule email queue items:
 
-### 4. Send through Anymail and map result to workflow state
+```python
+from vueda.vdq.schedulers import add_email
 
-- Worker task transitions queue item to `sending`, then dispatches email path when `method == "email"`.
-- `send_email(...)` sends with `EmailMultiAlternatives`, stores `anymail_status.message_id`, and transitions:
-- `awaiting` when Anymail status includes `sent` or `queued`.
-- `errored` otherwise, with `result` populated.
-- Source anchors: `server/vueda/vdq/tasks.py`, `server/vueda/vdq/handlers.py`, `server/tests/unit/vdq/test_tasks.py`, `server/tests/unit/vdq/test_handlers.py`.
+add_email(
+    sender={"name": "Support", "email": "support@example.com"},
+    to=[{"name": "Customer", "email": "customer@example.com"}],
+    subject="Your order has shipped",
+    body="Plain text body",
+    html_body="<p>HTML body</p>",
+    cc=[],
+    bcc=[],
+    reply_to=[],
+    attachments=None,
+)
+```
 
-### 5. Handle transient provider failures and retries
+Key behaviours:
 
-- `send_email(...)` maps Anymail API 5xx and {408, 423, 429} to `AnymailTransientError`.
-- Queue processor task autoretries `AnymailTransientError` with configured backoff/retry metadata handling.
-- On retry bookkeeping, task stores `task_id` and optional `retry_delay`, and transitions queue item to `delayed`.
-- Source anchors: `server/vueda/vdq/handlers.py`, `server/vueda/vdq/tasks.py`, `server/tests/unit/vdq/test_handlers.py`, `server/tests/unit/vdq/test_tasks.py`.
+- **One `QueueItem` per recipient.** VDQ creates a separate queue item for each address across `to`, `cc`, and `bcc`. Each item tracks delivery status independently.
+- **Role validation.** `validate_email_role` checks that sender and receiver roles have email values before queueing. Invalid roles are rejected before any queue items are created.
+- **Immediate scheduling.** `add_email` calls `schedule_queue_item` for each created queue item, which publishes a Celery task via `delay_on_commit`.
 
-### 6. Process tracking/bounce events for final state
+Use `add_abstract_email(...)` when you need to create the queue item without immediate scheduling — for example, when the email needs additional setup in the same transaction before dispatch.
 
-- Ensure `vueda.vdq` URLs include `anymail.urls` and tracking signal handler is active.
-- Tracking events keyed by Anymail `message_id` drive state updates (`delivered` -> `succeeded`, `bounced/rejected/failed` -> `errored`).
-- Unknown `message_id` events are logged and ignored.
-- Source anchors: `server/vueda/vdq/urls.py`, `server/vueda/vdq/handlers.py`, `server/tests/unit/vdq/test_handlers.py`.
+## Attachment Handling
 
-### 7. Verify operator-facing retrieval and resend path
+Attachments can be passed as mapping payloads or as prebuilt `AnyMailQueueItemAttachment` instances.
 
-- Use queue/sent endpoints to inspect status; send-queue list excludes done states while detail still resolves done items.
-- Resend clones a sent item and schedules a new queue item (requires `vueda_vdq.can_resend`).
-- Source anchors: `server/vueda/vdq/viewsets.py`, `server/vueda/vdq/models.py`, `server/vueda/vdq/permissions.py`, `server/tests/unit/vdq/test_viewsets.py`, `server/tests/unit/vdq/test_permissions.py`.
+**Mapping format:**
+
+```python
+attachments = {
+    "invoice.pdf": {
+        "mimetype": "application/pdf",
+        "file": file_content,  # bytes or file-like object
+    }
+}
+```
+
+**Inline attachments** use `content_disposition_is_inline` and `content_id_string` for embedding in HTML email bodies (e.g., inline images referenced by `cid:`).
+
+The attachment model populates metadata (`file_size` and detected mimetype) on save when possible. Attachment files are stored using Django's file storage backend.
+
+Attachment cleanup is email-specific and runs when a queue item enters a done state, subject to two conditions: `VDQ_MAX_FILES_AGE_IN_SECONDS` must be `0` (immediate cleanup), and the transition must not be a dry run. Additionally, a shared attachment (linked to multiple queue items) is only deleted when all linked queue items have reached a done state. Non-zero age values are not acted on by VDQ.
+
+## Worker Dispatch and Error Paths
+
+When the Celery worker processes an email queue item:
+
+1. The worker acquires a row lock and transitions to `sending`.
+2. `send_email(...)` constructs an `EmailMultiAlternatives` message with the queue item's content, attachments, and HTML alternatives.
+3. The message is sent through Anymail.
+4. On success: the handler stores `anymail_status.message_id` on the `AnyMailQueueItem` detail row (for later tracking correlation) and transitions to `awaiting`.
+5. On failure: the handler records the error in `result` and transitions to `errored`.
+
+**Transient failure handling.** `send_email` maps Anymail API 5xx responses and specific 4xx codes (408, 423, 429) to `AnymailTransientError`. The Celery task auto-retries transient errors with configurable backoff. On retry, `QueueProcessor.on_retry` records `task_id` and optional `retry_delay` on the queue item and transitions it to `delayed`.
+
+**Non-transient failures** (authentication errors, malformed payloads, permanent provider rejections) propagate to the task failure handler, which appends traceback text to `result`, clears `retry_delay`, and transitions to `errored`.
+
+## Tracking Events and Final States
+
+Anymail tracking events drive the final state transition for email queue items. The VDQ handler `handle_bounce` processes tracking signals keyed by Anymail `message_id`:
+
+- **`delivered`**: clears `result` and transitions to `succeeded`.
+- **`bounced`, `rejected`, `failed`**: records provider error context in `result` and transitions to `errored`.
+
+Unknown `message_id` values (events for messages not tracked by VDQ) are logged and ignored.
+
+For tracking events to work, the VDQ URL configuration must include Anymail's webhook/tracking URLs. Verify that the provider is configured to send tracking events to the correct endpoint.
+
+Tracking events may arrive after the queue item has moved to a terminal state (e.g., cancelled or already errored). These late events are handled via ignored transition sources — accepted without error, without state change.
+
+## Resend and Retry Operations
+
+**Retry** is a workflow transition on the active queue item. Non-dry-run retry cancels the prior Celery task, clears tracking metadata, and re-schedules. See [Run Actions in the VUEDA Dispatch Queue (VDQ)](./vdq-actions) for the shared retry contract.
+
+**Resend** operates on completed items in sent history. `SentItem.clone()` duplicates the queue item, including `AnyMailQueueItem` detail and attachment relationships into a new `QueueItem` in the initial workflow state. The clone is scheduled independently. Resend requires `vueda_vdq.can_resend` permission.
+
+## Verification Checklist
+
+After implementing email through VDQ, verify:
+
+- `add_email` creates one queue item per recipient across `to`, `cc`, and `bcc`.
+- Role validation rejects senders/receivers without email values.
+- Attachments are persisted with correct metadata and are accessible through the attachment endpoint.
+- Worker dispatch sends through Anymail and records `message_id` on the detail row.
+- Transient provider failures trigger Celery retry with the queue item in `delayed` state.
+- Non-transient failures produce `errored` state with descriptive `result` text.
+- Tracking events (delivered, bounced) update the queue item to the correct terminal state.
+- Late tracking events after cancellation do not raise errors.
+- Send queue list excludes done-state items; sent history includes them.
+- Resend clones a sent item with AnyMail detail and schedules a new queue item.
+- Attachment cleanup runs on done-state transition when `VDQ_MAX_FILES_AGE_IN_SECONDS == 0`.
+
+## Known Limitations
+
+**`send_email` sends to `qi.receiver.email` only.** The current implementation sends to the individual recipient stored on the queue item. `cc`, `bcc`, and `reply_to` relations stored by `add_abstract_email` are not passed into `EmailMultiAlternatives` headers. The multi-recipient semantics are queue-per-recipient, not one message with populated CC/BCC headers.
+
+**Attachment download lacks object-level permission checks.** `PrivateAttachmentView` requires authentication but does not check whether the requesting user has permission on the associated queue item. Any authenticated user can fetch an attachment by ID.
+
+**Custom viewset inheritance pitfall.** Custom queue/sent viewset overrides that combine `VuedaViewSet` with `ReadOnlyModelViewSet` can reintroduce write actions. VUEDA core emits a runtime warning for this pattern. Use `VuedaReadOnlyViewSet` instead.
+
+**Dry-run transitions do not trigger cleanup.** Workflow dry-run transition responses report the target state, but the database state remains unchanged. Attachment cleanup does not run on dry-run transitions.
 
 ## Relevant Implementation Surface
 
 - Python:
-- `{@api py:module:vueda.vdq}`
-- `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}`
+    - `{@api py:module:vueda.vdq}`
+    - `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}`
 - REST:
-- `{@api rest:endpoint:GET:/vueda.vdq/queueitem/}`
-- `{@api rest:endpoint:GET:/vueda.vdq/sentitem/}`
-- `{@api rest:endpoint:POST:/vueda.vdq/sentitem/resend/}`
-- `{@api rest:endpoint:POST:/vueda.vdq/sentitem/{id}/resend/}`
-- `{@api rest:endpoint:GET:/vueda.vdq/attachments/{id}/}`
-- `{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}`
-- `{@api rest:schema:DefaultQueueItem}`
-- `{@api rest:schema:DefaultSentItem}`
-
-## Contracts and Invariants
-
-- Queue item creation for email is recipient-oriented: one `QueueItem(method="email")` per receiver in `to`, `cc`, and `bcc` inputs.
-- Default VDQ queue/sent viewsets inherit `VuedaReadOnlyViewSet`; queue/sent baseline endpoints are read-only, with resend exposed as an explicit extra action.
-- Scheduling failure at broker handoff is persisted as `errored` + `result` message; failures are not silently dropped.
-- `send_email(...)` persists provider `message_id` on `AnyMailQueueItem` before bounce/tracking correlation.
-- Transient AnyMail API failures are explicitly retriable; non-transient errors propagate and are handled by task failure logic.
-- Send queue list excludes done states (`cancelled`, `succeeded`, `unconfirmed`), but detail endpoint can still fetch done items by PK.
-- Attachment file cleanup happens only for done-state email items and only when `VDQ_MAX_FILES_AGE_IN_SECONDS == 0` (and not on dry-run transitions).
-- Source anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/vdq/schedulers.py`, `server/vueda/vdq/handlers.py`, `server/vueda/vdq/tasks.py`, `server/vueda/vdq/viewsets.py`, `server/vueda/vdq/constants.py`, `server/vueda/vdq/models.py`, `server/tests/unit/core/test_viewsets.py`, `server/tests/unit/vdq/test_schedulers.py`, `server/tests/unit/vdq/test_handlers.py`, `server/tests/unit/vdq/test_viewsets.py`, `server/tests/unit/vdq/test_models.py`.
-
-## Footguns
-
-- `add_abstract_email(...)` stores `to`/`cc`/`reply_to` relations, but `send_email(...)` currently sends using only `qi.receiver.email` and does not pass `cc`/`bcc`/`reply_to` into `EmailMultiAlternatives`; treat multi-recipient semantics as queue-per-recipient, not one message with populated CC/BCC headers.
-- Custom queue/sent viewset overrides that combine `VuedaViewSet` with `ReadOnlyModelViewSet` can reintroduce write actions in the class surface; core now warns on that inheritance pattern.
-- Attachment download endpoint requires authentication, but current view code does not apply per-object ownership checks.
-- Workflow dry-run transition responses can report target states while DB state remains unchanged; avoid treating dry-run response as persisted state.
-- Source anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/vdq/schedulers.py`, `server/vueda/vdq/handlers.py`, `server/vueda/vdq/viewsets.py`, `server/vueda/vdq/views.py`, `server/tests/unit/core/test_viewsets.py`, `server/tests/unit/vdq/test_schedulers.py`, `server/tests/unit/vdq/test_viewsets.py`, `server/tests/unit/vdq/test_views.py`.
-
-## Suggested Outline
-
-```md
-## Goal and Preconditions
-## Queue Item Creation API
-## Attachment Handling
-## Worker Dispatch and Error Paths
-## Tracking Events and Final States
-## Resend and Retry Operations
-## Verification Checklist
-## Known Limitations
-```
+    - `{@api rest:endpoint:GET:/vueda.vdq/queueitem/}`
+    - `{@api rest:endpoint:GET:/vueda.vdq/sentitem/}`
+    - `{@api rest:endpoint:POST:/vueda.vdq/sentitem/resend/}`
+    - `{@api rest:endpoint:POST:/vueda.vdq/sentitem/{id}/resend/}`
+    - `{@api rest:endpoint:GET:/vueda.vdq/attachments/{id}/}`
+    - `{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}`
+    - `{@api rest:schema:DefaultQueueItem}`
+    - `{@api rest:schema:DefaultSentItem}`
