@@ -9,6 +9,7 @@ const base = "/vueda/";
 const docsRoot = fileURLToPath(new URL("..", import.meta.url));
 const generatedRoot = path.join(docsRoot, ".generated");
 const apiRoot = path.join(docsRoot, "reference", "api");
+const glossaryFile = path.join(docsRoot, "reference", "glossary.md");
 
 const walkFiles = (dir) => {
   if (!fs.existsSync(dir)) {
@@ -57,6 +58,60 @@ const extractHeading = (body) => {
   return match ? match[1].trim() : null;
 };
 
+const normalizeTerm = (value) => value.trim().replace(/\s+/g, " ").toLowerCase();
+
+const stripInlineMarkdown = (value) =>
+  value
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[*_~]/g, "")
+    .trim();
+
+const slugifyHeading = (value) =>
+  stripInlineMarkdown(value)
+    .toLowerCase()
+    .trim()
+    .replace(/<[^>]+>/g, "")
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-");
+
+const buildGlossaryIndex = () => {
+  const index = new Map();
+  if (!fs.existsSync(glossaryFile)) {
+    return index;
+  }
+
+  const raw = fs.readFileSync(glossaryFile, "utf-8");
+  const { body } = parseFrontmatter(raw);
+  const headings = body.matchAll(/^##\s+(.+?)\s*$/gm);
+  const slugCounts = new Map();
+
+  for (const headingMatch of headings) {
+    const term = headingMatch[1].trim();
+    if (!term) {
+      continue;
+    }
+    const baseSlug = slugifyHeading(term);
+    if (!baseSlug) {
+      continue;
+    }
+    const nextCount = (slugCounts.get(baseSlug) || 0) + 1;
+    slugCounts.set(baseSlug, nextCount);
+    const slug = nextCount === 1 ? baseSlug : `${baseSlug}-${nextCount - 1}`;
+    const key = normalizeTerm(stripInlineMarkdown(term));
+
+    if (index.has(key)) {
+      throw new Error(`Duplicate glossary term: ${term}`);
+    }
+    index.set(key, {
+      term,
+      href: `/reference/glossary#${slug}`,
+    });
+  }
+
+  return index;
+};
+
 const apiPathForFile = (filePath) => {
   const rel = path.relative(apiRoot, filePath).split(path.sep).join("/");
   if (rel.endsWith("/index.md")) {
@@ -94,6 +149,7 @@ const buildApiIndex = () => {
 };
 
 const apiIndex = buildApiIndex();
+const glossaryIndex = buildGlossaryIndex();
 
 const apiLinkPlugin = (md, options = {}) => {
   const resolve = options.resolve;
@@ -197,6 +253,78 @@ const apiLinkPlugin = (md, options = {}) => {
     }
 
     state.pos = nextPos;
+    return true;
+  });
+};
+
+const escapeAttr = (value) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+const glossaryTermPlugin = (md, options = {}) => {
+  const resolve = options.resolve;
+  const strict = options.strict !== false;
+  const parseTermTag = (src, pos) => {
+    const prefix = "{@term";
+    if (!src.startsWith(prefix, pos)) {
+      return null;
+    }
+
+    let i = pos + prefix.length;
+    if (i >= src.length || !/\s/.test(src[i])) {
+      return null;
+    }
+    while (i < src.length && /\s/.test(src[i])) {
+      i += 1;
+    }
+    const termStart = i;
+    while (i < src.length && src[i] !== "}") {
+      i += 1;
+    }
+    if (i >= src.length) {
+      return null;
+    }
+    const raw = src.slice(pos, i + 1);
+    const rawTerm = src.slice(termStart, i).trim();
+    if (!rawTerm) {
+      return null;
+    }
+    return { raw, rawTerm, length: raw.length };
+  };
+
+  md.inline.ruler.before("emphasis", "vueda-term-link", (state, silent) => {
+    const { pos } = state;
+    if (state.src.charCodeAt(pos) !== 0x7b) {
+      return false;
+    }
+    const parsed = parseTermTag(state.src, pos);
+    if (!parsed) {
+      return false;
+    }
+    if (silent) {
+      return true;
+    }
+
+    const { raw, rawTerm, length } = parsed;
+    const entry = resolve ? resolve(rawTerm) : null;
+    if (!entry) {
+      const hint = state.env?.relativePath || state.env?.path || "unknown file";
+      const message = `Unknown glossary term "${rawTerm}" in ${hint}`;
+      if (strict) {
+        throw new Error(message);
+      }
+      const token = state.push("text", "", 0);
+      token.content = raw;
+      state.pos += length;
+      return true;
+    }
+
+    const token = state.push("html_inline", "", 0);
+    token.content = `<GlossaryTerm term="${escapeAttr(entry.term)}" href="${escapeAttr(entry.href)}" />`;
+    state.pos += length;
     return true;
   });
 };
@@ -363,6 +491,11 @@ export default defineConfig({
       });
       md.use(apiLinkPlugin, {
         resolve: (id) => apiIndex.get(id),
+        strict: process.env.NODE_ENV === "production",
+      });
+      md.use(glossaryTermPlugin, {
+        resolve: (term) =>
+          glossaryIndex.get(normalizeTerm(stripInlineMarkdown(term))),
         strict: process.env.NODE_ENV === "production",
       });
     },

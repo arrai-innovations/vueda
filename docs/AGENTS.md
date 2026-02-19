@@ -92,3 +92,15 @@ Examples:
 - `{@api py:module:vueda}`
 - `{@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}` <!-- note: literal `{` and `}` characters are part of some IDs, referring to captured url parameters, not documentation placeholders -->
 - `{@api vue:component:FieldBoolean}`
+
+## Glossary links
+Link glossary terms from authored docs with `{@term ...}`.
+
+1. Ensure the term exists as a `##` heading in `docs/reference/glossary.md`.
+2. Use `{@term <term>}` in prose.
+3. Keep spelling aligned with the glossary heading text.
+
+Examples:
+
+- `{@term CRUDL}`
+- `{@term Model Info}`
