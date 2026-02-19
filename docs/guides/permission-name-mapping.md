@@ -7,7 +7,7 @@ status: draft
 
 # Map Django and VUEDA Permission Names
 
-This guide covers the end-to-end flow for configuring VUEDA's permission codename mapping — the mechanism that translates between Django's built-in permission names (`add`, `change`, `view`) and VUEDA's CRUDL names (`create`, `update`, `read`). The mapping affects permission generation during migrations, runtime permission checks across all server layers, and the codenames stored in `auth_permission` rows. Getting this right at project setup prevents codename mismatches that surface as unexpected `403` responses or missing permissions.
+This guide covers the end-to-end flow for configuring VUEDA's permission codename mapping; the mechanism that translates between Django's built-in permission names (`add`, `change`, `view`) and VUEDA's CRUDL names (`create`, `update`, `read`). The mapping affects permission generation during migrations, runtime permission checks across all server layers, and the codenames stored in `auth_permission` rows. Getting this right at project setup prevents codename mismatches that surface as unexpected `403` responses or missing permissions.
 
 The guide assumes familiarity with the permission model. If you have not read [Permission Model](../core-concepts/permission-model), start there; it explains the layered evaluation that consumes these codenames. For the boundary between server authorization and client UI semantics, see [Authorization vs UI Semantics](../core-concepts/authorization-vs-ui-semantics).
 

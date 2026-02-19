@@ -51,7 +51,7 @@ This means that detail-view action buttons reflect real-time, per-object authori
 
 ## Workflow Transition Action Namespace
 
-Workflow transitions participate in the same action namespace as CRUDL and extra actions. They are not a separate routing or UI visibility system — transition codes are treated as first-class action identifiers at every level where actions are evaluated.
+Workflow transitions participate in the same action namespace as CRUDL and extra actions. They are not a separate routing or UI visibility system; transition codes are treated as first-class action identifiers at every level where actions are evaluated.
 
 On the server, the `permitted_transitions` endpoint returns transition objects with `code` and `name` properties for transitions that the requesting user is permitted to execute. This endpoint enforces `vueda_workflow.read_workflow` at the viewset level and, at the transition level, performs permission checks per transition. The `code` property is the machine identifier; `name` is display text only.
 
@@ -67,7 +67,7 @@ Transition availability is model-scoped for route admission but can be object-sc
 
 The separation between server authorization and client UI semantics creates predictable divergence points. Understanding these helps diagnose situations where the UI shows one thing, but the API does another.
 
-**UI-hidden action, API-permitted.** Removing an action from `config.actions` or constraining `routeActions` hides buttons and blocks routes, but the API permission remains intact. A direct API call (or a client-side navigation that bypasses the guard) succeeds if the server permits it. This is by design — the client controls what actions are shown, not authorization.
+**UI-hidden action, API-permitted.** Removing an action from `config.actions` or constraining `routeActions` hides buttons and blocks routes, but the API permission remains intact. A direct API call (or a client-side navigation that bypasses the guard) succeeds if the server permits it. The client controls what actions are shown, not authorization.
 
 **Route-admitted action, object-scope denial.** The route guard admits a view because the action exists in model-scope metadata, but the API call for the specific object returns `404` (row-level filtered) or `403` (object-level denied). This happens because route admission is model-scoped and the denial is object-scoped. The user sees the view for a brief moment before the error occurs.
 

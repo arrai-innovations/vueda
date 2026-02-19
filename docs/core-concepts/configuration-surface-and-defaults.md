@@ -67,7 +67,7 @@ The derivation starts with `getDefaultFromModelInfo`, which reads the model-info
 
 Default action redirects use view-name strings (for example, `"read"`) even though the underlying server action name is `"retrieve"`. The mapping boundary is `viewToActionNameMap`, which translates between the client's view-oriented naming and the server's DRF-oriented naming. This translation is a stable convention, not a runtime lookup.
 
-After defaults are computed, the config store merges in any project-supplied overrides — first generic overrides (applicable to all views of the model), then view-specific overrides. The merged result is cached under an `app.model.view` key. Subsequent requests for the same key return the cached config immediately.
+After defaults are computed, the config store merges in any project-supplied overrides; first generic overrides (applicable to all views of the model), then view-specific overrides. The merged result is cached under an `app.model.view` key. Subsequent requests for the same key return the cached config immediately.
 
 When a project calls `setConfig` to apply new overrides, the config store cancels any in-flight builds for the affected model and deletes cached built configs. This ensures that the next config request rebuilds from the new overrides rather than serving a stale cache entry.
 
@@ -85,15 +85,15 @@ Configuration failures surface at different points in the application lifecycle 
 
 **Missing required server keys.** The env adapter raises `KeyError("Missing config key: ...")` during `get_defaults` execution, which typically aborts server startup. The error message names the missing key. This is the most common configuration failure during initial project setup.
 
-**Invalid typed values.** `TomlEnv` raises `ValueError` when a typed accessor cannot coerce the raw value — for example, `"yes"` for a boolean field that expects `"true"` or `"false"`, or `"abc"` for an integer field. The error message includes the key name and the invalid value.
+**Invalid typed values.** `TomlEnv` raises `ValueError` when a typed accessor cannot coerce the raw value; for example, `"yes"` for a boolean field that expects `"true"` or `"false"`, or `"abc"` for an integer field. The error message includes the key name and the invalid value.
 
 **Optional dependency coupling.** If `drf_spectacular` is importable, `get_defaults` mutates the apps list, REST framework schema class, and adds `SPECTACULAR_SETTINGS`. If the dependency is removed after initial setup, these settings disappear, which can change the shape of the settings dict. This is not a failure per se, but it means that the presence or absence of an optional dependency changes the runtime settings surface.
 
 **Permission mapping drift.** Importing `vueda.core.patch_django` before the permission mapping is in place causes the patch to capture stale or empty mapping data. Permissions are then created and checked under Django's default codenames (`add_*`, `view_*`, `change_*`) rather than VUEDA's CRUDL names. The symptom is authorization failures that seem unrelated to the actual permission assignments.
 
-**Server/client query parameter drift.** Overriding the server's query parameter settings without updating the client constants breaks the wire contract. Client requests continue to send the original parameter names, which the server ignores because they no longer match the parameter names it expects. The symptom is that search, ordering, pagination, or flex-field selections have no effect — requests succeed but return unfiltered, unordered, or unpaginated results.
+**Server/client query parameter drift.** Overriding the server's query parameter settings without updating the client constants breaks the wire contract. Client requests continue to send the original parameter names, which the server ignores because they no longer match the parameter names it expects. The symptom is that search, ordering, pagination, or flex-field selections have no effect; requests succeed but return unfiltered, unordered, or unpaginated results.
 
-**Client CSRF env missing.** When `VITE_CSRF_COOKIE_NAME` is unset, the CSRF utility constructs headers with an undefined cookie name. The server's CSRF middleware rejects unsafe HTTP methods with `403`. This failure is particularly confusing because `GET` requests work normally, so the application appears functional until the first mutation.
+**Client CSRF env missing.** When `VITE_CSRF_COOKIE_NAME` is unset, the CSRF utility constructs headers with an undefined cookie name. The server's CSRF middleware returns a `403` for unsafe HTTP methods. This failure is particularly confusing because `GET` requests work normally, so the application appears functional until the first mutation.
 
 **Model-info PK omission in config derivation.** `getDefaultFromModelInfo` expects `modelInfo.pk` to be present when computing default field lists. If PK is missing (because the server serializer omits it), the PK field is not excluded from display and submit field defaults, which causes it to appear in forms and list columns where it would normally be hidden.
 

@@ -19,7 +19,7 @@ The server is organized into four responsibility layers. Each layer builds on th
 
 **Metadata and discovery** (`vueda.info`) exposes canonical registration and model-info endpoints. This is the bridge between server-side model definitions and client-side UI generation. It derives field shapes, available actions, filtering and ordering capabilities, and permission lists from whatever the domain infrastructure layer defines. Without this layer, the client has no contract to consume. The metadata and discovery layer is covered in detail in [Canonical Registration and Model Discovery](./canonical-registration-and-discovery) and [Server-Client Metadata Contract](./server-client-metadata-contract).
 
-**Stateful lifecycle** (`vueda.workflow`, `vueda.vdq`) encodes state machines and asynchronous dispatch workflows. Workflow transitions are enforced server-side and reflected in metadata — available actions change based on the object's state. The dispatch queue (VDQ) delegates long-running work, such as email and SMS delivery, to a worker process while maintaining state visibility through the same workflow mechanism.
+**Stateful lifecycle** (`vueda.workflow`, `vueda.vdq`) encodes state machines and asynchronous dispatch workflows. Workflow transitions are enforced server-side and reflected in metadata; available actions change based on the object's state. The dispatch queue (VDQ) delegates long-running work, such as email and SMS delivery, to a worker process while maintaining state visibility through the same workflow mechanism.
 
 **Cross-cutting concerns** (`vueda.user`, `vueda.history`) handle authentication, session management, TOTP two-factor authentication, and audit history. These cut across all domain modules but do not define the architectural shape; they are consumed by the layers above.
 
@@ -31,7 +31,7 @@ The client is a Vue single-page application that generates its UI entirely from 
 
 **Routing and gating.** Router guards load metadata before allowing navigation. Route entry is blocked until model-info is available and the requested action is confirmed present, which is determined by intersecting server-advertised actions, client config restrictions, and workflow transition codes. No view renders without its contract being satisfied.
 
-**UI generation.** Composables and builders translate metadata into reactive form models. Field types map to Field components; field properties map to Widget components; props are merged from metadata defaults, config overrides, and component-level props. The form lifecycle — values, errors, touched state, modification tracking — is managed through composables and symbol-based injection.
+**UI generation.** Composables and builders translate metadata into reactive form models. Field types map to Field components; field properties map to Widget components; props are merged from metadata defaults, config overrides, and component-level props. The form lifecycle (values, errors, touched state, modification tracking) is managed through composables and symbol-based injection.
 
 **Rendering.** View components (`ViewList`, `ViewCreate`, `ViewRead`, `ViewUpdate`) and the `ViewActionRouter` consume the generated form models and render them using PrimeVue-based widgets. Custom action views are loaded dynamically by naming convention. The derivation pipeline from metadata to rendered UI is covered in [Contract-First Dynamic UI](./contract-first-dynamic-ui).
 
@@ -73,7 +73,7 @@ The server is the sole authorization boundary. This is an architectural invarian
 
 Permissions are evaluated server-side at multiple layers: model-level CRUDL codenames, object-level checks, row-level queryset filtering, and workflow-state overlays. The metadata API reflects these decisions: action visibility in model-info is permission-sensitive, but the client treats metadata as advisory for UX purposes rather than as an enforcement mechanism.
 
-Client-side visibility decisions (hiding a button, disabling a field) improve the user experience but do not constitute security boundaries. A user who bypasses the client and calls the API directly still hits every server-side permission check. The client is structurally incapable of granting authority that the server did not advertise, and even if it could, the server would reject unauthorized requests independently.
+Client-side visibility decisions (e.g., hiding a button or disabling a field) improve the user experience but do not constitute security boundaries. A user who bypasses the client and calls the API directly still hits every server-side permission check. The client is structurally incapable of granting authority that the server did not advertise, and even if it could, the server would reject unauthorized requests independently.
 
 ## Relevant Implementation Surface
 

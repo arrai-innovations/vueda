@@ -9,7 +9,7 @@ status: draft
 
 This guide covers implementing one-request parent+child write flows using VUEDA serializers; creating or updating a parent object and its related objects in a single API call. It walks through serializer shape, query parameter contracts, reverse-relation update semantics, read-only inline patterns, and client-side error mapping.
 
-The guide assumes familiarity with VUEDA's serializer composition. If you have not read [Nested Write Compatibility](../core-concepts/nested-write-compatibility), start there; it explains the flex-field and nested-write mixin boundary within which this guide operates. For expanded and field query parameter mechanics, see [Field and Expand Semantics](../core-concepts/field-and-expand-semantics). For form validation and error mapping, see [Handle Form Validation and Server Errors](./form-validation-and-errors).
+The guide assumes familiarity with VUEDA's serializer composition. If you have not read [Nested Write Compatibility](../core-concepts/nested-write-compatibility), start there; it explains the flex-field and nested-write mixin boundary within which this guide operates. For expand and field query parameter mechanics, see [Field and Expand Semantics](../core-concepts/field-and-expand-semantics). For form validation and error mapping, see [Handle Form Validation and Server Errors](./form-validation-and-errors).
 
 ## Goal and Preconditions
 

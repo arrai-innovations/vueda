@@ -23,7 +23,7 @@ The PK marker is set during model-info serialization. `ModelInfoSerializer.get_m
 
 This comparison is name-based, not type-based. A serializer field named `slug` on a model whose `_meta.pk.name` is `slug` will receive `pk: true`. A serializer field named `id` on the same model will not, even if it is an `IntegerField`. The name must match exactly.
 
-The metadata does not carry the PK field's type separately from its regular field type metadata. The client treats the PK as an opaque value — it stores, transmits, and compares PK values without type-specific logic. This works because the server's metadata already includes the field's type descriptor (`integer`, `string`, `uuid`, etc.), and the client's rendering and validation layers use that type information generically.
+The metadata does not carry the PK field's type separately from its regular field type metadata. The client treats the PK as an opaque value; it stores, transmits, and compares PK values without type-specific logic. This works because the server's metadata already includes the field's type descriptor (`integer`, `string`, `uuid`, etc.), and the client's rendering and validation layers use that type information generically.
 
 ## Client PK-Key Normalization and Caching
 
@@ -44,7 +44,7 @@ VUEDA uses two distinct transport shapes for object identifiers, depending on wh
 
 **Multi-object transport** uses a query parameter. List-context operations that reference multiple objects (such as multi-select navigation) encode the PK values as a comma-separated string in `query.pk`. `getCRUDForTo` splits this string to recover the individual values, and `makeCRUDRoutes` joins selected PKs with commas when constructing navigation targets.
 
-**Bulk delete transport** uses a request body. The `defaultObjectsDelete` function sends `{ pks: [...] }` as the JSON body of a DELETE request to the list endpoint. The key is always `pks`, independent of the model's PK field name — this is a fixed protocol convention between the client and the server's bulk destroy handler.
+**Bulk delete transport** uses a request body. The `defaultObjectsDelete` function sends `{ pks: [...] }` as the JSON body of a DELETE request to the list endpoint. The key is always `pks`, independent of the model's PK field name; this is a fixed protocol convention between the client and the server's bulk destroy handler.
 
 The comma-delimited encoding for multi-object query parameters is lossy if a string PK value itself contains commas. Route and query reconstruction become ambiguous because `split(",")` cannot distinguish between a delimiter and a literal comma within a PK value. This is a known limitation that does not affect integer or UUID primary keys but can cause issues with free-text string PKs.
 

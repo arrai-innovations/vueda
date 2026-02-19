@@ -36,7 +36,7 @@ VUEDA permission classes enforce object checks for detail operations and dynamic
 
 List views can filter inaccessible rows instead of exposing everything and failing later on detail views.
 
-- Instance hook: `RowLevelPermissions.check_instance(...)` — general business-rule logic; **skipped when workflow state denies**
+- Instance hook: `RowLevelPermissions.check_instance(...)`; general business-rule logic; **skipped when workflow state denies**
 - Queryset hook: `RowLevelPermissions.check_queryset(...)`
 - Base class: `vueda.core.permissions.BaseRowLevelPermissions`
 - List integration: `ListRowLevelViewSetMixin.apply_row_level_filter(...)`
@@ -52,8 +52,8 @@ When workflow is enabled for a model, state and transition permissions can grant
 
 Workflow-aware row-level checks that combine state context with row-level logic. Runs last and can override any prior decision, including state deny.
 
-- Instance hook: `RowLevelPermissions.check_instance_workflow(...)` — receives `grant_or_deny` from state resolution
-- Queryset hook: `RowLevelPermissions.check_queryset_workflow(...)` — queryset is pre-annotated with `_state_denied` / `_state_granted`
+- Instance hook: `RowLevelPermissions.check_instance_workflow(...)`; receives `grant_or_deny` from state resolution
+- Queryset hook: `RowLevelPermissions.check_queryset_workflow(...)`; queryset is pre-annotated with `_state_denied` / `_state_granted`
 - Only called when the model is under workflow
 
 ## Permission Name Mapping

@@ -30,7 +30,7 @@ Celery must be configured and running. The VDQ periodic task schedule must be ac
 
 VDQ supports two modes for receiving SMS delivery status updates. Choose one based on your deployment:
 
-**Webhook mode** (`TWILIO_WEBHOOK_URL` is set): Twilio sends status updates to the configured callback URL. VDQ's webhook endpoint validates the Twilio signature and updates the queue item. The periodic task only checks for timeouts — it does not poll Twilio for status.
+**Webhook mode** (`TWILIO_WEBHOOK_URL` is set): Twilio sends status updates to the configured callback URL. VDQ's webhook endpoint validates the Twilio signature and updates the queue item. The periodic task only checks for timeouts; it does not poll Twilio for status.
 
 **Polling mode** (`TWILIO_WEBHOOK_URL` is not set): The periodic task `check_sms_status` polls Twilio for the status of awaiting SMS messages. This mode does not require inbound webhook access but adds latency to status updates (they arrive on the polling interval rather than in real time).
 

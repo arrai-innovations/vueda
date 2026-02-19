@@ -9,7 +9,7 @@ status: draft
 
 This guide covers the end-to-end flow for getting server validation errors into form feedback, clearing them on user interaction, and gating submission on local versus server validation. It applies to both standard CRUD forms (via `useObjectForm`) and custom forms that wire their own submission logic.
 
-The guide assumes familiarity with the form state model. If you have not read [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle), start there — it explains the two-channel state model (errors vs messages), the code-key namespacing (`required`, `validate`, `server`), the runtime reservation of the `server` namespace, and the submission pipeline that this guide builds on. For the server-side contract that produces the validation payloads, see [Error and Validation Contract](../core-concepts/error-and-validation-contract).
+The guide assumes familiarity with the form state model. If you have not read [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle), start there; it explains the two-channel state model (errors vs messages), the code-key namespacing (`required`, `validate`, `server`), the runtime reservation of the `server` namespace, and the submission pipeline that this guide builds on. For the server-side contract that produces the validation payloads, see [Error and Validation Contract](../core-concepts/error-and-validation-contract).
 
 ## Goal and Preconditions
 
@@ -47,14 +47,14 @@ The distinction matters because only `FormValidationError` instances are handled
 
 ## Form-Context Error and Message Mapping
 
-When a `FormValidationError` reaches the form context — either through the default `onSubmissionError` handler or through manual handling — it is ingested via `handleServerFormValidationError(error)`. This method iterates the error's two pre-parsed maps:
+When a `FormValidationError` reaches the form context (either through the default `onSubmissionError` handler or through manual handling), it is ingested via `handleServerFormValidationError(error)`. This method iterates the error's two pre-parsed maps:
 
 - `error.errors` (non-warning paths from the server payload) → written to `state.errors[fieldPath].server`
 - `error.messages` (warning paths from the server payload) → written to `state.messages[fieldPath].server`
 
 The split happens in the `FormValidationError` constructor. It flattens the response payload into paths, then uses the regex `/\.warnings(\[\d+\])?/` to classify them. Paths containing `.warnings` (produced by the server's `VuedaValidationError(detail, is_warning=True)`) are routed to `.messages`. Everything else goes to `.errors`.
 
-For standard CRUD forms using `useObjectForm`, the ingestion is automatic — `defaultOnSubmissionError` calls `handleServerFormValidationError` when the caught error is a `FormValidationError`. For custom forms, you must call it explicitly in your error handler:
+For standard CRUD forms using `useObjectForm`, the ingestion is automatic; `defaultOnSubmissionError` calls `handleServerFormValidationError` when the caught error is a `FormValidationError`. For custom forms, you must call it explicitly in your error handler:
 
 ```js
 try {
@@ -109,7 +109,7 @@ In this example, blurring the `sku` field within a line item clears server error
 
 ## Non-Field and Field Feedback Rendering
 
-Non-field errors — server validation that is not associated with a specific field — arrive under the key `non_field_errors` (the DRF convention, preserved as `NON_FIELD_ERRORS_KEY` on the client). These are rendered by `FormFeedback` when it is inside a form context but outside a field context:
+Non-field errors; server validation that is not associated with a specific field; arrive under the key `non_field_errors` (the DRF convention, preserved as `NON_FIELD_ERRORS_KEY` on the client). These are rendered by `FormFeedback` when it is inside a form context but outside a field context:
 
 ```vue
 <form @submit.prevent="submit">
@@ -176,7 +176,7 @@ With the validation pipeline wired, verify these behaviors:
 
 ## Troubleshooting
 
-**Form feedback is empty after a failed request.** The most common cause is a non-400 HTTP status. Only 400 responses are parsed as `FormValidationError`. Check the network response status — a 500 from an unhandled exception or a 403 from a permission check will produce a `FetchError` that bypasses form-context mapping entirely.
+**Form feedback is empty after a failed request.** The most common cause is a non-400 HTTP status. Only 400 responses are parsed as `FormValidationError`. Check the network response status; a 500 from an unhandled exception or a 403 from a permission check will produce a `FetchError` that bypasses form-context mapping entirely.
 
 **Server errors do not clear after editing a field.** `clearServerErrors` is triggered by blur, not by value change. If the user edits the field without leaving it (or if the value is changed programmatically), the `server` code persists. Verify that the field component calls `FieldContext.blur()` on the appropriate DOM event.
 

@@ -7,9 +7,9 @@ status: draft
 
 # Model Choices, Lookup Fields, and Dynamic Options
 
-This guide covers the end-to-end flow for loading dynamic option lists — both field-level choices (from serializer/model definitions) and filter-level choices (from filterset definitions) — using VUEDA's info endpoints and client composables. By the end, choice-backed fields and filter lookups will load their options dynamically, respect permissions, and handle edge cases like empty labels and lazy loading.
+This guide covers the end-to-end flow for loading dynamic option lists; both field-level choices (from serializer/model definitions) and filter-level choices (from filterset definitions); using VUEDA's info endpoints and client composables. By the end, choice-backed fields and filter lookups will load their options dynamically, respect permissions, and handle edge cases like empty labels and lazy loading.
 
-The guide assumes familiarity with the identifier and metadata contracts. If you have not read [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline), start there — it explains how choice values are normalized to strings and why identifier comparison uses string equality. For the model registration and `formatted_name` configuration that choice endpoints depend on, see [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract).
+The guide assumes familiarity with the identifier and metadata contracts. If you have not read [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline), start there; it explains how choice values are normalized to strings and why identifier comparison uses string equality. For the model registration and `formatted_name` configuration that choice endpoints depend on, see [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract).
 
 ## Goal and Preconditions
 
@@ -22,11 +22,11 @@ The objective is a model surface where:
 
 Before you begin, ensure the following are in place:
 
-The model is registered via `register()` with both a canonical serializer and viewset. The model-info endpoint returns complete metadata. If the model has related-model choice fields (foreign keys used as choice sources), the related model must also be registered so the choice endpoint can resolve its content type. The model's `formatted_name` strategy must be configured — choice endpoints use it to resolve display labels for related-model choices. See [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract) for the four `formatted_name` strategies and their serializer wiring requirements.
+The model is registered via `register()` with both a canonical serializer and viewset. The model-info endpoint returns complete metadata. If the model has related-model choice fields (foreign keys used as choice sources), the related model must also be registered so the choice endpoint can resolve its content type. The model's `formatted_name` strategy must be configured; choice endpoints use it to resolve display labels for related-model choices. See [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract) for the four `formatted_name` strategies and their serializer wiring requirements.
 
 ## Registry and Route Preconditions
 
-Choice endpoints resolve the target model through Django's content type framework, which requires the model to be registered with VUEDA's info registry. An unregistered model — even one with a perfectly defined serializer and viewset — will produce a 404 response from choice endpoints with the message `"Unable to find the content type ..."`.
+Choice endpoints resolve the target model through Django's content type framework, which requires the model to be registered with VUEDA's info registry. An unregistered model; even one with a perfectly defined serializer and viewset; will produce a 404 response from choice endpoints with the message `"Unable to find the content type ..."`.
 
 Registration must happen in the app's `AppConfig.ready()` method. Attempting to wire choice loading before registration (for example, in a module-level initialization) risks content-type resolution errors. If a choice endpoint returns 404 and the model code exists, verify that `register()` is called in `ready()` and that the app is in `INSTALLED_APPS`.
 
@@ -39,7 +39,7 @@ Both require the `app_label` and `model` to match a registered content type, and
 
 ## Field Choice Endpoint Wiring
 
-The field choices endpoint serves option lists for serializer fields that have choices defined — either static choices on the field definition or dynamic choices from a related-model queryset (foreign key fields).
+The field choices endpoint serves option lists for serializer fields that have choices defined; either static choices on the field definition or dynamic choices from a related-model queryset (foreign key fields).
 
 ### Permission model
 
@@ -60,7 +60,7 @@ Choice responses are lists of `{label, value}` objects. For related-model choice
 
 ## Filter Choice Endpoint Wiring
 
-The filter choices endpoint serves option lists for filterset-defined filters — the filters that appear in the list view's filter UI.
+The filter choices endpoint serves option lists for filterset-defined filters; the filters that appear in the list view's filter UI.
 
 ### Empty label and empty value
 
@@ -103,7 +103,7 @@ const choices = useModelChoices({
 });
 ```
 
-- **`intendToFetch`**: controls whether the composable fetches choices for this field. When `false`, the field's choices are not loaded. This enables conditional loading — for example, loading choices only when a form section is expanded.
+- **`intendToFetch`**: controls whether the composable fetches choices for this field. When `false`, the field's choices are not loaded. This enables conditional loading; for example, loading choices only when a form section is expanded.
 - **`isFilter`**: when `true`, the composable uses the filter-choices endpoint instead of the field-choices endpoint.
 
 The composable does not fetch when the component is inactive (unmounted or deactivated). This prevents background fetches for components that are not visible.
@@ -114,7 +114,7 @@ The composable does not fetch when the component is inactive (unmounted or deact
 
 ### Filter UI lazy loading
 
-The default filter UI (`FilterComponent`) fetches filter choices lazily — either when the filter dropdown is opened or when the current query already includes a value for that filter. This means filter choices are not loaded on initial page load unless the URL contains filter parameters. Expecting eager availability of filter choices (for example, reading them synchronously after component mount) will produce empty option lists until user interaction triggers the fetch.
+The default filter UI (`FilterComponent`) fetches filter choices lazily; either when the filter dropdown is opened or when the current query already includes a value for that filter. This means filter choices are not loaded on initial page load unless the URL contains filter parameters. Expecting eager availability of filter choices (for example, reading them synchronously after component mount) will produce empty option lists until user interaction triggers the fetch.
 
 ## Verification Checklist
 
@@ -134,7 +134,7 @@ With choice loading wired, verify these behaviors:
 
 **Choice endpoint returns 404 with "Unable to find the content type".** The model is not registered with VUEDA's info registry. Verify that `register()` is called in the app's `AppConfig.ready()` method with both the serializer and viewset. A `register_serializer`-only registration is not sufficient for choice endpoints.
 
-**Choice endpoint returns 404 for a valid field name.** The field must have choices defined on the serializer — either static choices in the field definition or a related-model queryset source. A plain `CharField` without choices will return 404 from the field-choices endpoint even though it exists in model-info metadata.
+**Choice endpoint returns 404 for a valid field name.** The field must have choices defined on the serializer; either static choices in the field definition or a related-model queryset source. A plain `CharField` without choices will return 404 from the field-choices endpoint even though it exists in model-info metadata.
 
 **Related-model choice labels show raw values instead of formatted names.** The related model's `formatted_name` strategy is not configured correctly. If the model sets `formatted_name = None`, it must provide either `formatted_name_lookup_expression` or a `get_formatted_name()` method. If using `get_formatted_name()`, the related model's serializer must declare `formatted_name = serializers.SerializerMethodField()`. See [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract) for the configuration options.
 

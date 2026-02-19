@@ -13,7 +13,7 @@ This page explains how state permissions, transition permissions, and the DRF mo
 
 ## Overlay Boundary and Authority
 
-Workflow permissions target the same `app_label.codename` permission strings that baseline Django permission checks use. A `StatePermission` entry says "for objects in state X, grant (or deny) permission Y for members of group Z." The result modifies the outcome of `has_perm` for that specific codename, user, and object — the same `has_perm` that baseline model permissions flow through. There is no parallel authorization namespace.
+Workflow permissions target the same `app_label.codename` permission strings that baseline Django permission checks use. A `StatePermission` entry says "for objects in state X, grant (or deny) permission Y for members of group Z." The result modifies the outcome of `has_perm` for that specific codename, user, and object; the same `has_perm` that baseline model permissions flow through. There is no parallel authorization namespace.
 
 This design means that adding workflow state permissions does not require changing group assignments, model-level permission grants, or permission codename definitions. The overlay operates on the existing codename space. It also means that the overlay can produce surprising results: a user who has baseline model permission for a codename can be denied at object scope because a state-permission deny rule exists for their group and the object's current state. Conversely, a user who lacks baseline model permission can be granted access to specific objects because a state-permission grant rule exists.
 
@@ -25,7 +25,7 @@ The authority boundary is: state permissions are server-authoritative for enforc
 
 When `VUEDAPermissionsMixin.has_perm` evaluates an object with a workflow, `check_state_permission` queries matching `StatePermission` rows for the object's current state, the user's groups, and the required permission codename. The evaluation produces a tri-state result:
 
-- **`True`** (grant): at least one matching grant rule exists and no matching deny rule exists. This overrides a baseline `False` — the user gains access to this object even though they lack the model-level permission.
+- **`True`** (grant): at least one matching grant rule exists and no matching deny rule exists. This overrides a baseline `False`; the user gains access to this object even though they lack the model-level permission.
 - **`False`** (deny): at least one matching deny rule exists. Deny wins over Grant when both match. This overrides a baseline `True`; the user loses access to this object even though they have the model-level permission.
 - **`None`** (no opinion): no matching state-permission rules exist for this combination. The baseline model permission decision stands.
 
@@ -39,7 +39,7 @@ VUEDA solves this with a model-scope bypass. `ObjectPermissions.has_permission` 
 
 `WorkflowObjectPermissions` applies a broader bypass: it returns `True` at model scope when any `StatePermission` rows exist for the workflow (not just grants for the user's groups), deferring all effective decisions to object-scope checks.
 
-The consequence of this bypass is that the failure shape changes. Without workflow state permissions, a user missing a model permission sees `403` from the model-scope check — the object is never fetched. With state permissions present, the model-scope check may pass, and the denial moves to the object-scope phase. Depending on the endpoint, this can change a `403` into a `404` (when DRF raises `Http404` at object scope) or shift the error to a different point in the request lifecycle. Adding or removing `StatePermission` data can change which layer denies access, altering the HTTP status code and error message without changing any permission assignments.
+The consequence of this bypass is that the failure shape changes. Without workflow state permissions, a user missing a model permission sees `403` from the model-scope check; the object is never fetched. With state permissions present, the model-scope check may pass, and the denial moves to the object-scope phase. Depending on the endpoint, this can change a `403` into a `404` (when DRF raises `Http404` at object scope) or shift the error to a different point in the request lifecycle. Adding or removing `StatePermission` data can change which layer denies access, altering the HTTP status code and error message without changing any permission assignments.
 
 The model-scope bypass does not incorporate the object's current state; it cannot, because no object exists at that phase yet. This means model-scope admission succeeds based on the existence of state-permission data, not on whether that data would actually grant access for the eventual object. The object-scope check is where the real authorization decision happens.
 
@@ -71,7 +71,7 @@ The workflow store caches both successful transition lists and fetch errors per 
 
 ## Failure Surfaces and Symptom Signatures
 
-**State permissions change `has_perm` outcomes without changing group assignments.** Symptom: `user.has_perm("myapp.update_widget", obj=instance)` returns a different result than `user.has_perm("myapp.update_widget")` for the same user and codename. This is by design — state overlay is object-scoped.
+**State permissions change `has_perm` outcomes without changing group assignments.** Symptom: `user.has_perm("myapp.update_widget", obj=instance)` returns a different result than `user.has_perm("myapp.update_widget")` for the same user and codename. This is by design; state overlay is object-scoped.
 
 **Model-scope bypass admits, then object-scope denies.** Symptom: requests that previously returned `403` now return `404` after adding state-permission rows. The model-scope bypass lets the request through, and the denial moves to the object scope, where DRF may raise `Http404`.
 

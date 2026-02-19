@@ -7,7 +7,7 @@ status: draft
 
 # Send Email from VDQ with Anymail
 
-This guide covers implementing queued outbound email through VDQ using Anymail as the provider — including queue item creation, attachment handling, async dispatch, tracking event reconciliation, and the resend path. It focuses on email-specific behaviour; for shared VDQ patterns (scheduling, retry/cancel, status endpoints), see [Run Actions in the VUEDA Dispatch Queue (VDQ)](./vdq-actions).
+This guide covers implementing queued outbound email through VDQ using Anymail as the provider; including queue item creation, attachment handling, async dispatch, tracking event reconciliation, and the resend path. It focuses on email-specific behaviour; for shared VDQ patterns (scheduling, retry/cancel, status endpoints), see [Run Actions in the VUEDA Dispatch Queue (VDQ)](./vdq-actions).
 
 The guide assumes familiarity with VDQ's persistence and lifecycle model. If you have not read [VDQ and Background Work Model](../core-concepts/vdq-and-background-work), start there.
 
@@ -56,7 +56,7 @@ Key behaviours:
 - **Role validation.** `validate_email_role` checks that sender and receiver roles have email values before queueing. Invalid roles are rejected before any queue items are created.
 - **Immediate scheduling.** `add_email` calls `schedule_queue_item` for each created queue item, which publishes a Celery task via `delay_on_commit`.
 
-Use `add_abstract_email(...)` when you need to create the queue item without immediate scheduling — for example, when the email needs additional setup in the same transaction before dispatch.
+Use `add_abstract_email(...)` when you need to create the queue item without immediate scheduling; for example, when the email needs additional setup in the same transaction before dispatch.
 
 ## Attachment Handling
 
@@ -104,7 +104,7 @@ Unknown `message_id` values (events for messages not tracked by VDQ) are logged 
 
 For tracking events to work, the VDQ URL configuration must include Anymail's webhook/tracking URLs. Verify that the provider is configured to send tracking events to the correct endpoint.
 
-Tracking events may arrive after the queue item has moved to a terminal state (e.g., cancelled or already errored). These late events are handled via ignored transition sources — accepted without error, without state change.
+Tracking events may arrive after the queue item has moved to a terminal state (e.g., cancelled or already errored). These late events are handled via ignored transition sources; accepted without error, without state change.
 
 ## Resend and Retry Operations
 

@@ -24,7 +24,7 @@ Before you begin:
 
 The target model must use `HasWorkflowModelMixin` so that workflow state rows are auto-created on save. Verify that newly created objects receive the workflow's initial state before testing permission scenarios.
 
-The model must have an active workflow with defined states and transitions. State permissions, transition permissions, and workflow permissions are stored as database rows — they must be created through migrations, fixtures, or programmatic setup.
+The model must have an active workflow with defined states and transitions. State permissions, transition permissions, and workflow permissions are stored as database rows; they must be created through migrations, fixtures, or programmatic setup.
 
 The API stack must use `ObjectPermissions` (or `WorkflowObjectPermissions`) as the permission class. The user model must include `VUEDAPermissionsMixin`.
 
@@ -55,7 +55,7 @@ TransitionPermission.objects.create(
 )
 ```
 
-Transitions without any `TransitionPermission` rows are treated as not executable. They will not appear in `permitted_transitions`, and `check_transition_permission` will return `False`. This is not a misconfiguration — it is the expected behaviour for transitions that should not be user-executable (e.g., system-only transitions triggered by code).
+Transitions without any `TransitionPermission` rows are treated as not executable. They will not appear in `permitted_transitions`, and `check_transition_permission` will return `False`. This is not a misconfiguration; it is the expected behaviour for transitions that should not be user-executable (e.g., system-only transitions triggered by code).
 
 ## Configure State Grant/Deny Rows
 
@@ -87,7 +87,7 @@ The evaluation rules:
 - **Deny (`grant_or_deny=False`)**: overrides a baseline `True`. The user loses the object-level access they would otherwise have. Deny wins over grant when a user's groups produce conflicting rules for the same state and codename.
 - **No matching rows**: the baseline model permission decision stands.
 
-State permissions are evaluated through `VUEDAPermissionsMixin.has_perm(..., obj=instance)`. They are object-scope checks — they have no effect without a concrete object and its current state.
+State permissions are evaluated through `VUEDAPermissionsMixin.has_perm(..., obj=instance)`. They are object-scope checks; they have no effect without a concrete object and its current state.
 
 ## Verify Permission Matrix by State and Group
 
@@ -95,10 +95,10 @@ Build a test matrix that crosses user groups, workflow states, and CRUDL actions
 
 | User group | Object state | `update` baseline | State overlay | Expected `has_perm` |
 |------------|--------------|-------------------|---------------|---------------------|
-| Editors    | draft        | `True`            | — (no rule)   | `True`              |
+| Editors    | draft        | `True`            | none (no rule) | `True`              |
 | Editors    | review       | `False`           | grant         | `True`              |
 | Editors    | published    | `True`            | deny          | `False`             |
-| Viewers    | review       | `False`           | — (no rule)   | `False`             |
+| Viewers    | review       | `False`           | none (no rule) | `False`             |
 
 Verify the matrix through `has_perm` calls with concrete objects:
 

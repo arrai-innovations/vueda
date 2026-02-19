@@ -39,9 +39,9 @@ The permission codename passed to the hook is constructed from the model's `app_
 
 When `VUEDAPermissionsMixin.has_perm` is called with an object, and that object's model defines `RowLevelPermissions`, the permission evaluation chain includes row-level instance checks after baseline model permissions and (for workflow models) state permission overlays.
 
-`check_instance` is called with the model class, the object, the permission string, the user, and the permission type. Its return value is `True`, `False`, or `None`. A non-`None` result overrides the decision from earlier permission layers (the baseline model permission and, when applicable, the workflow state overlay). `None` means "no row-level opinion" — the earlier decision stands.
+`check_instance` is called with the model class, the object, the permission string, the user, and the permission type. Its return value is `True`, `False`, or `None`. A non-`None` result overrides the decision from earlier permission layers (the baseline model permission and, when applicable, the workflow state overlay). `None` means "no row-level opinion"; the earlier decision stands.
 
-For workflow models, `check_instance_workflow` runs after `check_instance`. This hook receives the state overlay's `grant_or_deny` outcome as an additional argument, allowing it to override even a state denial. A non-`None` return from `check_instance_workflow` is the final decision. This hook runs regardless of whether the state overlay denied permission — it is the last evaluation layer in the permission chain.
+For workflow models, `check_instance_workflow` runs after `check_instance`. This hook receives the state overlay's `grant_or_deny` outcome as an additional argument, allowing it to override even a state denial. A non-`None` return from `check_instance_workflow` is the final decision. This hook runs regardless of whether the state overlay denied permission; it is the last evaluation layer in the permission chain.
 
 Note that `check_instance` is skipped when the workflow state overlay has already denied permission (layer 2 returned `False`), because the state denial is considered authoritative for non-workflow-aware row logic. The workflow-aware `check_instance_workflow` is not skipped; it always runs when the model has a workflow.
 

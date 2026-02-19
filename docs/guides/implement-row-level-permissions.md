@@ -82,7 +82,7 @@ class RowLevelPermissions(BaseRowLevelPermissions):
         return None  # Defer to state overlay result
 ```
 
-`check_queryset_workflow` receives a queryset annotated with `_state_denied` and `_state_granted` flags inside `apply_row_level_filter`. `check_instance_workflow` receives the `grant_or_deny` outcome from the state overlay and can override prior decisions — including state denial — when it returns non-`None`.
+`check_queryset_workflow` receives a queryset annotated with `_state_denied` and `_state_granted` flags inside `apply_row_level_filter`. `check_instance_workflow` receives the `grant_or_deny` outcome from the state overlay and can override prior decisions; including state denial; when it returns non-`None`.
 
 Keep the hook implementations focused. Queryset hooks must express logic as `Q` objects or booleans because they run at database scope. Instance hooks can be arbitrarily complex but should avoid expensive operations in hot paths (e.g., retrieving actions that run per-request).
 
@@ -132,7 +132,7 @@ Test row-level denied retrieve attempts explicitly. The `404` response (not `403
 
 - A user with row-level restrictions sees `totalRecords` matching their visible row count, not the table total.
 - Column totals (when configured via `column_totals` on the viewset) aggregate only the filtered rows.
-- Paginated navigation stays consistent — the user does not see "page 3 of 5" when their visible set has only 2 pages.
+- Paginated navigation stays consistent; the user does not see "page 3 of 5" when their visible set has only 2 pages.
 
 Note: row-level filtering and column totals are tested separately in the current test suite. There is no dedicated combined integration test, so verify the combined behaviour explicitly in your project if both features are active.
 

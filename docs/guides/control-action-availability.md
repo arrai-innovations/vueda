@@ -7,7 +7,7 @@ status: draft
 
 # Control Action Availability in the UI
 
-This guide covers the end-to-end implementation of action availability — ensuring that route admission, rendered controls, and server authorization stay aligned across model-info metadata, object-level availability, client config, and workflow transition layers. The goal is to make the client show exactly the actions a user can perform, without either hiding valid actions or exposing actions that will fail.
+This guide covers the end-to-end implementation of action availability; ensuring that route admission, rendered controls, and server authorization stay aligned across model-info metadata, object-level availability, client config, and workflow transition layers. The goal is to make the client show exactly the actions a user can perform, without either hiding valid actions or exposing actions that will fail.
 
 The guide assumes familiarity with the action contract. If you have not read [Action Contract and Availability](../core-concepts/action-contract-and-availability), start there; it explains the three-layer contract boundary that this guide operates within. For the underlying permission model, see [Permission Model](../core-concepts/permission-model). For the boundary between server authorization and client UI semantics, see [Authorization vs UI Semantics](../core-concepts/authorization-vs-ui-semantics).
 
@@ -44,7 +44,7 @@ class MyViewSet(VuedaViewSet):
         return allowed
 ```
 
-When called without `instance` (model-scope), the return value filters which extra actions appear in `model_actions`. When called with `instance` (object-scope), the return value determines which extra actions appear in that object's `available_actions`. Implement both code paths in the same method — the `instance` argument distinguishes the scope.
+When called without `instance` (model-scope), the return value filters which extra actions appear in `model_actions`. When called with `instance` (object-scope), the return value determines which extra actions appear in that object's `available_actions`. Implement both code paths in the same method; the `instance` argument distinguishes the scope.
 
 If `get_allowed_extra_actions` is not implemented, all extra actions declared on the viewset are included in model-info metadata, subject to standard permission checks.
 
@@ -52,9 +52,9 @@ If `get_allowed_extra_actions` is not implemented, all extra actions declared on
 
 Object-level `available_actions` is computed during serialization and reflects what the requesting user can do with a specific instance. Include the `AvailableActionsField` in your serializer when detail views need per-object action filtering.
 
-The field evaluates standard actions (retrieve, update, partial_update, destroy) through object-permission checks. `create` is excluded for concrete instances — it is a model-scope action. Allowed extra actions from `get_allowed_extra_actions(request, instance=instance)` are appended to the result.
+The field evaluates standard actions (retrieve, update, partial_update, destroy) through object-permission checks. `create` is excluded for concrete instances; it is a model-scope action. Allowed extra actions from `get_allowed_extra_actions(request, instance=instance)` are appended to the result.
 
-The object-level result can be narrower than model-scope metadata. A user may have model-level `update` permission (so `update` appears in `model_actions`), but a specific object may deny `update` due to workflow state or row-level constraints (so `update` is absent from that object's `available_actions`). This divergence is by design — the model-scope metadata is a superset that enables route admission, while the object-scope metadata drives per-object UI controls.
+The object-level result can be narrower than model-scope metadata. A user may have model-level `update` permission (so `update` appears in `model_actions`), but a specific object may deny `update` due to workflow state or row-level constraints (so `update` is absent from that object's `available_actions`). This divergence is by design; the model-scope metadata is a superset that enables route admission, while the object-scope metadata drives per-object UI controls.
 
 ## Route Guard Wiring
 
@@ -76,11 +76,11 @@ Rendered action controls in views use two additional filtering layers beyond rou
 
 **Group-based filtering** uses `useFilteredActions` to read the model config's `config.actions` setting. When defined, only actions listed in `config.actions` are included in the rendered set. This filtering applies across all views for the model and is typically used for role-based or product-based UX customization.
 
-**Object-level intersection** applies in detail-style views. `DetailedView` intersects the config-filtered action set with the object's `available_actions` before rendering action buttons. An action must pass both filters to appear as a rendered control. This means the same model can show different action buttons for different objects — reflecting per-object permission outcomes without any client-side permission logic.
+**Object-level intersection** applies in detail-style views. `DetailedView` intersects the config-filtered action set with the object's `available_actions` before rendering action buttons. An action must pass both filters to appear as a rendered control. This means the same model can show different action buttons for different objects; reflecting per-object permission outcomes without any client-side permission logic.
 
 List views use config-filtered actions for toolbar controls (like bulk delete) but do not intersect with per-object availability, since list views do not have a single target object.
 
-Workflow transition controls are sourced from the workflow transition store and rendered independently from CRUD action buttons. Do not attempt to infer transition availability from `model_actions` or `available_actions` — transitions have their own data flow and are fetched through dedicated workflow endpoints.
+Workflow transition controls are sourced from the workflow transition store and rendered independently from CRUD action buttons. Do not attempt to infer transition availability from `model_actions` or `available_actions`; transitions have their own data flow and are fetched through dedicated workflow endpoints.
 
 ## Workflow Transition Handling
 
@@ -105,7 +105,7 @@ After wiring action availability, verify the following behaviors:
 
 **Action appears in model-info but not in detail view controls.** The action is filtered at object scope. Check the object's `available_actions` in the API response. If the action is absent, the object's permission state (workflow, row-level) is denying it. This is expected behavior, not a bug.
 
-**"Action Not Found" toast for a valid server action.** Check `config.routeActions`. If set, the action must be listed there to pass the route guard. Also check for the legacy `routerActions` key — it is silently ignored.
+**"Action Not Found" toast for a valid server action.** Check `config.routeActions`. If set, the action must be listed there to pass the route guard. Also check for the legacy `routerActions` key; it is silently ignored.
 
 **Route guard fails repeatedly for a model after a transient error.** The model-info store caches fetch errors. The cached error will be reused for all navigation attempts to that model until the store is reset or the page is reloaded.
 

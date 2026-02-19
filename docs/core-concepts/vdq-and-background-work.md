@@ -7,7 +7,7 @@ status: draft
 
 # VDQ and Background Work Model
 
-The VUEDA Dispatch Queue (`vueda.vdq`) is a Django app that manages outbound email and SMS delivery through a persistent, workflow-backed queue. Each queued item is a database row with an attached workflow state machine; Celery handles asynchronous execution, and external provider callbacks (Anymail signals, Twilio webhooks) reconcile delivery outcomes against the queue item's lifecycle state. The database row is the single coordination point — workers, callbacks, and operator actions all converge on the same `QueueItem` model.
+The VUEDA Dispatch Queue (`vueda.vdq`) is a Django app that manages outbound email and SMS delivery through a persistent, workflow-backed queue. Each queued item is a database row with an attached workflow state machine; Celery handles asynchronous execution, and external provider callbacks (Anymail signals, Twilio webhooks) reconcile delivery outcomes against the queue item's lifecycle state. The database row is the single coordination point; workers, callbacks, and operator actions all converge on the same `QueueItem` model.
 
 This page explains the persistence and workflow boundary, the transaction and concurrency model, provider dispatch and reconciliation, and done-state semantics for list filtering and cleanup. For practical steps using VDQ, see [Run Actions in the VUEDA Dispatch Queue (VDQ)](../guides/vdq-actions). For provider-specific implementation, see [Send Email from VDQ with Anymail](../guides/vdq-email-anymail) and [Send SMS from VDQ with Twilio](../guides/vdq-sms-twilio). For the workflow engine that VDQ builds on, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
 

@@ -7,7 +7,7 @@ status: draft
 
 # Form State and Validation Lifecycle
 
-VUEDA manages form state through a two-layer context system: a form-level context that holds all values, errors, messages, and interaction state, and a field-level context that bridges individual fields into that shared state. Validation enters the state model through two distinct channels — local validation and server validation — and the system is designed so that the two never collide or overwrite each other.
+VUEDA manages form state through a two-layer context system: a form-level context that holds all values, errors, messages, and interaction state, and a field-level context that bridges individual fields into that shared state. Validation enters the state model through two distinct channels; local validation and server validation; and the system is designed so that the two never collide or overwrite each other.
 
 This page explains the state model, the lifecycle transitions that mutate it, and the submission-gating semantics that determine when a form is allowed to submit. For the server-side contract that produces the validation payloads the client ingests, see [Error and Validation Contract](./error-and-validation-contract). For practical steps on wiring validation into forms, see [Handle Form Validation and Server Errors](../guides/form-validation-and-errors).
 
@@ -15,11 +15,11 @@ This page explains the state model, the lifecycle transitions that mutate it, an
 
 The form state system lives entirely on the client. The server owns data integrity and validation rules; the client owns the runtime representation of form values, validation feedback, and interaction tracking. The boundary between them is the HTTP response: the server returns validation payloads, and the client ingests them into a state model that is structurally separate from local validation.
 
-`useForm` creates and provides the form context. `useField` creates and provides the field context. Both use Vue's provide/inject mechanism with symbol keys (`FormContextSymbol`, `FieldContextSymbol`), making them available to any descendant component without explicit prop threading. Feedback renderers (`FormFeedback`, `FormChores`) inject whichever context they find — field context when inside a field component, form context when at the form level — and render from the appropriate state slice.
+`useForm` creates and provides the form context. `useField` creates and provides the field context. Both use Vue's provide/inject mechanism with symbol keys (`FormContextSymbol`, `FieldContextSymbol`), making them available to any descendant component without explicit prop threading. Feedback renderers (`FormFeedback`, `FormChores`) inject whichever context they find; field context when inside a field component, form context when at the form level; and render from the appropriate state slice.
 
 ## Form Context State Shape
 
-The form context, created by `useForm`, is a single reactive object with six state groups. All downstream consumers — field components, submit wrappers, feedback renderers — read from and mutate through this shared state.
+The form context, created by `useForm`, is a single reactive object with six state groups. All downstream consumers; field components, submit wrappers, feedback renderers; read from and mutate through this shared state.
 
 **Values and initial values.** `state.values` holds the current field values. `state.initialValues` holds the baseline values used for reset and modification tracking. Both are mutated in-place using `assignReactiveObject`; they are never replaced with new objects, because doing so would break existing reactive references held by field components. When `initialValues` changes on the props passed to `useForm`, the form automatically resets: `state.values` is deep-cloned from the new initial values, and all errors, messages, touched, and focus state are cleared.
 
@@ -33,31 +33,31 @@ The separation between errors and messages is the mechanism that makes VUEDA's w
 
 **Ignored fields.** `state.ignored` is a path-keyed boolean map. Ignored fields are excluded from `state.submittingValues`, which is a computed property that omits ignored paths and compacts arrays when ignored items are array elements (bracket-keyed paths like `items[2]`). Ignored fields are also excluded from the modification check and from non-server error gating during submission.
 
-**Mutation methods** on the form context require non-empty path names; calling any mutation method without a name throws `"No name provided"`. This is a hard runtime invariant — it catches wiring errors where a field component mounts without a `name` prop.
+**Mutation methods** on the form context require non-empty path names; calling any mutation method without a name throws `"No name provided"`. This is a hard runtime invariant; it catches wiring errors where a field component mounts without a `name` prop.
 
 ## Field Context Responsibilities
 
 The field context, created by `useField`, is a per-field projection of the form context. It reads and writes through the form context's mutation methods rather than maintaining independent state. When no form context is available (the `contextless` prop is `true`, or no `FormContextSymbol` is provided), the field context falls back to a local reactive object with the same shape, enabling standalone field usage outside forms.
 
-**Value bridging.** `state.value` is a writable computed that reads from `formContext.state.values` using the field's `name` as a lodash-style path, and writes through `formContext.updateValue`. This means nested paths like `address.city` or `items[0].sku` work without special handling — the form context stores the flat path as a key and the field context resolves it via `lodash/get` and `lodash/set`.
+**Value bridging.** `state.value` is a writable computed that reads from `formContext.state.values` using the field's `name` as a lodash-style path, and writes through `formContext.updateValue`. This means nested paths like `address.city` or `items[0].sku` work without special handling; the form context stores the flat path as a key and the field context resolves it via `lodash/get` and `lodash/set`.
 
 **Local validation.** Each field context runs two reactive watchers that write error codes into the form context:
 
 The **required watcher** monitors four inputs: `state.required`, the `requiredMessage` prop, `state.touched`, and `state.valueRequiredViolation`. When all conditions are met (the field is required, has been touched, and the current value violates the required check), the watcher writes `errors[name].required` with the configured message. When any condition is not met, it deletes the `required` code. The required check itself is pluggable: `isRequiredViolation` defaults to treating `null`, `undefined`, `""`, `false`, and `0` as violations, and `shouldRequireFn` can override whether the field is required at all based on dependency values.
 
-The **validate watcher** monitors `state.valid`, which is a computed that calls the `validate` prop function (if provided) with the current value and dependency values. The validate function returns `true` for valid, or a string error message for invalid. The watcher writes `errors[name].validate` with the returned message when validation fails and the field has been touched, and deletes it otherwise. The validate watcher is intentionally not `immediate` — it waits for the first reactive change to avoid triggering validation on partially-initialized fields.
+The **validate watcher** monitors `state.valid`, which is a computed that calls the `validate` prop function (if provided) with the current value and dependency values. The validate function returns `true` for valid, or a string error message for invalid. The watcher writes `errors[name].validate` with the returned message when validation fails and the field has been touched, and deletes it otherwise. The validate watcher is intentionally not `immediate`; it waits for the first reactive change to avoid triggering validation on partially-initialized fields.
 
-**Blur and server error clearing.** When `blur()` is called on a field context, it does three things: clears focus state, sets the field as touched, and calls `clearServerErrors` on the form context for the field's name and its configured `clearServerErrorDependents`. This is the mechanism that makes server errors dismissible after user interaction — editing and blurring a field clears the stale `server` code for that field and optionally for related fields.
+**Blur and server error clearing.** When `blur()` is called on a field context, it does three things: clears focus state, sets the field as touched, and calls `clearServerErrors` on the form context for the field's name and its configured `clearServerErrorDependents`. This is the mechanism that makes server errors dismissible after user interaction; editing and blurring a field clears the stale `server` code for that field and optionally for related fields.
 
 **Hook registration.** On mount, the field context registers hooks for `isModified`, `isRequired`, and `isValid` with the form context's reactive hook registries. These hooks feed the form-level computed aggregates (`state.modified`, `state.required`, `state.valid`). On unmount, hooks are unregistered. This lifecycle ensures that the form-level aggregates always reflect the currently mounted set of fields.
 
-**Dependency registration.** Fields can declare `validationDependencies` — paths to other field values that the field's `shouldRequireFn` or `validate` function needs. On mount, the field context registers these paths with the form context's dependency values registry. The resolved dependency values are then available as `state.dependencyValues`, which the required and validate computeds consume.
+**Dependency registration.** Fields can declare `validationDependencies`; paths to other field values that the field's `shouldRequireFn` or `validate` function needs. On mount, the field context registers these paths with the form context's dependency values registry. The resolved dependency values are then available as `state.dependencyValues`, which the required and validate computeds consume.
 
 ## Local Validation Semantics
 
 Local validation is strictly client-side. It writes error codes `required` and `validate` into `state.errors[name]`. It never writes into `state.messages`. It only activates after the field is touched.
 
-The activation constraint is important: a freshly loaded form shows no local validation errors even if required fields are empty, because no field has been touched yet. This is by design — the submission pipeline calls `setAllTouched()` before checking errors, which forces all local validation to evaluate. The sequence is: mark all fields touched, yield to the next microtask (`await nextTick()`) so watchers fire, then check `state.anyError`.
+The activation constraint is important: a freshly loaded form shows no local validation errors even if required fields are empty, because no field has been touched yet. This is by design; the submission pipeline calls `setAllTouched()` before checking errors, which forces all local validation to evaluate. The sequence is: mark all fields touched, yield to the next microtask (`await nextTick()`) so watchers fire, then check `state.anyError`.
 
 Local validation error codes are namespaced to avoid collisions. `required` and `validate` are the only two codes that local validation writes. The `server` code is reserved for server-originated feedback and is runtime-enforced in the client: attempts to set `server` via local `updateError`/`updateMessage` paths throw an error. The only valid writer for `server` is `handleServerFormValidationError(error)`.
 
@@ -70,17 +70,17 @@ Server validation enters the form state through a single method: `handleServerFo
 
 The `FormValidationError` constructor is where the server's wire payload is split into these two maps. It flattens the response payload into paths and uses a regex pattern (`/\.warnings(\[\d+\])?/`) to classify them: paths containing `.warnings` are routed to `.messages`, all others to `.errors`. This split is the bridge between the server's warning mechanism (where `VuedaValidationError(detail, is_warning=True)` wraps details in a `{"warnings": [...]}` structure) and the client's two-channel state model.
 
-Server errors are cleared selectively, not globally. `clearServerErrors(name, dependents)` deletes the `server` code from both `state.errors[name]` and `state.messages[name]`, then clears each dependent path provided in the same call. Dependents can use the `$parent` placeholder, which resolves to the dot-delimited parent of the current field's path — this is how nested fields in array items can clear server errors on sibling fields when one field is edited.
+Server errors are cleared selectively, not globally. `clearServerErrors(name, dependents)` deletes the `server` code from both `state.errors[name]` and `state.messages[name]`, then clears each dependent path provided in the same call. Dependents can use the `$parent` placeholder, which resolves to the dot-delimited parent of the current field's path; this is how nested fields in array items can clear server errors on sibling fields when one field is edited.
 
 The clearing is triggered by field blur: `FieldContext.blur()` calls `clearServerErrors` with the field's `clearServerErrorDependents` configuration. This means server errors persist visually until the user interacts with the relevant field. Edits that do not blur (for example, programmatic value changes) do not clear server errors.
 
 ## The Warning Channel
 
-The `state.messages` collection is the client-side representation of server warnings. Warnings are non-blocking feedback — they inform the user of potential issues without preventing submission.
+The `state.messages` collection is the client-side representation of server warnings. Warnings are non-blocking feedback; they inform the user of potential issues without preventing submission.
 
 On the server, a serializer or viewset raises `VuedaValidationError(detail, is_warning=True)`. The exception handler wraps the detail in a `{"warnings": [...]}` structure and returns it as part of an HTTP 400 response. On the client, `FormValidationError` detects the `.warnings` paths and routes them to its `.messages` map. `handleServerFormValidationError` then writes them into `state.messages[name].server`.
 
-The `useWarnings` composable provides a proactive warning pipeline that operates independently of form submission. It fetches warnings from the server's warnings endpoint when the form loads (or when the target object changes), and calls `handleServerFormValidationError` to inject them into form state. It also watches `state.initialValues` so that warnings are reapplied after a form reset — without this, a form reset would clear the warnings that were fetched before any submission occurred.
+The `useWarnings` composable provides a proactive warning pipeline that operates independently of form submission. It fetches warnings from the server's warnings endpoint when the form loads (or when the target object changes), and calls `handleServerFormValidationError` to inject them into form state. It also watches `state.initialValues` so that warnings are reapplied after a form reset; without this, a form reset would clear the warnings that were fetched before any submission occurred.
 
 `FormFeedback` renders warnings when used with `type="message"`. It renders with PrimeVue's `severity="warn"` (yellow styling), visually distinguishing warnings from errors (`severity="error"`, red styling). `FormChores` renders both error and message feedback for a field by composing two `FormFeedback` instances.
 
@@ -101,11 +101,11 @@ The default submission pipeline, implemented in `useObjectForm`, follows a fixed
 1. Set `loading` state immediately (disables the submit button).
 2. Call `setAllTouched()` to activate all local validation.
 3. `await nextTick()` to let validation watchers fire.
-4. Check `anyModified`. If the form has no changes, call `onSubmitNotAnyModified` — by default this shows a "No Changes Detected" toast and stops submission.
-5. Check `anyError`. If errors exist, call `onSubmitAnyError` — by default this filters ignored fields, strips the `server` code from remaining errors, and if non-server errors remain, shows a "Pre-save Validation Failed" toast, scrolls to the first error field, and stops submission. If only `server` errors remain, submission proceeds (the user is retrying after server feedback).
+4. Check `anyModified`. If the form has no changes, call `onSubmitNotAnyModified`; by default this shows a "No Changes Detected" toast and stops submission.
+5. Check `anyError`. If errors exist, call `onSubmitAnyError`; by default this filters ignored fields, strips the `server` code from remaining errors, and if non-server errors remain, shows a "Pre-save Validation Failed" toast, scrolls to the first error field, and stops submission. If only `server` errors remain, submission proceeds (the user is retrying after server feedback).
 6. Execute the create or update operation.
-7. If the operation fails with a `FormValidationError`, call `onSubmissionError` — by default this ingests the error into form state and scrolls to the first error field.
-8. If the operation succeeds, call `onSubmissionSuccess` — by default this shows a success toast and redirects.
+7. If the operation fails with a `FormValidationError`, call `onSubmissionError`; by default this ingests the error into form state and scrolls to the first error field.
+8. If the operation succeeds, call `onSubmissionSuccess`; by default this shows a success toast and redirects.
 
 Each step in this sequence (`onSubmitNotAnyModified`, `onSubmitAnyError`, `onSubmissionError`, `onSubmissionSuccess`) is a replaceable hook on the `useObjectForm` return object. Projects can override individual hooks without forking the entire submission pipeline.
 
@@ -113,11 +113,11 @@ The server-error retry behavior is the most significant design decision in this 
 
 ## Non-Field and Structured Feedback Rendering
 
-Non-field feedback — validation messages that are not associated with a specific field — uses the stable key `non_field_errors` (defined as `NON_FIELD_ERRORS_KEY`). This key originates from the server, where DRF's exception handler rewrites top-level list errors into `{non_field_errors: [...]}`, and is preserved as a contract constant on the client.
+Non-field feedback; validation messages that are not associated with a specific field; uses the stable key `non_field_errors` (defined as `NON_FIELD_ERRORS_KEY`). This key originates from the server, where DRF's exception handler rewrites top-level list errors into `{non_field_errors: [...]}`, and is preserved as a contract constant on the client.
 
 `FormFeedback` determines what to render based on its injection context. When inside a field context, it renders feedback from the field's errors or messages (depending on its `type` prop). When inside a form context but outside a field context, it renders non-field feedback from `formContext.state.errors[NON_FIELD_ERRORS_KEY]` or `formContext.state.messages[NON_FIELD_ERRORS_KEY]`. When given explicit `messages` props, it renders those directly, ignoring context.
 
-Structured feedback objects — where a server error entry is an object rather than a string — are rendered through a template mechanism. This is a hard contract: the object must include a `detail` property containing a template string with `${token}` placeholders. `FormFeedback` calls `renderDetail`, which replaces each `${token}` with the corresponding property from the object. Array-valued properties are rendered as `<ul>` lists. The client does not degrade for missing `detail`; objects without `detail` throw at render time because `renderDetail` calls `detail.replace(...)` directly.
+Structured feedback objects (where a server error entry is an object rather than a string) are rendered through a template mechanism. This is a hard contract: the object must include a `detail` property containing a template string with `${token}` placeholders. `FormFeedback` calls `renderDetail`, which replaces each `${token}` with the corresponding property from the object. Array-valued properties are rendered as `<ul>` lists. The client does not degrade for missing `detail`; objects without `detail` throw at render time because `renderDetail` calls `detail.replace(...)` directly.
 
 `getFirstErrorField` supports non-field errors in its priority ordering. It prepends `NON_FIELD_ERRORS_KEY` to the display fields list before searching, so non-field errors are always found first. For array fields, it searches bracket-keyed error paths (`field[0]`, `field[1]`, etc.). For fields expressed with `__`-delimited nesting (a display convention), it resolves the parent array and searches nested keys within array items.
 

@@ -9,7 +9,7 @@ status: draft
 
 VUEDA uses two query-parameter-driven mechanisms to control the shape of API responses: sparse field selection (`f`) and expand selection (`e`). Together, these parameters let the client request only the fields it needs and embed related-object data inline rather than following separate requests. The contract spans three layers: the server's serializer metadata that defines what is available, the viewset validation that enforces what is allowed per action, and the client's normalization and caching of that metadata for runtime use.
 
-This page explains the contract itself — what the parameters mean, how field and expand metadata is generated, how expand permissions are scoped per action, and what happens when requests violate the contract. For practical steps on configuring expand and field controls for a model surface, see [Use Expand and Sparse Field Controls](../guides/expand-and-fields-controls).
+This page explains the contract itself; what the parameters mean, how field and expand metadata is generated, how expand permissions are scoped per action, and what happens when requests violate the contract. For practical steps on configuring expand and field controls for a model surface, see [Use Expand and Sparse Field Controls](../guides/expand-and-fields-controls).
 
 ## Boundary and Ownership
 
@@ -33,7 +33,7 @@ The server reads the `f` values as the sparse field set and the `e` values as th
 
 The `model_fields` section of a model-info response is derived from the canonical registered serializer's field definitions. Each field entry carries structural metadata: `read_only`, `required`, `many`, type descriptors, and optional constraints like `max_length` or `min_value`. When a field has static choices defined on the serializer, those choices are included in the metadata as well.
 
-Primary key membership is explicit in field metadata. The server marks one field with `pk: true` when the serializer field name matches `model._meta.pk.name`. The client requires this marker — `storeModelInfo` throws `"no pk field found"` if no field carries `pk: true`, and the error is cached per `app.model`, blocking all subsequent operations for that model until store state is recreated. See [Primary Key and Identifier Discipline](./pk-and-identifier-discipline) for the full identifier contract.
+Primary key membership is explicit in field metadata. The server marks one field with `pk: true` when the serializer field name matches `model._meta.pk.name`. The client requires this marker; `storeModelInfo` throws `"no pk field found"` if no field carries `pk: true`, and the error is cached per `app.model`, blocking all subsequent operations for that model until store state is recreated. See [Primary Key and Identifier Discipline](./pk-and-identifier-discipline) for the full identifier contract.
 
 Field metadata is serializer-derived, not model-table-derived. A field that exists on the Django model but is not declared in the canonical serializer's `Meta.fields` will not appear in `model_fields` and will be invisible to the client. Conversely, computed or method-based serializer fields that have no database column will appear in metadata and be available for sparse field selection.
 
@@ -47,19 +47,19 @@ The `model_expands` section of a model-info response describes each expandable r
 - **`model`**: the related model identity (`app_label.model_name`) when available, enabling the client to cross-reference the expanded model's own metadata.
 - **`f`**: nested field metadata for the expanded serializer's fields, following the same structure as top-level `model_fields`.
 
-The nested `f` metadata is what makes expansion an explicit embedded contract rather than a boolean toggle. When the client expands a relationship, it knows the exact field schema of the embedded objects — their types, read-only status, required status, and constraints. This enables the client to build field-detail maps for expanded sub-fields (using `expand__subfield` composite keys) without fetching a separate model-info request for the related model.
+The nested `f` metadata is what makes expansion an explicit embedded contract rather than a boolean toggle. When the client expands a relationship, it knows the exact field schema of the embedded objects; their types, read-only status, required status, and constraints. This enables the client to build field-detail maps for expanded sub-fields (using `expand__subfield` composite keys) without fetching a separate model-info request for the related model.
 
 When sparse field selection (`f`) is applied to an expanded serializer's fields, the primary key of the nested serializer is always preserved even if not explicitly requested. This ensures that expanded objects are always identifiable regardless of which subset of their fields the client selects.
 
 ## Action-Scoped Expand Authority
 
-Expandable fields declared on a serializer are not automatically available on every viewset action. The viewset can restrict which expands are permitted per action using `permit_{action}_expands` attributes — for example, `permit_list_expands` and `permit_retrieve_expands`. When these attributes are defined, the viewset injects the permitted set as `permitted_expands` in the serializer context, and the serializer's flex-field machinery respects it.
+Expandable fields declared on a serializer are not automatically available on every viewset action. The viewset can restrict which expands are permitted per action using `permit_{action}_expands` attributes; for example, `permit_list_expands` and `permit_retrieve_expands`. When these attributes are defined, the viewset injects the permitted set as `permitted_expands` in the serializer context, and the serializer's flex-field machinery respects it.
 
 This scoping exists because different actions have different performance and data-shape requirements. A list action might permit only lightweight expands (such as a user's display name) while a retrieve action permits heavier expands (such as a full nested object graph). Without action-level scoping, a list request could embed deep object trees across every row in a paginated response, producing non-linear payload growth.
 
 The expand validation path works as follows. On each request, `FlexFieldsMixin.get_serializer_context` resolves the permitted expand set for the current action. If a `permit_{action}_expands` attribute exists, it becomes the serializer's `permitted_expands` context. The viewset's `validate_flex_expand_param` then checks each requested expand against this set. Invalid expand keys produce an HTTP 400 response with per-key error details.
 
-When no `permit_{action}_expands` is defined for the current action, the viewset checks whether any action-level permit list exists on the viewset at all. If the viewset defines expand permits for some actions but not the current one, the current action receives an empty permitted set — meaning no expands are allowed. This is a deliberate fail-closed default: if you define `permit_list_expands` but not `permit_retrieve_expands`, retrieve requests that include `e` parameters will receive `"No expands are permitted."` even though the serializer declares expandable fields.
+When no `permit_{action}_expands` is defined for the current action, the viewset checks whether any action-level permit list exists on the viewset at all. If the viewset defines expand permits for some actions but not the current one, the current action receives an empty permitted set; meaning no expands are allowed. This is a deliberate fail-closed default: if you define `permit_list_expands` but not `permit_retrieve_expands`, retrieve requests that include `e` parameters will receive `"No expands are permitted."` even though the serializer declares expandable fields.
 
 ## Client Normalization and Cache Semantics
 
@@ -77,13 +77,13 @@ Default model-config generation uses the normalized metadata to derive field set
 
 ## Observable Failure Modes
 
-**Invalid expand for a given action returns HTTP 400 with no partial application.** When a request includes both valid and invalid expand keys, the entire request fails. The valid expands are not partially applied in the response — the client receives only the error payload. The error message identifies the invalid keys and, when available, lists the permitted set.
+**Invalid expand for a given action returns HTTP 400 with no partial application.** When a request includes both valid and invalid expand keys, the entire request fails. The valid expands are not partially applied in the response; the client receives only the error payload. The error message identifies the invalid keys and, when available, lists the permitted set.
 
 **No-expands-permitted on an action with serializer-level expands.** If the viewset defines `permit_list_expands` for the list action but has no `permit_retrieve_expands`, retrieve requests with `e` parameters receive `"No expands are permitted."` This can be confusing because the serializer's `expandable_fields` are visible in model-info metadata, but the viewset's action-level scoping blocks them at request time.
 
 **Invalid sparse field keys produce field-keyed validation errors.** Unknown `f` values return HTTP 400 with a payload keyed by the invalid field name and a `code: invalid` error. In write flows, this validation error can be mistaken for a data validation failure because it follows the same response shape. The distinguishing signal is the error message text, which references valid field names.
 
-**Missing PK marker blocks the entire model on the client.** If the server's metadata response does not include a field with `pk: true`, `storeModelInfo` throws and caches the error. All subsequent operations for that `app.model` — config generation, route guards, form loading — fail immediately with the cached error. The only recovery is to recreate the store instance.
+**Missing PK marker blocks the entire model on the client.** If the server's metadata response does not include a field with `pk: true`, `storeModelInfo` throws and caches the error. All subsequent operations for that `app.model`; config generation, route guards, form loading; fail immediately with the cached error. The only recovery is to recreate the store instance.
 
 **Deep expansions produce non-linear payload growth.** No VUEDA wrapper-level depth cap is enforced for nested expands. Expansion depth is constrained only by the serializer structure (which serializers declare expandable fields that themselves have expandable fields) and viewset-level permit lists. A deeply nested expand chain on a list endpoint can produce very large response payloads.
 
