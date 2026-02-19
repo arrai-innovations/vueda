@@ -2,45 +2,46 @@
 title: DRF Ecosystem Compatibility Boundaries
 type: explanation
 audience: implementor
-status: briefing
+status: draft
 ---
 
 # DRF Ecosystem Compatibility Boundaries
 
-## Intent and Scope
+VUEDA intentionally constrains and extends DRF-ecosystem defaults in three areas to preserve a contract-first, metadata-driven system: it overrides upstream query parameter conventions with a canonical namespace, it gates metadata authority behind an explicit registration surface, and it rejects unknown inputs at both view and serializer boundaries. These are deliberate departures, not accidental divergences, and each is enforced by a specific authority point in the server stack.
 
-- Define where VUEDA intentionally diverges from DRF/DRF-ecosystem defaults to preserve a contract-first, metadata-driven system. Source anchors: `server/vueda/core/default_settings.py#L249`, `server/vueda/core/viewsets/__init__.py#L128`, `server/vueda/core/serializers/__init__.py#L30`.
-- Define the authority points that enforce those boundaries: server defaults, canonical registration, and view/serializer validation mixins. Source anchors: `server/vueda/core/default_settings.py#L249`, `server/vueda/info/registration.py#L8`, `server/vueda/core/viewsets/__init__.py#L128`.
-- Act as a hub for the focused compatibility explainers.
+This page is an orientation hub. It describes the deviation families at a high level and links to the focused explainers that cover each in depth. For the full list-query contract including filter metadata, search backends, and validation semantics, see [Filtering and Ordering Semantics](./filtering-and-ordering-semantics). For the field and expand wire contract, see [Field and Expand Semantics](./field-and-expand-semantics). For validation payload shapes, see [Error and Validation Contract](./error-and-validation-contract). For nested-writable composition constraints, see [Nested Write Compatibility](./nested-write-compatibility). For the metadata contract that drives client UI, see [Server-Client Metadata Contract](./server-client-metadata-contract). For the registration surface that governs metadata authority, see [Canonical Registration and Model Discovery](./canonical-registration-and-discovery).
 
-## Non-goals
+## Default Namespace and Backends
 
-- Not a how-to for composing requests or choosing query parameter values.
-- Not a per-model inventory of filters, expands, fields, or actions.
-- Not a restatement of focused contracts. See: `docs/core-concepts/filtering-and-ordering-semantics.md`, `docs/core-concepts/field-and-expand-semantics.md`, `docs/core-concepts/error-and-validation-contract.md`, `docs/core-concepts/nested-write-compatibility.md`, `docs/core-concepts/server-client-metadata-contract.md`.
+Upstream DRF uses longer query parameter names (`search`, `ordering`) and does not specify a specific filter backend in its default configuration. VUEDA replaces these with a canonical keyset: `s` for search, `o` for ordering, `p` and `ps` for pagination, and `e`, `f`, `om` for flex-field control (expand, fields, omit). These names are set in `REST_FRAMEWORK` and `REST_FLEX_FIELDS` server defaults, and the client hard-codes the same literals as constants.
 
-## Key Concepts
+VUEDA also configures a default filter backend stack: `VuedaSearchFilterBackend` (which extends DRF's `SearchFilter` with ranked search), `OrderingFilter`, and `DjangoFilterBackend`. This stack runs on every list endpoint unless explicitly overridden per viewset. The result is that list queries have consistent search, ordering, and filtering behaviour across all registered models without per-viewset configuration.
 
-### Contract-first defaults override upstream assumptions
+The upstream departure is deliberate: a single canonical keyset, enforced at the server defaults layer, eliminates per-project negotiation of query parameter names and ensures that the client's constant declarations match the server's expectations. See [Configuration Surface and Defaults](./configuration-surface-and-defaults) for the full settings assembly surface.
 
-- What it is: VUEDA defines canonical query parameter keys and default filter backends rather than inheriting DRF defaults. Source anchors: `server/vueda/core/default_settings.py#L249`.
-- Upstream vs VUEDA: upstream DRF conventions commonly use `search`/`ordering` query keys, while VUEDA binds search and ordering to `s` and `o` (plus flex keys `e`/`f`/`om`) via server defaults. Source anchors: `server/vueda/core/default_settings.py#L249`, `server/vueda/core/default_settings.py#L265`.
-- Why it exists: a single canonical keyset is enforced at the server defaults layer. Source anchors: `server/vueda/core/default_settings.py#L249`.
-- Where it lives: `REST_FRAMEWORK` and `REST_FLEX_FIELDS` defaults. Source anchors: `server/vueda/core/default_settings.py#L249`.
+## Registration-Gated Metadata Authority
 
-### Canonical registration gates metadata authority
+Upstream DRF does not define a first-class registry for model metadata projection. Metadata surfaces, such as `OPTIONS` responses, are generated dynamically by the viewset and serializer at the point of the request.
 
-- What it is: a registry maps `app_label.model` to a canonical serializer and optional viewset. Source anchors: `server/vueda/info/registration.py#L37`, `server/vueda/info/registration.py#L43`.
-- Upstream vs VUEDA: upstream DRF does not define a first-class registry for model metadata projection, while VUEDA’s model-info surfaces are gated to registered content types and consult the registration mapping for canonical serializer/viewset authority. Source anchors: `server/vueda/info/viewsets.py#L53`, `server/vueda/info/viewsets.py#L62`, `server/vueda/info/viewsets.py#L109`, `server/vueda/info/registration.py#L43`.
-- Why it exists: explicit registration defines which serializer/viewset pair is authoritative for metadata and contract derivation. Source anchors: `server/vueda/info/registration.py#L13`, `server/vueda/info/registration.py#L64`.
-- Where it lives: `vueda.info.registration` registry. Source anchors: `server/vueda/info/registration.py#L8`.
+VUEDA introduces an explicit registration surface (`vueda.info.registration`) that maps `app_label.model` to a canonical serializer and optional viewset. Model-info endpoints, which drive the client's entire metadata-driven UI, are gated to registered content types and consult the registration mapping for serializer and viewset authority. An unregistered model has no model-info endpoint, no metadata projection, and no client-side UI surface.
 
-### Reject-unknown inputs at view and serializer boundaries
+This gating means that simply adding a DRF viewset and router entry does not make a model visible to the VUEDA client. The model must also be registered, and the registration determines which serializer-viewset pair is authoritative for metadata derivation. This is the boundary between "this model has a REST API" and "this model participates in the VUEDA metadata contract." See [Canonical Registration and Model Discovery](./canonical-registration-and-discovery) for the registration mechanics.
 
-- What it is: list viewsets validate query keys and top-level serializers validate extra payload keys instead of ignoring them. Source anchors: `server/vueda/core/viewsets/__init__.py#L223`, `server/vueda/core/serializers/__init__.py#L40`.
-- Upstream vs VUEDA: upstream DRF request parsing does not enforce unknown-query-key rejection and serializer input processing commonly tolerates extra keys, while VUEDA enforces explicit rejection at the list-query boundary and at the top-level serializer boundary. Source anchors: `server/vueda/core/viewsets/__init__.py#L223`, `server/vueda/core/serializers/__init__.py#L40`.
-- Why it exists: contract surfaces are explicit; unknown inputs are treated as invalid. Source anchors: `server/vueda/core/viewsets/__init__.py#L223`, `server/vueda/core/serializers/__init__.py#L30`.
-- Where it lives: `NoExtraFieldsForViewSetMixin` and `NoExtraFieldsSerializerMixin`. Source anchors: `server/vueda/core/viewsets/__init__.py#L128`, `server/vueda/core/serializers/__init__.py#L30`.
+## Validation Surfaces
+
+Upstream DRF request parsing tolerates unknown query parameters on list endpoints and commonly ignores extra keys in serializer input. VUEDA enforces explicit rejection at both boundaries.
+
+`NoExtraFieldsForViewSetMixin` validates list query parameters against the declared filter namespace. Any query key outside the union of filter fields, lookup-derived keys, and framework parameters is rejected with an HTTP 400 and a field-keyed validation error naming the valid filter set. This enforcement applies when the viewset declares a `filterset_class`; without a filterset, the check is skipped.
+
+`NoExtraFieldsSerializerMixin` validates top-level serializer input against the declared field set. Extra payload keys trigger field-keyed validation errors. This applies only at the top-level serializer boundary; nested serializer payload keys are not validated by this mixin.
+
+Both validation surfaces enforce the same principle: contract surfaces are explicit, and unknown inputs are treated as errors rather than being silently discarded. The benefit is immediate, diagnosable errors for typos and stale clients. The cost is that integrations that append unexpected query parameters or payload keys will fail rather than degrade gracefully. See [Filtering and Ordering Semantics](./filtering-and-ordering-semantics) for the list-query validation details.
+
+## Observable Failure Modes
+
+**Query parameter typo returns 400.** A misspelled filter key or an unsupported query parameter produces an HTTP 400 with `"Invalid query parameter.  Valid filters are ..."`. The error includes the valid filter set for diagnosis.
+
+**Extra payload key returns 400.** An unrecognized top-level key in a create or update request body produces a field-keyed validation error. Nested serializer payload drift is not caught by this check; only top-level keys are validated.
 
 ## Relevant Implementation Surface
 
@@ -50,23 +51,3 @@ status: briefing
 - `{@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}`
 - `{@api py:module:vueda.core.serializers}`
 - `{@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin}`
-
-## Contracts and Invariants
-
-- Canonical query parameter keys (`s`, `o`, `e`, `f`, `om`, `p`, `ps`) are set by server defaults, not DRF defaults. Source anchors: `server/vueda/core/default_settings.py#L249`.
-- Default filter backends include `VuedaSearchFilterBackend`, `OrderingFilter`, and `DjangoFilterBackend` as the standard list-query surface. Source anchors: `server/vueda/core/default_settings.py#L265`.
-- List endpoints reject unknown query params when `filterset_class` is present. Source anchors: `server/vueda/core/viewsets/__init__.py#L223`.
-- Top-level serializer validation rejects extra payload keys. Source anchors: `server/vueda/core/serializers/__init__.py#L40`.
-
-## Footguns
-
-- A typo in a list query key surfaces as HTTP 400 with a field-keyed validation error (`Invalid query parameter.  Valid filters are ...`). Source anchors: `server/vueda/core/viewsets/__init__.py#L223`.
-- Extra request payload keys trigger field-keyed validation errors at the top-level serializer boundary; nested serializer payload drift is not validated here. Source anchors: `server/vueda/core/serializers/__init__.py#L40`.
-
-## Suggested Outline
-
-- `## Boundary and Authority`
-- `## Default Namespace and Backends`
-- `## Validation Surfaces`
-- `## Compatibility Boundaries`
-- `## Observable Failure Modes`

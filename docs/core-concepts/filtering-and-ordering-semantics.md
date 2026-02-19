@@ -2,69 +2,88 @@
 title: Filtering and Ordering Semantics
 type: explanation
 audience: implementor
-status: briefing
+status: draft
 ---
 
 # Filtering and Ordering Semantics
 
-## Intent and Scope
+VUEDA's filtering and ordering contract spans four boundaries: the canonical viewset declares what filters and ordering fields exist, the model-info serializer projects those declarations into metadata payloads, list endpoints validate incoming queries against the declared namespace, and the client consumes the metadata to build filter and sort controls. Each boundary enforces a different aspect of the contract, and the observable behaviour depends on all four layers agreeing.
 
-- Define the contract boundary for filtering and ordering: canonical server declaration, metadata projection, query acceptance, and client consumption.
-- Define search backend semantics as part of the list-query contract (ranked search and lookup prefix behavior).
-- Define authority for each layer: registered canonical viewset/filterset, metadata endpoints, list endpoint validation, and client normalization/rendering.
-- Capture implementation-level invariants and observable failure surfaces for filter/order semantics.
-- Source anchors: `server/vueda/info/serializers.py`, `server/vueda/core/viewsets/__init__.py`, `server/vueda/core/filters.py`, `server/vueda/core/default_settings.py`, `server/vueda/info/viewsets.py`, `client/lib/stores/storeModelInfo.js`, `client/lib/stores/storeModelConfig.js`, `client/lib/views/ViewList.vue`.
+This page explains the authority at each boundary, the metadata shapes that flow between them, the search backend's ranked-search semantics, and the failure surfaces that emerge when layers disagree. For the query parameter names that carry filter and ordering intent, see [Configuration Surface and Defaults](./configuration-surface-and-defaults). For how the client caches and normalizes model-info metadata, see [Reactive Data Flow](./reactive-data-flow). For how filter choices interact with permission boundaries, see [Permission Model](./permission-model). For the broader DRF compatibility boundaries that shape these semantics, see [DRF Ecosystem Compatibility Boundaries](./drf-ecosystem-deviations).
 
-## Non-goals
+## Contract Boundary and Authority
 
-- Not a procedure for creating filtersets or ordering rules.
-- Not a how-to for defining `search_fields` or tuning search thresholds.
-- Not an exhaustive catalog of all model-specific filters/order fields.
-- Not UI usage guidance for filter/sort controls.
+The filtering and ordering contract begins at the canonical registered viewset. Model-info metadata does not derive filter and ordering information solely from serializer fields; it also reads `filterset_class` and `ordering_fields` from the registered viewset. If a model has no registered viewset (only a serializer), its `model_filtering` and `model_ordering` metadata are empty. The viewset is the single authority for what filters and ordering fields a model exposes.
 
-## Key Concepts
+This authority boundary means that adding a field to a serializer does not automatically make it filterable or sortable. Filtering requires an entry in the viewset's `filterset_class`, and ordering requires an entry in `ordering_fields`. The metadata serializer projects what the viewset declares; it does not infer capabilities from the data model.
 
-### Canonical viewset is the authority for filter/order metadata
+## Metadata Projection for Ordering and Filtering
 
-- What it is: `model_filtering` and `model_ordering` are derived from the canonical registered viewset, not from serializer fields alone.
-- Why it exists: filter and ordering contracts depend on `filterset_class` and `ordering_fields`.
-- Where it lives: `server/vueda/info/serializers.py`, `server/vueda/info/registration.py`, `server/tests/unit/info/test_registration.py`, `server/tests/unit/info/expected_results_model_info.py`.
+The model-info endpoint projects viewset declarations into structured metadata that clients consume.
 
-### Metadata projection normalizes backend filter/order definitions
+Ordering metadata (`model_ordering`) is a list of descriptors, each containing a `name` (the ordering field identifier) and a `type` (the field type classification). The list is derived from the canonical viewset's `ordering_fields`. When no canonical viewset exists, `model_ordering` is empty.
 
-- What it is: `ModelInfoSerializer` projects filter and ordering definitions into model-info payloads (`lookup_exprs`, suffixes, choice metadata, type classification).
-- Why it exists: clients consume one metadata contract instead of introspecting django-filter/DRF classes at runtime.
-- Where it lives: `server/vueda/info/serializers.py`, `server/tests/unit/info/test_model_info.py`, `server/tests/unit/info/expected_results_model_info.py`.
+Filtering metadata (`model_filtering`) is richer. Each filter entry includes the filter field name, its type, the list of `lookup_exprs` (lookup expressions such as `exact`, `icontains`, `gte`), and choice metadata when the filter field has a bounded value set. Lookup expressions are always presented as a list, even when only one expression is available. This consistent shape simplifies client parsing; consumers do not need to distinguish between single-expression and multi-expression filters.
 
-### Query parameter namespace is shared across server and client
+Filters that are excluded or disabled in the filterset class are omitted from the metadata projection. The metadata represents only the active, usable filter surface.
 
-- What it is: search/order/flex params are canonicalized as `s`, `o`, `e`, `f`, `om`.
-- Why it exists: list/query behavior and model-info fetch behavior rely on the same stable wire keys.
-- Where it lives: `server/vueda/core/default_settings.py`, `client/lib/utils/constants.js`, `client/lib/views/ViewList.vue`, `client/lib/stores/storeModelInfo.js`.
+Choice metadata for filters follows a bifurcated shape. Static choices (enumeration values defined on the field or filter) are serialized as `{label, value}` entries with values normalized to strings. Queryset-based choices (choices backed by a related model's rows) are encoded as `choices: true` plus `app_label`, `model`, and `filterset_name` identifiers, which the client uses to fetch choices dynamically through a separate endpoint.
 
-### Ranked search backend and prefixes
+## Query Namespace and Validation Boundary
 
-- What it is: `VuedaSearchFilterBackend` extends DRF `SearchFilter` with custom lookup prefixes (`#`, `~`, `V:`) and ranked search combining full-text, trigram, and word-boundary matches. Source anchors: `server/vueda/core/filters.py#L85`, `server/vueda/core/filters.py#L90`, `server/vueda/core/filters.py#L160`, `server/vueda/core/filters.py#L172`.
-- Why it exists: ranked search and deterministic lookups share a single list-query search surface. Source anchors: `server/vueda/core/filters.py#L125`.
-- Where it lives: `vueda.core.filters.VuedaSearchFilterBackend` and default filter backend settings. Source anchors: `server/vueda/core/filters.py#L90`, `server/vueda/core/default_settings.py#L265`.
+List endpoints enforce strict query parameter validation. The accepted query key namespace is the union of: declared filter field names, suffix-derived keys (filter field name plus lookup expression suffix), framework-level parameters (`s`, `o`, `p`, `ps`, `e`, `f`, `om`), and any keys derived from the filterset's lookup expression configuration. Any query key outside this namespace is rejected with an HTTP 400 response containing a field-keyed validation error: `"Invalid query parameter.  Valid filters are ..."`.
 
-### Query validation boundary is strict on list endpoints
+This strict validation is a deliberate departure from upstream DRF, which typically ignores unknown query parameters. VUEDA treats unknown query keys as invalid contract usage rather than silently discarding them. The benefit is that typos and stale client code produce immediate, diagnosable errors rather than returning unfiltered results silently. The cost is that any query parameter not declared in the filterset or framework defaults is an error, which can be surprising when integrating with external tools that append their own query parameters.
 
-- What it is: list endpoints reject query keys outside the derived filter namespace and known framework params.
-- Why it exists: unknown query keys are treated as invalid contract usage instead of being ignored.
-- Where it lives: `server/vueda/core/viewsets/__init__.py`.
+Validation runs when the viewset has a `filterset_class`. If no filterset class is defined, the query-parameter namespace check does not apply; only framework-level parameters are meaningful, and unknown keys are ignored.
 
-### Filter-choice endpoints are permission-aware contract extensions
+## Search Contract Surface
 
-- What it is: filter-choice lookup validates filter keys and applies permission checks based on static choices vs related-model queryset choices.
-- Why it exists: dynamic choice discovery must preserve authorization boundaries and avoid leaking relation values.
-- Where it lives: `server/vueda/info/viewsets.py`, `server/tests/unit/info/test_model_info_filterset_choices.py`, `server/tests/unit/info/test_model_info_err.py`.
+Search is a distinct sub-surface of list queries, governed by `VuedaSearchFilterBackend`. This backend extends DRF's `SearchFilter` with two capabilities: custom lookup prefixes and ranked search.
 
-### Client runtime treats model-info as cached contract state
+The standard DRF search prefixes (`^` for starts-with, `=` for exact, `@` for full-text, `$` for regex) are available. VUEDA adds three additional prefixes: `#` for trigram similarity, `~` for an alternative similarity mode, and `V:` for VUEDA-specific ranked search fields.
 
-- What it is: client fetches and normalizes `model_*` metadata once per `app.model`, then derives filter/sort config from that cache.
-- Why it exists: UI configuration is metadata-driven and should avoid repeated model-info network calls.
-- Where it lives: `client/lib/stores/storeModelInfo.js`, `client/tests/unit/lib/stores/storeModelInfo.spec.js`, `client/lib/stores/storeModelConfig.js`, `client/lib/use/useFilter.js`.
+When at least one search field uses the `V:` prefix, the search backend switches to ranked-search mode. In this mode, the backend computes a `combined_rank` by combining full-text search rank, trigram similarity, and word-boundary match scores. Results are filtered by a `search_threshold` and, when no explicit ordering parameter is provided, ordered by `-combined_rank` (best match first). This ranking is suppressed when the user provides an explicit `o` (ordering) parameter, since explicit ordering takes precedence over relevance ranking.
+
+When no search fields use the `V:` prefix, the backend falls back to standard DRF `SearchFilter` behaviour. The `V:` prefix is the boundary between deterministic lookups and ranked search; its presence or absence changes the query execution strategy.
+
+## Filter Choices and Permission Surfaces
+
+Dynamic filter choices, the values available for a filter dropdown, are served by a dedicated endpoint that enforces its own validation and permission contracts.
+
+The filter-choice endpoint validates the requested field against the model's declared filter set. An unknown filter field returns an HTTP 404 response with a list of valid filter fields. This strict validation prevents probing for undeclared filters and provides a diagnosable error when the client passes an incorrect field name.
+
+Permission checking for filter choices is bifurcated by source. Static choices (enumeration values) require only `read` permission on the current model. Queryset-based choices (backed by a related model) require both `read` permission on the current model and `list` permission on the related model. This distinction prevents filter choice endpoints from leaking relation values that the user does not have permission to see.
+
+When the related model permission check fails, the endpoint returns HTTP 403, even though the user has `read` permission on the current model and can view the model's list and detail views. This can be confusing because the user can see the model's data, but cannot populate a filter dropdown that references a related model.
+
+Queryset-based choice resolution assumes a `formatted_name` lookup path on the related model for display labels. If the related model does not define this path, the endpoint raises an HTTP 500 with `"Cannot resolve keyword 'formatted_name'..."`. This is a server-side error in the filter configuration, not a client issue, but it surfaces as a broken filter dropdown.
+
+## Client Normalization and Cache Semantics
+
+The client fetches model-info once per `app.model` key and caches the result in `storeModelInfo`. Filtering and ordering metadata are part of this cached payload and are normalized alongside other model-info fields: nested objects are camelCased, and the overall structure is flattened for consistent client access.
+
+`storeModelConfig` derives sortable field names from `modelInfo.ordering` and maps them to the `o` query parameter for list requests. Filter configuration is consumed by `useFilter` and `useFilterForm`, which build the filter UI from the cached `modelInfo.filtering` entries. Choice population for filters uses `storeModelChoices` and `useModelChoices`, which fetch dynamic choices as needed.
+
+Cached model-info errors are sticky. A failed model-info fetch for a given `app.model` key rejects immediately on subsequent attempts without re-fetching. This means that a transient server error during initial model-info load can render the model's filter and sort controls permanently unavailable until the store is reset or the page is reloaded.
+
+The default filter UI uses only the first lookup expression (`lookupExprs[0]`) from each filter's metadata. Multi-lookup-expression selectors are not emitted by default. If a filter declares multiple lookup expressions (for example, `exact` and `icontains`), only the first is wired into the default filter component. A custom filter UI is needed to expose multiple lookup expressions for a single field.
+
+## Observable Failure Modes
+
+**Unknown query parameter returns 400.** A typo in a list query key, or a stale client sending a filter key that no longer exists in the filterset, produces an HTTP 400 with the message `"Invalid query parameter.  Valid filters are ..."`. The error response includes the valid filter set, which aids diagnosis.
+
+**Ranked search bypassed silently.** If no search fields use the `V:` prefix, the search backend falls through to standard DRF `SearchFilter` behaviour. The symptom is that search results are not ranked by relevance and may not meet expected search quality standards. There is no runtime warning; the fallback is silent.
+
+**Filter choice endpoint returns 404 for unknown fields.** An incorrect field name in a filter-choice request returns 404 with the valid filter set named in the response. This can present as a missing-choices UI state rather than a validation error on the originating list view, because the error occurs on a separate endpoint.
+
+**Related model permission blocks filter choices.** Missing `list` permission on a related model causes the filter-choice endpoint to return 403, even when the user can read the current model. The symptom is a filter dropdown that fails to populate while the rest of the model's UI works normally.
+
+**Related model missing `formatted_name`.** If the related model referenced by a queryset-backed filter choice does not implement the `formatted_name` lookup path, the filter-choice endpoint returns 500. This is a configuration error that needs to be fixed on the related model.
+
+**Sticky model-info fetch errors.** A failed model-info fetch caches the error and blocks all subsequent access to that model's filtering and ordering metadata. Retrying the navigation does not trigger a re-fetch.
+
+**Default filter UI uses only first lookup expression.** Filters with multiple declared lookup expressions only expose the first one in the default filter component. The additional expressions are present in the metadata but not rendered. This is a UI limitation, not a metadata issue.
 
 ## Relevant Implementation Surface
 
@@ -92,38 +111,3 @@ status: briefing
 - `{@api js:property:@arrai-innovations/vueda.utils/constants.SEARCH_PARAM}`
 - `{@api vue:component:ViewList}`
 - `{@api vue:component:FilterComponent}`
-
-## Contracts and Invariants
-
-- `model_ordering` is derived from canonical `viewset.ordering_fields`; each entry is `{name, type}`, and missing canonical viewset yields `[]`. Anchors: `server/vueda/info/serializers.py`, `server/tests/unit/info/expected_results_model_info.py`.
-- `model_filtering` is derived from `filterset.get_filters()`, and excluded/disabled filters are omitted from metadata. Anchors: `server/vueda/info/serializers.py`.
-- Filter metadata always exposes lookup expressions as a list (`lookup_exprs`), even for single expressions. Anchors: `server/vueda/info/serializers.py`, `server/tests/unit/info/test_model_info.py`.
-- `VuedaSearchFilterBackend` is configured as a default list-query search backend. Anchors: `server/vueda/core/default_settings.py`.
-- Search lookups split into VUEDA-prefixed fields (`V:`) and deterministic fields; if no VUEDA-prefixed fields are present, search falls back to DRF `SearchFilter` behavior. Anchors: `server/vueda/core/filters.py#L148`, `server/vueda/core/filters.py#L154`.
-- Ranked search computes `combined_rank`, filters by `search_threshold`, and orders by `-combined_rank` when no ordering param is provided. Anchors: `server/vueda/core/filters.py#L108`, `server/vueda/core/filters.py#L205`, `server/vueda/core/filters.py#L209`.
-- Queryset-based filter choices are encoded as `choices: true` plus `app_label`/`model`/`filterset_name`; literal choices are returned as `{label, value}` entries with values normalized to string in many paths. Anchors: `server/vueda/info/serializers.py`, `server/tests/unit/info/test_model_info.py`, `server/tests/unit/info/expected_results_model_info.py`.
-- List query validation allows filter keys, suffix-derived keys, lookup-derived keys, and framework extras (`p`, `ps`, `e`, `f`, `om`, `s`, `o`); any other query key is rejected. Anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/core/default_settings.py`.
-- Filter-choice endpoint field contract is strict: unknown filter key returns HTTP 404 with the valid filter set listed. Anchors: `server/vueda/info/viewsets.py`, `server/tests/unit/info/test_model_info_filterset_choices.py`, `server/tests/unit/info/test_model_info_err.py`.
-- Filter-choice permission contract is bifurcated: static choices require current-model `read`; relation-backed choices require current-model `read` plus related-model `list`. Anchors: `server/vueda/info/viewsets.py`, `server/tests/unit/info/test_model_info_filterset_choices.py`.
-- Client model-info cache is keyed by `app.model`; failed fetches are cached as errors and reused; missing PK in metadata is a hard client error. Anchors: `client/lib/stores/storeModelInfo.js`, `client/tests/unit/lib/stores/storeModelInfo.spec.js`.
-- Client list sorting derives sortable names from `modelInfo.ordering` and sends them via query param `o`. Anchors: `client/lib/stores/storeModelConfig.js`, `client/lib/views/ViewList.vue`.
-
-## Footguns
-
-- Unknown list query key returns HTTP 400 with a field-keyed validation error (`Invalid query parameter.  Valid filters are ...`), consistent with flex-field validation. Anchors: `server/vueda/core/viewsets/__init__.py`, `client/lib/utils/listCrud.js`.
-- If no search fields use the `V:` prefix, ranked search is bypassed and DRF `SearchFilter` behavior applies. Anchors: `server/vueda/core/filters.py#L154`, `server/vueda/core/filters.py#L156`.
-- Invalid filter-choice field returns HTTP 404 with contract text naming valid filters, which can present as missing-choice UI state rather than validation feedback on the originating list view. Anchors: `server/vueda/info/viewsets.py`, `server/tests/unit/info/test_model_info_filterset_choices.py`.
-- Missing related-model formatted-name lookup path can produce HTTP 500 during filter-choice resolution (`Cannot resolve keyword 'formatted_name'...`). Anchors: `server/vueda/info/viewsets.py`, `server/tests/unit/info/test_model_info_err.py`.
-- Missing related-model `list` permission can produce HTTP 403 for filter-choice endpoints even when the model itself is readable. Anchors: `server/vueda/info/viewsets.py`, `server/tests/unit/info/test_model_info_filterset_choices.py`.
-- Model-info fetch errors are sticky per `app.model` in client state; repeated fetch attempts fail without a new network attempt until store reset/reload. Anchors: `client/lib/stores/storeModelInfo.js`, `client/tests/unit/lib/stores/storeModelInfo.spec.js`.
-- Default filter UI path uses only the first lookup expression (`lookupExprs[0]`) and does not emit multi-lookup expression selectors by default. Anchors: `client/lib/components/FilterComponent.vue`, `client/lib/components/FilterGroup.vue`.
-
-## Suggested Outline
-
-- `## Contract Boundary and Authority`
-- `## Metadata Projection for Ordering and Filtering`
-- `## Query Namespace and Validation Boundary`
-- `## Search Contract Surface`
-- `## Filter Choices and Permission Surfaces`
-- `## Client Normalization and Cache Semantics`
-- `## Observable Failure Modes`

@@ -2,51 +2,84 @@
 title: Cancellable Network Operations
 type: explanation
 audience: implementor
-status: briefing
+status: draft
 ---
 
 # Cancellable Network Operations
 
-## Intent and Scope
+VUEDA's client runtime attaches cancellation semantics to network-bound operations so that navigations, parameter changes, and scope disposals can abort in-flight work rather than letting stale requests complete and write obsolete state. Cancellation operates through two distinct mechanisms — transport abort (which terminates the underlying fetch) and post-response state gating (which discards results after they arrive) — and the contract surface for both is a `.cancel()` method on the returned Promise.
 
-- Define the client-side cancellation contract for network-bound operations that return cancellable (or maybe-cancellable) Promises.
-- Define the enforcement surfaces for cancellation: transport abort, consumer-level deduplication, and post-response state gating.
-- Define lifecycle authority boundaries for cancellation across stores, composables, and view-level handlers.
-- Define observable failure surfaces when cancellation interacts with caching, batching, and reactive scopes.
-- Source anchors: `client/lib/utils/fetchSupport.js`, `client/lib/utils/objectCrud.js`, `client/lib/utils/listCrud.js`, `client/lib/use/useLookupContext.js`, `client/lib/use/useResolvedLookupObject.js`, `client/lib/use/useWarnings.js`, `client/lib/views/ViewActivate.vue`, `client/lib/views/ViewDeactivate.vue`, `client/lib/stores/storeModelInfo.js`, `client/tests/unit/lib/utils/fetchSupport.spec.js`, `client/tests/unit/lib/utils/objectCrud.spec.js`, `client/tests/unit/lib/use/useLookupContext.spec.js`, `client/node_modules/@arrai-innovations/reactive-helpers/utils/cancellablePromise.js`, `client/node_modules/@arrai-innovations/reactive-helpers/utils/cancellableFetch.js`.
+This page explains the cancellation contract, the enforcement mechanisms, and the failure surfaces that emerge when cancellation interacts with caching, batching, and promise identity. Cancellation is a client-side concern only; aborting a request does not guarantee that the server stops processing the associated work. For the store and composable fetch lifecycles that produce these cancellable promises, see [Reactive Data Flow](./reactive-data-flow). For the configuration layer that can trigger fetch cancellation during config rebuilds, see [Configuration Surface and Defaults](./configuration-surface-and-defaults).
 
-## Non-goals
+## Boundary and Authority
 
-- Not a how-to for wiring cancellation into components or handlers.
-- Not a UX policy for loading spinners, retry buttons, or error presentation.
-- Not a guarantee about server-side work termination after client aborts.
-- Not a complete inventory of every call site that may invoke `.cancel()`.
+Cancellation authority is distributed across layers in the client stack, and each layer expresses cancellation differently.
 
-## Key Concepts
+The fetch layer is the lowest cancellation boundary. `fetchHelper` creates an `AbortController`, passes its signal to the underlying `fetch(...)` call, and attaches a `.cancel()` method to the returned Promise. Calling `.cancel()` invokes `AbortController.abort()`, which causes the fetch to reject. Similarly, `cancellableFetch` (from `reactive-helpers`) creates its own internal `AbortController` and exposes `.cancel(reason)` on the returned Promise. These are the two primary transport-abort surfaces. Callers do not share ownership of the `AbortController` — they interact only with the `.cancel()` method on the Promise they received.
 
-### Promise-level cancellation is the contract surface
+CRUD adapters forward or compose cancellation from the fetch layer. `defaultObjectCreate` and `defaultObjectDelete` attach `.cancel()` methods that abort the underlying fetch and then await settlement to avoid unhandled rejections. `allPagePaginatedListCrudAdaptor` shares a single `AbortController` across concurrent page fetches, so cancelling the list operation aborts all in-flight pages. `singlePagePaginatedListCrudAdaptor` uses an `isCancelled` ref as a state gate rather than relying solely on transport abort.
 
-- What it is: cancellation is expressed as a `.cancel(...)` method attached to a returned Promise; some APIs explicitly return `MaybeCancellablePromise` (optional `.cancel`). Anchors: `client/lib/utils/fetchSupport.js`, `client/lib/stores/storeModelInfo.js`, `client/lib/use/useResolvedLookupObject.js`.
-- Why it exists: cancellation is propagated across module boundaries as Promise identity, not as shared ownership of an `AbortController`. Anchors: `client/node_modules/@arrai-innovations/reactive-helpers/utils/cancellablePromise.js`, `client/lib/utils/fetchSupport.js`.
-- Where it lives: typedefs for `CancellablePromise` / `MaybeCancellablePromise` and consumers checking `?.cancel`. Anchors: `client/lib/utils/fetchSupport.js`, `client/lib/use/useResolvedLookupObject.js`.
+Composables and view-level code perform best-effort cancellation on scope disposal and parameter invalidation. `useResolvedLookupObject` cancels outstanding lookup promises via `?.cancel(...)` when parameters change or when the scope is disposed, logging failures rather than throwing. View components like `ViewActivate` and `ViewDeactivate` use abort controllers tied to the component lifecycle.
 
-### Transport abort and state-gating are distinct mechanisms
+Stores occupy an intermediate position. Store actions like `storeModelInfo.fetchModelInfo` chain `.then/.catch/.finally` onto the original `fetchHelper` promise, which produces a new Promise instance that lacks the `.cancel()` method. This means store-level fetch promises are not cancellable by callers; cancellation is a fetch-layer concern, not a store-layer concern. `storeModelConfig.getConfig` is an exception: it forwards cancellation for in-flight model-info fetches during config builds.
 
-- What it is: transport abort cancels fetch via `AbortController.abort(reason)` (e.g., `fetchHelper`, reactive-helpers `cancellableFetch`, and some direct-fetch call sites); state-gating prevents post-response writes when a request becomes obsolete (`isCancelled.value`). Anchors: `client/lib/utils/fetchSupport.js`, `client/lib/utils/objectCrud.js`, `client/lib/utils/listCrud.js`, `client/lib/views/ViewActivate.vue`, `client/lib/views/ViewDeactivate.vue`, `client/node_modules/@arrai-innovations/reactive-helpers/utils/cancellableFetch.js`.
-- Why it exists: transport abort can cause the underlying fetch to reject before transform/state application; state-gating prevents stale writes even when transport cancellation is not available or is not the only failure mode. Anchors: `client/node_modules/@arrai-innovations/reactive-helpers/utils/cancellableFetch.js`, `client/lib/utils/listCrud.js`.
-- Where it lives: abort controllers in `client/lib/utils/fetchSupport.js`, `client/lib/utils/objectCrud.js`, `client/lib/utils/listCrud.js`, `client/lib/views/ViewActivate.vue`, `client/lib/views/ViewDeactivate.vue`, `client/node_modules/@arrai-innovations/reactive-helpers/utils/cancellableFetch.js`; `isCancelled` guards in `client/lib/utils/listCrud.js`.
+## Cancellation Surface (Promise Identity)
 
-### Async wrapping is cancellation-destructive
+The cancellation contract is expressed through two TypeScript-style typedefs. A `CancellablePromise` is a Promise with a guaranteed `.cancel(...)` method. A `MaybeCancellablePromise` is a Promise with an optional `.cancel(...)`, used at call sites where cancellation may or may not be available depending on the code path.
 
-- What it is: several network adapters are explicitly non-`async` to avoid returning a different Promise instance that omits `.cancel`. Anchors: `client/lib/utils/objectCrud.js`, `client/lib/utils/listCrud.js`, `client/lib/use/useWarnings.js`.
-- Why it exists: `.cancel` is attached to the specific Promise instance returned by the adapter; re-wrapping changes identity and can drop the method. Anchors: `client/lib/utils/objectCrud.js`.
-- Where it lives: inline comments `This function cannot be async...`. Anchors: `client/lib/utils/objectCrud.js`, `client/lib/utils/listCrud.js`, `client/lib/use/useWarnings.js`.
+The critical design constraint is that `.cancel()` is attached to a specific Promise instance. JavaScript's `async`/`await` and `.then()` chaining produce new Promise instances that do not inherit properties from the original. This means that any function that wraps a cancellable promise in an `async` function body, or chains `.then()` onto it and returns the chain, produces a new Promise that has lost the `.cancel()` method.
 
-### Lookup batching introduces multi-consumer cancellation semantics
+This constraint is why several VUEDA network adapters are explicitly non-`async`. Functions like `defaultObjectCreate`, `defaultObjectDelete`, the list CRUD adaptors, and `useWarnings` include inline comments explaining that they cannot be `async` because doing so would drop `.cancel()` from the returned Promise. The functions instead return the original Promise directly, attaching additional `.cancel()` behaviour where needed without re-wrapping.
 
-- What it is: `useLookupContext` batches and deduplicates lookups by `(app.model, fields, expand)` key and per-PK; each consumer receives a cancellable wrapper whose cancellation may or may not abort the shared underlying request. Anchors: `client/lib/use/useLookupContext.js`, `client/tests/unit/lib/use/useLookupContext.spec.js`.
-- Why it exists: multiple scopes can depend on the same lookup without fan-out network requests, while still allowing per-consumer scope disposal. Anchors: `client/lib/use/useLookupContext.js`.
-- Where it lives: `consumerPromises`/`inflightPromises` tracking and `newPromiseUnwrapper(...)` cancellation logic. Anchors: `client/lib/use/useLookupContext.js`.
+Consumers that may or may not receive a cancellable promise use optional chaining: `promise?.cancel?.()` or `promise?.cancel(reason)`. This pattern appears in composables and view-level cleanup code where the promise source may vary.
+
+## Transport Abort and State-Gating
+
+Transport abort and state-gating are complementary but independent cancellation mechanisms. They address different failure windows and have different observable effects.
+
+**Transport abort** terminates the fetch at the network level. When `.cancel()` invokes `AbortController.abort(reason)`, the browser aborts the HTTP request and the `fetch(...)` Promise rejects. If response processing has not yet started, the rejection prevents any response-handling code from running. If the response has already been received but not yet processed, the rejection interrupts processing.
+
+Transport abort has a key limitation: `fetchHelper` does not distinguish abort rejections from other fetch-level errors. Both aborts and genuine network failures are wrapped into the configured `ErrorClass` (default `FetchError`). There is no `AbortError`-specific branch in the rejection path. This means that code that catches errors from `fetchHelper` cannot easily distinguish between "this request was intentionally cancelled" and "this request failed due to a network problem."
+
+**State-gating** prevents post-response state writes when a request becomes obsolete, even if the transport was not aborted. `singlePagePaginatedListCrudAdaptor` checks an `isCancelled.value` ref before applying list results and pagination metadata to reactive state. If the ref is set to `true` (because a newer request has superseded this one), the response data is silently discarded rather than written to the store or component state.
+
+State-gating exists because transport abort is not always reliable or complete. A response may arrive between the moment cancellation is requested and the moment the abort signal propagates. State-gating is the last line of defence against stale writes in that window.
+
+## Store and Cache Interactions
+
+Cancellation interacts with store caching in ways that can produce surprising failure surfaces.
+
+`storeModelInfo.fetchModelInfo` does not expose `.cancel()` on its returned promise. The store chains `.then`, `.catch`, and `.finally` onto the original `fetchHelper` promise to implement caching, error memoization, and promise cleanup. This chaining produces a derived Promise that lacks the `.cancel()` method. Callers who receive a promise from `fetchModelInfo` cannot cancel the underlying fetch through that promise.
+
+More importantly, if the underlying fetch is cancelled by some other path (for example, an `AbortController` shared with the original `fetchHelper` call), the resulting rejection is cached in `errors[key]` by the store's error memoization logic. Subsequent calls to `fetchModelInfo` for the same key will be rejected immediately from the error cache without issuing a new fetch. The cancellation, which was intended as a transient navigation-driven event, becomes a sticky failure that persists until the store is reset.
+
+`storeModelConfig.getConfig` has a more nuanced cancellation surface. When a config build is in progress, and a new `setConfig` call invalidates the build, the in-flight model-info fetch can be cancelled if it has not yet resolved. This cancellation is forwarded from the config store to the underlying fetch promise, and it is the primary mechanism for preventing stale config builds from completing after a config override is applied.
+
+## Lookup Batching and Multi-Consumer Semantics
+
+`useLookupContext` introduces multi-consumer cancellation, where multiple independent scopes depend on the same underlying network request, and each scope can be disposed of independently.
+
+The lookup context batches and deduplicates lookups by a composite key: `(app.model, fields, expand)` plus per-PK identity. When multiple consumers request the same lookup, they share a single in-flight network request. Each consumer receives its own cancellable wrapper, a per-consumer Promise returned by `requestObject(...)`, whose `.cancel()` method manages that consumer's participation in the shared request.
+
+When a consumer cancels, the lookup context removes that consumer from `consumerPromises`. If other consumers still depend on the shared request, the underlying in-flight promise continues. Only when the last consumer cancels does the lookup context cancel the shared in-flight promise (if it still exists). This reference-counting approach prevents one component's disposal from aborting a fetch that another component still needs.
+
+`useResolvedLookupObject` sits on top of `useLookupContext` and performs best-effort cancellation on scope disposal and parameter invalidation. It calls `?.cancel(...)` on outstanding lookup promises and logs failures rather than throwing an exception. This means that cancellation errors in the lookup pipeline surface as console warnings, not as component-level exceptions.
+
+## Observable Failure Signatures
+
+The cancellation architecture produces several characteristic failure patterns.
+
+**Loss of `.cancel()` through async wrapping.** If a network adapter is refactored to use `async`/`await`, the returned Promise loses the `.cancel()` method. The symptom is that callers' `promise.cancel()` calls either throw `TypeError` or do nothing silently (when guarded by `?.cancel`). The existing codebase guards against this with explicit non-`async` function declarations and inline comments, but it is a recurring risk during refactoring.
+
+**Abort treated as generic fetch failure.** `fetchHelper` wraps all fetch-level errors, including aborts, into the configured `ErrorClass`. Cancellation rejections are indistinguishable from network failures in catch handlers. Code that needs to differentiate cancellation from failure must check the abort reason or error shape explicitly, which `fetchHelper` does not facilitate.
+
+**Cancellation does not clear sticky store failures.** When `storeModelInfo.fetchModelInfo` catches a rejection (including one caused by cancellation), the error is cached in `errors[key]`. Subsequent calls are rejected immediately from the cache. Because the store-level promise does not expose `.cancel()`, there is no caller-driven mechanism to prevent this caching. A cancelled fetch and a genuinely failed fetch produce the same sticky error state.
+
+**Ignored caller-provided abort signals in `cancellableFetch`.** `cancellableFetch` overwrites any `init.signal` passed by the caller with its own internal `AbortController`'s signal. A caller who provides their own `AbortController` and expects to abort the fetch through it will observe that aborting their controller has no effect on the underlying request. The only way to cancel is through the `.cancel()` method on the returned Promise.
+
+**Late or repeated cancellation in lookup batching.** `useLookupContext` logs console warnings when `.cancel()` is called after cleanup has already run, when it is called twice on the same consumer promise, or when it is called before an `inflightPromise` has been assigned. These warnings indicate lifecycle ordering issues; typically, a component is disposing after the lookup context has already torn down its tracking state.
+
+**Cancellation surfaced as error state in resolved lookups.** `useResolvedLookupObject` sets its `errored` ref for any awaited rejection, including cancellation-driven rejections. During rapid parameter changes (for example, navigating quickly between objects), the `errored` ref can toggle between `true` and `false` as cancelled requests are rejected and new requests resolve. This produces transient error flicker in components that render based on the `errored` state.
 
 ## Relevant Implementation Surface
 
@@ -60,34 +93,3 @@ status: briefing
 - `{@api js:function:@arrai-innovations/vueda.use/useLookupContext.useLookupContext}`
 - `{@api js:function:@arrai-innovations/vueda.use/useResolvedLookupObject.useResolvedLookupObject}`
 - `{@api js:function:@arrai-innovations/vueda.use/useWarnings.useWarnings}`
-
-## Contracts and Invariants
-
-- `fetchHelper(...)` always supplies `credentials: "include"` and an `AbortSignal`; `.cancel()` calls `AbortController.abort()`. Anchors: `client/lib/utils/fetchSupport.js`, `client/tests/unit/lib/utils/fetchSupport.spec.js`.
-- `fetchHelper(...)` rejects both non-`ok` HTTP responses and fetch-level errors by constructing the provided `ErrorClass` (default `FetchError`); fetch-level errors (including aborts) are not special-cased. Anchors: `client/lib/utils/fetchSupport.js`.
-- `cancellableFetch(...)` always uses its own `AbortController` for the `fetch(...)` call; if `init.signal` is provided, it is bridged into the internal controller (including propagating `reason`), and an event listener is cleaned up after completion. `.cancel(reason)` calls `AbortController.abort(reason)` and awaits base promise settlement. Anchors: `client/node_modules/@arrai-innovations/reactive-helpers/utils/cancellableFetch.js`.
-- `defaultObjectCreate(...)` and `defaultObjectDelete(...)` attach `.cancel()` that aborts and then awaits the returned promise’s settlement to avoid unhandled rejections. Anchors: `client/lib/utils/objectCrud.js`, `client/tests/unit/lib/utils/objectCrud.spec.js`.
-- `allPagePaginatedListCrudAdaptor(...)` cancellation aborts a shared `AbortController` and awaits settlement of concurrent page fetches. Anchors: `client/lib/utils/listCrud.js`.
-- `singlePagePaginatedListCrudAdaptor(...)` checks `isCancelled.value` before applying list results and pagination metadata. Anchors: `client/lib/utils/listCrud.js`.
-- `storeModelInfo.fetchModelInfo(...)` caches the first in-flight promise per `app.model` key and caches the first rejection in `errors[key]`, short-circuiting subsequent calls. Anchors: `client/lib/stores/storeModelInfo.js`.
-- `storeModelInfo.fetchModelInfo(...)` does not preserve `.cancel()` on the returned promise because it stores a derived promise from `.then/.catch/.finally` chaining, not the original `fetchHelper(...)` promise. Anchors: `client/lib/stores/storeModelInfo.js`, `client/lib/utils/fetchSupport.js`.
-- `useLookupContext.requestObject(...)` returns a per-consumer cancellable wrapper; cancellation removes the consumer from `consumerPromises`, and only the last consumer triggers cancellation of the shared in-flight promise (if present). Anchors: `client/lib/use/useLookupContext.js`, `client/tests/unit/lib/use/useLookupContext.spec.js`.
-- `useResolvedLookupObject(...)` performs best-effort cancellation on scope disposal and parameter invalidation via `?.cancel(...)`; cancellation failures are logged and do not throw. Anchors: `client/lib/use/useResolvedLookupObject.js`.
-
-## Footguns
-
-- Loss of `.cancel`: async re-wrapping can drop the cancellation method (symptom: the returned Promise has no `.cancel`). Anchors: `client/lib/utils/objectCrud.js`, `client/lib/utils/listCrud.js`, `client/lib/use/useWarnings.js`.
-- Abort treated as generic fetch failure: `fetchHelper(...)` wraps fetch-level errors (including aborts) into the configured `ErrorClass` rather than preserving an `AbortError` branch (symptom: cancellation surfaces as `FetchError`-like errors). Anchors: `client/lib/utils/fetchSupport.js`.
-- Cancellation does not clear sticky store failures: `storeModelInfo.fetchModelInfo(...)` caches the first rejection in `errors[key]` and subsequent calls reject immediately; the returned promise does not expose `.cancel()` due to chaining, so caller-driven abort is not part of this store’s contract surface. Anchors: `client/lib/stores/storeModelInfo.js`, `client/lib/utils/fetchSupport.js`.
-- Ignored abort signals with `cancellableFetch`: passing `signal` to `cancellableFetch` has no effect because it is overwritten by an internal `AbortController` (symptom: caller-provided controller is never observed to abort the underlying fetch). Anchors: `client/node_modules/@arrai-innovations/reactive-helpers/utils/cancellableFetch.js`.
-- Late or repeated cancellation in lookup batching: `useLookupContext` cancellation logs warnings when called after cleanup, called twice, or before an `inflightPromise` exists (symptom: console warnings with `[useLookupContext.PerConsumerPromise.cancel] ...`). Anchors: `client/lib/use/useLookupContext.js`.
-- Cancellation may be surfaced as an error state in resolved-lookups: `useResolvedLookupObject` sets error state for any awaited rejection; if a cancelled operation rejects, `errored` can toggle during parameter churn. Anchors: `client/lib/use/useResolvedLookupObject.js`.
-
-## Suggested Outline
-
-- `## Boundary and Authority`
-- `## Cancellation Surface (Promise Identity)`
-- `## Transport Abort and State-Gating`
-- `## Store and Cache Interactions`
-- `## Lookup Batching and Multi-Consumer Semantics`
-- `## Observable Failure Signatures`
