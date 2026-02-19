@@ -15,7 +15,7 @@ This page is an orientation hub. It describes the deviation families at a high l
 
 Upstream DRF uses longer query parameter names (`search`, `ordering`) and does not specify a specific filter backend in its default configuration. VUEDA replaces these with a canonical keyset: `s` for search, `o` for ordering, `p` and `ps` for pagination, and `e`, `f`, `om` for flex-field control (expand, fields, omit). These names are set in `REST_FRAMEWORK` and `REST_FLEX_FIELDS` server defaults, and the client hard-codes the same literals as constants.
 
-VUEDA also configures a default filter backend stack: `VuedaSearchFilterBackend` (which extends DRF's `SearchFilter` with ranked search), `OrderingFilter`, and `DjangoFilterBackend`. This stack runs on every list endpoint unless explicitly overridden per viewset. The result is that list queries have consistent search, ordering, and filtering behaviour across all registered models without per-viewset configuration.
+VUEDA also configures a default filter backend stack: `VuedaSearchFilterBackend` (which extends DRF's `SearchFilter` with ranked search), `OrderingFilter`, and `DjangoFilterBackend`. This stack runs on every `list` endpoint unless explicitly overridden per viewset. The result is that `list` queries have consistent search, ordering, and filtering behaviour across all registered models without per-viewset configuration.
 
 The upstream departure is deliberate: a single canonical keyset, enforced at the server defaults layer, eliminates per-project negotiation of query parameter names and ensures that the client's constant declarations match the server's expectations. See [Configuration Surface and Defaults](./configuration-surface-and-defaults) for the full settings assembly surface.
 
@@ -29,9 +29,9 @@ This gating means that simply adding a DRF viewset and router entry does not mak
 
 ## Validation Surfaces
 
-Upstream DRF request parsing tolerates unknown query parameters on list endpoints and commonly ignores extra keys in serializer input. VUEDA enforces explicit rejection at both boundaries.
+Upstream DRF request parsing tolerates unknown query parameters on `list` endpoints and commonly ignores extra keys in serializer input. VUEDA enforces explicit rejection at both boundaries.
 
-`NoExtraFieldsForViewSetMixin` validates list query parameters against the declared filter namespace. Any query key outside the union of filter fields, lookup-derived keys, and framework parameters is rejected with an HTTP 400 and a field-keyed validation error naming the valid filter set. This enforcement applies when the viewset declares a `filterset_class`; without a filterset, the check is skipped.
+`NoExtraFieldsForViewSetMixin` validates `list` query parameters against the declared filter namespace. Any query key outside the union of filter fields, lookup-derived keys, and framework parameters is rejected with an HTTP 400 and a field-keyed validation error naming the valid filter set. This enforcement applies when the viewset declares a `filterset_class`; without a filterset, the check is skipped.
 
 `NoExtraFieldsSerializerMixin` validates top-level serializer input against the declared field set. Extra payload keys trigger field-keyed validation errors. This applies only at the top-level serializer boundary; nested serializer payload keys are not validated by this mixin.
 
@@ -41,7 +41,7 @@ Both validation surfaces enforce the same principle: contract surfaces are expli
 
 **Query parameter typo returns 400.** A misspelled filter key or an unsupported query parameter produces an HTTP 400 with `"Invalid query parameter.  Valid filters are ..."`. The error includes the valid filter set for diagnosis.
 
-**Extra payload key returns 400.** An unrecognized top-level key in a create or update request body produces a field-keyed validation error. Nested serializer payload drift is not caught by this check; only top-level keys are validated.
+**Extra payload key returns 400.** An unrecognized top-level key in a create or `update` request body produces a field-keyed validation error. Nested serializer payload drift is not caught by this check; only top-level keys are validated.
 
 ## Relevant Implementation Surface
 

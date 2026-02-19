@@ -104,8 +104,8 @@ flowchart LR
   `NoExtraFieldsForViewSetMixin`) to keep API contracts tight.
 - **Explicit expand/sparse control**: flex‑field expansion is allowed only when declared and validated; expansion metadata is curated
   in serializer context.
-- **Transaction safety by default**: create/update/destroy operations are wrapped in atomic transactions.
-- **Row‑level permission filtering**: list endpoints apply row‑level access filtering inside viewsets, not just at the queryset
+- **Transaction safety by default**: `create`/`update`/`destroy` operations are wrapped in atomic transactions.
+- **Row‑level permission filtering**: `list` endpoints apply row‑level access filtering inside viewsets, not just at the queryset
   boundary.
 - **Action‑scoped serializer behavior**: viewsets can use per‑action serializer classes to formalize read/write differences.
 - **Predictable bulk semantics**: bulk destroy/activate/deactivate flows are standardized and validate primary keys rigorously.

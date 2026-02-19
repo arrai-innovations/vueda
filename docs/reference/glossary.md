@@ -20,7 +20,7 @@ status: draft
 - **Model Info**: Server-provided metadata describing fields, actions, filtering, ordering, and permissions for a model.
 - **Permission Mapping**: `PERMISSION_NAMES_MAPPING` setting translating Django/VUEDA codename vocabulary.
 - **Resource**: A domain surface implemented across model, serializer, viewset, routing, and client config/UI.
-- **Row-Level Permissions**: Queryset/object checks that constrain which rows a user can list/read/update.
+- **Row-Level Permissions**: Queryset/object checks that constrain which rows a user can `list`/`read`/`update`.
 - **Row-Level Workflow Permissions**: Workflow-aware row-level hooks (`check_instance_workflow`, `check_queryset_workflow`) that combine state and row context; run last and can override any prior permission decision.
 - **Transition**: A workflow operation that moves an object from one state to another.
 - **VDQ (VUEDA Dispatch Queue)**: Queue-backed background processing system for deferred/asynchronous work.

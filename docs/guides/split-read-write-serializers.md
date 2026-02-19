@@ -7,16 +7,16 @@ status: draft
 
 # Split Read/Write Serializers Safely
 
-This guide covers using different serializers for read actions (`list`/`retrieve`) versus write actions (`create`/`update`/`partial_update`) on the same viewset, while keeping client metadata, form behaviour, and post-submit redirects coherent. The split is useful when read responses need rich, expanded data that should not appear in write payloads, or when write validation rules differ substantially from read field sets.
+This guide covers using different serializers for `read` actions (`list`/`retrieve`) versus write actions (`create`/`update`/`partial_update`) on the same viewset, while keeping client metadata, form behaviour, and post-submit redirects coherent. The split is useful when `read` responses need rich, expanded data that should not appear in write payloads, or when write validation rules differ substantially from read field sets.
 
-The guide assumes familiarity with VUEDA's canonical registration and metadata contract. If you have not read [Canonical Registration and Model Discovery](../core-concepts/canonical-registration-and-discovery), start there; it explains how model-info metadata is derived from the registered serializer/viewset pair. For the field and expand query parameter semantics that interact with per-action serializers, see [Field and Expand Semantics](../core-concepts/field-and-expand-semantics).
+The guide assumes familiarity with VUEDA's canonical registration and metadata contract. If you have not read [Canonical Registration and Model Discovery](../core-concepts/canonical-registration-and-discovery), start there; it explains how model-info metadata is derived from the registered serializer/viewset pair. For the field and `expand` query parameter semantics that interact with per-action serializers, see [Field and Expand Semantics](../core-concepts/field-and-expand-semantics).
 
 ## Problem and Preconditions
 
 The objective is a viewset where:
 
-- List and retrieve actions use a read-optimized serializer (potentially with more expands, computed fields, or nested data).
-- Create, update, and partial_update actions use a write-optimized serializer (potentially with fewer fields, different validation, or different expand behaviour).
+- `list` and `retrieve` actions use a read-optimized serializer (potentially with more expands, computed fields, or nested data).
+- `create`, `update`, and `partial_update` actions use a write-optimized serializer (potentially with fewer fields, different validation, or different expand behaviour).
 - Model-info metadata remains consistent with what the client needs for rendering and route guards.
 - Post-submit redirects work correctly (the write response includes the PK).
 - Query parameter validation (`f`/`e`) works against the correct serializer for each action.
@@ -29,9 +29,9 @@ The model must have a canonical registration via `info.register(...)` with a vie
 
 Model-info field metadata (`model_fields`) is derived from the canonical serializer registered with `info.register(...)`, not from per-action runtime serializer selection. This means the metadata the client uses for form rendering, field types, and validation hints comes from a single serializer, regardless of how many serializers the viewset uses at runtime.
 
-Choose which serializer to register as canonical based on what the client needs for form rendering. Typically, this is the write serializer, since form fields need to match the fields the server accepts on create/update. If you register the read serializer as canonical and it includes fields that the write serializer does not accept, the client may render form fields that produce validation errors on submit.
+Choose which serializer to register as canonical based on what the client needs for form rendering. Typically, this is the write serializer, since form fields need to match the fields the server accepts on `create`/`update`. If you register the read serializer as canonical and it includes fields that the write serializer does not accept, the client may render form fields that produce validation errors on submit.
 
-Registration with `register_serializer(...)` (serializer-only, no viewset) is possible but produces limited metadata: `model_actions` will be empty, and filter/ordering metadata will be absent. Use this only when the model does not require client-side action routing or list filtering.
+Registration with `register_serializer(...)` (serializer-only, no viewset) is possible but produces limited metadata: `model_actions` will be empty, and filter/ordering metadata will be absent. Use this only when the model does not require client-side action routing or `list` filtering.
 
 ```python
 from vueda.info.registration import register
@@ -71,7 +71,7 @@ class MyViewSet(PerActionSerializerMixin, VuedaViewSet):
 
 ### PK in write responses
 
-After a successful submission, the client create and update forms redirect to the detail view using the PK from the response payload. If the write serializer omits the PK field from its output, the post-submit redirect will fail; the client cannot construct the detail URL without a PK.
+After a successful submission, the client create and `update` forms redirect to the `detail` view using the PK from the response payload. If the write serializer omits the PK field from its output, the post-submit redirect will fail; the client cannot construct the detail URL without a PK.
 
 Ensure the write serializer includes the PK field in its `fields`. This is a common oversight when stripping fields from write serializers.
 
@@ -89,14 +89,14 @@ After setting up the split, verify that model-info metadata matches client expec
 
 **`model_actions` requires a registered viewset.** If the canonical registration was done with `register_serializer(...)` instead of `register(...)`, `model_actions` will be empty and route guards will deny all action routes.
 
-**Per-action serializers do not automatically update metadata.** Adding a new field to the read serializer does not add it to model-info metadata unless the canonical serializer also includes it. The metadata is static relative to the canonical registration; per-action variation is invisible to the metadata layer.
+**Per-action serializers do not automatically `update` metadata.** Adding a new field to the read serializer does not add it to model-info metadata unless the canonical serializer also includes it. The metadata is static relative to the canonical registration; per-action variation is invisible to the metadata layer.
 
 ## Test Checklist
 
 After implementing the serializer split, verify:
 
-- List and retrieve responses using the read serializer's field set and expands.
-- Create, update, and PATCH requests use the write serializer's validation and field set.
+- `list` and `retrieve` responses using the read serializer's field set and expands.
+- `create`, `update`, and `partial_update` requests use the write serializer's validation and field set.
 - Model-info `model_fields` reflects the canonical serializer, not the per-action serializers.
 - Model-info `model_actions` is populated (requires viewset registration).
 - Post-submit redirects work for both create and update (PK is present in write responses).

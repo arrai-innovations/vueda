@@ -9,7 +9,7 @@ status: draft
 
 This guide covers implementing one-request parent+child write flows using VUEDA serializers; creating or updating a parent object and its related objects in a single API call. It walks through serializer shape, query parameter contracts, reverse-relation update semantics, read-only inline patterns, and client-side error mapping.
 
-The guide assumes familiarity with VUEDA's serializer composition. If you have not read [Nested Write Compatibility](../core-concepts/nested-write-compatibility), start there; it explains the flex-field and nested-write mixin boundary within which this guide operates. For expand and field query parameter mechanics, see [Field and Expand Semantics](../core-concepts/field-and-expand-semantics). For form validation and error mapping, see [Handle Form Validation and Server Errors](./form-validation-and-errors).
+The guide assumes familiarity with VUEDA's serializer composition. If you have not read [Nested Write Compatibility](../core-concepts/nested-write-compatibility), start there; it explains the flex-field and nested-write mixin boundary within which this guide operates. For `expand` and field query parameter mechanics, see [Field and Expand Semantics](../core-concepts/field-and-expand-semantics). For form validation and error mapping, see [Handle Form Validation and Server Errors](./form-validation-and-errors).
 
 ## Goal and Preconditions
 
@@ -25,7 +25,7 @@ Before you begin:
 
 The parent serializer must inherit from `VuedaSerializer` or `VuedaHistorySerializer`, both of which include `FlexFieldsWriteableNestedSerializerMixin`. Serializers that do not use these bases will not participate in nested write handling.
 
-The model registration must include a viewset. Nested writes flow through standard create/update viewset actions.
+The model registration must include a viewset. Nested writes flow through standard `create`/`update` viewset actions.
 
 ## Serializer Shape for Nested/Inlined Writes
 
@@ -70,7 +70,7 @@ Content-Type: application/json
 }
 ```
 
-Omitting `e=customer` while sending `customer` as an object would cause a type error. The `f` (fields) parameter can also be used on mutation requests to control which fields are included in deserialization; validate both `f` and `e` against the payload shape, not just on read requests.
+Omitting `e=customer` while sending `customer` as an object would cause a type error. The `f` (fields) parameter can also be used on mutation requests to control which fields are included in deserialization; validate both `f` and `e` against the payload shape, not just on `read` requests.
 
 ## Reverse-Relation Update Semantics
 
@@ -80,13 +80,13 @@ When updating an existing parent object, reverse-relation handling follows a fix
 
 **Omission means deletion.** Existing child rows whose PKs are absent from the incoming payload are deleted. This is the `drf-writable-nested` default: the payload is treated as the complete set of children. If the intent is to leave existing children unchanged, include them in the payload with their PKs.
 
-**Deletion runs before creation/update.** The update sequence is: delete missing children, then update/create the children present in the payload. This ordering prevents PK conflicts when replacing children.
+**Deletion runs before creation/update.** The update sequence is: delete missing children, then `update`/`create` the children present in the payload. This ordering prevents PK conflicts when replacing children.
 
 Treat this omission/deletion behaviour as contract-critical. Verify it per relation in your test suite, because the behaviour applies uniformly to all reverse collections; there is no per-field opt-out for deletion on omission.
 
 ## Readonly Inline Patterns
 
-Use `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer` for relations that should be expanded in read responses but must not participate in write operations. The mixin's `_extract_relations` method filters out these serializer types before nested write processing, so any data the client sends for these fields is silently dropped.
+Use `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer` for relations that should be expanded in `read` responses but must not participate in write operations. The mixin's `_extract_relations` method filters out these serializer types before nested write processing, so any data the client sends for these fields is silently dropped.
 
 ```python
 class OrderSerializer(VuedaSerializer):
@@ -130,7 +130,7 @@ After implementing nested writes, verify the following:
 
 - Creating a parent with nested children in a single POST succeeds with matching `e` parameters.
 - Updating a parent with modified, added, and removed children applies all three changes correctly.
-- Omitting a child from an update payload deletes that child.
+- Omitting a child from an `update` payload deletes that child.
 - Sending object payloads without matching `e` parameters produces `incorrect_type` errors, not silent failures.
 - Readonly inline relations ignore write data without errors.
 - Nested validation errors appear as focusable form field errors on the client.
@@ -142,7 +142,7 @@ After implementing nested writes, verify the following:
 
 **Nested children not created or updated.** Check whether the relation's serializer is a `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer`. If so, write data for that relation is silently dropped. Switch to a writable serializer base.
 
-**Children unexpectedly deleted on update.** The omission-means-deletion contract is in effect. Existing children whose PKs are absent from the update payload are deleted. Include all children you want to keep, with their PKs.
+**Children unexpectedly deleted on update.** The omission-means-deletion contract is in effect. Existing children whose PKs are absent from the `update` payload are deleted. Include all children you want to keep, with their PKs.
 
 **Nested validation errors not appearing in the form.** Check that the client form model's field mapping supports the nested key path depth. `useForm` currently supports one level of `__` split for nested expand paths; deeper nesting may require custom error mapping.
 

@@ -50,7 +50,7 @@ If `get_allowed_extra_actions` is not implemented, all extra actions declared on
 
 ## Object-Level Availability Contract
 
-Object-level `available_actions` is computed during serialization and reflects what the requesting user can do with a specific instance. Include the `AvailableActionsField` in your serializer when detail views need per-object action filtering.
+Object-level `available_actions` is computed during serialization and reflects what the requesting user can do with a specific instance. Include the `AvailableActionsField` in your serializer when `detail` views need per-object action filtering.
 
 The field evaluates standard actions (retrieve, update, partial_update, destroy) through object-permission checks. `create` is excluded for concrete instances; it is a model-scope action. Allowed extra actions from `get_allowed_extra_actions(request, instance=instance)` are appended to the result.
 
@@ -58,7 +58,7 @@ The object-level result can be narrower than model-scope metadata. A user may ha
 
 ## Route Guard Wiring
 
-Client route guards use model-info metadata to decide whether a route is admissible. The standard wiring is through `makeCRUDRoutes`, which registers both detail and list action routes with the `requireModelInfo` navigation guard.
+Client route guards use model-info metadata to decide whether a route is admissible. The standard wiring is through `makeCRUDRoutes`, which registers both detail and `list` action routes with the `requireModelInfo` navigation guard.
 
 The guard performs three steps:
 
@@ -78,7 +78,7 @@ Rendered action controls in views use two additional filtering layers beyond rou
 
 **Object-level intersection** applies in detail-style views. `DetailedView` intersects the config-filtered action set with the object's `available_actions` before rendering action buttons. An action must pass both filters to appear as a rendered control. This means the same model can show different action buttons for different objects; reflecting per-object permission outcomes without any client-side permission logic.
 
-List views use config-filtered actions for toolbar controls (like bulk delete) but do not intersect with per-object availability, since list views do not have a single target object.
+`list` views use config-filtered actions for toolbar controls (like bulk delete) but do not intersect with per-object availability, since `list` views do not have a single target object.
 
 Workflow transition controls are sourced from the workflow transition store and rendered independently from CRUD action buttons. Do not attempt to infer transition availability from `model_actions` or `available_actions`; transitions have their own data flow and are fetched through dedicated workflow endpoints.
 
@@ -98,12 +98,12 @@ After wiring action availability, verify the following behaviors:
 - A user with `update` model permission but facing a workflow state denial does not see `update` in a specific object's `available_actions`, even though `update` appears in `model_actions`.
 - Navigating to an action route that is not in `model_actions` produces a toast and redirect.
 - Setting `config.routeActions` to `["retrieve", "list"]` excludes `update` and `destroy` routes from admission.
-- Detail view action buttons for different objects of the same model reflect the respective objects' `available_actions`.
+- `detail` view action buttons for different objects of the same model reflect the respective objects' `available_actions`.
 - Workflow transition routes resolve to the transition view when the transition code is in the permitted set.
 
 ## Troubleshooting
 
-**Action appears in model-info but not in detail view controls.** The action is filtered at object scope. Check the object's `available_actions` in the API response. If the action is absent, the object's permission state (workflow, row-level) is denying it. This is expected behavior, not a bug.
+**Action appears in model-info but not in `detail` view controls.** The action is filtered at object scope. Check the object's `available_actions` in the API response. If the action is absent, the object's permission state (workflow, row-level) is denying it. This is expected behavior, not a bug.
 
 **"Action Not Found" toast for a valid server action.** Check `config.routeActions`. If set, the action must be listed there to pass the route guard. Also check for the legacy `routerActions` key; it is silently ignored.
 

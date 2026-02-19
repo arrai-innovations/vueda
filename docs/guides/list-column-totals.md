@@ -1,29 +1,29 @@
 ---
-title: Expose Aggregates in List Responses
+title: Expose Aggregates in `list` Responses
 type: how-to
 audience: implementor
 status: draft
 ---
 
-# Expose Aggregates in List Responses
+# Expose Aggregates in `list` Responses
 
-This guide covers adding aggregate column totals to list responses and rendering them in the default list UX. Column totals let a list view display summary values (sums) for numeric columns, computed from the same filtered queryset that produces the visible rows.
+This guide covers adding aggregate column totals to `list` responses and rendering them in the default list UX. Column totals let a `list` view display summary values (sums) for numeric columns, computed from the same filtered queryset that produces the visible rows.
 
-The guide assumes familiarity with VUEDA's list view pipeline. For the interaction between row-level permission filtering and aggregates, see [Row-Level Permission Filtering](../core-concepts/row-level-permission-filtering). For the pagination response shape, see the generated API reference for the pagination class.
+The guide assumes familiarity with VUEDA's `list` view pipeline. For the interaction between row-level permission filtering and aggregates, see [Row-Level Permission Filtering](../core-concepts/row-level-permission-filtering). For the pagination response shape, see the generated API reference for the pagination class.
 
 ## Goal and Preconditions
 
-The objective is a list endpoint where:
+The objective is a `list` endpoint where:
 
 - Numeric columns declared as totals produce `SUM` aggregates in the response payload.
 - Aggregates reflect the same filtered queryset as the listed rows (filters, row-level permissions applied).
-- The client renders totals in the list view's footer row.
+- The client renders totals in the `list` view's footer row.
 
 Before you begin:
 
 The model's viewset must inherit from `VuedaViewSet` or `VuedaHistoryViewSet`, both of which include `ListRowLevelViewSetMixin`. The `list` method on this mixin handles the aggregation pipeline.
 
-The list endpoint must use VUEDA's pagination class (`VUEDAPageNumberPagination`), which includes `columnTotals` in the paginated response. Custom endpoints that bypass VUEDA pagination will not include column totals.
+The `list` endpoint must use VUEDA's pagination class (`VUEDAPageNumberPagination`), which includes `columnTotals` in the paginated response. Custom endpoints that bypass VUEDA pagination will not include column totals.
 
 ## Server Aggregation Setup
 
@@ -52,7 +52,7 @@ This ordering is enforced by `ListRowLevelViewSetMixin.list`, which first calls 
 
 ## Response Contract
 
-The paginated list response includes a `columnTotals` key alongside `results`, `totalRecords`, and `totalPages`:
+The paginated `list` response includes a `columnTotals` key alongside `results`, `totalRecords`, and `totalPages`:
 
 ```json
 {
@@ -71,7 +71,7 @@ When `column_totals` is empty, `columnTotals` is `{}`. When the filtered queryse
 
 ## Client Rendering Strategy
 
-On the client, list CRUD adaptors (`singlePagePaginatedListCrudAdaptor`, `allPagePaginatedListCrudAdaptor`) copy `responseData.columnTotals` into list state. The data is available to the list view's rendering pipeline.
+On the client, list CRUD adaptors (`singlePagePaginatedListCrudAdaptor`, `allPagePaginatedListCrudAdaptor`) copy `responseData.columnTotals` into `list` state. The data is available to the `list` view's rendering pipeline.
 
 `ViewList` renders totals through the `row-after-objects` slot. The default rendering produces a footer row in table mode with the total values aligned to their respective columns.
 
@@ -96,12 +96,12 @@ Be aware that custom `row-after-objects` slot implementations replace the defaul
 
 After implementing column totals, verify:
 
-- List response includes `columnTotals` with the declared field names and aggregate values.
+- `list` response includes `columnTotals` with the declared field names and aggregate values.
 - Totals change when filters are applied (they reflect the filtered set, not the full table).
 - Totals change when a different user with row-level restrictions views the same list (they reflect only visible rows).
 - Totals remain consistent across pages (pre-pagination aggregation).
 - Empty result sets produce `null` or `0` totals without errors.
-- The list view renders totals in the default footer row or through a custom slot.
+- The `list` view renders totals in the default footer row or through a custom slot.
 - Non-aggregatable fields in `column_totals` produce clear database errors (test this in development, not production).
 
 ## Troubleshooting
@@ -110,7 +110,7 @@ After implementing column totals, verify:
 
 **`columnTotals` is `{}`.** The viewset's `column_totals` attribute is empty or not set. Add the field names you want to aggregate.
 
-**Database error on list request.** A field in `column_totals` is not aggregatable (e.g., a string or boolean field). Remove it from the list or convert the column to a numeric type.
+**Database error on `list` request.** A field in `column_totals` is not aggregatable (e.g., a string or boolean field). Remove it from the list or convert the column to a numeric type.
 
 **Totals do not match visible rows.** Row-level filtering may be applied after aggregation in a customized list implementation. Ensure `apply_row_level_filter` runs before `get_column_info`. The default `ListRowLevelViewSetMixin.list` handles this correctly.
 

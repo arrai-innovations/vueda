@@ -77,7 +77,7 @@ Several runtime paths build codenames directly from `PERMISSION_NAMES_MAPPING` r
 
 **CRUDL HTTP-method checks.** `ObjectPermissions.perms_map` maps HTTP methods to codename patterns. With the default mapping, `GET` resolves to `list_*` or `read_*`, `POST` to `create_*`, `PUT`/`PATCH` to `update_*`, `DELETE` to `delete_*`. With a reverse mapping, the patch rewrites `perms_map` entries to use the reversed names. Verify by making authenticated requests for each HTTP method and checking that the expected permission is required.
 
-**Row-level list filtering.** `ListRowLevelViewSetMixin.apply_row_level_filter` builds the `perm_type` by extracting the action prefix from the full codename. The prefix must match the mapping's output.
+**Row-level `list` filtering.** `ListRowLevelViewSetMixin.apply_row_level_filter` builds the `perm_type` by extracting the action prefix from the full codename. The prefix must match the mapping's output.
 
 **Model-info choice and filter-choice endpoints.** These endpoints check `list` and `read` permissions using codenames derived from the mapping. A user without the mapped `read` codename cannot access field choices; a user without the mapped `list` codename on a related model cannot access related-model choices.
 

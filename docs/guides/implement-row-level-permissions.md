@@ -15,9 +15,9 @@ The guide assumes familiarity with VUEDA's permission evaluation chain. If you h
 
 The objective is a model where:
 
-- List responses show only the rows the requesting user is authorized to see.
-- Retrieve, update, and delete operations on individual objects respect per-row authorization.
-- Bulk-delete operations filter PKs through row-level and object-level checks before processing.
+- `list` responses show only the rows the requesting user is authorized to see.
+- Retrieve, update, and `delete` operations on individual objects respect per-row authorization.
+- Bulk-`delete` operations filter PKs through row-level and object-level checks before processing.
 - Pagination and column totals reflect the filtered row set, not the unfiltered base queryset.
 
 Before you begin:
@@ -86,7 +86,7 @@ class RowLevelPermissions(BaseRowLevelPermissions):
 
 Keep the hook implementations focused. Queryset hooks must express logic as `Q` objects or booleans because they run at database scope. Instance hooks can be arbitrarily complex but should avoid expensive operations in hot paths (e.g., retrieving actions that run per-request).
 
-## Wire ViewSet List Filtering
+## Wire ViewSet `list` Filtering
 
 If the viewset inherits from `VuedaViewSet` or `VuedaHistoryViewSet`, queryset-level row filtering is already wired. The `list` method on `ListRowLevelViewSetMixin` calls `apply_row_level_filter` after DRF filter backends and before pagination.
 
@@ -102,7 +102,7 @@ Verify this path is active by confirming:
 
 - The API stack uses `ObjectPermissions` (or `WorkflowObjectPermissions` for workflow models) as the permission class. This is set in `DEFAULT_PERMISSION_CLASSES` or on the viewset directly.
 - The user model includes `VUEDAPermissionsMixin`, which provides the `has_perm` implementation that calls row-level hooks.
-- For detail actions (retrieve, update, delete), `check_object_permissions` is called, which triggers `has_perm(..., obj=instance)`.
+- For `detail` actions (retrieve, update, delete), `check_object_permissions` is called, which triggers `has_perm(..., obj=instance)`.
 
 No additional wiring is needed for standard viewset actions. Custom actions that bypass `check_object_permissions` will not trigger row-level instance checks.
 
@@ -110,7 +110,7 @@ No additional wiring is needed for standard viewset actions. Custom actions that
 
 Build a test matrix with users/groups that separate model-level permissions from row-level conditions. The matrix should cover:
 
-**List filtering:**
+**`list` filtering:**
 - User with model-level `list` permission + row-level conditions met: list returns matching rows.
 - User with model-level `list` permission + row-level conditions unmet for all rows: list returns `200` with empty results.
 - User with model-level `list` permission + row-level conditions met for some rows: list returns only matching rows with accurate `totalRecords`.
@@ -142,11 +142,11 @@ Note: row-level filtering and column totals are tested separately in the current
 
 **Retrieve returns `200` for objects that should be denied.** `check_instance` may be returning `None` (no opinion) instead of `False` (deny). Returning `None` defers to the baseline model permission, which may be `True`.
 
-**Implementing only `check_queryset` without `check_instance`.** Object-level access for retrieve, update, and delete is not affected by `check_queryset`. Without `check_instance`, a user who cannot see an object in list responses may still be able to access it directly by PK.
+**Implementing only `check_queryset` without `check_instance`.** Object-level access for retrieve, update, and delete is not affected by `check_queryset`. Without `check_instance`, a user who cannot see an object in `list` responses may still be able to access it directly by PK.
 
 **Workflow models without workflow-aware hooks.** For models participating in a workflow, implementing only the non-workflow hooks (`check_queryset`, `check_instance`) can produce unexpected outcomes when state overlays and row-level rules need to compose. Add `check_queryset_workflow` and `check_instance_workflow` where state-aware row filtering matters.
 
-**Bulk delete with large PK sets is slow.** `apply_object_permission_filter` iterates instances and calls `check_object_permissions` per row. For large bulk-delete requests against models with expensive permission checks, latency scales linearly with PK count.
+**Bulk delete with large PK sets is slow.** `apply_object_permission_filter` iterates instances and calls `check_object_permissions` per row. For large bulk-`delete` requests against models with expensive permission checks, latency scales linearly with PK count.
 
 **Custom actions bypass row filtering.** Queryset-level filtering runs in `ListRowLevelViewSetMixin.list`, not in `get_queryset`. Custom viewset actions that query the model directly do not receive row-level filtering unless they explicitly call `apply_row_level_filter`.
 

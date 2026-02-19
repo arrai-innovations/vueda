@@ -90,15 +90,15 @@ VUEDA deliberately deviates from DRF's default behaviour for unknown fields in r
 
 The rejection operates at two layers:
 
-**At the serializer layer**, `NoExtraFieldsSerializerMixin` (included in `VuedaSerializer`) overrides `validate()` to compare the incoming `initial_data` keys against the serializer's declared `fields`. Unknown input fields produce a field-keyed 400 response: `{"unknown_field": ["Invalid field. Valid fields are ..."]}`. The mixin also checks expand parameters at the serializer level, comparing requested expands against `_expandable_fields`. These rejections are field-keyed 400s that map cleanly to `FormValidationError` on the client.
+**At the serializer layer**, `NoExtraFieldsSerializerMixin` (included in `VuedaSerializer`) overrides `validate()` to compare the incoming `initial_data` keys against the serializer's declared `fields`. Unknown input fields produce a field-keyed 400 response: `{"unknown_field": ["Invalid field. Valid fields are ..."]}`. The mixin also checks `expand` parameters at the serializer level, comparing requested expands against `_expandable_fields`. These rejections are field-keyed 400s that map cleanly to `FormValidationError` on the client.
 
 The mixin is aware of complex field name syntax; it parses bracket-indexed (`items[0]quantity`) and dot-delimited (`items.quantity`) names to extract the base field for comparison. It also intentionally skips validation for nested serializers (checking whether the serializer is the top-level one for the view), avoiding redundant checks on child serializers.
 
-**At the viewset layer**, `NoExtraFieldsForViewSetMixin` (included in `VuedaViewSet`) validates query parameters on list and retrieve actions. This validation has two distinct paths with different error behaviours:
+**At the viewset layer**, `NoExtraFieldsForViewSetMixin` (included in `VuedaViewSet`) validates query parameters on list and `retrieve` actions. This validation has two distinct paths with different error behaviours:
 
-For flex-field parameters (`f` for fields, `e` for expands), the mixin calls `validate_flex_field_param` and `validate_flex_expand_param`. Invalid field or expand names produce field-keyed 400 responses (`{"invalid_field": [...]}` or `{"invalid_expand": [...]}`), which map to `FormValidationError` on the client. The expand validation accounts for action-specific `permitted_expands` context, allowing different actions to permit different expand sets.
+For flex-field parameters (`f` for fields, `e` for expands), the mixin calls `validate_flex_field_param` and `validate_flex_expand_param`. Invalid field or `expand` names produce field-keyed 400 responses (`{"invalid_field": [...]}` or `{"invalid_expand": [...]}`), which map to `FormValidationError` on the client. The expand validation accounts for action-specific `permitted_expands` context, allowing different actions to permit different `expand` sets.
 
-For filter query parameters (on list actions), the mixin builds an allowlist from the filterset class's declared filters, plus recognized framework parameters (pagination, ordering, search, flex-fields). Unknown query parameters that do not match any declared filter raise a `VuedaValidationError` with a field-keyed 400 response: `{"unknown_param": ["Invalid query parameter.  Valid filters are ..."]}`. All unrecognized parameters are reported in a single response. This is consistent with flex-field validation and NoExtraFieldsSerializerMixin. The client sees a `FormValidationError` and can route the errors into the form state.
+For filter query parameters (on `list` actions), the mixin builds an allowlist from the filterset class's declared filters, plus recognized framework parameters (pagination, ordering, search, flex-fields). Unknown query parameters that do not match any declared filter raise a `VuedaValidationError` with a field-keyed 400 response: `{"unknown_param": ["Invalid query parameter.  Valid filters are ..."]}`. All unrecognized parameters are reported in a single response. This is consistent with flex-field validation and NoExtraFieldsSerializerMixin. The client sees a `FormValidationError` and can route the errors into the form state.
 
 The `om` (omit) flex-field parameter is an additional asymmetry: it is recognized as a valid query parameter (not rejected as unknown), but its values are not validated against the serializer's field list at either the serializer or viewset layer.
 
@@ -122,7 +122,7 @@ A response can contain both errors and warnings. The parser processes them indep
 
 ## Client Classification and Form-State Ingestion
 
-Client CRUD adapters (`objectCrud` for create/update/delete, `listCrud` for bulk delete, `storeUser` for authentication, `ModelActionForm` for action execution) all follow the same classification rule: HTTP 400 becomes `FormValidationError`, everything else becomes `FetchError` or a more specific non-form error class.
+Client CRUD adapters (`objectCrud` for `create`/`update`/`delete`, `listCrud` for bulk delete, `storeUser` for authentication, `ModelActionForm` for action execution) all follow the same classification rule: HTTP 400 becomes `FormValidationError`, everything else becomes `FetchError` or a more specific non-form error class.
 
 `FormValidationError` construction happens at the adapter layer, before the error reaches any form-context handler. The constructor:
 
@@ -158,7 +158,7 @@ This means that a form component fetching choices for a field that references an
 
 **Choices endpoint 404 vs validation 400.** A missing or invalid model/field/filter on a choices endpoint returns 404, not 400. Code that only handles `FormValidationError` will miss these failures. The error surfaces as a `FetchError` and must be caught separately.
 
-**Omit parameter not validated.** The `om` flex-field parameter is accepted as a recognized query parameter but its values are not checked against the serializer's field list. Invalid omit values pass through silently rather than producing a validation error.
+**Omit parameter not validated.** The `om` flex-field parameter is accepted as a recognized query parameter but its values are not checked against the serializer's field list. Invalid `omit` values pass through silently rather than producing a validation error.
 
 ## Relevant Implementation Surface
 

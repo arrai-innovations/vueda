@@ -18,7 +18,7 @@ The objective is a queue-backed flow where:
 - Work that should not block request-response paths (email/SMS delivery) is enqueued as a `QueueItem` and processed asynchronously.
 - Enqueue failures are observable through queue item state and metadata, not silently dropped.
 - Retry, cancel, and resend operations are available through workflow transitions and viewset actions.
-- Operator-facing status is available through read-only list/detail endpoints.
+- Operator-facing status is available through read-only `list`/`detail` endpoints.
 
 Before you begin:
 
@@ -81,7 +81,7 @@ The cloned item is a fully independent queue item; it gets its own workflow stat
 
 **Sent history endpoint** (`/vueda.vdq/sentitem/`): lists queue items in done states (cancelled, succeeded, unconfirmed). Provides history visibility.
 
-**Detail endpoints**: both queue and sent-item detail endpoints resolve items by PK regardless of state.
+**`detail` endpoints**: both queue and sent-item `detail` endpoints resolve items by PK regardless of state.
 
 **Attachment endpoint** (`/vueda.vdq/attachments/{id}/`): serves attachment files with authentication required. The view does not perform object-level permission checks; any authenticated user can fetch an attachment by ID.
 

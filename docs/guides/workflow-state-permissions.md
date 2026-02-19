@@ -62,7 +62,7 @@ Transitions without any `TransitionPermission` rows are treated as not executabl
 Create `StatePermission` entries to override baseline model permissions for specific states:
 
 ```python
-# Grant update permission to editors when the object is in the "review" state
+# Grant `update` permission to editors when the object is in the "review" state
 StatePermission.objects.create(
     state=review_state,
     permission=update_permission,
@@ -71,7 +71,7 @@ StatePermission.objects.create(
     grant_or_deny=True,
 )
 
-# Deny update permission to all editors when the object is in the "published" state
+# Deny `update` permission to all editors when the object is in the "published" state
 StatePermission.objects.create(
     state=published_state,
     permission=update_permission,

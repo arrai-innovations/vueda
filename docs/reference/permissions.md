@@ -27,14 +27,14 @@ See `vueda.core.models.BaseModelMeta` for defaults.
 
 ### 2) Object-Level Permissions
 
-VUEDA permission classes enforce object checks for detail operations and dynamic action checks.
+VUEDA permission classes enforce object checks for `detail` operations and dynamic action checks.
 
 - Core object permissions: `vueda.core.permissions.ObjectPermissions`
 - Workflow object permissions for dynamic workflow endpoints: `vueda.workflow.permissions.WorkflowObjectPermissions`
 
 ### 3) Row-Level Permission Filtering
 
-List views can filter inaccessible rows instead of exposing everything and failing later on detail views.
+`list` views can filter inaccessible rows instead of exposing everything and failing later on `detail` views.
 
 - Instance hook: `RowLevelPermissions.check_instance(...)`; general business-rule logic; **skipped when workflow state denies**
 - Queryset hook: `RowLevelPermissions.check_queryset(...)`

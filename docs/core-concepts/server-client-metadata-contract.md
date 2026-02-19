@@ -79,7 +79,7 @@ status: briefing
 
 ## Contracts and Invariants
 
-- Only registered models appear in model-info list/retrieve responses.
+- Only registered models appear in model-info `list`/`retrieve` responses.
 - `model_fields` are derived from canonical serializer definitions; this is the client-facing field contract.
 - If only a serializer is registered (no viewset), action/filter/ordering metadata is limited.
 - Model-info action visibility is permission-sensitive; model permission lists themselves are not user-filtered.

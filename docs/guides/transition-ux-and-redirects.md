@@ -57,7 +57,7 @@ The guard requires transition objects to have a valid string `code`. If a transi
 
 3. **`config.actionRedirects.default`**: if the model config defines a default redirect, it applies to all actions without specific overrides.
 
-4. **Computed default**: when no configured redirect applies, the form computes a target. Bulk actions (or explicit `"list"` redirect values) route to the model's list view. Non-bulk actions route to the detail view with the selected object's PK.
+4. **Computed default**: when no configured redirect applies, the form computes a target. Bulk actions (or explicit `"list"` redirect values) route to the model's `list` view. Non-bulk actions route to the `detail` view with the selected object's PK.
 
 Configure action redirects through model config when the default behaviour does not match the product's navigation flow:
 
@@ -81,7 +81,7 @@ The server's workflow execute-transition endpoint supports both detail and bulk 
 
 **Dry-run execution** skips locking and state persistence. Use dry-run mode when the UX needs to preview or validate a transition without committing to it. The server evaluates transition validity and returns the result without modifying the object's state.
 
-**Bulk execution** sends `{ object_ids: [...] }` in the request body. Non-list payloads return `400`. Note that the bulk key name is endpoint-specific by design: generic model action execution uses `{ pks: [...] }`, while workflow execute-transition uses `{ object_ids: [...] }`. There is no automatic key translation between these APIs; client code must use the correct key for each endpoint.
+**Bulk execution** sends `{ object_ids: [...] }` in the request body. Non-`list` payloads return `400`. Note that the bulk key name is endpoint-specific by design: generic model action execution uses `{ pks: [...] }`, while workflow execute-transition uses `{ object_ids: [...] }`. There is no automatic key translation between these APIs; client code must use the correct key for each endpoint.
 
 **Transition identification** uses `code` throughout. `ViewWorkflowTransition` submits the selected transition's `code` as `transition_code` in the request payload. The transition's `name` is display-only; it appears in UI labels and confirmation text but is not used for execution or routing. This distinction is important: a transition's display name can change without affecting routing or execution, but a `code` change requires updating route guard expectations and any client-side transition references.
 

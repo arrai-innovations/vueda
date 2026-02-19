@@ -17,7 +17,7 @@ The objective is a model surface where:
 
 - Choice-backed fields load their options from the server dynamically, not from hardcoded client-side lists.
 - Filter dropdowns load their options from the filter-choices endpoint, with lazy loading where appropriate.
-- Permission checks are enforced: field choices require model read permission, and related-model choices additionally require list permission on the related model.
+- Permission checks are enforced: field choices require model `read` permission, and related-model choices additionally require `list` permission on the related model.
 - Choice values arrive as strings regardless of the database column's native type, so client-side comparison works without coercion.
 
 Before you begin, ensure the following are in place:
@@ -45,8 +45,8 @@ The field choices endpoint serves option lists for serializer fields that have c
 
 Permission checks differ by choice source type:
 
-- **Static choices** (choices defined directly on the serializer field): the requesting user needs read permission on the source model.
-- **Related-model choices** (foreign key fields where choices come from a queryset): the requesting user needs read permission on the source model and list permission on the related model.
+- **Static choices** (choices defined directly on the serializer field): the requesting user needs `read` permission on the source model.
+- **Related-model choices** (foreign key fields where choices come from a queryset): the requesting user needs `read` permission on the source model and `list` permission on the related model.
 
 If permission checks fail, the endpoint returns 403.
 
@@ -60,7 +60,7 @@ Choice responses are lists of `{label, value}` objects. For related-model choice
 
 ## Filter Choice Endpoint Wiring
 
-The filter choices endpoint serves option lists for filterset-defined filters; the filters that appear in the list view's filter UI.
+The filter choices endpoint serves option lists for filterset-defined filters; the filters that appear in the `list` view's filter UI.
 
 ### Empty label and empty value
 
@@ -68,7 +68,7 @@ When a filter defines `empty_label`, the endpoint prepends an empty-value entry 
 
 ### Permission model
 
-Filter choice permissions follow the same pattern as field choices: model read permission is required, and related-model filters additionally require list permission on the related model.
+Filter choice permissions follow the same pattern as field choices: model `read` permission is required, and related-model filters additionally require `list` permission on the related model.
 
 ### Invalid filter handling
 
@@ -124,8 +124,8 @@ With choice loading wired, verify these behaviors:
 - Filter dropdowns load options from the filter-choices endpoint, either on open or when the URL contains a filter value.
 - Choice values arrive as strings in the response (inspect the network response).
 - Related-model choices show `formatted_name`-derived labels, not raw PKs or `__str__` output.
-- A user without read permission on the source model receives 403 from choice endpoints.
-- A user without list permission on a related model receives 403 from related-model choice endpoints.
+- A user without `read` permission on the source model receives 403 from choice endpoints.
+- A user without `list` permission on a related model receives 403 from related-model choice endpoints.
 - Requesting choices for an invalid field or filter name returns 404 with a helpful message.
 - Empty-label entries appear at the top of filter choice lists when `empty_label` is configured.
 - Multiple components requesting the same field's choices do not produce duplicate network requests.

@@ -10,10 +10,10 @@ Guides are task-focused recipes for implementors working on real VUEDA projects.
 
 ## Resource Modeling & CRUDL
 
-- [Create a CRUDL Surface for a New Model](create-crudl-surface.md): Minimal server/client pieces for list/read/create/update/delete/list.
+- [Create a CRUDL Surface for a New Model](create-crudl-surface.md): Minimal server/client pieces for `list`/`read`/`create`/`update`/`delete`/`list`.
 - [Split Read/Write Serializers Safely](split-read-write-serializers.md): Use viewset serializer switching without breaking model-info metadata.
-- [Configure List/Read/Create/Update Views](configure-crud-views.md): Tune model config per view, including default fields/expands/actions.
-- [Expose Aggregates in List Responses](list-column-totals.md): Use server column totals and render them in list views.
+- [Configure `list`/`read`/`create`/`update` Views](configure-crud-views.md): Tune model config per view, including default fields/expands/actions.
+- [Expose Aggregates in `list` Responses](list-column-totals.md): Use server column totals and render them in `list` views.
 
 ## Fields, Forms, and Relationships
 
@@ -26,7 +26,7 @@ Guides are task-focused recipes for implementors working on real VUEDA projects.
 ## Actions, Permissions, and Workflow
 
 - [Control Action Availability in the UI](control-action-availability.md): Combine server action metadata, groups, and client filtering.
-- [Implement Row-Level Permissions](implement-row-level-permissions.md): Add queryset/object checks and verify list filtering behavior.
+- [Implement Row-Level Permissions](implement-row-level-permissions.md): Add queryset/object checks and verify `list` filtering behavior.
 - [Map Django and VUEDA Permission Names](permission-name-mapping.md): Configure and verify `PERMISSION_NAMES_MAPPING`.
 - [Add Workflow State and Transition Permissions](workflow-state-permissions.md): Layer state-based grants/denies over CRUDL permissions.
 - [Design Transition UX and Redirects](transition-ux-and-redirects.md): Integrate transitions with action routing and post-submit redirects.

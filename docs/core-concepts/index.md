@@ -33,7 +33,7 @@ Core Concepts explains the "why" behind VUEDA defaults and the contracts that le
 - [Authorization vs UI Semantics](authorization-vs-ui-semantics.md): Why UI visibility and route semantics differ from server authorization, including why client-side Django-permission evaluation is not authoritative.
 - [Action Contract and Availability](action-contract-and-availability.md): `available_actions`, route actions, group filtering, and safe fallback behavior.
 - [Workflow as a Permission Overlay](workflow-permission-overlay.md): State permissions, transition permissions, and row-level outcomes.
-- [Row-Level Permission Filtering](row-level-permission-filtering.md): Queryset/object checks and list filtering guarantees.
+- [Row-Level Permission Filtering](row-level-permission-filtering.md): Queryset/object checks and `list` filtering guarantees.
 
 ## Client Runtime Model
 

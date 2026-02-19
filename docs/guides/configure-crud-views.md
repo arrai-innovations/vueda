@@ -1,11 +1,11 @@
 ---
-title: Configure List/Read/Create/Update Views
+title: Configure `list`/`read`/`create`/`update` Views
 type: how-to
 audience: implementor
 status: briefing
 ---
 
-# Configure List/Read/Create/Update Views
+# Configure `list`/`read`/`create`/`update` Views
 
 ## Intent and Scope
 
@@ -30,7 +30,7 @@ status: briefing
 ### 2. Configure field sets by what each view actually consumes
 
 - `ViewList` fetches using `fetchFields` and renders using `displayFields`.
-- `DetailedView` (used by read/update flows) retrieves using `fetchFields` and `expand`.
+- `DetailedView` (used by `read`/`update` flows) retrieves using `fetchFields` and `expand`.
 - `ViewCreate` and `ViewUpdate` submit using `submitFields` (with PK injected into request fields).
 - Source anchors: `client/lib/views/ViewList.vue`, `client/lib/components/DetailedView.vue`, `client/lib/views/ViewCreate.vue`, `client/lib/views/ViewUpdate.vue`.
 
@@ -46,10 +46,10 @@ status: briefing
 - Verify interactions with list preference persistence and query params.
 - Source anchors: `client/lib/stores/storeModelConfig.js`, `client/lib/views/ViewList.vue`, `client/tests/unit/lib/views/ViewList.spec.js`.
 
-### 5. Verify read/create/update flow contracts end-to-end
+### 5. Verify `read`/`create`/`update` flow contracts end-to-end
 
-- Confirm create/update redirect behavior (`actionRedirects` + `redirectAfter`) and field availability.
-- Confirm read/update screens can retrieve expected fields for rendering and actions.
+- Confirm `create`/`update` redirect behavior (`actionRedirects` + `redirectAfter`) and field availability.
+- Confirm `read`/`update` screens can retrieve expected fields for rendering and actions.
 - Source anchors: `client/lib/stores/storeModelConfig.js`, `client/lib/use/useObjectForm.js`, `client/lib/components/DetailedView.vue`.
 
 ### 6. Document template-specific wiring as conditional guidance
@@ -86,7 +86,7 @@ status: briefing
 ## Footguns
 
 - `routeActions` is the supported route-filtering key; there has been confusion with `routerActions` in the past, which is now ignored with a warning.
-- If `displayFields` includes fields absent from `fetchFields`, list/read/update rendering may show missing values.
+- If `displayFields` includes fields absent from `fetchFields`, `list`/`read`/`update` rendering may show missing values.
 - Overriding `submitFields` without validating server serializer acceptance can cause form submission failures.
 - Treating template route paths as universal project structure can mislead non-template adopters.
 - Source anchors: `client/lib/stores/storeModelConfig.js`, `client/lib/router/guards.js`, `client/lib/views/ViewList.vue`, `client/lib/components/DetailedView.vue`.

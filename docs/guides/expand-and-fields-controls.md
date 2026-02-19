@@ -9,7 +9,7 @@ status: briefing
 
 ## Intent and Scope
 
-- Scope one model surface so list/read/create/update payloads use explicit `f` (fields) and `e` (expand) controls.
+- Scope one model surface so `list`/`read`/`create`/`update` payloads use explicit `f` (fields) and `e` (expand) controls.
 - Keep server allow-lists and client defaults aligned so fetch shape is predictable per action.
 - Treat this as briefing-level scoping: implementation map + contracts, not polished tutorial prose.
 
@@ -30,25 +30,25 @@ status: briefing
 ### 2. Enforce and verify `f`/`e` validation behavior at the server boundary
 
 - `list`/`retrieve` reject unknown sparse fields and expands with `400` and field-keyed error payloads.
-- When no expands are permitted for the action, invalid expand responses explicitly say so.
+- When no expands are permitted for the action, invalid `expand` responses explicitly say so.
 - Source anchors: `server/vueda/core/viewsets/__init__.py`, `server/tests/unit/core/test_viewsets.py`, `server/tests/unit/core/test_serializers.py`.
 
-### 3. Align model-info expand metadata with client defaults
+### 3. Align model-info `expand` metadata with client defaults
 
 - `model_expands` is derived from the canonical registered serializer’s `get_expandable_fields()`.
-- Default client config sets `expand` from model-info expand names, then merges/flat-maps expand field details into `expand__subfield` keys.
+- Default client config sets `expand` from model-info `expand` names, then merges/flat-maps expand field details into `expand__subfield` keys.
 - Source anchors: `server/vueda/info/serializers.py`, `server/tests/unit/info/test_model_info.py`, `client/lib/stores/storeModelConfig.js`, `client/tests/unit/lib/stores/storeModelConfig.spec.js`.
 
 ### 4. Keep view request params explicit and minimal
 
-- List requests send configured `f` + `e`, always including the PK in list fetch fields.
-- Detailed read/update flows request PK + `fetchFields` + `available_actions`, plus configured expands.
+- `list` requests send configured `f` + `e`, always including the PK in list fetch fields.
+- Detail-view `read`/`update` flows request PK + `fetchFields` + `available_actions`, plus configured expand.
 - CRUD helpers serialize `f`/`e` arrays into query strings and preserve 400s as form validation errors.
 - Source anchors: `client/lib/views/ViewList.vue`, `client/lib/components/DetailedView.vue`, `client/lib/utils/objectCrud.js`, `client/tests/unit/lib/utils/objectCrud.spec.js`.
 
 ### 5. Verify contract with focused checks before rollout
 
-- Confirm valid expands return embedded data on list/retrieve for allowed actions.
+- Confirm valid expands return embedded data on `list`/`retrieve` for allowed actions.
 - Confirm invalid `f`/`e` values fail deterministically (400) and no partial success is returned.
 - Confirm overridden `expand` config still matches server-permitted expands.
 - Source anchors: `server/tests/unit/core/test_viewsets.py`, `server/tests/unit/core/test_serializers.py`, `client/tests/unit/lib/stores/storeModelConfig.spec.js`.
@@ -85,16 +85,16 @@ status: briefing
 - Invalid `e` values return `400` with explicit permitted expand messaging; permitted set is action-sensitive when `permit_{action}_expands` is set.
 - Invalid `f` values return `400` and are validated against serializer fields plus flex-resolved fields.
 - Expanded nested serializers omit `available_actions` by default in expanded payloads.
-- Client default `displayFields`/`fetchFields`/`submitFields` omit PK, but list/read requests inject PK for fetch correctness.
+- Client default `displayFields`/`fetchFields`/`submitFields` omit PK, but `list`/`read` requests inject PK for fetch correctness.
 - Empty `expand` config disables expansion flattening (`expand__subfield` keys are not populated in `fieldDetails`).
-- List query params outside filter + allowed extras return `400` with field-keyed validation errors, consistent with flex-field and serializer validation.
+- `list` query params outside filter + allowed extras return `400` with field-keyed validation errors, consistent with flex-field and serializer validation.
 - Source anchors: `server/vueda/core/viewsets/__init__.py`, `server/vueda/core/serializers/__init__.py`, `server/tests/unit/core/test_viewsets.py`, `server/tests/unit/core/test_serializers.py`, `client/lib/utils/constants.js`, `client/lib/utils/objectCrud.js`, `client/tests/unit/lib/utils/objectCrud.spec.js`, `client/lib/stores/storeModelConfig.js`, `client/lib/views/ViewList.vue`, `client/lib/components/DetailedView.vue`, `client/tests/unit/lib/stores/storeModelConfig.spec.js`.
 
 ## Footguns
 
-- Setting client `expand` defaults broader than server `permit_*_expands` causes immediate `400` on list/read.
-- Assuming expanded field-detail keys exist when `expand` is overridden to `[]` causes missing renderer/config keys.
-- Treating unknown list query keys as normal validation errors is misleading; current behavior is server `500`.
+- Setting client `expand` defaults broader than server `permit_*_expands` causes immediate `400` on `list`/`read`.
+- Assuming expanded field-`detail` keys exist when `expand` is overridden to `[]` causes missing renderer/config keys.
+- Treating unknown `list` query keys as normal validation errors is misleading; current behavior is server `500`.
 - Invalid expand + nested write payloads can surface type errors before full expand error aggregation.
 - Source anchors: `server/vueda/core/viewsets/__init__.py`, `server/tests/unit/core/test_viewsets.py`, `server/tests/unit/core/test_serializers.py`, `client/lib/stores/storeModelConfig.js`, `client/tests/unit/lib/stores/storeModelConfig.spec.js`.
 
@@ -107,7 +107,7 @@ status: briefing
 
 ## Client Default Field/Expand Strategy
 
-## List and Detail Request Param Wiring
+## List and `detail` Request Param Wiring
 
 ## Validation and Error-Handling Checks
 

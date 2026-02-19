@@ -9,7 +9,7 @@ status: draft
 
 VUEDA serializers support nested writes, creating or updating related objects within a single request payload, by composing two third-party libraries into a single serializer mixin. The mixin defines the compatibility boundary: which flex-field behaviours apply during writes, how nested serializer fields receive data, how reverse relations are extracted and sequenced, and where the composition introduces constraints that differ from using either library alone.
 
-This page explains the composition boundary and the observable failure surfaces it creates. For the practical steps to build nested write flows, see [Build Nested/Inlined Writes](../guides/nested-writable-inlines). For the broader serializer and metadata contract, see [Server-Client Metadata Contract](./server-client-metadata-contract). For the field and expand query parameter semantics that interact with nested writes, see [Field and Expand Semantics](./field-and-expand-semantics).
+This page explains the composition boundary and the observable failure surfaces it creates. For the practical steps to build nested write flows, see [Build Nested/Inlined Writes](../guides/nested-writable-inlines). For the broader serializer and metadata contract, see [Server-Client Metadata Contract](./server-client-metadata-contract). For the field and `expand` query parameter semantics that interact with nested writes, see [Field and Expand Semantics](./field-and-expand-semantics).
 
 ## Boundary and Ownership
 
@@ -19,7 +19,7 @@ The mixin is the single point where flex-field application, nested data propagat
 
 ## Flex + Nested Write Composition
 
-Flex-fields and nested writes operate on the same serializer field set but with different goals. Flex-fields control which fields are present during serialization and deserialization; they can add or remove fields based on `f` and `e` query parameters. Nested writes extract relation data from the incoming payload and delegate it to the child serializer create/update logic. The composition requires that the flex-field application happens before nested write extraction, so that the field set is stable when relation data is extracted.
+Flex-fields and nested writes operate on the same serializer field set but with different goals. Flex-`fields` control which fields are present during serialization and deserialization; they can add or remove fields based on `f` and `e` query parameters. Nested writes extract relation data from the incoming payload and delegate it to the child serializer `create`/`update` logic. The composition requires that the flex-field application happens before nested write extraction, so that the field set is stable when relation data is extracted.
 
 The mixin enforces this by performing flex-field application in `to_internal_value`, which runs before the nested write mixins' `create` and `update` methods. This ordering is not configurable; it is baked into the mixin chain's method resolution order.
 
@@ -39,7 +39,7 @@ The propagation is conditional: only fields whose names are present in the incom
 
 ## Reverse Relation Write Filtering
 
-When the mixin extracts reverse relations for nested update processing, it filters out any relation whose serializer is a `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer`. These serializer wrappers signal that the relation is display-only; it should be expanded for read responses, but should not participate in write operations.
+When the mixin extracts reverse relations for nested update processing, it filters out any relation whose serializer is a `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer`. These serializer wrappers signal that the relation is display-only; it should be expanded for `read` responses, but should not participate in write operations.
 
 The filtering happens in `_extract_relations`, before any nested update logic runs. Payloads that include data for a readonly-serializer relation will have that data silently dropped during write processing. No error is raised; the data is simply not extracted for nested write handling.
 
@@ -69,7 +69,7 @@ This sequence is not configurable. Custom save logic that depends on reverse rel
 
 **Double flex-field application is blocked.** If the `_flex_fields_rep_applied` flag is somehow set before the first legitimate application (through incorrect serializer reuse or manual flag manipulation), flex fields will not be applied at all. Symptom: the root serializer behaves as though no `f`/`e` parameters were passed.
 
-**Unique validation timing in nested flows.** `UniqueFieldsMixin` is composed before the nested create/update mixins in the mixin chain. Unique-together validation runs at the serializer validation phase, before nested objects are persisted. For validation rules that depend on the final state of nested relations (e.g., uniqueness constraints that span parent and child), the validation may evaluate against stale database state.
+**Unique validation timing in nested flows.** `UniqueFieldsMixin` is composed before the nested `create`/`update` mixins in the mixin chain. Unique-together validation runs at the serializer validation phase, before nested objects are persisted. For validation rules that depend on the final state of nested relations (e.g., uniqueness constraints that span parent and child), the validation may evaluate against stale database state.
 
 ## Relevant Implementation Surface
 

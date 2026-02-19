@@ -151,7 +151,7 @@ The `FormFeedback` renderer replaces `${token}` placeholders with the correspond
 
 For the validation pipeline to work correctly, the server must follow these conventions:
 
-**Use `VuedaValidationError` for validation failures.** This exception normalizes scalar details into list form, preserves dict/list structures recursively, and ensures the response is parseable by `FormValidationError` on the client. Standard DRF `ValidationError` also works for simple cases, but `VuedaValidationError` handles the warning channel and structured payloads.
+**Use `VuedaValidationError` for validation failures.** This exception normalizes scalar details into `list` form, preserves dict/list structures recursively, and ensures the response is parseable by `FormValidationError` on the client. Standard DRF `ValidationError` also works for simple cases, but `VuedaValidationError` handles the warning channel and structured payloads.
 
 **Use `is_warning=True` for non-blocking feedback.** This wraps the detail in a `{"warnings": [...]}` structure that the client parser routes to `.messages` instead of `.errors`. Warning-only exceptions skip Sentry capture and database logging in production, treating them as informational rather than error-level events.
 

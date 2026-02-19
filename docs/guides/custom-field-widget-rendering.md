@@ -32,11 +32,11 @@ Three override surfaces are available, evaluated in precedence order:
 
 **Per-instance view props** take the highest precedence. When a view component passes `fieldComponents`, `widgetComponents`, `fieldProps`, or `widgetProps` as props to `FormModel` or `DetailedView`, those values override any model config settings for that specific view instance.
 
-**Model config** provides portable, model-wide overrides. Setting overrides through `storeModelConfig.setConfig` applies them across all views that use `useModelConfig` for that model. This is the preferred surface for overrides that should be consistent across create, update, and read views.
+**Model config** provides portable, model-wide overrides. Setting overrides through `storeModelConfig.setConfig` applies them across all views that use `useModelConfig` for that model. This is the preferred surface for overrides that should be consistent across create, update, and `read` views.
 
 **Type-derived defaults** are the fallback. When no override is specified, form-model resolution selects field and widget components based on the serializer field type and metadata from the server. This is the standard behaviour when no overrides are configured.
 
-Choose the narrowest scope that achieves the goal. For a model-wide override (such as always rendering a specific field as a tabular inline), use model config. For a view-specific override (such as showing a simplified widget only on the create form), use per-instance props. For a single-field visual tweak that does not require a different component, use slot overrides.
+Choose the narrowest scope that achieves the goal. For a model-wide override (such as always rendering a specific field as a tabular inline), use model config. For a view-specific override (such as showing a simplified widget only on the `create` form), use per-instance props. For a single-field visual tweak that does not require a different component, use slot overrides.
 
 ## Component Registration Strategy
 
@@ -145,7 +145,7 @@ When a widget entry is missing or `null` during renderer resolution, `WidgetUnma
 
 After configuring overrides, verify the following:
 
-- The overridden field/widget renders in create, update, and read views as expected.
+- The overridden field/widget renders in create, update, and `read` views as expected.
 - Form submission still works, field values are captured and included in the request payload.
 - Validation errors for the overridden field are displayed correctly.
 - Touch/focus state tracking works, leaving the field triggers validation if configured.

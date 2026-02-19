@@ -7,7 +7,7 @@ status: draft
 
 # Filtering and Ordering Semantics
 
-VUEDA's filtering and ordering contract spans four boundaries: the canonical viewset declares what filters and ordering fields exist, the model-info serializer projects those declarations into metadata payloads, list endpoints validate incoming queries against the declared namespace, and the client consumes the metadata to build filter and sort controls. Each boundary enforces a different aspect of the contract, and the observable behaviour depends on all four layers agreeing.
+VUEDA's filtering and ordering contract spans four boundaries: the canonical viewset declares what filters and ordering fields exist, the model-info serializer projects those declarations into metadata payloads, `list` endpoints validate incoming queries against the declared namespace, and the client consumes the metadata to build filter and sort controls. Each boundary enforces a different aspect of the contract, and the observable behaviour depends on all four layers agreeing.
 
 This page explains the authority at each boundary, the metadata shapes that flow between them, the search backend's ranked-search semantics, and the failure surfaces that emerge when layers disagree. For the query parameter names that carry filter and ordering intent, see [Configuration Surface and Defaults](./configuration-surface-and-defaults). For how the client caches and normalizes model-info metadata, see [Reactive Data Flow](./reactive-data-flow). For how filter choices interact with permission boundaries, see [Permission Model](./permission-model). For the broader DRF compatibility boundaries that shape these semantics, see [DRF Ecosystem Compatibility Boundaries](./drf-ecosystem-deviations).
 
@@ -31,7 +31,7 @@ Choice metadata for filters follows a bifurcated shape. Static choices (enumerat
 
 ## Query Namespace and Validation Boundary
 
-List endpoints enforce strict query parameter validation. The accepted query key namespace is the union of: declared filter field names, suffix-derived keys (filter field name plus lookup expression suffix), framework-level parameters (`s`, `o`, `p`, `ps`, `e`, `f`, `om`), and any keys derived from the filterset's lookup expression configuration. Any query key outside this namespace is rejected with an HTTP 400 response containing a field-keyed validation error: `"Invalid query parameter.  Valid filters are ..."`.
+`list` endpoints enforce strict query parameter validation. The accepted query key namespace is the union of: declared filter field names, suffix-derived keys (filter field name plus lookup expression suffix), framework-level parameters (`s`, `o`, `p`, `ps`, `e`, `f`, `om`), and any keys derived from the filterset's lookup expression configuration. Any query key outside this namespace is rejected with an HTTP 400 response containing a field-keyed validation error: `"Invalid query parameter.  Valid filters are ..."`.
 
 This strict validation is a deliberate departure from upstream DRF, which typically ignores unknown query parameters. VUEDA treats unknown query keys as invalid contract usage rather than silently discarding them. The benefit is that typos and stale client code produce immediate, diagnosable errors rather than returning unfiltered results silently. The cost is that any query parameter not declared in the filterset or framework defaults is an error, which can be surprising when integrating with external tools that append their own query parameters.
 
@@ -39,7 +39,7 @@ Validation runs when the viewset has a `filterset_class`. If no filterset class 
 
 ## Search Contract Surface
 
-Search is a distinct sub-surface of list queries, governed by `VuedaSearchFilterBackend`. This backend extends DRF's `SearchFilter` with two capabilities: custom lookup prefixes and ranked search.
+Search is a distinct sub-surface of `list` queries, governed by `VuedaSearchFilterBackend`. This backend extends DRF's `SearchFilter` with two capabilities: custom lookup prefixes and ranked search.
 
 The standard DRF search prefixes (`^` for starts-with, `=` for exact, `@` for full-text, `$` for regex) are available. VUEDA adds three additional prefixes: `#` for trigram similarity, `~` for an alternative similarity mode, and `V:` for VUEDA-specific ranked search fields.
 
@@ -55,7 +55,7 @@ The filter-choice endpoint validates the requested field against the model's dec
 
 Permission checking for filter choices is bifurcated by source. Static choices (enumeration values) require only `read` permission on the current model. Queryset-based choices (backed by a related model) require both `read` permission on the current model and `list` permission on the related model. This distinction prevents filter choice endpoints from leaking relation values that the user does not have permission to see.
 
-When the related model permission check fails, the endpoint returns HTTP 403, even though the user has `read` permission on the current model and can view the model's list and detail views. This can be confusing because the user can see the model's data, but cannot populate a filter dropdown that references a related model.
+When the related model permission check fails, the endpoint returns HTTP 403, even though the user has `read` permission on the current model and can view the model's list and `detail` views. This can be confusing because the user can see the model's data, but cannot populate a filter dropdown that references a related model.
 
 Queryset-based choice resolution assumes a `formatted_name` lookup path on the related model for display labels. If the related model does not define this path, the endpoint raises an HTTP 500 with `"Cannot resolve keyword 'formatted_name'..."`. This is a server-side error in the filter configuration, not a client issue, but it surfaces as a broken filter dropdown.
 
@@ -63,7 +63,7 @@ Queryset-based choice resolution assumes a `formatted_name` lookup path on the r
 
 The client fetches model-info once per `app.model` key and caches the result in `storeModelInfo`. Filtering and ordering metadata are part of this cached payload and are normalized alongside other model-info fields: nested objects are camelCased, and the overall structure is flattened for consistent client access.
 
-`storeModelConfig` derives sortable field names from `modelInfo.ordering` and maps them to the `o` query parameter for list requests. Filter configuration is consumed by `useFilter` and `useFilterForm`, which build the filter UI from the cached `modelInfo.filtering` entries. Choice population for filters uses `storeModelChoices` and `useModelChoices`, which fetch dynamic choices as needed.
+`storeModelConfig` derives sortable field names from `modelInfo.ordering` and maps them to the `o` query parameter for `list` requests. Filter configuration is consumed by `useFilter` and `useFilterForm`, which build the filter UI from the cached `modelInfo.filtering` entries. Choice population for filters uses `storeModelChoices` and `useModelChoices`, which fetch dynamic choices as needed.
 
 Cached model-info errors are sticky. A failed model-info fetch for a given `app.model` key rejects immediately on subsequent attempts without re-fetching. This means that a transient server error during initial model-info load can render the model's filter and sort controls permanently unavailable until the store is reset or the page is reloaded.
 
@@ -71,11 +71,11 @@ The default filter UI uses only the first lookup expression (`lookupExprs[0]`) f
 
 ## Observable Failure Modes
 
-**Unknown query parameter returns 400.** A typo in a list query key, or a stale client sending a filter key that no longer exists in the filterset, produces an HTTP 400 with the message `"Invalid query parameter.  Valid filters are ..."`. The error response includes the valid filter set, which aids diagnosis.
+**Unknown query parameter returns 400.** A typo in a `list` query key, or a stale client sending a filter key that no longer exists in the filterset, produces an HTTP 400 with the message `"Invalid query parameter.  Valid filters are ..."`. The error response includes the valid filter set, which aids diagnosis.
 
 **Ranked search bypassed silently.** If no search fields use the `V:` prefix, the search backend falls through to standard DRF `SearchFilter` behaviour. The symptom is that search results are not ranked by relevance and may not meet expected search quality standards. There is no runtime warning; the fallback is silent.
 
-**Filter choice endpoint returns 404 for unknown fields.** An incorrect field name in a filter-choice request returns 404 with the valid filter set named in the response. This can present as a missing-choices UI state rather than a validation error on the originating list view, because the error occurs on a separate endpoint.
+**Filter choice endpoint returns 404 for unknown fields.** An incorrect field name in a filter-choice request returns 404 with the valid filter set named in the response. This can present as a missing-choices UI state rather than a validation error on the originating `list` view, because the error occurs on a separate endpoint.
 
 **Related model permission blocks filter choices.** Missing `list` permission on a related model causes the filter-choice endpoint to return 403, even when the user can read the current model. The symptom is a filter dropdown that fails to populate while the rest of the model's UI works normally.
 

@@ -17,7 +17,7 @@ The action contract divides authority between three scopes.
 
 The server declares actions and emits metadata. Action declaration happens at the viewset level, where DRF's `@action` decorator (extended by VUEDA's `action` wrapper) registers extra actions alongside the built-in CRUD operations. The server's model-info endpoint aggregates these declarations into a `model_actions` payload that describes what actions exist, which HTTP methods they support, and whether they operate at detail or list scope. This metadata is permission-sensitive: actions that the requesting user cannot perform are omitted.
 
-The server also computes per-object availability. When an object is serialized for a detail response, the `available_actions` field evaluates each action against the specific object's permission state. This is a stricter filter than model-scope metadata, because it accounts for row-level constraints, workflow state, and object-specific permission overrides that cannot be evaluated without a concrete instance.
+The server also computes per-object availability. When an object is serialized for a `detail` response, the `available_actions` field evaluates each action against the specific object's permission state. This is a stricter filter than model-scope metadata, because it accounts for row-level constraints, workflow state, and object-specific permission overrides that cannot be evaluated without a concrete instance.
 
 The client consumes both metadata layers to control routing and rendering. Route guards use `model_actions` (along with optional config and workflow overlays) to determine whether a route is admissible. Rendered UI controls use the intersection of config-filtered actions and object-level `available_actions` to decide which buttons and links to display. The client does not make authorization decisions; instead, it gates UI affordances based on server-advertised metadata.
 
@@ -25,7 +25,7 @@ The client consumes both metadata layers to control routing and rendering. Route
 
 Action declaration extends DRF's action registration with a VUEDA-specific `bulk` marker. Every action carries three routing-relevant properties: `detail` (whether the action targets a single object via URL parameters), `bulk` (whether the action operates on a set of objects at list scope), and the HTTP methods it responds to.
 
-VUEDA's router uses these properties to partition actions into route families. Detail actions are mounted as detail routes under the object URL prefix. Non-detail actions and bulk-flagged actions are mounted as list routes. This partitioning determines the URL shape and the scope at which the action is dispatched. The `bulk` flag is a declaration and routing signal only; it does not impose any automatic payload semantics. An action flagged as bulk is routed at list scope, but the request body format is entirely determined by the action's implementation.
+VUEDA's router uses these properties to partition actions into route families. `detail` actions are mounted as `detail` routes under the object URL prefix. Non-`detail` actions and bulk-flagged actions are mounted as `list` routes. This partitioning determines the URL shape and the scope at which the action is dispatched. The `bulk` flag is a declaration and routing signal only; it does not impose any automatic payload semantics. An action flagged as bulk is routed at list scope, but the request body format is entirely determined by the action's implementation.
 
 The router extends DRF's default route generation to support the bulk partition. Detail extra actions produce detail-scoped routes; non-detail and bulk extra actions produce list-scoped routes. This routing logic is the single source of truth for URL structure; action metadata in `model_actions` reflects the routing outcome but does not independently determine it.
 
@@ -53,7 +53,7 @@ In the current client implementation, `method_names`/`methodNames` is descriptiv
 
 ## Object-Scope Availability Metadata
 
-While `model_actions` describes what actions exist for a model, `available_actions` describes what actions the requesting user can perform on a specific object. This field is computed per serialized instance and appears in detail responses.
+While `model_actions` describes what actions exist for a model, `available_actions` describes what actions the requesting user can perform on a specific object. This field is computed per serialized instance and appears in `detail` responses.
 
 The computation runs each standard action (retrieve, update, partial_update, destroy) through object-level permission checks. `create` is excluded for concrete instances; it applies at model scope, not object scope. The result is a list of action names for which the user has permission on that specific object.
 
@@ -67,7 +67,7 @@ The client normalizes action names before performing route admission checks. The
 
 Route admission is evaluated in the `requireModelInfo` navigation guard. The guard fetches model-info for the target route's model, then checks whether the route's action name (after normalization) appears in the computed action set. The action set is assembled from three sources: the `model_actions` names from model-info, an optional `routeActions` filter from the model's config (which restricts the set to only named actions), and workflow transition codes (which extend the set with transition-specific routes).
 
-When the action is not found in the computed set, the guard denies the route. The denial surfaces as a toast notification ("Action Not Found") and a redirect, typically to the model's list view. When model-info itself cannot be fetched (network error, server error), the error is cached in the model-info store and reused for subsequent navigation attempts to the same model key. This means a transient fetch failure will block all routes for that model until the store is reset or the page is reloaded.
+When the action is not found in the computed set, the guard denies the route. The denial surfaces as a toast notification ("Action Not Found") and a redirect, typically to the model's `list` view. When model-info itself cannot be fetched (network error, server error), the error is cached in the model-info store and reused for subsequent navigation attempts to the same model key. This means a transient fetch failure will block all routes for that model until the store is reset or the page is reloaded.
 
 For resolved routes, `ViewActionRouter` maps action names to view components. Standard CRUD actions resolve to their built-in view components. Transition codes resolve to the workflow transition view. Unknown actions, those that pass the guard but have no corresponding view component, render using `ViewActionNotFound`.
 
@@ -77,7 +77,7 @@ Route admission and rendered UI controls are separate filtering layers. A route 
 
 The first filtering layer is group-based config filtering. `useFilteredActions` reads the model config's `config.actions` setting and filters the available actions to only those listed. This enables product-specific UX constraints, for example, hiding the `destroy` action from certain user groups, without modifying server-side authorization. If `config.actions` is not defined, no filtering is applied, and all server-advertised actions pass through.
 
-The second filtering layer is object-level intersection. In detail-style views, the rendered action buttons are the intersection of the config-filtered action set and the object's `available_actions`. An action must pass both filters to appear as a rendered control. This means a detail view can show different action buttons for different objects of the same model, reflecting per-object permission outcomes.
+The second filtering layer is object-level intersection. In detail-style views, the rendered action buttons are the intersection of the config-filtered action set and the object's `available_actions`. An action must pass both filters to appear as a rendered control. This means a `detail` view can show different action buttons for different objects of the same model, reflecting per-object permission outcomes.
 
 Workflow transition controls are sourced separately from the workflow transition store rather than inferred from CRUD action metadata. Transitions have their own data flow and rendering logic.
 
@@ -95,7 +95,7 @@ Dry-run mode is intended for validation and simulation. It enables the client to
 
 The layered contract exhibits several characteristic failure patterns when the layers are misaligned.
 
-**Model-scope visibility exceeds object-scope availability.** This is the most common drift pattern. An action appears in `model_actions` because the user has the model-level permission, so the route guard admits the navigation. But the specific object denies the action due to row-level constraints or workflow state, so the action button is absent from the detail view. In more severe cases, the user navigates to the action route directly (via URL or bookmark), passes the guard, but the subsequent API request fails with a `404` (row-filtered object) or `403` (object-level permission denial). The design intentionally allows model-scope metadata to be broader than object-scope availability, but it can confuse users who see a route that "works" but an action that does not.
+**Model-scope visibility exceeds object-scope availability.** This is the most common drift pattern. An action appears in `model_actions` because the user has the model-level permission, so the route guard admits the navigation. But the specific object denies the action due to row-level constraints or workflow state, so the action button is absent from the `detail` view. In more severe cases, the user navigates to the action route directly (via URL or bookmark), passes the guard, but the subsequent API request fails with a `404` (row-filtered object) or `403` (object-level permission denial). The design intentionally allows model-scope metadata to be broader than object-scope availability, but it can confuse users who see a route that "works" but an action that does not.
 
 **Config over-restriction hides valid actions.** When `config.routeActions` is set too narrowly, server-advertised actions are excluded from the route admission set. The action exists on the server, model-info reports it, but the client-side filter removes it before the guard evaluates. The symptom is an "Action Not Found" toast and redirect, with no indication that the action was filtered by config rather than missing from the server.
 

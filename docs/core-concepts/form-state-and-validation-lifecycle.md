@@ -92,7 +92,7 @@ Warnings do not participate in submission gating. The `defaultOnSubmitAnyError` 
 
 For flat field paths, the ignored field is simply omitted via `lodash/omit`. For bracket-keyed array item paths (matching the pattern `...[digits]`), the ignored item is omitted and the parent array is compacted using `lodash/compact` to remove the resulting `undefined` hole. This means ignoring `items[2]` in a five-element array produces a four-element array without gaps.
 
-The submission pipeline uses `state.submittingValues`, not `state.values`, as the payload for create and update operations. The default error-gating logic also accounts for ignored fields: when checking for non-server errors, it filters out errors whose keys match or are children of ignored field paths (using `.` as the separator for child-path detection).
+The submission pipeline uses `state.submittingValues`, not `state.values`, as the payload for create and `update` operations. The default error-gating logic also accounts for ignored fields: when checking for non-server errors, it filters out errors whose keys match or are children of ignored field paths (using `.` as the separator for child-path detection).
 
 ## Submission Gating Semantics
 
@@ -103,7 +103,7 @@ The default submission pipeline, implemented in `useObjectForm`, follows a fixed
 3. `await nextTick()` to let validation watchers fire.
 4. Check `anyModified`. If the form has no changes, call `onSubmitNotAnyModified`; by default this shows a "No Changes Detected" toast and stops submission.
 5. Check `anyError`. If errors exist, call `onSubmitAnyError`; by default this filters ignored fields, strips the `server` code from remaining errors, and if non-server errors remain, shows a "Pre-save Validation Failed" toast, scrolls to the first error field, and stops submission. If only `server` errors remain, submission proceeds (the user is retrying after server feedback).
-6. Execute the create or update operation.
+6. Execute the create or `update` operation.
 7. If the operation fails with a `FormValidationError`, call `onSubmissionError`; by default this ingests the error into form state and scrolls to the first error field.
 8. If the operation succeeds, call `onSubmissionSuccess`; by default this shows a success toast and redirects.
 

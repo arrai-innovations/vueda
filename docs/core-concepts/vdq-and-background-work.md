@@ -9,7 +9,7 @@ status: draft
 
 The VUEDA Dispatch Queue (`vueda.vdq`) is a Django app that manages outbound email and SMS delivery through a persistent, workflow-backed queue. Each queued item is a database row with an attached workflow state machine; Celery handles asynchronous execution, and external provider callbacks (Anymail signals, Twilio webhooks) reconcile delivery outcomes against the queue item's lifecycle state. The database row is the single coordination point; workers, callbacks, and operator actions all converge on the same `QueueItem` model.
 
-This page explains the persistence and workflow boundary, the transaction and concurrency model, provider dispatch and reconciliation, and done-state semantics for list filtering and cleanup. For practical steps using VDQ, see [Run Actions in the VUEDA Dispatch Queue (VDQ)](../guides/vdq-actions). For provider-specific implementation, see [Send Email from VDQ with Anymail](../guides/vdq-email-anymail) and [Send SMS from VDQ with Twilio](../guides/vdq-sms-twilio). For the workflow engine that VDQ builds on, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
+This page explains the persistence and workflow boundary, the transaction and concurrency model, provider dispatch and reconciliation, and done-state semantics for `list` filtering and cleanup. For practical steps using VDQ, see [Run Actions in the VUEDA Dispatch Queue (VDQ)](../guides/vdq-actions). For provider-specific implementation, see [Send Email from VDQ with Anymail](../guides/vdq-email-anymail) and [Send SMS from VDQ with Twilio](../guides/vdq-sms-twilio). For the workflow engine that VDQ builds on, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
 
 ## Boundary and Authority
 
@@ -17,7 +17,7 @@ VDQ handles email and SMS dispatch through a queued, observable lifecycle. It is
 
 **Database rows own persistence and coordination.** The `QueueItem` row is the single source of truth for a queued item's existence, metadata, and operational state. Workers and callbacks read and write queue item fields (`task_id`, `retry_delay`, `result`, provider identifiers) to coordinate without shared memory.
 
-**Workflow state owns lifecycle visibility.** The `QueueItem` model uses `HasWorkflowModelMixin`, so each queue item has an associated workflow state that tracks its position in the dispatch lifecycle. The state is queryable and filterable, and it drives list/detail endpoint semantics (active queue vs sent history).
+**Workflow state owns lifecycle visibility.** The `QueueItem` model uses `HasWorkflowModelMixin`, so each queue item has an associated workflow state that tracks its position in the dispatch lifecycle. The state is queryable and filterable, and it drives `list`/`detail` endpoint semantics (active queue vs sent history).
 
 **Celery owns task scheduling and retry.** The Celery task layer handles async dispatch timing, transient failure retry with backoff, and worker distribution. Celery does not have a lifecycle state; it updates the queue item's workflow state as a side effect of task execution.
 
@@ -78,7 +78,7 @@ For SMS, delivery confirmation can be provided via a webhook callback or periodi
 
 VDQ defines a set of terminal workflow states, `QUEUE_ITEM_DONE_STATES`, that drive three behaviours:
 
-**List endpoint filtering.** The active queue list endpoint (`/vueda.vdq/queueitem/`) excludes items whose workflow state is in the done set. The sent history endpoint (`/vueda.vdq/sentitem/`) is a proxy for the same table, filtered to only done-state items. Detail fetch by PK works regardless of state.
+**`list` endpoint filtering.** The active queue `list` endpoint (`/vueda.vdq/queueitem/`) excludes items whose workflow state is in the done set. The sent history endpoint (`/vueda.vdq/sentitem/`) is a proxy for the same table, filtered to only done-state items. Detail fetch by PK works regardless of state.
 
 **Proxy model selection.** `SentItem` is a proxy model for `QueueItem` filtered to done states. The split enables separate viewsets, serializers, and permissions for active queue management vs sent-item history.
 
@@ -86,7 +86,7 @@ VDQ defines a set of terminal workflow states, `QUEUE_ITEM_DONE_STATES`, that dr
 
 ## Observability Surfaces and Failure Modes
 
-**Queue and sent-item endpoints.** Operator-facing status is available through read-only list/detail endpoints for both active queue items and sent history. Default VDQ viewsets inherit `VuedaReadOnlyViewSet`, so the baseline surface is read-only with explicit extra actions (resend) added by the decorator.
+**Queue and sent-item endpoints.** Operator-facing status is available through read-only `list`/`detail` endpoints for both active queue items and sent history. Default VDQ viewsets inherit `VuedaReadOnlyViewSet`, so the baseline surface is read-only with explicit extra actions (resend) added by the decorator.
 
 **Resend.** Resend clones a done `SentItem` into a new `QueueItem` in the workflow initial state and schedules it. Clones include method-specific detail rows and relationships. The resend action is permission-gated (`vueda_vdq.can_resend`).
 

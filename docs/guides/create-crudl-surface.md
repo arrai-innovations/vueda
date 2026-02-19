@@ -7,13 +7,13 @@ status: draft
 
 # Create a CRUDL Surface for a New Model
 
-This guide walks through the end-to-end process of standing up a fully functional CRUDL surface; list, create, read, update, and delete; for a new Django model in VUEDA. By the end, the model will be served by the REST API, discoverable through model-info, and navigable in the Vue client with metadata-driven routes, forms, and permission gating.
+This guide walks through the end-to-end process of standing up a fully functional CRUDL surface; `list`, `create`, `read`, `update`, and `delete`; for a new Django model in VUEDA. By the end, the model will be served by the REST API, discoverable through model-info, and navigable in the Vue client with metadata-driven routes, forms, and permission gating.
 
 The guide assumes familiarity with the framework's layered architecture. If you have not yet read [Architecture Overview](../core-concepts/architecture-overview), start there; the server responsibility layers and convention-over-configuration principles it describes are the foundation for everything below.
 
 ## Goal and Preconditions
 
-The objective is a single model that supports all five standard CRUD actions; list, create, retrieve, update, and destroy; and that is fully registered with the metadata API so the client can discover it, generate routes, and render views without hand-wired per-model code.
+The objective is a single model that supports all five standard CRUD actions; `list`, `create`, `retrieve`, `update`, and `destroy`; and that is fully registered with the metadata API so the client can discover it, generate routes, and render views without hand-wired per-model code.
 
 Before you begin, ensure the following are in place:
 
@@ -85,9 +85,9 @@ class WidgetViewSet(VuedaViewSet):
     ordering_fields = ["name", "status"]
 ```
 
-`VuedaViewSet` inherits from DRF's `ModelViewSet` and adds several framework behaviors. `ListRowLevelViewSetMixin` applies row-level permission filtering on list queries. `NoExtraFieldsForViewSetMixin` validates query parameters against the filterset and rejects unknown parameters. `FlexFieldsMixin` provides expand-aware serializer context. Together these mixins ensure that the viewset's behavior is consistent with what the metadata API advertises.
+`VuedaViewSet` inherits from DRF's `ModelViewSet` and adds several framework behaviors. `ListRowLevelViewSetMixin` applies row-level permission filtering on `list` queries. `NoExtraFieldsForViewSetMixin` validates query parameters against the filterset and rejects unknown parameters. `FlexFieldsMixin` provides expand-aware serializer context. Together these mixins ensure that the viewset's behavior is consistent with what the metadata API advertises.
 
-The viewset provides all five standard CRUD actions by default: `list`, `create`, `retrieve`, `update` (including `partial_update`), and `destroy`. The `destroy` action supports both single-object deletion (via `DELETE` to the detail endpoint with a PK in the URL) and bulk deletion (via `DELETE` to the list endpoint with a `{"pks": [...]}` payload). Bulk destroy validates that all requested PKs exist before deleting any of them, and supports an optional dry-run mode via the `X-Dry-Run` header.
+The viewset provides all five standard CRUD actions by default: `list`, `create`, `retrieve`, `update` (including `partial_update`), and `destroy`. The `destroy` action supports both single-object deletion (via `DELETE` to the `detail` endpoint with a PK in the URL) and bulk deletion (via `DELETE` to the `list` endpoint with a `{"pks": [...]}` payload). Bulk destroy validates that all requested PKs exist before deleting any of them, and supports an optional dry-run mode via the `X-Dry-Run` header.
 
 Note that `VuedaViewSet` does not wrap its own CRUD handlers in `transaction.atomic` by default. If you need atomic write behavior, use `AtomicModelViewSetMixin` or manage transaction boundaries explicitly in your viewset. The web process's `ATOMIC_REQUESTS` setting provides request-level atomicity as a safety net, but explicit transaction control is appropriate when the viewset needs finer-grained boundaries.
 
@@ -107,7 +107,7 @@ router.register("widgets", WidgetViewSet)
 urlpatterns = router.urls
 ```
 
-`VuedaRouter` extends DRF's `SimpleRouter` with two changes. It includes the app label in route names to prevent naming collisions between apps that happen to have models with the same name. It also maps `DELETE` on the list route to the viewset's `destroy` method, which is what enables the bulk-delete behavior described above.
+`VuedaRouter` extends DRF's `SimpleRouter` with two changes. It includes the app label in route names to prevent naming collisions between apps that happen to have models with the same name. It also maps `DELETE` on the `list` route to the viewset's `destroy` method, which is what enables the bulk-delete behavior described above.
 
 Include the router's URL patterns in the project's URL configuration, under the appropriate route prefix. The standard pattern is to include app-level URL modules within a top-level `routes/` path that also includes `vueda.info.urls` and other framework URL modules:
 
@@ -149,7 +149,7 @@ Calling `register_serializer` instead of `register` produces a serializer-only r
 
 ## Client Route Wiring
 
-On the client side, `makeCRUDRoutes` generates the two route records that handle all CRUD navigation for all registered models: a detail route (`/:app/:model/:action/:pk`) and a list route (`/:app/:model/:action/`). Both routes share a guard chain that loads model-info before allowing navigation and verifies that the requested action is present in the computed allowlist. See [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model) for the full explanation of how route gating and view resolution work.
+On the client side, `makeCRUDRoutes` generates the two route records that handle all CRUD navigation for all registered models: a `detail` route (`/:app/:model/:action/:pk`) and a `list` route (`/:app/:model/:action/`). Both routes share a guard chain that loads model-info before allowing navigation and verifies that the requested action is present in the computed allowlist. See [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model) for the full explanation of how route gating and view resolution work.
 
 In the project's router setup, call `makeCRUDRoutes` and add the returned routes to the router:
 
@@ -181,16 +181,16 @@ After the baseline CRUDL surface is working, view behavior can be customized thr
 
 With all pieces in place, verify the surface end-to-end:
 
-- The model appears in the model-info list endpoint (`GET /vueda.info/model_info/`) and returns complete metadata from the detail endpoint (`GET /vueda.info/model_info/{app_label}/{model}/`), including `model_fields`, `model_actions`, `model_filtering`, and `model_ordering`.
-- The list endpoint returns paginated results and respects filter and ordering query parameters.
-- The detail endpoint returns a single object with an `available_actions` field reflecting the requesting user's permissions.
+- The model appears in the model-info `list` endpoint (`GET /vueda.info/model_info/`) and returns complete metadata from the `detail` endpoint (`GET /vueda.info/model_info/{app_label}/{model}/`), including `model_fields`, `model_actions`, `model_filtering`, and `model_ordering`.
+- The `list` endpoint returns paginated results and respects filter and ordering query parameters.
+- The `detail` endpoint returns a single object with an `available_actions` field reflecting the requesting user's permissions.
 - Create, update, and partial-update succeed with valid payloads and reject unknown fields with validation errors.
 - Single-object delete and bulk delete (via `{"pks": [...]}` payload) both succeed. Bulk delete with missing PKs returns a validation error identifying which PKs were not found.
 - Dry-run delete (with the `X-Dry-Run: true` header) returns 200 without deleting.
-- Client navigation to `/:app/:model/list/` loads model-info, renders the list view, and displays data.
-- Client navigation to `/:app/:model/read/:pk` renders the read view for a specific object.
-- Client navigation to `/:app/:model/create/` renders the create form. Submission redirects to the appropriate view.
-- Client navigation to `/:app/:model/update/:pk` renders the update form. Submission redirects to the appropriate view.
+- Client navigation to `/:app/:model/list/` loads model-info, renders the `list` view, and displays data.
+- Client navigation to `/:app/:model/read/:pk` renders the `read` view for a specific object.
+- Client navigation to `/:app/:model/create/` renders the `create` form. Submission redirects to the appropriate view.
+- Client navigation to `/:app/:model/update/:pk` renders the `update` form. Submission redirects to the appropriate view.
 - Navigating to an action the user lacks permission for produces an "Action Not Found" toast and redirects to the `actionRedirect` target.
 
 ## Troubleshooting
@@ -203,11 +203,11 @@ With all pieces in place, verify the surface end-to-end:
 
 **Client shows "Action Not Found" for a valid action.** The client normalizes route action names through a static action map; for example, `read` maps to `retrieve`. If `routeActions` in client model-config is configured using client-side names (like `read`) instead of canonical server names (like `retrieve`), the guard filtering may exclude actions that should be present.
 
-**List endpoint returns 400 on invalid filter queries.** `NoExtraFieldsForViewSetMixin` validates query parameters against the filterset class. A query parameter that does not match any declared filter or recognized framework parameter (pagination, ordering, expand, fields) will produce a field-keyed 400 response listing valid filters. Verify that the filterset declares filters for all parameters the client sends.
+**`list` endpoint returns 400 on invalid filter queries.** `NoExtraFieldsForViewSetMixin` validates query parameters against the filterset class. A query parameter that does not match any declared filter or recognized framework parameter (pagination, ordering, expand, fields) will produce a field-keyed 400 response listing valid filters. Verify that the filterset declares filters for all parameters the client sends.
 
 **Duplicate registration error at startup.** The canonical serializer is unique per model. If two apps attempt to register different serializers for the same model, the second registration raises a `ValueError`. Consolidate registration to a single app.
 
-**Bulk delete rejects valid PKs.** Bulk destroy validates that every PK in the `pks` array exists in the queryset after row-level and object-level permission filtering. If the requesting user lacks delete permission for some of the objects, those objects are filtered out and the count mismatch triggers a validation error. The error message reports which PKs were "not found"; from the user's perspective they may not exist, even though the objects are in the database.
+**Bulk delete rejects valid PKs.** Bulk destroy validates that every PK in the `pks` array exists in the queryset after row-level and object-level permission filtering. If the requesting user lacks `delete` permission for some of the objects, those objects are filtered out and the count mismatch triggers a validation error. The error message reports which PKs were "not found"; from the user's perspective they may not exist, even though the objects are in the database.
 
 ## Relevant Implementation Surface
 

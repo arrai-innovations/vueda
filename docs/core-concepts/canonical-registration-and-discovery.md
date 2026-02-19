@@ -67,7 +67,7 @@ This pattern is consistent across VUEDA's own modules: `vueda.vdq`, `vueda.user`
 
 ## How Model-Info Uses the Registry
 
-The model-info viewset does not perform ORM introspection or scan installed apps. Its list and detail endpoints are derived exclusively from the set of registered models. If the registry is empty, model-info returns an empty list. If a specific model is requested that is not in the registry, model-info returns a 404.
+The model-info viewset does not perform ORM introspection or scan installed apps. Its list and `detail` endpoints are derived exclusively from the set of registered models. If the registry is empty, model-info returns an empty list. If a specific model is requested that is not in the registry, model-info returns a 404.
 
 That 404 is indistinguishable from a request for a nonexistent URL. There is no special "unregistered" status code or error message. From the perspective of any API consumer, an unregistered model simply does not exist. The metadata response includes which sections are present and which fields and actions are advertised; this is determined entirely by the registration state described above.
 
