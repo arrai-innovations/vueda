@@ -1,6 +1,6 @@
 <script setup>
 import { useObject } from "@arrai-innovations/reactive-helpers";
-import DetailedView from "@vueda/components/DetailedView.vue";
+import DetailView from "@vueda/components/DetailView.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -109,7 +109,7 @@ const objectForm = useObjectForm({
 useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, toRef(props, "pk"), objectForm.state);
 </script>
 <template>
-    <detailed-view
+    <detail-view
         v-model="formContextProps.initialValues"
         :app="app"
         :model="model"
@@ -126,5 +126,5 @@ useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, t
         <template v-for="(_, slot) in $slots" #[slot]="slotProps">
             <slot :name="slot" v-bind="slotProps || {}" />
         </template>
-    </detailed-view>
+    </detail-view>
 </template>

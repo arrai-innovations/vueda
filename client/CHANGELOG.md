@@ -10,6 +10,13 @@ _Actions potentially required by implementers are marked with italics._
     - `makeCRUDRoutes` now requires `actionRedirect` (e.g. `{ name: "not-found" }`) so missing model/action guard paths cannot attempt to resolve a null redirect.
       _If you were relying on the previous default, pass an explicit redirect route that is not gated by `requireModelInfo` to avoid redirect loops._
 
+### Features
+
+- **DetailView**:
+    - Added `DetailView` as the canonical base component for `read` and `update` detail flows.
+    - `DetailedView` is now deprecated and will be removed in the next major release.
+      _If you import `@vueda/components/DetailedView.vue`, switch to `@vueda/components/DetailView.vue`._
+
 ### Fixes
 
 - **FieldSetSingularStackedInline**: Wait for fieldObjects to be ready before auto-creating inline row and loading initial values in FieldSetSingularStackedInline

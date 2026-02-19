@@ -1,5 +1,5 @@
 <script setup>
-import DetailedView from "@vueda/components/DetailedView.vue";
+import DetailView from "@vueda/components/DetailView.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
@@ -38,7 +38,7 @@ useForm(formContextProps);
 </script>
 
 <template>
-    <detailed-view
+    <detail-view
         v-model="formContextProps.initialValues"
         :app="app"
         :model="model"
@@ -53,5 +53,5 @@ useForm(formContextProps);
         <template v-for="(_, slot) in $slots" #[slot]="slotProps">
             <slot :name="slot" v-bind="slotProps || {}" />
         </template>
-    </detailed-view>
+    </detail-view>
 </template>
