@@ -397,7 +397,7 @@ export default defineConfig({
     logo: "/assets/logo-cube.svg",
     nav: [
       { text: "About", link: "/" },
-      { text: "Start Building", link: "/start-building" },
+      { text: "Tutorials", link: "/tutorials/" },
       { text: "Guides", link: "/guides" },
       { text: "Core Concepts", link: "/core-concepts" },
       { text: "Reference", link: "/reference" },

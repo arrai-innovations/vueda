@@ -57,6 +57,32 @@ A **message broker** (RabbitMQ or Redis) connects the web process to the worker 
 
 External delivery providers (**Anymail** for email, **Twilio** for SMS) are optional and only relevant when VDQ dispatch is in use.
 
+## Design Principles
+
+These principles express the constraints VUEDA enforces by default and why.
+
+### Server
+
+- **Base-class centralization**: shared behavior lives in `VuedaBaseModel`, `VuedaSerializer`, and `VuedaViewSet`; extensions happen via mixins rather than ad-hoc overrides.
+- **Strict input hygiene**: unknown fields and query params are rejected by default (`NoExtraFieldsSerializerMixin`, `NoExtraFieldsForViewSetMixin`) to keep API contracts tight.
+- **Explicit expand and sparse control**: flex-field expansion is allowed only when declared and validated; expansion metadata is curated in serializer context.
+- **Transaction safety by default**: `create`, `update`, and `destroy` operations are wrapped in atomic transactions.
+- **Row-level permission filtering**: `list` endpoints apply row-level access filtering inside viewsets, not just at the queryset boundary.
+- **Action-scoped serializer behavior**: viewsets can use per-action serializer classes to formalize read/write differences.
+- **Predictable bulk semantics**: bulk destroy, activate, and deactivate flows are standardized and validate primary keys rigorously.
+- **Validation errors are structured**: the server raises `VuedaValidationError` with field-keyed error payloads for client consumption.
+
+### Client
+
+- **Composition-first API**: behavior is built from composables and small helpers rather than inheritance.
+- **State-first contract**: composables return `state` plus operations; consumers can observe or act independently.
+- **Explicit state transitions**: loading, error, and errored flags are first-class and consistently wired.
+- **Safe reactivity boundaries**: `readonly`, `shallowReadonly`, `markRaw`, and `effectScope` limit accidental deep reactivity and ensure cleanup.
+- **Stable state shapes**: default object shapes are created up front to keep templates predictable and reactive.
+- **Cancellable async flows**: requests expose `cancel()` and avoid duplicate in-flight work.
+- **Deterministic slot and naming conventions**: derived slot names and field paths define extension points.
+- **JSDoc-driven typing**: rich typedefs make JS composables ergonomic for TypeScript consumers.
+
 ## Convention Over Configuration
 
 The integration between server and client is driven by convention, not per-model wiring. Three conventions structure the system.
