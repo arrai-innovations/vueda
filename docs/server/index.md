@@ -17,8 +17,8 @@ Welcome to the implementor-facing documentation for VUEDA Server.
 
 <div class="brand-card">
 
-- Read the [Implementor Guide](guide/implementor.md).
-- Review the [Changelog](changelog.md).
+- Read the [Implementor Guide](../guide.md).
+- Review the [project overview](../index.md).
 - Browse the [Reference](reference/index.md).
 
 </div>

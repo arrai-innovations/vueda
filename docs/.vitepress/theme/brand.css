@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import url("./fonts.css");
 
 :root {
   --vueda-blue: #1e88e5;
@@ -10,8 +10,8 @@
   --paper: #f8fafc;
   --accent: #0ea5e9;
 
-  --vp-font-family-base: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --vp-font-family-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --vp-font-family-base: "Darker Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --vp-font-family-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --vp-c-brand-1: var(--arrai-blue);
   --vp-c-brand-2: var(--accent);
   --vp-c-brand-3: var(--vueda-blue);
