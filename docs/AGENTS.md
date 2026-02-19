@@ -69,6 +69,9 @@ When linking generated API docs in authored Markdown, use `{@api ...}` IDs inste
 3. Do not invent IDs; search first.
 4. Prefer `@api` links over `/reference/api/...` paths inside authored docs.
 
+> [!IMPORTANT]
+> Backticks shown in this guide are Markdown formatting for examples only. In authored docs, write `{@api ...}` tags without surrounding backticks so they resolve as links.
+
 > [!INFO]
 > Some API IDs (especially REST endpoints) include `{}` to represent URL parameters. These braces are part of the identifier itself and must be written exactly as shown. They are not placeholders to be substituted or templated.
 
@@ -99,6 +102,9 @@ Link glossary terms from authored docs with `{@term ...}`.
 1. Ensure the term exists as a `##` heading in `docs/reference/glossary.md`.
 2. Use `{@term <term>}` in prose.
 3. Keep spelling aligned with the glossary heading text.
+
+> [!IMPORTANT]
+> As with `{@api ...}`, do not wrap `{@term ...}` tags in backticks in authored docs.
 
 Examples:
 
