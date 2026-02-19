@@ -110,10 +110,7 @@ class QueueItem(VuedaBaseModel, HasWorkflowModelMixin):
                     attachment.attachment.delete(save=True)
 
     def allow_transition(self, transition, user=None):
-        if transition in self.available_transitions(user=user):
-            is_cancel_or_retry = transition.code in ("retry", "cancel")
-            return not (self.method == "email" and self.workflow.code == "delayed" and is_cancel_or_retry)
-        return False
+        return transition in self.available_transitions(user=user)
 
     def on_transition(self, transition, user=None, dry_run=False):
         if transition.code in ("retry", "cancel") and self.task_id:
