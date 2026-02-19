@@ -36,14 +36,14 @@ pre-commit:
           exit 0
         fi
         pnpm exec prettier --check .
-    doctoc:
+    md-toc:
       run: |
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
-        files="$(rg --files -g '*.md' $PWD/server $PWD/client | rg -v '/AGENT\.md$|/AGENTS\\.md$')"
+        files="$(rg --files -g 'README.md' $PWD)"
         if [ -n "$files" ]; then
-          pnpm -C client exec doctoc --github -u --notitle $files
+          uv run --group dev --no-sync python -m md_toc -p github $files
         fi
     fix-server:
       stage_fixed: true
@@ -62,14 +62,13 @@ pre-commit:
       root: "client/"
       glob: "client/*.{less,scss,css,vue,markdown,json,md,yml,yaml,html}"
       run: pnpm exec prettier --write {staged_files}
-    fix-doctoc:
+    fix-md-toc:
       stage_fixed: true
-      root: "client/"
-      glob: "client/*.md"
-      exclude:
-        - AGENT.md
-        - AGENTS.md
-      run: pnpm exec doctoc --github -u --notitle {staged_files}
+      run: |
+        files="$(git diff --name-only --cached --diff-filter=d -- 'README.md' '**/README.md')"
+        if [ -n "$files" ]; then
+          uv run --group dev --no-sync python -m md_toc -p github $files
+        fi
     circleci-config:
       run: |
         readarray -t files < <(git diff --name-only --cached -- '.circleci/*.yml')

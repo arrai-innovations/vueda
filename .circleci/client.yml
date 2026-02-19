@@ -112,7 +112,7 @@ workflows:
           name: lint
           context: arrai-global
           executor: lintinator/python311
-          hooks: prettier eslint doctoc
+          hooks: prettier eslint md-toc
           hook_manager: lefthook
           install_deps: true
           setup:
@@ -134,7 +134,7 @@ workflows:
           name: lint-no-badge
           context: arrai-global
           executor: lintinator/python311
-          hooks: prettier eslint doctoc
+          hooks: prettier eslint md-toc
           hook_manager: lefthook
           create_badges: false
           install_deps: true

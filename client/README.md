@@ -121,7 +121,7 @@ $ cd vueda
 [client]$ npm install --include=dev
 ```
 
-Installing without dev dependencies will not work as husky is a dev dependency and is called in prepare.
+Install with dev dependencies so local linting and test tooling are available.
 
 ### Running Locally
 
