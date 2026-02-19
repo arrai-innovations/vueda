@@ -61,19 +61,19 @@ status: briefing
 ## Relevant Implementation Surface
 
 - JavaScript:
-- `{@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}`
-- `{@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}`
-- `{@api js:module:@arrai-innovations/vueda.use/useModelConfig}`
-- `{@api js:function:@arrai-innovations/vueda.use/useModelConfig.useModelConfig}`
-- `{@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes}`
-- `{@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}`
-- `{@api js:module:@arrai-innovations/vueda.router/guards}`
+- {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
+- {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}
+- {@api js:module:@arrai-innovations/vueda.use/useModelConfig}
+- {@api js:function:@arrai-innovations/vueda.use/useModelConfig.useModelConfig}
+- {@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes}
+- {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}
+- {@api js:module:@arrai-innovations/vueda.router/guards}
 - Vue.js Components:
-- `{@api vue:component:ViewList}`
-- `{@api vue:component:DetailedView}`
-- `{@api vue:component:ViewRead}`
-- `{@api vue:component:ViewCreate}`
-- `{@api vue:component:ViewUpdate}`
+- {@api vue:component:ViewList}
+- {@api vue:component:DetailedView}
+- {@api vue:component:ViewRead}
+- {@api vue:component:ViewCreate}
+- {@api vue:component:ViewUpdate}
 
 ## Contracts and Invariants
 

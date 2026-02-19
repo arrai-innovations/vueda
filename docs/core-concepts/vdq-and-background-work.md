@@ -100,13 +100,13 @@ VDQ defines a set of terminal workflow states, `QUEUE_ITEM_DONE_STATES`, that dr
 
 ## Relevant Implementation Surface
 
-- `{@api py:module:vueda.vdq}`
-- `{@api py:property:vueda.vdq.celery_app}`
-- `{@api py:function:vueda.workflow.models.HasWorkflowModelMixin.fast_available_transitions}`
-- `{@api py:function:vueda.workflow.models.HasWorkflowModelMixin.fast_transition}`
-- `{@api rest:endpoint:GET:/vueda.vdq/queueitem/}`
-- `{@api rest:endpoint:GET:/vueda.vdq/sentitem/}`
-- `{@api rest:endpoint:POST:/vueda.vdq/sentitem/resend/}`
-- `{@api rest:endpoint:POST:/vueda.vdq/sentitem/{id}/resend/}`
-- `{@api rest:endpoint:GET:/vueda.vdq/attachments/{id}/}`
-- `{@api rest:endpoint:POST:/vueda.vdq/twilio-status-callback/}`
+- {@api py:module:vueda.vdq}
+- {@api py:property:vueda.vdq.celery_app}
+- {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.fast_available_transitions}
+- {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.fast_transition}
+- {@api rest:endpoint:GET:/vueda.vdq/queueitem/}
+- {@api rest:endpoint:GET:/vueda.vdq/sentitem/}
+- {@api rest:endpoint:POST:/vueda.vdq/sentitem/resend/}
+- {@api rest:endpoint:POST:/vueda.vdq/sentitem/{id}/resend/}
+- {@api rest:endpoint:GET:/vueda.vdq/attachments/{id}/}
+- {@api rest:endpoint:POST:/vueda.vdq/twilio-status-callback/}

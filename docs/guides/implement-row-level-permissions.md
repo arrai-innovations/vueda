@@ -153,17 +153,17 @@ Note: row-level filtering and column totals are tested separately in the current
 ## Relevant Implementation Surface
 
 - Python:
-  - `{@api py:class:vueda.core.permissions.BaseRowLevelPermissions}`
-  - `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance}`
-  - `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset}`
-  - `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow}`
-  - `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow}`
-  - `{@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}`
-  - `{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}`
-  - `{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.list}`
-  - `{@api py:class:vueda.core.permissions.ObjectPermissions}`
-  - `{@api py:function:vueda.core.permissions.ObjectPermissions.has_object_permission}`
-  - `{@api py:class:vueda.user.mixins.VUEDAPermissionsMixin}`
-  - `{@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}`
-  - `{@api py:class:vueda.core.viewsets.VuedaViewSet}`
-  - `{@api py:function:vueda.core.viewsets.VuedaViewSet.destroy}`
+  - {@api py:class:vueda.core.permissions.BaseRowLevelPermissions}
+  - {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance}
+  - {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset}
+  - {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow}
+  - {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow}
+  - {@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}
+  - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}
+  - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.list}
+  - {@api py:class:vueda.core.permissions.ObjectPermissions}
+  - {@api py:function:vueda.core.permissions.ObjectPermissions.has_object_permission}
+  - {@api py:class:vueda.user.mixins.VUEDAPermissionsMixin}
+  - {@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}
+  - {@api py:class:vueda.core.viewsets.VuedaViewSet}
+  - {@api py:function:vueda.core.viewsets.VuedaViewSet.destroy}

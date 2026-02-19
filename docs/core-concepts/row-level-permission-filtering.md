@@ -87,17 +87,17 @@ Row-level permission decisions manifest as different HTTP responses depending on
 
 ## Relevant Implementation Surface
 
-- `{@api py:class:vueda.core.permissions.BaseRowLevelPermissions}`
-- `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset}`
-- `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance}`
-- `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow}`
-- `{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow}`
-- `{@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}`
-- `{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}`
-- `{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.list}`
-- `{@api py:class:vueda.core.viewsets.VuedaViewSet}`
-- `{@api py:function:vueda.core.viewsets.VuedaViewSet.apply_object_permission_filter}`
-- `{@api py:function:vueda.core.viewsets.VuedaViewSet.destroy}`
-- `{@api py:class:vueda.core.pagination.VUEDAPageNumberPagination}`
-- `{@api py:function:vueda.core.pagination.VUEDAPageNumberPagination.get_paginated_response}`
-- `{@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}`
+- {@api py:class:vueda.core.permissions.BaseRowLevelPermissions}
+- {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset}
+- {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance}
+- {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow}
+- {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow}
+- {@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}
+- {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}
+- {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.list}
+- {@api py:class:vueda.core.viewsets.VuedaViewSet}
+- {@api py:function:vueda.core.viewsets.VuedaViewSet.apply_object_permission_filter}
+- {@api py:function:vueda.core.viewsets.VuedaViewSet.destroy}
+- {@api py:class:vueda.core.pagination.VUEDAPageNumberPagination}
+- {@api py:function:vueda.core.pagination.VUEDAPageNumberPagination.get_paginated_response}
+- {@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}

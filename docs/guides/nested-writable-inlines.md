@@ -149,14 +149,14 @@ After implementing nested writes, verify the following:
 ## Relevant Implementation Surface
 
 - Python:
-  - `{@api py:module:vueda.core.serializers}`
-  - `{@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}`
-  - `{@api py:class:vueda.core.serializers.VuedaSerializer}`
-  - `{@api py:class:vueda.core.serializers.VuedaHistorySerializer}`
-  - `{@api py:class:vueda.core.serializers.VuedaReadonlySerializer}`
-  - `{@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}`
-  - `{@api py:class:vueda.core.viewsets.VuedaViewSet}`
+  - {@api py:module:vueda.core.serializers}
+  - {@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}
+  - {@api py:class:vueda.core.serializers.VuedaSerializer}
+  - {@api py:class:vueda.core.serializers.VuedaHistorySerializer}
+  - {@api py:class:vueda.core.serializers.VuedaReadonlySerializer}
+  - {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}
+  - {@api py:class:vueda.core.viewsets.VuedaViewSet}
 - JavaScript:
-  - `{@api js:module:@arrai-innovations/vueda.use/useForm}`
-  - `{@api js:function:@arrai-innovations/vueda.use/useForm.useForm}`
-  - `{@api js:module:@arrai-innovations/vueda.use/useFormModel}`
+  - {@api js:module:@arrai-innovations/vueda.use/useForm}
+  - {@api js:function:@arrai-innovations/vueda.use/useForm.useForm}
+  - {@api js:module:@arrai-innovations/vueda.use/useFormModel}

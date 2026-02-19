@@ -141,14 +141,14 @@ After implementing email through VDQ, verify:
 ## Relevant Implementation Surface
 
 - Python:
-    - `{@api py:module:vueda.vdq}`
-    - `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}`
+    - {@api py:module:vueda.vdq}
+    - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}
 - REST:
-    - `{@api rest:endpoint:GET:/vueda.vdq/queueitem/}`
-    - `{@api rest:endpoint:GET:/vueda.vdq/sentitem/}`
-    - `{@api rest:endpoint:POST:/vueda.vdq/sentitem/resend/}`
-    - `{@api rest:endpoint:POST:/vueda.vdq/sentitem/{id}/resend/}`
-    - `{@api rest:endpoint:GET:/vueda.vdq/attachments/{id}/}`
-    - `{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}`
-    - `{@api rest:schema:DefaultQueueItem}`
-    - `{@api rest:schema:DefaultSentItem}`
+    - {@api rest:endpoint:GET:/vueda.vdq/queueitem/}
+    - {@api rest:endpoint:GET:/vueda.vdq/sentitem/}
+    - {@api rest:endpoint:POST:/vueda.vdq/sentitem/resend/}
+    - {@api rest:endpoint:POST:/vueda.vdq/sentitem/{id}/resend/}
+    - {@api rest:endpoint:GET:/vueda.vdq/attachments/{id}/}
+    - {@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}
+    - {@api rest:schema:DefaultQueueItem}
+    - {@api rest:schema:DefaultSentItem}

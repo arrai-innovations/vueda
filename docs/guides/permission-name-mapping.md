@@ -122,22 +122,22 @@ VUEDA's own test suite exercises the default CRUDL mapping. If you use a non-def
 ## Relevant Implementation Surface
 
 - Python:
-    - `{@api py:function:vueda.core.default_settings.get_defaults}`
-    - `{@api py:module:vueda.core.patch_django}`
-    - `{@api py:function:vueda.core.patch_django.get_permission_codename}`
-    - `{@api py:function:vueda.core.patch_django.get_builtin_permissions}`
-    - `{@api py:property:vueda.core.patch_django.permission_names_mapping}`
-    - `{@api py:class:vueda.core.permissions.ObjectPermissions}`
-    - `{@api py:property:vueda.core.permissions.ObjectPermissions.perms_map}`
-    - `{@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}`
-    - `{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}`
-    - `{@api py:function:vueda.info.viewsets.ModelInfoChoicesViewSet.get_queryset}`
-    - `{@api py:function:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet.get_queryset}`
-    - `{@api py:function:vueda.history.views.GetObjectHistoryView.get}`
-    - `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_state}`
-    - `{@api py:property:vueda.workflow.permissions.WorkflowObjectPermissions.perms_map}`
+    - {@api py:function:vueda.core.default_settings.get_defaults}
+    - {@api py:module:vueda.core.patch_django}
+    - {@api py:function:vueda.core.patch_django.get_permission_codename}
+    - {@api py:function:vueda.core.patch_django.get_builtin_permissions}
+    - {@api py:property:vueda.core.patch_django.permission_names_mapping}
+    - {@api py:class:vueda.core.permissions.ObjectPermissions}
+    - {@api py:property:vueda.core.permissions.ObjectPermissions.perms_map}
+    - {@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}
+    - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}
+    - {@api py:function:vueda.info.viewsets.ModelInfoChoicesViewSet.get_queryset}
+    - {@api py:function:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet.get_queryset}
+    - {@api py:function:vueda.history.views.GetObjectHistoryView.get}
+    - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_state}
+    - {@api py:property:vueda.workflow.permissions.WorkflowObjectPermissions.perms_map}
 - REST:
-    - `{@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}`
-    - `{@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}`
-    - `{@api rest:endpoint:GET:/object-history/{app_label}/{model}/{object_id}/}`
-    - `{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/}`
+    - {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
+    - {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
+    - {@api rest:endpoint:GET:/object-history/{app_label}/{model}/{object_id}/}
+    - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/}

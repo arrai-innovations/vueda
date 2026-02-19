@@ -59,23 +59,23 @@ status: briefing
 ## Relevant Implementation Surface
 
 - Python:
-- `{@api py:module:vueda.info.registration}`
-- `{@api py:module:vueda.info.viewsets}`
-- `{@api py:class:vueda.info.serializers.ModelInfoSerializer}`
-- `{@api py:class:vueda.core.serializers.fields.AvailableActionsField}`
+- {@api py:module:vueda.info.registration}
+- {@api py:module:vueda.info.viewsets}
+- {@api py:class:vueda.info.serializers.ModelInfoSerializer}
+- {@api py:class:vueda.core.serializers.fields.AvailableActionsField}
 - REST:
-- `{@api rest:endpoint:GET:/vueda.info/model_info/}`
-- `{@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}`
-- `{@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}`
-- `{@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}`
+- {@api rest:endpoint:GET:/vueda.info/model_info/}
+- {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
+- {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
+- {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
 
 - JavaScript:
-- `{@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}`
-- `{@api js:module:@arrai-innovations/vueda.use/useModelInfo}`
-- `{@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}`
+- {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
+- {@api js:module:@arrai-innovations/vueda.use/useModelInfo}
+- {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}
 
 - Vue.js Components:
-- `{@api vue:component:ViewActionRouter}`
+- {@api vue:component:ViewActionRouter}
 
 ## Contracts and Invariants
 

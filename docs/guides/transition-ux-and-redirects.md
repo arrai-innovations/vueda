@@ -108,25 +108,25 @@ After implementing transition UX, verify the following:
 ## Relevant Implementation Surface
 
 - Python:
-  - `{@api py:module:vueda.workflow.viewsets}`
-  - `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.permitted_transitions}`
-  - `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_transitions}`
-  - `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}`
-  - `{@api py:function:vueda.workflow.models.HasWorkflowModelMixin.available_transitions}`
-  - `{@api py:function:vueda.workflow.models.HasWorkflowModelMixin.apply_transition}`
+  - {@api py:module:vueda.workflow.viewsets}
+  - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.permitted_transitions}
+  - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_transitions}
+  - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}
+  - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.available_transitions}
+  - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.apply_transition}
 - REST:
-  - `{@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}`
-  - `{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}`
-  - `{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}`
-  - `{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}`
+  - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
+  - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}
+  - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}
+  - {@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}
 - JavaScript:
-  - `{@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes}`
-  - `{@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}`
-  - `{@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}`
-  - `{@api js:function:@arrai-innovations/vueda.use/useWorkflowTransitions.useWorkflowTransitions}`
-  - `{@api js:function:@arrai-innovations/vueda.utils/actionMap.getActionName}`
+  - {@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes}
+  - {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}
+  - {@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}
+  - {@api js:function:@arrai-innovations/vueda.use/useWorkflowTransitions.useWorkflowTransitions}
+  - {@api js:function:@arrai-innovations/vueda.utils/actionMap.getActionName}
 - Vue.js Components:
-  - `{@api vue:component:ActionForm}`
-  - `{@api vue:component:ModelActionForm}`
-  - `{@api vue:component:ViewActionRouter}`
-  - `{@api vue:component:ViewWorkflowTransition}`
+  - {@api vue:component:ActionForm}
+  - {@api vue:component:ModelActionForm}
+  - {@api vue:component:ViewActionRouter}
+  - {@api vue:component:ViewWorkflowTransition}

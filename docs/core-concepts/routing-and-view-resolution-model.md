@@ -107,15 +107,15 @@ The resolution order means that the `crudComponents` registry takes priority ove
 
 ## Relevant Implementation Surface
 
-- `{@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes}`
-- `{@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}`
-- `{@api js:function:@arrai-innovations/vueda.router/getCrud.getCRUDForTo}`
-- `{@api js:function:@arrai-innovations/vueda.router/routerComponent.setCrudComponents}`
-- `{@api js:function:@arrai-innovations/vueda.utils/actionMap.getActionName}`
-- `{@api js:function:@arrai-innovations/vueda.use/useModelConfig.useModelConfig}`
-- `{@api js:function:@arrai-innovations/vueda.use/useWorkflowTransitions.useWorkflowTransitions}`
-- `{@api vue:component:ViewActionRouter}`
-- `{@api vue:component:ViewWorkflowTransition}`
-- `{@api vue:component:ViewAction}`
-- `{@api vue:component:ViewActionNotFound}`
-- `{@api vue:component:ViewLoading}`
+- {@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes}
+- {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}
+- {@api js:function:@arrai-innovations/vueda.router/getCrud.getCRUDForTo}
+- {@api js:function:@arrai-innovations/vueda.router/routerComponent.setCrudComponents}
+- {@api js:function:@arrai-innovations/vueda.utils/actionMap.getActionName}
+- {@api js:function:@arrai-innovations/vueda.use/useModelConfig.useModelConfig}
+- {@api js:function:@arrai-innovations/vueda.use/useWorkflowTransitions.useWorkflowTransitions}
+- {@api vue:component:ViewActionRouter}
+- {@api vue:component:ViewWorkflowTransition}
+- {@api vue:component:ViewAction}
+- {@api vue:component:ViewActionNotFound}
+- {@api vue:component:ViewLoading}

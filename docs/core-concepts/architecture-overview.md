@@ -78,15 +78,15 @@ Client-side visibility decisions (e.g., hiding a button or disabling a field) im
 ## Relevant Implementation Surface
 
 - Python:
-  - `{@api py:module:vueda.core.models}`
-  - `{@api py:module:vueda.core.serializers}`
-  - `{@api py:module:vueda.core.viewsets}`
-  - `{@api py:module:vueda.core.routers}`
-  - `{@api py:module:vueda.info.registration}`
-  - `{@api py:module:vueda.info.serializers}`
-  - `{@api py:module:vueda.info.viewsets}`
-  - `{@api py:module:vueda.core.default_settings}`
+  - {@api py:module:vueda.core.models}
+  - {@api py:module:vueda.core.serializers}
+  - {@api py:module:vueda.core.viewsets}
+  - {@api py:module:vueda.core.routers}
+  - {@api py:module:vueda.info.registration}
+  - {@api py:module:vueda.info.serializers}
+  - {@api py:module:vueda.info.viewsets}
+  - {@api py:module:vueda.core.default_settings}
 - JavaScript:
-  - `{@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}`
-  - `{@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}`
-  - `{@api js:module:@arrai-innovations/vueda.router/guards}`
+  - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
+  - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
+  - {@api js:module:@arrai-innovations/vueda.router/guards}

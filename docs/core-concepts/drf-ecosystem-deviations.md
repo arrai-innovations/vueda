@@ -45,9 +45,9 @@ Both validation surfaces enforce the same principle: contract surfaces are expli
 
 ## Relevant Implementation Surface
 
-- `{@api py:module:vueda.core.default_settings}`
-- `{@api py:module:vueda.info.registration}`
-- `{@api py:module:vueda.core.viewsets}`
-- `{@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}`
-- `{@api py:module:vueda.core.serializers}`
-- `{@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin}`
+- {@api py:module:vueda.core.default_settings}
+- {@api py:module:vueda.info.registration}
+- {@api py:module:vueda.core.viewsets}
+- {@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}
+- {@api py:module:vueda.core.serializers}
+- {@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin}

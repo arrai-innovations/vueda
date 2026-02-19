@@ -95,24 +95,24 @@ The layered architecture produces several characteristic failure patterns.
 
 ## Relevant Implementation Surface
 
-- `{@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}`
-- `{@api js:function:@arrai-innovations/vueda.stores/storeModelInfo.storeModelInfo}`
-- `{@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}`
-- `{@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}`
-- `{@api js:module:@arrai-innovations/vueda.stores/storeModelChoices}`
-- `{@api js:function:@arrai-innovations/vueda.stores/storeModelChoices.storeModelChoices}`
-- `{@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}`
-- `{@api js:function:@arrai-innovations/vueda.stores/storeWorkflow.storeWorkflow}`
-- `{@api js:module:@arrai-innovations/vueda.use/useModelInfo}`
-- `{@api js:function:@arrai-innovations/vueda.use/useModelInfo.useModelInfo}`
-- `{@api js:module:@arrai-innovations/vueda.use/useModelConfig}`
-- `{@api js:function:@arrai-innovations/vueda.use/useModelConfig.useModelConfig}`
-- `{@api js:module:@arrai-innovations/vueda.use/useModelChoices}`
-- `{@api js:function:@arrai-innovations/vueda.use/useModelChoices.useModelChoices}`
-- `{@api js:module:@arrai-innovations/vueda.use/useWorkflowTransitions}`
-- `{@api js:function:@arrai-innovations/vueda.use/useWorkflowTransitions.useWorkflowTransitions}`
-- `{@api js:module:@arrai-innovations/vueda.use/useIsActive}`
-- `{@api js:module:@arrai-innovations/vueda.router/guards}`
-- `{@api js:function:@arrai-innovations/vueda.router/guards.waitForModelStoreLoad}`
-- `{@api js:module:@arrai-innovations/vueda.utils/fetchSupport}`
-- `{@api js:function:@arrai-innovations/vueda.utils/fetchSupport.fetchHelper}`
+- {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
+- {@api js:function:@arrai-innovations/vueda.stores/storeModelInfo.storeModelInfo}
+- {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
+- {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}
+- {@api js:module:@arrai-innovations/vueda.stores/storeModelChoices}
+- {@api js:function:@arrai-innovations/vueda.stores/storeModelChoices.storeModelChoices}
+- {@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}
+- {@api js:function:@arrai-innovations/vueda.stores/storeWorkflow.storeWorkflow}
+- {@api js:module:@arrai-innovations/vueda.use/useModelInfo}
+- {@api js:function:@arrai-innovations/vueda.use/useModelInfo.useModelInfo}
+- {@api js:module:@arrai-innovations/vueda.use/useModelConfig}
+- {@api js:function:@arrai-innovations/vueda.use/useModelConfig.useModelConfig}
+- {@api js:module:@arrai-innovations/vueda.use/useModelChoices}
+- {@api js:function:@arrai-innovations/vueda.use/useModelChoices.useModelChoices}
+- {@api js:module:@arrai-innovations/vueda.use/useWorkflowTransitions}
+- {@api js:function:@arrai-innovations/vueda.use/useWorkflowTransitions.useWorkflowTransitions}
+- {@api js:module:@arrai-innovations/vueda.use/useIsActive}
+- {@api js:module:@arrai-innovations/vueda.router/guards}
+- {@api js:function:@arrai-innovations/vueda.router/guards.waitForModelStoreLoad}
+- {@api js:module:@arrai-innovations/vueda.utils/fetchSupport}
+- {@api js:function:@arrai-innovations/vueda.utils/fetchSupport.fetchHelper}

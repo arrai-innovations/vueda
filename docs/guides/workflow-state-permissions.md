@@ -164,26 +164,26 @@ All workflow endpoints require `vueda_workflow.read_workflow` at the viewset per
 ## Relevant Implementation Surface
 
 - Python:
-  - `{@api py:class:vueda.workflow.models.HasWorkflowModelMixin}`
-  - `{@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_workflow_permission}`
-  - `{@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_state_permission}`
-  - `{@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_transition_permission}`
-  - `{@api py:function:vueda.workflow.models.HasWorkflowModelMixin.available_transitions}`
-  - `{@api py:function:vueda.workflow.models.HasWorkflowModelMixin.apply_transition}`
-  - `{@api py:class:vueda.workflow.models.StatePermission}`
-  - `{@api py:class:vueda.workflow.models.TransitionPermission}`
-  - `{@api py:class:vueda.workflow.models.WorkflowPermission}`
-  - `{@api py:class:vueda.workflow.permissions.WorkflowObjectPermissions}`
-  - `{@api py:function:vueda.core.permissions.ObjectPermissions.has_permission}`
-  - `{@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}`
-  - `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_state}`
-  - `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.permitted_transitions}`
-  - `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_transitions}`
-  - `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}`
+  - {@api py:class:vueda.workflow.models.HasWorkflowModelMixin}
+  - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_workflow_permission}
+  - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_state_permission}
+  - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_transition_permission}
+  - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.available_transitions}
+  - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.apply_transition}
+  - {@api py:class:vueda.workflow.models.StatePermission}
+  - {@api py:class:vueda.workflow.models.TransitionPermission}
+  - {@api py:class:vueda.workflow.models.WorkflowPermission}
+  - {@api py:class:vueda.workflow.permissions.WorkflowObjectPermissions}
+  - {@api py:function:vueda.core.permissions.ObjectPermissions.has_permission}
+  - {@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}
+  - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_state}
+  - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.permitted_transitions}
+  - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_transitions}
+  - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}
 - REST:
-  - `{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}`
-  - `{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/}`
-  - `{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}`
-  - `{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}`
+  - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}
+  - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/}
+  - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}
+  - {@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}
 - JavaScript:
-  - `{@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}`
+  - {@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}

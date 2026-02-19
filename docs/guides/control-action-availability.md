@@ -114,22 +114,22 @@ After wiring action availability, verify the following behaviors:
 ## Relevant Implementation Surface
 
 - Python:
-    - `{@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_actions}`
-    - `{@api py:class:vueda.core.serializers.fields.AvailableActionsField}`
-    - `{@api py:function:vueda.core.serializers.fields.AvailableActionsField.get_value}`
-    - `{@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions}`
-    - `{@api py:class:vueda.core.permissions.ObjectPermissions}`
+    - {@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_actions}
+    - {@api py:class:vueda.core.serializers.fields.AvailableActionsField}
+    - {@api py:function:vueda.core.serializers.fields.AvailableActionsField.get_value}
+    - {@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions}
+    - {@api py:class:vueda.core.permissions.ObjectPermissions}
 - REST:
-    - `{@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}`
-    - `{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}`
-    - `{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}`
+    - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
+    - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}
+    - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}
 - JavaScript:
-    - `{@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes}`
-    - `{@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}`
-    - `{@api js:function:@arrai-innovations/vueda.utils/actionMap.getActionName}`
-    - `{@api js:function:@arrai-innovations/vueda.use/useFilteredActions.useFilteredActions}`
-    - `{@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}`
-    - `{@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}`
-    - `{@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}`
+    - {@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes}
+    - {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}
+    - {@api js:function:@arrai-innovations/vueda.utils/actionMap.getActionName}
+    - {@api js:function:@arrai-innovations/vueda.use/useFilteredActions.useFilteredActions}
+    - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
+    - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
+    - {@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}
 - Vue.js Components:
-    - `{@api vue:component:ViewActionRouter}`
+    - {@api vue:component:ViewActionRouter}

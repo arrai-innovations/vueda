@@ -89,15 +89,15 @@ Default model-config generation uses the normalized metadata to derive field set
 
 ## Relevant Implementation Surface
 
-- `{@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}`
-- `{@api rest:endpoint:GET:/vueda.info/model_info/}`
-- `{@api py:class:vueda.info.serializers.ModelInfoSerializer}`
-- `{@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_fields}`
-- `{@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_expands}`
-- `{@api py:class:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin}`
-- `{@api py:function:vueda.core.viewsets.FlexFieldsMixin.get_serializer_context}`
-- `{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_field_param}`
-- `{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_param}`
-- `{@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}`
-- `{@api js:property:@arrai-innovations/vueda.utils/constants.FIELDS_PARAM}`
-- `{@api js:property:@arrai-innovations/vueda.utils/constants.EXPAND_PARAM}`
+- {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
+- {@api rest:endpoint:GET:/vueda.info/model_info/}
+- {@api py:class:vueda.info.serializers.ModelInfoSerializer}
+- {@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_fields}
+- {@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_expands}
+- {@api py:class:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin}
+- {@api py:function:vueda.core.viewsets.FlexFieldsMixin.get_serializer_context}
+- {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_field_param}
+- {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_param}
+- {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
+- {@api js:property:@arrai-innovations/vueda.utils/constants.FIELDS_PARAM}
+- {@api js:property:@arrai-innovations/vueda.utils/constants.EXPAND_PARAM}

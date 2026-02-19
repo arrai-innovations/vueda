@@ -205,24 +205,24 @@ const widget = useWidget(props, emit);
 ## Relevant Implementation Surface
 
 - JavaScript:
-    - `{@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}`
-    - `{@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}`
-    - `{@api js:module:@arrai-innovations/vueda.use/useModelConfig}`
-    - `{@api js:module:@arrai-innovations/vueda.use/useFormModel}`
-    - `{@api js:function:@arrai-innovations/vueda.use/useFormModel.useFormModel}`
-    - `{@api js:module:@arrai-innovations/vueda.use/useFieldRenderer}`
-    - `{@api js:function:@arrai-innovations/vueda.use/useFieldRenderer.useFieldRenderer}`
-    - `{@api js:module:@arrai-innovations/vueda.use/useField}`
-    - `{@api js:function:@arrai-innovations/vueda.use/useField.useField}`
-    - `{@api js:module:@arrai-innovations/vueda.use/useWidget}`
-    - `{@api js:function:@arrai-innovations/vueda.use/useWidget.useWidget}`
-    - `{@api js:module:@arrai-innovations/vueda.utils/buildForm}`
-    - `{@api js:module:@arrai-innovations/vueda.utils/formLookups}`
+    - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
+    - {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}
+    - {@api js:module:@arrai-innovations/vueda.use/useModelConfig}
+    - {@api js:module:@arrai-innovations/vueda.use/useFormModel}
+    - {@api js:function:@arrai-innovations/vueda.use/useFormModel.useFormModel}
+    - {@api js:module:@arrai-innovations/vueda.use/useFieldRenderer}
+    - {@api js:function:@arrai-innovations/vueda.use/useFieldRenderer.useFieldRenderer}
+    - {@api js:module:@arrai-innovations/vueda.use/useField}
+    - {@api js:function:@arrai-innovations/vueda.use/useField.useField}
+    - {@api js:module:@arrai-innovations/vueda.use/useWidget}
+    - {@api js:function:@arrai-innovations/vueda.use/useWidget.useWidget}
+    - {@api js:module:@arrai-innovations/vueda.utils/buildForm}
+    - {@api js:module:@arrai-innovations/vueda.utils/formLookups}
 - Vue.js Components:
-    - `{@api vue:component:FormModel}`
-    - `{@api vue:component:FieldRenderer}`
-    - `{@api vue:component:DetailedView}`
-    - `{@api vue:component:FilterForm}`
-    - `{@api vue:component:FieldSetTabularInline}`
-    - `{@api vue:component:WidgetSelect}`
-    - `{@api vue:component:WidgetUnmapped}`
+    - {@api vue:component:FormModel}
+    - {@api vue:component:FieldRenderer}
+    - {@api vue:component:DetailedView}
+    - {@api vue:component:FilterForm}
+    - {@api vue:component:FieldSetTabularInline}
+    - {@api vue:component:WidgetSelect}
+    - {@api vue:component:WidgetUnmapped}

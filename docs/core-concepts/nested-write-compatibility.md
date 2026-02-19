@@ -73,11 +73,11 @@ This sequence is not configurable. Custom save logic that depends on reverse rel
 
 ## Relevant Implementation Surface
 
-- `{@api py:module:vueda.core.serializers}`
-- `{@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}`
-- `{@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.to_internal_value}`
-- `{@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin._extract_relations}`
-- `{@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.update_or_create_direct_relations}`
-- `{@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.update}`
-- `{@api py:class:vueda.core.serializers.VuedaReadonlySerializer}`
-- `{@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}`
+- {@api py:module:vueda.core.serializers}
+- {@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}
+- {@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.to_internal_value}
+- {@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin._extract_relations}
+- {@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.update_or_create_direct_relations}
+- {@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.update}
+- {@api py:class:vueda.core.serializers.VuedaReadonlySerializer}
+- {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}

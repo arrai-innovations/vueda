@@ -56,28 +56,28 @@ status: briefing
 ## Relevant Implementation Surface
 
 - Python:
-- `{@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}`
-- `{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_field_param}`
-- `{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_param}`
-- `{@api py:class:vueda.core.viewsets.FlexFieldsMixin}`
-- `{@api py:function:vueda.core.viewsets.FlexFieldsMixin.get_serializer_context}`
-- `{@api py:class:vueda.core.serializers.VuedaSerializer}`
-- `{@api py:function:vueda.core.serializers.NoExtraFieldsSerializerMixin.validate}`
-- `{@api py:function:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin.get_expandable_fields}`
+- {@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}
+- {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_field_param}
+- {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_param}
+- {@api py:class:vueda.core.viewsets.FlexFieldsMixin}
+- {@api py:function:vueda.core.viewsets.FlexFieldsMixin.get_serializer_context}
+- {@api py:class:vueda.core.serializers.VuedaSerializer}
+- {@api py:function:vueda.core.serializers.NoExtraFieldsSerializerMixin.validate}
+- {@api py:function:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin.get_expandable_fields}
 - REST:
-- `{@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}`
+- {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
 - JavaScript:
-- `{@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}`
-- `{@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}`
-- `{@api js:module:@arrai-innovations/vueda.use/useModelConfig}`
-- `{@api js:function:@arrai-innovations/vueda.use/useModelConfig.useModelConfig}`
-- `{@api js:module:@arrai-innovations/vueda.utils/objectCrud}`
-- `{@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectRetrieve}`
-- `{@api js:property:@arrai-innovations/vueda.utils/constants.FIELDS_PARAM}`
-- `{@api js:property:@arrai-innovations/vueda.utils/constants.EXPAND_PARAM}`
+- {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
+- {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}
+- {@api js:module:@arrai-innovations/vueda.use/useModelConfig}
+- {@api js:function:@arrai-innovations/vueda.use/useModelConfig.useModelConfig}
+- {@api js:module:@arrai-innovations/vueda.utils/objectCrud}
+- {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectRetrieve}
+- {@api js:property:@arrai-innovations/vueda.utils/constants.FIELDS_PARAM}
+- {@api js:property:@arrai-innovations/vueda.utils/constants.EXPAND_PARAM}
 - Vue.js Components:
-- `{@api vue:component:ViewList}`
-- `{@api vue:component:DetailedView}`
+- {@api vue:component:ViewList}
+- {@api vue:component:DetailedView}
 
 ## Contracts and Invariants
 
