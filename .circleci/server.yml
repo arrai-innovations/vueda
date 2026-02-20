@@ -182,6 +182,11 @@ workflows:
           setup:
             - utils/add_npm_config
             - run:
+                name: Install server dev dependencies
+                command: |
+                  cd server
+                  uv sync --dev --frozen
+            - run:
                 name: Ensure pnpm command is available
                 command: |
                   mkdir -p "$HOME/.local/bin"
@@ -204,6 +209,11 @@ workflows:
           install_deps: true
           setup:
             - utils/add_npm_config
+            - run:
+                name: Install server dev dependencies
+                command: |
+                  cd server
+                  uv sync --dev --frozen
             - run:
                 name: Ensure pnpm command is available
                 command: |

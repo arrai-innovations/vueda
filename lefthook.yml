@@ -12,6 +12,7 @@ pre-commit:
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
+        set -e
         uv run --no-sync ruff check . ../scripts/check_template_parity.py
         python "$(git rev-parse --show-toplevel)/scripts/check_template_parity.py" --scope server
     ruff-format:
