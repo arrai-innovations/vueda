@@ -24,12 +24,31 @@
   --vp-nav-bg-color: #000;
   --vp-c-bg-elv: #000;
   --vp-c-bg: #1a1a1a;
+  --vp-sidebar-bg-color: #0D0D0D;
+  --vp-code-bg: #0D0D0D;
+  --vp-code-block-bg: #0D0D0D;
 }
 
+
 /* Prevent page background bleed on the right */
+/* TODO(vitepress-v2): remove this backport after upgrading to VitePress v2. */
 .VPNavBar.has-sidebar .content {
   padding-right: 0 !important;
 }
 .VPNavBar.has-sidebar .content-body {
   padding-right: 32px !important;
 }
+
+@media (min-width: 1440px) {
+  .VPNavBar.has-sidebar .content-body {
+    padding-right: calc((100vw - var(--vp-layout-max-width)) / 2 + 32px) !important;
+  }
+}
+
+@media (min-width: 1440px) {
+  .VPSidebar {
+    padding-left: max(32px, calc((100vw - (var(--vp-layout-max-width) - 64px)) / 2)) !important;
+    width: calc((100vw - (var(--vp-layout-max-width) - 64px)) / 2 + var(--vp-sidebar-width) - 32px) !important;
+  }
+}
+/* End of backport */
