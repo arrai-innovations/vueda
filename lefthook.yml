@@ -65,11 +65,8 @@ pre-commit:
       run: pnpm exec prettier --write {staged_files}
     fix-md-toc:
       stage_fixed: true
-      run: |
-        files="$(git diff --name-only --cached --diff-filter=d -- 'README.md' '**/README.md')"
-        if [ -n "$files" ]; then
-          uv run --group dev --no-sync python -m md_toc -p github $files
-        fi
+      glob: "**/README.md"
+      run: uv run --group dev --no-sync python -m md_toc -p github {staged_files}
     circleci-config:
       run: |
         readarray -t files < <(git diff --name-only --cached -- '.circleci/*.yml')
