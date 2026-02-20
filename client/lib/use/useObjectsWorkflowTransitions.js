@@ -1,12 +1,12 @@
 import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
-import { getUsingVuedaWorkFlow, storeWorkflow } from "@vueda/stores/storeWorkflow.js";
+import { getUsingVuedaWorkflow, storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEqual from "lodash-es/isEqual.js";
 import { reactive, readonly, ref, toRef, unref, watch } from "vue";
 
-const usingVuedaWorkFlow = getUsingVuedaWorkFlow();
+const usingVuedaWorkflow = getUsingVuedaWorkflow();
 
 /**
  * The raw instance of a useObjectsWorkflowTransitionsRaw object.
@@ -37,7 +37,7 @@ const usingVuedaWorkFlow = getUsingVuedaWorkFlow();
  * @returns {useWorkflowRaw} An object containing objectTransitions.
  */
 export function useObjectsWorkflowTransitions(app, model, pks, isActive) {
-    if (!usingVuedaWorkFlow) {
+    if (!usingVuedaWorkflow) {
         return {
             loading: ref(false),
             error: ref(null),

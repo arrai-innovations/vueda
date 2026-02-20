@@ -114,7 +114,7 @@ vi.mock("@vueda/use/useObjectsWorkflowTransitions.js", () => ({
 
 vi.mock("@vueda/utils/case.js", () => ({ memoizedStartCase: (s) => s.toUpperCase() }));
 
-let DetailedView, vue, instanceState;
+let DetailView, vue, instanceState;
 
 beforeEach(async () => {
     vue = await vi.importActual("vue");
@@ -123,7 +123,7 @@ beforeEach(async () => {
     assignReactiveObject.mockClear();
     filteredActions.actions = [];
     objectTransitions.transitions = [];
-    DetailedView = (await import("@vueda/components/DetailedView.vue")).default;
+    DetailView = (await import("@vueda/components/DetailView.vue")).default;
 });
 
 afterEach(() => {
@@ -133,8 +133,8 @@ afterEach(() => {
 function mountWithContext(options = {}) {
     const formContext = { state: vue.reactive({ values: {}, anyModified: false }) };
     const objectForm = { state: vue.reactive({ loading: false }), submit: vi.fn() };
-    return mount(DetailedView, {
-        props: { app: "app", model: "model", viewName: "read", pk: "1", objectForm, ...options.props },
+    return mount(DetailView, {
+        props: { modelValue: {}, app: "app", model: "model", viewName: "read", pk: "1", objectForm, ...options.props },
         attrs: options.attrs,
         slots: options.slots,
         global: { provide: { [FormContextSymbol]: formContext } },

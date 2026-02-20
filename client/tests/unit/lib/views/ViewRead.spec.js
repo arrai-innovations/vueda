@@ -14,18 +14,18 @@ vi.mock("@vueda/use/useLookupContext.js", () => ({
     useLookupContext: mockedUseLookupContext,
 }));
 
-let detailedViewEmit;
-const DetailedViewStub = defineComponent({
-    name: "DetailedViewStub",
+let detailViewEmit;
+const DetailViewStub = defineComponent({
+    name: "DetailViewStub",
     props: ["modelValue", "app", "model", "pk", "viewName"],
     emits: ["update:modelValue", "form-context", "form-object", "loading", "object"],
     setup(props, { emit, attrs, slots }) {
-        detailedViewEmit = emit;
+        detailViewEmit = emit;
         return () =>
             h(
                 "div",
                 {
-                    "data-qa": "detailed-view",
+                    "data-qa": "detail-view",
                     "data-app": props.app,
                     "data-model": props.model,
                     "data-pk": props.pk,
@@ -37,8 +37,8 @@ const DetailedViewStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/components/DetailedView.vue", () => ({
-    default: DetailedViewStub,
+vi.mock("@vueda/components/DetailView.vue", () => ({
+    default: DetailViewStub,
 }));
 
 vi.mock("vue", async () => {
@@ -56,7 +56,7 @@ let ViewRead, vue;
 
 beforeEach(async () => {
     vue = await vi.importActual("vue");
-    detailedViewEmit = undefined;
+    detailViewEmit = undefined;
     mockedUseForm.mockClear();
     mockedUseLookupContext.mockClear();
     ViewRead = (await import("@vueda/views/ViewRead.vue")).default;
@@ -75,7 +75,7 @@ scopedIt("does not call useLookupContext when lookup context exists", () => {
     expect(mockedUseLookupContext).not.toHaveBeenCalled();
 });
 
-scopedIt("passes props and attrs to DetailedView and forwards slots", () => {
+scopedIt("passes props and attrs to DetailView and forwards slots", () => {
     mockedInject.mockReturnValueOnce({});
     const wrapper = mount(ViewRead, {
         props: { app: "myApp", model: "myModel", pk: "123" },
@@ -86,7 +86,7 @@ scopedIt("passes props and attrs to DetailedView and forwards slots", () => {
         },
     });
 
-    const dv = wrapper.find('[data-qa="detailed-view"]');
+    const dv = wrapper.find('[data-qa="detail-view"]');
     expect(dv.attributes("data-app")).toBe("myApp");
     expect(dv.attributes("data-model")).toBe("myModel");
     expect(dv.attributes("data-pk")).toBe("123");
@@ -98,14 +98,14 @@ scopedIt("passes props and attrs to DetailedView and forwards slots", () => {
     expect(vue.isReactive(formArg)).toBe(true);
 });
 
-scopedIt("forwards events from DetailedView", async () => {
+scopedIt("forwards events from DetailView", async () => {
     mockedInject.mockReturnValueOnce({});
     const wrapper = mount(ViewRead, { props: { app: "a", model: "b", pk: "c" } });
 
-    detailedViewEmit("loading", true);
-    detailedViewEmit("object", { id: 5 });
-    detailedViewEmit("form-object", { foo: "bar" });
-    detailedViewEmit("form-context", { baz: 1 });
+    detailViewEmit("loading", true);
+    detailViewEmit("object", { id: 5 });
+    detailViewEmit("form-object", { foo: "bar" });
+    detailViewEmit("form-context", { baz: 1 });
     await wrapper.vm.$nextTick();
 
     expect(wrapper.emitted("loading")[0]).toEqual([true]);

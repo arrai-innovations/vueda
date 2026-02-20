@@ -49,6 +49,17 @@ def test_allow_transition(monkeypatch, sender, receiver):
 
 
 @pytest.mark.django_db
+def test_allow_transition_not_gated_by_workflow_code(monkeypatch, sender, receiver):
+    qi = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
+    cancel_transition = Transition.objects.get(workflow=qi.workflow, code="cancel")
+
+    monkeypatch.setattr(QueueItem, "available_transitions", lambda self, user=None: [cancel_transition])
+    qi.workflow.code = "delayed"
+
+    assert qi.allow_transition(cancel_transition)
+
+
+@pytest.mark.django_db
 def test_delete_files_only_calls_email_cleanup(monkeypatch, sender, receiver, sms_sender, sms_receiver):
     email_queue_item = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
     sms_queue_item = QueueItem.objects.create(sender=sms_sender, receiver=sms_receiver, method="sms")

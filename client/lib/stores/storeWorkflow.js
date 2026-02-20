@@ -8,7 +8,7 @@ import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
 import { unref } from "vue";
 
-let usingVuedaWorkFlow = true;
+let usingVuedaWorkflow = true;
 
 /**
  * Ensure nested store maps exist for a particular app.model key.
@@ -34,16 +34,16 @@ const ensureWorkflowObjectBucket = (store, key, bucket) => {
 };
 
 /**
- * Set the usingVuedaWorkFlow value.
+ * Set the usingVuedaWorkflow value.
  *
- * @param {boolean} value - The value to set usingVuedaWorkFlow to.
+ * @param {boolean} value - The value to set usingVuedaWorkflow to.
  */
-export function setUsingVuedaWorkFlow(value) {
-    usingVuedaWorkFlow = value;
+export function setUsingVuedaWorkflow(value) {
+    usingVuedaWorkflow = value;
 }
 
-export function getUsingVuedaWorkFlow() {
-    return usingVuedaWorkFlow;
+export function getUsingVuedaWorkflow() {
+    return usingVuedaWorkflow;
 }
 
 /**
@@ -262,7 +262,7 @@ export const storeWorkflow = defineStore("workflow", {
                     new Error("storeWorkflow.fetchWorkflowTransition: app and model must be provided"),
                 );
             }
-            if (!usingVuedaWorkFlow) {
+            if (!usingVuedaWorkflow) {
                 /** @type {Promise<WorkflowTransition[]>} */
                 return Promise.resolve([]);
             }
@@ -313,7 +313,7 @@ export const storeWorkflow = defineStore("workflow", {
             if (!app || !model) {
                 return Promise.reject(new Error("storeWorkflow.fetchModelStates: app and model must be provided"));
             }
-            if (!usingVuedaWorkFlow) {
+            if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
             }
             const key = getAppModelDotName({ app, model });
@@ -359,7 +359,7 @@ export const storeWorkflow = defineStore("workflow", {
                     new Error("storeWorkflow.fetchObjectState: app,model and objectPk must all be provided"),
                 );
             }
-            if (!usingVuedaWorkFlow) {
+            if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
             }
             const key = getAppModelDotName({ app, model });
@@ -406,7 +406,7 @@ export const storeWorkflow = defineStore("workflow", {
                     new Error("storeWorkflow.fetchObjectState: app,model and objectPk must all be provided"),
                 );
             }
-            if (!usingVuedaWorkFlow) {
+            if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
             }
 
@@ -454,7 +454,7 @@ export const storeWorkflow = defineStore("workflow", {
                     new Error("storeWorkflow.fetchObjectState: app,model and objectPk must all be provided"),
                 );
             }
-            if (!usingVuedaWorkFlow) {
+            if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
             }
             const key = getAppModelDotName({ app, model });
@@ -505,7 +505,7 @@ export const storeWorkflow = defineStore("workflow", {
                     ),
                 );
             }
-            if (!usingVuedaWorkFlow) {
+            if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
             }
             let body = { transition_code: transitionCode };
@@ -544,8 +544,9 @@ export const storeWorkflow = defineStore("workflow", {
                     return data;
                 })
                 .finally(() => {
-                    if (router && stateToRoute && responseData?.new_state?.state?.code in stateToRoute) {
-                        router.push(stateToRoute[responseData.new_state.state.code]);
+                    const stateCode = responseData?.new_state?.code ?? responseData?.new_state?.state?.code;
+                    if (router && stateToRoute && stateCode && stateCode in stateToRoute) {
+                        router.push(stateToRoute[stateCode]);
                     }
                 });
 

@@ -3,7 +3,7 @@ import flushPromises from "flush-promises";
 import { effectScope, nextTick, reactive, readonly, ref } from "vue";
 
 const workflowStoreFnMocks = {
-    getUsingVuedaWorkFlow: vi.fn(() => true),
+    getUsingVuedaWorkflow: vi.fn(() => true),
     storeWorkflow: vi.fn(() => workflowStoreMock),
 };
 
@@ -73,8 +73,8 @@ afterEach(() => {
 });
 
 describe("lib/use/useObjectsWorkflowTransitions.js", () => {
-    scopedIt("returns inert state when getUsingVuedaWorkFlow is false", async () => {
-        workflowStoreFnMocks.getUsingVuedaWorkFlow.mockReturnValueOnce(false);
+    scopedIt("returns inert state when getUsingVuedaWorkflow is false", async () => {
+        workflowStoreFnMocks.getUsingVuedaWorkflow.mockReturnValueOnce(false);
         const { useObjectsWorkflowTransitions } = await import("@vueda/use/useObjectsWorkflowTransitions.js");
         const result = useObjectsWorkflowTransitions(ref("a"), ref("b"), ref("1"));
         expect(result.loading.value).toBe(false);

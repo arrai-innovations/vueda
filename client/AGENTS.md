@@ -42,8 +42,6 @@ Scripts defined in `package.json`:
 
 - **coverage** - `npm test -- run --coverage`
 
-- **prepare** - `npx --no-install husky`
-
 - **docs** - (placeholder for future JSDoc generation)
 
 - **eslint** - `npx eslint --fix .`

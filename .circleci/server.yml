@@ -176,11 +176,16 @@ workflows:
           name: lint
           context: arrai-global
           executor: lintinator/python311
-          hooks: ruff doctoc
+          hooks: ruff md-toc
           hook_manager: lefthook
           install_deps: true
           setup:
             - utils/add_npm_config
+            - run:
+                name: Install server dev dependencies
+                command: |
+                  cd server
+                  uv sync --dev --frozen
             - run:
                 name: Ensure pnpm command is available
                 command: |
@@ -198,12 +203,17 @@ workflows:
           name: lint-no-badge
           context: arrai-global
           executor: lintinator/python311
-          hooks: ruff doctoc
+          hooks: ruff md-toc
           hook_manager: lefthook
           create_badges: false
           install_deps: true
           setup:
             - utils/add_npm_config
+            - run:
+                name: Install server dev dependencies
+                command: |
+                  cd server
+                  uv sync --dev --frozen
             - run:
                 name: Ensure pnpm command is available
                 command: |

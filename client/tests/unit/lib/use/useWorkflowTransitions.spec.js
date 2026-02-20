@@ -3,7 +3,7 @@ import flushPromises from "flush-promises";
 import { effectScope, isReactive, reactive, readonly, ref, unref } from "vue";
 
 const workflowStoreFnMocks = {
-    getUsingVuedaWorkFlow: vi.fn(() => true),
+    getUsingVuedaWorkflow: vi.fn(() => true),
     storeWorkflow: vi.fn(() => workflowStoreMock),
 };
 const workflowStoreMock = reactive({
@@ -55,13 +55,13 @@ describe("lib/use/useWorkflowTransitions.js", () => {
     afterEach(() => {
         vi.clearAllMocks();
         workflowStoreMock.workflowTransitions = {};
-        workflowStoreFnMocks.getUsingVuedaWorkFlow.mockReturnValue(true);
+        workflowStoreFnMocks.getUsingVuedaWorkflow.mockReturnValue(true);
         app.value = "myApp";
         model.value = "myModel";
     });
 
-    scopedIt("returns inert state when getUsingVuedaWorkFlow is false", () => {
-        workflowStoreFnMocks.getUsingVuedaWorkFlow.mockReturnValue(false);
+    scopedIt("returns inert state when getUsingVuedaWorkflow is false", () => {
+        workflowStoreFnMocks.getUsingVuedaWorkflow.mockReturnValue(false);
         const result = useWorkflowTransitions(app, model);
         expect(isReactive(result)).toBe(true);
         expect(result.transitions).toEqual([]);

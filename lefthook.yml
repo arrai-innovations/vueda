@@ -12,6 +12,7 @@ pre-commit:
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
+        set -e
         uv run --no-sync ruff check . ../scripts/check_template_parity.py
         python "$(git rev-parse --show-toplevel)/scripts/check_template_parity.py" --scope server
     ruff-format:
@@ -36,14 +37,14 @@ pre-commit:
           exit 0
         fi
         pnpm exec prettier --check .
-    doctoc:
+    md-toc:
       run: |
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
-        files="$(rg --files -g '*.md' $PWD/server $PWD/client | rg -v '/AGENT\.md$|/AGENTS\\.md$')"
+        files="$(find $PWD -name 'README.md' -not -path '*/node_modules/*' -not -path '*/.venv/*')"
         if [ -n "$files" ]; then
-          pnpm -C client exec doctoc --github -u --notitle $files
+          uv run --group dev --no-sync python -m md_toc -p github $files
         fi
     fix-server:
       stage_fixed: true
@@ -62,14 +63,10 @@ pre-commit:
       root: "client/"
       glob: "client/*.{less,scss,css,vue,markdown,json,md,yml,yaml,html}"
       run: pnpm exec prettier --write {staged_files}
-    fix-doctoc:
+    fix-md-toc:
       stage_fixed: true
-      root: "client/"
-      glob: "client/*.md"
-      exclude:
-        - AGENT.md
-        - AGENTS.md
-      run: pnpm exec doctoc --github -u --notitle {staged_files}
+      glob: "**/README.md"
+      run: uv run --group dev --no-sync python -m md_toc -p github {staged_files}
     circleci-config:
       run: |
         readarray -t files < <(git diff --name-only --cached -- '.circleci/*.yml')

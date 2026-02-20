@@ -150,8 +150,8 @@ async function runNormalize(argv) {
 
   const requestedSources = expandNormalizeTargets(argv.source || []);
 
-  if (requestedSources.length > 1 && (argv.input || argv.output)) {
-    throw new Error("input/output can only be used with a single source");
+  if (requestedSources.length > 1 && argv.input) {
+    throw new Error("input can only be used with a single source");
   }
 
   for (const source of requestedSources) {
@@ -229,7 +229,6 @@ function addIndexPages(outputs) {
     }
     return `api:index:${parts.join("/")}`;
   };
-
   for (const filePath of outputs.keys()) {
     const dir = path.dirname(filePath);
     ensureDir(dir);
@@ -270,27 +269,33 @@ async function runRender(argv) {
   const defaults = {
     typedoc: {
       input: path.join(repoRoot, "docs-tooling", ".generated", "typedoc.canonical.json"),
-      output: path.join(repoRoot, "docs-tooling", ".generated", "rendered"),
+      output: path.join(repoRoot, "docs", "reference", "api"),
     },
     "vue-docgen": {
       input: path.join(repoRoot, "docs-tooling", ".generated", "vue-docgen.canonical.json"),
-      output: path.join(repoRoot, "docs-tooling", ".generated", "rendered"),
+      output: path.join(repoRoot, "docs", "reference", "api"),
     },
     openapi: {
       input: path.join(repoRoot, "docs-tooling", ".generated", "openapi.canonical.json"),
-      output: path.join(repoRoot, "docs-tooling", ".generated", "rendered"),
+      output: path.join(repoRoot, "docs", "reference", "api"),
     },
     pdoc: {
       input: path.join(repoRoot, "docs-tooling", ".generated", "pdoc.canonical.json"),
-      output: path.join(repoRoot, "docs-tooling", ".generated", "rendered"),
+      output: path.join(repoRoot, "docs", "reference", "api"),
     },
   };
 
   const requestedSources = expandNormalizeTargets(argv.source || []);
 
-  if (requestedSources.length > 1 && (argv.input || argv.output)) {
-    throw new Error("input/output can only be used with a single source");
+  if (requestedSources.length > 1 && argv.input) {
+    throw new Error("input can only be used with a single source");
   }
+
+  const combinedOutputs = new Map();
+  const outputDir = path.resolve(
+    process.cwd(),
+    argv.output || defaults[requestedSources[0]]?.output || defaults.typedoc.output
+  );
 
   for (const source of requestedSources) {
     let renderer;
@@ -312,12 +317,16 @@ async function runRender(argv) {
     }
 
     const inputPath = path.resolve(process.cwd(), argv.input || defaults[source].input);
-    const outputDir = path.resolve(process.cwd(), argv.output || defaults[source].output);
     const raw = await fs.promises.readFile(inputPath, "utf-8");
     const bundle = JSON.parse(raw);
     const outputs = renderer(bundle);
-    await writeRenderedFiles(outputDir, outputs);
+    for (const [filePath, contents] of outputs.entries()) {
+      combinedOutputs.set(filePath, contents);
+    }
   }
+
+  addIndexPages(combinedOutputs);
+  await writeRenderedFiles(outputDir, combinedOutputs);
 }
 
 yargs(hideBin(process.argv))

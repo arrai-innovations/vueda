@@ -5,6 +5,7 @@ import {
   formatSource,
   linkToPath,
   normalizeTitle,
+  escapeText,
   renderCodeInline,
   renderFrontmatter,
   renderHeading,
@@ -100,7 +101,7 @@ export function renderPdocNode(node, index, filePath) {
   lines.push(renderHeading(1, normalizeTitle(node.name)), "");
 
   if (node.description) {
-    lines.push(renderHeading(2, "Overview"), "", node.description, "");
+    lines.push(renderHeading(2, "Overview"), "", escapeText(node.description), "");
   }
 
   const signatureBlock = renderSignatures(node, filePath);
