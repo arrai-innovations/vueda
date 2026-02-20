@@ -65,8 +65,6 @@ vueda = "vueda.__main__:main"
 
 [dependency-groups]
 dev = [
-    # lint related, sync with .pre-commit-config.yaml
-    "ruff ==0.14.6",
     # test/dev related
     "django_extensions ==4.0.0",
     "django-view-manager ==1.0.4",

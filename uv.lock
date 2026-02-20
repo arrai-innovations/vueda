@@ -2040,7 +2040,6 @@ dev = [
     { name = "pytest-xdist" },
     { name = "python-dateutil" },
     { name = "redis" },
-    { name = "ruff" },
 ]
 docs = [
     { name = "pdoc" },
@@ -2100,7 +2099,6 @@ dev = [
     { name = "pytest-xdist", specifier = ">=3.5.0" },
     { name = "python-dateutil", specifier = ">=2.8.2,<3" },
     { name = "redis", specifier = ">=5.2.1" },
-    { name = "ruff", specifier = "==0.14.6" },
 ]
 docs = [{ name = "pdoc", specifier = ">=14.7.0" }]
 
@@ -2112,12 +2110,16 @@ source = { virtual = "." }
 [package.dev-dependencies]
 dev = [
     { name = "md-toc" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
 
 [package.metadata.requires-dev]
-dev = [{ name = "md-toc", specifier = ">=8.2.2" }]
+dev = [
+    { name = "md-toc", specifier = ">=8.2.2" },
+    { name = "ruff", specifier = "==0.14.6" },
+]
 
 [[package]]
 name = "watchdog"
