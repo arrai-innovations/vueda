@@ -42,7 +42,7 @@ pre-commit:
         if [ -z "${CI:-}" ]; then
           exit 0
         fi
-        files="$(find $PWD -name 'README.md')"
+        files="$(find $PWD -name 'README.md' -not -path '*/node_modules/*' -not -path '*/.venv/*')"
         if [ -n "$files" ]; then
           uv run --group dev --no-sync python -m md_toc -p github $files
         fi
