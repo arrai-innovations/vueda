@@ -31,6 +31,22 @@ fix(UserSerializer): correct password validation logic
 
 Scope should reference the affected filename (sans extension), module, or concern.
 
+## Lefthook (Git Hooks)
+
+Configuration lives in `lefthook.yml`. When editing hook commands:
+
+- **No `rg` (ripgrep).** The CI image does not have it. Use `grep` if you
+  need shell-level filtering, but prefer lefthook's built-in filtering first.
+- **Use lefthook's staged-file features** instead of manual
+  `git diff --name-only --cached | grep` pipelines:
+  - `glob:` filters staged files by pattern (e.g., `"*.py"`, `"*.{js,ts}"`)
+  - `root:` sets the working directory and strips the prefix from file paths
+  - `exclude:` removes files by glob list or regex string
+  - `{staged_files}` interpolates the filtered file list into `run:`
+  - `stage_fixed: true` re-stages files after the command modifies them
+- Lefthook skips the command automatically when no files match, so
+  `if [ -n "$files" ]` guards are unnecessary.
+
 ## Documentation Language Guardrails
 
 - Prefer plain language over jargon unless the term is required by the API or domain model.
