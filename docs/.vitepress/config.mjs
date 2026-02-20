@@ -617,6 +617,13 @@ export default defineConfig({
     sidebar: docsSidebar,
     socialLinks: [
       { icon: "github", link: "https://github.com/arrai-innovations/vueda" },
+      {
+        icon: {
+          svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 118.4415 135.87849"><g transform="translate(-306.49354,-190.13726)"><path d="m 380.76404,247.35412 -15.04488,-8.687 -14.98,8.731 14.97463,8.645 15.05025,-8.689" style="fill:currentColor"/><path d="m 348.41391,317.57824 14.93113,8.4375 0,-65.87012 -14.93113,-8.6215 0,66.05412" style="fill:currentColor"/><path d="m 368.08141,260.14562 0,65.87012 15.11475,-8.44962 0,-66.1465 -15.11475,8.726" style="fill:currentColor"/><path d="m 365.70741,190.13724 -56.55525,33.25 17.07325,9.8575 39.482,-22.95375 39.57888,22.905 16.99,-9.80875 -56.56888,-33.25" style="fill:currentColor"/><path d="m 407.74379,237.24624 0,66.46337 17.19125,-9.81887 0,-66.56975 -17.19125,9.92525" style="fill:currentColor"/><path d="m 403.00754,303.70961 0,-66.36037 -37.30013,-21.5845 -37.1045,21.57675 0,66.36813 15.07375,-9.81738 0,-47.86187 22.03125,-12.83938 22.22363,12.83313 0,47.86812 15.076,9.81737" style="fill:currentColor"/><path d="m 306.49354,293.89224 17.372,9.81737 0,-66.35649 -17.372,-10.03213 0,66.57125" style="fill:currentColor"/></g></svg>',
+        },
+        link: "https://arrai.com",
+        ariaLabel: "Arrai Innovations",
+      },
     ],
   },
   markdown: {

@@ -1,101 +1,35 @@
 @import url("./fonts.css");
 
 :root {
-  --vueda-blue: #1e88e5;
-  --vueda-green: #2bb673;
-  --arrai-blue: #1b3f91;
-  --arrai-cyan: #00a7d1;
+  --arrai-blue: #0077f7;
   --ink: #0f172a;
   --muted: #475569;
   --paper: #f8fafc;
-  --accent: #0ea5e9;
+  --accent: #f77700;
 
-  --vp-font-family-base: "Darker Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --vp-font-family-base: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --vp-font-family-heading: "Darker Grotesque", ui-sans-serif, system-ui, sans-serif;
   --vp-font-family-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --vp-c-brand-1: var(--arrai-blue);
-  --vp-c-brand-2: var(--accent);
-  --vp-c-brand-3: var(--vueda-blue);
+  --vp-c-brand-1: #005fcc;
+  --vp-c-brand-2: var(--arrai-blue);
+  --vp-c-brand-3: #2f8fff;
+  --vp-c-brand-soft: rgba(0, 119, 247, 0.14);
+
+  --vp-nav-bg-color: #e5e5e5;
+  --vp-c-bg-elv: #e5e5e5;
+  --vp-nav-logo-height: 48px;
 }
 
-body {
-  font-family: var(--vp-font-family-base);
-  color: var(--ink);
-  background: linear-gradient(180deg, #f3f6fb 0%, #ffffff 240px) fixed;
+.dark {
+  --vp-nav-bg-color: #000;
+  --vp-c-bg-elv: #000;
+  --vp-c-bg: #1a1a1a;
 }
 
-.dark body {
-  color: var(--vp-c-text-1);
-  background: var(--vp-c-bg);
+/* Prevent page background bleed on the right */
+.VPNavBar.has-sidebar .content {
+  padding-right: 0 !important;
 }
-
-a {
-  color: var(--accent);
-}
-
-a:hover {
-  color: var(--vueda-blue);
-}
-
-.mermaid {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
-  margin: 16px 0;
-}
-
-.dark .mermaid {
-  background: var(--vp-c-bg-alt);
-  border-color: var(--vp-c-divider);
-}
-
-.brand-lockup {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  align-items: center;
-  margin: 24px 0 32px;
-}
-
-.brand-lockup img {
-  max-height: 120px;
-}
-
-.brand-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px 20px;
-  background: #ffffff;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
-}
-
-.dark .brand-card {
-  border-color: var(--vp-c-divider);
-  background: var(--vp-c-bg-alt);
-  box-shadow: none;
-}
-
-/* pdoc overrides */
-.pdoc-content {
-  font-family: var(--vp-font-family-base);
-}
-
-.pdoc-content h1,
-.pdoc-content h2,
-.pdoc-content h3 {
-  letter-spacing: -0.01em;
-}
-
-.pdoc-content a {
-  color: var(--accent);
-}
-
-.pdoc-sidebar {
-  background: #f1f5f9;
-  border-right: 1px solid #e2e8f0;
-}
-
-.dark .pdoc-sidebar {
-  background: var(--vp-c-bg-alt);
-  border-right: 1px solid var(--vp-c-divider);
+.VPNavBar.has-sidebar .content-body {
+  padding-right: 32px !important;
 }
