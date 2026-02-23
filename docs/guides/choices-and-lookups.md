@@ -88,18 +88,18 @@ The client loads choices through two coordinated layers: `storeModelChoices` for
 
 ```javascript
 const choices = useModelChoices({
-  status: {
-    app: "myapp",
-    model: "order",
-    intendToFetch: true,
-    isFilter: false,
-  },
-  category: {
-    app: "myapp",
-    model: "order",
-    intendToFetch: true,
-    isFilter: true,
-  },
+    status: {
+        app: "myapp",
+        model: "order",
+        intendToFetch: true,
+        isFilter: false,
+    },
+    category: {
+        app: "myapp",
+        model: "order",
+        intendToFetch: true,
+        isFilter: true,
+    },
 });
 ```
 
@@ -147,19 +147,19 @@ With choice loading wired, verify these behaviors:
 ## Relevant Implementation Surface
 
 - Python:
-  - {@api py:module:vueda.info.registration}
-  - {@api py:module:vueda.info.viewsets}
-  - {@api py:class:vueda.info.viewsets.ModelInfoChoicesViewSet}
-  - {@api py:class:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet}
-  - {@api py:class:vueda.info.serializers.ModelInfoChoicesSerializer}
-  - {@api py:class:vueda.info.serializers.ModelInfoFilterSetChoicesSerializer}
+    - {@api py:module:vueda.info.registration}
+    - {@api py:module:vueda.info.viewsets}
+    - {@api py:class:vueda.info.viewsets.ModelInfoChoicesViewSet}
+    - {@api py:class:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet}
+    - {@api py:class:vueda.info.serializers.ModelInfoChoicesSerializer}
+    - {@api py:class:vueda.info.serializers.ModelInfoFilterSetChoicesSerializer}
 - REST:
-  - {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
-  - {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
+    - {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
+    - {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
 - JavaScript:
-  - {@api js:module:@arrai-innovations/vueda.stores/storeModelChoices}
-  - {@api js:function:@arrai-innovations/vueda.stores/storeModelChoices.storeModelChoices}
-  - {@api js:module:@arrai-innovations/vueda.use/useModelChoices}
-  - {@api js:function:@arrai-innovations/vueda.use/useModelChoices.useModelChoices}
+    - {@api js:module:@arrai-innovations/vueda.stores/storeModelChoices}
+    - {@api js:function:@arrai-innovations/vueda.stores/storeModelChoices.storeModelChoices}
+    - {@api js:module:@arrai-innovations/vueda.use/useModelChoices}
+    - {@api js:function:@arrai-innovations/vueda.use/useModelChoices.useModelChoices}
 - Vue.js Components:
-  - {@api vue:component:FilterComponent}
+    - {@api vue:component:FilterComponent}

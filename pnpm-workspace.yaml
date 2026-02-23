@@ -1,14 +1,14 @@
 packages:
-  - client
-  - docs
-  - docs-tooling
-  - server
+    - client
+    - docs
+    - docs-tooling
+    - server
 
 ignoredBuiltDependencies:
-  - lefthook
+    - lefthook
 
 onlyBuiltDependencies:
-  - esbuild
-  - msw
-  - unrs-resolver
-  - vue-demi
+    - esbuild
+    - msw
+    - unrs-resolver
+    - vue-demi

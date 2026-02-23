@@ -126,9 +126,7 @@ export const vuedaViteConfig = (options = {}) => {
 
     const alias = {
         ...dynamicAliases,
-        ...(enableSourceAlias
-            ? { "@vueda": path.resolve(topNodeModulesPath, VUEDA_PACKAGE, "lib") }
-            : {}),
+        ...(enableSourceAlias ? { "@vueda": path.resolve(topNodeModulesPath, VUEDA_PACKAGE, "lib") } : {}),
         [REACTIVE_HELPERS_PACKAGE]: path.resolve(topNodeModulesPath, REACTIVE_HELPERS_PACKAGE),
         ...(enableRuntimeAliases
             ? {

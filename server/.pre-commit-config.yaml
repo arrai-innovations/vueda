@@ -13,8 +13,7 @@ repos:
           - id: commitlint
             stages: [commit-msg]
             always_run: true
-            additional_dependencies:
-                ["@arrai-innovations/commitlint-config@2.0.0"]
+            additional_dependencies: ["@arrai-innovations/commitlint-config@2.0.0"]
 
     - repo: https://github.com/pre-commit/pre-commit-hooks
       rev: v4.5.0

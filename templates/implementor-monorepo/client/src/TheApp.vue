@@ -4,8 +4,7 @@ import Toast from "primevue/toast";
 </script>
 
 <template>
-  <Toast />
-  <ConfirmDialog />
-  <RouterView />
+    <Toast />
+    <ConfirmDialog />
+    <RouterView />
 </template>
-

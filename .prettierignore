@@ -1,0 +1,34 @@
+node_modules
+dist
+coverage
+site
+.git
+.uv-cache
+.venv
+.claude
+__pycache__
+**/.uv-cache/**
+**/.venv/**
+**/.claude/**
+
+# lockfiles and package metadata
+pnpm-lock.yaml
+package-lock.json
+uv.lock
+client/package.json
+docs/package.json
+docs-tooling/package.json
+
+# generated docs outputs
+docs/reference/api
+docs/public/api
+docs/.generated
+docs/.vitepress/cache
+docs/.vitepress/dist
+docs/.vitepress/.temp
+docs/public/assets/mermaid/mermaid.min.js
+docs-tooling/.generated
+
+# policy docs
+**/AGENT.md
+**/AGENTS.md

@@ -3,13 +3,13 @@
  */
 
 export class Extractor {
-  extract(_options) {
-    throw new Error("Not implemented");
-  }
+    extract(_options) {
+        throw new Error("Not implemented");
+    }
 }
 
 export class Normalizer {
-  normalize(_payload) {
-    throw new Error("Not implemented");
-  }
+    normalize(_payload) {
+        throw new Error("Not implemented");
+    }
 }

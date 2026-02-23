@@ -124,14 +124,14 @@ This determinism is what makes the contract-first architecture maintainable. Whe
 ## Relevant Implementation Surface
 
 - JavaScript:
-  - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
-  - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
-  - {@api js:module:@arrai-innovations/vueda.use/useFormModel}
-  - {@api js:module:@arrai-innovations/vueda.use/useForm}
-  - {@api js:module:@arrai-innovations/vueda.use/useFieldRenderer}
-  - {@api js:module:@arrai-innovations/vueda.router/guards}
+    - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
+    - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
+    - {@api js:module:@arrai-innovations/vueda.use/useFormModel}
+    - {@api js:module:@arrai-innovations/vueda.use/useForm}
+    - {@api js:module:@arrai-innovations/vueda.use/useFieldRenderer}
+    - {@api js:module:@arrai-innovations/vueda.router/guards}
 - Vue.js Components:
-  - {@api vue:component:ViewActionRouter}
+    - {@api vue:component:ViewActionRouter}
 - REST:
-  - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
-  - {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
+    - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
+    - {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}

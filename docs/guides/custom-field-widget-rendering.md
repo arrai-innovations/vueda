@@ -47,21 +47,18 @@ Override entries support three value shapes:
 ```js
 import MyCustomWidget from "./MyCustomWidget.vue";
 
-modelConfigStore.setConfig(
-  { app: "myapp", model: "mymodel" },
-  { widgetComponents: { status: MyCustomWidget } },
-);
+modelConfigStore.setConfig({ app: "myapp", model: "mymodel" }, { widgetComponents: { status: MyCustomWidget } });
 ```
 
 **String keys** reference components from the `availableFields` and `availableWidgets` registries. Use this when the target component is already registered in VUEDA's lookup tables:
 
 ```js
 modelConfigStore.setConfig(
-  { app: "myapp", model: "mymodel" },
-  {
-    fieldComponents: { line_items: "FieldSetTabularInline" },
-    widgetComponents: { line_items__status: "WidgetSelect" },
-  },
+    { app: "myapp", model: "mymodel" },
+    {
+        fieldComponents: { line_items: "FieldSetTabularInline" },
+        widgetComponents: { line_items__status: "WidgetSelect" },
+    },
 );
 ```
 
@@ -79,8 +76,8 @@ Custom components must preserve the field or widget contract to remain compatibl
 
 ```js
 const props = defineProps({
-  ...WIDGET_PROPS,
-  myDomainProp: { type: Object, default: () => ({}) },
+    ...WIDGET_PROPS,
+    myDomainProp: { type: Object, default: () => ({}) },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widget = useWidget(props, emit);
@@ -105,15 +102,11 @@ A slot override that wraps the default component while adding behaviour:
 
 ```vue
 <template #widget(line_items__status)="slotProps">
-  <component :is="slotProps.widgetComponent" v-bind="slotProps.widgetProps">
-    <template
-      v-for="[slotName, slotRenderer] of slotProps.slots"
-      #[slotName]="innerProps"
-      :key="slotName"
-    >
-      <component :is="slotRenderer" v-bind="innerProps" />
-    </template>
-  </component>
+    <component :is="slotProps.widgetComponent" v-bind="slotProps.widgetProps">
+        <template v-for="[slotName, slotRenderer] of slotProps.slots" #[slotName]="innerProps" :key="slotName">
+            <component :is="slotRenderer" v-bind="innerProps" />
+        </template>
+    </component>
 </template>
 ```
 
@@ -127,11 +120,11 @@ Expanded relation fields require specific targeting. The base field of an expand
 
 ```js
 modelConfigStore.setConfig(
-  { app: "myapp", model: "order" },
-  {
-    widgetComponents: { line_items__amount: MyAmountWidget },
-    widgetProps: { line_items__amount: { step: 0.01 } },
-  },
+    { app: "myapp", model: "order" },
+    {
+        widgetComponents: { line_items__amount: MyAmountWidget },
+        widgetProps: { line_items__amount: { step: 0.01 } },
+    },
 );
 ```
 
@@ -159,23 +152,19 @@ After configuring overrides, verify the following:
 
 ```js
 modelConfigStore.setConfig(
-  { app: "myapp", model: "mymodel" },
-  {
-    fieldComponents: { line_items: "FieldSetTabularInline" },
-    widgetComponents: { line_items__status: "WidgetSelect" },
-    fieldProps: { line_items: { showCreateButton: false } },
-    widgetProps: { line_items__amount: { step: 0.01 } },
-  },
-  {
-    update: {
-      expand: ["line_items"],
-      displayFields: [
-        "line_items",
-        "line_items__status",
-        "line_items__amount",
-      ],
+    { app: "myapp", model: "mymodel" },
+    {
+        fieldComponents: { line_items: "FieldSetTabularInline" },
+        widgetComponents: { line_items__status: "WidgetSelect" },
+        fieldProps: { line_items: { showCreateButton: false } },
+        widgetProps: { line_items__amount: { step: 0.01 } },
     },
-  },
+    {
+        update: {
+            expand: ["line_items"],
+            displayFields: ["line_items", "line_items__status", "line_items__amount"],
+        },
+    },
 );
 ```
 
@@ -183,8 +172,8 @@ modelConfigStore.setConfig(
 
 ```js
 const props = defineProps({
-  ...WIDGET_PROPS,
-  myDomainProp: { type: Object, default: () => ({}) },
+    ...WIDGET_PROPS,
+    myDomainProp: { type: Object, default: () => ({}) },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widget = useWidget(props, emit);

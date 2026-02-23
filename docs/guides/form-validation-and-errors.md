@@ -98,10 +98,10 @@ For fields with cross-field server validation (where the server error on one fie
 
 ```js
 const fieldProps = {
-  line_items__sku: {
-    validationDependencies: ["$parent.product", "$parent.quantity"],
-    clearServerErrorDependents: ["$parent.quantity", "$parent.price"],
-  },
+    line_items__sku: {
+        validationDependencies: ["$parent.product", "$parent.quantity"],
+        clearServerErrorDependents: ["$parent.quantity", "$parent.price"],
+    },
 };
 ```
 
@@ -191,23 +191,23 @@ With the validation pipeline wired, verify these behaviors:
 ## Relevant Implementation Surface
 
 - Python:
-  - {@api py:module:vueda.core.exceptions}
-  - {@api py:class:vueda.core.exceptions.VuedaValidationError}
-  - {@api py:function:vueda.core.exceptions.debug_stack_exception_handler}
-  - {@api py:class:vueda.core.viewsets.VuedaViewSet}
-  - {@api py:class:vueda.core.serializers.PrimaryKeyListSerializer}
+    - {@api py:module:vueda.core.exceptions}
+    - {@api py:class:vueda.core.exceptions.VuedaValidationError}
+    - {@api py:function:vueda.core.exceptions.debug_stack_exception_handler}
+    - {@api py:class:vueda.core.viewsets.VuedaViewSet}
+    - {@api py:class:vueda.core.serializers.PrimaryKeyListSerializer}
 - JavaScript:
-  - {@api js:module:@arrai-innovations/vueda.utils/errors}
-  - {@api js:class:@arrai-innovations/vueda.utils/errors.FormValidationError}
-  - {@api js:module:@arrai-innovations/vueda.use/useForm}
-  - {@api js:module:@arrai-innovations/vueda.use/useField}
-  - {@api js:module:@arrai-innovations/vueda.use/useObjectForm}
-  - {@api js:module:@arrai-innovations/vueda.use/useWarnings}
-  - {@api js:module:@arrai-innovations/vueda.utils/objectCrud}
-  - {@api js:module:@arrai-innovations/vueda.utils/listCrud}
-  - {@api js:property:@arrai-innovations/vueda.utils/constants.NON_FIELD_ERRORS_KEY}
+    - {@api js:module:@arrai-innovations/vueda.utils/errors}
+    - {@api js:class:@arrai-innovations/vueda.utils/errors.FormValidationError}
+    - {@api js:module:@arrai-innovations/vueda.use/useForm}
+    - {@api js:module:@arrai-innovations/vueda.use/useField}
+    - {@api js:module:@arrai-innovations/vueda.use/useObjectForm}
+    - {@api js:module:@arrai-innovations/vueda.use/useWarnings}
+    - {@api js:module:@arrai-innovations/vueda.utils/objectCrud}
+    - {@api js:module:@arrai-innovations/vueda.utils/listCrud}
+    - {@api js:property:@arrai-innovations/vueda.utils/constants.NON_FIELD_ERRORS_KEY}
 - Vue.js Components:
-  - {@api vue:component:ActionForm}
-  - {@api vue:component:ModelActionForm}
-  - {@api vue:component:FormChores}
-  - {@api vue:component:FormFeedback}
+    - {@api vue:component:ActionForm}
+    - {@api vue:component:ModelActionForm}
+    - {@api vue:component:FormChores}
+    - {@api vue:component:FormFeedback}

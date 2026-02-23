@@ -121,15 +121,15 @@ After implementing column totals, verify:
 ## Relevant Implementation Surface
 
 - Python:
-  - {@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}
-  - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}
-  - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.get_column_info}
-  - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.list}
-  - {@api py:class:vueda.core.pagination.VUEDAPageNumberPagination}
-  - {@api py:function:vueda.core.pagination.VUEDAPageNumberPagination.get_paginated_response}
+    - {@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}
+    - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}
+    - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.get_column_info}
+    - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.list}
+    - {@api py:class:vueda.core.pagination.VUEDAPageNumberPagination}
+    - {@api py:function:vueda.core.pagination.VUEDAPageNumberPagination.get_paginated_response}
 - JavaScript:
-  - {@api js:module:@arrai-innovations/vueda.utils/listCrud}
-  - {@api js:function:@arrai-innovations/vueda.utils/listCrud.singlePagePaginatedListCrudAdaptor}
-  - {@api js:function:@arrai-innovations/vueda.utils/listCrud.allPagePaginatedListCrudAdaptor}
+    - {@api js:module:@arrai-innovations/vueda.utils/listCrud}
+    - {@api js:function:@arrai-innovations/vueda.utils/listCrud.singlePagePaginatedListCrudAdaptor}
+    - {@api js:function:@arrai-innovations/vueda.utils/listCrud.allPagePaginatedListCrudAdaptor}
 - Vue.js Components:
-  - {@api vue:component:ViewList}
+    - {@api vue:component:ViewList}

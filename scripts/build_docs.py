@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Build VitePress guide/changelog and pdoc reference with Django initialized."""
+
 from __future__ import annotations
 
 import argparse

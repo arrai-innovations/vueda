@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import inspect
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from pdoc import extract
 from pdoc.doc import Class
@@ -111,9 +112,7 @@ def _doc_to_dict(doc: Doc, kind_by_fullname: dict[str, str]) -> dict[str, Any]:
         data.update(
             {
                 "members": [m.fullname for m in doc.own_members],
-                "bases": [
-                    {"modulename": b[0], "qualname": b[1], "display": b[2]} for b in doc.bases
-                ],
+                "bases": [{"modulename": b[0], "qualname": b[1], "display": b[2]} for b in doc.bases],
                 "decorators": doc.decorators,
             }
         )
@@ -181,13 +180,13 @@ def main() -> int:
     payload = dump_modules(args.spec)
 
     output_path.write_text(json.dumps(payload, indent=2, sort_keys=True))
-    print(f"Wrote {output_path}")
     return 0
 
 
 if __name__ == "__main__":
     import os
     import sys
+
     import django
 
     if os.environ.get("DJANGO_SETTINGS_MODULE") == "doc_settings":

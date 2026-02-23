@@ -42,19 +42,19 @@ To override any of these, call `storeModelConfig().setConfig()` with the model i
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 
 storeModelConfig().setConfig(
-  { app: "myapp", model: "widget" },
-  // Generic overrides (all views)
-  {
-    displayFields: ["name", "status", "category"],
-    fetchFields: ["name", "status", "category", "description"],
-    submitFields: ["name", "status", "category", "description"],
-    expand: ["category"],
-  },
-  // View-specific overrides
-  {
-    create: { submitFields: ["name", "category"] },
-    list: { displayFields: ["name", "status"] },
-  }
+    { app: "myapp", model: "widget" },
+    // Generic overrides (all views)
+    {
+        displayFields: ["name", "status", "category"],
+        fetchFields: ["name", "status", "category", "description"],
+        submitFields: ["name", "status", "category", "description"],
+        expand: ["category"],
+    },
+    // View-specific overrides
+    {
+        create: { submitFields: ["name", "category"] },
+        list: { displayFields: ["name", "status"] },
+    },
 );
 ```
 
@@ -66,9 +66,9 @@ To consume the resolved config in a component, use `useModelConfig`:
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 
 const modelConfig = useModelConfig(
-  toRef(props, "app"),
-  toRef(props, "model"),
-  "list" // view name
+    toRef(props, "app"),
+    toRef(props, "model"),
+    "list", // view name
 );
 
 // modelConfig.config contains the resolved ModelConfig object
@@ -155,16 +155,16 @@ With config overrides in place, verify the surface end-to-end:
 ## Relevant Implementation Surface
 
 - JavaScript:
-  - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
-  - {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}
-  - {@api js:module:@arrai-innovations/vueda.use/useModelConfig}
-  - {@api js:function:@arrai-innovations/vueda.use/useModelConfig.useModelConfig}
-  - {@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes}
-  - {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}
-  - {@api js:module:@arrai-innovations/vueda.router/guards}
+    - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
+    - {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}
+    - {@api js:module:@arrai-innovations/vueda.use/useModelConfig}
+    - {@api js:function:@arrai-innovations/vueda.use/useModelConfig.useModelConfig}
+    - {@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes}
+    - {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}
+    - {@api js:module:@arrai-innovations/vueda.router/guards}
 - Vue.js Components:
-  - {@api vue:component:ViewList}
-  - {@api vue:component:DetailView}
-  - {@api vue:component:ViewRead}
-  - {@api vue:component:ViewCreate}
-  - {@api vue:component:ViewUpdate}
+    - {@api vue:component:ViewList}
+    - {@api vue:component:DetailView}
+    - {@api vue:component:ViewRead}
+    - {@api vue:component:ViewCreate}
+    - {@api vue:component:ViewUpdate}

@@ -76,6 +76,7 @@ Other failures (e.g., missing or uninitialized `twilio_client`) fall through to 
 The Twilio webhook endpoint (`/vueda.vdq/twilio-status-callback/`) is `AllowAny` for authentication (Twilio cannot send bearer tokens), but validates the Twilio request signature. Invalid signatures are rejected with `403`.
 
 When the webhook receives a status update with a known `MessageSid`:
+
 - `update_sms_qi` processes the status.
 - **`delivered`**: clears `result` and transitions to `succeeded`.
 - **`undelivered` or `failed`**: records error context and transitions to `errored`.
