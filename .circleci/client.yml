@@ -106,10 +106,10 @@ workflows:
                       branches:
                           ignore: /.*/
 
-    lint:
+    client-lint:
         jobs:
             - lintinator/lint_python_fixed_ip:
-                  name: lint
+                  name: client-lint
                   context: arrai-global
                   executor: lintinator/python311
                   hooks: prettier eslint md-toc
@@ -131,7 +131,7 @@ workflows:
                           only:
                               - main
             - lintinator/lint_python:
-                  name: lint-no-badge
+                  name: client-lint-no-badge
                   context: arrai-global
                   executor: lintinator/python311
                   hooks: prettier eslint md-toc
