@@ -1,7 +1,22 @@
 version: 2
 updates:
     - package-ecosystem: "pip"
-      directory: "/"
+      directory: "/server"
+      schedule:
+          interval: "daily"
+          time: "09:00"
+          timezone: "Canada/Mountain"
+      pull-request-branch-name:
+          separator: "-"
+      commit-message:
+          prefix: "chore"
+      open-pull-requests-limit: 0
+      allow:
+          - dependency-type: "all"
+      reviewers:
+          - "arrai-innovations/developers"
+    - package-ecosystem: "pip"
+      directory: "/docs-tooling"
       schedule:
           interval: "daily"
           time: "09:00"
