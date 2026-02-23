@@ -13,6 +13,7 @@ logs
 *.local
 .vscode/*
 !.vscode/extensions.json
+.eslintcache
 .idea
 .DS_Store
 *.suo

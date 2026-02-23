@@ -1,8 +1,14 @@
-<script setup lang="ts">
-defineProps<{
-    term: string;
-    href: string;
-}>();
+<script setup>
+defineProps({
+    term: {
+        type: String,
+        required: true,
+    },
+    href: {
+        type: String,
+        required: true,
+    },
+});
 </script>
 
 <template>

@@ -4,7 +4,6 @@
 import { Normalizer } from "../core.js";
 import { compact } from "../utils/compact.js";
 import { getRepoRoot, normalizeSourceFile } from "../utils/source.js";
-import path from "node:path";
 
 const KIND_MAP = new Map([
     [1, "module"], // Project

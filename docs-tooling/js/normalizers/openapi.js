@@ -114,7 +114,6 @@ export class OpenApiNormalizer extends Normalizer {
                 const id = endpointId(method, pathKey);
                 const description = operation.summary || operation.description;
 
-                const signatures = [];
                 const parameters = [];
 
                 for (const param of operation.parameters || []) {

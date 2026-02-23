@@ -182,7 +182,6 @@ def main() -> int:
     payload = dump_modules(args.spec)
 
     output_path.write_text(json.dumps(payload, indent=2, sort_keys=True))
-    print(f"Wrote {output_path}")
     return 0
 
 
