@@ -61,7 +61,7 @@ pre-commit:
                 uv run --group dev --no-sync ruff format {staged_files}
         fix-eslint:
             stage_fixed: true
-            glob: "**/*.{vue,js,cjs,mjs,ts,jsx,tsx}"
+            glob: "**/*.{vue,js,cjs,mjs,jsx}"
             exclude:
                 - ".uv-cache/**"
                 - ".claude/**"

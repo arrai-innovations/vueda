@@ -1,8 +1,7 @@
 import "./brand.css";
-import type { Theme } from "vitepress";
 import DefaultTheme from "vitepress/theme";
 
-const theme: Theme = {
+const theme = {
     ...DefaultTheme,
     enhanceApp(ctx) {
         if (DefaultTheme.enhanceApp) {
@@ -12,7 +11,7 @@ const theme: Theme = {
         if (typeof window !== "undefined") {
             const { router } = ctx;
             const renderMermaid = () => {
-                const mermaid = (window as typeof window & { mermaid?: { init: () => void } }).mermaid;
+                const mermaid = window.mermaid;
                 if (mermaid) {
                     mermaid.init();
                 }
