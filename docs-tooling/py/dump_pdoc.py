@@ -112,9 +112,7 @@ def _doc_to_dict(doc: Doc, kind_by_fullname: dict[str, str]) -> dict[str, Any]:
         data.update(
             {
                 "members": [m.fullname for m in doc.own_members],
-                "bases": [
-                    {"modulename": b[0], "qualname": b[1], "display": b[2]} for b in doc.bases
-                ],
+                "bases": [{"modulename": b[0], "qualname": b[1], "display": b[2]} for b in doc.bases],
                 "decorators": doc.decorators,
             }
         )
