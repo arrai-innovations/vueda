@@ -28,11 +28,10 @@ Package READMEs:
 ## About
 
 VUEDA is a two‑part system that pairs a Django REST Framework backend with a Vue.js
-component library. The server package (`vueda` on PyPI) provides DRF views, serializers,
-workflow, and permission helpers. The client package
-(`@arrai-innovations/vueda` on npm) provides Vue components, composables,
-and routing helpers that consume the API and render forms, lists, and
-detail views dynamically.
+component library. The server package (`vueda`) provides DRF views, serializers,
+workflow, and permission helpers. The client package (`@arrai-innovations/vueda`)
+provides Vue components, composables, and routing helpers that consume the API
+and render forms, lists, and detail views dynamically.
 
 ## Repository Layout
 
