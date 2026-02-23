@@ -16,22 +16,28 @@ test-client:
   cd {{justfile_directory()}}/client && pnpm test
 
 check:
-  pnpx concurrently -n server,client -c green,cyan "just check-server" "just check-client"
+  pnpx concurrently -n ruff,eslint,prettier -c green,cyan,magenta "just check-ruff" "just check-eslint" "just check-prettier"
 
-check-server:
-  cd {{justfile_directory()}}/server && uv run --no-sync ruff check .
+check-ruff:
+  cd {{justfile_directory()}} && uv run --group dev --no-sync ruff check server docs-tooling/py scripts
 
-check-client:
-  cd {{justfile_directory()}}/client && pnpm run lint && pnpm run format
+check-eslint:
+  cd {{justfile_directory()}} && pnpm run lint:eslint
+
+check-prettier:
+  cd {{justfile_directory()}} && pnpm run lint:prettier
 
 fix:
-  pnpx concurrently -n server,client -c green,cyan "just fix-server" "just fix-client"
+  pnpx concurrently -n ruff,eslint,prettier -c green,cyan,magenta "just fix-ruff" "just fix-eslint" "just fix-prettier"
 
-fix-server:
-  cd {{justfile_directory()}}/server && uv run --no-sync ruff check --fix . && uv run --no-sync ruff format .
+fix-ruff:
+  cd {{justfile_directory()}} && uv run --group dev --no-sync ruff check --fix server docs-tooling/py scripts && uv run --group dev --no-sync ruff format server docs-tooling/py scripts
 
-fix-client:
-  cd {{justfile_directory()}}/client && pnpm run eslint && pnpm run prettier
+fix-eslint:
+  cd {{justfile_directory()}} && pnpm run fix:eslint
+
+fix-prettier:
+  cd {{justfile_directory()}} && pnpm run fix:prettier
 
 manage *args:
   cd {{justfile_directory()}}/server && uv run --no-sync python manage.py {{args}}

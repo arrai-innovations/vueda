@@ -1,75 +1,116 @@
 commit-msg:
-  commands:
-    commitlint:
-      run: pnpm -C . exec commitlint --edit "$1"
+    commands:
+        commitlint:
+            run: pnpm -C . exec commitlint --edit "$1"
 
 pre-commit:
-  parallel: false
-  commands:
-    ruff-check:
-      root: "server/"
-      run: |
-        if [ -z "${CI:-}" ]; then
-          exit 0
-        fi
-        set -e
-        uv run --no-sync ruff check . ../scripts/check_template_parity.py
-        python "$(git rev-parse --show-toplevel)/scripts/check_template_parity.py" --scope server
-    ruff-format:
-      root: "server/"
-      run: |
-        if [ -z "${CI:-}" ]; then
-          exit 0
-        fi
-        uv run --no-sync ruff format --check . ../scripts/check_template_parity.py
-    eslint:
-      root: "client/"
-      run: |
-        if [ -z "${CI:-}" ]; then
-          exit 0
-        fi
-        pnpm exec eslint --no-warn-ignored --cache .
-        python "$(git rev-parse --show-toplevel)/scripts/check_template_parity.py" --scope client
-    prettier:
-      root: "client/"
-      run: |
-        if [ -z "${CI:-}" ]; then
-          exit 0
-        fi
-        pnpm exec prettier --check .
-    md-toc:
-      run: |
-        if [ -z "${CI:-}" ]; then
-          exit 0
-        fi
-        files="$(find $PWD -name 'README.md' -not -path '*/node_modules/*' -not -path '*/.venv/*')"
-        if [ -n "$files" ]; then
-          uv run --group dev --no-sync python -m md_toc -p github $files
-        fi
-    fix-server:
-      stage_fixed: true
-      root: "server/"
-      glob: "server/*.py"
-      run: |
-        uv run --no-sync ruff check --fix --show-fixes {staged_files}
-        uv run --no-sync ruff format {staged_files}
-    fix-client-eslint:
-      stage_fixed: true
-      root: "client/"
-      glob: "client/*.{vue,js,cjs,mjs,ts,jsx,tsx}"
-      run: pnpm exec eslint --no-warn-ignored --cache --fix {staged_files}
-    fix-client-prettier:
-      stage_fixed: true
-      root: "client/"
-      glob: "client/*.{less,scss,css,vue,markdown,json,md,yml,yaml,html}"
-      run: pnpm exec prettier --write {staged_files}
-    fix-md-toc:
-      stage_fixed: true
-      glob: "**/README.md"
-      run: uv run --group dev --no-sync python -m md_toc -p github {staged_files}
-    circleci-config:
-      run: |
-        readarray -t files < <(git diff --name-only --cached -- '.circleci/*.yml')
-        for file in ${files[@]}; do
-          circleci config validate ${file}
-        done
+    parallel: false
+    commands:
+        ruff-check:
+            root: "."
+            run: |
+                if [ -z "${CI:-}" ]; then
+                  exit 0
+                fi
+                set -e
+                uv run --group dev --no-sync ruff check server docs-tooling/py scripts
+                python "$(git rev-parse --show-toplevel)/scripts/check_template_parity.py" --scope server
+        ruff-format:
+            root: "."
+            run: |
+                if [ -z "${CI:-}" ]; then
+                  exit 0
+                fi
+                uv run --group dev --no-sync ruff format --check server docs-tooling/py scripts
+        eslint:
+            root: "."
+            run: |
+                if [ -z "${CI:-}" ]; then
+                  exit 0
+                fi
+                pnpm exec eslint --no-warn-ignored --cache client docs docs-tooling eslint.config.mjs
+                python "$(git rev-parse --show-toplevel)/scripts/check_template_parity.py" --scope client
+        prettier:
+            root: "."
+            run: |
+                if [ -z "${CI:-}" ]; then
+                  exit 0
+                fi
+                pnpm exec prettier --check .
+        md-toc:
+            run: |
+                if [ -z "${CI:-}" ]; then
+                  exit 0
+                fi
+                files="$(find $PWD -name 'README.md' -not -path '*/node_modules/*' -not -path '*/.venv/*')"
+                if [ -n "$files" ]; then
+                  uv run --group dev --no-sync python -m md_toc -p github $files
+                fi
+        fix-ruff:
+            stage_fixed: true
+            root: "."
+            glob: "**/*.py"
+            exclude:
+                - ".uv-cache/**"
+                - ".claude/**"
+                - ".venv/**"
+                - "**/.venv/**"
+                - "**/node_modules/**"
+                - "server/**/migrations/**"
+            run: |
+                uv run --group dev --no-sync ruff check --fix --show-fixes {staged_files}
+                uv run --group dev --no-sync ruff format {staged_files}
+        fix-eslint:
+            stage_fixed: true
+            root: "."
+            glob: "**/*.{vue,js,cjs,mjs,ts,jsx,tsx}"
+            exclude:
+                - ".uv-cache/**"
+                - ".claude/**"
+                - "**/node_modules/**"
+                - "**/dist/**"
+                - "**/coverage/**"
+                - "docs/reference/api/**"
+                - "docs/public/api/**"
+                - "docs/.generated/**"
+                - "docs-tooling/.generated/**"
+                - "docs/public/assets/mermaid/mermaid.min.js"
+                - "templates/**"
+            run: pnpm exec eslint --no-warn-ignored --cache --fix {staged_files}
+        fix-prettier:
+            stage_fixed: true
+            root: "."
+            glob: "**/*.{less,scss,css,vue,js,mjs,cjs,markdown,json,md,yml,yaml,html}"
+            exclude:
+                - ".uv-cache/**"
+                - ".claude/**"
+                - "**/node_modules/**"
+                - "**/dist/**"
+                - "**/coverage/**"
+                - "pnpm-lock.yaml"
+                - "package-lock.json"
+                - "uv.lock"
+                - "client/package.json"
+                - "docs/package.json"
+                - "docs-tooling/package.json"
+                - "docs/reference/api/**"
+                - "docs/public/api/**"
+                - "docs/.generated/**"
+                - "docs/.vitepress/cache/**"
+                - "docs/.vitepress/dist/**"
+                - "docs/.vitepress/.temp/**"
+                - "docs-tooling/.generated/**"
+                - "docs/public/assets/mermaid/mermaid.min.js"
+                - "**/AGENT.md"
+                - "**/AGENTS.md"
+            run: pnpm exec prettier --write {staged_files}
+        fix-md-toc:
+            stage_fixed: true
+            glob: "**/README.md"
+            run: uv run --group dev --no-sync python -m md_toc -p github {staged_files}
+        circleci-config:
+            run: |
+                readarray -t files < <(git diff --name-only --cached -- '.circleci/*.yml')
+                for file in ${files[@]}; do
+                  circleci config validate ${file}
+                done
