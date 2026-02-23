@@ -2,7 +2,7 @@
 
 Internal tooling for extracting, normalizing, and rendering API documentation into the VitePress site in `docs/`.
 
-**Pipeline**
+## Pipeline
 
 1. Extract raw data from source tools.
 2. Normalize to the canonical schema.
@@ -16,14 +16,14 @@ Default outputs live in `docs-tooling/.generated/`:
 
 The root `just docs-render` command writes rendered output to `docs/reference/api/` for VitePress.
 
-**Sources**
+## Sources
 
 - TypeDoc (TypeScript) for `client/lib/`.
 - vue-docgen-api (Vue SFC) for `.vue` files in `client/lib/`.
 - DRF Spectacular (OpenAPI) from the server via `manage.py spectacular`.
 - pdoc (Python) against the server package, using `server/doc_settings.py`.
 
-**Structure**
+## Structure
 
 - `bin/docs-tooling.js`: CLI entrypoint and task orchestrator.
 - `js/extractors/`: TypeDoc + vue-docgen extractors.
@@ -35,14 +35,14 @@ The root `just docs-render` command writes rendered output to `docs/reference/ap
 - `tests/`: Vitest unit tests (JS).
 - `typedoc.json`, `typedoc.tsconfig.json`: TypeDoc configuration.
 
-**CLI**
+## CLI
 
 Run from `docs-tooling/`:
 
-- Extract:
+### Extract
 
-```bash
-./bin/docs-tooling.js extract --target all
+```console
+$ ./bin/docs-tooling.js extract --target all
 ```
 
 Options:
@@ -50,10 +50,10 @@ Options:
 - `--target` (`all`, `python`, `rest`, `javascript`, `components`)
 - `--out-dir` (custom output dir)
 
-- Normalize:
+### Normalize
 
-```bash
-./bin/docs-tooling.js normalize --source all
+```console
+$ ./bin/docs-tooling.js normalize --source all
 ```
 
 Options:
@@ -62,10 +62,10 @@ Options:
 - `--input` (single-source override)
 - `--output` (single-source override)
 
-- Render:
+### Render
 
-```bash
-./bin/docs-tooling.js render --source all --output ../docs/reference/api
+```console
+$ ./bin/docs-tooling.js render --source all --output ../docs/reference/api
 ```
 
 Options:
@@ -74,7 +74,7 @@ Options:
 - `--input` (single-source override)
 - `--output` (rendered Markdown dir)
 
-**Workflow**
+## Workflow
 
 From repo root:
 
@@ -83,31 +83,31 @@ From repo root:
 - `just docs-render`
 - `just docs-api` (extract + normalize + render)
 
-**Install**
+## Install
 
 From repo root:
 
-```bash
-pnpm install
-uv sync --all-groups --all-packages
+```console
+$ pnpm install
+$ uv sync --all-groups --all-packages
 ```
 
 If you prefer the curated bootstrap flow:
 
-```bash
-just bootstrap
+```console
+$ just bootstrap
 ```
 
-**Tests**
+## Tests
 
 JavaScript (Vitest):
 
-```bash
-pnpm -C docs-tooling test
+```console
+$ pnpm -C docs-tooling test
 ```
 
 Python (pytest):
 
-```bash
-cd docs-tooling && uv run --no-sync pytest
+```console
+$ cd docs-tooling && uv run --no-sync pytest
 ```

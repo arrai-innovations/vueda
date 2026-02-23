@@ -1,9 +1,5 @@
 # VUEDA Server
 
-![VUEDA logo - vueda - vue.js user experience for django administration](/docs/assets/logo-text.png)
-
-[![code style: ruff][]][ruff] [![code style: prettier][]][prettier] ![pytest status][] ![coverage status][] ![ruff status][] ![pip-audit status][]
-
 <!--prettier-ignore-start-->
 <!--TOC-->
 
@@ -41,14 +37,14 @@
 
 ## About
 
-[VUEDA Server][vueda-server], the counterpart to [VUEDA Client][vueda-client], is designed for projects that
+VUEDA Server, the counterpart to [VUEDA Client](../client/README.md), is designed for projects that
 integrate Vue.js frontends with Django REST Framework backends. This server
 library enhances Django's native authentication and permissions systems
 with default DRF classes and optimizes integration with [django-filter],
 [drf-flex-fields], and [drf-writable-nested]. It offers essential out-of-the-box
 functionalities such as custom workflow management, audit trails (with DRF
 support for [django-simple-history]), and row-level
-permissions. Additionally, [VUEDA Server][vueda-server] provides DRF classes to expose Django
+permissions. Additionally, VUEDA Server provides DRF classes to expose Django
 model details to the frontend, filtered by user permissions. It is built with
 customization in mind, offering most features as base classes that can be
 extended in your application, ensuring both control and adaptability.
@@ -415,19 +411,8 @@ Coverage will be generated in circleci, but you can do so locally if you don't w
 [server]$ open htmlcov/index.html
 ```
 
-[code style: ruff]: https://img.shields.io/badge/code%20style-ruff-000000.svg?style=for-the-badge
-[ruff]: https://docs.astral.sh/ruff/formatter/#style-guide
-[code style: prettier]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=for-the-badge
-[prettier]: https://github.com/prettier/prettier
-[pytest status]: https://docs.arrai.dev/vueda-server/artifacts/main/pytest.svg
-[coverage status]: https://docs.arrai.dev/vueda-server/artifacts/main/pytest.coverage.svg
-[ruff status]: https://docs.arrai.dev/vueda-server/artifacts/main/ruff.svg
-[pipenv]: https://github.com/pypa/pipenv
-[pip-audit status]: https://docs.arrai.dev/vueda-server/artifacts/main/pip-audit.svg
 [django-filter]: https://github.com/carltongibson/django-filter
 [drf-flex-fields]: https://github.com/rsinger86/drf-flex-fields
 [drf-writable-nested]: https://github.com/beda-software/drf-writable-nested
 [django-simple-history]: https://github.com/jazzband/django-simple-history
-[vueda-client]: ../client/README.md
-[vueda-server]: ./README.md
 [api-docs]: https://docs.arrai.dev/vueda-server/documentation/
