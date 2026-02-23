@@ -116,11 +116,11 @@ extended in your application, ensuring both control and adaptability.
 
 <!-- #todo: document -->
 
--   it's up to you to add `vueda` to your `INSTALLED_APPS` in `settings.py`, as well as any standard Django
-    settings, like database, middleware, asgi vs wsgi, etc.
--   it's up to you to add `vueda`'s `urls` to your `urls.py`.
--   `HistoryRequestMiddleware` should be added to your `MIDDLEWARE` in `settings.py`, even if not otherwise
-    using `simple_history`.
+- it's up to you to add `vueda` to your `INSTALLED_APPS` in `settings.py`, as well as any standard Django
+  settings, like database, middleware, asgi vs wsgi, etc.
+- it's up to you to add `vueda`'s `urls` to your `urls.py`.
+- `HistoryRequestMiddleware` should be added to your `MIDDLEWARE` in `settings.py`, even if not otherwise
+  using `simple_history`.
 
     example wsgi settings:
 
@@ -170,12 +170,12 @@ In order for a logged in user to be able to hit the server and ask for model inf
 
 For new projects:
 
--   `list_contenttype`
--   `read_contenttype`
+- `list_contenttype`
+- `read_contenttype`
 
 For existing django projects:
 
--   `view_contenttype`
+- `view_contenttype`
 
 ### Permission Names
 

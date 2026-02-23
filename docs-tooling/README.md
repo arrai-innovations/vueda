@@ -9,6 +9,7 @@ Internal tooling for extracting, normalizing, and rendering API documentation in
 3. Render Markdown bundles and write index pages.
 
 Default outputs live in `docs-tooling/.generated/`:
+
 - Raw extracts: `typedoc.json`, `vue-docgen.json`, `openapi.json`, `pdoc.json`
 - Canonical bundles: `*.canonical.json`
 - Rendered Markdown: `docs/reference/api/` (default render destination)
@@ -45,6 +46,7 @@ Run from `docs-tooling/`:
 ```
 
 Options:
+
 - `--target` (`all`, `python`, `rest`, `javascript`, `components`)
 - `--out-dir` (custom output dir)
 
@@ -55,6 +57,7 @@ Options:
 ```
 
 Options:
+
 - `--source` (`all`, `typedoc`, `vue-docgen`, `openapi`, `pdoc`)
 - `--input` (single-source override)
 - `--output` (single-source override)
@@ -66,6 +69,7 @@ Options:
 ```
 
 Options:
+
 - `--source` (`all`, `typedoc`, `vue-docgen`, `openapi`, `pdoc`)
 - `--input` (single-source override)
 - `--output` (rendered Markdown dir)

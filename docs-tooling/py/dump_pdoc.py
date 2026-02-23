@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import inspect
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from pdoc import extract
 from pdoc.doc import Class
@@ -188,6 +189,7 @@ def main() -> int:
 if __name__ == "__main__":
     import os
     import sys
+
     import django
 
     if os.environ.get("DJANGO_SETTINGS_MODULE") == "doc_settings":

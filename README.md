@@ -3,6 +3,7 @@
 ![VUEDA Logo - Vue.js User Experience for Django Admin](/VUEDA.png)
 
 Links:
+
 - [Server docs](./server/README.md)
 - [Client docs](./client/README.md)
 - [Copier templates](./templates/README.md)
@@ -30,6 +31,7 @@ routing helpers that consume the API and render forms, lists, and detail views
 dynamically.
 
 See the package‑specific docs for details:
+
 - [vueda-server](./server/README.md)
 - [vueda-client](./client/README.md)
 
@@ -50,16 +52,19 @@ just bootstrap
 ## Checks and Tests
 
 Read‑only checks:
+
 ```
 just check
 ```
 
 Auto‑fixing:
+
 ```
 just fix
 ```
 
 Tests:
+
 ```
 just test
 ```
@@ -67,5 +72,6 @@ just test
 ## Release Tags
 
 We use tag prefixes to publish packages independently:
+
 - `server-vX.Y.Z` publishes `vueda` (PyPI)
 - `client-vX.Y.Z` publishes `@arrai-innovations/vueda` (npm)

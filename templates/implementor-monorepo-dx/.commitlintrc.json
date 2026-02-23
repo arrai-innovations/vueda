@@ -1,4 +1,3 @@
 {
-  "extends": ["@arrai-innovations/commitlint-config"]
+    "extends": ["@arrai-innovations/commitlint-config"]
 }
-

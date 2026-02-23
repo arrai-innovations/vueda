@@ -31,7 +31,7 @@ The project has a Django settings module that calls `get_defaults` from `vueda.c
 The default mapping translates Django's vocabulary to CRUDL:
 
 | Django action | VUEDA codename | Example for `myapp.Widget` |
-|---------------|----------------|----------------------------|
+| ------------- | -------------- | -------------------------- |
 | `add`         | `create`       | `myapp.create_widget`      |
 | `change`      | `update`       | `myapp.update_widget`      |
 | `view`        | `read`         | `myapp.read_widget`        |
@@ -89,9 +89,8 @@ Several runtime paths build codenames directly from `PERMISSION_NAMES_MAPPING` r
 
 Validate the mapping end-to-end by running a permission matrix. For each HTTP method and endpoint type, test with a user who holds only one CRUDL codename at a time.
 
-
 | Test scenario         | Expected codename             | Expected outcome                            |
-|-----------------------|-------------------------------|---------------------------------------------|
+| --------------------- | ----------------------------- | ------------------------------------------- |
 | `GET` list            | `list_*`                      | `200` if held, `403` if not                 |
 | `GET` detail          | `read_*`                      | `200` if held, `403` if not                 |
 | `POST` create         | `create_*`                    | `201` if held, `403` if not                 |

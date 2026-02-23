@@ -120,15 +120,15 @@ After implementing the serializer split, verify:
 ## Relevant Implementation Surface
 
 - Python:
-  - {@api py:class:vueda.core.viewsets.PerActionSerializerMixin}
-  - {@api py:function:vueda.core.viewsets.PerActionSerializerMixin.get_serializer_class}
-  - {@api py:class:vueda.core.viewsets.VuedaViewSet}
-  - {@api py:function:vueda.info.registration.register}
-  - {@api py:function:vueda.info.registration.register_serializer}
-  - {@api py:class:vueda.info.serializers.ModelInfoSerializer}
+    - {@api py:class:vueda.core.viewsets.PerActionSerializerMixin}
+    - {@api py:function:vueda.core.viewsets.PerActionSerializerMixin.get_serializer_class}
+    - {@api py:class:vueda.core.viewsets.VuedaViewSet}
+    - {@api py:function:vueda.info.registration.register}
+    - {@api py:function:vueda.info.registration.register_serializer}
+    - {@api py:class:vueda.info.serializers.ModelInfoSerializer}
 - JavaScript:
-  - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
-  - {@api js:module:@arrai-innovations/vueda.use/useObjectForm}
+    - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
+    - {@api js:module:@arrai-innovations/vueda.use/useObjectForm}
 - Vue.js Components:
-  - {@api vue:component:ViewCreate}
-  - {@api vue:component:ViewUpdate}
+    - {@api vue:component:ViewCreate}
+    - {@api vue:component:ViewUpdate}

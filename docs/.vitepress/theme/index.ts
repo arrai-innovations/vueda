@@ -1,31 +1,30 @@
-import DefaultTheme from 'vitepress/theme';
-import type { Theme } from 'vitepress';
-
-import './brand.css';
+import "./brand.css";
+import type { Theme } from "vitepress";
+import DefaultTheme from "vitepress/theme";
 
 const theme: Theme = {
-  ...DefaultTheme,
-  enhanceApp(ctx) {
-    if (DefaultTheme.enhanceApp) {
-      DefaultTheme.enhanceApp(ctx);
-    }
-
-    if (typeof window !== 'undefined') {
-      const { router } = ctx;
-      const renderMermaid = () => {
-        const mermaid = (window as typeof window & { mermaid?: { init: () => void } }).mermaid;
-        if (mermaid) {
-          mermaid.init();
+    ...DefaultTheme,
+    enhanceApp(ctx) {
+        if (DefaultTheme.enhanceApp) {
+            DefaultTheme.enhanceApp(ctx);
         }
-      };
 
-      router.onAfterRouteChanged = () => {
-        requestAnimationFrame(renderMermaid);
-      };
+        if (typeof window !== "undefined") {
+            const { router } = ctx;
+            const renderMermaid = () => {
+                const mermaid = (window as typeof window & { mermaid?: { init: () => void } }).mermaid;
+                if (mermaid) {
+                    mermaid.init();
+                }
+            };
 
-      requestAnimationFrame(renderMermaid);
-    }
-  },
+            router.onAfterRouteChanged = () => {
+                requestAnimationFrame(renderMermaid);
+            };
+
+            requestAnimationFrame(renderMermaid);
+        }
+    },
 };
 
 export default theme;

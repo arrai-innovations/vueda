@@ -96,15 +96,15 @@ The client also requires a detectable primary key field in the metadata for any 
 ## Relevant Implementation Surface
 
 - Python:
-  - {@api py:module:vueda.info.registration}
-  - {@api py:function:vueda.info.registration.register}
-  - {@api py:function:vueda.info.registration.register_serializer}
-  - {@api py:function:vueda.info.registration.get_registration}
-  - {@api py:function:vueda.info.registration.get_all_registrations}
-  - {@api py:function:vueda.info.registration.get_registered_content_types}
-  - {@api py:class:vueda.info.viewsets.ModelInfoViewSet}
+    - {@api py:module:vueda.info.registration}
+    - {@api py:function:vueda.info.registration.register}
+    - {@api py:function:vueda.info.registration.register_serializer}
+    - {@api py:function:vueda.info.registration.get_registration}
+    - {@api py:function:vueda.info.registration.get_all_registrations}
+    - {@api py:function:vueda.info.registration.get_registered_content_types}
+    - {@api py:class:vueda.info.viewsets.ModelInfoViewSet}
 - REST:
-  - {@api rest:endpoint:GET:/vueda.info/model_info/}
-  - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
+    - {@api rest:endpoint:GET:/vueda.info/model_info/}
+    - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
 - JavaScript:
-  - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
+    - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
