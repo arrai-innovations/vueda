@@ -48,7 +48,6 @@ pre-commit:
                 fi
         fix-ruff:
             stage_fixed: true
-            root: "."
             glob: "**/*.py"
             exclude:
                 - ".uv-cache/**"
@@ -62,7 +61,6 @@ pre-commit:
                 uv run --group dev --no-sync ruff format {staged_files}
         fix-eslint:
             stage_fixed: true
-            root: "."
             glob: "**/*.{vue,js,cjs,mjs,ts,jsx,tsx}"
             exclude:
                 - ".uv-cache/**"
@@ -79,7 +77,6 @@ pre-commit:
             run: pnpm exec eslint --no-warn-ignored --cache --fix {staged_files}
         fix-prettier:
             stage_fixed: true
-            root: "."
             glob: "**/*.{less,scss,css,vue,js,mjs,cjs,markdown,json,md,yml,yaml,html}"
             exclude:
                 - ".uv-cache/**"
