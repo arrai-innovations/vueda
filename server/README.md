@@ -313,8 +313,15 @@ First, clone the repository:
 
 ```console
 $ git clone https://github.com/arrai-innovations/vueda.git
-$ # or
+```
+
+or
+
+```console
 $ git clone git@github.com:arrai-innovations/vueda.git
+```
+
+```console
 $ cd vueda
 [vueda]$ cd server
 [server]$

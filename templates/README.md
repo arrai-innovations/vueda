@@ -21,7 +21,11 @@ Run Copier from the repository root where this `templates/` directory exists:
 
 ```console
 $ copier copy templates/implementor-monorepo <destination-dir>
-$ # or
+```
+
+or
+
+```console
 $ copier copy templates/implementor-monorepo-dx <destination-dir>
 ```
 
