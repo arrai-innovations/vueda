@@ -18,6 +18,28 @@ workflows:
                           only: /^docs-v.*/
                       branches:
                           ignore: /.*/
+    client-publish-on-tag:
+        jobs:
+            - continuation/continue:
+                  name: client-publish-on-tag
+                  configuration_path: .circleci/client.yml
+                  parameters: '{"run-client-workflows": true}'
+                  filters:
+                      tags:
+                          only: /^client-v.*/
+                      branches:
+                          ignore: /.*/
+    server-publish-on-tag:
+        jobs:
+            - continuation/continue:
+                  name: server-publish-on-tag
+                  configuration_path: .circleci/server.yml
+                  parameters: '{"run-server-workflows": true}'
+                  filters:
+                      tags:
+                          only: /^server-v.*/
+                      branches:
+                          ignore: /.*/
     detect-code-changes:
         jobs:
             - path-filtering/filter:
@@ -39,3 +61,5 @@ workflows:
                       tags:
                           ignore:
                               - /^docs-v.*/
+                              - /^client-v.*/
+                              - /^server-v.*/
