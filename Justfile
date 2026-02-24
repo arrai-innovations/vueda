@@ -70,6 +70,9 @@ docs:
   just docs-api
   just docs-serve
 
+docs-validate:
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js validate
+
 docs-build:
   just docs-api
   just docs-rebuild

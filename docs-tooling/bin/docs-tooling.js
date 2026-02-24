@@ -9,6 +9,7 @@ import { renderOpenApiBundle } from "../js/renderers/openapi.js";
 import { renderPdocBundle } from "../js/renderers/pdoc.js";
 import { renderTypeDocBundle } from "../js/renderers/typedoc.js";
 import { renderVueDocgenBundle } from "../js/renderers/vue-docgen.js";
+import { validateReferences } from "../js/validators/references.js";
 import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -314,6 +315,64 @@ async function runRender(argv) {
     await writeRenderedFiles(outputDir, combinedOutputs);
 }
 
+const defaultExcludes = ["reference/api", ".vitepress", ".generated", "AGENTS.md", "CONTENT_PLAN.md"];
+
+function collectMarkdownFiles(docsDir, excludes) {
+    const results = [];
+    const walk = (dir) => {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+            const entryPath = path.join(dir, entry.name);
+            const rel = path.relative(docsDir, entryPath).split(path.sep).join("/");
+            if (excludes.some((ex) => rel.startsWith(ex) || rel === ex)) {
+                continue;
+            }
+            if (entry.isDirectory()) {
+                walk(entryPath);
+            } else if (entry.name.endsWith(".md")) {
+                results.push(entryPath);
+            }
+        }
+    };
+    walk(docsDir);
+    return results;
+}
+
+async function runValidate(argv) {
+    const docsDir = path.join(repoRoot, "docs");
+    const apiRoot = path.join(docsDir, "reference", "api");
+    const glossaryFile = path.join(docsDir, "reference", "glossary.md");
+
+    if (!fs.existsSync(apiRoot)) {
+        console.warn("warning: docs/reference/api/ not found; skipping API reference validation");
+    }
+
+    let files;
+    if (argv.files && argv.files.length > 0) {
+        files = argv.files.map((f) => path.resolve(process.cwd(), f)).filter((f) => f.endsWith(".md"));
+    } else {
+        files = collectMarkdownFiles(docsDir, defaultExcludes);
+    }
+
+    if (files.length === 0) {
+        return;
+    }
+
+    const { errors, apiIndexSize, glossaryIndexSize } = validateReferences({ files, apiRoot, glossaryFile });
+
+    console.error(
+        `Checked ${files.length} file(s) against ${apiIndexSize} API ids and ${glossaryIndexSize} glossary terms`,
+    );
+
+    if (errors.length > 0) {
+        for (const error of errors) {
+            const rel = path.relative(process.cwd(), error.file).split(path.sep).join("/");
+            console.log(`${rel}:${error.line}: ${error.message}`);
+        }
+        process.exit(1);
+    }
+}
+
 yargs(hideBin(process.argv))
     .command(
         "extract",
@@ -381,6 +440,18 @@ yargs(hideBin(process.argv))
                     describe: "Output directory for rendered Markdown",
                 }),
         runRender,
+    )
+    .command(
+        "validate",
+        "Validate {@api} and {@term} references in documentation",
+        (y) =>
+            y.option("files", {
+                alias: "f",
+                array: true,
+                type: "string",
+                describe: "Specific files to validate (default: all authored docs)",
+            }),
+        runValidate,
     )
     .demandCommand(1)
     .strict()
