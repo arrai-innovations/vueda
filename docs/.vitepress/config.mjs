@@ -1,3 +1,10 @@
+import {
+    normalizeTerm,
+    parseApiRef,
+    parseFrontmatter,
+    parseTermRef,
+    stripInlineMarkdown,
+} from "../../docs-tooling/js/utils/reference-parser.js";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,47 +32,10 @@ const walkFiles = (dir) => {
     });
 };
 
-const parseFrontmatter = (raw) => {
-    const match = raw.match(/^---\s*\r?\n([\s\S]*?)\r?\n---\s*(?:\r?\n|$)/);
-    if (!match) {
-        return { frontmatter: {}, body: raw };
-    }
-    const frontmatter = {};
-    const lines = match[1].split(/\r?\n/);
-    for (const line of lines) {
-        const idx = line.indexOf(":");
-        if (idx <= 0) continue;
-        const key = line.slice(0, idx).trim();
-        const value = line.slice(idx + 1).trim();
-        if (!key) continue;
-        if (value.startsWith('"')) {
-            try {
-                frontmatter[key] = JSON.parse(value);
-            } catch {
-                frontmatter[key] = value.replace(/^"|"$/g, "");
-            }
-        } else if (value.startsWith("'")) {
-            frontmatter[key] = value.replace(/^'|'$/g, "");
-        } else {
-            frontmatter[key] = value;
-        }
-    }
-    return { frontmatter, body: raw.slice(match[0].length) };
-};
-
 const extractHeading = (body) => {
     const match = body.match(/^#\s+(.+)\s*$/m);
     return match ? match[1].trim() : null;
 };
-
-const normalizeTerm = (value) => value.trim().replace(/\s+/g, " ").toLowerCase();
-
-const stripInlineMarkdown = (value) =>
-    value
-        .replace(/`([^`]+)`/g, "$1")
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-        .replace(/[*_~]/g, "")
-        .trim();
 
 const slugifyHeading = (value) =>
     stripInlineMarkdown(value)
@@ -155,54 +125,13 @@ const apiLinkPlugin = (md, options = {}) => {
     const resolve = options.resolve;
     const strict = options.strict !== false;
     const softbreakSpacer = " ";
-    const parseApiLink = (src, pos) => {
-        const prefix = "{@api";
-        if (!src.startsWith(prefix, pos)) {
-            return null;
-        }
-
-        let i = pos + prefix.length;
-        if (i >= src.length || !/\s/.test(src[i])) {
-            return null;
-        }
-
-        while (i < src.length && /\s/.test(src[i])) {
-            i += 1;
-        }
-
-        const idStart = i;
-        let braceDepth = 0;
-
-        while (i < src.length) {
-            const char = src[i];
-            if (char === "{") {
-                braceDepth += 1;
-                i += 1;
-                continue;
-            }
-            if (char === "}") {
-                if (braceDepth === 0) {
-                    const raw = src.slice(pos, i + 1);
-                    const rawId = src.slice(idStart, i).trim();
-                    if (!rawId) {
-                        return null;
-                    }
-                    return { raw, rawId, length: raw.length };
-                }
-                braceDepth -= 1;
-            }
-            i += 1;
-        }
-
-        return null;
-    };
 
     md.inline.ruler.before("emphasis", "vueda-api-link", (state, silent) => {
         const { pos } = state;
         if (state.src.charCodeAt(pos) !== 0x7b) {
             return false;
         }
-        const parsed = parseApiLink(state.src, pos);
+        const parsed = parseApiRef(state.src, pos);
         if (!parsed) {
             return false;
         }
@@ -263,40 +192,13 @@ const escapeAttr = (value) =>
 const glossaryTermPlugin = (md, options = {}) => {
     const resolve = options.resolve;
     const strict = options.strict !== false;
-    const parseTermTag = (src, pos) => {
-        const prefix = "{@term";
-        if (!src.startsWith(prefix, pos)) {
-            return null;
-        }
-
-        let i = pos + prefix.length;
-        if (i >= src.length || !/\s/.test(src[i])) {
-            return null;
-        }
-        while (i < src.length && /\s/.test(src[i])) {
-            i += 1;
-        }
-        const termStart = i;
-        while (i < src.length && src[i] !== "}") {
-            i += 1;
-        }
-        if (i >= src.length) {
-            return null;
-        }
-        const raw = src.slice(pos, i + 1);
-        const rawTerm = src.slice(termStart, i).trim();
-        if (!rawTerm) {
-            return null;
-        }
-        return { raw, rawTerm, length: raw.length };
-    };
 
     md.inline.ruler.before("emphasis", "vueda-term-link", (state, silent) => {
         const { pos } = state;
         if (state.src.charCodeAt(pos) !== 0x7b) {
             return false;
         }
-        const parsed = parseTermTag(state.src, pos);
+        const parsed = parseTermRef(state.src, pos);
         if (!parsed) {
             return false;
         }
