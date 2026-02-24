@@ -65,51 +65,6 @@ jobs:
                       - ~/project/dist
                   key: build-{{ arch }}-{{ .Environment.CIRCLE_WORKFLOW_ID }}
 
-    server-docs:
-        executor: python311-node
-        resource_class: medium
-        circleci_ip_ranges: true
-        steps:
-            - checkout
-            - utils/add_ssh_config:
-                  hostname: tools.arrai.dev
-                  host: tools.arrai.dev
-            - add_ssh_keys:
-                  fingerprints:
-                      - "SHA256:NfqZXcPtWKzH+WVKDsNH5WGNzaBA30iyp5iYQgXjG0M"
-            - run:
-                  name: Install Dependencies
-                  command: |
-                      cd server
-                      uv sync --dev --frozen
-            - run:
-                  name: Copy Configuration
-                  command: |
-                      cd server
-                      cp config.circleci.toml config.local.toml
-            - run:
-                  name: Generate Schema
-                  command: |
-                      cd server
-                      uv run python manage.py spectacular --color --file schema.yml
-            - run:
-                  name: Generate Documentation
-                  command: |
-                      cd server
-                      npx -y @redocly/cli build-docs schema.yml
-            - run:
-                  name: Bundle Documentation
-                  command: |
-                      rm -rf docs/
-                      mkdir -p -m 0750 docs/$CIRCLE_TAG/
-                      mv server/redoc-static.html docs/$CIRCLE_TAG/index.html
-            - utils/rsync_folder:
-                  when: on_success
-                  folder: ~/project/docs/
-                  remote_folder: /
-                  delete: false
-                  host: tools.arrai.dev
-
 workflows:
     server-test:
         jobs:
@@ -131,14 +86,6 @@ workflows:
                           only: /.*/
                       tags:
                           only: /^server-v.*/
-            - server-docs:
-                  name: server-docs
-                  context: arrai-global
-                  filters:
-                      tags:
-                          only: /^server-v.*/
-                      branches:
-                          ignore: /.*/
             - server-build:
                   name: server-build
                   requires:

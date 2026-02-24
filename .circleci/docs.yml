@@ -1,0 +1,93 @@
+version: 2.1
+
+orbs:
+    utils: arrai/utils@1.21.1
+
+parameters:
+    run-docs-workflows:
+        type: boolean
+        default: false
+
+executors:
+    python311-node:
+        docker:
+            - image: cimg/python:3.11-node
+
+jobs:
+    docs-publish:
+        executor: python311-node
+        resource_class: medium
+        circleci_ip_ranges: true
+        steps:
+            - checkout
+            - utils/add_ssh_config:
+                  hostname: tools.arrai.dev
+                  host: tools.arrai.dev
+            - add_ssh_keys:
+                  fingerprints:
+                      - "SHA256:NfqZXcPtWKzH+WVKDsNH5WGNzaBA30iyp5iYQgXjG0M"
+            - run:
+                  name: Install Python Dependencies
+                  command: uv sync --all-groups --all-packages --frozen
+            - run:
+                  name: Ensure pnpm command is available
+                  command: |
+                      mkdir -p "$HOME/.local/bin"
+                      printf '%s\n' '#!/usr/bin/env bash' 'exec corepack pnpm "$@"' > "$HOME/.local/bin/pnpm"
+                      chmod +x "$HOME/.local/bin/pnpm"
+                      echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+                      export PATH="$HOME/.local/bin:$PATH"
+                      pnpm --version
+            - utils/add_npm_config
+            - restore_cache:
+                  keys:
+                      - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+            - run:
+                  name: Install Node Dependencies
+                  command: pnpm install
+            - save_cache:
+                  paths:
+                      - ~/.local/share/pnpm/store
+                  key: pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+            - run:
+                  name: Copy Configuration
+                  command: cp server/config.circleci.toml server/config.local.toml
+            - run:
+                  name: Extract API Documentation
+                  command: |
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js extract
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js normalize
+            - run:
+                  name: Render API Documentation
+                  command: |
+                      rm -rf docs/reference/api
+                      mkdir -p docs/reference/api
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render --output ../docs/reference/api
+            - run:
+                  name: Build VitePress Site
+                  command: |
+                      rm -rf docs/.vitepress/.temp docs/.vitepress/cache
+                      cd docs && VITEPRESS_BASE="/vueda/documentation/$CIRCLE_TAG/" pnpm exec vitepress build
+            - run:
+                  name: Stage Documentation for Deploy
+                  command: |
+                      mkdir -p -m 0750 publish/$CIRCLE_TAG/
+                      cp -r site/* publish/$CIRCLE_TAG/
+            - utils/rsync_folder:
+                  when: on_success
+                  folder: ~/project/publish/
+                  remote_folder: /
+                  delete: false
+                  host: tools.arrai.dev
+
+workflows:
+    docs-publish:
+        jobs:
+            - docs-publish:
+                  name: docs-publish
+                  context: arrai-global
+                  filters:
+                      tags:
+                          only: /^docs-v.*/
+                      branches:
+                          ignore: /.*/
