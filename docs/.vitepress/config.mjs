@@ -5,7 +5,7 @@ import sirv from "sirv";
 import { defineConfig } from "vitepress";
 import { configureDiagramsPlugin } from "vitepress-plugin-diagrams";
 
-const base = "/vueda/";
+const base = process.env.VITEPRESS_BASE || "/vueda/";
 const docsRoot = fileURLToPath(new URL("..", import.meta.url));
 const generatedRoot = path.join(docsRoot, ".generated");
 const apiRoot = path.join(docsRoot, "reference", "api");
