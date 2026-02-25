@@ -96,7 +96,7 @@ The mixin is aware of complex field name syntax; it parses bracket-indexed (`ite
 
 **At the viewset layer**, `NoExtraFieldsForViewSetMixin` (included in `VuedaViewSet`) validates query parameters on list and `retrieve` actions. This validation has two distinct paths with different error behaviours:
 
-For flex-field parameters (`f` for fields, `e` for expands), the mixin calls `validate_flex_field_param` and `validate_flex_expand_param`. Invalid field or `expand` names produce field-keyed 400 responses (`{"invalid_field": [...]}` or `{"invalid_expand": [...]}`), which map to `FormValidationError` on the client. The expand validation accounts for action-specific `permitted_expands` context, allowing different actions to permit different `expand` sets.
+For flex-field parameters (`f` for fields, `e` for expands), the mixin calls `validate_flex_expand_and_field_param`. Invalid field or `expand` names produce field-keyed 400 responses (`{"invalid_field": [...]}` or `{"invalid_expand": [...]}`), which map to `FormValidationError` on the client. The expand validation accounts for action-specific `permitted_expands` context, allowing different actions to permit different `expand` sets.
 
 For filter query parameters (on `list` actions), the mixin builds an allowlist from the filterset class's declared filters, plus recognized framework parameters (pagination, ordering, search, flex-fields). Unknown query parameters that do not match any declared filter raise a `VuedaValidationError` with a field-keyed 400 response: `{"unknown_param": ["Invalid query parameter.  Valid filters are ..."]}`. All unrecognized parameters are reported in a single response. This is consistent with flex-field validation and NoExtraFieldsSerializerMixin. The client sees a `FormValidationError` and can route the errors into the form state.
 
@@ -168,8 +168,7 @@ This means that a form component fetching choices for a field that references an
 - {@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin}
 - {@api py:function:vueda.core.serializers.NoExtraFieldsSerializerMixin.validate}
 - {@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}
-- {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_field_param}
-- {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_param}
+- {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param}
 - {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.list}
 - {@api py:class:vueda.info.viewsets.ModelInfoChoicesBaseViewSet}
 - {@api py:function:vueda.info.viewsets.ModelInfoChoicesBaseViewSet.check_permissions}

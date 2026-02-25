@@ -4,6 +4,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.db.models import Sum
+from rest_flex_fields import WILDCARD_VALUES
 from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
 from rest_framework import status
 from rest_framework import viewsets
@@ -12,6 +13,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from rest_framework.serializers import ListSerializer
 
 from vueda.core.decorators import DRY_RUN_HEADER
 from vueda.core.decorators import action
@@ -180,6 +182,67 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         # end code from drf
 
 
+def get_recursive_expands_and_fields(serializer, depth, max_depth):
+    max_depth = min((max_depth, settings.REST_FLEX_FIELDS["MAXIMUM_EXPANSION_DEPTH"]))
+
+    valid_expands = set()
+    valid_fields = set()
+
+    if depth < max_depth:
+        if hasattr(serializer, "fields"):
+            valid_fields.update(serializer.fields.keys())
+
+        permitted_expands = None
+        if "permitted_expands" in serializer.context and hasattr(serializer, "_flex_options_rep_only"):
+            if not serializer._flex_fields_rep_applied:
+                instance = serializer.Meta.model.objects.first()
+                serializer.to_representation(instance)
+            permitted_expands = frozenset(serializer._flex_options_rep_only["expand"])
+
+        if hasattr(serializer, "Meta") and hasattr(serializer.Meta, "expandable_fields"):
+            if permitted_expands is not None and not permitted_expands:
+                return valid_expands, valid_fields  # No permitted expands
+
+            for value in WILDCARD_VALUES:
+                valid_fields.add(value)
+                valid_expands.add(value)
+
+            for field_name, serializer_data in serializer.Meta.expandable_fields.items():
+                if permitted_expands is not None and field_name not in permitted_expands:
+                    continue
+
+                valid_fields.add(field_name)
+                valid_expands.add(field_name)
+
+                serializer_settings = {}
+                if isinstance(serializer_data, tuple):  # rest_flex_fields only tests for tuple.
+                    child_serializer, serializer_settings = serializer_data
+                else:
+                    child_serializer = serializer_data
+
+                if isinstance(child_serializer, str):
+                    child_serializer = serializer._get_serializer_class_from_lazy_string(child_serializer)
+
+                child_serializer = child_serializer(**serializer_settings)
+
+                if isinstance(child_serializer, ListSerializer):
+                    child_serializer = child_serializer.child
+
+                child_valid_expands, child_valid_fields = get_recursive_expands_and_fields(
+                    child_serializer, depth + 1, max_depth
+                )
+
+                for child_expand in child_valid_expands:
+                    if child_expand:
+                        valid_expands.add(f"{field_name}.{child_expand}")
+
+                for child_field in child_valid_fields:
+                    if child_field:
+                        valid_fields.add(f"{field_name}.{child_field}")
+
+    return valid_expands, valid_fields
+
+
 class NoExtraFieldsForViewSetMixin:
     """
     Mixin for DRF ViewSets to validate query parameters against filter and serializer fields.
@@ -201,24 +264,45 @@ class NoExtraFieldsForViewSetMixin:
         )
 
     @staticmethod
-    def validate_flex_expand_param(request, serializer):
-        if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
-            valid_fields = set(serializer.fields.keys())
-            # If the serializer Meta does not have permit_retrieve_expand or permit_list_expand defined, which gets
-            # added to the serializer context as permitted_expands, then _flex_options_rep_only["expand"] becomes
-            # the list of expand that was passed from the client, regardless of each expand param existing or not.
-            # So, we can't trust that _flex_options_rep_only["expand"] in that situation, and instead need to look
-            # at the expandable_fields set up in the Meta.
-            valid_expands = []
-            if "permitted_expands" in serializer.context:
-                if hasattr(serializer, "_flex_options_rep_only"):
-                    valid_fields.update(serializer._flex_options_rep_only["expand"])
-                    valid_expands = serializer.context["permitted_expands"]
-            elif hasattr(serializer.Meta, "expandable_fields"):
-                valid_fields.update(serializer.Meta.expandable_fields)
-                valid_expands = serializer.Meta.expandable_fields
-            submitted_fields = frozenset(serializer._get_query_param_value(settings.REST_FLEX_FIELDS["EXPAND_PARAM"]))
+    def validate_flex_expand_and_field_param(request, serializer):
+        submitted_fields = submitted_expand_fields = valid_expands = valid_fields = frozenset()
+
+        if (
+            settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params
+            or settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params
+        ):
+            submitted_fields = frozenset(serializer._get_query_param_value(settings.REST_FLEX_FIELDS["FIELDS_PARAM"]))
+            submitted_expand_fields = frozenset(
+                serializer._get_query_param_value(settings.REST_FLEX_FIELDS["EXPAND_PARAM"])
+            )
+            max_depth = (
+                max(
+                    [field.count(".") for field in submitted_fields]
+                    + [field.count(".") for field in submitted_expand_fields]
+                )
+                + 1
+            )
+            valid_expands, valid_fields = get_recursive_expands_and_fields(serializer, 0, max_depth)
+
+        if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params:
             extra_keys = submitted_fields - valid_fields
+            if extra_keys:
+                errors = {}
+                for extra_key in extra_keys:
+                    errors[extra_key] = [
+                        {
+                            "message": ErrorDetail(
+                                string=f"Invalid field.  Valid fields are {', '.join(sorted(valid_fields))}.",
+                                code="invalid",
+                            ),
+                            "code": "invalid",
+                        }
+                    ]
+
+                return Response(errors, status=400)
+
+        if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
+            extra_keys = submitted_expand_fields - valid_fields
             if extra_keys:
                 errors = {}
                 for extra_key in extra_keys:
@@ -227,7 +311,7 @@ class NoExtraFieldsForViewSetMixin:
                             "message": ErrorDetail(
                                 string="Invalid expands. "
                                 + (
-                                    f"Permitted expands are {', '.join(valid_expands)}."
+                                    f"Permitted expands are {', '.join(sorted(valid_expands))}."
                                     if valid_expands
                                     else "No expands are permitted."
                                 ),
@@ -239,37 +323,10 @@ class NoExtraFieldsForViewSetMixin:
 
                 return Response(errors, status=400)
 
-    @staticmethod
-    def validate_flex_field_param(request, serializer):
-        if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params:
-            valid_fields = set(serializer.fields.keys())
-            if hasattr(serializer, "_flex_options_rep_only"):
-                valid_fields.update(serializer._flex_options_rep_only["fields"])
-            submitted_fields = frozenset(serializer._get_query_param_value(settings.REST_FLEX_FIELDS["FIELDS_PARAM"]))
-            extra_keys = submitted_fields - valid_fields
-            if extra_keys:
-                errors = {}
-                for extra_key in extra_keys:
-                    errors[extra_key] = [
-                        {
-                            "message": ErrorDetail(
-                                string=f"Invalid field.  Valid fields are {', '.join(serializer.get_fields())}.",
-                                code="invalid",
-                            ),
-                            "code": "invalid",
-                        }
-                    ]
-
-                return Response(errors, status=400)
-
     def retrieve(self, request, *args, **kwargs):
         serializer = self.get_serializer()
 
-        results = self.validate_flex_field_param(request, serializer)
-        if results is not None:
-            return results
-
-        results = self.validate_flex_expand_param(request, serializer)
+        results = self.validate_flex_expand_and_field_param(request, serializer)
         if results is not None:
             return results
 
@@ -305,11 +362,7 @@ class NoExtraFieldsForViewSetMixin:
                 )
         serializer = self.get_serializer()
 
-        results = self.validate_flex_field_param(request, serializer)
-        if results is not None:
-            return results
-
-        results = self.validate_flex_expand_param(request, serializer)
+        results = self.validate_flex_expand_and_field_param(request, serializer)
         if results is not None:
             return results
 
