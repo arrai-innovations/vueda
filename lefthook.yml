@@ -49,7 +49,7 @@ pre-commit:
         fix-ruff:
             stage_fixed: true
             glob: "**/*.py"
-            exclude:
+            exclude: &py-exclude
                 - ".uv-cache/**"
                 - ".claude/**"
                 - ".venv/**"
@@ -59,6 +59,10 @@ pre-commit:
             run: |
                 uv run --group dev --no-sync ruff check --fix --show-fixes {staged_files}
                 uv run --group dev --no-sync ruff format {staged_files}
+        check-ruff:
+            glob: "**/*.py"
+            exclude: *py-exclude
+            run: uv run --group dev --no-sync ruff check {staged_files}
         fix-eslint:
             stage_fixed: true
             glob: "**/*.{vue,js,cjs,mjs,jsx}"
