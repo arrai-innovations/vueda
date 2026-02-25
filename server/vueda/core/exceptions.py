@@ -52,7 +52,10 @@ def debug_stack_exception_handler(exc, context):
         sentry_sdk.capture_exception(exc)
 
     if settings.DEBUG or getattr(settings, "IN_TESTS", False):
-        response.data["serverStack"] = "".join(format_exception(type(exc), exc, exc.__traceback__))
+        if isinstance(response.data, dict):
+            response.data["serverStack"] = "".join(format_exception(type(exc), exc, exc.__traceback__))
+        else:
+            response.data = {"serverStack": "".join(format_exception(type(exc), exc, exc.__traceback__))}
     else:
         response.data["serverStack"] = "".join(format_exception_only(type(exc), exc))
     return response
