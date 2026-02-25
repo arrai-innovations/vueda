@@ -70,6 +70,7 @@ dev = [
     "django-view-manager ==1.0.4",
     "coverage >=7.3.3",
     "ipdb >=0.13.13",
+    "md-toc >=9.0.0",
     "pytest >=7.4.3",
     "pytest-watcher >=0.4.3",
     "pytest-cov >=4.1.0",
@@ -81,7 +82,6 @@ dev = [
     "python-dateutil >=2.8.2,<3",
     "gunicorn >=21.2.0",
     "jinja2 >=3.1.2",
-    "redis >=5.2.1",
     "drf-spectacular >=0.28.0,<0.29",
 ]
 docs = [

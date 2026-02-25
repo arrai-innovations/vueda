@@ -45,7 +45,13 @@ ROOT_URLCONF = "tests.root_urls"
 SECRET_KEY = "test_secret_key"
 
 # Settings needed to see the permissions and workflows views.
-# Permissions have been removed from the view, since we don't have a way to login yet.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "KEY_PREFIX": "vueda-",
+        "LOCATION": "unique-snowflake",
+    }
+}
 LOGIN_URL = "/routes/vueda.user/dev-login/"
 SECURE_BROWSER_XSS_FILTER = True
 SESSION_COOKIE_SECURE = False

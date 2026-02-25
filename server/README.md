@@ -13,6 +13,7 @@
     - [Install (pipenv)](#install-pipenv)
     - [Install (uv)](#install-uv)
     - [Setup](#setup)
+      - [Django Cache](#django-cache)
     - [Permissions](#permissions)
     - [Permission Names](#permission-names)
       - [Names Mapping (Important)](#names-mapping-important)
@@ -164,6 +165,18 @@ extended in your application, ensuring both control and adaptability.
        )
     ```
 
+#### Django Cache
+
+Django allows for the use of a variety of different caches.
+If you intend to use redis as a cache, all you need to do is specify a `REDIS_URL` in the environment variables, and the cache setting will automatically be added to the default settings.
+For example:
+
+```
+REDIS_URL = "redis://127.0.0.1:6379/0"
+```
+
+If you plan to use a different cache, you will need to add the it to your projects settings.
+
 ### Permissions
 
 In order for a logged in user to be able to hit the server and ask for model info, the user will need to have the following permissions (codenames):
@@ -280,7 +293,9 @@ Once the management command that will create group migrations is written, then y
 
 ### Set up Dispatch Queue
 
-You need to configure the `CELERY_BROKER_URL` in your environment (or whatever config loader your project uses), for example:
+The dispatch queue uses celery to run tasks.
+Celery can be used with a number of different [backends](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html).
+You will need to select the backend you want to you and then configure the `CELERY_BROKER_URL` in your environment, for example:
 
 ```
 CELERY_BROKER_URL=redis://localhost:6379/3
