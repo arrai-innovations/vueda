@@ -1,10 +1,10 @@
 _min_copier_version: "9.0.0"
 _templates_suffix: ".jinja"
 _tasks:
-    - echo "VUEDA with DX monorepo template is now in place."
-    - echo "Next steps:"
-    - echo "  - `just bootstrap`"
-    - echo "  - Create `server/config.local.toml` values (at minimum: SECRET_KEY)."
+    - "echo 'VUEDA with DX monorepo template is now in place.'"
+    - "echo 'Next steps:'"
+    - "echo '  - `just bootstrap`'"
+    - "echo '  - Create `server/config.local.toml` values (at minimum: SECRET_KEY).'"
 
 project_name:
     type: str
