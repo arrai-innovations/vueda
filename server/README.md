@@ -172,7 +172,7 @@ If you intend to use redis as a cache, all you need to do is specify a `REDIS_UR
 For example:
 
 ```
-REDIS_URL = "redis://127.0.0.1:6379/0"
+REDIS_URL = "redis://localhost:6379/0"
 ```
 
 If you plan to use a different cache, you will need to add the it to your projects settings.
