@@ -177,6 +177,7 @@ class OrderItem(VuedaBaseModel):
     formatted_name_lookup_expression = "data__formatted_name"
 
     class Meta(VuedaBaseModel.Meta):
+        default_related_name = "order_items"
         verbose_name = "ORDER item"
         verbose_name_plural = "ORDER items"
 
