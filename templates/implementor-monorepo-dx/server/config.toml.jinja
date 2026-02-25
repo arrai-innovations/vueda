@@ -12,7 +12,8 @@ FRONTEND_LOGIN_URL = "/login"
 SITE_NAME = "VUEDA Dev"
 SUPPORT_EMAIL = "dev@localhost"
 
-AUTH_USER_MODEL = "vueda_user.User"
+AUTH_USER_MODEL = "users.User"
+LOCAL_APPS = ["{{ python_package }}.users"]
 
 REDIS_URL = ""
 
