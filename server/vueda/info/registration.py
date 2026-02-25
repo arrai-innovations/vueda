@@ -30,8 +30,7 @@ def register(canonical_serializer, canonical_viewset=None):
         if model is None:
             raise ImproperlyConfigured(
                 "Unable to determine the content type for while registering "
-                f"{decorated_canonical_viewset} and {canonical_serializer}.  Either a model needs to be "
-                "defined in the serializer Meta or a queryset needs to be defined on the viewset."
+                f"{canonical_serializer}.  A model needs to be defined in the serializer Meta."
             )
 
         key = f"{model._meta.app_label}.{model._meta.model_name}"
