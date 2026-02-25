@@ -117,7 +117,7 @@ class TestModelInfoChoices:
         info.register(store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet)
         info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
         info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
-        info.register(store_serializers.OrderItemSerializer, store_viewsets.OrderItemViewSet)
+        info.register_serializer(store_serializers.OrderItemSerializer)
         info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
         info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
 
