@@ -37,7 +37,7 @@ serve:
   pnpx concurrently -n server,client -c green,cyan "just serve-server" "just serve-client"
 
 serve-server:
-  cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync python manage.py runserver {{ bind_ip }}:{{ server_port }}
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind {{ bind_ip }}:{{ server_port }}
 
 serve-client:
   cd {% raw %}{{justfile_directory()}}{% endraw %}/client && pnpm run dev

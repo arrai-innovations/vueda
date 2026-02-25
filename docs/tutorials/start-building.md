@@ -27,6 +27,10 @@ By the end of this guide, you will have a running Django API and Vue client conn
 - A [Redis](https://redis.io/) instance: for caching and Celery task brokering (not required for this guide)
 - [just](https://just.systems/man/en/introduction.html): for common developer CLI tooling (included in the DX template)
 
+::: warning
+VUEDA assumes an ASGI runtime. Django's built-in `runserver` command uses WSGI and will not exercise VUEDA's ASGI middleware stack (CORS, sessions, CSRF token handling). The DX template includes `gunicorn` and `uvicorn` and its `just serve` command uses them automatically. If you are using the minimal template, install an ASGI server (e.g. `gunicorn` + `uvicorn`) and use it instead of `runserver`.
+:::
+
 ## Environment Setup
 
 This guide assumes access to a [bash](https://www.gnu.org/software/bash/)-like shell (Linux, macOS, WSL2, etc.) for running commands. Adjust accordingly for other environments (PowerShell, cmd.exe, etc.).
@@ -123,6 +127,10 @@ DATABASE_URL = "postgres://postgres:postgres@localhost:5432/your-project"
 
 The template generates this file with placeholder values. `SECRET_KEY` and `DATABASE_URL` are required. `CELERY_BROKER_URL` is optional and only needed if you plan to use background tasks.
 
+::: warning
+When `REDIS_URL` is not configured, the template falls back to Django's `LocMemCache`, which is per-process. This is fine for single-process local development, but ASGI servers like gunicorn run multiple worker processes with isolated caches. Configure a Redis (or equivalent) cache backend for anything beyond basic local development.
+:::
+
 ## First Contact
 
 At this point we have a minimal VUEDA server and client setup. Let's verify that everything is wired up correctly.
@@ -131,7 +139,18 @@ At this point we have a minimal VUEDA server and client setup. Let's verify that
 The remainder of this guide uses `localhost` for simplicity. If you are working in WSL2, Docker containers, or other networked environments, you may need to adjust hostnames or use `0.0.0.0` for binding.
 :::
 
-Start the server and client. With the DX template, run both concurrently:
+First, apply database migrations:
+
+```console
+# DX template
+just manage migrate
+
+# Minimal template
+cd server
+uv run python manage.py migrate
+```
+
+Now start the server and client. With the DX template, run both concurrently:
 
 ```console
 just serve
@@ -142,8 +161,7 @@ With the minimal template, start each in its own terminal:
 ```console
 # Terminal 1: server
 cd server
-uv run python manage.py migrate
-uv run python manage.py runserver localhost:8000
+uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind localhost:8000
 ```
 
 ```console
@@ -432,20 +450,24 @@ Create one if you haven't already:
 uv run python manage.py createsuperuser
 ```
 
-Then, in a new terminal, log in via curl and store the session cookie:
+Then, in a new terminal, log in via curl and store the session cookie. The login endpoint sets a CSRF cookie in its response, which you will need for subsequent mutating requests.
+
+::: tip
+The CSRF cookie name is project-specific (`<project-slug>-csrf-token` by default, configured via `CSRF_COOKIE_NAME` in `local.py`). The examples below use `your-project-csrf-token` as a placeholder; substitute your actual project slug.
+:::
 
 ```console
-# Get a CSRF cookie (who-is always sets one)
 COOKIE_JAR=/tmp/vueda-cookies.txt
-curl -c $COOKIE_JAR -s http://localhost:8000/routes/vueda.user/who-is/ > /dev/null
-CSRF_TOKEN=$(awk '/csrftoken/ {print $7}' $COOKIE_JAR)
+CSRF_COOKIE=your-project-csrf-token
 
-# Log in (uses email + password)
-curl -b $COOKIE_JAR -c $COOKIE_JAR \
+# Log in (uses email + password; sets CSRF cookie in the response)
+curl -c $COOKIE_JAR \
   -H "Content-Type: application/json" \
-  -H "X-CSRFToken: $CSRF_TOKEN" \
   -X POST http://localhost:8000/routes/vueda.user/login/ \
   -d '{"email":"you@example.com","password":"your-password"}'
+
+# Extract the CSRF token for subsequent requests
+CSRF_TOKEN=$(awk -v name="$CSRF_COOKIE" '$6 == name {print $7}' $COOKIE_JAR)
 ```
 
 If the login succeeded, `who-is` should now return your user info:

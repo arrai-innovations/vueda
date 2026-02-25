@@ -15,3 +15,16 @@ env = TomlEnv(
 )
 
 locals().update(get_defaults(env))
+
+# WARNING: When REDIS_URL is not set, Django defaults to LocMemCache. LocMemCache is
+# per-process and not safe for production use with ASGI servers (gunicorn, uvicorn, daphne),
+# which run multiple worker processes that will each have their own isolated cache. Configure
+# a Redis (or equivalent) cache backend for anything beyond single-process local development.
+if not env("REDIS_URL", default=""):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "vueda-cache",
+        }
+    }
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
