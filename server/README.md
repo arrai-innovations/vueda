@@ -13,7 +13,6 @@
     - [Install (pipenv)](#install-pipenv)
     - [Install (uv)](#install-uv)
     - [Setup](#setup)
-      - [Django Cache](#django-cache)
     - [Permissions](#permissions)
     - [Permission Names](#permission-names)
       - [Names Mapping (Important)](#names-mapping-important)
@@ -164,18 +163,6 @@ extended in your application, ensuring both control and adaptability.
            max_age=settings.CORS_PREFLIGHT_MAX_AGE,
        )
     ```
-
-#### Django Cache
-
-Django allows for the use of a variety of different caches.
-If you intend to use redis as a cache, all you need to do is specify a `REDIS_URL` in the environment variables, and the cache setting will automatically be added to the default settings.
-For example:
-
-```
-REDIS_URL = "redis://localhost:6379/0"
-```
-
-If you plan to use a different cache, you will need to add the it to your projects settings.
 
 ### Permissions
 

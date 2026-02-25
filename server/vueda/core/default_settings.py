@@ -338,18 +338,6 @@ def get_defaults(env: EnvLike):
     if return_dict["DEBUG"]:
         return_dict["CORS_PREFLIGHT_MAX_AGE"] = 600  # 10 minutes
 
-    if env("REDIS_URL", default=""):
-        return_dict["CACHES"] = {
-            "default": {
-                "BACKEND": "django.core.cache.backends.redis.RedisCache",
-                "KEY_PREFIX": "vueda-",
-                "LOCATION": env("REDIS_URL"),
-                "OPTIONS": {
-                    "pool_class": "redis.BlockingConnectionPool",
-                },
-            }
-        }
-
     try:
         import drf_spectacular  # noqa F401
     except ImportError:
