@@ -88,19 +88,26 @@ The template generates:
 - A `uv` workspace root and `pnpm` workspace definition
 - (DX template only) A `Justfile`, `lefthook` config, `ruff`, `eslint`, and `prettier` setup
 
+## Initialize the Repository
+
+The DX template includes `lefthook` for git hooks, which runs automatically during `pnpm install`. Initialize a git repository before installing dependencies:
+
+```console
+cd your-project
+git init
+```
+
 ## Install Dependencies
 
 ### DX template
 
 ```console
-cd your-project
 just bootstrap
 ```
 
 ### Minimal template
 
 ```console
-cd your-project
 uv sync --all-packages
 pnpm install
 ```
