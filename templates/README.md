@@ -19,10 +19,14 @@ This directory contains starter templates for implementor VUEDA monorepos.
 
 Run Copier from the repository root where this `templates/` directory exists:
 
-```bash
-copier copy templates/implementor-monorepo <destination-dir>
-# or
-copier copy templates/implementor-monorepo-dx <destination-dir>
+```console
+$ copier copy templates/implementor-monorepo <destination-dir>
+```
+
+or
+
+```console
+$ copier copy templates/implementor-monorepo-dx <destination-dir>
 ```
 
 Copier will prompt for values defined in each template's `copier.yml`.
@@ -31,19 +35,19 @@ Copier will prompt for values defined in each template's `copier.yml`.
 
 ### `implementor-monorepo`
 
-```bash
-cd <destination-dir>
-uv sync --all-packages
-pnpm install
+```console
+$ cd <destination-dir>
+$ uv sync --all-packages
+$ pnpm install
 ```
 
 Create `server/config.local.toml` and set at least `SECRET_KEY`.
 
 ### `implementor-monorepo-dx`
 
-```bash
-cd <destination-dir>
-just bootstrap
+```console
+$ cd <destination-dir>
+$ just bootstrap
 ```
 
 Create `server/config.local.toml` and set at least `SECRET_KEY`.
