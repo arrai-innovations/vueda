@@ -1,4 +1,25 @@
 # Shared config (safe to commit).
 #
-# VUEDA expects required settings like SECRET_KEY to be provided by your config.
+# These defaults target local development. Override in config.local.toml or
+# a deployment-specific config layer as needed.
 
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+TIME_ZONE = "UTC"
+
+FRONTEND_DOMAIN = "http://localhost:5173"
+FRONTEND_LOGIN_URL = "/login"
+
+SITE_NAME = "VUEDA Dev"
+SUPPORT_EMAIL = "dev@localhost"
+
+AUTH_USER_MODEL = "vueda_user.User"
+
+REDIS_URL = ""
+
+STATIC_ROOT = "/tmp/static"
+STATICFILES_DIRS = []
+
+CSRF_TRUSTED_ORIGINS = ["http://localhost:5173"]
+CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
+
+DATABASE_BACKUP_DIR = "/tmp/db-backups"
