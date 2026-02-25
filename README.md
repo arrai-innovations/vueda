@@ -45,6 +45,14 @@ See the package‑specific docs for details:
 
 ## Getting Started
 
+Install pnpm, which is required by just.
+
+```console
+npm install -g pnpm@latest-10
+```
+
+[Install just via one of the various methods.](https://github.com/casey/just?tab=readme-ov-file#installation)
+
 ```
 just bootstrap
 ```
