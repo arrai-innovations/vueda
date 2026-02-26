@@ -2,7 +2,7 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.4 (unreleased)
+## v2.0.5 (unreleased)
 
 ### Breaking Changes
 

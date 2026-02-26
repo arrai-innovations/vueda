@@ -685,6 +685,33 @@ const displayName = computed(() => userStore.user?.first_name || userStore.user?
 </template>
 ```
 
+### Add the `@` Source Alias
+
+The router below imports local views with `@/views/...`. This is a common Vue convention that maps `@` to `client/src/`. The scaffolded `vite.config.js` does not set this alias, so add it now.
+
+Replace `client/vite.config.js` with:
+
+```javascript
+import { vuedaViteConfig } from "@arrai-innovations/vueda/lib/vite.js";
+import vue from "@vitejs/plugin-vue";
+import path from "path";
+import { fileURLToPath } from "url";
+import { defineConfig } from "vite";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default defineConfig({
+    plugins: [vue()],
+    ...vuedaViteConfig({
+        extraAliases: {
+            "@": path.resolve(__dirname, "src"),
+        },
+    }),
+});
+```
+
+{@api js:function:@arrai-innovations/vueda.vite.vuedaViteConfig} accepts an `extraAliases` option that is merged into the Vite `resolve.alias` config. Any aliases you add here are available in your application imports.
+
 ### Configure CRUD View Resolution and Routes
 
 The scaffolded router calls {@api js:function:@arrai-innovations/vueda.router/routerComponent.setCrudComponents} with an empty object and has no routes for `sign-in` or `welcome`. Replace `client/src/router/index.js` with:
