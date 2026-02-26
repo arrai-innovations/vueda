@@ -18,7 +18,3 @@ SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SAMESITE = "Lax"
 
-# This needs to be imported after any customizations to the PERMISSION_NAMES_MAPPING, so
-# all permission names can be mapped to the correct names before django starts using them.
-from vueda.core import patch_django  # noqa: F401
-

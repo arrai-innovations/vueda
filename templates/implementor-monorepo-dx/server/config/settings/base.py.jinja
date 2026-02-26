@@ -26,3 +26,8 @@ CACHES = {
     }
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+# Imported after get_defaults() so PERMISSION_NAMES_MAPPING is already set. If you
+# override PERMISSION_NAMES_MAPPING in a child settings module (e.g. local.py,
+# production.py), re-import patch_django there after the customization.
+from vueda.core import patch_django  # noqa: F401
