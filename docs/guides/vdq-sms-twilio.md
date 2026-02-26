@@ -7,7 +7,7 @@ status: draft
 
 # Send SMS from VDQ with Twilio
 
-This guide covers implementing SMS delivery via VDQ using Twilio as the provider, including selecting configuration mode (webhook vs polling), creating queue items, dispatching workers, and reconciling delivery status. It focuses on SMS-specific behaviour; for shared VDQ patterns (scheduling, retry/cancel, status endpoints), see [Run Actions in the VUEDA Dispatch Queue (VDQ)](./vdq-actions).
+This guide covers implementing SMS delivery via VDQ using Twilio as the provider, including selecting configuration mode (webhook vs polling), creating queue items, dispatching workers, and reconciling delivery status. It focuses on SMS-specific behaviour; for shared VDQ patterns (scheduling, retry/cancel, status endpoints), see [Run Actions in the VUEDA Dispatch Queue (VDQ)](./vdq-actions). The queue and transition behavior here is implemented through `{@api py:module:vueda.vdq}` and `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}`, and follows the `{@term VDQ (VUEDA Dispatch Queue)}` lifecycle.
 
 The guide assumes familiarity with VDQ's persistence and lifecycle model. If you have not read [VDQ and Background Work Model](../core-concepts/vdq-and-background-work), start there.
 

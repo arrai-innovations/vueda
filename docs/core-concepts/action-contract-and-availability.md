@@ -15,7 +15,7 @@ This page explains the contract boundary, the metadata each layer produces and c
 
 The action contract divides authority between three scopes.
 
-The server declares actions and emits metadata. Action declaration happens at the viewset level, where DRF's `@action` decorator (extended by VUEDA's `action` wrapper) registers extra actions alongside the built-in CRUD operations. The server's model-info endpoint aggregates these declarations into a `model_actions` payload that describes what actions exist, which HTTP methods they support, and whether they operate at detail or list scope. This metadata is permission-sensitive: actions that the requesting user cannot perform are omitted.
+The server declares actions and emits metadata. Action declaration happens at the viewset level, where DRF's `@action` decorator (extended by VUEDA's {@api py:function:vueda.core.decorators.action} wrapper) registers extra actions alongside the built-in CRUD operations. The server's model-info endpoint aggregates these declarations into a `model_actions` payload that describes what actions exist, which HTTP methods they support, and whether they operate at detail or list scope. This metadata is permission-sensitive: actions that the requesting user cannot perform are omitted.
 
 The server also computes per-object availability. When an object is serialized for a `detail` response, the `available_actions` field evaluates each action against the specific object's permission state. This is a stricter filter than model-scope metadata, because it accounts for row-level constraints, workflow state, and object-specific permission overrides that cannot be evaluated without a concrete instance.
 
@@ -31,7 +31,7 @@ The router extends DRF's default route generation to support the bulk partition.
 
 ## Model-Scope Action Metadata
 
-The model-info endpoint emits `model_actions` as a list of action descriptors, each containing the action's `name`, `detail` and `bulk` flags, supported HTTP methods (`method_names`), and optional `parameters` and `detail_args`.
+The model-info endpoint ({@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}) emits `model_actions` as a list of action descriptors, each containing the action's `name`, `detail` and `bulk` flags, supported HTTP methods (`method_names`), and optional `parameters` and `detail_args`.
 
 Built-in action candidates are `list`, `retrieve`, `create`, `update`, `partial_update`, and `destroy`. Among the built-ins, `destroy` is flagged `bulk: true`. Non-list, non-create built-ins are flagged `detail: true` and include `detail_args` (defaulting to `["pk"]`). Each built-in action's `method_names` is derived from a fixed mapping: `list` and `retrieve` map to `get`, `create` to `post`, `update` to `put`, `partial_update` to `patch`, and `destroy` to `delete`.
 
@@ -65,11 +65,11 @@ The distinction between model-scope and object-scope availability is fundamental
 
 The client normalizes action names before performing route admission checks. The normalization maps aliases to canonical names; most notably, `read` is normalized to `retrieve`. This normalization ensures that route definitions using either name resolve consistently against the server-advertised action set.
 
-Route admission is evaluated in the `requireModelInfo` navigation guard. The guard fetches model-info for the target route's model, then checks whether the route's action name (after normalization) appears in the computed action set. The action set is assembled from three sources: the `model_actions` names from model-info, an optional `routeActions` filter from the model's config (which restricts the set to only named actions), and workflow transition codes (which extend the set with transition-specific routes).
+Route admission is evaluated in the {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo} navigation guard. The guard fetches model-info for the target route's model, then checks whether the route's action name (after normalization) appears in the computed action set. The action set is assembled from three sources: the `model_actions` names from model-info, an optional `routeActions` filter from the model's config (which restricts the set to only named actions), and workflow transition codes (which extend the set with transition-specific routes).
 
 When the action is not found in the computed set, the guard denies the route. The denial surfaces as a toast notification ("Action Not Found") and a redirect, typically to the model's `list` view. When model-info itself cannot be fetched (network error, server error), the error is cached in the model-info store and reused for subsequent navigation attempts to the same model key. This means a transient fetch failure will block all routes for that model until the store is reset or the page is reloaded.
 
-For resolved routes, `ViewActionRouter` maps action names to view components. Standard CRUD actions resolve to their built-in view components. Transition codes resolve to the workflow transition view. Unknown actions, those that pass the guard but have no corresponding view component, render using `ViewActionNotFound`.
+For resolved routes, {@api vue:component:ViewActionRouter} maps action names to view components. Standard CRUD actions resolve to their built-in view components. Transition codes resolve to the workflow transition view. Unknown actions, those that pass the guard but have no corresponding view component, render using `ViewActionNotFound`.
 
 ## UI Affordance Filtering Layers
 
@@ -112,7 +112,6 @@ The layered contract exhibits several characteristic failure patterns when the l
 ## Relevant Implementation Surface
 
 - {@api py:module:vueda.core.decorators}
-- {@api py:function:vueda.core.decorators.action}
 - {@api py:property:vueda.core.decorators.DRY_RUN_HEADER}
 - {@api py:module:vueda.core.routers}
 - {@api py:class:vueda.core.routers.VuedaRouter}
@@ -127,13 +126,10 @@ The layered contract exhibits several characteristic failure patterns when the l
 - {@api py:function:vueda.core.serializers.fields.AvailableActionsField.get_value}
 - {@api py:class:vueda.core.utils.AvailableActionsRequest}
 - {@api rest:endpoint:GET:/vueda.info/model_info/}
-- {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
 - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
 - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
 - {@api js:module:@arrai-innovations/vueda.utils/actionMap}
 - {@api js:function:@arrai-innovations/vueda.utils/actionMap.getActionName}
 - {@api js:module:@arrai-innovations/vueda.router/guards}
-- {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}
 - {@api js:module:@arrai-innovations/vueda.use/useFilteredActions}
 - {@api js:function:@arrai-innovations/vueda.use/useFilteredActions.useFilteredActions}
-- {@api vue:component:ViewActionRouter}

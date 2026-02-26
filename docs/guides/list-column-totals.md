@@ -21,9 +21,9 @@ The objective is a `list` endpoint where:
 
 Before you begin:
 
-The model's viewset must inherit from `VuedaViewSet` or `VuedaHistoryViewSet`, both of which include `ListRowLevelViewSetMixin`. The `list` method on this mixin handles the aggregation pipeline.
+The model's viewset must inherit from `VuedaViewSet` or `VuedaHistoryViewSet`, both of which include {@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}. The `list` method on this mixin handles the aggregation pipeline.
 
-The `list` endpoint must use VUEDA's pagination class (`VUEDAPageNumberPagination`), which includes `columnTotals` in the paginated response. Custom endpoints that bypass VUEDA pagination will not include column totals.
+The `list` endpoint must use VUEDA's pagination class ({@api py:class:vueda.core.pagination.VUEDAPageNumberPagination}), which includes `columnTotals` in the paginated response. Custom endpoints that bypass VUEDA pagination will not include column totals.
 
 ## Server Aggregation Setup
 

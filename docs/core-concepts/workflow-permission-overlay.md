@@ -23,7 +23,7 @@ The authority boundary is: state permissions are server-authoritative for enforc
 
 `StatePermission` entries are stored in workflow tables and scoped to a content type, workflow state, permission (codename), and group. Each entry carries a `grant_or_deny` flag: `True` grants the permission for that state/group/codename combination, `False` denies it.
 
-When `VUEDAPermissionsMixin.has_perm` evaluates an object with a workflow, `check_state_permission` queries matching `StatePermission` rows for the object's current state, the user's groups, and the required permission codename. The evaluation produces a tri-state result:
+When {@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm} evaluates an object with a workflow, `check_state_permission` queries matching `StatePermission` rows for the object's current state, the user's groups, and the required permission codename. The evaluation produces a tri-state result:
 
 - **`True`** (grant): at least one matching grant rule exists and no matching deny rule exists. This overrides a baseline `False`; the user gains access to this object even though they lack the model-level permission.
 - **`False`** (deny): at least one matching deny rule exists. Deny wins over Grant when both match. This overrides a baseline `True`; the user loses access to this object even though they have the model-level permission.
@@ -35,7 +35,7 @@ The deny-wins precedence is deterministic: for a given object state, permission 
 
 DRF evaluates permissions in two phases: a model-scope check (`has_permission`) before the object is fetched, and an object-scope check (`has_object_permission`) after the object is available. State permissions depend on a concrete object's current state, which is not available at model scope. This creates a problem: a user who lacks baseline model permissions would be denied access at the model scope before the object is fetched, even though a state-permission grant would have allowed access to specific objects.
 
-VUEDA solves this with a model-scope bypass. `ObjectPermissions.has_permission` checks whether any `StatePermission` grant rows exist for the user's groups and the required codename. If such rows exist, the model-scope check returns `True` immediately, deferring the real authorization decision to the object-scope phase, where the object's state is available.
+VUEDA solves this with a model-scope bypass. {@api py:class:vueda.core.permissions.ObjectPermissions} `has_permission` checks whether any `StatePermission` grant rows exist for the user's groups and the required codename. If such rows exist, the model-scope check returns `True` immediately, deferring the real authorization decision to the object-scope phase, where the object's state is available.
 
 `WorkflowObjectPermissions` applies a broader bypass: it returns `True` at model scope when any `StatePermission` rows exist for the workflow (not just grants for the user's groups), deferring all effective decisions to object-scope checks.
 
@@ -53,13 +53,13 @@ Transition execution requires passing three distinct gates, each checked indepen
 
 **Source-state validity.** The object's current workflow state must be a valid source for the transition. This is enforced by the workflow engine's `TransitionSource` rules. Even if permission gates pass, a transition that is not valid from the current state will fail.
 
-Permission check failures at the transition level surface differently depending on the endpoint. `permitted_transitions` returns `403` when the user lacks workflow-level permission. `execute_transition` converts `PermissionDenied` and `InvalidTransitionError` into `400` validation-style responses rather than HTTP-level authorization rejections. Lock acquisition failures (when `select_for_update(skip_locked=True)` cannot acquire the row lock) also surface as `400`.
+Permission check failures at the transition level surface differently depending on the endpoint. {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.permitted_transitions} returns `403` when the user lacks workflow-level permission. `execute_transition` converts `PermissionDenied` and `InvalidTransitionError` into `400` validation-style responses rather than HTTP-level authorization rejections. Lock acquisition failures (when `select_for_update(skip_locked=True)` cannot acquire the row lock) also surface as `400`.
 
 The viewset-level gate for all workflow endpoints is `vueda_workflow.read_workflow`. This check runs during `check_permissions`, before any object-specific or transition-specific logic. A user who lacks this permission sees `403` on all workflow endpoints, object state, permitted transitions, and execute transition, regardless of their other permissions.
 
 ## Client Action Namespace Overlay
 
-On the client, workflow transitions extend the action namespace that drives route admission and view resolution. The `requireModelInfo` route guard assembles the admissible action set from the model-info `model_actions` and workflow permitted transition codes. Transition codes are treated as action identifiers alongside standard CRUD action names.
+On the client, workflow transitions extend the action namespace that drives route admission and view resolution. The {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo} route guard assembles the admissible action set from the model-info `model_actions` and workflow permitted transition codes. Transition codes are treated as action identifiers alongside standard CRUD action names.
 
 This means a transition with code `approve` is admissible in the same way that `update` or `destroy` is admissible; the route guard checks membership in the combined set without distinguishing between CRUD actions and transition codes. `ViewActionRouter` resolves transition codes to `ViewWorkflowTransition`, while standard CRUD codes resolve to their built-in view components.
 
@@ -87,20 +87,16 @@ The workflow store caches both successful transition lists and fetch errors per 
 
 ## Relevant Implementation Surface
 
-- {@api py:class:vueda.core.permissions.ObjectPermissions}
-- {@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}
+- {@api py:function:vueda.core.permissions.ObjectPermissions.has_permission}
 - {@api py:class:vueda.workflow.models.HasWorkflowModelMixin}
 - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_state_permission}
 - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_workflow_permission}
 - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_transition_permission}
 - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.apply_transition}
 - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_state}
-- {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.permitted_transitions}
 - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_transitions}
 - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}
 - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/}
-- {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}
 - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}
 - {@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}
 - {@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}
-- {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}

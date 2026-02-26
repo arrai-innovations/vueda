@@ -7,7 +7,7 @@ status: draft
 
 # Add Workflow State and Transition Permissions
 
-This guide covers configuring workflow-aware permission overlays so that allowed transitions and object actions depend on both baseline permissions and the object's current workflow state. It walks through workflow-level gate permissions, transition permissions, state grant/deny rules, and verification of the resulting behaviour matrix.
+This guide covers configuring workflow-aware {@term Workflow Overlay} rules so that allowed {@term Transition} actions and object actions depend on both baseline permissions and the object's current workflow state. It walks through workflow-level gate permissions, transition permissions, state grant/deny rules, and verification of the resulting behaviour matrix.
 
 The guide assumes familiarity with VUEDA's workflow permission model. If you have not read [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay), start there; it explains the overlay boundary, state permission evaluation, model-scope bypass, and transition gate mechanics. For the broader permission model, see [Permission Model](../core-concepts/permission-model). For transition UX and redirect behaviour on the client, see [Design Transition UX and Redirects](../guides/transition-ux-and-redirects).
 
@@ -15,7 +15,7 @@ The guide assumes familiarity with VUEDA's workflow permission model. If you hav
 
 The objective is a workflow-enabled model where:
 
-- State permissions grant or deny specific CRUDL codenames based on the object's current workflow state and the user's groups.
+- State permissions grant or deny specific {@term CRUDL} codenames based on the object's current workflow state and the user's groups.
 - Transition execution is gated by workflow-level and transition-level permission entries.
 - The combination of baseline permissions and workflow overlays produces a consistent, testable behaviour matrix.
 - Client route admission and action rendering reflect the permission outcomes.

@@ -17,7 +17,7 @@ The three layers (stores, composables, and guards) are not interchangeable paths
 
 Stores are the cache and normalization authority. Store actions fetch remote data, normalize the wire shape into the client's internal representation, and persist results in keyed reactive maps. All downstream consumers (composables, guards, view components) read from these maps. Stores do not bind to component lifecycle events; they exist for the lifetime of the Pinia instance and are shared across all components and routes. When two components need the same model-info object, both read from the same store entry rather than issuing independent fetches.
 
-Composables are component-scoped reactive adapters. They watch reactive inputs (typically route parameters like `app`, `model`, and `view`), invoke store actions when inputs change, and expose `toRef(...)` pointers into store state. Composables bind to component lifecycle hooks through `useIsActive`, which gates fetch watches behind `onMounted` / `onActivated` / `onDeactivated`. This gating prevents fetches from running when a component is inactive, either because it has not yet mounted or because it has been deactivated by `<KeepAlive>`. Composables also provide a consistent loading/error surface so that components do not need to manage fetch state directly.
+Composables are component-scoped reactive adapters. They watch reactive inputs (typically route parameters like `app`, `model`, and `view`), invoke store actions when inputs change, and expose `toRef(...)` pointers into store state. Composables bind to component lifecycle hooks through {@api js:module:@arrai-innovations/vueda.use/useIsActive}, which gates fetch watches behind `onMounted` / `onActivated` / `onDeactivated`. This gating prevents fetches from running when a component is inactive, either because it has not yet mounted or because it has been deactivated by `<KeepAlive>`. Composables also provide a consistent loading/error surface so that components do not need to manage fetch state directly.
 
 Router guards are store-only consumers. Guards run outside component setup; there is no active component instance, no lifecycle hook registration, and no reactive scope owned by a component. Guard code calls store actions directly (for example, `storeModelInfo().fetchModelInfo(...)`) and awaits the result as a plain async operation. Composables must not be called from guards, because composables register lifecycle hooks via `useIsActive` and create watches gated by `isActive`, but `isActive` never transitions to `true` outside a component context. Guard work is expressed as plain async functions that return booleans or redirect objects.
 
@@ -35,7 +35,7 @@ Choices stores partition at a finer granularity than other metadata stores. Choi
 
 Each store follows a common fetch lifecycle pattern, but the specifics of caching, de-duplication, and error handling vary by store.
 
-**Fetch, cache, and short-circuit.** When a store action is called, it first checks whether the result already exists in the cache map for the given key. If so, it resolves immediately from cache without issuing a network request. `storeModelInfo.fetchModelInfo` checks `infos[key]`, `storeModelConfig.getConfig` checks `builtConfigs[builtKey]`, and `storeWorkflow.fetchWorkflowTransition` checks `workflowTransitions[key]`. This short-circuit makes repeated calls for the same identity essentially free after the initial fetch.
+**Fetch, cache, and short-circuit.** When a store action is called, it first checks whether the result already exists in the cache map for the given key. If so, it resolves immediately from cache without issuing a network request. {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo} checks `infos[key]`, `storeModelConfig.getConfig` checks `builtConfigs[builtKey]`, and `storeWorkflow.fetchWorkflowTransition` checks `workflowTransitions[key]`. This short-circuit makes repeated calls for the same identity essentially free after the initial fetch.
 
 **In-flight de-duplication (promise memoization).** When a fetch is in progress, the store retains the active Promise in a `promises` map keyed by the same identity string. Concurrent callers receive the same Promise rather than triggering a second network request. The memoized Promise is cleared in a `.finally` handler after resolution or rejection, so the next call after completion will either hit the cache (on success) or the error cache (on failure). All four metadata stores (model-info, model-config, workflow, and choices) implement this pattern.
 
@@ -71,7 +71,7 @@ For choices with no error memoization, each fetch attempt can succeed or fail in
 
 ## Route Guard Prefetch Boundary
 
-Router guards prefetch data that views will need, but they do so exclusively through stores. The `requireModelInfo` guard loads workflow transitions, model-info, and config in a single async path by calling store actions directly. This prefetch populates the store's caches so that when the destination component mounts and its composables initialize, the data is already available, and the composables' first fetch resolves immediately from cache.
+Router guards prefetch data that views will need, but they do so exclusively through stores. The {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo} guard loads workflow transitions, model-info, and config in a single async path by calling store actions directly. This prefetch populates the store's caches so that when the destination component mounts and its composables initialize, the data is already available, and the composables' first fetch resolves immediately from cache.
 
 Guards must not call composables. Composables depend on `useIsActive` to gate their watches, and `useIsActive` registers `onMounted` / `onActivated` / `onDeactivated` hooks. In the guard context, there is no component instance, so these hooks never fire, `isActive` never becomes `true`, and the composable's watches never execute. Additionally, `useModelConfig` allocates an `effectScope` that expects a component lifecycle owner for teardown. Creating this scope in the guard context leaks memory because nothing will dispose of it.
 
@@ -95,7 +95,6 @@ The layered architecture produces several characteristic failure patterns.
 
 ## Relevant Implementation Surface
 
-- {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
 - {@api js:function:@arrai-innovations/vueda.stores/storeModelInfo.storeModelInfo}
 - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
 - {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}
@@ -111,7 +110,6 @@ The layered architecture produces several characteristic failure patterns.
 - {@api js:function:@arrai-innovations/vueda.use/useModelChoices.useModelChoices}
 - {@api js:module:@arrai-innovations/vueda.use/useWorkflowTransitions}
 - {@api js:function:@arrai-innovations/vueda.use/useWorkflowTransitions.useWorkflowTransitions}
-- {@api js:module:@arrai-innovations/vueda.use/useIsActive}
 - {@api js:module:@arrai-innovations/vueda.router/guards}
 - {@api js:function:@arrai-innovations/vueda.router/guards.waitForModelStoreLoad}
 - {@api js:module:@arrai-innovations/vueda.utils/fetchSupport}

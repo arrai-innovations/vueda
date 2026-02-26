@@ -23,7 +23,7 @@ The upstream departure is deliberate: a single canonical keyset, enforced at the
 
 Upstream DRF does not define a first-class registry for model metadata projection. Metadata surfaces, such as `OPTIONS` responses, are generated dynamically by the viewset and serializer at the point of the request.
 
-VUEDA introduces an explicit registration surface (`vueda.info.registration`) that maps `app_label.model` to a canonical serializer and optional viewset. Model-info endpoints, which drive the client's entire metadata-driven UI, are gated to registered content types and consult the registration mapping for serializer and viewset authority. An unregistered model has no model-info endpoint, no metadata projection, and no client-side UI surface.
+VUEDA introduces an explicit registration surface ({@api py:module:vueda.info.registration}) that maps `app_label.model` to a canonical serializer and optional viewset. Model-info endpoints, which drive the client's entire metadata-driven UI, are gated to registered content types and consult the registration mapping for serializer and viewset authority. An unregistered model has no model-info endpoint, no metadata projection, and no client-side UI surface.
 
 This gating means that simply adding a DRF viewset and router entry does not make a model visible to the VUEDA client. The model must also be registered, and the registration determines which serializer-viewset pair is authoritative for metadata derivation. This is the boundary between "this model has a REST API" and "this model participates in the VUEDA metadata contract." See [Canonical Registration and Model Discovery](./canonical-registration-and-discovery) for the registration mechanics.
 
@@ -31,9 +31,9 @@ This gating means that simply adding a DRF viewset and router entry does not mak
 
 Upstream DRF request parsing tolerates unknown query parameters on `list` endpoints and commonly ignores extra keys in serializer input. VUEDA enforces explicit rejection at both boundaries.
 
-`NoExtraFieldsForViewSetMixin` validates `list` query parameters against the declared filter namespace. Any query key outside the union of filter fields, lookup-derived keys, and framework parameters is rejected with an HTTP 400 and a field-keyed validation error naming the valid filter set. This enforcement applies when the viewset declares a `filterset_class`; without a filterset, the check is skipped.
+{@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin} validates `list` query parameters against the declared filter namespace. Any query key outside the union of filter fields, lookup-derived keys, and framework parameters is rejected with an HTTP 400 and a field-keyed validation error naming the valid filter set. This enforcement applies when the viewset declares a `filterset_class`; without a filterset, the check is skipped.
 
-`NoExtraFieldsSerializerMixin` validates top-level serializer input against the declared field set. Extra payload keys trigger field-keyed validation errors. This applies only at the top-level serializer boundary; nested serializer payload keys are not validated by this mixin.
+{@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin} validates top-level serializer input against the declared field set. Extra payload keys trigger field-keyed validation errors. This applies only at the top-level serializer boundary; nested serializer payload keys are not validated by this mixin.
 
 Both validation surfaces enforce the same principle: contract surfaces are explicit, and unknown inputs are treated as errors rather than being silently discarded. The benefit is immediate, diagnosable errors for typos and stale clients. The cost is that integrations that append unexpected query parameters or payload keys will fail rather than degrade gracefully. See [Filtering and Ordering Semantics](./filtering-and-ordering-semantics) for the list-query validation details.
 

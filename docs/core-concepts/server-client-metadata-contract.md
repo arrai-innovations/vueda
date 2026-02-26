@@ -7,7 +7,7 @@ status: draft
 
 # Server-Client Metadata Contract
 
-VUEDA's client generates its UI entirely from server-provided metadata. The contract between the two sides is not a formal schema negotiation or a versioned wire protocol. It is a set of structural conventions: the server produces metadata in a predictable shape, and the client consumes it with specific expectations about what is present, what is absent, and what is permission-sensitive. When those expectations are met, the client can generate routes, forms, views, and action buttons without per-model wiring. When they are violated, the failures are specific and diagnosable.
+VUEDA's client generates its UI entirely from server-provided metadata. The contract between the two sides is not a formal schema negotiation or a versioned wire protocol. It is a set of structural conventions: the server produces metadata in a predictable shape, and the client consumes it with specific expectations about what is present, what is absent, and what is permission-sensitive. When those expectations are met, the client can generate routes, forms, views, and {@term Action} buttons without per-model wiring. When they are violated, the failures are specific and diagnosable.
 
 This page describes the metadata contract, where each section originates, how permissions shape visibility, how the client normalizes and caches metadata, and the compatibility guarantees across releases. For where the contract sits within the broader architecture, see [Architecture Overview](./architecture-overview). For the practical steps of registering a model so it participates in this contract, see [Create a CRUDL Surface](../guides/create-crudl-surface).
 
@@ -41,7 +41,7 @@ A model must be registered to appear in this contract at all. Registration is th
 
 ## Metadata Sections and Semantics
 
-The model-info endpoint (`GET /vueda.info/model_info/{app_label}/{model}/`) returns all metadata sections in a single response. The sections are expandable: the client explicitly requests them via the `fields` and `expand` query parameters. In practice, the client always requests all sections together.
+The {@term Model Info} endpoint ({@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}) returns all metadata sections in a single response. The sections are expandable: the client explicitly requests them via the `fields` and `expand` query parameters. In practice, the client always requests all sections together.
 
 The base response always includes `id` (content type PK), `app_label`, `model`, `verbose_name`, and `verbose_name_plural`. The expanded sections (`model_fields`, `model_actions`, `model_ordering`, `model_filtering`, `model_expands`, `model_permissions`) are only present when requested.
 
@@ -53,7 +53,7 @@ The `model_actions` section sorts its entries in a stable order: standard CRUD a
 
 **Action metadata is filtered by the requesting user's permissions.** When a user requests model-info, the server evaluates each standard action by constructing a synthetic request with the user's identity and the action's HTTP method, then running the viewset's permission checks. If the check raises `PermissionDenied` or `Http404`, the action is excluded from the response. Extra actions are filtered through `get_allowed_extra_actions` if the viewset defines it.
 
-This means two users requesting model-info for the same model may receive different `model_actions` lists. A user with only `read` and `list` permissions will see `list` and `retrieve` actions. A user with full CRUDL permissions will see all five standard actions plus any permitted extra actions.
+This means two users requesting model-info for the same model may receive different `model_actions` lists. A user with only `read` and `list` permissions will see `list` and `retrieve` actions. A user with full {@term CRUDL} permissions will see all five standard actions plus any permitted extra actions.
 
 **Permission lists are not user-filtered.** `model_permissions` returns all permission codenames for the content type regardless of the requesting user. This is intentional: the permission list is structural metadata (what permissions exist), not authorization metadata (what this user can do). The client uses the action list, not the permission list, for UX gating decisions.
 
@@ -63,9 +63,9 @@ This means two users requesting model-info for the same model may receive differ
 
 Field choices and filter choices are served by dedicated endpoints rather than being inlined in the main model-info response. This separation exists because choice lists can be large (thousands of related objects) and are not always needed.
 
-**Field choices** are served at `GET /vueda.info/model_info_choices/{app_label}/{model}/{field}/`. For static choice fields (CharField with `choices`), the endpoint returns `[{label, value}]` pairs sorted by label. For relational fields (ForeignKey, ManyToMany), the endpoint queries the related model's queryset, annotates each object with a `label` (derived from `formatted_name`) and a `value` (the PK cast to string), and returns the results sorted by label.
+**Field choices** are served at {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}. For static choice fields (CharField with `choices`), the endpoint returns `[{label, value}]` pairs sorted by label. For relational fields (ForeignKey, ManyToMany), the endpoint queries the related model's queryset, annotates each object with a `label` (derived from `formatted_name`) and a `value` (the PK cast to string), and returns the results sorted by label.
 
-**Filter choices** are served at `GET /vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/`. The behaviour mirrors field choices but operates on the filterset's field definitions. Filter choice responses include an empty choice entry (configurable via `empty_label`/`empty_value` on the filter or project settings) prepended to the list.
+**Filter choices** are served at {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}. The behaviour mirrors field choices but operates on the filterset's field definitions. Filter choice responses include an empty choice entry (configurable via `empty_label`/`empty_value` on the filter or project settings) prepended to the list.
 
 **Permission checks differ between choice types.** Requesting choices for any field on a model requires `read` permission for that model. Requesting choices for a relational field additionally requires `list` permission for the related model. If either check fails, the endpoint returns a 403 status code. This means a user who can view a model's form may not be able to load choice options for a related field if they lack permission on the related model.
 

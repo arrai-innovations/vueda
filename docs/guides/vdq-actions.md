@@ -5,7 +5,7 @@ audience: implementor
 status: draft
 ---
 
-# Run Actions in the VUEDA Dispatch Queue (VDQ)
+# Run Actions in the VUEDA Dispatch Queue ({@term VDQ (VUEDA Dispatch Queue)})
 
 This guide covers implementing queue-backed execution for outbound email and SMS through VDQ, from queue item creation through async processing, retry/cancel/resend operations, and operator-facing status. It focuses on the shared patterns across both email and SMS; for provider-specific details, see [Send Email from VDQ with Anymail](./vdq-email-anymail) and [Send SMS from VDQ with Twilio](./vdq-sms-twilio).
 

@@ -7,13 +7,13 @@ status: draft
 
 # Canonical Registration and Model Discovery
 
-Registration is the boundary for discoverability in VUEDA. If a model is not registered, it does not exist to the metadata API or the client. There is no automatic discovery from installed apps, no ORM introspection, no implicit scanning of serializer definitions. Registration is the single, explicit act that makes a model visible to the framework.
+{@term Canonical Registration} is the boundary for discoverability in VUEDA. If a model is not registered, it does not exist to the metadata API or the client. There is no automatic discovery from installed apps, no ORM introspection, no implicit scanning of serializer definitions. Registration is the single, explicit act that makes a model visible to the framework.
 
 Everything downstream depends on this boundary. Client routes, form generation, permission gating, and action availability: all of it requires the model to be present in the registry. This page explains what registration is as a state model, what each registration state controls, and where the boundary is enforced.
 
 ## Registration Is the Discoverability Gate
 
-Registration is the only mechanism by which a model becomes visible to VUEDA's metadata API. A registered model appears in model-info responses. A model that is not registered does not, regardless of whether it has a serializer, a viewset, migrations, or data in the database. None of those things alone makes a model discoverable.
+Registration is the only mechanism by which a model becomes visible to VUEDA's metadata API. A registered model appears in {@term Model Info} responses. A model that is not registered does not, regardless of whether it has a serializer, a viewset, migrations, or data in the database. None of those things alone makes a model discoverable.
 
 This is the system's architectural spine. The metadata universe is exactly the set of registered models. The client cannot discover models that the server has not registered, and the server will not advertise models that have not been explicitly enrolled. There is no configuration file that lists models, no decorator that auto-registers them, and no startup scan that finds them. Registration is a deliberate call made in the application code.
 

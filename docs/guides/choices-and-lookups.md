@@ -26,14 +26,14 @@ The model is registered via `register()` with both a canonical serializer and vi
 
 ## Registry and Route Preconditions
 
-Choice endpoints resolve the target model through Django's content type framework, which requires the model to be registered with VUEDA's info registry. An unregistered model; even one with a perfectly defined serializer and viewset; will produce a 404 response from choice endpoints with the message `"Unable to find the content type ..."`.
+Choice endpoints resolve the target model through Django's {@term Content Type} framework, which requires the model to be registered with VUEDA's info registry. An unregistered model; even one with a perfectly defined serializer and viewset; will produce a 404 response from choice endpoints with the message `"Unable to find the content type ..."`.
 
 Registration must happen in the app's `AppConfig.ready()` method. Attempting to wire choice loading before registration (for example, in a module-level initialization) risks content-type resolution errors. If a choice endpoint returns 404 and the model code exists, verify that `register()` is called in `ready()` and that the app is in `INSTALLED_APPS`.
 
 The choice endpoints use two URL patterns:
 
-- **Field choices**: `GET /vueda.info/model_info_choices/{app_label}/{model}/{field}/`
-- **Filter choices**: `GET /vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/`
+- **Field choices**: {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
+- **Filter choices**: {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
 
 Both require the `app_label` and `model` to match a registered content type, and the `field` to match a valid choice field or filter name on the registered serializer or filterset respectively.
 
@@ -56,7 +56,7 @@ Requesting choices for a field that does not have choices defined returns 404. T
 
 ### Response shape
 
-Choice responses are lists of `{label, value}` objects. For related-model choices, the label is resolved through the `formatted_name` priority chain: `get_formatted_name()` method first, then `formatted_name_lookup_expression` annotation, then the direct `formatted_name` field, then static field choices. The value is normalized to a string regardless of the database column's native type. See [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline#choice-identifier-value-semantics) for why this normalization exists.
+Choice responses are lists of `{label, value}` objects. For related-model choices, the label is resolved through the {@term Formatted Name} priority chain: `get_formatted_name()` method first, then `formatted_name_lookup_expression` annotation, then the direct `formatted_name` field, then static field choices. The value is normalized to a string regardless of the database column's native type. See [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline#choice-identifier-value-semantics) for why this normalization exists.
 
 ## Filter Choice Endpoint Wiring
 
@@ -80,7 +80,7 @@ Filter choice responses follow the same `{label, value}` structure as field choi
 
 ## Client Fetch Strategy
 
-The client loads choices through two coordinated layers: `storeModelChoices` for state management and deduplication, and `useModelChoices` for reactive fetching with intent controls.
+The client loads choices through two coordinated layers: {@api js:module:@arrai-innovations/vueda.stores/storeModelChoices} for state management and deduplication, and {@api js:module:@arrai-innovations/vueda.use/useModelChoices} for reactive fetching with intent controls.
 
 ### `useModelChoices` configuration
 

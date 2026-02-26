@@ -9,7 +9,7 @@ status: draft
 
 VUEDA does not assume that every model's primary key is named `id`. Instead, identifier authority flows from the server's serializer metadata through client normalization and into routing, CRUD transport, and lookup caching. Each layer discovers the PK field name from metadata rather than hardcoding it, with a small number of documented exceptions where the system uses fixed conventions.
 
-This page explains where identifier authority lives at each boundary, how single-object and multi-object identifiers are transported, and how the client normalizes and caches PK information. For the model-info metadata contract that generates field and PK metadata, see [Field and Expand Semantics](./field-and-expand-semantics). For practical steps on wiring choice and lookup fields that depend on identifier resolution, see [Model Choices, Lookup Fields, and Dynamic Options](../guides/choices-and-lookups).
+This page explains where identifier authority lives at each boundary, how single-object and multi-object identifiers are transported, and how the client normalizes and caches PK information. For the {@term Model Info} metadata contract that generates field and PK metadata, see [Field and Expand Semantics](./field-and-expand-semantics). For practical steps on wiring choice and {@term Lookup} fields that depend on identifier resolution, see [Model Choices, Lookup Fields, and Dynamic Options](../guides/choices-and-lookups).
 
 ## Boundary and Ownership
 

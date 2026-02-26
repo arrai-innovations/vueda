@@ -7,7 +7,7 @@ type: how-to
 
 # Client Plugin Prerequisites
 
-This guide covers the Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting a VUEDA client application. It explains what each dependency provides, which built-in components rely on it, and what fails when it is missing.
+This guide covers the Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting a VUEDA client application. It explains what each dependency provides, which built-in components rely on it, and what fails when it is missing. The registration sequence depends on `{@api js:function:@arrai-innovations/vueda.utils/listCrud.setupDefaultListCrud}` and `{@api js:function:@arrai-innovations/vueda.utils/objectCrud.setupDefaultObjectCrud}` to activate the shared `{@term CRUDL}` data path used by built-in views.
 
 The guide assumes familiarity with Vue 3 application setup (`createApp`, `app.use`, `app.directive`). For the tutorial-style walkthrough that shows the full `main.js` in context, see [Start Building](../tutorials/start-building). For theme customization beyond the base preset, consult the PrimeVue documentation.
 

@@ -7,7 +7,7 @@ status: draft
 
 # Field and Expand Semantics
 
-VUEDA uses two query-parameter-driven mechanisms to control the shape of API responses: sparse field selection (`f`) and expand selection (`e`). Together, these parameters let the client request only the fields it needs and embed related-object data inline rather than following separate requests. The contract spans three layers: the server's serializer metadata that defines what is available, the viewset validation that enforces what is allowed per action, and the client's normalization and caching of that metadata for runtime use.
+VUEDA uses two query-parameter-driven mechanisms to control the shape of API responses: sparse field selection (`f`) and {@term Expand} selection (`e`). Together, these parameters let the client request only the fields it needs and embed related-object data inline rather than following separate requests. The contract spans three layers: the server's serializer metadata that defines what is available, the viewset validation that enforces what is allowed per action, and the client's normalization and caching of that metadata for runtime use.
 
 This page explains the contract itself; what the parameters mean, how field and `expand` metadata is generated, how `expand` permissions are scoped per action, and what happens when requests violate the contract. For practical steps on configuring expand and field controls for a model surface, see [Use Expand and Sparse Field Controls](../guides/expand-and-fields-controls).
 
@@ -15,7 +15,7 @@ This page explains the contract itself; what the parameters mean, how field and 
 
 The server owns the definition of which fields exist and which fields are expandable. This definition lives in the canonical registered serializer, not in the Django model or database schema. The client owns the runtime decision of which fields and expands to request on a given fetch, within the boundaries the server advertises.
 
-The boundary between them is the model-info metadata response. Registration stores the canonical serializer and viewset class references; the server derives `model_fields` and `model_expands` from those classes on each model-info request by instantiating the serializer and inspecting its fields and expandable-field declarations. The client fetches this metadata, normalizes it, and uses it to construct default field and `expand` sets for each view. From that point forward, the client's requests are constrained by what the metadata advertises and what the viewset's action-level allow-lists permit.
+The boundary between them is the {@term Model Info} metadata response. Registration stores the canonical serializer and viewset class references; the server derives `model_fields` and `model_expands` from those classes on each model-info request by instantiating the serializer and inspecting its fields and expandable-field declarations. The client fetches this metadata, normalizes it, and uses it to construct default field and `expand` sets for each view. From that point forward, the client's requests are constrained by what the metadata advertises and what the viewset's action-level allow-lists permit.
 
 ## Parameter Namespace and Wire Shape
 

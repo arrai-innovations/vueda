@@ -39,7 +39,7 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 
 **{@api js:function:@arrai-innovations/vueda.utils/listCrud.allPagePaginatedListCrudAdaptor} fetches all pages concurrently.** It shares a single `AbortController` across concurrent page fetches (up to four concurrent via `p-limit`). Cancelling the returned promise aborts all in-flight pages. It uses `Promise.allSettled()` to avoid unhandled rejections when some pages are aborted while others succeed. This adapter is not registered by default; projects that need it can register it explicitly via `setListCrud`.
 
-**{@api js:function:@arrai-innovations/vueda.utils/listCrud.defaultObjectsDelete} handles bulk deletion.** It sends `{ pks: [...] }` as a JSON body with the `DELETE` method, adds a `Dry-Run` header when `dryRun` is true, and classifies responses by status code: `204` is success (returns nothing), `400` throws {@api js:class:@arrai-innovations/vueda.utils/errors.FormValidationError}, and other statuses throw `FetchError`.
+**{@api js:function:@arrai-innovations/vueda.utils/listCrud.defaultObjectsDelete} handles bulk deletion.** It sends `{ pks: [...] }` as a JSON body with the `DELETE` method, adds a {@term Dry Run} header when `dryRun` is true, and classifies responses by status code: `204` is success (returns nothing), `400` throws {@api js:class:@arrai-innovations/vueda.utils/errors.FormValidationError}, and other statuses throw `FetchError`.
 
 ## Default Adapter Set (Object)
 

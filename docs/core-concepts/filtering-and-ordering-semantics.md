@@ -19,11 +19,11 @@ This authority boundary means that adding a field to a serializer does not autom
 
 ## Metadata Projection for Ordering and Filtering
 
-The model-info endpoint projects viewset declarations into structured metadata that clients consume.
+The {@term Model Info} endpoint projects viewset declarations into structured metadata that clients consume.
 
 Ordering metadata (`model_ordering`) is a list of descriptors, each containing a `name` (the ordering field identifier) and a `type` (the field type classification). The list is derived from the canonical viewset's `ordering_fields`. When no canonical viewset exists, `model_ordering` is empty.
 
-Filtering metadata (`model_filtering`) is richer. Each filter entry includes the filter field name, its type, the list of `lookup_exprs` (lookup expressions such as `exact`, `icontains`, `gte`), and choice metadata when the filter field has a bounded value set. Lookup expressions are always presented as a list, even when only one expression is available. This consistent shape simplifies client parsing; consumers do not need to distinguish between single-expression and multi-expression filters.
+Filtering metadata (`model_filtering`) is richer. Each filter entry includes the filter field name, its type, the list of `lookup_exprs` (lookup expressions such as `exact`, `icontains`, `gte`), and choice metadata when the filter field has a bounded value set. {@term Lookup} expressions are always presented as a list, even when only one expression is available. This consistent shape simplifies client parsing; consumers do not need to distinguish between single-expression and multi-expression filters.
 
 Filters that are excluded or disabled in the filterset class are omitted from the metadata projection. The metadata represents only the active, usable filter surface.
 

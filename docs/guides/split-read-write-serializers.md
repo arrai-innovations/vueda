@@ -7,7 +7,7 @@ status: draft
 
 # Split Read/Write Serializers Safely
 
-This guide covers using different serializers for `read` actions (`list`/`retrieve`) versus write actions (`create`/`update`/`partial_update`) on the same viewset, while keeping client metadata, form behaviour, and post-submit redirects coherent. The split is useful when `read` responses need rich, expanded data that should not appear in write payloads, or when write validation rules differ substantially from read field sets.
+This guide covers using different serializers for `read` actions (`list`/`retrieve`) versus write actions (`create`/`update`/`partial_update`) on the same viewset, while keeping client metadata ({@term Model Info}), form behaviour, and post-submit redirects coherent. The split is useful when `read` responses need rich, expanded data that should not appear in write payloads, or when write validation rules differ substantially from read field sets.
 
 The guide assumes familiarity with VUEDA's canonical registration and metadata contract. If you have not read [Canonical Registration and Model Discovery](../core-concepts/canonical-registration-and-discovery), start there; it explains how model-info metadata is derived from the registered serializer/viewset pair. For the field and `expand` query parameter semantics that interact with per-action serializers, see [Field and Expand Semantics](../core-concepts/field-and-expand-semantics).
 
@@ -23,7 +23,7 @@ The objective is a viewset where:
 
 Before you begin:
 
-The model must have a canonical registration via `info.register(...)` with a viewset. The canonical serializer used in registration determines model-info field metadata; this is independent of per-action serializer selection at runtime.
+The model must have a {@term Canonical Registration} via {@api py:function:vueda.info.registration.register} with a viewset. The canonical serializer used in registration determines model-info field metadata; this is independent of per-action serializer selection at runtime.
 
 ## Canonical Serializer and Registration Choice
 
@@ -45,7 +45,7 @@ class MyAppConfig(AppConfig):
 
 ## ViewSet Action-to-Serializer Mapping
 
-Use `PerActionSerializerMixin` to map specific actions to specific serializer classes. Set action-specific attributes on the viewset:
+Use {@api py:class:vueda.core.viewsets.PerActionSerializerMixin} to map specific actions to specific serializer classes. Set action-specific attributes on the viewset:
 
 ```python
 from vueda.core.viewsets import PerActionSerializerMixin, VuedaViewSet
