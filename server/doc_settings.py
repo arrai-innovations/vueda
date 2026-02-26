@@ -24,7 +24,6 @@ env = TomlEnv(
         "AUTH_USER_MODEL": "doc_app.User",
         "DATABASE_URL": f"sqlite:///{ROOT_DIR / 'docs.sqlite3'}",
         "DATABASE_BACKUP_DIR": str(ROOT_DIR / "tmp"),
-        "REDIS_URL": "redis://localhost:6379/0",
         "ANYMAIL_MAILGUN_API_KEY": "docs",
         "ANYMAIL_MAILGUN_SENDER_DOMAIN": "example.com",
         "ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY": "docs",

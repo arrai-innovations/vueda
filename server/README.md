@@ -276,7 +276,9 @@ Once the management command that will create group migrations is written, then y
 
 ### Set up Dispatch Queue
 
-You need to configure the `CELERY_BROKER_URL` in your environment (or whatever config loader your project uses), for example:
+The dispatch queue uses celery to run tasks.
+Celery can be used with a number of different [backends](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html).
+You will need to select the backend you want to you and then configure the `CELERY_BROKER_URL` in your environment, for example:
 
 ```
 CELERY_BROKER_URL=redis://localhost:6379/3

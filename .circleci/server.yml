@@ -21,7 +21,6 @@ executors:
         docker:
             - image: cimg/python:3.11
             - image: cimg/postgres:15.12
-            - image: cimg/redis:6.2
     python311-base:
         docker:
             - image: cimg/python:3.11

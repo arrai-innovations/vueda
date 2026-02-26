@@ -224,16 +224,6 @@ def get_defaults(env: EnvLike):
             ],
         ),
         "LOCAL_APPS": env.list("LOCAL_APPS", default=[]),
-        "CACHES": {
-            "default": {
-                "BACKEND": "django.core.cache.backends.redis.RedisCache",
-                "KEY_PREFIX": "vueda-",
-                "LOCATION": env("REDIS_URL"),
-                "OPTIONS": {
-                    "pool_class": "redis.BlockingConnectionPool",
-                },
-            }
-        },
         "MFA_ALLOW_UNVERIFIED_EMAIL": True,
         "HEADLESS_ONLY": True,
         "HEADLESS_ADAPTER": env("ALLAUTH_HEADLESS_ADAPTER", default="vueda.user.adapters.VuedaAllAuthHeadlessAdapter"),
