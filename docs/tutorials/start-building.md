@@ -567,141 +567,276 @@ curl -b $COOKIE_JAR -c $COOKIE_JAR \
 
 ## VUEDA Client
 
-With the server-side API in place, the next step is to build out the VUEDA Client to interact with it.
+The scaffolded client has Vue, Pinia, vue-router, and VUEDA's action router wired up. Next, add the server connection, {@term CRUDL} data adapters, PrimeVue, a sign-in view, and CRUD view resolution.
 
-<!-- ============================================================
-     CLIENT SECTION BRAINSTORMING / IMPLEMENTATION NOTES
-     ============================================================
+### Connect to the Server
 
-     ### What the template scaffolds (already done)
+During local development the client dev server (port 5173) and Django (port 8000) run on different ports. Tell VUEDA which port to reach Django on.
 
-     - client/src/main.js: bare-bones Vue app (createApp, pinia, router, mount)
-     - client/src/router/index.js: makeCRUDRoutes + setCrudComponents({}) with
-       empty crudComponents, not-found catch-all, ViewActionRouter as route component
-     - client/src/TheApp.vue: Toast + ConfirmDialog + RouterView
-     - client/vite.config.js: vuedaViteConfig() from @vueda/vite (sets up @vueda
-       alias, reactive-helpers alias, vue/pinia runtime aliases, symlink fixes)
+Create `client/.env.development`:
 
-     ### What's missing in main.js (compare with wayfinders-client/src/main.js)
+```ini
+VITE_DJANGO_CONNECTION_PORT=8000
+```
 
-     1. setupDefaultListCrud() and setupDefaultObjectCrud() — these register the
-        HTTP adapters that VUEDA's composables use for all CRUD operations.
-        Without them, nothing fetches data.
-        src: @vueda/utils/listCrud.js, @vueda/utils/objectCrud.js
+The template's `config.toml` already includes `http://localhost:5173` in `CORS_ALLOWED_ORIGINS`, so no Vite proxy is needed.
 
-     2. PrimeVue plugin registration — VUEDA's built-in views use PrimeVue
-        components (DataTable, InputText, Button, etc). Need:
-          app.use(PrimeVue, { theme: { preset: ... }, cssLayer: ... })
-          app.use(ToastService)
-          app.directive("tooltip", Tooltip)
-        Theme preset: @primeuix/themes has Aura, Lara, etc. Wayfinders uses a
-        customized Lara. For the tutorial, Aura or Lara out of the box is fine.
-        src: wayfinders-client/src/main.js lines 29-63
+### Register Plugins
 
-     3. setPrimeVuePreset() — registers theme with VUEDA's internal theme store.
-        src: @vueda/theme/register.js
+Replace `client/src/main.js` with:
 
-     ### What's missing in router/index.js
+```javascript
+import TheApp from "./TheApp.vue";
+import { getRouter } from "./router/index.js";
+import Aura from "@primeuix/themes/aura";
+import { setPrimeVuePreset } from "@vueda/theme/register.js";
+import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
+import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
+import { createPinia } from "pinia";
+import PrimeVue from "primevue/config";
+import ConfirmationService from "primevue/confirmationservice";
+import ToastService from "primevue/toastservice";
+import Tooltip from "primevue/tooltip";
+import { createApp } from "vue";
 
-     crudComponents is {} — needs resolvers for at least: list, create, read,
-     update, destroy. The pattern from wayfinders is dynamic import with fallback:
+setupDefaultListCrud();
+setupDefaultObjectCrud();
 
-       list: async (argsObj) => {
-         try {
-           return (await import(`@/views/ViewList${pascal(app)}${pascal(model)}.vue`)).default;
-         } catch {
-           return (await import("@vueda/views/ViewList.vue")).default;
-         }
-       }
+const app = createApp(TheApp);
+const pinia = createPinia();
+const router = getRouter(app, pinia);
 
-     For the tutorial, we can skip the per-model dynamic import and just map
-     directly to VUEDA's built-in views as defaults:
+app.use(pinia);
+app.use(router);
+app.use(PrimeVue, {
+    theme: {
+        preset: Aura,
+    },
+});
+app.use(ToastService);
+app.use(ConfirmationService);
+app.directive("tooltip", Tooltip);
 
-       list: async () => (await import("@vueda/views/ViewList.vue")).default,
-       create: async () => (await import("@vueda/views/ViewCreate.vue")).default,
-       read: async () => (await import("@vueda/views/ViewRead.vue")).default,
-       update: async () => (await import("@vueda/views/ViewUpdate.vue")).default,
-       destroy: async () => (await import("@vueda/views/ViewDestroy.vue")).default,
+setPrimeVuePreset(Aura);
 
-     Then explain the dynamic import fallback pattern as the real-world approach
-     (link to wayfinders as example or to the CRUDL surface guide).
+app.mount("#the-app");
 
-     ### What's missing: auth routes
+export default app;
+```
 
-     The template's router has authRedirect: { name: "sign-in" } but no sign-in
-     route. The user will hit a redirect loop when not authenticated. Need at
-     minimum a sign-in view. Options:
-       a) Use VUEDA's built-in ViewSignIn if one exists
-       b) Create a minimal ViewSignIn.vue in the tutorial
-       c) Use the allauth browser flow (redirect to Django login page)
-     Check: does @vueda/views/ have a ViewSignIn.vue?
-     src: wayfinders-client/src/views/ViewSignIn.vue (custom)
+{@api js:function:@arrai-innovations/vueda.utils/listCrud.setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda.utils/objectCrud.setupDefaultObjectCrud} register the HTTP adapters that VUEDA's composables use for every CRUD operation. {@api js:function:@arrai-innovations/vueda.theme/register.setPrimeVuePreset} syncs the active PrimeVue preset into VUEDA's theme system. See [Client Plugin Prerequisites](/guides/client-plugin-prerequisites) for details on each plugin.
 
-     ### What's missing: server connection (vite proxy or CORS)
+### Add a Sign-In View
 
-     The client dev server (localhost:5173) needs to talk to the Django server
-     (localhost:8000). Two approaches:
-       a) Vite proxy: vite.config.js server.proxy { "/routes": target }
-       b) CORS: already configured in config.toml (CORS_ALLOWED_ORIGINS includes
-          localhost:5173). VUEDA's ASGI middleware handles CORS.
-     The CORS approach requires the client to know the server URL. Check how
-     VUEDA's objectCrud.js determines the base URL — it likely reads from
-     env vars or a config.
-     src: wayfinders-client uses VITE_DJANGO_HOSTNAME env var
-     src: @vueda/utils/objectCrud.js, @vueda/utils/listCrud.js for base URL
-     src: wayfinders-client/.env.development for env var pattern
+The scaffolded router's `authRedirect` points to a `sign-in` route that does not exist yet. Create `client/src/views/ViewSignIn.vue`:
 
-     ### Suggested tutorial flow
+```vue
+<script setup>
+import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
+import FieldString from "@vueda/fields/FieldString.vue";
+import { storeUser } from "@vueda/stores/storeUser.js";
+import WidgetInput from "@vueda/widgets/WidgetInput.vue";
+import Button from "primevue/button";
 
-     1. "Wire up the client runtime" — update main.js:
-        - Add setupDefaultListCrud() / setupDefaultObjectCrud()
-        - Add PrimeVue with a stock theme preset (Aura)
-        - Add ToastService and Tooltip directive
-        - Add setPrimeVuePreset()
+const userStore = storeUser();
 
-     2. "Configure CRUD view resolution" — update router/index.js:
-        - Fill in crudComponents with VUEDA's built-in views
-        - Add a sign-in route (minimal or VUEDA-provided)
+function login({ formValues }) {
+    return userStore.login(formValues);
+}
+</script>
 
-     3. "Connect to the server" — configure base URL:
-        - .env.development with VITE_DJANGO_HOSTNAME
-        - Or vite proxy approach
+<template>
+    <AuthorizingForm header="Sign In" :run-action="login">
+        <FieldString name="email" label="Email" required>
+            <WidgetInput />
+        </FieldString>
+        <FieldString name="password" label="Password" required>
+            <WidgetInput type="password" />
+        </FieldString>
+        <Button type="submit" label="Sign In" />
+    </AuthorizingForm>
+</template>
+```
 
-     4. "Verify in the browser" — navigate to:
-        - http://localhost:5173/inventory/product/list/
-        - Should see the product list (empty or with test data)
-        - Create a product, verify it appears in the list
-        - Click through to read, update, destroy
+{@api vue:component:AuthorizingForm} handles form state, watches {@api js:function:@arrai-innovations/vueda.stores/storeUser.storeUser} for login, and redirects to the `welcome` route on success. {@api vue:component:FieldString} and {@api vue:component:WidgetInput} register fields in the form context so their values are collected into `formValues` on submit. See [Build Auth Views](/guides/build-auth-views) for more on auth view patterns.
 
-     5. (Optional) "Customize a view" — brief example of:
-        - Creating a ViewListInventoryProduct.vue that overrides a slot
-        - Or using setupModelConfig to hide/show fields
+### Add a Welcome View
 
-     ### Template concerns to flag
+After sign-in, `AuthorizingForm` redirects to the route named `welcome`. Create `client/src/views/ViewWelcome.vue`:
 
-     - vuedaViteConfig() is in vueda source (client/lib/vite.js) but not in
-       the published 1.2.1 package. Template references it. Projects scaffolded
-       now need unreleased vueda or will fail at vite build.
-     - crudComponents = {} ships as empty — should the template provide the
-       built-in view defaults out of the box? (template fix, not just guide fix)
-     - main.js ships without setupDefaultListCrud/setupDefaultObjectCrud or
-       PrimeVue — should the template include these? (template fix)
-     - No sign-in route in template router — redirect loop on first load
+```vue
+<script setup>
+import { storeUser } from "@vueda/stores/storeUser.js";
+import { computed } from "vue";
 
-     ### Reference files
+const userStore = storeUser();
+const displayName = computed(() => userStore.user?.first_name || userStore.user?.email || "there");
+</script>
 
-     - Template main.js: templates/implementor-monorepo-dx/client/src/main.js.jinja
-     - Template router: templates/implementor-monorepo-dx/client/src/router/index.js.jinja
-       (or check if .jinja exists — the test project has plain .js)
-     - Template vite config: templates/implementor-monorepo-dx/client/vite.config.js.jinja
-     - Wayfinders main.js: /home/joel/WebstormProjects/wayfinders-client/src/main.js
-     - Wayfinders router: /home/joel/WebstormProjects/wayfinders-client/src/router/index.js
-     - Wayfinders model config: /home/joel/WebstormProjects/wayfinders-client/src/setupModelConfig.js
-     - VUEDA built-in views: vueda/client/lib/views/View{List,Create,Update,Read,Destroy}.vue
-     - VUEDA CRUD adapters: vueda/client/lib/utils/{listCrud,objectCrud}.js
-     - VUEDA theme register: vueda/client/lib/theme/register.js
-     - VUEDA vite config: vueda/client/lib/vite.js
-     - CRUDL surface guide: docs/guides/create-crudl-surface.md (client route wiring section)
-     ============================================================ -->
+<template>
+    <div style="padding: 2rem">
+        <h1>Welcome, {{ displayName }}</h1>
+        <p>
+            You are signed in. Try navigating to
+            <RouterLink to="/inventory/product/list/">Products</RouterLink>
+            to see the inventory list.
+        </p>
+    </div>
+</template>
+```
 
-This section is still being written. In the meantime, the generated `client/src/router/index.js` shows the scaffolded routing setup, and the [Guides](/guides/) section covers specific client-side tasks like [creating a CRUDL surface](/guides/create-crudl-surface) for a model.
+### Configure CRUD View Resolution and Routes
+
+The scaffolded router calls {@api js:function:@arrai-innovations/vueda.router/routerComponent.setCrudComponents} with an empty object and has no routes for `sign-in` or `welcome`. Replace `client/src/router/index.js` with:
+
+```javascript
+import { requireInitialized } from "@vueda/router/guards.js";
+import { makeCRUDRoutes } from "@vueda/router/makeCrud.js";
+import { setCrudComponents } from "@vueda/router/routerComponent.js";
+import { createRouter, createWebHistory } from "vue-router";
+
+export function getRouter(app, pinia) {
+    const crudComponents = {
+        list: async () => (await import("@vueda/views/ViewList.vue")).default,
+        create: async () => (await import("@vueda/views/ViewCreate.vue")).default,
+        read: async () => (await import("@vueda/views/ViewRead.vue")).default,
+        update: async () => (await import("@vueda/views/ViewUpdate.vue")).default,
+        destroy: async () => (await import("@vueda/views/ViewDestroy.vue")).default,
+    };
+    setCrudComponents(crudComponents);
+
+    const router = createRouter({
+        history: createWebHistory(import.meta.env.BASE_URL),
+        routes: [],
+    });
+
+    const routes = [
+        {
+            path: "/sign-in/",
+            name: "sign-in",
+            component: () => import("@/views/ViewSignIn.vue"),
+            meta: { title: "Sign In" },
+        },
+        {
+            path: "/welcome/",
+            name: "welcome",
+            component: () => import("@/views/ViewWelcome.vue"),
+            meta: { title: "Welcome" },
+            beforeEnter: () => requireInitialized(router, pinia),
+        },
+        ...makeCRUDRoutes({
+            component: async () => (await import("@vueda/views/ViewActionRouter.vue")).default,
+            authRedirect: { name: "sign-in" },
+            groupsRedirect: { name: "welcome" },
+            actionRedirect: { name: "not-found" },
+            groups: [],
+            vueApp: app,
+            router,
+            pinia,
+        }),
+        {
+            path: "/:pathMatch(.*)*",
+            name: "not-found",
+            component: async () => (await import("@vueda/views/ViewNotFound.vue")).default,
+            meta: {
+                title: "Not Found",
+                titles: {
+                    view: "Not Found",
+                },
+            },
+            beforeEnter: () => requireInitialized(router, pinia),
+            props: (route) => {
+                return {
+                    ...(route.params || {}),
+                    ...(route.query || {}),
+                    title: route.meta.title,
+                };
+            },
+        },
+    ];
+
+    for (const route of routes) {
+        router.addRoute(route);
+    }
+
+    return router;
+}
+```
+
+`crudComponents` maps each {@term CRUDL} action to a built-in view ({@api vue:component:ViewList}, {@api vue:component:ViewCreate}, {@api vue:component:ViewRead}, {@api vue:component:ViewUpdate}, {@api vue:component:ViewDestroy}). {@api vue:component:ViewActionRouter} uses this map to resolve which component to render. These views auto-discover fields, filters, and permissions from {@term Model Info}, so no per-model client code is needed for a working baseline. See [Routing and View Resolution](/core-concepts/routing-and-view-resolution-model) for the full resolution chain.
+
+::: tip Per-model view overrides
+In a real project you may want a custom view for a specific model. The common pattern is a dynamic import with a fallback:
+
+```javascript
+list: async ({ app, model }) => {
+    try {
+        return (await import(`@/views/ViewList${pascal(app)}${pascal(model)}.vue`)).default;
+    } catch {
+        return (await import("@vueda/views/ViewList.vue")).default;
+    }
+},
+```
+
+This lets you drop in a `ViewListInventoryProduct.vue` for one model while every other model keeps the default. See [Creating a CRUDL Surface](/guides/create-crudl-surface) for details.
+:::
+
+### Verify in the Browser
+
+Start both servers if they are not already running:
+
+```console
+# DX template
+just serve
+
+# Minimal template (two terminals)
+cd server && uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind localhost:8000
+cd client && pnpm dev
+```
+
+Open `http://localhost:5173` in your browser.
+
+1. You should be redirected to `/sign-in/` (not authenticated yet).
+2. Sign in with the superuser credentials you created earlier.
+3. After login you should land on `/welcome/`.
+4. Click the "Products" link (or navigate to `http://localhost:5173/inventory/product/list/`). If you created products via curl earlier, they appear here.
+5. Use the "Create" action to add a product and verify it appears in the list.
+6. Click a product row to open the read view, then try update and destroy.
+
+### Customize with Model Config
+
+The built-in views render every field the serializer exposes. To adjust which fields appear, set sort defaults, or reorder columns without building custom views, use {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}.
+
+Create `client/src/setupModelConfig.js`:
+
+```javascript
+import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
+
+export function setupModelConfig() {
+    const modelConfig = storeModelConfig();
+
+    modelConfig.setConfig(
+        { app: "inventory", model: "product" },
+        {
+            displayFields: ["name", "sku", "description"],
+            sorted: ["name"],
+        },
+        {
+            create: {
+                fields: ["name", "sku", "description"],
+            },
+        },
+    );
+}
+```
+
+Then call it from `main.js` after `app.use(pinia)`:
+
+```javascript
+import { setupModelConfig } from "./setupModelConfig.js";
+
+// ... after app.use(pinia)
+setupModelConfig();
+```
+
+The `fields` shorthand sets `displayFields`, `fetchFields`, and `submitFields` together. Per-view configs (keyed by action name) merge on top of the generic config. See [Configure CRUD Views](/guides/configure-crud-views) for all available options.
