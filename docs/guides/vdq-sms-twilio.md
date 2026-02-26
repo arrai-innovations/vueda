@@ -52,7 +52,7 @@ add_sms(
 
 Key behaviours:
 
-- **One `QueueItem` per call.** Unlike email (which creates one item per recipient), SMS creates a single `QueueItem(method="sms")` plus one `SMSQueueItem` detail row per `add_sms` call.
+- **One {@term Queue Item (VDQ)} per call.** Unlike email (which creates one item per recipient), SMS creates a single `QueueItem(method="sms")` plus one `SMSQueueItem` detail row per `add_sms` call.
 - **Role validation.** `validate_sms_role` checks that both sender and receiver have a `cell` value. Invalid roles are rejected before the queue item is created.
 - **Immediate scheduling.** `add_sms` calls `schedule_queue_item`, which publishes a Celery task via `delay_on_commit`.
 

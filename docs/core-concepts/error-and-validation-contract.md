@@ -110,7 +110,7 @@ Non-field errors use the stable key `non_field_errors`, defined by DRF's `NON_FI
 
 The `FormValidationError` constructor flattens the response payload into paths using a recursive path-flattening utility. This handles nested dicts and arrays: `{"items": [{"quantity": ["Too large"]}]}` flattens to a path like `items[0].quantity[0]`, which is then normalized to `items[0].quantity` for the error map key. The flattening also handles structured objects: a path ending in `.detail` indicates a structured feedback object rather than a string message, and the parent path (without `.detail`) is used as the key.
 
-## Warning Channel Semantics
+## {@term Warning Channel} Semantics
 
 The warning channel is a parallel transport mechanism that uses the same HTTP 400 status and the same `FormValidationError` parsing path as errors, but routes to a different destination in form state.
 

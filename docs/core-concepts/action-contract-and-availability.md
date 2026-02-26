@@ -7,7 +7,7 @@ status: draft
 
 # Action Contract and Availability
 
-VUEDA manages action visibility and authorization through a contract that spans three boundaries: server-side action declaration and metadata emission, object-level availability computation, and client-side route admission and UI affordance filtering. Each boundary enforces a different aspect of action availability, and the observable behaviour depends on how the three layers interact. When they align, actions appear and function as expected. When they diverge, because metadata, permissions, or config constraints are out of sync, the failure surfaces as missing buttons, unexpected redirects, or permission denials that appear to contradict the advertised action set.
+VUEDA manages action visibility and authorization through a contract that spans three boundaries: server-side action declaration and metadata emission, object-level availability computation, and client-side {@term Route Admission} and UI affordance filtering. Each boundary enforces a different aspect of action availability, and the observable behaviour depends on how the three layers interact. When they align, actions appear and function as expected. When they diverge, because metadata, permissions, or config constraints are out of sync, the failure surfaces as missing buttons, unexpected redirects, or permission denials that appear to contradict the advertised action set.
 
 This page explains the contract boundary, the metadata each layer produces and consumes, and the failure patterns that emerge when the layers drift apart. For the practical steps to wire action availability in a project, see [Control Action Availability in the UI](../guides/control-action-availability). For the underlying permission model that drives action filtering, see [Permission Model](./permission-model). For the boundary between server authorization and client UI semantics, see [Authorization vs UI Semantics](./authorization-vs-ui-semantics).
 
@@ -59,11 +59,11 @@ The computation runs each standard action (retrieve, update, partial_update, des
 
 Extra actions are appended through `get_allowed_extra_actions(request, instance=instance)`. This is the same hook as the model-scope version, but with the instance argument, enabling object-specific filtering of extra action availability.
 
-The distinction between model-scope and object-scope availability is fundamental to the contract. Model-scope metadata answers "Does this action exist and might this user be able to perform it?" Object-scope availability answers the question, "Can this user perform this action on this specific object right now?" The two can diverge legitimately: a user may have the model-level permission for `update` (so it appears in `model_actions`), but a specific object may be in a workflow state that denies `update` (so it is absent from that object's `available_actions`).
+The {@term Model-Scope vs Object-Scope Availability} distinction is fundamental to the contract. Model-scope metadata answers "Does this action exist and might this user be able to perform it?" Object-scope availability answers the question, "Can this user perform this action on this specific object right now?" The two can diverge legitimately: a user may have the model-level permission for `update` (so it appears in `model_actions`), but a specific object may be in a workflow state that denies `update` (so it is absent from that object's `available_actions`).
 
-## Client Action Namespace and Route Admission
+## Client {@term Action Namespace} and {@term Route Admission}
 
-The client normalizes action names before performing route admission checks. The normalization maps aliases to canonical names; most notably, `read` is normalized to `retrieve`. This normalization ensures that route definitions using either name resolve consistently against the server-advertised action set.
+The client normalizes action names before performing {@term Route Admission} checks. The normalization maps aliases to canonical names; most notably, `read` is normalized to `retrieve`. This normalization ensures that route definitions using either name resolve consistently against the server-advertised action set.
 
 Route admission is evaluated in the {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo} navigation guard. The guard fetches model-info for the target route's model, then checks whether the route's action name (after normalization) appears in the computed action set. The action set is assembled from three sources: the `model_actions` names from model-info, an optional `routeActions` filter from the model's config (which restricts the set to only named actions), and workflow transition codes (which extend the set with transition-specific routes).
 

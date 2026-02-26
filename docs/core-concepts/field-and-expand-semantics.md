@@ -51,9 +51,9 @@ The nested `f` metadata is what makes expansion an explicit embedded contract ra
 
 When sparse field selection (`f`) is applied to an expanded serializer's fields, the primary key of the nested serializer is always preserved even if not explicitly requested. This ensures that expanded objects are always identifiable regardless of which subset of their fields the client selects.
 
-## Action-Scoped Expand Authority
+## {@term Action-Scoped Expand} Authority
 
-Expandable fields declared on a serializer are not automatically available on every viewset action. The viewset can restrict which expands are permitted per action using `permit_{action}_expands` attributes; for example, `permit_list_expands` and `permit_retrieve_expands`. When these attributes are defined, the viewset injects the permitted set as `permitted_expands` in the serializer context, and the serializer's flex-field machinery respects it.
+Expandable fields declared on a serializer are not automatically available on every viewset action. The viewset can restrict which expands are permitted per action using {@term Action-Scoped Expand} controls (`permit_{action}_expands` attributes); for example, `permit_list_expands` and `permit_retrieve_expands`. When these attributes are defined, the viewset injects the permitted set as `permitted_expands` in the serializer context, and the serializer's flex-field machinery respects it.
 
 This scoping exists because different actions have different performance and data-shape requirements. A `list` action might permit only lightweight expands (such as a user's display name) while a `retrieve` action permits heavier expands (such as a full nested object graph). Without action-level scoping, a `list` request could embed deep object trees across every row in a paginated response, producing non-linear payload growth.
 

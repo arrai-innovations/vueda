@@ -25,13 +25,13 @@ Before you begin:
 
 The model must have a {@term Canonical Registration} via {@api py:function:vueda.info.registration.register} with a viewset. The canonical serializer used in registration determines model-info field metadata; this is independent of per-action serializer selection at runtime.
 
-## Canonical Serializer and Registration Choice
+## {@term Canonical Serializer} and Registration Choice
 
-Model-info field metadata (`model_fields`) is derived from the canonical serializer registered with `info.register(...)`, not from per-action runtime serializer selection. This means the metadata the client uses for form rendering, field types, and validation hints comes from a single serializer, regardless of how many serializers the viewset uses at runtime.
+Model-info field metadata (`model_fields`) is derived from the {@term Canonical Serializer} registered with `info.register(...)`, not from per-action runtime serializer selection. This means the metadata the client uses for form rendering, field types, and validation hints comes from a single serializer, regardless of how many serializers the viewset uses at runtime.
 
 Choose which serializer to register as canonical based on what the client needs for form rendering. Typically, this is the write serializer, since form fields need to match the fields the server accepts on `create`/`update`. If you register the read serializer as canonical and it includes fields that the write serializer does not accept, the client may render form fields that produce validation errors on submit.
 
-Registration with `register_serializer(...)` (serializer-only, no viewset) is possible but produces limited metadata: `model_actions` will be empty, and filter/ordering metadata will be absent. Use this only when the model does not require client-side action routing or `list` filtering.
+{@term Serializer-Only Registration} with `register_serializer(...)` (no viewset) is possible but produces limited metadata: `model_actions` will be empty, and filter/ordering metadata will be absent. Use this only when the model does not require client-side action routing or `list` filtering.
 
 ```python
 from vueda.info.registration import register

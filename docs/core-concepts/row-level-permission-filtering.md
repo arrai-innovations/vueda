@@ -9,7 +9,7 @@ status: draft
 
 VUEDA supports per-row access control through an optional model-level hook that operates at two independent scopes: queryset filtering (which rows appear in `list` responses and are eligible for bulk deletion) and instance checking (which objects pass object-level permission evaluation). These two scopes are independent by design; they serve different purposes, may implement different rules, and can produce different outcomes for the same object.
 
-This page explains the hook surface, the filtering boundaries for list and bulk-`delete` operations, how pagination and aggregates interact with row filtering, and the failure modes that result from row-level decisions. For the broader permission model (baseline CRUDL, workflow overlay, evaluation order), see [Permission Model](./permission-model). For the practical steps to implement row-level hooks, see [Implement Row-Level Permissions](../guides/implement-row-level-permissions). For workflow state permission overlays, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
+This page explains the {@term Row-Level Hook Surface}, the filtering boundaries for list and bulk-`delete` operations, how pagination and aggregates interact with row filtering, and the failure modes that result from row-level decisions. For the broader permission model (baseline CRUDL, workflow overlay, evaluation order), see [Permission Model](./permission-model). For the practical steps to implement row-level hooks, see [Implement Row-Level Permissions](../guides/implement-row-level-permissions). For workflow state permission overlays, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
 
 ## Authority and Boundaries
 
@@ -19,7 +19,7 @@ The `RowLevelPermissions` class provides up to four hooks. Two are non-workflow 
 
 The authority split is intentional. Queryset filtering must express its logic as a `Q` object or a boolean because it operates at database scope; it cannot make per-row decisions that require object materialization, external lookups, or expensive computation. Instance checks operate on a materialized Python object and can implement arbitrarily complex logic, including remote API calls, cross-system policy evaluation, or state-dependent business rules. A project may intentionally grant list visibility to rows that would be denied at instance scope, or hide rows from lists that instance-level checks would allow. The framework does not validate consistency between the two scopes.
 
-## Row-Level Hook Surface (Queryset vs Instance)
+## {@term Row-Level Hook Surface} (Queryset vs Instance)
 
 ### Queryset-level filtering
 

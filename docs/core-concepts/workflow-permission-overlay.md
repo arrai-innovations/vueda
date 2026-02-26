@@ -9,7 +9,7 @@ status: draft
 
 Workflow permissions in VUEDA are not a separate authorization system; they are an overlay on the same CRUDL permission codenames used by baseline model permissions. State permissions can grant or deny specific codenames for specific workflow states and user groups, modifying the outcome of standard permission checks without changing the underlying permission assignments. Transition permissions are a separate gate that controls who can execute specific workflow transitions, operating alongside but independently from CRUDL authorization.
 
-This page explains how state permissions, transition permissions, and the DRF model-scope bypass compose with baseline CRUDL permissions, and how the client treats transition codes as part of the route action namespace. For the full permission evaluation chain (layers 1-4), see [Permission Model](./permission-model). For the practical steps to configure workflow permissions, see [Add Workflow State and Transition Permissions](../guides/workflow-state-permissions). For row-level filtering mechanics that interact with workflow state, see [Row-Level Permission Filtering](./row-level-permission-filtering). For transition UX and redirect behaviour, see [Design Transition UX and Redirects](../guides/transition-ux-and-redirects).
+This page explains how state permissions, transition permissions, and the DRF model-scope bypass compose with baseline CRUDL permissions, and how the client treats transition codes as part of the route {@term Action Namespace}. For the full permission evaluation chain (layers 1-4), see [Permission Model](./permission-model). For the practical steps to configure workflow permissions, see [Add Workflow State and Transition Permissions](../guides/workflow-state-permissions). For row-level filtering mechanics that interact with workflow state, see [Row-Level Permission Filtering](./row-level-permission-filtering). For transition UX and redirect behaviour, see [Design Transition UX and Redirects](../guides/transition-ux-and-redirects).
 
 ## Overlay Boundary and Authority
 
@@ -57,7 +57,7 @@ Permission check failures at the transition level surface differently depending 
 
 The viewset-level gate for all workflow endpoints is `vueda_workflow.read_workflow`. This check runs during `check_permissions`, before any object-specific or transition-specific logic. A user who lacks this permission sees `403` on all workflow endpoints, object state, permitted transitions, and execute transition, regardless of their other permissions.
 
-## Client Action Namespace Overlay
+## Client {@term Action Namespace} Overlay
 
 On the client, workflow transitions extend the action namespace that drives route admission and view resolution. The {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo} route guard assembles the admissible action set from the model-info `model_actions` and workflow permitted transition codes. Transition codes are treated as action identifiers alongside standard CRUD action names.
 
