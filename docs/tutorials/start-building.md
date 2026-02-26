@@ -224,7 +224,7 @@ VUEDA provides its own extensions of Django's `Model` class:
 - **{@api py:class:vueda.core.models.Lookup}**: extends {@api py:class:vueda.core.models.VuedaBaseModel} with a unique `code` field, intended for lightweight, potentially user-defined, reference data tables.
 
 ::: important
-VUEDA uses create, read, update, delete, and list permissions, which aligns better with `djangorestframework`'s viewset actions than Django's default add, change, delete, and view permissions. All VUEDA models must therefore inherit from {@api py:class:vueda.core.models.VuedaBaseModel} to ensure proper permission handling, and must have a `class Meta(VuedaBaseModel.Meta)` (or equivalently, `class Meta(`{@api py:class:vueda.core.models.BaseModelMeta}`)`) by default.
+VUEDA uses create, read, update, delete, and list permissions, which aligns better with `djangorestframework`'s viewset actions than Django's default add, change, delete, and view permissions. All VUEDA models must therefore inherit from {@api py:class:vueda.core.models.VuedaBaseModel} to ensure proper permission handling, and must have a `class Meta(VuedaBaseModel.Meta)` (or equivalently, `class Meta({@api py:class:vueda.core.models.BaseModelMeta})`) by default.
 :::
 
 `server/your_project/inventory/models.py`:
@@ -269,7 +269,7 @@ class ProductOption(VuedaBaseModel):
 VUEDA provides {@api py:class:vueda.core.serializers.VuedaSerializer} and {@api py:class:vueda.core.serializers.VuedaLookupSerializer} base classes for DRF serializers. {@api py:class:vueda.core.serializers.VuedaLookupSerializer} handles the boilerplate around the `code` field for {@api py:class:vueda.core.models.Lookup} models.
 
 ::: important
-As with models, all VUEDA serializers should have a `class Meta(`{@api py:class:vueda.core.serializers.VuedaSerializer}`.Meta)` or `class Meta(`{@api py:class:vueda.core.serializers.VuedaLookupSerializer}`.Meta)` to ensure proper default behavior.
+As with models, all VUEDA serializers should have a `class Meta({@api py:class:vueda.core.serializers.VuedaSerializer}.Meta)` or `class Meta({@api py:class:vueda.core.serializers.VuedaLookupSerializer}.Meta)` to ensure proper default behavior.
 :::
 
 `server/your_project/inventory/serializers.py`:

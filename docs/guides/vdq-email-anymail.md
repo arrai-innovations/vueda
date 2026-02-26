@@ -7,7 +7,7 @@ status: draft
 
 # Send Email from VDQ with Anymail
 
-This guide covers implementing queued outbound email through VDQ using Anymail as the provider; including queue item creation, attachment handling, async dispatch, tracking event reconciliation, and the resend path. It focuses on email-specific behaviour; for shared VDQ patterns (scheduling, retry/cancel, status endpoints), see [Run Actions in the VUEDA Dispatch Queue (VDQ)](./vdq-actions). The queue orchestration and transition handling are built on `{@api py:module:vueda.vdq}` and `{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}`, which together implement the `{@term VDQ (VUEDA Dispatch Queue)}` execution model.
+This guide covers implementing queued outbound email through VDQ using Anymail as the provider; including queue item creation, attachment handling, async dispatch, tracking event reconciliation, and the resend path. It focuses on email-specific behaviour; for shared VDQ patterns (scheduling, retry/cancel, status endpoints), see [Run Actions in the VUEDA Dispatch Queue (VDQ)](./vdq-actions). The queue orchestration and transition handling are built on {@api py:module:vueda.vdq} and {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}, which together implement the {@term VDQ (VUEDA Dispatch Queue)} execution model.
 
 The guide assumes familiarity with VDQ's persistence and lifecycle model. If you have not read [VDQ and Background Work Model](../core-concepts/vdq-and-background-work), start there.
 
