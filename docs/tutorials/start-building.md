@@ -24,7 +24,6 @@ By the end of this guide, you will have a running Django API and Vue client conn
 
 ### Optional
 
-- A [Redis](https://redis.io/) instance: for caching and Celery task brokering (not required for this guide)
 - [just](https://just.systems/man/en/introduction.html): for common developer CLI tooling (included in the DX template)
 
 ::: warning
@@ -138,10 +137,6 @@ The template pre-populates `DATABASE_URL` with a reasonable guess based on your 
 
 ::: tip
 The template's `config.toml` also registers the scaffolded `users` app via `LOCAL_APPS` and sets `AUTH_USER_MODEL = "users.User"`. These are required for VUEDA's user system to work. You can add your own apps to `LOCAL_APPS` or append to `INSTALLED_APPS` directly in `base.py` (the guide uses the latter approach below).
-:::
-
-::: warning
-When `REDIS_URL` is not configured, the template falls back to Django's `LocMemCache`, which is per-process. This is fine for single-process local development, but ASGI servers like gunicorn run multiple worker processes with isolated caches. Configure a Redis (or equivalent) cache backend for anything beyond basic local development.
 :::
 
 ## First Contact
