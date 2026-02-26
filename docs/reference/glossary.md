@@ -15,6 +15,10 @@ A named operation exposed by a viewset beyond basic CRUDL, optionally detail-sco
 
 Action list returned by server metadata/object payloads to indicate what is currently permitted.
 
+## Bulk Action
+
+An action dispatched against multiple objects in a single request, enabled on a viewset via `@action(bulk=True)` and routed by `VuedaRouter`.
+
 ## Canonical Registration
 
 The server-side registration of serializer/viewset metadata used by model-info endpoints.
@@ -31,6 +35,10 @@ Django `ContentType` record identifying a model (`app_label`, `model`) used acro
 
 `create`, `read`, `update`, `delete`, `list` permission/action vocabulary used by VUEDA.
 
+## CRUD View Resolution
+
+The client-side mechanism that maps each CRUDL action to a Vue component via `setCrudComponents`, with `ViewActionRouter` selecting the correct component at render time.
+
 ## Dry Run
 
 Action execution mode where mutations are rolled back after validation/logic evaluation.
@@ -43,9 +51,21 @@ Contract option to include related objects inline in API responses.
 
 Contract option to request a sparse response containing selected fields.
 
+## Formatted Name
+
+A `GeneratedField` on every `VuedaBaseModel` that produces a display-ready string, by default derived from the model's `name` field.
+
 ## Implementor
 
 A team integrating VUEDA into a domain application.
+
+## Lookup
+
+A `VuedaBaseModel` subclass with a unique `code` field, intended for lightweight reference data tables (for example, status codes or category labels).
+
+## Model Config
+
+Client-side configuration object (`storeModelConfig`) that controls which fields appear, sort defaults, and per-action overrides for a model's CRUD views.
 
 ## Model Info
 
