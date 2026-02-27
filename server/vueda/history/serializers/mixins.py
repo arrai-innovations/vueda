@@ -1,3 +1,10 @@
+"""Serializer mixins for exposing historical records and diff fields."""
+
+__all__ = (
+    "HistoricalModelSerializerMixin",
+    "SimpleHistorySerializerMixin",
+)
+
 import rest_framework.serializers as drf_serializers
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType

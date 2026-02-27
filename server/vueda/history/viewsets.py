@@ -1,3 +1,7 @@
+"""ViewSet mixin for exposing django-simple-history list and diff actions."""
+
+__all__ = ("SimpleHistoryViewSetMixin",)
+
 from django.contrib.auth import get_user_model
 from django.db.models import Max
 from django.db.models import OuterRef

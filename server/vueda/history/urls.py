@@ -1,3 +1,7 @@
+"""URL configuration for the vueda.history app."""
+
+__all__ = ("urlpatterns",)
+
 from django.urls import path
 
 from vueda.history.views import GetObjectHistoryView

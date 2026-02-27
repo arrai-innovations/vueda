@@ -1,3 +1,10 @@
+"""Migration utility for manually creating historical records outside of post-save signals."""
+
+__all__ = (
+    "DEFAULT",
+    "create_historical_record",
+)
+
 from django.apps.registry import Apps
 from django.utils import timezone
 

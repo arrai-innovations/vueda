@@ -1,3 +1,10 @@
+"""DRF field and utilities for serializing django-simple-history records."""
+
+__all__ = (
+    "HistoricalRecordField",
+    "filter_fields_for_flexlike_on_historical_records",
+)
+
 from django.db.models import ForeignObjectRel
 from django.db.models.fields.related import RelatedField
 from rest_framework import serializers as drf_serializers
