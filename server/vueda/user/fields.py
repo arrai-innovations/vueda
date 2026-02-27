@@ -1,3 +1,7 @@
+"""DRF serializer field for TOTP authentication method selection."""
+
+__all__ = ("TOTPMethodChoiceField",)
+
 from rest_framework import serializers
 
 from vueda.user.models import TWO_FACTOR_AUTHENTICATION_OPTIONS

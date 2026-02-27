@@ -1,3 +1,18 @@
+"""DRF serializers for user authentication, profile management, and TOTP devices."""
+
+__all__ = (
+    "AuthenticatorSerializer",
+    "ForgotPasswordSerializer",
+    "GroupSerializer",
+    "LoginSerializer",
+    "ResetPasswordSerializer",
+    "TOTPDeviceSerializer",
+    "TOTPSetupSerializer",
+    "UserSerializer",
+    "VuedaTokenSerializer",
+    "WhoIsSerializer",
+)
+
 from allauth.account.internal.flows.reauthentication import did_recently_authenticate
 from allauth.mfa.models import Authenticator
 from dj_rest_auth.serializers import TokenSerializer

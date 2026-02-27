@@ -1,3 +1,16 @@
+"""User models and managers for VUEDA authentication with TOTP support."""
+
+__all__ = (
+    "TWO_FACTOR_AUTHENTICATION_OPTIONS",
+    "AbstractVUEDAUser",
+    "AbstractVUEDAUserMeta",
+    "AbstractVUEDAUserWithHistory",
+    "GroupChange",
+    "TOTPDevice",
+    "VUEDAUserManager",
+    "VUEDAUserWithHistoryManager",
+)
+
 from urllib.parse import urljoin
 
 from allauth.mfa.models import Authenticator

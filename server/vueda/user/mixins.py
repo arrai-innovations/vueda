@@ -1,3 +1,10 @@
+"""Mixins for user logout context and permission layer composition."""
+
+__all__ = (
+    "LogoutMixin",
+    "VUEDAPermissionsMixin",
+)
+
 from django.conf import settings
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models

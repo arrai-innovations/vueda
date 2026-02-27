@@ -1,3 +1,7 @@
+"""DRF ViewSet for managing user TOTP authentication devices."""
+
+__all__ = ("TOTPDeviceViewSet",)
+
 import base64
 from types import SimpleNamespace
 
