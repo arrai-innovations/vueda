@@ -1,3 +1,7 @@
+"""ViewSet for listing and retrieving release notes."""
+
+__all__ = ("ReleaseNoteViewSet",)
+
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import VuedaViewSet
 from vueda.release.filtersets import ReleaseNoteFilterSet
