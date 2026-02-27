@@ -149,8 +149,7 @@ With expand and field controls configured, verify the surface end-to-end:
 
 - Python:
     - {@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}
-    - {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_field_param}
-    - {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_param}
+    - {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param}
     - {@api py:class:vueda.core.viewsets.FlexFieldsMixin}
     - {@api py:function:vueda.core.viewsets.FlexFieldsMixin.get_serializer_context}
     - {@api py:class:vueda.core.serializers.VuedaSerializer}

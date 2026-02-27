@@ -35,3 +35,7 @@ class AvailableActionsRequest:
         self.method = method
         self.successful_authenticator = successful_authenticator
         self.user = user
+
+
+def sort_by_dot_count_alphabetically(value):
+    return value.count("."), value

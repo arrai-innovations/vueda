@@ -6,7 +6,6 @@ from tests.store.viewsets import DistributorViewSet
 from tests.store.viewsets import InventoryRecordReasonViewSet
 from tests.store.viewsets import InventoryRecordViewSet
 from tests.store.viewsets import OptionTypeViewSet
-from tests.store.viewsets import OrderItemViewSet
 from tests.store.viewsets import ProductOptionViewSet
 from tests.store.viewsets import ProductViewSet
 from vueda.core.routers import VuedaRouter
@@ -21,7 +20,6 @@ store_tests_router.register("distributors", DistributorViewSet)
 store_tests_router.register("inventory_records", InventoryRecordViewSet)
 store_tests_router.register("inventory_record_reasons", InventoryRecordReasonViewSet)
 store_tests_router.register("option_types", OptionTypeViewSet)
-store_tests_router.register("order_items", OrderItemViewSet)
 store_tests_router.register("products", ProductViewSet)
 store_tests_router.register("product_options", ProductOptionViewSet)
 

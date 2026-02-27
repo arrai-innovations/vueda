@@ -308,41 +308,6 @@ class OrderStateSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
-class CustomerOrderSerializer(VuedaHistorySerializer):
-    class Meta(VuedaHistorySerializer.Meta):
-        model = models.CustomerOrder
-        fields = [
-            "id",
-            "order_number",
-            "when",
-            "customer",
-            "order_state",
-            "shipping_method",
-        ] + VuedaHistorySerializer.Meta.fields
-        expandable_fields = {
-            "customer": (
-                CustomerSerializer,
-                {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
-                        "id",
-                        "user",
-                    ],
-                },
-            ),
-            "order_state": (
-                OrderStateSerializer,
-                {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
-                        "id",
-                        "code",
-                        "name",
-                    ]
-                },
-            ),
-        }
-        expandable_fields.update(VuedaHistorySerializer.Meta.expandable_fields)
-
-
 class OrderItemSerializer(VuedaSerializer):
     formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
 
@@ -356,7 +321,7 @@ class OrderItemSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
         expandable_fields = {
             "customer_order": (
-                CustomerOrderSerializer,
+                "tests.store.serializers.CustomerOrderSerializer",
                 {
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
                         "id",
@@ -384,6 +349,53 @@ class OrderItemSerializer(VuedaSerializer):
             ),
         }
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class CustomerOrderSerializer(VuedaHistorySerializer):
+    class Meta(VuedaHistorySerializer.Meta):
+        model = models.CustomerOrder
+        fields = [
+            "id",
+            "order_number",
+            "when",
+            "customer",
+            "order_items",
+            "order_state",
+            "shipping_method",
+        ] + VuedaHistorySerializer.Meta.fields
+        expandable_fields = {
+            "customer": (
+                CustomerSerializer,
+                {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                        "id",
+                        "user",
+                    ],
+                },
+            ),
+            "order_state": (
+                OrderStateSerializer,
+                {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                        "id",
+                        "code",
+                        "name",
+                    ]
+                },
+            ),
+            "order_items": (
+                OrderItemSerializer,
+                {
+                    "many": True,
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                        "id",
+                        "product_option",
+                        "quantity",
+                    ],
+                },
+            ),
+        }
+        expandable_fields.update(VuedaHistorySerializer.Meta.expandable_fields)
 
 
 class InventoryRecordReasonSerializer(VuedaSerializer):

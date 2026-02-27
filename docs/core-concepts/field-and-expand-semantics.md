@@ -57,7 +57,7 @@ Expandable fields declared on a serializer are not automatically available on ev
 
 This scoping exists because different actions have different performance and data-shape requirements. A `list` action might permit only lightweight expands (such as a user's display name) while a `retrieve` action permits heavier expands (such as a full nested object graph). Without action-level scoping, a `list` request could embed deep object trees across every row in a paginated response, producing non-linear payload growth.
 
-The expand validation path works as follows. On each request, `FlexFieldsMixin.get_serializer_context` resolves the permitted `expand` set for the current action. If a `permit_{action}_expands` attribute exists, it becomes the serializer's `permitted_expands` context. The viewset's `validate_flex_expand_param` then checks each requested expand against this set. Invalid `expand` keys produce an HTTP 400 response with per-key error details.
+The expand validation path works as follows. On each request, `FlexFieldsMixin.get_serializer_context` resolves the permitted `expand` set for the current action. If a `permit_{action}_expands` attribute exists, it becomes the serializer's `permitted_expands` context. The viewset's `validate_flex_expand_and_field_param` then checks each requested expand against this set. Invalid `expand` keys produce an HTTP 400 response with per-key error details.
 
 When no `permit_{action}_expands` is defined for the current action, the viewset checks whether any action-level permit list exists on the viewset at all. If the viewset defines expand permits for some actions but not the current one, the current action receives an empty permitted set; meaning no expands are allowed. This is a deliberate fail-closed default: if you define `permit_list_expands` but not `permit_retrieve_expands`, `retrieve` requests that include `e` parameters will receive `"No expands are permitted."` even though the serializer declares expandable fields.
 
@@ -96,8 +96,7 @@ Default model-config generation uses the normalized metadata to derive field set
 - {@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_expands}
 - {@api py:class:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin}
 - {@api py:function:vueda.core.viewsets.FlexFieldsMixin.get_serializer_context}
-- {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_field_param}
-- {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_param}
+- {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param}
 - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
 - {@api js:property:@arrai-innovations/vueda.utils/constants.FIELDS_PARAM}
 - {@api js:property:@arrai-innovations/vueda.utils/constants.EXPAND_PARAM}

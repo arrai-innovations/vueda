@@ -131,13 +131,6 @@ class CustomerOrderViewSet(HasWorkflowViewMixin, VuedaHistoryViewSet):
     ordering_fields = ["order_number", "customer__user__email", "when", "order_state"]
 
 
-class OrderItemViewSet(VuedaViewSet):
-    queryset = my_models.OrderItem.objects.all()
-    serializer_class = my_serializers.OrderItemSerializer
-    filterset_class = my_filtersets.OrderItemFilterSet
-    ordering_fields = ["customer_order__order_number", "product_option__name", "quantity"]
-
-
 class InventoryRecordReasonViewSet(VuedaViewSet):
     queryset = my_models.InventoryRecordReason.objects.all()
     serializer_class = my_serializers.InventoryRecordReasonSerializer

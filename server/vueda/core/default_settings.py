@@ -275,6 +275,7 @@ def get_defaults(env: EnvLike):
             "EXPAND_PARAM": "e",
             "FIELDS_PARAM": "f",
             "OMIT_PARAM": "om",
+            "MAXIMUM_EXPANSION_DEPTH": 4,
         },
         "TEST_RUNNER": "django.test.runner.DiscoverRunner",
         "TEST_POSTGRES_DB": env("TEST_POSTGRES_DB", default="dbname=postgres user=postgres"),

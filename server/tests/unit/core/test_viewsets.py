@@ -3,13 +3,19 @@ from http import HTTPStatus
 
 import pytest
 from django.conf import settings
+from django.urls import reverse
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
+from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestModelViewSet
 from tests.models import Employee
 from tests.models import Product
 from tests.models import Timesheet
+from tests.store import serializers as store_serializers
+from tests.store import viewsets as store_viewsets
+from tests.unit.info.test_model_info import VuedaTestData
 from tests.viewsets import TimesheetViewSet
+from vueda import info
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
@@ -285,9 +291,188 @@ class TestProductViewSet(BaseTestModelViewSet):
         )
         assert (
             str(response.data["second_history_entry"][0]["message"])
-            == "Invalid expands. Permitted expands are history, first_history_entry, last_history_entry."
+            == "Invalid expands. Permitted expands are first_history_entry, history, last_history_entry. Or use a wildcard to expand all: *, ~all"
         ), f"second_history_entry message: {response.data['second_history_entry'][0]['message']}"
         assert "history" not in response.data, f"response.data: {response.data}"
+
+
+@pytest.mark.django_db
+class TestStoreProductViewSet:
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    def test_retrieve_with_two_depth_invalid_expand(self, api_client, test_data):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        response = api_client.get(
+            reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "distributor.brands",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            f"{response.status_code} != 400, response.data: {response.data}"
+        )
+        assert "distributor.brands" in response.data, f"response.data: {response.data}"
+        assert len(response.data["distributor.brands"]) == 1, (
+            f"distributor.brands data: {response.data['distributor.brands']}"
+        )
+        assert "message" in response.data["distributor.brands"][0], (
+            f"distributor.brands data: {response.data['distributor.brands'][0]}"
+        )
+        assert (
+            str(response.data["distributor.brands"][0]["message"])
+            == "Invalid expands. Permitted expands are distributor, distributor.first_history_entry, distributor.history, distributor.last_history_entry, first_history_entry, history, last_history_entry. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
+        ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
+        assert "history" not in response.data, f"response.data: {response.data}"
+
+    def test_retrieve_with_two_depth_invalid_field(self, api_client, test_data):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        response = api_client.get(
+            reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "distributor",
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "distributor.brands",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            f"{response.status_code} != 400, response.data: {response.data}"
+        )
+        assert "distributor.brands" in response.data, f"response.data: {response.data}"
+        assert len(response.data["distributor.brands"]) == 1, (
+            f"distributor.brands data: {response.data['distributor.brands']}"
+        )
+        assert "message" in response.data["distributor.brands"][0], (
+            f"distributor.brands data: {response.data['distributor.brands'][0]}"
+        )
+        assert (
+            str(response.data["distributor.brands"][0]["message"])
+            == "Invalid field.  Valid fields are available_actions, current_history_id, current_sale_date, description, disabled, distributor, distributor.available_actions, distributor.current_history_id, distributor.first_history_entry, distributor.formatted_name, distributor.history, distributor.id, distributor.last_history_entry, distributor.name, first_history_entry, formatted_name, future_sale_dates, history, id, internal_comments, last_history_entry, last_ordered, last_ten_order_betweens, name, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
+        ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
+        assert "history" not in response.data, f"response.data: {response.data}"
+
+
+@pytest.mark.django_db
+class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @staticmethod
+    def register_viewsets():
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet)
+        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
+        info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
+        info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
+        info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
+        info.register_serializer(store_serializers.OrderItemSerializer)
+
+    def test_expand_through(self, api_client, test_data):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.customer_orders))
+        obj = test_data.customer_orders[key]
+
+        response = api_client.get(
+            reverse("store.customerorder-detail", kwargs={"pk": obj.pk}),
+            data={
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: (
+                    "*,order_items.*,order_items.product_option.*,order_items.product_option.product.*"
+                ),
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "order_items.product_option.product",
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        assert {
+            "id",
+            "order_number",
+            "when",
+            "customer",
+            "order_items",
+            "order_state",
+            "shipping_method",
+            "formatted_name",
+            "available_actions",
+            "current_history_id",
+        } == frozenset(response.data.keys())
+        assert isinstance(response.data["customer"], int)
+        assert isinstance(response.data["order_items"], list)
+        assert {"id", "customer_order", "product_option", "quantity", "formatted_name"} == frozenset(
+            response.data["order_items"][0].keys()
+        )
+        assert isinstance(response.data["order_items"][0]["customer_order"], int)
+        assert isinstance(response.data["order_items"][0]["product_option"], dict)
+        assert {
+            "product",
+            "gtin",
+            "id",
+            "disabled",
+            "price",
+            "formatted_name",
+            "option_type",
+            "name",
+            "sku",
+            "quantity_available",
+        } == frozenset(response.data["order_items"][0]["product_option"])
+        assert isinstance(response.data["order_items"][0]["product_option"]["product"], dict)
+
+
+@pytest.mark.django_db
+class TestStoreCustomerOrderViewSet:
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    def test_expand_exceeds_depth(self, api_client, test_data):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.customer_orders))
+        obj = test_data.customer_orders[key]
+
+        response = api_client.get(
+            reverse("store.customerorder-detail", kwargs={"pk": obj.pk}),
+            data={
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: (
+                    "*,"
+                    "order_items.*,"
+                    "order_items.customer_order.*,"
+                    "order_items.customer_order.product_option.*,"
+                    "order_items.customer_order.product_option.product.*,"
+                ),
+                settings.REST_FLEX_FIELDS[
+                    "EXPAND_PARAM"
+                ]: "order_items.customer_order.order_items.product_option.product",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            f"{response.status_code} != 400, response.data: {response.data}"
+        )
+        assert "non_field_errors" in response.data, f"response.data: {response.data}"
+        assert len(response.data["non_field_errors"]) == 1, (
+            f"non_field_errors data: {response.data['non_field_errors']}"
+        )
+        assert "Expansion depth exceeded" in response.data["non_field_errors"]
 
 
 @pytest.mark.django_db
@@ -486,7 +671,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"
         assert (
             str(response.data["guardian"][0]["message"])
-            == "Invalid expands. Permitted expands are employee, supervisor."
+            == "Invalid expands. Permitted expands are employee, supervisor. Or use a wildcard to expand all: *, ~all"
         ), f"guardian message: {response.data['guardian'][0]['message']}"
         assert "employee" not in response.data, f"response.data: {response.data}"
 
@@ -525,8 +710,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"
         assert (
             str(response.data["guardian"][0]["message"])
-            == "Invalid expands. Permitted expands are timesheet_entry, employee, "
-            "supervisor, foo, history, first_history_entry, last_history_entry."
+            == "Invalid expands. Permitted expands are employee, first_history_entry, foo, history, last_history_entry, supervisor, timesheet_entry. Or use a wildcard to expand all: *, ~all"
         ), f"guardian message: {response.data['guardian'][0]['message']}"
         assert "employee" not in response.data, f"response.data: {response.data}"
 

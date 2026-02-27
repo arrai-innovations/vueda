@@ -29,7 +29,8 @@ def debug_stack_exception_handler(exc, context):
     """
     Custom exception handler which adds the exception class name to the response.
     """
-    if isinstance(exc, VuedaValidationError) and isinstance(exc.detail, list):
+    # switched to ValidationError, because rest flex fields raises ValidationError("Expansion depth exceeded")
+    if isinstance(exc, ValidationError) and isinstance(exc.detail, list):
         # VuedaValidationErrors raise as a list are non-field errors
         exc.detail = {api_settings.NON_FIELD_ERRORS_KEY: exc.detail}
 
