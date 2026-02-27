@@ -14,6 +14,53 @@ executors:
             - image: cimg/python:3.11-node
 
 jobs:
+    docs-validate:
+        executor: python311-node
+        resource_class: medium
+        circleci_ip_ranges: true
+        steps:
+            - checkout
+            - run:
+                  name: Install Python Dependencies
+                  command: uv sync --all-groups --all-packages --frozen
+            - run:
+                  name: Ensure pnpm command is available
+                  command: |
+                      mkdir -p "$HOME/.local/bin"
+                      printf '%s\n' '#!/usr/bin/env bash' 'exec corepack pnpm "$@"' > "$HOME/.local/bin/pnpm"
+                      chmod +x "$HOME/.local/bin/pnpm"
+                      echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+                      export PATH="$HOME/.local/bin:$PATH"
+                      pnpm --version
+            - utils/add_npm_config
+            - restore_cache:
+                  keys:
+                      - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+            - run:
+                  name: Install Node Dependencies
+                  command: pnpm install
+            - save_cache:
+                  paths:
+                      - ~/.local/share/pnpm/store
+                  key: pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+            - run:
+                  name: Copy Configuration
+                  command: cp server/config.circleci.toml server/config.local.toml
+            - run:
+                  name: Extract and Normalize API Documentation
+                  command: |
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js extract
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js normalize
+            - run:
+                  name: Render API Documentation
+                  command: |
+                      rm -rf docs/reference/api
+                      mkdir -p docs/reference/api
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render --output ../docs/reference/api
+            - run:
+                  name: Validate Documentation References
+                  command: |
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js validate
     docs-publish:
         executor: python311-node
         resource_class: medium
@@ -83,6 +130,9 @@ jobs:
 workflows:
     docs-publish:
         jobs:
+            - docs-validate:
+                  name: docs-validate
+                  context: arrai-global
             - docs-publish:
                   name: docs-publish
                   context: arrai-global
