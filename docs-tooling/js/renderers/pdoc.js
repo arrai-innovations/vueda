@@ -11,6 +11,7 @@ import {
     renderHeading,
     renderList,
     renderTable,
+    slugify,
 } from "./markdown.js";
 
 function renderSignatures(node, filePath) {
@@ -38,6 +39,49 @@ function renderSignatures(node, filePath) {
     }
 
     return lines.join("\n");
+}
+
+function renderInlineMember(member) {
+    const anchor = slugify(member.name);
+    const lines = [];
+    lines.push(renderHeading(2, `${member.name} {#${anchor}}`), "");
+
+    if (member.description) {
+        lines.push(escapeText(member.description), "");
+    }
+
+    if (member.signatures?.length) {
+        const heading = member.signatures.length > 1 ? "Signatures" : "Signature";
+        lines.push(renderHeading(3, heading), "");
+        for (const signature of member.signatures) {
+            const params = (signature.parameters || []).map((p) => p.name).join(", ");
+            lines.push(renderCodeInline(`${member.name}(${params})`), "");
+            const paramRows = formatParameters(signature.parameters || []);
+            const paramTable = renderTable(["Name", "Type", "Required", "Description"], paramRows);
+            if (paramTable) {
+                lines.push(renderHeading(4, "Parameters"), "", paramTable, "");
+            }
+            if (signature.returns?.name) {
+                lines.push(renderHeading(4, "Returns"), "", renderCodeInline(signature.returns.name), "");
+            }
+        }
+    }
+
+    const sourceValue = formatSource(member.source);
+    if (sourceValue) {
+        lines.push(renderHeading(3, "Source"), "", renderCodeInline(sourceValue), "");
+    }
+
+    return lines.join("\n");
+}
+
+function renderInlineMembersSection(node, index) {
+    const children = index.childrenOf.get(node.id) || [];
+    const publicChildren = children.filter((child) => child.extensions?.pdoc?.is_public !== false);
+    if (!publicChildren.length) {
+        return "";
+    }
+    return publicChildren.map(renderInlineMember).join("\n");
 }
 
 function renderChildrenSections(node, index, pathMap, filePath) {
@@ -82,11 +126,17 @@ function renderSource(node) {
 }
 
 export function renderPdocNode(node, index, filePath) {
-    const frontmatter = renderFrontmatter({
-        id: node.id,
-        kind: node.kind,
-        source: "pdoc",
-    });
+    const fm = { id: node.id, kind: node.kind, source: "pdoc" };
+
+    if (node.kind === "class") {
+        const children = index.childrenOf.get(node.id) || [];
+        const publicChildren = children.filter((c) => c.extensions?.pdoc?.is_public !== false);
+        if (publicChildren.length) {
+            fm.member_ids = publicChildren.map((c) => c.id);
+        }
+    }
+
+    const frontmatter = renderFrontmatter(fm);
 
     const lines = [];
     lines.push(frontmatter);
@@ -101,9 +151,16 @@ export function renderPdocNode(node, index, filePath) {
         lines.push(signatureBlock);
     }
 
-    const childrenBlock = renderChildrenSections(node, index, index.pathMap, filePath);
-    if (childrenBlock) {
-        lines.push(childrenBlock);
+    if (node.kind === "class") {
+        const membersBlock = renderInlineMembersSection(node, index);
+        if (membersBlock) {
+            lines.push(membersBlock);
+        }
+    } else {
+        const childrenBlock = renderChildrenSections(node, index, index.pathMap, filePath);
+        if (childrenBlock) {
+            lines.push(childrenBlock);
+        }
     }
 
     const sourceBlock = renderSource(node);
@@ -121,6 +178,9 @@ export function renderPdocBundle(bundle) {
     index.pathMap = pathMap;
     for (const node of bundle.nodes) {
         const filePath = pathMap.get(node.id);
+        if (filePath.includes("#")) {
+            continue; // rendered inline on parent class page
+        }
         const { content } = renderPdocNode(node, index, filePath);
         outputs.set(filePath, content);
     }

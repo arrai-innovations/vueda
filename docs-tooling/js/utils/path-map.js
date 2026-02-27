@@ -80,7 +80,7 @@ export function pdocPathForNode(node, index) {
         const moduleAncestor = index.parentOf.get(parent.id) || parent;
         const moduleFile = pdocModulePath(moduleAncestor);
         const dir = pdocClassDir(parent, moduleFile);
-        return `${dir}/${slugify(node.name)}.md`;
+        return `${dir}.md#${slugify(node.name)}`;
     }
     const moduleAncestor = parent?.kind === "module" ? parent : parent ? index.parentOf.get(parent.id) : null;
     if (moduleAncestor && moduleAncestor.kind === "module") {

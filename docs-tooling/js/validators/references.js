@@ -38,6 +38,13 @@ export const buildApiIndex = (apiRoot) => {
             continue;
         }
         index.set(frontmatter.id, filePath);
+        if (Array.isArray(frontmatter.member_ids)) {
+            for (const memberId of frontmatter.member_ids) {
+                if (memberId) {
+                    index.set(memberId, filePath);
+                }
+            }
+        }
     }
     return index;
 };
