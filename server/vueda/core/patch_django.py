@@ -1,3 +1,11 @@
+"""Monkey-patches Django permission codenames to use CRUDL naming conventions."""
+
+__all__ = (
+    "get_builtin_permissions",
+    "get_permission_codename",
+    "permission_names_mapping",
+)
+
 # Imported in vueda.core.__init__.py
 
 # Patch get_permission_codename, so that it converts add, view, and change into create, read and update respectably.

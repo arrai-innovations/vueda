@@ -1,3 +1,7 @@
+"""Page-number pagination with column totals and configurable query parameters."""
+
+__all__ = ("VUEDAPageNumberPagination",)
+
 from collections import OrderedDict
 
 from django.conf import settings

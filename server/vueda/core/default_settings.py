@@ -1,4 +1,13 @@
+"""Default Django settings factory for VUEDA applications."""
+
 from __future__ import annotations
+
+
+__all__ = (
+    "EnvLike",
+    "get_defaults",
+    "get_production_defaults",
+)
 
 import logging
 import os

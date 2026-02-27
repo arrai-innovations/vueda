@@ -1,3 +1,14 @@
+"""Abstract model bases with CRUDL permissions, singleton support, and email templates."""
+
+__all__ = (
+    "ActivatableBaseModel",
+    "BaseModelMeta",
+    "EmailTemplateBase",
+    "Lookup",
+    "SingletonModel",
+    "VuedaBaseModel",
+)
+
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
