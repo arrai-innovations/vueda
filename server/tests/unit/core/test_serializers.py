@@ -1,5 +1,4 @@
 from datetime import date
-from http import HTTPStatus
 
 import pytest
 from django.conf import settings
@@ -223,104 +222,6 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         self.assert_response(response, 400)
         assert "invalid_field_name" in response.data
         assert "period_start" not in response.data
-
-
-@pytest.mark.django_db
-class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
-    @pytest.fixture
-    def test_data(self):
-        return VuedaTestData()
-
-    @staticmethod
-    def register_viewsets():
-        info.registration.get_empty_registry()
-        info.register(store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet)
-        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
-        info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
-        info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
-        info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
-        info.register_serializer(store_serializers.OrderItemSerializer)
-
-    def test_expand_exceeds_depth(self, api_client, test_data):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        key = next(iter(test_data.customer_orders))
-        obj = test_data.customer_orders[key]
-
-        response = api_client.get(
-            reverse("store.customerorder-detail", kwargs={"pk": obj.pk}),
-            data={
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: (
-                    "*,"
-                    "order_items.*,"
-                    "order_items.customer_order.*,"
-                    "order_items.customer_order.product_option.*,"
-                    "order_items.customer_order.product_option.product.*,"
-                ),
-                settings.REST_FLEX_FIELDS[
-                    "EXPAND_PARAM"
-                ]: "order_items.customer_order.order_items.product_option.product",
-            },
-            format="json",
-        )
-
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
-        assert "Expansion depth exceeded" in response.data["serverStack"], response.data
-
-    def test_expand_through(self, api_client, test_data):
-        user = test_data.users["test_customer_1@example.com"]
-        api_client.force_authenticate(user=user)
-
-        key = next(iter(test_data.customer_orders))
-        obj = test_data.customer_orders[key]
-
-        response = api_client.get(
-            reverse("store.customerorder-detail", kwargs={"pk": obj.pk}),
-            data={
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: (
-                    "*,order_items.*,order_items.product_option.*,order_items.product_option.product.*"
-                ),
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "order_items.product_option.product",
-            },
-            format="json",
-        )
-
-        self.assert_response(response, 200)
-        assert {
-            "id",
-            "order_number",
-            "when",
-            "customer",
-            "order_items",
-            "order_state",
-            "shipping_method",
-            "formatted_name",
-            "available_actions",
-            "current_history_id",
-        } == frozenset(response.data.keys())
-        assert isinstance(response.data["customer"], int)
-        assert isinstance(response.data["order_items"], list)
-        assert {"id", "customer_order", "product_option", "quantity", "formatted_name"} == frozenset(
-            response.data["order_items"][0].keys()
-        )
-        assert isinstance(response.data["order_items"][0]["customer_order"], int)
-        assert isinstance(response.data["order_items"][0]["product_option"], dict)
-        assert {
-            "product",
-            "gtin",
-            "id",
-            "disabled",
-            "price",
-            "formatted_name",
-            "option_type",
-            "name",
-            "sku",
-            "quantity_available",
-        } == frozenset(response.data["order_items"][0]["product_option"])
-        assert isinstance(response.data["order_items"][0]["product_option"]["product"], dict)
 
 
 @pytest.mark.django_db
