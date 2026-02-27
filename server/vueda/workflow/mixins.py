@@ -1,3 +1,7 @@
+"""Django view context mixin that injects workflow management URLs."""
+
+__all__ = ("WorkflowUrlsMixin",)
+
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.safestring import mark_safe

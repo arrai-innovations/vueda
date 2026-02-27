@@ -1,3 +1,10 @@
+"""DRF ViewSet for listing and executing workflow transitions."""
+
+__all__ = (
+    "PERMISSION_NAMES_MAPPING",
+    "WorkflowViewSet",
+)
+
 from django.conf import settings
 from django.db import transaction
 from django.http import Http404

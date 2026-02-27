@@ -1,3 +1,7 @@
+"""DRF serializer field for listing available workflow transitions."""
+
+__all__ = ("AvailableTransitionField",)
+
 from rest_framework import serializers
 
 

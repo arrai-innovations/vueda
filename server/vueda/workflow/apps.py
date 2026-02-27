@@ -1,3 +1,7 @@
+"""AppConfig for the vueda.workflow application."""
+
+__all__ = ("WorkflowConfig",)
+
 from django.apps import AppConfig
 
 

@@ -1,3 +1,7 @@
+"""URL configuration for the vueda.workflow app."""
+
+__all__ = ("urlpatterns",)
+
 from django.conf import settings
 from django.urls import include
 from django.urls import path
