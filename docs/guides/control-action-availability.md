@@ -7,7 +7,7 @@ status: draft
 
 # Control Action Availability in the UI
 
-This guide covers the end-to-end implementation of action availability; ensuring that route admission, rendered controls, and server authorization stay aligned across model-info metadata, object-level availability, client config, and workflow transition layers. The goal is to make the client show exactly the actions a user can perform, without either hiding valid actions or exposing actions that will fail.
+This guide covers the end-to-end implementation of {@term Available Actions}; ensuring that {@term Route Admission}, rendered controls, and server authorization stay aligned across model-info metadata, object-level availability, client config, and workflow transition layers. The goal is to make the client show exactly the actions a user can perform, without either hiding valid actions or exposing actions that will fail.
 
 The guide assumes familiarity with the action contract. If you have not read [Action Contract and Availability](../core-concepts/action-contract-and-availability), start there; it explains the three-layer contract boundary that this guide operates within. For the underlying permission model, see [Permission Model](../core-concepts/permission-model). For the boundary between server authorization and client UI semantics, see [Authorization vs UI Semantics](../core-concepts/authorization-vs-ui-semantics).
 
@@ -15,7 +15,7 @@ The guide assumes familiarity with the action contract. If you have not read [Ac
 
 The objective is an implementation where:
 
-- `model_actions` in model-info accurately reflects the requesting user's permitted actions, including both built-in CRUD and extra actions.
+- `model_actions` in {@term Model Info} accurately reflects the requesting user's permitted actions, including both built-in {@term CRUDL} and extra actions.
 - Object-level `available_actions` reflects per-object permission outcomes, including workflow state and row-level constraints.
 - Client route guards admit only actions that appear in the server-advertised action set (with optional config and workflow overlays).
 - Rendered UI controls are the intersection of config-filtered actions and object-level availability.
@@ -29,7 +29,7 @@ The viewset uses `ObjectPermissions` (or `WorkflowObjectPermissions` for workflo
 
 ## Server Action Metadata Contract
 
-Model-info action metadata is the foundation of client-side action visibility. The `model_actions` list emitted by the model-info endpoint determines which actions the client's route guards and UI controls recognize.
+Model-info action metadata is the foundation of client-side action visibility. The `model_actions` list emitted by the model-info endpoint determines which {@term Action} entries the client's route guards and UI controls recognize.
 
 For built-in CRUD actions, no explicit wiring is required beyond the viewset permission class. Model-info generation evaluates each built-in action candidate (`list`, `retrieve`, `create`, `update`, `partial_update`, `destroy`) against the requesting user's permissions using `check_object_permissions` with no object. Actions the user lacks permission for are omitted.
 
@@ -54,11 +54,11 @@ Object-level `available_actions` is computed during serialization and reflects w
 
 The field evaluates standard actions (retrieve, update, partial_update, destroy) through object-permission checks. `create` is excluded for concrete instances; it is a model-scope action. Allowed extra actions from `get_allowed_extra_actions(request, instance=instance)` are appended to the result.
 
-The object-level result can be narrower than model-scope metadata. A user may have model-level `update` permission (so `update` appears in `model_actions`), but a specific object may deny `update` due to workflow state or row-level constraints (so `update` is absent from that object's `available_actions`). This divergence is by design; the model-scope metadata is a superset that enables route admission, while the object-scope metadata drives per-object UI controls.
+The object-level result can be narrower than model-scope metadata. This {@term Model-Scope vs Object-Scope Availability} divergence is by design. A user may have model-level `update` permission (so `update` appears in `model_actions`), but a specific object may deny `update` due to workflow state or row-level constraints (so `update` is absent from that object's `available_actions`). The model-scope metadata is a superset that enables route admission, while the object-scope metadata drives per-object UI controls.
 
 ## Route Guard Wiring
 
-Client route guards use model-info metadata to decide whether a route is admissible. The standard wiring is through `makeCRUDRoutes`, which registers both detail and `list` action routes with the `requireModelInfo` navigation guard.
+Client route guards use model-info metadata to decide whether a route is admissible through {@term Route Admission}. The standard wiring is through `makeCRUDRoutes`, which registers both detail and `list` action routes with the `requireModelInfo` navigation guard.
 
 The guard performs three steps:
 

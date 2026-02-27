@@ -9,11 +9,11 @@ status: draft
 
 VUEDA serializers support nested writes, creating or updating related objects within a single request payload, by composing two third-party libraries into a single serializer mixin. The mixin defines the compatibility boundary: which flex-field behaviours apply during writes, how nested serializer fields receive data, how reverse relations are extracted and sequenced, and where the composition introduces constraints that differ from using either library alone.
 
-This page explains the composition boundary and the observable failure surfaces it creates. For the practical steps to build nested write flows, see [Build Nested/Inlined Writes](../guides/nested-writable-inlines). For the broader serializer and metadata contract, see [Server-Client Metadata Contract](./server-client-metadata-contract). For the field and `expand` query parameter semantics that interact with nested writes, see [Field and Expand Semantics](./field-and-expand-semantics).
+This page explains the composition boundary and the observable failure surfaces it creates. For the practical steps to build nested write flows, see [Build Nested/Inlined Writes](../guides/nested-writable-inlines). For the broader serializer and metadata contract, see [Server-Client Metadata Contract](./server-client-metadata-contract). For the field and {@term Expand} query parameter semantics that interact with nested writes, see [Field and Expand Semantics](./field-and-expand-semantics).
 
 ## Boundary and Ownership
 
-All nested write behaviour in VUEDA flows through `FlexFieldsWriteableNestedSerializerMixin`. This mixin composes four concerns into a single inheritance chain: `UniqueFieldsMixin` (unique-together validation), `FlexFieldsSerializerMixin` (dynamic field inclusion/exclusion via `f`/`e` query parameters), `NestedCreateMixin`, and `NestedUpdateMixin` (nested relation create and update from `drf-writable-nested`). The standard VUEDA serializer bases (`VuedaSerializer` and `VuedaHistorySerializer`) both inherit from this mixin, so any serializer built on those bases participates in the nested write composition automatically.
+All nested write behaviour in VUEDA flows through {@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}. This mixin composes four concerns into a single inheritance chain: `UniqueFieldsMixin` (unique-together validation), `FlexFieldsSerializerMixin` (dynamic field inclusion/exclusion via `f`/`e` query parameters), `NestedCreateMixin`, and `NestedUpdateMixin` (nested relation create and update from `drf-writable-nested`). The standard VUEDA serializer bases (`VuedaSerializer` and `VuedaHistorySerializer`) both inherit from this mixin, so any serializer built on those bases participates in the nested write composition automatically.
 
 The mixin is the single point where flex-field application, nested data propagation, reverse-relation extraction, and update sequencing are coordinated. Understanding its behaviour is necessary when debugging nested write failures, because the failure surface often involves the interaction between flex-field application and nested-write extraction rather than either concern in isolation.
 
@@ -39,7 +39,7 @@ The propagation is conditional: only fields whose names are present in the incom
 
 ## Reverse Relation Write Filtering
 
-When the mixin extracts reverse relations for nested update processing, it filters out any relation whose serializer is a `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer`. These serializer wrappers signal that the relation is display-only; it should be expanded for `read` responses, but should not participate in write operations.
+When the mixin extracts reverse relations for nested update processing, it filters out any relation whose serializer is a {@api py:class:vueda.core.serializers.VuedaReadonlySerializer} or {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}. These serializer wrappers signal that the relation is display-only; it should be expanded for `read` responses, but should not participate in write operations.
 
 The filtering happens in `_extract_relations`, before any nested update logic runs. Payloads that include data for a readonly-serializer relation will have that data silently dropped during write processing. No error is raised; the data is simply not extracted for nested write handling.
 

@@ -7,7 +7,7 @@ status: draft
 
 # Permission Model (CRUDL + Object + State)
 
-VUEDA enforces API authorization through a layered permission model. Every request passes through a DRF permission class that maps HTTP methods to permission codenames, a user-level permission mixin that composes baseline model permissions with workflow state overlays and row-level hooks, and viewset-level queryset filtering that controls row visibility in list and bulk-`delete` operations. These layers evaluate in a fixed order, and each layer can override the decision of the one before it.
+VUEDA enforces API authorization through a layered permission model. Every request passes through a DRF permission class that maps HTTP methods to permission codenames, a user-level permission mixin that composes baseline model permissions with {@term Workflow Overlay} and row-level hooks, and viewset-level queryset filtering that controls row visibility in list and bulk-`delete` operations. These layers evaluate in a fixed order, and each layer can override the decision of the one before it.
 
 This page explains the layers, their evaluation order, and the observable failure shapes they produce. For the boundary between server authorization and client UI visibility semantics, see [Authorization vs UI Semantics](./authorization-vs-ui-semantics). For mapping between Django's built-in permission names and VUEDA's CRUDL names, see [Map Django and VUEDA Permission Names](../guides/permission-name-mapping). For the deep mechanics of row-level queryset and instance filtering, see [Row-Level Permission Filtering](./row-level-permission-filtering). For the full workflow overlay model, including state permission data and transition gates, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
 
@@ -27,7 +27,7 @@ The layered design means that the same permission codename can produce different
 
 ## CRUDL Codename and Action Mapping
 
-VUEDA replaces Django's default permission codename vocabulary. Where Django generates `add`, `change`, `view`, and `delete` codenames, VUEDA's base model meta declares `create`, `read`, `update`, `delete`, and `list` as the default permission set. The `patch_django` module monkey-patches Django's codename generation and built-in permission creation to use these names, so permission rows in `auth_permission` carry CRUDL labels from initial migration onward. See [Map Django and VUEDA Permission Names](../guides/permission-name-mapping) for the configuration and validation details.
+VUEDA replaces Django's default permission codename vocabulary. Where Django generates `add`, `change`, `view`, and `delete` codenames, VUEDA's base model meta declares `create`, `read`, `update`, `delete`, and `list` as the default permission set. The `patch_django` module monkey-patches Django's codename generation and built-in permission creation to use these names, so permission rows in `auth_permission` carry {@term CRUDL} labels from initial migration onward. See [Map Django and VUEDA Permission Names](../guides/permission-name-mapping) for the configuration and validation details.
 
 The DRF permission class `ObjectPermissions` maps HTTP methods to CRUDL codenames. The mapping is straightforward for write methods: `POST` requires `create_*`, `PUT` and `PATCH` require `update_*`, and `DELETE` requires `delete_*`. For `GET`, the mapping is action-sensitive. When the viewset action is `list`, the required codename is `list_*`. For all other `GET` actions (retrieve, custom `detail` actions), the required codename is `read_*`. This split means that a user can have list access without detail-read access, or vice versa; the two are independent permission decisions.
 
@@ -43,7 +43,7 @@ The consequence of this bypass is that the failure shape changes. Without workfl
 
 ## Queryset-Level Row Filtering
 
-Row-level filtering operates at the queryset scope, controlling which rows appear in `list` responses and which rows are eligible for bulk deletion. This is a separate path from the object-level permission layers described above; queryset filtering applies before pagination and serialization, while object-level checks apply to individual instances.
+{@term Row-Level Permissions} filtering operates at the queryset scope, controlling which rows appear in `list` responses and which rows are eligible for bulk deletion. This is a separate path from the object-level permission layers described above; queryset filtering applies before pagination and serialization, while object-level checks apply to individual instances.
 
 The two hooks, `check_queryset` and `check_instance`, are independent interfaces because they serve different purposes and may intentionally implement different rules. Queryset filtering must express its logic as a `Q` object or a boolean; it operates at database scope and cannot make per-row decisions that require object state, external lookups, or expensive computation. Instance checks operate on a materialized object and can implement arbitrarily complex logic, including remote API calls or cross-system policy evaluation. This means a project may intentionally grant list visibility to rows that would be denied at instance scope, or vice versa. The two layers are designed to operate independently and may produce different outcomes.
 

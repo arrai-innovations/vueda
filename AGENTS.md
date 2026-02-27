@@ -6,6 +6,7 @@ you’re working in:
 - Server guide: `server/AGENTS.md`
 - Client guide: `client/AGENTS.md`
 - Docs tooling guide: `docs-tooling/AGENTS.md`
+- Copier templates guide: `templates/AGENTS.md`
 
 ## Common Commands (root)
 

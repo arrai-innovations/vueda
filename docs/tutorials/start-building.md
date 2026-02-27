@@ -24,8 +24,11 @@ By the end of this guide, you will have a running Django API and Vue client conn
 
 ### Optional
 
-- A [Redis](https://redis.io/) instance: for caching and Celery task brokering (not required for this guide)
 - [just](https://just.systems/man/en/introduction.html): for common developer CLI tooling (included in the DX template)
+
+::: warning
+VUEDA assumes an ASGI runtime. Django's built-in `runserver` command uses WSGI and will not exercise VUEDA's ASGI middleware stack (CORS, sessions, CSRF token handling). The DX template includes `gunicorn` and `uvicorn` and its `just serve` command uses them automatically. If you are using the minimal template, install an ASGI server (e.g. `gunicorn` + `uvicorn`) and use it instead of `runserver`.
+:::
 
 ## Environment Setup
 
@@ -64,7 +67,7 @@ You could also use a tool like [direnv](https://direnv.net/) to manage environme
 
 ## Scaffold a New Project
 
-VUEDA provides two [Copier](https://copier.readthedocs.io/) templates for scaffolding a new implementor project:
+VUEDA provides two [Copier](https://copier.readthedocs.io/) templates for scaffolding a new {@term Implementor} project:
 
 - **`implementor-monorepo`**: minimal setup with direct `uv`/`pnpm` workflows.
 - **`implementor-monorepo-dx`**: DX-focused setup with repository automation via `just` (includes linting, formatting, git hooks, and `just serve` for running both servers concurrently).
@@ -84,37 +87,57 @@ Copier will prompt you for a project name, slug, ports, and other options. The d
 The template generates:
 
 - A Django server under `server/` with VUEDA wired into settings, URLs, and config
+- A custom `users` app under `server/<your_package>/users/` with a project-specific `User` model extending VUEDA's base user (required by `AUTH_USER_MODEL`)
+- Two TOML config files: `server/config.toml` (shared, safe to commit) and `server/config.local.toml` (secrets, do not commit)
 - A Vue client under `client/` with VUEDA's router and action system bootstrapped
 - A `uv` workspace root and `pnpm` workspace definition
 - (DX template only) A `Justfile`, `lefthook` config, `ruff`, `eslint`, and `prettier` setup
+
+## Initialize the Repository
+
+The DX template includes `lefthook` for git hooks, which runs automatically during `pnpm install`. Initialize a git repository before installing dependencies:
+
+```console
+cd your-project
+git init
+```
 
 ## Install Dependencies
 
 ### DX template
 
 ```console
-cd your-project
 just bootstrap
 ```
 
 ### Minimal template
 
 ```console
-cd your-project
 uv sync --all-packages
 pnpm install
 ```
 
 ## Configure Local Settings
 
-Before starting the server, edit `server/config.local.toml` with real values:
+VUEDA projects use a two-file TOML configuration system, both under `server/`:
+
+- **`config.toml`**: shared settings safe to commit (allowed hosts, frontend URL, app registry, CORS origins, etc.). The template ships sensible local-development defaults; you generally do not need to change this file to get started.
+- **`config.local.toml`**: local-only overrides and secrets (**do not commit**). This is where machine-specific values like database credentials belong.
+
+Settings in `config.local.toml` override those in `config.toml`. Both files are loaded by {@api py:class:vueda.core.config.TomlEnv} in `server/config/settings/base.py` and consumed by VUEDA's {@api py:function:vueda.core.default_settings.get_defaults}, which sets up Django settings (`INSTALLED_APPS`, `DATABASES`, `CACHES`, middleware, auth, etc.) from these keys.
+
+Before starting the server, open `server/config.local.toml` and set real values:
 
 ```toml
 SECRET_KEY = "a-real-secret-key"
 DATABASE_URL = "postgres://postgres:postgres@localhost:5432/your-project"
 ```
 
-The template generates this file with placeholder values. `SECRET_KEY` and `DATABASE_URL` are required. `CELERY_BROKER_URL` is optional and only needed if you plan to use background tasks.
+The template pre-populates `DATABASE_URL` with a reasonable guess based on your project slug. Update it if your local Postgres connection details differ. `SECRET_KEY` should be changed from the placeholder for any non-trivial use.
+
+::: tip
+The template's `config.toml` also registers the scaffolded `users` app via `LOCAL_APPS` and sets `AUTH_USER_MODEL = "users.User"`. These are required for VUEDA's user system to work. You can add your own apps to `LOCAL_APPS` or append to `INSTALLED_APPS` directly in `base.py` (the guide uses the latter approach below).
+:::
 
 ## First Contact
 
@@ -124,7 +147,18 @@ At this point we have a minimal VUEDA server and client setup. Let's verify that
 The remainder of this guide uses `localhost` for simplicity. If you are working in WSL2, Docker containers, or other networked environments, you may need to adjust hostnames or use `0.0.0.0` for binding.
 :::
 
-Start the server and client. With the DX template, run both concurrently:
+First, apply database migrations:
+
+```console
+# DX template
+just manage migrate
+
+# Minimal template
+cd server
+uv run python manage.py migrate
+```
+
+Now start the server and client. With the DX template, run both concurrently:
 
 ```console
 just serve
@@ -135,8 +169,7 @@ With the minimal template, start each in its own terminal:
 ```console
 # Terminal 1: server
 cd server
-uv run python manage.py migrate
-uv run python manage.py runserver localhost:8000
+uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind localhost:8000
 ```
 
 ```console
@@ -170,6 +203,7 @@ With the boilerplate in place, we can now start building on the VUEDA Server. Fo
 Add a new Django app under the project namespace. In `server/your_project/`, create a new folder called `inventory` with the following files:
 
 - `__init__.py`
+- `apps.py`
 - `models.py`
 - `serializers.py`
 - `viewsets.py`
@@ -181,11 +215,11 @@ Add a new Django app under the project namespace. In `server/your_project/`, cre
 
 VUEDA provides its own extensions of Django's `Model` class:
 
-- **`VuedaBaseModel`**: adds an expected `formatted_name` `GeneratedField` (by default based on a model's `name` field) and a custom `BaseModelMeta` class that sets up default permissions in VUEDA's expected way.
-- **`Lookup`**: extends `VuedaBaseModel` with a unique `code` field, intended for lightweight, potentially user-defined, reference data tables.
+- **{@api py:class:vueda.core.models.VuedaBaseModel}**: adds an expected {@api py:function:vueda.core.models.VuedaBaseModel.formatted_name} `GeneratedField` (by default based on a model's `name` field) and a custom {@api py:class:vueda.core.models.BaseModelMeta} class that sets up default permissions in VUEDA's expected way.
+- **{@api py:class:vueda.core.models.Lookup}**: extends {@api py:class:vueda.core.models.VuedaBaseModel} with a unique `code` field, intended for lightweight, potentially user-defined, reference data tables.
 
 ::: important
-VUEDA uses create, read, update, delete, and list permissions, which aligns better with `djangorestframework`'s viewset actions than Django's default add, change, delete, and view permissions. All VUEDA models must therefore inherit from `VuedaBaseModel` to ensure proper permission handling, and must have a `class Meta(VuedaBaseModel.Meta)` (or equivalently, `class Meta(BaseModelMeta)`) by default.
+VUEDA uses create, read, update, delete, and list permissions, which aligns better with `djangorestframework`'s viewset actions than Django's default add, change, delete, and view permissions. All VUEDA models must therefore inherit from {@api py:class:vueda.core.models.VuedaBaseModel} to ensure proper permission handling, and must have a `class Meta(VuedaBaseModel.Meta)` (or equivalently, `class Meta({@api py:class:vueda.core.models.BaseModelMeta})`) by default.
 :::
 
 `server/your_project/inventory/models.py`:
@@ -227,10 +261,10 @@ class ProductOption(VuedaBaseModel):
 
 ### Serializers
 
-VUEDA provides `VuedaSerializer` and `VuedaLookupSerializer` base classes for DRF serializers. `VuedaLookupSerializer` handles the boilerplate around the `code` field for `Lookup` models.
+VUEDA provides {@api py:class:vueda.core.serializers.VuedaSerializer} and {@api py:class:vueda.core.serializers.VuedaLookupSerializer} base classes for DRF serializers. {@api py:class:vueda.core.serializers.VuedaLookupSerializer} handles the boilerplate around the `code` field for {@api py:class:vueda.core.models.Lookup} models.
 
 ::: important
-As with models, all VUEDA serializers should have a `class Meta(VuedaSerializer.Meta)` or `class Meta(VuedaLookupSerializer.Meta)` to ensure proper default behavior.
+As with models, all VUEDA serializers should have a `class Meta({@api py:class:vueda.core.serializers.VuedaSerializer}.Meta)` or `class Meta({@api py:class:vueda.core.serializers.VuedaLookupSerializer}.Meta)` to ensure proper default behavior.
 :::
 
 `server/your_project/inventory/serializers.py`:
@@ -277,9 +311,9 @@ class ProductOptionSerializer(VuedaSerializer):
 
 ### Viewsets
 
-VUEDA provides a `VuedaViewSet` base class which:
+VUEDA provides a {@api py:class:vueda.core.viewsets.VuedaViewSet} base class which:
 
-- sets up default behavior for CRUDL actions
+- sets up default behavior for {@term CRUDL} actions
 - integrates with VUEDA's permission system
 - extends DRF's `ModelViewSet` to cause more intentional errors when passing extra query parameters or fields (rather than silently ignoring them)
 - provides row-level filtering hooks
@@ -323,7 +357,7 @@ class ProductOptionViewSet(VuedaViewSet):
 
 ### Filtersets
 
-VUEDA provides `VuedaFilterSet` as a base for DRF filtersets.
+VUEDA provides {@api py:class:vueda.core.filters.VuedaFilterSet} as a base for DRF filtersets.
 
 `server/your_project/inventory/filtersets.py`:
 
@@ -353,7 +387,7 @@ class ProductOptionFilterSet(VuedaFilterSet):
 
 ### Router and URLs
 
-VUEDA provides `VuedaRouter`, which builds on DRF's `SimpleRouter` to generate standard CRUD routes, namespaces route names with the app label, and supports bulk actions via `@action(bulk=True)`.
+VUEDA provides {@api py:class:vueda.core.routers.VuedaRouter}, which builds on DRF's `SimpleRouter` to generate standard CRUD routes, namespaces route names with the app label, and supports {@term Bulk Action}s via `@action(bulk=True)`.
 
 `server/your_project/inventory/routers.py`:
 
@@ -397,15 +431,56 @@ urlpatterns = [
 
 The template's `server/config/urls.py` already includes your project namespace under the `routes/` prefix, so the inventory endpoints will be available at `/routes/inventory/`.
 
+### App Configuration and Model-Info Registration
+
+VUEDA's client discovers models through a metadata API. For your models to appear in this API (and therefore be usable by the client), you need to register them with VUEDA's {@api py:function:vueda.info.registration.register} function in the app's `AppConfig.ready()` method.
+
+`server/your_project/inventory/apps.py`:
+
+```python
+from django.apps import AppConfig
+
+
+class InventoryConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "your_project.inventory"
+
+    def ready(self):
+        from vueda.info import register
+
+        from .serializers import (
+            OptionTypeSerializer,
+            ProductOptionSerializer,
+            ProductSerializer,
+        )
+        from .viewsets import (
+            OptionTypeViewSet,
+            ProductOptionViewSet,
+            ProductViewSet,
+        )
+
+        register(ProductSerializer, ProductViewSet)
+        register(OptionTypeSerializer, OptionTypeViewSet)
+        register(ProductOptionSerializer, ProductOptionViewSet)
+```
+
+The imports are inside `ready()` deliberately. Registration resolves {@term Content Type}s internally, which requires the Django app registry to be fully initialized first.
+
+::: important
+Without {@api py:function:vueda.info.registration.register}, the model's API endpoints will work (you can still curl them), but the client will not be able to discover the model's fields, actions, or permissions. This is the most common cause of "model doesn't show up in the client."
+:::
+
 ### Register the App
 
-Add the new app to `INSTALLED_APPS`. The copier template's settings use `get_defaults()` from VUEDA, which sets up `INSTALLED_APPS` with VUEDA's required apps. You need to append your app to it.
+Add the new app to `INSTALLED_APPS`. The copier template's settings use {@api py:function:vueda.core.default_settings.get_defaults} from VUEDA, which sets up `INSTALLED_APPS` with VUEDA's required apps plus any apps listed in `LOCAL_APPS` from `config.toml` (the scaffolded `users` app is already registered there). You need to add your new app as well.
 
 In `server/config/settings/base.py`, after the `locals().update(get_defaults(env))` line, add:
 
 ```python
 INSTALLED_APPS += ["your_project.inventory"]
 ```
+
+Alternatively, you could add the app to `LOCAL_APPS` in `config.toml`. Either approach works; `INSTALLED_APPS +=` in `base.py` keeps the registration close to the code, while `LOCAL_APPS` keeps it in config.
 
 Then run migrations:
 
@@ -417,7 +492,7 @@ uv run python manage.py migrate
 
 ### Verify the New API Endpoints
 
-Since VUEDA enforces CRUDL permissions by default, the quickest path is to log in as a superuser.
+Since VUEDA enforces {@term CRUDL} permissions by default, the quickest path is to log in as a superuser.
 
 Create one if you haven't already:
 
@@ -425,20 +500,24 @@ Create one if you haven't already:
 uv run python manage.py createsuperuser
 ```
 
-Then, in a new terminal, log in via curl and store the session cookie:
+Then, in a new terminal, log in via curl and store the session cookie. The login endpoint sets a CSRF cookie in its response, which you will need for subsequent mutating requests.
+
+::: tip
+The CSRF cookie name is project-specific (`<project-slug>-csrf-token` by default, configured via `CSRF_COOKIE_NAME` in `local.py`). The examples below use `your-project-csrf-token` as a placeholder; substitute your actual project slug.
+:::
 
 ```console
-# Get a CSRF cookie (who-is always sets one)
 COOKIE_JAR=/tmp/vueda-cookies.txt
-curl -c $COOKIE_JAR -s http://localhost:8000/routes/vueda.user/who-is/ > /dev/null
-CSRF_TOKEN=$(awk '/csrftoken/ {print $7}' $COOKIE_JAR)
+CSRF_COOKIE=your-project-csrf-token
 
-# Log in (uses email + password)
-curl -b $COOKIE_JAR -c $COOKIE_JAR \
+# Log in (uses email + password; sets CSRF cookie in the response)
+curl -c $COOKIE_JAR \
   -H "Content-Type: application/json" \
-  -H "X-CSRFToken: $CSRF_TOKEN" \
   -X POST http://localhost:8000/routes/vueda.user/login/ \
   -d '{"email":"you@example.com","password":"your-password"}'
+
+# Extract the CSRF token for subsequent requests
+CSRF_TOKEN=$(awk -v name="$CSRF_COOKIE" '$6 == name {print $7}' $COOKIE_JAR)
 ```
 
 If the login succeeded, `who-is` should now return your user info:
@@ -447,7 +526,7 @@ If the login succeeded, `who-is` should now return your user info:
 curl -b $COOKIE_JAR http://localhost:8000/routes/vueda.user/who-is/
 ```
 
-Now test CRUDL on the inventory endpoints:
+Now test {@term CRUDL} on the inventory endpoints:
 
 ```console
 # Create
@@ -483,12 +562,303 @@ curl -b $COOKIE_JAR -c $COOKIE_JAR \
 
 ## VUEDA Client
 
-<!-- todo: client tutorial (views, crudComponents, what the user sees in the browser) -->
+The scaffolded client has Vue, Pinia, vue-router, and VUEDA's action router wired up. Next, add the server connection, {@term CRUDL} data adapters, PrimeVue, a sign-in view, and {@term CRUD View Resolution}.
 
-With the server-side API in place, the next step is to build out the VUEDA Client to interact with it. The copier template already bootstraps the Vue app with VUEDA's router and action system wired up (see `client/src/router/index.js`). What remains is:
+### Connect to the Server
 
-- Configuring `crudComponents` to resolve view components for each action
-- Creating list, create, update, and read views for the inventory models
-- Connecting the client to the running server
+During local development the client dev server (port 5173) and Django (port 8000) run on different ports. Tell VUEDA which port to reach Django on.
 
-This section is still being written. In the meantime, the generated `client/src/router/index.js` shows the scaffolded routing setup, and the [Guides](/guides/) section covers specific client-side tasks like [creating a CRUDL surface](/guides/create-crudl-surface) for a model.
+Create `client/.env.development`:
+
+```ini
+VITE_DJANGO_CONNECTION_PORT=8000
+```
+
+The template's `config.toml` already includes `http://localhost:5173` in `CORS_ALLOWED_ORIGINS`, so no Vite proxy is needed.
+
+### Register Plugins
+
+Replace `client/src/main.js` with:
+
+```javascript
+import TheApp from "./TheApp.vue";
+import { getRouter } from "./router/index.js";
+import Aura from "@primeuix/themes/aura";
+import { setPrimeVuePreset } from "@vueda/theme/register.js";
+import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
+import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
+import { createPinia } from "pinia";
+import PrimeVue from "primevue/config";
+import ConfirmationService from "primevue/confirmationservice";
+import ToastService from "primevue/toastservice";
+import Tooltip from "primevue/tooltip";
+import { createApp } from "vue";
+
+setupDefaultListCrud();
+setupDefaultObjectCrud();
+
+const app = createApp(TheApp);
+const pinia = createPinia();
+const router = getRouter(app, pinia);
+
+app.use(pinia);
+app.use(router);
+app.use(PrimeVue, {
+    theme: {
+        preset: Aura,
+    },
+});
+app.use(ToastService);
+app.use(ConfirmationService);
+app.directive("tooltip", Tooltip);
+
+setPrimeVuePreset(Aura);
+
+app.mount("#the-app");
+
+export default app;
+```
+
+{@api js:function:@arrai-innovations/vueda.utils/listCrud.setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda.utils/objectCrud.setupDefaultObjectCrud} register the HTTP adapters that VUEDA's composables use for every CRUD operation. {@api js:function:@arrai-innovations/vueda.theme/register.setPrimeVuePreset} syncs the active PrimeVue preset into VUEDA's theme system. See [Client Plugin Prerequisites](/guides/client-plugin-prerequisites) for details on each plugin.
+
+### Add a Sign-In View
+
+The scaffolded router's `authRedirect` points to a `sign-in` route that does not exist yet. Create `client/src/views/ViewSignIn.vue`:
+
+```vue
+<script setup>
+import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
+import FieldString from "@vueda/fields/FieldString.vue";
+import { storeUser } from "@vueda/stores/storeUser.js";
+import WidgetInput from "@vueda/widgets/WidgetInput.vue";
+import Button from "primevue/button";
+
+const userStore = storeUser();
+
+function login({ formValues }) {
+    return userStore.login(formValues);
+}
+</script>
+
+<template>
+    <AuthorizingForm header="Sign In" :run-action="login">
+        <FieldString name="email" label="Email" required>
+            <WidgetInput />
+        </FieldString>
+        <FieldString name="password" label="Password" required>
+            <WidgetInput type="password" />
+        </FieldString>
+        <Button type="submit" label="Sign In" />
+    </AuthorizingForm>
+</template>
+```
+
+{@api vue:component:AuthorizingForm} handles form state, watches {@api js:function:@arrai-innovations/vueda.stores/storeUser.storeUser} for login, and redirects to the `welcome` route on success. {@api vue:component:FieldString} and {@api vue:component:WidgetInput} register fields in the form context so their values are collected into `formValues` on submit. See [Build Auth Views](/guides/build-auth-views) for more on auth view patterns.
+
+### Add a Welcome View
+
+After sign-in, `AuthorizingForm` redirects to the route named `welcome`. Create `client/src/views/ViewWelcome.vue`:
+
+```vue
+<script setup>
+import { storeUser } from "@vueda/stores/storeUser.js";
+import { computed } from "vue";
+
+const userStore = storeUser();
+const displayName = computed(() => userStore.user?.first_name || userStore.user?.email || "there");
+</script>
+
+<template>
+    <div style="padding: 2rem">
+        <h1>Welcome, {{ displayName }}</h1>
+        <p>
+            You are signed in. Try navigating to
+            <RouterLink to="/inventory/product/list/">Products</RouterLink>
+            to see the inventory list.
+        </p>
+    </div>
+</template>
+```
+
+### Add the `@` Source Alias
+
+The router below imports local views with `@/views/...`. This is a common Vue convention that maps `@` to `client/src/`. The scaffolded `vite.config.js` does not set this alias, so add it now.
+
+Replace `client/vite.config.js` with:
+
+```javascript
+import { vuedaViteConfig } from "@arrai-innovations/vueda/lib/vite.js";
+import vue from "@vitejs/plugin-vue";
+import path from "path";
+import { fileURLToPath } from "url";
+import { defineConfig } from "vite";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default defineConfig({
+    plugins: [vue()],
+    ...vuedaViteConfig({
+        extraAliases: {
+            "@": path.resolve(__dirname, "src"),
+        },
+    }),
+});
+```
+
+{@api js:function:@arrai-innovations/vueda.vite.vuedaViteConfig} accepts an `extraAliases` option that is merged into the Vite `resolve.alias` config. Any aliases you add here are available in your application imports.
+
+### Configure CRUD View Resolution and Routes
+
+The scaffolded router calls {@api js:function:@arrai-innovations/vueda.router/routerComponent.setCrudComponents} with an empty object and has no routes for `sign-in` or `welcome`. Replace `client/src/router/index.js` with:
+
+```javascript
+import { requireInitialized } from "@vueda/router/guards.js";
+import { makeCRUDRoutes } from "@vueda/router/makeCrud.js";
+import { setCrudComponents } from "@vueda/router/routerComponent.js";
+import { createRouter, createWebHistory } from "vue-router";
+
+export function getRouter(app, pinia) {
+    const crudComponents = {
+        list: async () => (await import("@vueda/views/ViewList.vue")).default,
+        create: async () => (await import("@vueda/views/ViewCreate.vue")).default,
+        read: async () => (await import("@vueda/views/ViewRead.vue")).default,
+        update: async () => (await import("@vueda/views/ViewUpdate.vue")).default,
+        destroy: async () => (await import("@vueda/views/ViewDestroy.vue")).default,
+    };
+    setCrudComponents(crudComponents);
+
+    const router = createRouter({
+        history: createWebHistory(import.meta.env.BASE_URL),
+        routes: [],
+    });
+
+    const routes = [
+        {
+            path: "/sign-in/",
+            name: "sign-in",
+            component: () => import("@/views/ViewSignIn.vue"),
+            meta: { title: "Sign In" },
+        },
+        {
+            path: "/welcome/",
+            name: "welcome",
+            component: () => import("@/views/ViewWelcome.vue"),
+            meta: { title: "Welcome" },
+            beforeEnter: () => requireInitialized(router, pinia),
+        },
+        ...makeCRUDRoutes({
+            component: async () => (await import("@vueda/views/ViewActionRouter.vue")).default,
+            authRedirect: { name: "sign-in" },
+            groupsRedirect: { name: "welcome" },
+            actionRedirect: { name: "not-found" },
+            groups: [],
+            vueApp: app,
+            router,
+            pinia,
+        }),
+        {
+            path: "/:pathMatch(.*)*",
+            name: "not-found",
+            component: async () => (await import("@vueda/views/ViewNotFound.vue")).default,
+            meta: {
+                title: "Not Found",
+                titles: {
+                    view: "Not Found",
+                },
+            },
+            beforeEnter: () => requireInitialized(router, pinia),
+            props: (route) => {
+                return {
+                    ...(route.params || {}),
+                    ...(route.query || {}),
+                    title: route.meta.title,
+                };
+            },
+        },
+    ];
+
+    for (const route of routes) {
+        router.addRoute(route);
+    }
+
+    return router;
+}
+```
+
+`crudComponents` maps each {@term CRUDL} action to a built-in view ({@api vue:component:ViewList}, {@api vue:component:ViewCreate}, {@api vue:component:ViewRead}, {@api vue:component:ViewUpdate}, {@api vue:component:ViewDestroy}). {@api vue:component:ViewActionRouter} uses this map to resolve which component to render. These views auto-discover fields, filters, and permissions from {@term Model Info}, so no per-model client code is needed for a working baseline. See [Routing and View Resolution](/core-concepts/routing-and-view-resolution-model) for the full resolution chain.
+
+::: tip Per-model view overrides
+In a real project you may want a custom view for a specific model. The common pattern is a dynamic import with a fallback:
+
+```javascript
+list: async ({ app, model }) => {
+    try {
+        return (await import(`@/views/ViewList${pascal(app)}${pascal(model)}.vue`)).default;
+    } catch {
+        return (await import("@vueda/views/ViewList.vue")).default;
+    }
+},
+```
+
+This lets you drop in a `ViewListInventoryProduct.vue` for one model while every other model keeps the default. See [Creating a CRUDL Surface](/guides/create-crudl-surface) for details.
+:::
+
+### Verify in the Browser
+
+Start both servers if they are not already running:
+
+```console
+# DX template
+just serve
+
+# Minimal template (two terminals)
+cd server && uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind localhost:8000
+cd client && pnpm dev
+```
+
+Open `http://localhost:5173` in your browser.
+
+1. You should be redirected to `/sign-in/` (not authenticated yet).
+2. Sign in with the superuser credentials you created earlier.
+3. After login you should land on `/welcome/`.
+4. Click the "Products" link (or navigate to `http://localhost:5173/inventory/product/list/`). If you created products via curl earlier, they appear here.
+5. Use the "Create" action to add a product and verify it appears in the list.
+6. Click a product row to open the read view, then try update and destroy.
+
+### Customize with Model Config
+
+The built-in views render every field the serializer exposes. To adjust which fields appear, set sort defaults, or reorder columns without building custom views, use {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}.
+
+Create `client/src/setupModelConfig.js`:
+
+```javascript
+import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
+
+export function setupModelConfig() {
+    const modelConfig = storeModelConfig();
+
+    modelConfig.setConfig(
+        { app: "inventory", model: "product" },
+        {
+            displayFields: ["name", "sku", "description"],
+            sorted: ["name"],
+        },
+        {
+            create: {
+                fields: ["name", "sku", "description"],
+            },
+        },
+    );
+}
+```
+
+Then call it from `main.js` after `app.use(pinia)`:
+
+```javascript
+import { setupModelConfig } from "./setupModelConfig.js";
+
+// ... after app.use(pinia)
+setupModelConfig();
+```
+
+The `fields` shorthand sets `displayFields`, `fetchFields`, and `submitFields` together. Per-view configs (keyed by action name) merge on top of the generic config. See [Configure CRUD Views](/guides/configure-crud-views) for all available options.

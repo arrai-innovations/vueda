@@ -7,7 +7,7 @@ status: draft
 
 # Form State and Validation Lifecycle
 
-VUEDA manages form state through a two-layer context system: a form-level context that holds all values, errors, messages, and interaction state, and a field-level context that bridges individual fields into that shared state. Validation enters the state model through two distinct channels; local validation and server validation; and the system is designed so that the two never collide or overwrite each other.
+VUEDA manages form state through a two-layer context system: a form-level context that holds all values, errors, messages, and interaction state, and a field-level context that bridges individual fields into that shared state. Validation enters the state model through two distinct channels; local validation and server validation; and the system is designed so that the two never collide or overwrite each other. This behavior is centered on {@api js:module:@arrai-innovations/vueda.use/useForm} and {@api js:module:@arrai-innovations/vueda.use/useField}, which together define the user-facing {@term Client Affordance} for form feedback and submission gating.
 
 This page explains the state model, the lifecycle transitions that mutate it, and the submission-gating semantics that determine when a form is allowed to submit. For the server-side contract that produces the validation payloads the client ingests, see [Error and Validation Contract](./error-and-validation-contract). For practical steps on wiring validation into forms, see [Handle Form Validation and Server Errors](../guides/form-validation-and-errors).
 
@@ -25,7 +25,7 @@ The form context, created by `useForm`, is a single reactive object with six sta
 
 **Errors and messages.** These are the two feedback channels. `state.errors` holds blocking validation feedback; `state.messages` holds non-blocking feedback (warnings). Both use the same two-dimensional structure: `state.errors[path][code] = value` and `state.messages[path][code] = value`. The `path` is a field name or a dot/bracket-delimited nested path. The `code` identifies the source: `required` and `validate` come from local validation, `server` comes from server validation ingestion. `state.anyError` and `state.anyMessage` are derived flags maintained by the mutation methods; they reflect whether any entries exist in the respective collections.
 
-The separation between errors and messages is the mechanism that makes VUEDA's warning system work. Blocking validation failures from the server are routed into `state.errors` under the `server` code. Non-blocking warnings from the server are routed into `state.messages` under the `server` code. The submission pipeline checks only `state.errors` when deciding whether to block, so warnings never prevent submission. See [Error and Validation Contract](./error-and-validation-contract) for how the server shapes these two channels on the wire.
+The separation between errors and messages is the mechanism that makes VUEDA's {@term Warning Channel} work. Blocking validation failures from the server are routed into `state.errors` under the `server` code. Non-blocking warnings from the server are routed into `state.messages` under the `server` code. The submission pipeline checks only `state.errors` when deciding whether to block, so warnings never prevent submission. See [Error and Validation Contract](./error-and-validation-contract) for how the server shapes these two channels on the wire.
 
 **Touched and focused.** `state.touched` is a path-keyed boolean map tracking which fields have been blurred. `state.anyTouched` is derived from non-emptiness. `state.focused` holds the name of the currently focused field, or `null`. Local validation only activates after a field is touched, which prevents error messages from appearing on fields the user has not yet interacted with.
 
@@ -74,7 +74,7 @@ Server errors are cleared selectively, not globally. `clearServerErrors(name, de
 
 The clearing is triggered by field blur: `FieldContext.blur()` calls `clearServerErrors` with the field's `clearServerErrorDependents` configuration. This means server errors persist visually until the user interacts with the relevant field. Edits that do not blur (for example, programmatic value changes) do not clear server errors.
 
-## The Warning Channel
+## The {@term Warning Channel}
 
 The `state.messages` collection is the client-side representation of server warnings. Warnings are non-blocking feedback; they inform the user of potential issues without preventing submission.
 

@@ -9,21 +9,21 @@ status: draft
 
 VUEDA supports per-row access control through an optional model-level hook that operates at two independent scopes: queryset filtering (which rows appear in `list` responses and are eligible for bulk deletion) and instance checking (which objects pass object-level permission evaluation). These two scopes are independent by design; they serve different purposes, may implement different rules, and can produce different outcomes for the same object.
 
-This page explains the hook surface, the filtering boundaries for list and bulk-`delete` operations, how pagination and aggregates interact with row filtering, and the failure modes that result from row-level decisions. For the broader permission model (baseline CRUDL, workflow overlay, evaluation order), see [Permission Model](./permission-model). For the practical steps to implement row-level hooks, see [Implement Row-Level Permissions](../guides/implement-row-level-permissions). For workflow state permission overlays, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
+This page explains the {@term Row-Level Hook Surface}, the filtering boundaries for list and bulk-`delete` operations, how pagination and aggregates interact with row filtering, and the failure modes that result from row-level decisions. For the broader permission model (baseline CRUDL, workflow overlay, evaluation order), see [Permission Model](./permission-model). For the practical steps to implement row-level hooks, see [Implement Row-Level Permissions](../guides/implement-row-level-permissions). For workflow state permission overlays, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
 
 ## Authority and Boundaries
 
-Row-level permission filtering is opt-in per model. A model that defines a `RowLevelPermissions` inner class (inheriting from `BaseRowLevelPermissions`) participates in row-level filtering; a model without this class has no row-level filtering applied at list or bulk-delete scope, and no row-level instance checks in the permission evaluation chain.
+Row-level permission filtering is opt-in per model. A model that defines a `RowLevelPermissions` inner class (inheriting from {@api py:class:vueda.core.permissions.BaseRowLevelPermissions}) participates in row-level filtering; a model without this class has no row-level filtering applied at list or bulk-delete scope, and no row-level instance checks in the permission evaluation chain.
 
 The `RowLevelPermissions` class provides up to four hooks. Two are non-workflow hooks that apply to all models: `check_queryset` controls list-level row visibility, and `check_instance` controls object-level permission decisions. Two are workflow-aware hooks that apply only to models participating in a workflow: `check_queryset_workflow` operates on a queryset annotated with state-permission flags, and `check_instance_workflow` receives the state overlay's grant-or-deny outcome and can override earlier permission layers, including state denial. The non-workflow and workflow hooks are evaluated in sequence during their respective filtering paths.
 
 The authority split is intentional. Queryset filtering must express its logic as a `Q` object or a boolean because it operates at database scope; it cannot make per-row decisions that require object materialization, external lookups, or expensive computation. Instance checks operate on a materialized Python object and can implement arbitrarily complex logic, including remote API calls, cross-system policy evaluation, or state-dependent business rules. A project may intentionally grant list visibility to rows that would be denied at instance scope, or hide rows from lists that instance-level checks would allow. The framework does not validate consistency between the two scopes.
 
-## Row-Level Hook Surface (Queryset vs Instance)
+## {@term Row-Level Hook Surface} (Queryset vs Instance)
 
 ### Queryset-level filtering
 
-`ListRowLevelViewSetMixin.apply_row_level_filter` is the entry point for queryset-level row filtering. When a model defines `RowLevelPermissions`, the method calls `check_queryset` with the model class, the current queryset, the authenticated user, and a permission type string (typically `"list"` or `"delete"`).
+{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter} is the entry point for queryset-level row filtering. When a model defines `RowLevelPermissions`, the method calls `check_queryset` with the model class, the current queryset, the authenticated user, and a permission type string (typically `"list"` or `"delete"`).
 
 The return value semantics are fixed:
 
@@ -37,7 +37,7 @@ The permission codename passed to the hook is constructed from the model's `app_
 
 ### Instance-level checking
 
-When `VUEDAPermissionsMixin.has_perm` is called with an object, and that object's model defines `RowLevelPermissions`, the permission evaluation chain includes row-level instance checks after baseline model permissions and (for workflow models) state permission overlays.
+When {@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm} is called with an object, and that object's model defines `RowLevelPermissions`, the permission evaluation chain includes row-level instance checks after baseline model permissions and (for workflow models) state permission overlays.
 
 `check_instance` is called with the model class, the object, the permission string, the user, and the permission type. Its return value is `True`, `False`, or `None`. A non-`None` result overrides the decision from earlier permission layers (the baseline model permission and, when applicable, the workflow state overlay). `None` means "no row-level opinion"; the earlier decision stands.
 
@@ -51,7 +51,7 @@ Row-level filtering runs at a specific point in the `list` response pipeline: af
 
 **Rows reflect the filtered set.** The `results` array in the `list` response contains only rows that passed both DRF filter backends and row-level filtering. No unfiltered rows leak into the response.
 
-**Pagination metadata reflects the filtered count.** `totalRecords` and `totalPages` in the paginated response are computed from the filtered queryset, not the unfiltered base queryset. A user with row-level restrictions sees accurate pagination for their visible row set.
+**Pagination metadata reflects the filtered count.** `totalRecords` and `totalPages` in the paginated response are computed from the filtered queryset, not the unfiltered base queryset. A user with row-level restrictions sees accurate pagination for their visible row set, as emitted by {@api py:function:vueda.core.pagination.VUEDAPageNumberPagination.get_paginated_response}.
 
 **Column totals reflect the filtered set.** When the viewset declares `column_totals`, aggregates are computed from the filtered queryset (before pagination). This means totals match the visible rows, not the full table. See [Expose Aggregates in `List` Responses](../guides/list-column-totals) for the column totals implementation.
 
@@ -87,17 +87,13 @@ Row-level permission decisions manifest as different HTTP responses depending on
 
 ## Relevant Implementation Surface
 
-- {@api py:class:vueda.core.permissions.BaseRowLevelPermissions}
 - {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset}
 - {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance}
 - {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow}
 - {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow}
 - {@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}
-- {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}
 - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.list}
 - {@api py:class:vueda.core.viewsets.VuedaViewSet}
 - {@api py:function:vueda.core.viewsets.VuedaViewSet.apply_object_permission_filter}
 - {@api py:function:vueda.core.viewsets.VuedaViewSet.destroy}
 - {@api py:class:vueda.core.pagination.VUEDAPageNumberPagination}
-- {@api py:function:vueda.core.pagination.VUEDAPageNumberPagination.get_paginated_response}
-- {@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}

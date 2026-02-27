@@ -7,19 +7,19 @@ status: draft
 
 # Field and Expand Semantics
 
-VUEDA uses two query-parameter-driven mechanisms to control the shape of API responses: sparse field selection (`f`) and expand selection (`e`). Together, these parameters let the client request only the fields it needs and embed related-object data inline rather than following separate requests. The contract spans three layers: the server's serializer metadata that defines what is available, the viewset validation that enforces what is allowed per action, and the client's normalization and caching of that metadata for runtime use.
+VUEDA uses two query-parameter-driven mechanisms to control the shape of API responses: sparse field selection (`f`) and {@term Expand} selection (`e`). Together, these parameters let the client request only the fields it needs and embed related-object data inline rather than following separate requests. The contract spans three layers: the server's serializer metadata that defines what is available, the viewset validation that enforces what is allowed per action, and the client's normalization and caching of that metadata for runtime use.
 
-This page explains the contract itself; what the parameters mean, how field and `expand` metadata is generated, how `expand` permissions are scoped per action, and what happens when requests violate the contract. For practical steps on configuring expand and field controls for a model surface, see [Use Expand and Sparse Field Controls](../guides/expand-and-fields-controls).
+This page explains the contract itself; what the parameters mean, how sparse-field and {@term Expand} metadata is generated, how {@term Action-Scoped Expand} permissions are scoped per action, and what happens when requests violate the contract. For practical steps on configuring `f` and `e` controls for a model surface, see [Use Expand and Sparse Field Controls](../guides/expand-and-fields-controls).
 
 ## Boundary and Ownership
 
 The server owns the definition of which fields exist and which fields are expandable. This definition lives in the canonical registered serializer, not in the Django model or database schema. The client owns the runtime decision of which fields and expands to request on a given fetch, within the boundaries the server advertises.
 
-The boundary between them is the model-info metadata response. Registration stores the canonical serializer and viewset class references; the server derives `model_fields` and `model_expands` from those classes on each model-info request by instantiating the serializer and inspecting its fields and expandable-field declarations. The client fetches this metadata, normalizes it, and uses it to construct default field and `expand` sets for each view. From that point forward, the client's requests are constrained by what the metadata advertises and what the viewset's action-level allow-lists permit.
+The boundary between them is the {@term Model Info} metadata response. Registration stores the canonical serializer and viewset class references; the server derives `model_fields` and `model_expands` from those classes on each model-info request by instantiating the serializer and inspecting its fields and expandable-field declarations. The client fetches this metadata, normalizes it, and uses it to construct default field subsets and {@term Expand} sets for each view. From that point forward, the client's requests are constrained by what the metadata advertises and what the viewset's action-level allow-lists permit.
 
 ## Parameter Namespace and Wire Shape
 
-Sparse field selection and expand selection use the query parameter names `f` and `e`, respectively. These names are configured in the server's `REST_FLEX_FIELDS` settings and mirrored as shared constants on the client (`FIELDS_PARAM`, `EXPAND_PARAM`). Both sides reference the same parameter keys, so request construction and server-side parsing are always aligned.
+Sparse field selection and {@term Expand} selection use the query parameter names `f` and `e`, respectively. These names are configured in the server's `REST_FLEX_FIELDS` settings and mirrored as shared constants on the client (`FIELDS_PARAM`, `EXPAND_PARAM`). Both sides reference the same parameter keys, so request construction and server-side parsing are always aligned.
 
 On the wire, a request that selects specific fields and expands looks like:
 
@@ -27,7 +27,7 @@ On the wire, a request that selects specific fields and expands looks like:
 GET /routes/myapp/widget/1/?f=id&f=name&f=status&e=owner
 ```
 
-The server reads the `f` values as the sparse field set and the `e` values as the `expand` set. Fields not listed in `f` are omitted from the response (with the exception of the primary key, which is always preserved in expand contexts). Expands listed in `e` cause the related serializer to be embedded inline in the response rather than returning only the foreign key value.
+The server reads the `f` values as the sparse field set and the `e` values as the `expand` set. Fields not listed in `f` are omitted from the response (with the exception of the primary key, which is always preserved in {@term Expand} contexts). Expands listed in `e` cause the related serializer to be embedded inline in the response rather than returning only the foreign key value.
 
 ## Field Metadata Contract
 
@@ -39,7 +39,7 @@ Field metadata is serializer-derived, not model-table-derived. A field that exis
 
 ## Expand Descriptor Contract
 
-The `model_expands` section of a model-info response describes each expandable relationship on the canonical serializer. Unlike field metadata, which is a flat key-value map, `expand` metadata is a list of descriptors. Each descriptor carries:
+The `model_expands` section of a model-info response describes each expandable relationship on the canonical serializer. Unlike field metadata, which is a flat key-value map, {@term Expand} metadata is a list of descriptors. Each descriptor carries:
 
 - **`name`**: the `expand` key used in `e` query parameters.
 - **`read_only`**: whether the expanded relationship is read-only on the serializer.
@@ -51,9 +51,9 @@ The nested `f` metadata is what makes expansion an explicit embedded contract ra
 
 When sparse field selection (`f`) is applied to an expanded serializer's fields, the primary key of the nested serializer is always preserved even if not explicitly requested. This ensures that expanded objects are always identifiable regardless of which subset of their fields the client selects.
 
-## Action-Scoped Expand Authority
+## {@term Action-Scoped Expand} Authority
 
-Expandable fields declared on a serializer are not automatically available on every viewset action. The viewset can restrict which expands are permitted per action using `permit_{action}_expands` attributes; for example, `permit_list_expands` and `permit_retrieve_expands`. When these attributes are defined, the viewset injects the permitted set as `permitted_expands` in the serializer context, and the serializer's flex-field machinery respects it.
+Expandable fields declared on a serializer are not automatically available on every viewset action. The viewset can restrict which expands are permitted per action using {@term Action-Scoped Expand} controls (`permit_{action}_expands` attributes); for example, `permit_list_expands` and `permit_retrieve_expands`. When these attributes are defined, the viewset injects the permitted set as `permitted_expands` in the serializer context, and the serializer's flex-field machinery respects it.
 
 This scoping exists because different actions have different performance and data-shape requirements. A `list` action might permit only lightweight expands (such as a user's display name) while a `retrieve` action permits heavier expands (such as a full nested object graph). Without action-level scoping, a `list` request could embed deep object trees across every row in a paginated response, producing non-linear payload growth.
 

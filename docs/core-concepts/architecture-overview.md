@@ -7,7 +7,7 @@ status: draft
 
 # Architecture Overview
 
-VUEDA is a metadata-driven framework for building admin-style CRUD applications. A Django server defines models, serializers, and viewsets; a Vue client discovers those definitions at runtime through a metadata API and mechanically generates routes, forms, and views from them. No hand-wired per-model client code is required for standard surfaces, though the framework supports customization where needed.
+VUEDA is a metadata-driven framework for building admin-style {@term CRUDL} applications. A Django server defines models, serializers, and viewsets; a Vue client discovers those definitions at runtime through a metadata API and mechanically generates routes, forms, and views from them. No hand-wired per-model client code is required for standard surfaces, though the framework supports customization where needed.
 
 The architecture cleanly splits authority: the server owns data integrity, permissions, and metadata shape; the client owns rendering, form state, and route resolution. Understanding where that boundary falls, and why, is the foundation for everything else in the system.
 
@@ -27,7 +27,7 @@ The server is organized into four responsibility layers. Each layer builds on th
 
 The client is a Vue single-page application that generates its UI entirely from server metadata. It is organized into four layers, each consuming the output of the one above it.
 
-**Metadata consumption.** Pinia stores fetch, normalize, and cache the server contract. `storeModelInfo` holds the server-derived field, action, filter, and permission metadata. `storeModelConfig` merges those defaults with client-side overrides. Together, they produce the configuration that all downstream layers consume.
+**Metadata consumption.** Pinia stores fetch, normalize, and cache the server contract. {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo} holds the server-derived field, action, filter, and permission metadata. {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig} merges those defaults with client-side overrides. Together, they produce the configuration that all downstream layers consume.
 
 **Routing and gating.** Router guards load metadata before allowing navigation. Route entry is blocked until model-info is available and the requested action is confirmed present, which is determined by intersecting server-advertised actions, client config restrictions, and workflow transition codes. No view renders without its contract being satisfied.
 

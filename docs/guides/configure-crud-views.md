@@ -7,7 +7,7 @@ status: draft
 
 # Configure `list`/`read`/`create`/`update` Views
 
-This guide covers how to customize CRUD view behaviour through model config overrides without forking core components. Every override described here builds on the defaults that `storeModelConfig` derives from {@term Model Info}; the goal is to adjust only where the baseline does not meet your needs.
+This guide covers how to customize CRUD view behaviour through model config overrides without forking core components. Every override described here builds on the defaults that {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig} derives from {@term Model Info}; the goal is to adjust only where the baseline does not meet your needs.
 
 The guide assumes a working CRUDL surface is already in place. If the model is not yet registered and routable, start with [Create a CRUDL Surface](./create-crudl-surface). For the metadata contract that model config consumes, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract). For expand and sparse field controls specifically, see [Use Expand and Sparse Field Controls](./expand-and-fields-controls).
 
@@ -17,7 +17,7 @@ The objective is a model whose `list`, `read`, `create`, and `update` views beha
 
 Before you begin, ensure the following are in place:
 
-The model is registered with both a serializer and a viewset, and model-info returns complete metadata (fields, actions, filtering, ordering). The client routes are wired via `makeCRUDRoutes` and the model is navigable in the browser. You have read access to the model-info response for the model you are configuring, so you can verify which fields, actions, and expansions the server advertises.
+The model is registered with both a serializer and a viewset, and model-info returns complete metadata (fields, actions, filtering, ordering). The client routes are wired via {@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes} and the model is navigable in the browser. You have read access to the model-info response for the model you are configuring, so you can verify which fields, actions, and expansions the server advertises.
 
 ## Baseline Config from Model Info
 
@@ -60,7 +60,7 @@ storeModelConfig().setConfig(
 
 Generic overrides apply to every view. View-specific overrides are merged on top and take precedence for that view. If you set an empty array for `displayFields`, `fetchFields`, or `submitFields`, the config falls back to the model-info-derived defaults rather than producing an empty field set.
 
-To consume the resolved config in a component, use `useModelConfig`:
+To consume the resolved config in a component, use {@api js:function:@arrai-innovations/vueda.use/useModelConfig.useModelConfig}:
 
 ```js
 import { useModelConfig } from "@vueda/use/useModelConfig.js";

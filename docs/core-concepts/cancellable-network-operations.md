@@ -21,7 +21,7 @@ CRUD adapters forward or compose cancellation from the fetch layer. `defaultObje
 
 Composables and view-level code perform best-effort cancellation on scope disposal and parameter invalidation. `useResolvedLookupObject` cancels outstanding lookup promises via `?.cancel(...)` when parameters change or when the scope is disposed, logging failures rather than throwing. View components like `ViewActivate` and `ViewDeactivate` use abort controllers tied to the component lifecycle.
 
-Stores occupy an intermediate position. Store actions like `storeModelInfo.fetchModelInfo` chain `.then/.catch/.finally` onto the original `fetchHelper` promise, which produces a new Promise instance that lacks the `.cancel()` method. This means store-level fetch promises are not cancellable by callers; cancellation is a fetch-layer concern, not a store-layer concern. `storeModelConfig.getConfig` is an exception: it forwards cancellation for in-flight model-info fetches during config builds.
+Stores occupy an intermediate position. Store actions like `storeModelInfo.fetchModelInfo` chain `.then/.catch/.finally` onto the original `fetchHelper` promise, which produces a new Promise instance that lacks the `.cancel()` method. This means store-level fetch promises are not cancellable by callers; cancellation is a fetch-layer concern, not a store-layer concern. `storeModelConfig.getConfig` is an exception: it forwards cancellation for in-flight model-info fetches during {@term Model Config} builds.
 
 ## Cancellation Surface (Promise Identity)
 

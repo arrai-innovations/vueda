@@ -5,7 +5,7 @@ audience: implementor
 status: draft
 ---
 
-# Run Actions in the VUEDA Dispatch Queue (VDQ)
+# Run Actions in the VUEDA Dispatch Queue ({@term VDQ (VUEDA Dispatch Queue)})
 
 This guide covers implementing queue-backed execution for outbound email and SMS through VDQ, from queue item creation through async processing, retry/cancel/resend operations, and operator-facing status. It focuses on the shared patterns across both email and SMS; for provider-specific details, see [Send Email from VDQ with Anymail](./vdq-email-anymail) and [Send SMS from VDQ with Twilio](./vdq-sms-twilio).
 
@@ -15,7 +15,7 @@ The guide assumes familiarity with VDQ's persistence and lifecycle model. If you
 
 The objective is a queue-backed flow where:
 
-- Work that should not block request-response paths (email/SMS delivery) is enqueued as a `QueueItem` and processed asynchronously.
+- Work that should not block request-response paths (email/SMS delivery) is enqueued as a {@term Queue Item (VDQ)} and processed asynchronously.
 - Enqueue failures are observable through queue item state and metadata, not silently dropped.
 - Retry, cancel, and resend operations are available through workflow transitions and viewset actions.
 - Operator-facing status is available through read-only `list`/`detail` endpoints.
@@ -38,7 +38,7 @@ Use the scheduler entrypoints to create queue items with validated payloads:
 
 **`add_abstract_email(...)`** creates the queue item and detail records without immediate scheduling. Use this when you need to create the queue item in one transaction and schedule it later (e.g., after additional setup or validation).
 
-Each queue item receives the workflow's initial state on creation. The `QueueItem` row holds shared fields (sender, receiver, method, result, task metadata), while method-specific detail rows hold provider-specific data (Anymail `message_id`, Twilio `message_sid`).
+Each {@term Queue Item (VDQ)} receives the workflow's initial state on creation. The `QueueItem` row holds shared fields (sender, receiver, method, result, task metadata), while method-specific detail rows hold provider-specific data (Anymail `message_id`, Twilio `message_sid`).
 
 ## Scheduling and Worker Dispatch
 
@@ -69,7 +69,7 @@ Retry and cancel assume the underlying operation is idempotent. VDQ does not enf
 
 ## Sent Item Resend Flow
 
-Resend operates on completed items in the sent history, not on active queue items. `SentItem.clone()` creates a new `QueueItem` in the workflow initial state, duplicating the sender, receiver, method, and available method-specific detail rows (AnyMail detail, SMS detail). The clone is then scheduled via `schedule_queue_item`.
+Resend operates on completed items in the sent history, not on active queue items. `SentItem.clone()` creates a new `QueueItem` in the workflow initial state, duplicating the sender, receiver, method, and available method-specific detail rows (AnyMail detail, SMS detail). The clone is then scheduled via `schedule_queue_item`. This history surface is the {@term Sent Item (VDQ)} contract.
 
 Resend is exposed as an explicit extra action on the sent-item viewset, gated by the `vueda_vdq.can_resend` permission. Both single-item resend (by PK) and bulk resend are available.
 

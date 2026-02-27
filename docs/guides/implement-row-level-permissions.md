@@ -7,7 +7,7 @@ status: draft
 
 # Implement Row-Level Permissions
 
-This guide covers implementing per-row access control for list and object-level operations by wiring model `RowLevelPermissions` hooks and verifying behaviour for allowed and denied users. It walks through defining the hooks, ensuring viewset integration, verifying object-level enforcement, and testing the behaviour matrix.
+This guide covers implementing per-row access control for list and object-level operations by wiring model {@term Row-Level Permissions} hooks ({@api py:class:vueda.core.permissions.BaseRowLevelPermissions}) and verifying behaviour for allowed and denied users. It walks through defining the hooks, ensuring viewset integration, verifying object-level enforcement, and testing the behaviour matrix.
 
 The guide assumes familiarity with VUEDA's permission evaluation chain. If you have not read [Row-Level Permission Filtering](../core-concepts/row-level-permission-filtering), start there; it explains the queryset vs instance hook surface and the contracts that govern list, retrieve, and bulk-delete behaviour. For the broader permission model, see [Permission Model](../core-concepts/permission-model). For workflow state permission overlays that compose with row-level checks, see [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay).
 
@@ -24,7 +24,7 @@ Before you begin:
 
 The model's viewset must inherit from `VuedaViewSet` or `VuedaHistoryViewSet`, both of which include `ListRowLevelViewSetMixin` in the inheritance chain. Custom viewsets that do not include this mixin will not apply queryset-level row filtering.
 
-The API stack must use `ObjectPermissions` as the permission class, and the user model must include `VUEDAPermissionsMixin`. These are the default VUEDA settings; verify they are in place if using a custom configuration.
+The API stack must use {@api py:class:vueda.core.permissions.ObjectPermissions} as the permission class, and the user model must include {@api py:class:vueda.user.mixins.VUEDAPermissionsMixin}. These are the default VUEDA settings; verify they are in place if using a custom configuration.
 
 ## Define RowLevelPermissions on the Model
 

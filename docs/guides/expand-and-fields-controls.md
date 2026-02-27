@@ -7,13 +7,13 @@ status: draft
 
 # Use Expand and Sparse Field Controls
 
-This guide covers how to configure expand and sparse field controls so that `list`, `read`, `create`, and `update` payloads request only the fields and relations they need. The controls work across two boundaries: the server declares which fields and expansions are available and validates requests against those declarations, while the client configures which fields and expansions to request per view.
+This guide covers how to configure {@term Expand} and sparse field controls so that `list`, `read`, `create`, and `update` payloads request only the fields and relations they need. The controls work across two boundaries: the server declares which fields and expansions are available and validates requests against those declarations, while the client configures which fields and expansions to request per view.
 
-The guide assumes a working CRUDL surface is already in place. If the model is not yet registered and routable, start with [Create a CRUDL Surface](./create-crudl-surface). For the metadata contract that drives field and expand defaults, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract). For broader view configuration (actions, filtering, sorting), see [Configure CRUD Views](./configure-crud-views).
+The guide assumes a working {@term CRUDL} surface is already in place. If the model is not yet registered and routable, start with [Create a CRUDL Surface](./create-crudl-surface). For the metadata contract that drives field and expand defaults, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract). For broader view configuration (actions, filtering, sorting), see [Configure CRUD Views](./configure-crud-views).
 
 ## Goal and Preconditions
 
-The objective is a model whose API responses include only the fields and expanded relations that each view actually needs, with server-side validation rejecting any request that asks for fields or expansions outside the declared surface.
+The objective is a model whose API responses include only the fields and expanded relations that each view actually needs, with server-side validation rejecting any request that asks for fields or expansions outside the declared surface exposed by {@term Model Info}.
 
 Before you begin, ensure the following are in place:
 

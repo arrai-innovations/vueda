@@ -1,0 +1,24 @@
+# Shared config (safe to commit).
+#
+# These defaults target local development. Override in config.local.toml or
+# a deployment-specific config layer as needed.
+
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+TIME_ZONE = "UTC"
+
+FRONTEND_DOMAIN = "http://{{ bind_ip }}:{{ client_port }}"
+FRONTEND_LOGIN_URL = "/login"
+
+SITE_NAME = "VUEDA Dev"
+SUPPORT_EMAIL = "dev@localhost"
+
+AUTH_USER_MODEL = "users.User"
+LOCAL_APPS = ["{{ python_package }}.users"]
+
+STATIC_ROOT = "/tmp/static"
+STATICFILES_DIRS = []
+
+CSRF_TRUSTED_ORIGINS = ["http://{{ bind_ip }}:{{ client_port }}"]
+CORS_ALLOWED_ORIGINS = ["http://{{ bind_ip }}:{{ client_port }}"]
+
+DATABASE_BACKUP_DIR = "/tmp/db-backups"

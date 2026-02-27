@@ -1,4 +1,6 @@
 <script setup>
+import { withBase } from "vitepress";
+
 defineProps({
     term: {
         type: String,
@@ -12,7 +14,7 @@ defineProps({
 </script>
 
 <template>
-    <a :href="href" class="glossary-term" :aria-label="`Glossary term: ${term}`">
+    <a :href="withBase(href)" class="glossary-term" :aria-label="`Glossary term: ${term}`">
         <slot>{{ term }}</slot>
     </a>
 </template>

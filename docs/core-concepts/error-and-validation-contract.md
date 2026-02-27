@@ -110,7 +110,7 @@ Non-field errors use the stable key `non_field_errors`, defined by DRF's `NON_FI
 
 The `FormValidationError` constructor flattens the response payload into paths using a recursive path-flattening utility. This handles nested dicts and arrays: `{"items": [{"quantity": ["Too large"]}]}` flattens to a path like `items[0].quantity[0]`, which is then normalized to `items[0].quantity` for the error map key. The flattening also handles structured objects: a path ending in `.detail` indicates a structured feedback object rather than a string message, and the parent path (without `.detail`) is used as the key.
 
-## Warning Channel Semantics
+## {@term Warning Channel} Semantics
 
 The warning channel is a parallel transport mechanism that uses the same HTTP 400 status and the same `FormValidationError` parsing path as errors, but routes to a different destination in form state.
 
@@ -144,7 +144,7 @@ First-error resolution (`getFirstErrorField`) scans the error map in a defined p
 
 Not all server error responses participate in the validation contract. Some endpoints use non-400 status codes for failures that are structurally different from validation.
 
-The choices and filter-choices endpoints (`ModelInfoChoicesViewSet`, `ModelInfoFilterSetChoicesViewSet`) use **404** for invalid model, field, or filter identifiers, and **403** for permission denials. These are not validation failures; they indicate that the requested resource does not exist or is inaccessible. On the client, these responses produce `FetchError` instances (not `FormValidationError`), which are surfaced through generic error handling rather than form feedback.
+The choices and filter-choices endpoints (`ModelInfoChoicesViewSet`, `ModelInfoFilterSetChoicesViewSet`) under {@term Model Info} use **404** for invalid model, field, or filter identifiers, and **403** for permission denials. These are not validation failures; they indicate that the requested resource does not exist or is inaccessible. On the client, these responses produce `FetchError` instances (not `FormValidationError`), which are surfaced through generic error handling rather than form feedback.
 
 This means that a form component fetching choices for a field that references an invalid model will not see a validation error in the form UI. The error will appear in whatever error boundary or catch handler the component uses for `FetchError`, which is typically a toast or a loading-error state rather than field-level feedback.
 

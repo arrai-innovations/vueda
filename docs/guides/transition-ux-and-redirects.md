@@ -23,7 +23,7 @@ The objective is a transition UX where:
 
 Before you begin:
 
-Action routing is configured via `makeCRUDRoutes` with the `requireModelInfo` guard. See [Control Action Availability in the UI](./control-action-availability) for the route guard wiring.
+Action routing is configured via {@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes} with the {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo} guard. See [Control Action Availability in the UI](./control-action-availability) for the route guard wiring.
 
 The model's workflow (if applicable) is configured with states, transitions, and permissions. Transitions must have valid string `code` properties; the route guard and action router both use `code` as the routing identifier.
 
@@ -33,13 +33,13 @@ Action and transition routes pass through `requireModelInfo` before rendering. T
 
 For workflow-enabled models, the guard includes permitted transition codes in the action set. This means transition routes are admissible alongside standard CRUD routes; the guard does not distinguish between them at the admission level.
 
-`ViewActionRouter` resolves the admitted action to a view component. Standard CRUD actions resolve to their built-in views. Transition codes resolve to `ViewWorkflowTransition`. When the action cannot be resolved, it passes the guard but has no corresponding view component; `ViewActionNotFound` is rendered.
+{@api vue:component:ViewActionRouter} resolves the admitted action to a view component. Standard CRUD actions resolve to their built-in views. Transition codes resolve to `ViewWorkflowTransition`. When the action cannot be resolved, it passes the guard but has no corresponding view component; `ViewActionNotFound` is rendered.
 
 The guard requires transition objects to have a valid string `code`. If a transition lacks a `code` or the `code` is not a string, the guard throws an error (`requireModelInfo: workflow transition is missing a string code`) rather than silently treating it as unavailable. Check the workflow configuration if this error surfaces.
 
 ## Action Form Submit, Dry-Run, and Cancel Flow
 
-`ActionForm` standardizes the three execution paths for action views.
+{@api vue:component:ActionForm} standardizes the three execution paths for action views.
 
 **Submit** executes the action against the server. On successful non-dry-run submit, `ActionForm` calls `redirectTo("success")` when no custom success handler is provided. The success path emits a toast and redirects to the resolved target. On failure, error handling displays validation errors or server error messages without redirecting.
 
@@ -49,7 +49,7 @@ The guard requires transition objects to have a valid string `code`. If a transi
 
 ## Redirect Precedence and Route Targets
 
-`ModelActionForm` resolves redirect targets through a defined precedence chain. The same chain applies to both success and cancel redirects, evaluated in order:
+{@api vue:component:ModelActionForm} resolves redirect targets through a defined precedence chain. The same chain applies to both success and cancel redirects, evaluated in order:
 
 1. **`route.query.returnPath`**: if the current route has a `returnPath` query parameter, it takes absolute precedence. This enables "return to where you came from" navigation for actions reached via deep links or cross-model navigation.
 
@@ -75,7 +75,7 @@ modelConfigStore.setConfig(
 
 ## Workflow Execute-Transition Contract (Detail and Bulk)
 
-The server's workflow execute-transition endpoint supports both detail and bulk execution, with distinct contracts for each.
+The server's workflow execute-transition endpoint ({@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}) supports both detail and bulk execution, with distinct contracts for each.
 
 **Detail execution** targets a single object. The request includes the `transition_code` that identifies the transition to execute. The server acquires a row lock using `select_for_update(skip_locked=True)`; if the lock cannot be acquired (another process holds it), the response is a `400` with the message `"This object cannot be updated right now. Please try again."`. On successful lock acquisition, the transition runs through `apply_transition`, which validates source state, permissions, and transition-permission entries.
 
@@ -118,15 +118,9 @@ After implementing transition UX, verify the following:
     - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
     - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}
     - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}
-    - {@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}
 - JavaScript:
-    - {@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes}
-    - {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}
     - {@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}
     - {@api js:function:@arrai-innovations/vueda.use/useWorkflowTransitions.useWorkflowTransitions}
     - {@api js:function:@arrai-innovations/vueda.utils/actionMap.getActionName}
 - Vue.js Components:
-    - {@api vue:component:ActionForm}
-    - {@api vue:component:ModelActionForm}
-    - {@api vue:component:ViewActionRouter}
     - {@api vue:component:ViewWorkflowTransition}

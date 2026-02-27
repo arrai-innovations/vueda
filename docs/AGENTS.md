@@ -69,9 +69,6 @@ When linking generated API docs in authored Markdown, use `{@api ...}` IDs inste
 3. Do not invent IDs; search first.
 4. Prefer `@api` links over `/reference/api/...` paths inside authored docs.
 
-> [!IMPORTANT]
-> Backticks shown in this guide are Markdown formatting for examples only. In authored docs, write `{@api ...}` tags without surrounding backticks so they resolve as links.
-
 > [!INFO]
 > Some API IDs (especially REST endpoints) include `{}` to represent URL parameters. These braces are part of the identifier itself and must be written exactly as shown. They are not placeholders to be substituted or templated.
 
@@ -103,10 +100,24 @@ Link glossary terms from authored docs with `{@term ...}`.
 2. Use `{@term <term>}` in prose.
 3. Keep spelling aligned with the glossary heading text.
 
-> [!IMPORTANT]
-> As with `{@api ...}`, do not wrap `{@term ...}` tags in backticks in authored docs.
+See [Backticks vs Links](#backticks-vs-links) for when to use `{@term ...}` versus inline code.
 
 Examples:
 
 - `{@term CRUDL}`
 - `{@term Model Info}`
+
+## Backticks vs Links
+
+Use backticks and custom refs for different purposes:
+
+- Use `{@api ...}` and `{@term ...}` (without surrounding backticks) when you want rendered links in prose.
+- Use inline code backticks for literal tokens, parameter names, and code identifiers that must stay exact, such as `f`, `e`, `expand`, `permit_list_expands`, or `class Meta(...)`.
+- Do not place `{@api ...}` or `{@term ...}` inside inline code spans or fenced code blocks unless you intentionally want literal text instead of a link.
+- Backticks around `{@api ...}` and `{@term ...}` shown in this guide are for Markdown examples only.
+
+Examples:
+
+- Correct link usage in prose: `Use {@term Expand} selection via the \`e\` query parameter.`
+- Correct literal token usage: `The literal wire parameter name is \`expand\`.`
+- Incorrect when you want a link: `` `{@term Expand}` ``

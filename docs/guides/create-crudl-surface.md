@@ -10,6 +10,7 @@ status: draft
 This guide walks through the end-to-end process of standing up a fully functional CRUDL surface; `list`, `create`, `read`, `update`, and `delete`; for a new Django model in VUEDA. By the end, the model will be served by the REST API, discoverable through model-info, and navigable in the Vue client with metadata-driven routes, forms, and permission gating.
 
 The guide assumes familiarity with the framework's layered architecture. If you have not yet read [Architecture Overview](../core-concepts/architecture-overview), start there; the server responsibility layers and convention-over-configuration principles it describes are the foundation for everything below.
+This flow starts with {@api py:class:vueda.core.models.VuedaBaseModel} and builds a complete {@term CRUDL} surface from server conventions.
 
 ## Goal and Preconditions
 
@@ -41,7 +42,7 @@ Setting `formatted_name = None` without providing either `formatted_name_lookup_
 
 ## Serializer Contract
 
-The canonical serializer defines the field schema that the metadata API exposes to the client. Every field the client can see, validate against, or submit comes from this serializer definition. Extend `VuedaSerializer` for standard models or `VuedaHistorySerializer` for models that use the audit history system.
+The {@term Canonical Serializer} defines the field schema that the metadata API exposes to the client. Every field the client can see, validate against, or submit comes from this serializer definition. Extend `VuedaSerializer` for standard models or `VuedaHistorySerializer` for models that use the audit history system.
 
 `VuedaSerializer` declares `formatted_name` and `available_actions` as base fields. Both are read-only. The serializer's `Meta.fields` list must include all fields that should appear in the metadata surface; if a field exists on the Django model but is not listed in the serializer's `fields`, it will not appear in model-info and the client will not know it exists. See [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract) for the full mapping from serializer definitions to metadata sections.
 
@@ -145,7 +146,7 @@ The imports are inside `ready()` deliberately. Registration resolves content typ
 
 The `register` function accepts the serializer as the first argument and the viewset as the second. It can also be used as a decorator on the viewset class, with just the serializer as the argument. Both styles produce the same result; a fully registered model that appears in model-info with complete metadata: fields, actions, filters, ordering, and permissions.
 
-Calling `register_serializer` instead of `register` produces a serializer-only registration. The model will appear in model-info with field schema and permission metadata but without action, filter, or ordering metadata. This is appropriate for models that are referenced through expands but do not need their own CRUD surface. It is not sufficient for a full CRUDL surface; the client cannot generate routes or forms for a model that lacks action metadata.
+Calling `register_serializer` instead of `register` produces a {@term Serializer-Only Registration}. The model will appear in model-info with field schema and permission metadata but without action, filter, or ordering metadata. This is appropriate for models that are referenced through expands but do not need their own CRUD surface. It is not sufficient for a full CRUDL surface; the client cannot generate routes or forms for a model that lacks action metadata.
 
 ## Client Route Wiring
 
@@ -171,7 +172,7 @@ router.addRoute(crudRoutes[1]);
 
 The `actionRedirect` parameter is required. It specifies the route the guard should redirect to when a model or action is not found. If `actionRedirect` is falsy, `makeCRUDRoutes` throws at router build time; this is a hard error, not a runtime guard failure. The redirect target must not itself be gated by `requireModelInfo`, or you will produce a redirect loop.
 
-The `requireModelInfo` guard computes its allowlist by intersecting server-advertised actions from model-info, any `routeActions` restrictions from client model-config, and workflow transition codes. The guard normalizes action names through a static action-map utility. The server uses `retrieve` and `partial_update`, while the client uses `read` and `update` in route paths. This normalization is automatic; you do not need to manually translate between naming conventions when defining routes.
+The `requireModelInfo` guard computes its allowlist by intersecting server-advertised actions from model-info, any `routeActions` restrictions from client model-config, and workflow transition codes. This is the {@term Route Admission} check. The guard normalizes action names through a static action-map utility. The server uses `retrieve` and `partial_update`, while the client uses `read` and `update` in route paths. This normalization is automatic; you do not need to manually translate between naming conventions when defining routes.
 
 Once routes are wired, the `ViewActionRouter` component handles runtime view resolution. It selects the concrete view component based on the action parameter: built-in CRUD components for standard actions (`list`, `create`, `read`, `update`), or dynamically imported project-level components for custom actions. No per-model client code is needed for standard CRUDL surfaces.
 

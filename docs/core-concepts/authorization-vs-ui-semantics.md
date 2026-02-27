@@ -7,29 +7,29 @@ status: draft
 
 # Authorization vs UI Semantics
 
-VUEDA separates authorization from UI action semantics into two independent systems for evaluation. The server owns authorization; every API request is checked against DRF permission classes and the layered permission model described in [Permission Model](./permission-model). The client owns action visibility and route admission; deciding which views to navigate to and which buttons to render, based on metadata the server provides. The client does not evaluate Django permission codenames. It consumes action metadata that the server has already permission-filtered and uses it to make semantic decisions about navigation and UI visibility.
+VUEDA separates authorization from UI action semantics into two independent systems for evaluation. The server owns authorization; every API request is checked against DRF permission classes and the layered permission model described in [Permission Model](./permission-model). The client owns action visibility and route admission; deciding which views to navigate to and which buttons to render, based on metadata the server provides. The client does not evaluate Django permission codenames. It consumes {@term Action} metadata that the server has already permission-filtered and uses it to make semantic decisions about navigation and UI visibility.
 
 This page explains the boundary between these two systems, where each system derives its action sets, and the failure shapes that occur when they diverge. For the server-side permission layers themselves, see [Permission Model](./permission-model). For practical guidance on controlling which actions appear in the UI, see [Control Action Availability](../guides/control-action-availability).
 
 ## Authorization Authority Boundary
 
-The server is the sole authority for data access and mutation rights. DRF's default permission class, `ObjectPermissions`, enforces CRUDL codename checks on every request. Object-level decisions compose baseline model permissions with workflow-state overlays and row-level hooks via `VUEDAPermissionsMixin.has_perm`. This enforcement applies uniformly: model-info endpoints, CRUDL operations, workflow endpoints, and custom actions all pass through the same permission class.
+The server is the sole authority for data access and mutation rights. DRF's default permission class, `ObjectPermissions`, enforces {@term CRUDL} codename checks on every request. Object-level decisions compose baseline model permissions with workflow-state overlays and row-level hooks via `VUEDAPermissionsMixin.has_perm`. This enforcement applies uniformly: model-info endpoints, CRUDL operations, workflow endpoints, and custom actions all pass through the same permission class.
 
 The client cannot enforce authorization. It has no access to permission codenames, group memberships, or row-level policy. What the client does have is metadata: the server tells it which actions are available, and the client uses that information to shape the UI. But metadata-driven UI shaping is not authorization. Hiding a button or blocking a route does not revoke the underlying API permission. A direct API call bypasses the client entirely and succeeds or fails based solely on server rules.
 
 This asymmetry is intentional. Duplicating permission logic on the client would require shipping codename semantics, group resolution, workflow state evaluation, and row-level hook logic to the browser; this would create a parallel authorization engine that would need to stay synchronized with the server. Instead, the client delegates authorization to the server and focuses on what it can own: which views to present and which actions to surface.
 
-## Model-Scope vs Object-Scope Action Semantics
+## {@term Model-Scope vs Object-Scope Availability} Semantics
 
 The server provides action metadata at two distinct scopes, and the distinction matters for understanding what the client consumes.
 
-**`model_actions`** are computed at model scope. The model-info endpoint evaluates which CRUDL and extra actions the requesting user is permitted to perform, based on the canonical viewset's permission checks run with a synthetic request and no object. This produces a list of action names: `create`, `read`, `update`, `delete`, `list`, plus any extra actions permitted by `get_allowed_extra_actions`. The result is user-specific (different users may see different action sets) but not object-specific (the check does not evaluate against any particular instance). Route guards and model-level configuration consume this metadata.
+**`model_actions`** are computed at model scope through a {@term Model-Scope Check}. The model-info endpoint evaluates which CRUDL and extra actions the requesting user is permitted to perform, based on the canonical viewset's permission checks run with a synthetic request and no object. This produces a list of action names: `create`, `read`, `update`, `delete`, `list`, plus any extra actions permitted by `get_allowed_extra_actions`. The result is user-specific (different users may see different action sets) but not object-specific (the check does not evaluate against any particular instance). Route guards and model-level configuration consume this metadata.
 
-**`available_actions`** are computed at object scope. When the server serializes an individual object, the `AvailableActionsField` runs object-level permission checks across the standard CRUDL actions (excluding `create`, which does not apply to existing instances) and appends any permitted extra actions. The result is both user-specific and object-specific: two objects of the same model may report different available actions for the same user, because workflow state or row-level hooks produce different outcomes per instance. `detail` views consume this metadata to determine which action buttons to show for a specific object.
+**`available_actions`** are computed at object scope through an {@term Object-Scope Check}. When the server serializes an individual object, the `AvailableActionsField` runs object-level permission checks across the standard CRUDL actions (excluding `create`, which does not apply to existing instances) and appends any permitted extra actions. The result is both user-specific and object-specific: two objects of the same model may report different {@term Available Actions} for the same user, because workflow state or row-level hooks produce different outcomes per instance. `detail` views consume this metadata to determine which action buttons to show for a specific object.
 
 **`model_permissions`** is a third metadata surface that is sometimes confused with the other two. It returns the content-type permission catalogue for the model; the full set of permission codenames that exist, regardless of whether the requesting user holds them. It is not user-filtered and not an executable action list. Using `model_permissions` as the source of truth for action availability over-advertises capabilities: the UI may suggest operations that the user cannot perform.
 
-## Route Admission Semantics
+## {@term Route Admission} Semantics
 
 Client-side route admission determines whether navigation to a view is permitted. It is a semantic gate, not an authorization gate; it checks whether the target action has been declared as available in the metadata, not whether the user holds the underlying permission codename.
 
@@ -49,7 +49,7 @@ For `list` views, the visible actions are the output of `useFilteredActions`. Fo
 
 This means that detail-view action buttons reflect real-time, per-object authorization truth. If a workflow state denies `update` permission on a specific object, the update button disappears from that object's `detail` view; not because the client evaluated a permission rule, but because the server's `available_actions` response excluded `update` for that instance.
 
-## Workflow Transition Action Namespace
+## Workflow Transition {@term Action Namespace}
 
 Workflow transitions participate in the same action namespace as CRUDL and extra actions. They are not a separate routing or UI visibility system; transition codes are treated as first-class action identifiers at every level where actions are evaluated.
 

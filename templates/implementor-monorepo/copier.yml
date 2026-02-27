@@ -1,11 +1,9 @@
 _min_copier_version: "9.0.0"
 _templates_suffix: ".jinja"
 _tasks:
-    - echo "VUEDA minimal monorepo template is now in place."
-    - echo "Next steps:"
-    - echo "  - `uv sync --all-packages`"
-    - echo "  - `pnpm install`"
-    - echo "  - Create `server/config.local.toml` values (at minimum: SECRET_KEY)."
+    - "# VUEDA minimal monorepo template is now in place."
+    - "# Next: run `uv sync --all-packages` then `pnpm install`"
+    - "# Then create server/config.local.toml (at minimum: SECRET_KEY)"
 
 project_name:
     type: str

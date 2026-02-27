@@ -7,7 +7,7 @@ status: draft
 
 # Send Email from VDQ with Anymail
 
-This guide covers implementing queued outbound email through VDQ using Anymail as the provider; including queue item creation, attachment handling, async dispatch, tracking event reconciliation, and the resend path. It focuses on email-specific behaviour; for shared VDQ patterns (scheduling, retry/cancel, status endpoints), see [Run Actions in the VUEDA Dispatch Queue (VDQ)](./vdq-actions).
+This guide covers implementing queued outbound email through VDQ using Anymail as the provider; including queue item creation, attachment handling, async dispatch, tracking event reconciliation, and the resend path. It focuses on email-specific behaviour; for shared VDQ patterns (scheduling, retry/cancel, status endpoints), see [Run Actions in the VUEDA Dispatch Queue (VDQ)](./vdq-actions). The queue orchestration and transition handling are built on {@api py:module:vueda.vdq} and {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}, which together implement the {@term VDQ (VUEDA Dispatch Queue)} execution model.
 
 The guide assumes familiarity with VDQ's persistence and lifecycle model. If you have not read [VDQ and Background Work Model](../core-concepts/vdq-and-background-work), start there.
 
@@ -16,7 +16,7 @@ The guide assumes familiarity with VDQ's persistence and lifecycle model. If you
 The objective is a queue-backed email flow where:
 
 - Email messages are enqueued with validated sender/receiver roles and optional attachments.
-- Each recipient receives an independent `QueueItem`, enabling per-recipient status tracking.
+- Each recipient receives an independent {@term Queue Item (VDQ)}, enabling per-recipient status tracking.
 - Async dispatch sends through Anymail and transitions queue items through the workflow lifecycle.
 - Tracking events (delivery confirmation, bounces) update queue item state asynchronously.
 - Transient provider failures are retried automatically with backoff.
@@ -52,7 +52,7 @@ add_email(
 
 Key behaviours:
 
-- **One `QueueItem` per recipient.** VDQ creates a separate queue item for each address across `to`, `cc`, and `bcc`. Each item tracks delivery status independently.
+- **One {@term Queue Item (VDQ)} per recipient.** VDQ creates a separate queue item for each address across `to`, `cc`, and `bcc`. Each item tracks delivery status independently.
 - **Role validation.** `validate_email_role` checks that sender and receiver roles have email values before queueing. Invalid roles are rejected before any queue items are created.
 - **Immediate scheduling.** `add_email` calls `schedule_queue_item` for each created queue item, which publishes a Celery task via `delay_on_commit`.
 
@@ -110,7 +110,7 @@ Tracking events may arrive after the queue item has moved to a terminal state (e
 
 **Retry** is a workflow transition on the active queue item. Non-dry-run retry cancels the prior Celery task, clears tracking metadata, and re-schedules. See [Run Actions in the VUEDA Dispatch Queue (VDQ)](./vdq-actions) for the shared retry contract.
 
-**Resend** operates on completed items in sent history. `SentItem.clone()` duplicates the queue item, including `AnyMailQueueItem` detail and attachment relationships into a new `QueueItem` in the initial workflow state. The clone is scheduled independently. Resend requires `vueda_vdq.can_resend` permission.
+**Resend** operates on completed items in the {@term Sent Item (VDQ)} history. `SentItem.clone()` duplicates the queue item, including `AnyMailQueueItem` detail and attachment relationships into a new `QueueItem` in the initial workflow state. The clone is scheduled independently. Resend requires `vueda_vdq.can_resend` permission.
 
 ## Verification Checklist
 

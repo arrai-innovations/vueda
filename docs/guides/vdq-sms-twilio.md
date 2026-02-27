@@ -7,7 +7,7 @@ status: draft
 
 # Send SMS from VDQ with Twilio
 
-This guide covers implementing SMS delivery via VDQ using Twilio as the provider, including selecting configuration mode (webhook vs polling), creating queue items, dispatching workers, and reconciling delivery status. It focuses on SMS-specific behaviour; for shared VDQ patterns (scheduling, retry/cancel, status endpoints), see [Run Actions in the VUEDA Dispatch Queue (VDQ)](./vdq-actions).
+This guide covers implementing SMS delivery via VDQ using Twilio as the provider, including selecting configuration mode (webhook vs polling), creating queue items, dispatching workers, and reconciling delivery status. It focuses on SMS-specific behaviour; for shared VDQ patterns (scheduling, retry/cancel, status endpoints), see [Run Actions in the VUEDA Dispatch Queue (VDQ)](./vdq-actions). The queue and transition behavior here is implemented through {@api py:module:vueda.vdq} and {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}, and follows the {@term VDQ (VUEDA Dispatch Queue)} lifecycle.
 
 The guide assumes familiarity with VDQ's persistence and lifecycle model. If you have not read [VDQ and Background Work Model](../core-concepts/vdq-and-background-work), start there.
 
@@ -52,7 +52,7 @@ add_sms(
 
 Key behaviours:
 
-- **One `QueueItem` per call.** Unlike email (which creates one item per recipient), SMS creates a single `QueueItem(method="sms")` plus one `SMSQueueItem` detail row per `add_sms` call.
+- **One {@term Queue Item (VDQ)} per call.** Unlike email (which creates one item per recipient), SMS creates a single `QueueItem(method="sms")` plus one `SMSQueueItem` detail row per `add_sms` call.
 - **Role validation.** `validate_sms_role` checks that both sender and receiver have a `cell` value. Invalid roles are rejected before the queue item is created.
 - **Immediate scheduling.** `add_sms` calls `schedule_queue_item`, which publishes a Celery task via `delay_on_commit`.
 
