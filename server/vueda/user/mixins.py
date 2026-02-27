@@ -12,17 +12,31 @@ from django.template.loader import render_to_string
 
 
 class LogoutMixin:
-    def get_context_data(self, **kwargs):
+    """View mixin that injects a rendered logout form into the template context."""
+
+    def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
         context["logout"] = render_to_string("registration/logout_form.html", context=context, request=self.request)
         return context
 
 
 class VUEDAPermissionsMixin(PermissionsMixin):
+    """
+    Extends Django's ``PermissionsMixin`` with a multi-layer permission check:
+
+    1. Django model-level permissions (via ``super().has_perm``).
+    2. Workflow state permissions (grant or deny based on the object's current state).
+    3. Row-level permissions (``RowLevelPermissions.check_instance``).
+    4. Workflow-aware row-level permissions (``RowLevelPermissions.check_instance_workflow``),
+       which run last and can override a state deny.
+
+    Superusers always return ``True`` and skip all checks.
+    """
+
     class Meta:
         abstract = True
 
-    def has_perm(self, perm, obj: models.Model | None = None):
+    def has_perm(self, perm, obj: models.Model | None = None) -> bool:
         # django.contrib.auth.backends.ModelBackend always returns false if object is passed, so do not pass obj and
         #  deal with it ourselves
         if self.is_superuser:
