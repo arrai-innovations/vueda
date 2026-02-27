@@ -29,7 +29,8 @@ def debug_stack_exception_handler(exc, context):
     """
     Custom exception handler which adds the exception class name to the response.
     """
-    if isinstance(exc, VuedaValidationError) and isinstance(exc.detail, list):
+    # switched to ValidationError, because rest flex fields raises ValidationError("Expansion depth exceeded")
+    if isinstance(exc, ValidationError) and isinstance(exc.detail, list):
         # VuedaValidationErrors raise as a list are non-field errors
         exc.detail = {api_settings.NON_FIELD_ERRORS_KEY: exc.detail}
 
@@ -52,10 +53,7 @@ def debug_stack_exception_handler(exc, context):
         sentry_sdk.capture_exception(exc)
 
     if settings.DEBUG or getattr(settings, "IN_TESTS", False):
-        if isinstance(response.data, dict):
-            response.data["serverStack"] = "".join(format_exception(type(exc), exc, exc.__traceback__))
-        else:
-            response.data = {"serverStack": "".join(format_exception(type(exc), exc, exc.__traceback__))}
+        response.data["serverStack"] = "".join(format_exception(type(exc), exc, exc.__traceback__))
     else:
         response.data["serverStack"] = "".join(format_exception_only(type(exc), exc))
     return response
