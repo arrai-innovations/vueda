@@ -468,7 +468,11 @@ class TestStoreCustomerOrderViewSet:
         assert response.status_code == HTTPStatus.BAD_REQUEST, (
             f"{response.status_code} != 400, response.data: {response.data}"
         )
-        assert "Expansion depth exceeded" in response.data["serverStack"], response.data
+        assert "non_field_errors" in response.data, f"response.data: {response.data}"
+        assert len(response.data["non_field_errors"]) == 1, (
+            f"non_field_errors data: {response.data['non_field_errors']}"
+        )
+        assert "Expansion depth exceeded" in response.data["non_field_errors"]
 
 
 @pytest.mark.django_db
