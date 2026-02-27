@@ -1,3 +1,7 @@
+"""AppConfig for the vueda.vdq application."""
+
+__all__ = ("VdqConfig",)
+
 from django.apps import AppConfig
 
 from vueda.info import register

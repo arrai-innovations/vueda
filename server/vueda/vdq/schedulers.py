@@ -1,3 +1,12 @@
+"""Scheduling utilities for creating and queuing VDQ email and SMS queue items."""
+
+__all__ = (
+    "add_abstract_email",
+    "add_email",
+    "add_sms",
+    "schedule_queue_item",
+)
+
 import typing
 from collections.abc import Mapping
 from collections.abc import Sequence

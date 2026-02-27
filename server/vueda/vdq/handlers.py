@@ -1,3 +1,14 @@
+"""Email and SMS send handlers and Twilio webhook processing for the VDQ."""
+
+__all__ = (
+    "TwilioQueueItemHandler",
+    "handle_bounce",
+    "send_email",
+    "timeout_queue_item",
+    "validate_email_role",
+    "validate_sms_role",
+)
+
 import logging
 from datetime import timedelta
 
