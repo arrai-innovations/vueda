@@ -20,6 +20,7 @@ from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.serializers import PrimaryKeyListSerializer
+from vueda.core.utils import sort_by_dot_count_alphabetically
 from vueda.history.viewsets import SimpleHistoryViewSetMixin
 
 
@@ -186,7 +187,9 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
     max_depth = min((max_depth, settings.REST_FLEX_FIELDS["MAXIMUM_EXPANSION_DEPTH"]))
 
     valid_expands = set()
+    valid_wildcard_expands = set()
     valid_fields = set()
+    valid_wildcard_fields = set()
 
     if depth < max_depth:
         if hasattr(serializer, "fields"):
@@ -194,18 +197,20 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
 
         permitted_expands = None
         if "permitted_expands" in serializer.context and hasattr(serializer, "_flex_options_rep_only"):
-            if not serializer._flex_fields_rep_applied:
-                instance = serializer.Meta.model.objects.first()
-                serializer.to_representation(instance)
-            permitted_expands = frozenset(serializer._flex_options_rep_only["expand"])
+            permitted_expands = frozenset(serializer.context["permitted_expands"])
 
         if hasattr(serializer, "Meta") and hasattr(serializer.Meta, "expandable_fields"):
             if permitted_expands is not None and not permitted_expands:
-                return valid_expands, valid_fields  # No permitted expands
+                return (
+                    valid_expands,
+                    valid_wildcard_expands,
+                    valid_fields,
+                    valid_wildcard_fields,
+                )  # No permitted expands
 
             for value in WILDCARD_VALUES:
-                valid_fields.add(value)
-                valid_expands.add(value)
+                valid_wildcard_fields.add(value)
+                valid_wildcard_expands.add(value)
 
             for field_name, serializer_data in serializer.Meta.expandable_fields.items():
                 if permitted_expands is not None and field_name not in permitted_expands:
@@ -228,19 +233,27 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                 if isinstance(child_serializer, ListSerializer):
                     child_serializer = child_serializer.child
 
-                child_valid_expands, child_valid_fields = get_recursive_expands_and_fields(
-                    child_serializer, depth + 1, max_depth
+                child_valid_expands, child_valid_wildcard_expands, child_valid_fields, child_valid_wildcard_fields = (
+                    get_recursive_expands_and_fields(child_serializer, depth + 1, max_depth)
                 )
 
                 for child_expand in child_valid_expands:
                     if child_expand:
                         valid_expands.add(f"{field_name}.{child_expand}")
 
+                for child_expand in child_valid_wildcard_expands:
+                    if child_expand:
+                        valid_wildcard_expands.add(f"{field_name}.{child_expand}")
+
                 for child_field in child_valid_fields:
                     if child_field:
                         valid_fields.add(f"{field_name}.{child_field}")
 
-    return valid_expands, valid_fields
+                for child_field in child_valid_wildcard_fields:
+                    if child_field:
+                        valid_wildcard_fields.add(f"{field_name}.{child_field}")
+
+    return valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields
 
 
 class NoExtraFieldsForViewSetMixin:
@@ -282,17 +295,19 @@ class NoExtraFieldsForViewSetMixin:
                 )
                 + 1
             )
-            valid_expands, valid_fields = get_recursive_expands_and_fields(serializer, 0, max_depth)
+            valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = (
+                get_recursive_expands_and_fields(serializer, 0, max_depth)
+            )
 
         if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params:
-            extra_keys = submitted_fields - valid_fields
+            extra_keys = submitted_fields - (valid_fields | valid_wildcard_fields)
             if extra_keys:
                 errors = {}
                 for extra_key in extra_keys:
                     errors[extra_key] = [
                         {
                             "message": ErrorDetail(
-                                string=f"Invalid field.  Valid fields are {', '.join(sorted(valid_fields))}.",
+                                string=f"Invalid field.  Valid fields are {', '.join(sorted(valid_fields))}. Or use a wildcard to specify all: {', '.join(sorted(valid_wildcard_fields, key=sort_by_dot_count_alphabetically))}",
                                 code="invalid",
                             ),
                             "code": "invalid",
@@ -302,7 +317,7 @@ class NoExtraFieldsForViewSetMixin:
                 return Response(errors, status=400)
 
         if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
-            extra_keys = submitted_expand_fields - valid_fields
+            extra_keys = submitted_expand_fields - (valid_expands | valid_wildcard_expands)
             if extra_keys:
                 errors = {}
                 for extra_key in extra_keys:
@@ -311,7 +326,7 @@ class NoExtraFieldsForViewSetMixin:
                             "message": ErrorDetail(
                                 string="Invalid expands. "
                                 + (
-                                    f"Permitted expands are {', '.join(sorted(valid_expands))}."
+                                    f"Permitted expands are {', '.join(sorted(valid_expands))}. Or use a wildcard to expand all: {', '.join(sorted(valid_wildcard_expands, key=sort_by_dot_count_alphabetically))}"
                                     if valid_expands
                                     else "No expands are permitted."
                                 ),
