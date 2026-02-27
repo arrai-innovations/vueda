@@ -1,3 +1,13 @@
+"""Model registration for the meta-info API, mapping models to serializers and viewsets."""
+
+__all__ = (
+    "get_all_registrations",
+    "get_registered_content_types",
+    "get_registration",
+    "register",
+    "register_serializer",
+)
+
 import logging
 import sys
 from copy import deepcopy

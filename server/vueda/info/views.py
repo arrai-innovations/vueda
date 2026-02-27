@@ -1,3 +1,7 @@
+"""API views for server info metadata in the vueda.info app."""
+
+__all__ = ("server_info_view",)
+
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
 from rest_framework.decorators import permission_classes

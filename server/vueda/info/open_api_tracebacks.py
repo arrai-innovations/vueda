@@ -1,3 +1,16 @@
+"""Sample OpenAPI error tracebacks for vueda.info API documentation."""
+
+__all__ = (
+    "INFO_CHOICES_DENIED",
+    "INFO_CHOICES_INVALID_CONTENT_TYPE",
+    "INFO_CHOICES_INVALID_FIELD",
+    "INFO_DENIED",
+    "INFO_INVALID_CONTENT_TYPE",
+    "INFO_INVALID_FIELD",
+    "SITE_PACKAGES_PATH",
+    "VUEDA_SERVER_PATH",
+)
+
 # These are here, to keep them out of the serializer.  Less messy.
 SITE_PACKAGES_PATH = "/home/user/.local/share/virtualenvs/vueda-server/lib/python3.11/site-packages"
 VUEDA_SERVER_PATH = "/home/user/projects/vueda-server"
