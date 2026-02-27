@@ -15,7 +15,7 @@ from simple_history.models import HistoricalRecords
 
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.models import BaseModelMeta
-from vueda.core.models import VuedaBaseModel
+from vueda.core.models import VuedaModel
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.mixins import VUEDAPermissionsMixin
 
@@ -202,7 +202,7 @@ TWO_FACTOR_AUTHENTICATION_OPTIONS = [
 ]
 
 
-class TOTPDevice(VuedaBaseModel):
+class TOTPDevice(VuedaModel):
     authenticator = models.ForeignKey(Authenticator, on_delete=models.CASCADE, related_name="device")
     method = models.CharField(max_length=255, choices=TWO_FACTOR_AUTHENTICATION_OPTIONS)
     user = models.ForeignKey(

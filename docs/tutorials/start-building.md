@@ -215,11 +215,11 @@ Add a new Django app under the project namespace. In `server/your_project/`, cre
 
 VUEDA provides its own extensions of Django's `Model` class:
 
-- **{@api py:class:vueda.core.models.VuedaBaseModel}**: adds an expected {@api py:function:vueda.core.models.VuedaBaseModel.formatted_name} `GeneratedField` (by default based on a model's `name` field) and a custom {@api py:class:vueda.core.models.BaseModelMeta} class that sets up default permissions in VUEDA's expected way.
-- **{@api py:class:vueda.core.models.Lookup}**: extends {@api py:class:vueda.core.models.VuedaBaseModel} with a unique `code` field, intended for lightweight, potentially user-defined, reference data tables.
+- **{@api py:class:vueda.core.models.VuedaModel}**: adds an expected {@api py:function:vueda.core.models.VuedaModel.formatted_name} `GeneratedField` (by default based on a model's `name` field) and a custom {@api py:class:vueda.core.models.BaseModelMeta} class that sets up default permissions in VUEDA's expected way.
+- **{@api py:class:vueda.core.models.Lookup}**: extends {@api py:class:vueda.core.models.VuedaModel} with a unique `code` field, intended for lightweight, potentially user-defined, reference data tables.
 
 ::: important
-VUEDA uses create, read, update, delete, and list permissions, which aligns better with `djangorestframework`'s viewset actions than Django's default add, change, delete, and view permissions. All VUEDA models must therefore inherit from {@api py:class:vueda.core.models.VuedaBaseModel} to ensure proper permission handling, and must have a `class Meta(VuedaBaseModel.Meta)` (or equivalently, `class Meta({@api py:class:vueda.core.models.BaseModelMeta})`) by default.
+VUEDA uses create, read, update, delete, and list permissions, which aligns better with `djangorestframework`'s viewset actions than Django's default add, change, delete, and view permissions. All VUEDA models must therefore inherit from {@api py:class:vueda.core.models.VuedaModel} to ensure proper permission handling, and must have a `class Meta(VuedaModel.Meta)` (or equivalently, `class Meta({@api py:class:vueda.core.models.BaseModelMeta})`) by default.
 :::
 
 `server/your_project/inventory/models.py`:
@@ -227,10 +227,10 @@ VUEDA uses create, read, update, delete, and list permissions, which aligns bett
 ```python
 from django.db import models
 
-from vueda.core.models import BaseModelMeta, Lookup, VuedaBaseModel
+from vueda.core.models import BaseModelMeta, Lookup, VuedaModel
 
 
-class Product(VuedaBaseModel):
+class Product(VuedaModel):
     name = models.CharField(max_length=255)
     sku = models.CharField(max_length=64, unique=True)
     description = models.TextField(blank=True)
@@ -244,7 +244,7 @@ class OptionType(Lookup):
         ordering = ["name", "id"]
 
 
-class ProductOption(VuedaBaseModel):
+class ProductOption(VuedaModel):
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name="options"
     )

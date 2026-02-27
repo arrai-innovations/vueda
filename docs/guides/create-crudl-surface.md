@@ -10,7 +10,7 @@ status: draft
 This guide walks through the end-to-end process of standing up a fully functional CRUDL surface; `list`, `create`, `read`, `update`, and `delete`; for a new Django model in VUEDA. By the end, the model will be served by the REST API, discoverable through model-info, and navigable in the Vue client with metadata-driven routes, forms, and permission gating.
 
 The guide assumes familiarity with the framework's layered architecture. If you have not yet read [Architecture Overview](../core-concepts/architecture-overview), start there; the server responsibility layers and convention-over-configuration principles it describes are the foundation for everything below.
-This flow starts with {@api py:class:vueda.core.models.VuedaBaseModel} and builds a complete {@term CRUDL} surface from server conventions.
+This flow starts with {@api py:class:vueda.core.models.VuedaModel} and builds a complete {@term CRUDL} surface from server conventions.
 
 ## Goal and Preconditions
 
@@ -22,13 +22,13 @@ The model's Django app is installed in `INSTALLED_APPS` and has an `AppConfig` w
 
 ## Model and Permission Baseline
 
-VUEDA's conventions begin at the model layer. Extend `VuedaBaseModel` to inherit the framework's base infrastructure, including the default `formatted_name` generated field and the `BaseModelMeta` permission set.
+VUEDA's conventions begin at the model layer. Extend `VuedaModel` to inherit the framework's base infrastructure, including the default `formatted_name` generated field and the `BaseModelMeta` permission set.
 
-`BaseModelMeta` defines `default_permissions` as `("create", "read", "update", "delete", "list")`. These replace Django's default `add`/`change`/`delete`/`view` codenames with VUEDA's own CRUDL codenames. Permission evaluation throughout the stack; model-info action filtering, viewset permission checks, and client-side route gating; relies on these codenames being present. If your model's `Meta` does not inherit from `BaseModelMeta` (either directly or through `VuedaBaseModel`), the permission machinery will not find the expected codenames and action visibility will break.
+`BaseModelMeta` defines `default_permissions` as `("create", "read", "update", "delete", "list")`. These replace Django's default `add`/`change`/`delete`/`view` codenames with VUEDA's own CRUDL codenames. Permission evaluation throughout the stack; model-info action filtering, viewset permission checks, and client-side route gating; relies on these codenames being present. If your model's `Meta` does not inherit from `BaseModelMeta` (either directly or through `VuedaModel`), the permission machinery will not find the expected codenames and action visibility will break.
 
 ### The `formatted_name` Contract
 
-`formatted_name` is a client-facing object representation distinct from `__str__`. It is used as the display label in choice dropdowns, expanded-field references, and anywhere the client needs a human-readable label for an object instance. `VuedaBaseModel` defines it as a `GeneratedField` with expression `F("name")`, which works when the model has a `name` field. Four strategies exist for models where this default does not apply:
+`formatted_name` is a client-facing object representation distinct from `__str__`. It is used as the display label in choice dropdowns, expanded-field references, and anywhere the client needs a human-readable label for an object instance. `VuedaModel` defines it as a `GeneratedField` with expression `F("name")`, which works when the model has a `name` field. Four strategies exist for models where this default does not apply:
 
 **Inherited generated field (default).** If your model has a `name` field, the inherited `GeneratedField` works without changes. The database materializes the value and it is available for efficient querying.
 
@@ -213,7 +213,7 @@ With all pieces in place, verify the surface end-to-end:
 ## Relevant Implementation Surface
 
 - Python:
-    - {@api py:class:vueda.core.models.VuedaBaseModel}
+    - {@api py:class:vueda.core.models.VuedaModel}
     - {@api py:class:vueda.core.models.BaseModelMeta}
     - {@api py:class:vueda.core.serializers.VuedaSerializer}
     - {@api py:class:vueda.core.viewsets.VuedaViewSet}

@@ -22,7 +22,7 @@ class Lookup(models.Model):
         return f"name: {self.name}, code:{self.code}"
 
 
-class VuedaBaseModel(models.Model):
+class VuedaModel(models.Model):
     formatted_name = models.GeneratedField(
         expression=models.F("name"),
         output_field=models.CharField(),
@@ -47,7 +47,7 @@ class ActivatableBaseModel(models.Model):
         abstract = True
 
 
-class SingletonModel(VuedaBaseModel):
+class SingletonModel(VuedaModel):
     class Meta(BaseModelMeta):
         abstract = True
 
@@ -64,7 +64,7 @@ class SingletonModel(VuedaBaseModel):
             return cls()
 
 
-class EmailTemplateBase(VuedaBaseModel):
+class EmailTemplateBase(VuedaModel):
     subject = models.CharField(max_length=255)
     body = models.TextField()
     from_email = models.EmailField(max_length=255)

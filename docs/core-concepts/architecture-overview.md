@@ -63,7 +63,7 @@ These principles express the constraints VUEDA enforces by default and why.
 
 ### Server
 
-- **Base-class centralization**: shared behavior lives in `VuedaBaseModel`, `VuedaSerializer`, and `VuedaViewSet`; extensions happen via mixins rather than ad-hoc overrides.
+- **Base-class centralization**: shared behavior lives in `VuedaModel`, `VuedaSerializer`, and `VuedaViewSet`; extensions happen via mixins rather than ad-hoc overrides.
 - **Strict input hygiene**: unknown fields and query params are rejected by default (`NoExtraFieldsSerializerMixin`, `NoExtraFieldsForViewSetMixin`) to keep API contracts tight.
 - **Explicit expand and sparse control**: flex-field expansion is allowed only when declared and validated; expansion metadata is curated in serializer context.
 - **Transaction safety by default**: `create`, `update`, and `destroy` operations are wrapped in atomic transactions.
