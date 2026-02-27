@@ -13,3 +13,6 @@ test = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# "py" is added directly (not ".") to avoid conflicts with the PyPI `py`
+# package and pytest's own tests/py/ collection path.
+pythonpath = ["py"]

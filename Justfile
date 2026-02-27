@@ -7,13 +7,22 @@ bootstrap: # for development environment setup
   cd {{justfile_directory()}} && uv sync --all-groups --all-packages
 
 test:
-  pnpx concurrently -n server,client -c green,cyan "just test-server" "just test-client"
+  pnpx concurrently -n server,client,docs-tooling -c green,cyan,magenta "just test-server" "just test-client" "just test-docs-tooling"
 
 test-server:
   cd {{justfile_directory()}}/server && uv run --no-sync pytest
 
 test-client:
   cd {{justfile_directory()}}/client && pnpm test
+
+test-docs-tooling:
+  pnpx concurrently -n js,py -c cyan,green "just test-docs-tooling-js" "just test-docs-tooling-py"
+
+test-docs-tooling-js:
+  pnpm -C {{justfile_directory()}}/docs-tooling test
+
+test-docs-tooling-py:
+  cd {{justfile_directory()}}/docs-tooling && uv run --group test --no-sync pytest
 
 check:
   pnpx concurrently -n ruff,eslint,prettier -c green,cyan,magenta "just check-ruff" "just check-eslint" "just check-prettier"
