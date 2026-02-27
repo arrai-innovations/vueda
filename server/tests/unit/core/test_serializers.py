@@ -345,24 +345,30 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
     )
     def test_limits_depth_to_default(self, api_client, test_data):
         serializer = store_serializers.CustomerOrderSerializer()
-        valid_expands, valid_fields = get_recursive_expands_and_fields(serializer, 0, 10)
+        valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = get_recursive_expands_and_fields(
+            serializer, 0, 10
+        )
 
         actual_depth = (
-            max([field.count(".") for field in valid_expands] + [field.count(".") for field in valid_fields]) + 1
+            max(
+                [field.count(".") for field in valid_expands]
+                + [field.count(".") for field in valid_wildcard_expands]
+                + [field.count(".") for field in valid_fields]
+                + [field.count(".") for field in valid_wildcard_fields]
+            )
+            + 1
         )
 
         assert actual_depth == 2  # noqa PLR2004
 
     def test_valid_expands_and_fields_two_deep(self, api_client, test_data):
         serializer = store_serializers.CustomerOrderSerializer()
-        valid_expands, valid_fields = get_recursive_expands_and_fields(serializer, 0, 2)
+        valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = get_recursive_expands_and_fields(
+            serializer, 0, 2
+        )
 
         assert valid_expands == {
-            "~all",
-            "*",
             "customer",
-            "customer.~all",
-            "customer.*",
             "customer.dict_data",
             "customer.first_history_entry",
             "customer.history",
@@ -373,23 +379,26 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "history",
             "last_history_entry",
             "order_items",
-            "order_items.~all",
-            "order_items.*",
             "order_items.customer_order",
             "order_items.product_option",
             "order_state",
+        }
+
+        assert valid_wildcard_expands == {
+            "*",
+            "~all",
+            "customer.*",
+            "customer.~all",
+            "order_items.*",
+            "order_items.~all",
             "order_state.*",
             "order_state.~all",
         }
 
         assert valid_fields == {
-            "~all",
-            "*",
             "available_actions",
             "current_history_id",
             "customer",
-            "customer.~all",
-            "customer.*",
             "customer.dict_data",
             "customer.first_history_entry",
             "customer.history",
@@ -403,16 +412,12 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "id",
             "last_history_entry",
             "order_items",
-            "order_items.~all",
-            "order_items.*",
             "order_items.customer_order",
             "order_items.id",
             "order_items.product_option",
             "order_items.quantity",
             "order_number",
             "order_state",
-            "order_state.*",
-            "order_state.~all",
             "order_state.id",
             "order_state.code",
             "order_state.name",
@@ -420,34 +425,37 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "when",
         }
 
+        assert valid_wildcard_fields == {
+            "*",
+            "~all",
+            "customer.*",
+            "customer.~all",
+            "order_items.*",
+            "order_items.~all",
+            "order_state.*",
+            "order_state.~all",
+        }
+
     def test_valid_expands_and_fields_three_deep(self, api_client, test_data):
         serializer = store_serializers.CustomerOrderSerializer()
-        valid_expands, valid_fields = get_recursive_expands_and_fields(serializer, 0, 3)
+        valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = get_recursive_expands_and_fields(
+            serializer, 0, 3
+        )
 
         assert valid_expands == {
-            "~all",
-            "*",
             "customer",
-            "customer.~all",
-            "customer.*",
             "customer.dict_data",
             "customer.first_history_entry",
             "customer.history",
             "customer.last_history_entry",
             "customer.single_value",
             "customer.user",
-            "customer.user.~all",
-            "customer.user.*",
             "customer.user.groups",
             "first_history_entry",
             "history",
             "last_history_entry",
             "order_items",
-            "order_items.~all",
-            "order_items.*",
             "order_items.customer_order",
-            "order_items.customer_order.~all",
-            "order_items.customer_order.*",
             "order_items.customer_order.customer",
             "order_items.customer_order.first_history_entry",
             "order_items.customer_order.history",
@@ -455,26 +463,35 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "order_items.customer_order.order_items",
             "order_items.customer_order.order_state",
             "order_items.product_option",
-            "order_items.product_option.~all",
-            "order_items.product_option.*",
             "order_items.product_option.first_history_entry",
             "order_items.product_option.history",
             "order_items.product_option.last_history_entry",
             "order_items.product_option.option_type",
             "order_items.product_option.product",
             "order_state",
+        }
+
+        assert valid_wildcard_expands == {
+            "*",
+            "~all",
+            "customer.*",
+            "customer.~all",
+            "customer.user.*",
+            "customer.user.~all",
+            "order_items.*",
+            "order_items.~all",
+            "order_items.customer_order.*",
+            "order_items.customer_order.~all",
+            "order_items.product_option.*",
+            "order_items.product_option.~all",
             "order_state.*",
             "order_state.~all",
         }
 
         assert valid_fields == {
-            "~all",
-            "*",
             "available_actions",
             "current_history_id",
             "customer",
-            "customer.~all",
-            "customer.*",
             "customer.dict_data",
             "customer.first_history_entry",
             "customer.history",
@@ -482,8 +499,6 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "customer.last_history_entry",
             "customer.single_value",
             "customer.user",
-            "customer.user.~all",
-            "customer.user.*",
             "customer.user.email",
             "customer.user.groups",
             "customer.user.id",
@@ -494,11 +509,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "id",
             "last_history_entry",
             "order_items",
-            "order_items.~all",
-            "order_items.*",
             "order_items.customer_order",
-            "order_items.customer_order.~all",
-            "order_items.customer_order.*",
             "order_items.customer_order.customer",
             "order_items.customer_order.first_history_entry",
             "order_items.customer_order.history",
@@ -510,8 +521,6 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "order_items.customer_order.when",
             "order_items.id",
             "order_items.product_option",
-            "order_items.product_option.~all",
-            "order_items.product_option.*",
             "order_items.product_option.disabled",
             "order_items.product_option.first_history_entry",
             "order_items.product_option.gtin",
@@ -526,13 +535,28 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "order_items.quantity",
             "order_number",
             "order_state",
-            "order_state.*",
-            "order_state.~all",
             "order_state.id",
             "order_state.code",
             "order_state.name",
             "shipping_method",
             "when",
+        }
+
+        assert valid_wildcard_fields == {
+            "*",
+            "~all",
+            "customer.*",
+            "customer.~all",
+            "customer.user.*",
+            "customer.user.~all",
+            "order_items.*",
+            "order_items.~all",
+            "order_items.customer_order.*",
+            "order_items.customer_order.~all",
+            "order_items.product_option.*",
+            "order_items.product_option.~all",
+            "order_state.*",
+            "order_state.~all",
         }
 
 
