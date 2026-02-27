@@ -1,4 +1,5 @@
 from datetime import date
+from http import HTTPStatus
 
 import pytest
 from django.conf import settings
@@ -264,6 +265,9 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
             format="json",
         )
 
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            f"{response.status_code} != 400, response.data: {response.data}"
+        )
         assert "Expansion depth exceeded" in response.data["serverStack"], response.data
 
     def test_expand_through(self, api_client, test_data):
