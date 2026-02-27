@@ -3,12 +3,14 @@ from http import HTTPStatus
 
 import pytest
 from django.conf import settings
+from django.urls import reverse
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from tests.conftest import BaseTestModelViewSet
 from tests.models import Employee
 from tests.models import Product
 from tests.models import Timesheet
+from tests.unit.info.test_model_info import VuedaTestData
 from tests.viewsets import TimesheetViewSet
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.viewsets import VuedaReadOnlyViewSet
@@ -287,6 +289,76 @@ class TestProductViewSet(BaseTestModelViewSet):
             str(response.data["second_history_entry"][0]["message"])
             == "Invalid expands. Permitted expands are first_history_entry, history, last_history_entry. Or use a wildcard to expand all: *, ~all"
         ), f"second_history_entry message: {response.data['second_history_entry'][0]['message']}"
+        assert "history" not in response.data, f"response.data: {response.data}"
+
+
+@pytest.mark.django_db
+class TestStoreProductViewSet:
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    def test_retrieve_with_two_depth_invalid_expand(self, api_client, test_data):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        response = api_client.get(
+            reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "distributor.brands",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            f"{response.status_code} != 400, response.data: {response.data}"
+        )
+        assert "distributor.brands" in response.data, f"response.data: {response.data}"
+        assert len(response.data["distributor.brands"]) == 1, (
+            f"distributor.brands data: {response.data['distributor.brands']}"
+        )
+        assert "message" in response.data["distributor.brands"][0], (
+            f"distributor.brands data: {response.data['distributor.brands'][0]}"
+        )
+        assert (
+            str(response.data["distributor.brands"][0]["message"])
+            == "Invalid expands. Permitted expands are distributor, distributor.first_history_entry, distributor.history, distributor.last_history_entry, first_history_entry, history, last_history_entry. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
+        ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
+        assert "history" not in response.data, f"response.data: {response.data}"
+
+    def test_retrieve_with_two_depth_invalid_field(self, api_client, test_data):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        response = api_client.get(
+            reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "distributor",
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "distributor.brands",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            f"{response.status_code} != 400, response.data: {response.data}"
+        )
+        assert "distributor.brands" in response.data, f"response.data: {response.data}"
+        assert len(response.data["distributor.brands"]) == 1, (
+            f"distributor.brands data: {response.data['distributor.brands']}"
+        )
+        assert "message" in response.data["distributor.brands"][0], (
+            f"distributor.brands data: {response.data['distributor.brands'][0]}"
+        )
+        assert (
+            str(response.data["distributor.brands"][0]["message"])
+            == "Invalid field.  Valid fields are available_actions, current_history_id, current_sale_date, description, disabled, distributor, distributor.available_actions, distributor.current_history_id, distributor.first_history_entry, distributor.formatted_name, distributor.history, distributor.id, distributor.last_history_entry, distributor.name, first_history_entry, formatted_name, future_sale_dates, history, id, internal_comments, last_history_entry, last_ordered, last_ten_order_betweens, name, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
+        ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
         assert "history" not in response.data, f"response.data: {response.data}"
 
 
