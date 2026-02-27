@@ -1,3 +1,17 @@
+"""Shared CLI utilities for colored output and interactive input."""
+
+__all__ = (
+    "BadArgumentError",
+    "NoExitArgumentParser",
+    "blue_color",
+    "error_color",
+    "fake_arg_quoting",
+    "getch",
+    "open_orange",
+    "orange_color",
+    "reset_prompt",
+)
+
 import argparse
 import sys
 import termios

@@ -1,4 +1,9 @@
+"""Management command for creating a regular (non-superuser) user with groups."""
+
 # Copyright (C) 2017 Emergence by Design Inc. - All Rights Reserved
+
+__all__ = ("Command",)
+
 from django.apps import apps
 from django.contrib.auth.management.commands.createsuperuser import Command as CreateSuperUserCommand
 from django.core.management.base import CommandError
