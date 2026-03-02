@@ -23,7 +23,7 @@ A model exists in exactly one of three registration states:
 
 **Unregistered**: the model is invisible to model-info and the client. It may have a Django model class, migrations, database tables, and even serializers or viewsets defined in code, but none of that matters until registration occurs.
 
-**Serializer-only**: the model is visible in model-info with field schema and permission metadata, but without action, filter, or ordering metadata. This state exists to support metadata consumers that only need field shapes; for example, when the client needs to resolve field types for a related model referenced through an expand, but that related model does not need its own CRUD surface.
+**Serializer-only**: the model is visible in model-info with field schema and permission metadata, but without action, filter, or ordering metadata. This state exists to support metadata consumers that only need field shapes; for example, when the client needs to resolve field types for a related model referenced through an expand, but that related model does not need its own {@term CRUDL} surface.
 
 **Fully registered** (serializer + viewset): the model is visible with complete metadata, including fields, actions, filters, ordering, and permissions. This is the state required for the client to generate a functional UI surface for the model, with routes, forms, and views.
 
@@ -40,9 +40,9 @@ The canonical serializer is unique per model. Two Django apps cannot register di
 
 The distinction between serializer-only and full registration is architecturally significant because it determines which sections of the metadata response exist.
 
-Serializer-only registration produces a model-info entry containing field schema (types, constraints, read-only markers, choice indicators) and permission codenames. This is enough for metadata consumers that need to understand the shape of a model's data, like resolving field types for related-model choice lookups, but it is not enough to generate a CRUD surface. Without a viewset, there are no actions to advertise, no filter definitions to expose, and no ordering capabilities to declare.
+Serializer-only registration produces a model-info entry containing field schema (types, constraints, read-only markers, choice indicators) and permission codenames. This is enough for metadata consumers that need to understand the shape of a model's data, like resolving field types for related-model choice lookups, but it is not enough to generate a CRUDL surface. Without a viewset, there are no actions to advertise, no filter definitions to expose, and no ordering capabilities to declare.
 
-Full registration produces the complete metadata surface. Actions (CRUD plus any extra actions defined on the viewset), filter definitions, and ordering capabilities are all derived from the viewset. The serializer alone cannot express these; they depend on viewset configuration, permission checks, and router integration that only exist when a viewset is present.
+Full registration produces the complete metadata surface. Actions (CRUDL plus any extra actions defined on the viewset), filter definitions, and ordering capabilities are all derived from the viewset. The serializer alone cannot express these; they depend on viewset configuration, permission checks, and router integration that only exist when a viewset is present.
 
 In practice, this means that if a model appears in model-info but the client cannot generate routes or forms for it, the first thing to check is whether the model was registered with a viewset or only with a serializer.
 
@@ -83,7 +83,7 @@ The client also requires a detectable primary key field in the metadata for any 
 
 ## Failure Modes
 
-**Serializer-only registration without a viewset** leaves the model visible in model-info but without action, filter, or ordering metadata. The client can see the model's fields, but cannot generate CRUD routes or forms for it. This can produce confusing behaviour: the model appears to exist, but nothing functional can be done with it, and it is usually the result of an incomplete registration rather than intentional design.
+**Serializer-only registration without a viewset** leaves the model visible in model-info but without action, filter, or ordering metadata. The client can see the model's fields, but cannot generate CRUDL routes or forms for it. This can produce confusing behaviour: the model appears to exist, but nothing functional can be done with it, and it is usually the result of an incomplete registration rather than intentional design.
 
 **Registration at import time** can cause content-type resolution failures or ordering-dependent import errors. These surface as startup crashes that may be difficult to diagnose because the error messages reference content types or models that appear to be correctly defined. The fix is always to move registration into `AppConfig.ready()`.
 

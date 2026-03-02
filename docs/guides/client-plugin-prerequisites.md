@@ -37,7 +37,7 @@ import ToastService from "primevue/toastservice";
 import Tooltip from "primevue/tooltip";
 import { createApp } from "vue";
 
-// 1. CRUD adapters (before app creation)
+// 1. CRUDL adapters (before app creation)
 setupDefaultListCrud();
 setupDefaultObjectCrud();
 
@@ -68,15 +68,15 @@ app.mount("#the-app");
 
 The sections below explain each registration step.
 
-## CRUD Adapters
+## CRUDL Adapters
 
 `setupDefaultListCrud()` and `setupDefaultObjectCrud()` register the HTTP adapter functions that VUEDA's composables use for every data operation (list, retrieve, create, update, patch, delete, bulk delete).
 
 These must be called **before** any VUEDA store or composable attempts a data fetch. Calling them before `createApp` satisfies this requirement.
 
-**What depends on them:** Every list view (`ViewList`, filtering, pagination), every detail view (`ViewRead`, `ViewCreate`, `ViewUpdate`, `ViewDestroy`), and any composable that calls the CRUD layer.
+**What depends on them:** Every list view (`ViewList`, filtering, pagination), every detail view (`ViewRead`, `ViewCreate`, `ViewUpdate`, `ViewDestroy`), and any composable that calls the {@term CRUDL} layer.
 
-**What fails without them:** Data operations silently return no results. Lists appear empty, forms do not load data, and save operations have no effect. There is no runtime error; the CRUD layer has no adapter to call, so it produces no output.
+**What fails without them:** Data operations silently return no results. Lists appear empty, forms do not load data, and save operations have no effect. There is no runtime error; the CRUDL layer has no adapter to call, so it produces no output.
 
 ## PrimeVue
 
@@ -141,7 +141,7 @@ After completing the registration sequence, verify the following:
 
 **Components render as unstyled HTML.** PrimeVue is not registered, or the preset is missing. Verify `app.use(PrimeVue, { theme: { preset: Aura } })` is present. Check the browser console for missing CSS custom property warnings.
 
-**Lists load but show no data.** CRUD adapters are not registered. Verify that `setupDefaultListCrud()` and `setupDefaultObjectCrud()` are called before app creation. Check the network tab; if no HTTP requests are made for list data, the adapter layer has no implementation.
+**Lists load but show no data.** CRUDL adapters are not registered. Verify that `setupDefaultListCrud()` and `setupDefaultObjectCrud()` are called before app creation. Check the network tab; if no HTTP requests are made for list data, the adapter layer has no implementation.
 
 **Tooltips do not appear on hover.** The Tooltip directive is not registered. Add `app.directive("tooltip", Tooltip)`. This has no runtime error, so it is easy to miss.
 

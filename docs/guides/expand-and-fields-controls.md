@@ -9,7 +9,7 @@ status: draft
 
 This guide covers how to configure {@term Expand} and sparse field controls so that `list`, `read`, `create`, and `update` payloads request only the fields and relations they need. The controls work across two boundaries: the server declares which fields and expansions are available and validates requests against those declarations, while the client configures which fields and expansions to request per view.
 
-The guide assumes a working {@term CRUDL} surface is already in place. If the model is not yet registered and routable, start with [Create a CRUDL Surface](./create-crudl-surface). For the metadata contract that drives field and expand defaults, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract). For broader view configuration (actions, filtering, sorting), see [Configure CRUD Views](./configure-crud-views).
+The guide assumes a working {@term CRUDL} surface is already in place. If the model is not yet registered and routable, start with [Create a CRUDL Surface](./create-crudl-surface). For the metadata contract that drives field and expand defaults, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract). For broader view configuration (actions, filtering, sorting), see [Configure CRUDL Views](./configure-crud-views).
 
 ## Goal and Preconditions
 
@@ -104,7 +104,7 @@ The client's view components translate config into query parameters on each requ
 
 **`ViewCreate`** and **`ViewUpdate`** use `submitFields` for the request payload. They do not send `f` or `e` on submission, because create and update are write operations that do not control response field selection through query parameters.
 
-The CRUD helper utilities (`objectCrud`) serialize `f` and `e` arrays into query strings and handle 400 responses by wrapping them as `FormValidationError` instances for form-context ingestion. This means that a 400 from an invalid expand or field request will surface as a form-level validation error rather than a generic fetch error.
+The CRUDL helper utilities (`objectCrud`) serialize `f` and `e` arrays into query strings and handle 400 responses by wrapping them as `FormValidationError` instances for form-context ingestion. This means that a 400 from an invalid expand or field request will surface as a form-level validation error rather than a generic fetch error.
 
 ## Validation and Error-Handling Checks
 
@@ -139,7 +139,7 @@ With expand and field controls configured, verify the surface end-to-end:
 
 **Expanded sub-field is not configurable in `fieldDetails`.** Expansion flattening only occurs when the `expand` config is non-empty. If `expand` is overridden to `[]`, `storeModelConfig` does not merge expansion field details, and `expand__subfield` keys will not exist. Set `expand` to include the relevant relation name to enable flattening.
 
-**400 error surfaces as a form validation error.** This is expected behavior. The CRUD helpers (`objectCrud`) wrap 400 responses as `FormValidationError` instances so they can be ingested by the form context. A 400 from invalid `f` or `e` parameters will appear in the form's error state rather than as a toast or console error.
+**400 error surfaces as a form validation error.** This is expected behavior. The CRUDL helpers (`objectCrud`) wrap 400 responses as `FormValidationError` instances so they can be ingested by the form context. A 400 from invalid `f` or `e` parameters will appear in the form's error state rather than as a toast or console error.
 
 **Invalid expand on a nested write produces a type error.** When a request includes both invalid expand parameters and nested write payloads, the type error from payload parsing can surface before the expand validation has a chance to aggregate all errors. The root cause is the invalid expand; fix that first, and the type error will resolve.
 

@@ -38,9 +38,9 @@ Core Concepts explains the "why" behind VUEDA defaults and the contracts that le
 ## Client Runtime Model
 
 - [Reactive Data Flow (Stores + Composables)](reactive-data-flow.md): How stores/composables coordinate model info, config, and object data.
-- [Cancellable Network Operations](cancellable-network-operations.md): Why cancellation is built into CRUD and fetch helpers.
+- [Cancellable Network Operations](cancellable-network-operations.md): Why cancellation is built into CRUDL and fetch helpers.
 - [Form State and Validation Lifecycle](form-state-and-validation-lifecycle.md): Client-side form graph, touched/modified/ignored state, and server error integration.
-- [Routing and View Resolution Model](routing-and-view-resolution-model.md): How CRUD routes and action routing resolve to concrete components.
+- [Routing and View Resolution Model](routing-and-view-resolution-model.md): How CRUDL routes and action routing resolve to concrete components.
 
 ## Operational Concepts
 

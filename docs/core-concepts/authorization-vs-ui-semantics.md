@@ -33,7 +33,7 @@ The server provides action metadata at two distinct scopes, and the distinction 
 
 Client-side route admission determines whether navigation to a view is permitted. It is a semantic gate, not an authorization gate; it checks whether the target action has been declared as available in the metadata, not whether the user holds the underlying permission codename.
 
-CRUD route generation inserts the `requireModelInfo` guard on every list and `detail` route. When navigation triggers, the guard fetches model-info for the target model (if not already cached), normalizes the route's action name through `getActionName` (which maps `read` to `retrieve`), and checks whether that normalized name exists in the computed action set.
+CRUDL route generation inserts the `requireModelInfo` guard on every list and `detail` route. When navigation triggers, the guard fetches model-info for the target model (if not already cached), normalizes the route's action name through `getActionName` (which maps `read` to `retrieve`), and checks whether that normalized name exists in the computed action set.
 
 The action set for route admission is the union of three sources: the `model_actions` returned by the server, the optional `routeActions` configuration that constrains which actions are admitted for this model's routes, and workflow transition codes fetched from the permitted-transitions endpoint. If the target action is not found in this union, the guard redirects to the `list` view and shows an "Action Not Found" toast. The legacy `routerActions` configuration key is ignored, only `routeActions` constrains route admission.
 
@@ -69,7 +69,7 @@ The separation between server authorization and client UI semantics creates pred
 
 **UI-hidden action, API-permitted.** Removing an action from `config.actions` or constraining `routeActions` hides buttons and blocks routes, but the API permission remains intact. A direct API call (or a client-side navigation that bypasses the guard) succeeds if the server permits it. The client controls what actions are shown, not authorization.
 
-**Route-admitted action, object-scope denial.** The route guard admits a view because the action exists in model-scope metadata, but the API call for the specific object returns `404` (row-level filtered) or `403` (object-level denied). This happens because route admission is model-scoped and the denial is object-scoped. The user sees the view for a brief moment before the error occurs.
+**Route-admitted action, object-scope denial.** The route guard permits a view because the action exists in model-scope metadata, but the API call for the specific object returns `404` (row-level filtered) or `403` (object-level denied). This happens because route admission is model-scoped and the denial is object-scoped. The user sees the view for a brief moment before the error occurs.
 
 **`model_permissions` vs `model_actions` confusion.** `model_permissions` lists all permission codenames for a content type. `model_actions` lists the actions the requesting user can perform. Using `model_permissions` to drive UI visibility suggests capabilities the user may not have. The correct source for action-driven UI is `model_actions` (model scope) or `available_actions` (object scope).
 

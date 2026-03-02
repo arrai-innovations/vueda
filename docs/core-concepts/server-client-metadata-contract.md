@@ -27,7 +27,7 @@ The metadata sections have different source authorities:
 
 **`model_fields`** comes from the canonical registered serializer. Each field entry carries its label, type information (database type, model field class, serializer field class), read/write status, required flag, and constraint metadata (min/max values, lengths, decimal precision). Choice fields include either static choice lists or a pointer to the choices endpoint for relational fields. The PK field is marked with a `pk: true` flag, which the client requires for object identity.
 
-**`model_actions`** comes from the canonical registered viewset. Standard CRUD actions (`list`, `retrieve`, `create`, `update`, `partial_update`, `destroy`) are included when the viewset supports them. Extra actions (defined with `@action` decorators) are included when `get_allowed_extra_actions` permits them. Each action entry carries a name, description, HTTP methods, and boolean flags for `detail` (operates on a single object) and `bulk` (operates on multiple objects).
+**`model_actions`** comes from the canonical registered viewset. Standard {@term CRUDL} actions (`list`, `retrieve`, `create`, `update`, `partial_update`, `destroy`) are included when the viewset supports them. Extra actions (defined with `@action` decorators) are included when `get_allowed_extra_actions` permits them. Each action entry carries a name, description, HTTP methods, and boolean flags for `detail` (operates on a single object) and `bulk` (operates on multiple objects).
 
 **`model_ordering`** comes from the viewset's `ordering_fields`. Each entry carries a field name and a semantic type (`alpha`, `numeric`, `boolean`, `date`, `datetime`, `time`) derived from the field's database type.
 
@@ -47,7 +47,7 @@ The base response always includes `id` (content type PK), `app_label`, `model`, 
 
 Each section is self-contained. `model_fields` describes field shapes independently of `model_filtering`, even though some fields are also filterable. `model_actions` describes available operations independently of `model_permissions`, even though action visibility depends on permissions. The sections are not cross-referenced in the response; the client is responsible for correlating them (for example, matching filter names to field names, or checking whether an action's required permission is in the permission list).
 
-The `model_actions` section sorts its entries in a stable order: standard CRUD actions alphabetically, followed by extra actions alphabetically. This ordering is cosmetic and does not imply priority.
+The `model_actions` section sorts its entries in a stable order: standard CRUDL actions alphabetically, followed by extra actions alphabetically. This ordering is cosmetic and does not imply priority.
 
 ## Permission-Sensitive Behaviour
 
@@ -107,7 +107,7 @@ There is no metadata for wire version or schema negotiation between the server a
 
 **Cached fetch failures block retry.** Because failed fetches are cached, a transient server error (network timeout, deployment in progress) will block all subsequent requests for that model until the user reloads the page. This is a deliberate tradeoff: preventing request storms is prioritized over automatic recovery. If the failure is permanent (e.g., an unregistered model or a misconfigured serializer), the cache behaviour is correct.
 
-**Action naming drift.** If the server introduces a non-standard action name that collides with a client alias (for example, a custom action literally named `read`), the client's normalization will map it to `retrieve`, which may not match the server's intent. In practice, custom actions should avoid names that overlap with standard CRUD action names.
+**Action naming drift.** If the server introduces a non-standard action name that collides with a client alias (for example, a custom action literally named `read`), the client's normalization will map it to `retrieve`, which may not match the server's intent. In practice, custom actions should avoid names that overlap with standard CRUDL action names.
 
 **Choice endpoint failures.** Choice endpoints can fail if the model's `formatted_name` resolution is misconfigured. If the model sets `formatted_name = None` without providing `formatted_name_lookup_expression` or `get_formatted_name()`, the choice endpoint returns a 500 when it attempts to annotate a non-existent field. See [Create a CRUDL Surface](../guides/create-crudl-surface) for `formatted_name` configuration strategies.
 

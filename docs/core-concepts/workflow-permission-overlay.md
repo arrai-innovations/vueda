@@ -7,7 +7,7 @@ status: draft
 
 # Workflow as a Permission Overlay
 
-Workflow permissions in VUEDA are not a separate authorization system; they are an overlay on the same CRUDL permission codenames used by baseline model permissions. State permissions can grant or deny specific codenames for specific workflow states and user groups, modifying the outcome of standard permission checks without changing the underlying permission assignments. Transition permissions are a separate gate that controls who can execute specific workflow transitions, operating alongside but independently from CRUDL authorization.
+Workflow permissions in VUEDA are not a separate authorization system; they are an overlay on the same {@term CRUDL} permission codenames used by baseline model permissions. State permissions can grant or deny specific codenames for specific workflow states and user groups, modifying the outcome of standard permission checks without changing the underlying permission assignments. Transition permissions are a separate gate that controls who can execute specific workflow transitions, operating alongside but independently from CRUDL authorization.
 
 This page explains how state permissions, transition permissions, and the DRF model-scope bypass compose with baseline CRUDL permissions, and how the client treats transition codes as part of the route {@term Action Namespace}. For the full permission evaluation chain (layers 1-4), see [Permission Model](./permission-model). For the practical steps to configure workflow permissions, see [Add Workflow State and Transition Permissions](../guides/workflow-state-permissions). For row-level filtering mechanics that interact with workflow state, see [Row-Level Permission Filtering](./row-level-permission-filtering). For transition UX and redirect behaviour, see [Design Transition UX and Redirects](../guides/transition-ux-and-redirects).
 
@@ -59,9 +59,9 @@ The viewset-level gate for all workflow endpoints is `vueda_workflow.read_workfl
 
 ## Client {@term Action Namespace} Overlay
 
-On the client, workflow transitions extend the action namespace that drives route admission and view resolution. The {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo} route guard assembles the admissible action set from the model-info `model_actions` and workflow permitted transition codes. Transition codes are treated as action identifiers alongside standard CRUD action names.
+On the client, workflow transitions extend the action namespace that drives route admission and view resolution. The {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo} route guard assembles the admissible action set from the model-info `model_actions` and workflow permitted transition codes. Transition codes are treated as action identifiers alongside standard CRUDL action names.
 
-This means a transition with code `approve` is admissible in the same way that `update` or `destroy` is admissible; the route guard checks membership in the combined set without distinguishing between CRUD actions and transition codes. `ViewActionRouter` resolves transition codes to `ViewWorkflowTransition`, while standard CRUD codes resolve to their built-in view components.
+This means a transition with code `approve` is admissible in the same way that `update` or `destroy` is admissible; the route guard checks membership in the combined set without distinguishing between CRUDL actions and transition codes. `ViewActionRouter` resolves transition codes to `ViewWorkflowTransition`, while standard CRUDL codes resolve to their built-in view components.
 
 The guard requires that every transition object have a valid `code` property. If any transition returned by the workflow store lacks a `code` or has a non-string `code`, the guard throws an error (`requireModelInfo: workflow transition is missing a string code`) rather than silently treating the transition as unavailable. This error bypasses the guard's normal redirect/toast path; it surfaces as an unhandled exception in the navigation flow.
 
@@ -73,7 +73,7 @@ The workflow store caches both successful transition lists and fetch errors per 
 
 **State permissions change `has_perm` outcomes without changing group assignments.** Symptom: `user.has_perm("myapp.update_widget", obj=instance)` returns a different result than `user.has_perm("myapp.update_widget")` for the same user and codename. This is by design; state overlay is object-scoped.
 
-**Model-scope bypass admits, then object-scope denies.** Symptom: requests that previously returned `403` now return `404` after adding state-permission rows. The model-scope bypass lets the request through, and the denial moves to the object scope, where DRF may raise `Http404`.
+**Model-scope bypass permits, then object-scope denies.** Symptom: requests that previously returned `403` now return `404` after adding state-permission rows. The model-scope bypass lets the request through, and the denial moves to the object scope, where DRF may raise `Http404`.
 
 **Transition is absent from `permitted_transitions` despite existing in the workflow.** Symptom: expected transition never appears for any user. Cause: the transition has no `TransitionPermission` rows. Transitions without permission rows are excluded, not default-allowed.
 
@@ -81,7 +81,7 @@ The workflow store caches both successful transition lists and fetch errors per 
 
 **Transition execution returns `400` validation error.** Multiple possible causes: the transition is not valid from the object's current state (`InvalidTransitionError`), the user lacks transition-level permission (`PermissionDenied`), or the row lock cannot be acquired. Check the error message to distinguish between these cases.
 
-**Route admits a transition but execution fails.** Symptom: user navigates to a transition view, submits, and gets a validation error. Cause: transition route admission is model-scoped (based on `permitted_transitions`), but execution is object-scoped (based on current state). The object may not be in a valid source state for the transition.
+**Route permits a transition but execution fails.** Symptom: user navigates to a transition view, submits, and gets a validation error. Cause: transition route admission is model-scoped (based on `permitted_transitions`), but execution is object-scoped (based on current state). The object may not be in a valid source state for the transition.
 
 **Transition fetch errors are sticky.** Symptom: workflow actions are unavailable and repeated navigation attempts fail with the same error. Cause: the workflow store caches fetch errors. Reset the store or reload the page to retry.
 

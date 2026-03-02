@@ -28,7 +28,7 @@ Guides are task-focused recipes for implementors working on real VUEDA projects.
 - [Control Action Availability in the UI](control-action-availability.md): Combine server action metadata, groups, and client filtering.
 - [Implement Row-Level Permissions](implement-row-level-permissions.md): Add queryset/object checks and verify `list` filtering behavior.
 - [Map Django and VUEDA Permission Names](permission-name-mapping.md): Configure and verify `PERMISSION_NAMES_MAPPING`.
-- [Add Workflow State and Transition Permissions](workflow-state-permissions.md): Layer state-based grants/denies over CRUDL permissions.
+- [Add Workflow State and Transition Permissions](workflow-state-permissions.md): Layer state-based grants/denies over {@term CRUDL} permissions.
 - [Design Transition UX and Redirects](transition-ux-and-redirects.md): Integrate transitions with action routing and post-submit redirects.
 
 ## Async Work and Integrations

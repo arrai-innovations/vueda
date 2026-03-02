@@ -71,7 +71,7 @@ When `column_totals` is empty, `columnTotals` is `{}`. When the filtered queryse
 
 ## Client Rendering Strategy
 
-On the client, list CRUD adaptors (`singlePagePaginatedListCrudAdaptor`, `allPagePaginatedListCrudAdaptor`) copy `responseData.columnTotals` into `list` state. The data is available to the `list` view's rendering pipeline.
+On the client, list {@term CRUDL} adaptors (`singlePagePaginatedListCrudAdaptor`, `allPagePaginatedListCrudAdaptor`) copy `responseData.columnTotals` into `list` state. The data is available to the `list` view's rendering pipeline.
 
 `ViewList` renders totals through the `row-after-objects` slot. The default rendering produces a footer row in table mode with the total values aligned to their respective columns.
 

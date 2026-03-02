@@ -47,7 +47,7 @@ Django `ContentType` record identifying a model (`app_label`, `model`) used acro
 
 `create`, `read`, `update`, `delete`, `list` permission/action vocabulary used by VUEDA.
 
-## CRUD View Resolution
+## CRUDL View Resolution
 
 The client-side mechanism that maps each CRUDL action to a Vue component via `setCrudComponents`, with `ViewActionRouter` selecting the correct component at render time.
 
@@ -77,7 +77,7 @@ A `VuedaModel` subclass with a unique `code` field, intended for lightweight ref
 
 ## Model Config
 
-Client-side configuration object (`storeModelConfig`) that controls which fields appear, sort defaults, and per-action overrides for a model's CRUD views.
+Client-side configuration object (`storeModelConfig`) that controls which fields appear, sort defaults, and per-action overrides for a model's CRUDL views.
 
 ## Model Info
 

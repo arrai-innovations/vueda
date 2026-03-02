@@ -16,7 +16,7 @@ This page explains how that derivation works: what the client does with metadata
 
 Three claims define the contract-first architecture:
 
-**UI is derived, not authored.** The client generates forms, routes, field components, widget selections, and action views from server metadata at runtime. Adding a new model to the server produces a complete client-side CRUD surface without writing any client code, as long as the model is registered with a serializer and a viewset. Changing a field on the server changes the form on the client. Removing an action on the server removes the route on the client.
+**UI is derived, not authored.** The client generates forms, routes, field components, widget selections, and action views from server metadata at runtime. Adding a new model to the server produces a complete client-side {@term CRUDL} surface without writing any client code, as long as the model is registered with a serializer and a viewset. Changing a field on the server changes the form on the client. Removing an action on the server removes the route on the client.
 
 **Metadata is the integration seam.** The model-info contract is the single point where server definitions become client behavior. There is no second channel, no sidecar configuration, and no build-time code generation. Everything the client knows comes from one API. This makes the integration point narrow and auditable: if the client is doing something unexpected, the first place to look is the metadata it received.
 
@@ -26,7 +26,7 @@ Three claims define the contract-first architecture:
 
 The server defines the authoritative contract surface. The client consumes it but does not contribute to it.
 
-The [metadata contract](./server-client-metadata-contract) provides field schema (types, constraints, read-only markers), the action surface (CRUD operations plus extras, filtered by user permissions), the expand graph (nested relations and their field shapes), filtering and ordering capabilities, and the permission envelope (codenames visible to the requesting user). All of this is derived from canonical serializer and viewset definitions; it reflects what the server actually enforces, not a separate declaration layer. If a field is read-only in the serializer, it is read-only in the metadata, and the client renders it as read-only.
+The [metadata contract](./server-client-metadata-contract) provides field schema (types, constraints, read-only markers), the action surface (CRUDL operations plus extras, filtered by user permissions), the expand graph (nested relations and their field shapes), filtering and ordering capabilities, and the permission envelope (codenames visible to the requesting user). All of this is derived from canonical serializer and viewset definitions; it reflects what the server actually enforces, not a separate declaration layer. If a field is read-only in the serializer, it is read-only in the metadata, and the client renders it as read-only.
 
 The client normalizes server metadata into a stable internal shape used throughout the UI generation layer. This normalization is a translation step, not an authority step. The client strips prefixes, restructures for convenient access, and identifies the primary key field, but it neither adds nor removes contract semantics. What the server says, the client preserves.
 
@@ -54,7 +54,7 @@ Action resolution follows a deterministic priority chain. When the client needs 
 
 1. **Loading state**: if metadata is still being fetched, a loading view is shown.
 2. **Workflow transition**: if the action corresponds to a workflow transition, the transition view is used.
-3. **Built-in CRUD view**: standard actions (`list`, `create`, `read`, `update`) resolve to their corresponding built-in view components.
+3. **Built-in CRUDL view**: standard actions (`list`, `create`, `read`, `update`) resolve to their corresponding built-in view components.
 4. **Project-specific action view**: custom actions are resolved by naming convention, allowing projects to provide their own view components for non-standard actions.
 5. **Generic fallback**: if none of the above match, a generic action view is rendered.
 

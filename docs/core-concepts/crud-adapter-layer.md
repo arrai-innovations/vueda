@@ -1,13 +1,13 @@
 ---
-title: CRUD Adapter Layer
+title: CRUDL Adapter Layer
 type: explanation
 audience: implementor
 status: draft
 ---
 
-# CRUD Adapter Layer
+# CRUDL Adapter Layer
 
-VUEDA's client-side CRUD composables ({@api js:module:@arrai-innovations/vueda.utils/listCrud} and {@api js:module:@arrai-innovations/vueda.utils/objectCrud}) do not hardcode HTTP transport. Instead, they consume adapter functions from a module-level registry that the application populates once at startup. The registry pattern decouples data operations from transport: composables call named adapter slots without knowing whether the adapter uses `fetch`, a GraphQL client, or a mock. Each composable instance receives its own copy of the adapter set, so per-instance overrides do not affect other instances or the global registry.
+VUEDA's client-side {@term CRUDL} composables ({@api js:module:@arrai-innovations/vueda.utils/listCrud} and {@api js:module:@arrai-innovations/vueda.utils/objectCrud}) do not hardcode HTTP transport. Instead, they consume adapter functions from a module-level registry that the application populates once at startup. The registry pattern decouples data operations from transport: composables call named adapter slots without knowing whether the adapter uses `fetch`, a GraphQL client, or a mock. Each composable instance receives its own copy of the adapter set, so per-instance overrides do not affect other instances or the global registry.
 
 This page describes the registry pattern, the default adapter implementations VUEDA provides, the call signatures and return contracts adapters must satisfy, and the failure modes that result from misconfiguration or custom replacement. For transport-level abort and state-gating concerns, see [Cancellable Network Operations](./cancellable-network-operations). For the composables that consume these adapters, see the generated API reference for {@api js:module:@arrai-innovations/vueda.utils/listCrud} and {@api js:module:@arrai-innovations/vueda.utils/objectCrud}.
 
@@ -15,7 +15,7 @@ This page describes the registry pattern, the default adapter implementations VU
 
 The alternative to an adapter layer is composables that call `fetch` directly, encoding URL construction, request serialization, response parsing, and error classification inline. That approach works for a single transport mechanism, but it couples every composable to a specific HTTP client, URL scheme, and response shape.
 
-The adapter layer eliminates that coupling. The application registers a set of named functions (one per CRUD operation) in a global registry at startup. Composables read from the registry at initialization time, receiving a uniform interface regardless of what the adapter does internally. This design supports three scenarios without modifying composable code: using VUEDA's default HTTP adapters (the common case), replacing individual adapters (for example, swapping the list adapter to use a different pagination scheme), and replacing the entire transport layer (for GraphQL, offline-first, or test mocks).
+The adapter layer eliminates that coupling. The application registers a set of named functions (one per CRUDL operation) in a global registry at startup. Composables read from the registry at initialization time, receiving a uniform interface regardless of what the adapter does internally. This design supports three scenarios without modifying composable code: using VUEDA's default HTTP adapters (the common case), replacing individual adapters (for example, swapping the list adapter to use a different pagination scheme), and replacing the entire transport layer (for GraphQL, offline-first, or test mocks).
 
 The registry also establishes a clear ownership boundary. Adapters own request construction and response interpretation. Composables own state management, reactivity, and lifecycle. The fetch layer (`fetchHelper`, `cancellableFetch`) owns transport concerns like credentials, abort signals, and response parsing. Each layer has a defined contract with its neighbors but no knowledge of their internals.
 
@@ -83,7 +83,7 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 
 ## Observable Failure Modes
 
-**Missing registration produces clear but late errors.** If `setupDefaultListCrud()` or `setupDefaultObjectCrud()` is not called before a composable attempts a CRUD operation, the sentinel function rejects with `Crud method "<name>" is not implemented.` The error is actionable, but it appears at first use rather than at startup.
+**Missing registration produces clear but late errors.** If `setupDefaultListCrud()` or `setupDefaultObjectCrud()` is not called before a composable attempts a CRUDL operation, the sentinel function rejects with `Crud method "<name>" is not implemented.` The error is actionable, but it appears at first use rather than at startup.
 
 **`resultsKey` mismatch silently pushes `undefined`.** `setupDefaultListCrud` sets `args.resultsKey = "results"`. If a custom API returns data under a different key (for example, `data`), `responseData[target.resultsKey]` evaluates to `undefined`, and `pushObjects(undefined)` writes nothing. The list composable shows an empty list despite the API returning data. There is no warning for this mismatch.
 

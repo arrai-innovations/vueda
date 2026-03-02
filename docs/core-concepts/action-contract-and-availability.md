@@ -15,7 +15,7 @@ This page explains the contract boundary, the metadata each layer produces and c
 
 The action contract divides authority between three scopes.
 
-The server declares actions and emits metadata. Action declaration happens at the viewset level, where DRF's `@action` decorator (extended by VUEDA's {@api py:function:vueda.core.decorators.action} wrapper) registers extra actions alongside the built-in CRUD operations. The server's model-info endpoint aggregates these declarations into a `model_actions` payload that describes what actions exist, which HTTP methods they support, and whether they operate at detail or list scope. This metadata is permission-sensitive: actions that the requesting user cannot perform are omitted.
+The server declares actions and emits metadata. Action declaration happens at the viewset level, where DRF's `@action` decorator (extended by VUEDA's {@api py:function:vueda.core.decorators.action} wrapper) registers extra actions alongside the built-in {@term CRUDL} operations. The server's model-info endpoint aggregates these declarations into a `model_actions` payload that describes what actions exist, which HTTP methods they support, and whether they operate at detail or list scope. This metadata is permission-sensitive: actions that the requesting user cannot perform are omitted.
 
 The server also computes per-object availability. When an object is serialized for a `detail` response, the `available_actions` field evaluates each action against the specific object's permission state. This is a stricter filter than model-scope metadata, because it accounts for row-level constraints, workflow state, and object-specific permission overrides that cannot be evaluated without a concrete instance.
 
@@ -69,7 +69,7 @@ Route admission is evaluated in the {@api js:function:@arrai-innovations/vueda.r
 
 When the action is not found in the computed set, the guard denies the route. The denial surfaces as a toast notification ("Action Not Found") and a redirect, typically to the model's `list` view. When model-info itself cannot be fetched (network error, server error), the error is cached in the model-info store and reused for subsequent navigation attempts to the same model key. This means a transient fetch failure will block all routes for that model until the store is reset or the page is reloaded.
 
-For resolved routes, {@api vue:component:ViewActionRouter} maps action names to view components. Standard CRUD actions resolve to their built-in view components. Transition codes resolve to the workflow transition view. Unknown actions, those that pass the guard but have no corresponding view component, render using `ViewActionNotFound`.
+For resolved routes, {@api vue:component:ViewActionRouter} maps action names to view components. Standard CRUDL actions resolve to their built-in view components. Transition codes resolve to the workflow transition view. Unknown actions, those that pass the guard but have no corresponding view component, render using `ViewActionNotFound`.
 
 ## UI Affordance Filtering Layers
 
@@ -79,7 +79,7 @@ The first filtering layer is group-based config filtering. `useFilteredActions` 
 
 The second filtering layer is object-level intersection. In detail-style views, the rendered action buttons are the intersection of the config-filtered action set and the object's `available_actions`. An action must pass both filters to appear as a rendered control. This means a `detail` view can show different action buttons for different objects of the same model, reflecting per-object permission outcomes.
 
-Workflow transition controls are sourced separately from the workflow transition store rather than inferred from CRUD action metadata. Transitions have their own data flow and rendering logic.
+Workflow transition controls are sourced separately from the workflow transition store rather than inferred from CRUDL action metadata. Transitions have their own data flow and rendering logic.
 
 ## Dry-Run and Mutation Semantics
 

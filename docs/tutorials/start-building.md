@@ -387,7 +387,7 @@ class ProductOptionFilterSet(VuedaFilterSet):
 
 ### Router and URLs
 
-VUEDA provides {@api py:class:vueda.core.routers.VuedaRouter}, which builds on DRF's `SimpleRouter` to generate standard CRUD routes, namespaces route names with the app label, and supports {@term Bulk Action}s via `@action(bulk=True)`.
+VUEDA provides {@api py:class:vueda.core.routers.VuedaRouter}, which builds on DRF's `SimpleRouter` to generate standard CRUDL routes, namespaces route names with the app label, and supports {@term Bulk Action}s via `@action(bulk=True)`.
 
 `server/your_project/inventory/routers.py`:
 
@@ -562,7 +562,7 @@ curl -b $COOKIE_JAR -c $COOKIE_JAR \
 
 ## VUEDA Client
 
-The scaffolded client has Vue, Pinia, vue-router, and VUEDA's action router wired up. Next, add the server connection, {@term CRUDL} data adapters, PrimeVue, a sign-in view, and {@term CRUD View Resolution}.
+The scaffolded client has Vue, Pinia, vue-router, and VUEDA's action router wired up. Next, add the server connection, {@term CRUDL} data adapters, PrimeVue, a sign-in view, and {@term CRUDL View Resolution}.
 
 ### Connect to the Server
 
@@ -619,7 +619,7 @@ app.mount("#the-app");
 export default app;
 ```
 
-{@api js:function:@arrai-innovations/vueda.utils/listCrud.setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda.utils/objectCrud.setupDefaultObjectCrud} register the HTTP adapters that VUEDA's composables use for every CRUD operation. {@api js:function:@arrai-innovations/vueda.theme/register.setPrimeVuePreset} syncs the active PrimeVue preset into VUEDA's theme system. See [Client Plugin Prerequisites](/guides/client-plugin-prerequisites) for details on each plugin.
+{@api js:function:@arrai-innovations/vueda.utils/listCrud.setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda.utils/objectCrud.setupDefaultObjectCrud} register the HTTP adapters that VUEDA's composables use for every CRUDL operation. {@api js:function:@arrai-innovations/vueda.theme/register.setPrimeVuePreset} syncs the active PrimeVue preset into VUEDA's theme system. See [Client Plugin Prerequisites](/guides/client-plugin-prerequisites) for details on each plugin.
 
 ### Add a Sign-In View
 
@@ -707,7 +707,7 @@ export default defineConfig({
 
 {@api js:function:@arrai-innovations/vueda.vite.vuedaViteConfig} accepts an `extraAliases` option that is merged into the Vite `resolve.alias` config. Any aliases you add here are available in your application imports.
 
-### Configure CRUD View Resolution and Routes
+### Configure CRUDL View Resolution and Routes
 
 The scaffolded router calls {@api js:function:@arrai-innovations/vueda.router/routerComponent.setCrudComponents} with an empty object and has no routes for `sign-in` or `welcome`. Replace `client/src/router/index.js` with:
 
@@ -861,4 +861,4 @@ import { setupModelConfig } from "./setupModelConfig.js";
 setupModelConfig();
 ```
 
-The `fields` shorthand sets `displayFields`, `fetchFields`, and `submitFields` together. Per-view configs (keyed by action name) merge on top of the generic config. See [Configure CRUD Views](/guides/configure-crud-views) for all available options.
+The `fields` shorthand sets `displayFields`, `fetchFields`, and `submitFields` together. Per-view configs (keyed by action name) merge on top of the generic config. See [Configure CRUDL Views](/guides/configure-crud-views) for all available options.

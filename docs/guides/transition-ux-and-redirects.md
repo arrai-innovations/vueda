@@ -31,9 +31,9 @@ The model's workflow (if applicable) is configured with states, transitions, and
 
 Action and transition routes pass through `requireModelInfo` before rendering. The guard fetches model-info, assembles the action set (model-info actions, optional `routeActions` filter, workflow permitted transitions), normalizes the route's action name (`read` -> `retrieve`), and checks membership.
 
-For workflow-enabled models, the guard includes permitted transition codes in the action set. This means transition routes are admissible alongside standard CRUD routes; the guard does not distinguish between them at the admission level.
+For workflow-enabled models, the guard includes permitted transition codes in the action set. This means transition routes are admissible alongside standard {@term CRUDL} routes; the guard does not distinguish between them at the admission level.
 
-{@api vue:component:ViewActionRouter} resolves the admitted action to a view component. Standard CRUD actions resolve to their built-in views. Transition codes resolve to `ViewWorkflowTransition`. When the action cannot be resolved, it passes the guard but has no corresponding view component; `ViewActionNotFound` is rendered.
+{@api vue:component:ViewActionRouter} resolves the admitted action to a view component. Standard CRUDL actions resolve to their built-in views. Transition codes resolve to `ViewWorkflowTransition`. When the action cannot be resolved, it passes the guard but has no corresponding view component; `ViewActionNotFound` is rendered.
 
 The guard requires transition objects to have a valid string `code`. If a transition lacks a `code` or the `code` is not a string, the guard throws an error (`requireModelInfo: workflow transition is missing a string code`) rather than silently treating it as unavailable. Check the workflow configuration if this error surfaces.
 

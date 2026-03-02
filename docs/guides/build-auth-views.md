@@ -24,7 +24,7 @@ The objective is a set of authentication views where:
 
 Before you begin:
 
-The client application must have PrimeVue, ToastService, and the VUEDA CRUD adapters registered. See [Client Plugin Prerequisites](../guides/client-plugin-prerequisites) for the full registration sequence.
+The client application must have PrimeVue, ToastService, and the VUEDA {@term CRUDL} adapters registered. See [Client Plugin Prerequisites](../guides/client-plugin-prerequisites) for the full registration sequence.
 
 The server must expose the authentication endpoints (`login`, `logout`, `who-is`, `2fa/authenticate`, `reauthenticate`). These are provided by `vueda.user` when it is included in `INSTALLED_APPS`.
 
@@ -253,16 +253,16 @@ const handleSubmit = ({ formValues }) => {
 
 ## Hand-Authored Form Patterns
 
-Auth views use `FieldString` and `WidgetInput` outside the metadata-driven CRUD surface. In CRUD views, field components are rendered automatically from model-info metadata. In auth views, you declare fields manually in the template.
+Auth views use `FieldString` and `WidgetInput` outside the metadata-driven CRUDL surface. In CRUDL views, field components are rendered automatically from model-info metadata. In auth views, you declare fields manually in the template.
 
-The key differences from CRUD forms:
+The key differences from CRUDL forms:
 
-- **`formProps.initialValues`** must be defined explicitly. CRUD forms populate initial values from a server-retrieved object; auth forms set them to empty strings or defaults.
+- **`formProps.initialValues`** must be defined explicitly. CRUDL forms populate initial values from a server-retrieved object; auth forms set them to empty strings or defaults.
 - **Field `name` props** must match the keys the server endpoint expects. There is no model-info metadata to enforce naming.
 - **No `formModelName` prop.** Auth forms do not reference a model config, so config-driven field behaviour (read-only states, visibility rules) does not apply.
 - **`WidgetInput` type variants** are set directly. Use `type="password"` for password fields, `type="otp"` for one-time codes. The full set of supported types is: `text`, `password`, `number`, `otp`, and `mask`.
 
-Validation in hand-authored forms uses the same `FieldString` props as CRUD forms: `required`, `maxLength`, `minLength`, and `patternRegex`. Server-side validation errors are mapped by field name; if the server returns `{ "email": ["This field is required."] }`, the error surfaces on the `FieldString` with `name="email"`.
+Validation in hand-authored forms uses the same `FieldString` props as CRUDL forms: `required`, `maxLength`, `minLength`, and `patternRegex`. Server-side validation errors are mapped by field name; if the server returns `{ "email": ["This field is required."] }`, the error surfaces on the `FieldString` with `name="email"`.
 
 ## Verification Checklist
 
