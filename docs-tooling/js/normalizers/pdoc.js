@@ -140,6 +140,24 @@ export class PdocNormalizer extends Normalizer {
 
         // Infer direct submodule parent-child relationships from dotted names,
         // since pdoc always reports submodules: [] for all modules.
+        // Build a parent->direct-children map in O(n) by splitting on the last dot.
+        const parentToChildren = new Map();
+        for (const [fullname, doc] of byFullname) {
+            const kind = KIND_MAP[doc.kind] || "type";
+            if (kind !== "module") {
+                continue;
+            }
+            const lastDot = fullname.lastIndexOf(".");
+            if (lastDot === -1) {
+                continue;
+            }
+            const parentFullname = fullname.slice(0, lastDot);
+            if (!parentToChildren.has(parentFullname)) {
+                parentToChildren.set(parentFullname, []);
+            }
+            parentToChildren.get(parentFullname).push(fullname);
+        }
+
         const inferredSubmoduleChildren = new Set();
         for (const node of nodes) {
             if (node.kind !== "module") {
@@ -149,20 +167,12 @@ export class PdocNormalizer extends Normalizer {
             if (!fullname) {
                 continue;
             }
-            const prefix = fullname + ".";
-            for (const [otherFullname, otherDoc] of byFullname) {
-                if (!otherFullname.startsWith(prefix)) {
-                    continue;
-                }
-                const remainder = otherFullname.slice(prefix.length);
-                if (remainder.includes(".")) {
-                    continue; // not a direct child
-                }
-                const otherKind = KIND_MAP[otherDoc.kind] || "type";
-                if (otherKind !== "module") {
-                    continue;
-                }
-                const childId = nodeId(otherKind, otherFullname);
+            const directChildren = parentToChildren.get(fullname);
+            if (!directChildren) {
+                continue;
+            }
+            for (const childFullname of directChildren) {
+                const childId = nodeId("module", childFullname);
                 if (!node.children) {
                     node.children = [];
                 }
@@ -170,6 +180,13 @@ export class PdocNormalizer extends Normalizer {
                     node.children.push(childId);
                     inferredSubmoduleChildren.add(childId);
                 }
+            }
+        }
+
+        // Sort inferred children for deterministic output across runs.
+        for (const node of nodes) {
+            if (node.children && node.children.length > 1) {
+                node.children.sort();
             }
         }
 
