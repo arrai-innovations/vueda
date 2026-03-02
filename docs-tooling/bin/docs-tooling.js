@@ -236,18 +236,11 @@ function addIndexPages(outputs) {
             continue;
         }
         // A Python package produces both foo.md (the module page) and foo/ (its
-        // member files). If foo.md exists and the directory contains no further
-        // subdirectories, foo.md is already the canonical landing page — skip
-        // generating a redundant foo/index.md that would just list the same members.
+        // member files). foo.md is always the canonical landing page for the module,
+        // regardless of how deeply nested the directory is, so skip generating a
+        // redundant foo/index.md in all cases where foo.md already exists.
         const dirMdPath = dir === "." ? null : `${dir}.md`;
-        let hasSubdirs = false;
-        for (const c of childrenSet) {
-            if (!c.endsWith(".md")) {
-                hasSubdirs = true;
-                break;
-            }
-        }
-        if (dirMdPath && outputs.has(dirMdPath) && !hasSubdirs) {
+        if (dirMdPath && outputs.has(dirMdPath)) {
             continue;
         }
         const children = Array.from(childrenSet).sort((a, b) => a.localeCompare(b));

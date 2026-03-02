@@ -97,6 +97,43 @@ function buildOutputs() {
     return renderPdocBundle(bundle);
 }
 
+describe("renderPdocBundle with submodules", () => {
+    it("parent module page lists inferred submodule under Submodules heading", () => {
+        const normalizer = new PdocNormalizer();
+        const payload = {
+            module_names: ["pkg", "pkg.sub"],
+            docs: [
+                {
+                    kind: "module",
+                    name: "pkg",
+                    fullname: "pkg",
+                    modulename: "pkg",
+                    qualname: "",
+                    docstring: "Top-level package.",
+                    members: [],
+                    submodules: [],
+                },
+                {
+                    kind: "module",
+                    name: "sub",
+                    fullname: "pkg.sub",
+                    modulename: "pkg.sub",
+                    qualname: "",
+                    docstring: "Sub-module.",
+                    members: [],
+                    submodules: [],
+                },
+            ],
+        };
+        const bundle = normalizer.normalize(payload);
+        const outputs = renderPdocBundle(bundle);
+        const pkgPage = [...outputs.entries()].find(([k]) => k === "py/pkg.md")?.[1];
+        expect(pkgPage).toBeDefined();
+        expect(pkgPage).toContain("## Submodules");
+        expect(pkgPage).toContain("sub");
+    });
+});
+
 describe("renderPdocBundle with class members", () => {
     it("class member anchor paths are not emitted as separate output files", () => {
         const outputs = buildOutputs();

@@ -430,6 +430,7 @@ const buildApiSidebar = () => {
         const subdirectoryItems = fs
             .readdirSync(languageRoot, { withFileTypes: true })
             .filter((entry) => entry.isDirectory())
+            .filter((entry) => !fs.existsSync(path.join(languageRoot, `${entry.name}.md`)))
             .map((entry) => entry.name)
             .sort((a, b) => a.localeCompare(b))
             .map((subDirName) => {

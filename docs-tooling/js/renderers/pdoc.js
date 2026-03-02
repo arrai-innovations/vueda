@@ -102,11 +102,18 @@ function renderChildrenSections(node, index, pathMap, filePath) {
         return "";
     }
 
+    const submodules = children.filter((child) => child.kind === "module");
     const methods = children.filter((child) => child.kind === "method" || child.kind === "function");
     const properties = children.filter((child) => child.kind === "property");
-    const others = children.filter((child) => !["method", "function", "property"].includes(child.kind));
+    const others = children.filter((child) => !["module", "method", "function", "property"].includes(child.kind));
 
     const lines = [];
+
+    if (submodules.length) {
+        lines.push(renderHeading(2, "Submodules"), "");
+        const items = submodules.map((child) => linkToPath(child.name, pathMap.get(child.id), filePath));
+        lines.push(renderList(items), "");
+    }
 
     if (properties.length) {
         lines.push(renderHeading(2, "Properties"), "");

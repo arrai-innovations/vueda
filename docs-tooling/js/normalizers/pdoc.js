@@ -138,11 +138,46 @@ export class PdocNormalizer extends Normalizer {
             }
         }
 
+        // Infer direct submodule parent-child relationships from dotted names,
+        // since pdoc always reports submodules: [] for all modules.
+        const inferredSubmoduleChildren = new Set();
+        for (const node of nodes) {
+            if (node.kind !== "module") {
+                continue;
+            }
+            const fullname = node.extensions?.pdoc?.fullname;
+            if (!fullname) {
+                continue;
+            }
+            const prefix = fullname + ".";
+            for (const [otherFullname, otherDoc] of byFullname) {
+                if (!otherFullname.startsWith(prefix)) {
+                    continue;
+                }
+                const remainder = otherFullname.slice(prefix.length);
+                if (remainder.includes(".")) {
+                    continue; // not a direct child
+                }
+                const otherKind = KIND_MAP[otherDoc.kind] || "type";
+                if (otherKind !== "module") {
+                    continue;
+                }
+                const childId = nodeId(otherKind, otherFullname);
+                if (!node.children) {
+                    node.children = [];
+                }
+                if (!node.children.includes(childId)) {
+                    node.children.push(childId);
+                    inferredSubmoduleChildren.add(childId);
+                }
+            }
+        }
+
         for (const name of payload.module_names || []) {
             const rootDoc = byFullname.get(name);
             const rootKind = rootDoc ? KIND_MAP[rootDoc.kind] || "type" : "module";
             const rootId = nodeId(rootKind, name);
-            if (nodeIndex.has(rootId)) {
+            if (nodeIndex.has(rootId) && !inferredSubmoduleChildren.has(rootId)) {
                 roots.push(rootId);
             }
         }

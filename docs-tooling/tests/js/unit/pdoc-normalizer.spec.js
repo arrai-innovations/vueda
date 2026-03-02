@@ -3,6 +3,42 @@ import { assertCanonical } from "../../../js/utils/validate-canonical.js";
 import { describe, expect, it } from "vitest";
 
 describe("PdocNormalizer", () => {
+    it("infers direct submodule parent-child relationships from dotted names", () => {
+        const normalizer = new PdocNormalizer();
+        const payload = {
+            module_names: ["pkg", "pkg.sub"],
+            docs: [
+                {
+                    kind: "module",
+                    name: "pkg",
+                    fullname: "pkg",
+                    modulename: "pkg",
+                    qualname: "",
+                    docstring: "",
+                    members: [],
+                    submodules: [],
+                },
+                {
+                    kind: "module",
+                    name: "sub",
+                    fullname: "pkg.sub",
+                    modulename: "pkg.sub",
+                    qualname: "",
+                    docstring: "",
+                    members: [],
+                    submodules: [],
+                },
+            ],
+        };
+
+        const output = normalizer.normalize(payload);
+
+        const pkgNode = output.nodes.find((n) => n.id === "py:module:pkg");
+        expect(pkgNode.children).toContain("py:module:pkg.sub");
+        expect(output.roots).toContain("py:module:pkg");
+        expect(output.roots).not.toContain("py:module:pkg.sub");
+    });
+
     it("produces canonical output that validates against the schema", async () => {
         const normalizer = new PdocNormalizer();
         const payload = {
