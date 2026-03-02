@@ -14,6 +14,41 @@ executors:
             - image: cimg/python:3.11-node
 
 jobs:
+    docs-tooling-test:
+        executor: python311-node
+        resource_class: medium
+        steps:
+            - checkout
+            - run:
+                  name: Ensure pnpm command is available
+                  command: |
+                      mkdir -p "$HOME/.local/bin"
+                      printf '%s\n' '#!/usr/bin/env bash' 'exec corepack pnpm "$@"' > "$HOME/.local/bin/pnpm"
+                      chmod +x "$HOME/.local/bin/pnpm"
+                      echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+                      export PATH="$HOME/.local/bin:$PATH"
+                      pnpm --version
+            - utils/add_npm_config
+            - restore_cache:
+                  keys:
+                      - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+            - run:
+                  name: Install Node Dependencies
+                  command: pnpm install
+            - save_cache:
+                  paths:
+                      - ~/.local/share/pnpm/store
+                  key: pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+            - run:
+                  name: Run JS Tests
+                  command: pnpm -C docs-tooling test
+            - run:
+                  name: Install Python Dependencies
+                  command: uv sync --all-groups --all-packages --frozen
+            - run:
+                  name: Run Python Tests
+                  command: cd docs-tooling && uv run --group test --no-sync pytest
+
     docs-validate:
         executor: python311-node
         resource_class: medium
@@ -130,6 +165,9 @@ jobs:
 workflows:
     docs-publish:
         jobs:
+            - docs-tooling-test:
+                  name: docs-tooling-test
+                  context: arrai-global
             - docs-validate:
                   name: docs-validate
                   context: arrai-global
@@ -138,6 +176,7 @@ workflows:
                   context: arrai-global
                   requires:
                       - docs-validate
+                      - docs-tooling-test
                   filters:
                       tags:
                           only: /^docs-v.*/
