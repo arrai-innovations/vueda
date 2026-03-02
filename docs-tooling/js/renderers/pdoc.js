@@ -14,6 +14,18 @@ import {
     slugify,
 } from "./markdown.js";
 
+const DUNDER_RE = /^__.*__$/;
+
+function isVisibleMember(node) {
+    return node.extensions?.pdoc?.is_public !== false && !(DUNDER_RE.test(node.name) && !node.description);
+}
+
+function moduleTitle(node) {
+    const fullname = node.extensions?.pdoc?.fullname || node.name;
+    const parts = fullname.split(".");
+    return parts.length >= 2 ? parts.slice(-2).join(".") : fullname;
+}
+
 function renderSignatures(node, filePath) {
     if (!node.signatures || !node.signatures.length) {
         return "";
@@ -77,9 +89,7 @@ function renderInlineMember(member) {
 
 function renderInlineMembersSection(node, index) {
     const children = index.childrenOf.get(node.id) || [];
-    const publicChildren = children.filter(
-        (child) => child.extensions?.pdoc?.is_public !== false && !(/^__.*__$/.test(child.name) && !child.description),
-    );
+    const publicChildren = children.filter(isVisibleMember);
     if (!publicChildren.length) {
         return "";
     }
@@ -132,9 +142,7 @@ export function renderPdocNode(node, index, filePath) {
 
     if (node.kind === "class") {
         const children = index.childrenOf.get(node.id) || [];
-        const publicChildren = children.filter(
-            (c) => c.extensions?.pdoc?.is_public !== false && !(/^__.*__$/.test(c.name) && !c.description),
-        );
+        const publicChildren = children.filter(isVisibleMember);
         if (publicChildren.length) {
             fm.member_ids = publicChildren.map((c) => c.id);
         }
@@ -142,16 +150,7 @@ export function renderPdocNode(node, index, filePath) {
 
     const frontmatter = renderFrontmatter(fm);
 
-    // For modules, qualify the title with the parent segment so pages like
-    // "viewsets" read as "workflow.viewsets" in headings and browser tabs.
-    const title =
-        node.kind === "module"
-            ? (() => {
-                  const fullname = node.extensions?.pdoc?.fullname || node.name;
-                  const parts = fullname.split(".");
-                  return parts.length >= 2 ? parts.slice(-2).join(".") : fullname;
-              })()
-            : normalizeTitle(node.name);
+    const title = node.kind === "module" ? moduleTitle(node) : normalizeTitle(node.name);
 
     const lines = [];
     lines.push(frontmatter);

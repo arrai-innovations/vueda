@@ -240,7 +240,13 @@ function addIndexPages(outputs) {
         // subdirectories, foo.md is already the canonical landing page — skip
         // generating a redundant foo/index.md that would just list the same members.
         const dirMdPath = dir === "." ? null : `${dir}.md`;
-        const hasSubdirs = Array.from(childrenSet).some((c) => !c.endsWith(".md"));
+        let hasSubdirs = false;
+        for (const c of childrenSet) {
+            if (!c.endsWith(".md")) {
+                hasSubdirs = true;
+                break;
+            }
+        }
         if (dirMdPath && outputs.has(dirMdPath) && !hasSubdirs) {
             continue;
         }

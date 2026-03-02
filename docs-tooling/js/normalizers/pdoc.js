@@ -16,6 +16,9 @@ const KIND_MAP = {
 
 const repoRoot = getRepoRoot();
 
+const MIGRATION_RE = /\.migrations(\.|$)/;
+const isMigration = (fullname) => MIGRATION_RE.test(fullname);
+
 function nodeId(kind, fullname) {
     return `py:${kind}:${fullname}`;
 }
@@ -57,19 +60,11 @@ export class PdocNormalizer extends Normalizer {
         const roots = [];
         const byFullname = new Map();
 
-        const isMigration = (fullname) => /\.migrations(\.|$)/.test(fullname);
-
         for (const doc of payload.docs) {
             if (!doc.fullname || isMigration(doc.fullname)) {
                 continue;
             }
             byFullname.set(doc.fullname, doc);
-        }
-
-        for (const doc of payload.docs) {
-            if (!doc.fullname || isMigration(doc.fullname)) {
-                continue;
-            }
 
             const kind = KIND_MAP[doc.kind] || "type";
             const id = nodeId(kind, doc.fullname);
