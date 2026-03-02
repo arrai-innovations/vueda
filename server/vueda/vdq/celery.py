@@ -1,3 +1,11 @@
+"""Celery application instance and task scheduling for the VDQ dispatch queue."""
+
+__all__ = (
+    "app",
+    "cancel_task",
+    "setup_periodic_tasks",
+)
+
 from celery import Celery
 from django.db import transaction
 

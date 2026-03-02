@@ -1,3 +1,7 @@
+"""DRF permission class for workflow-aware content-type endpoints."""
+
+__all__ = ("WorkflowObjectPermissions",)
+
 from rest_framework.generics import get_object_or_404
 
 from vueda.core.permissions import DjangoObjectPermissions

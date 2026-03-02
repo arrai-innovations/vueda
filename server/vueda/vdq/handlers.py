@@ -1,3 +1,14 @@
+"""Email and SMS send handlers and Twilio webhook processing for the VDQ."""
+
+__all__ = (
+    "TwilioQueueItemHandler",
+    "handle_bounce",
+    "send_email",
+    "timeout_queue_item",
+    "validate_email_role",
+    "validate_sms_role",
+)
+
 import logging
 from datetime import timedelta
 
@@ -31,11 +42,13 @@ except ImportError:
     has_twilio = False
 
 
-def validate_email_role(role):
+def validate_email_role(role) -> None:
+    """Raise ``ValueError`` if ``role`` has no email address."""
     _validate_send_value(role, "email")
 
 
-def validate_sms_role(role):
+def validate_sms_role(role) -> None:
+    """Raise ``ValueError`` if ``role`` has no cell phone number."""
     _validate_send_value(role, "cell")
 
 
@@ -44,7 +57,13 @@ def _validate_send_value(role, attr_name, nice_name=None):
         raise ValueError(f'{role._meta.verbose_name} "{role}" has no {nice_name or attr_name}.')
 
 
-def send_email(qi):
+def send_email(qi) -> None:
+    """
+    Send the email for a ``QueueItem``. Validates sender and receiver email addresses,
+    attaches inline images and regular attachments, then sends via Anymail.
+    Transitions the queue item to ``await`` on success, or ``error`` on permanent failure.
+    Transient ESP errors (5xx, 408, 423, 429) raise ``AnymailTransientError`` for retry.
+    """
     assert qi.anymail
     validate_email_role(qi.sender)
     validate_email_role(qi.receiver)
@@ -97,6 +116,12 @@ def send_email(qi):
 
 
 class TwilioQueueItemHandler:
+    """
+    Handles sending SMS messages and syncing delivery status via the Twilio API.
+    Instantiating this class with ``TWILIO_ACCOUNT_SID`` in settings initializes
+    the Twilio client; without it the handler is a no-op.
+    """
+
     twilio_client = None
 
     def __init__(
@@ -108,7 +133,11 @@ class TwilioQueueItemHandler:
                 settings.TWILIO_AUTH_TOKEN,
             )
 
-    def send_sms(self, qi):
+    def send_sms(self, qi) -> None:
+        """
+        Send an SMS for the given ``QueueItem`` via Twilio. Transitions the item
+        to ``await`` on success, or ``error`` on ``TwilioRestException``.
+        """
         try:
             assert qi.sms
             validate_sms_role(qi.sender)
@@ -144,7 +173,8 @@ class TwilioQueueItemHandler:
                 qi.save(update_fields=["result"])
                 logger.exception("There was an error while sending sms for QueueItem %s", qi.pk)
 
-    def pull_sms_status(self, qi):
+    def pull_sms_status(self, qi) -> None:
+        """Poll Twilio for messages sent since the queue item's date and update their status."""
         try:
             messages = self.twilio_client.messages.list(date_sent_after=qi.date())
             for message in messages:
@@ -163,7 +193,12 @@ class TwilioQueueItemHandler:
         except TwilioException:
             logger.exception("There was an error getting sms messages for syncing status.")
 
-    def pull_sms_timeout_only(self):
+    def pull_sms_timeout_only(self) -> None:
+        """
+        Check awaiting SMS queue items that have exceeded the timeout window (default 2 hours).
+        Fetches each message's current status from Twilio and transitions timed-out items to
+        ``timeout`` if no final status is available.
+        """
         timeout_hours = getattr(settings, "VDQ_TWILIO_SMS_TIMEOUT_HOURS", 2)
         queue = (
             QueueItem.objects.filter(
@@ -191,7 +226,12 @@ class TwilioQueueItemHandler:
                         return
                     self.update_sms_qi(item, message.status, message=message)
 
-    def update_sms_qi(self, queue_item, message_status, message=None, webhook=False, error_code=""):
+    def update_sms_qi(self, queue_item, message_status, message=None, webhook=False, error_code="") -> None:
+        """
+        Update a ``QueueItem`` based on a Twilio ``message_status`` string.
+        Transitions to ``succeed`` on delivery, ``error`` on failure, or ``timeout`` when the
+        item has been awaiting longer than the configured timeout.
+        """
         timeout_hours = getattr(settings, "VDQ_TWILIO_SMS_TIMEOUT_HOURS", 2)
         if message_status == "delivered":
             # save implied.
@@ -218,7 +258,8 @@ class TwilioQueueItemHandler:
             timeout_queue_item(queue_item, timeout_hours)
 
 
-def timeout_queue_item(queue_item, timeout_hours):
+def timeout_queue_item(queue_item, timeout_hours) -> None:
+    """Mark a ``QueueItem`` as timed out and transition it to the ``timeout`` state."""
     queue_item.result = (
         f"Status not received. Carrier did not confirm delivery.\nCancelled after timeout of {timeout_hours} hours."
     )
@@ -227,7 +268,12 @@ def timeout_queue_item(queue_item, timeout_hours):
 
 
 @receiver(tracking)
-def handle_bounce(sender, event, esp_name, **kwargs):
+def handle_bounce(sender, event, esp_name, **kwargs) -> None:
+    """
+    Anymail tracking signal receiver. Processes ESP delivery events (delivered, bounced,
+    rejected, failed, delayed) and transitions the matching ``QueueItem`` accordingly.
+    Logs a warning for unknown ``message_id`` values and an error for unhandled exceptions.
+    """
     try:
         with transaction.atomic():
             qi = QueueItem.objects.select_for_update().filter(anymail__message_id=event.message_id).first()

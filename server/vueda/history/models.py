@@ -1,3 +1,11 @@
+"""Model base classes and managers for django-simple-history integration."""
+
+__all__ = (
+    "SimpleHistoryManager",
+    "SimpleHistoryModelMixin",
+    "VuedaHistoryModel",
+)
+
 from django.db import models
 from django.db.models import Max
 from django.db.models import OuterRef

@@ -1,3 +1,7 @@
+"""Context manager for acquiring a database lock on a VDQ queue item."""
+
+__all__ = ("lock_queue_item",)
+
 from contextlib import AbstractContextManager
 from contextlib import contextmanager
 from logging import getLogger

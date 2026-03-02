@@ -1,3 +1,12 @@
+"""ViewSets for the VDQ send queue and sent items."""
+
+__all__ = (
+    "DefaultSendQueueViewSet",
+    "DefaultSentItemViewSet",
+    "SendQueueViewSet",
+    "SentItemViewSet",
+)
+
 from django.conf import settings
 from django.db import transaction
 from django.db.transaction import atomic

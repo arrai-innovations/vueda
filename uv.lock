@@ -5,6 +5,7 @@ requires-python = ">=3.11, <3.14"
 [manifest]
 members = [
     "vueda",
+    "vueda-docs-tooling",
     "vueda-workspace",
 ]
 
@@ -2112,6 +2113,25 @@ dev = [
     { name = "python-dateutil", specifier = ">=2.8.2,<3" },
 ]
 docs = [{ name = "pdoc", specifier = ">=14.7.0" }]
+
+[[package]]
+name = "vueda-docs-tooling"
+version = "0.0.0"
+source = { virtual = "docs-tooling" }
+dependencies = [
+    { name = "pdoc" },
+]
+
+[package.dev-dependencies]
+test = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pdoc", specifier = ">=14.4.0" }]
+
+[package.metadata.requires-dev]
+test = [{ name = "pytest", specifier = ">=8.0.0" }]
 
 [[package]]
 name = "vueda-workspace"

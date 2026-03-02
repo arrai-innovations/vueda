@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import inspect
 import json
+import pkgutil
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from pdoc import extract
 from pdoc.doc import Class
 from pdoc.doc import Doc
 from pdoc.doc import Function
@@ -154,11 +155,45 @@ def _collect_docs(root_docs: Iterable[Doc]) -> list[Doc]:
     return list(collected.values())
 
 
+def _walk_package_modules(spec: str) -> list[str]:
+    """Discover all module names under a package by walking the filesystem.
+
+    Unlike pdoc's walk_specs, this ignores __all__ on package __init__.py
+    files. __all__ controls re-export semantics for `import *`, not which
+    submodules exist as documented API.
+    """
+    try:
+        module = importlib.import_module(spec)
+    except ImportError:
+        return [spec]
+
+    names = [spec]
+    package_path = getattr(module, "__path__", None)
+    if package_path is None:
+        return names
+
+    for _, modname, _ in pkgutil.walk_packages(
+        path=package_path,
+        prefix=spec + ".",
+        onerror=lambda name: None,
+    ):
+        names.append(modname)
+
+    return names
+
+
 def dump_modules(specs: Iterable[str]) -> dict[str, Any]:
     """
     Load modules based on pdoc specs and return a raw, JSON-friendly dump.
     """
-    module_names = extract.walk_specs(list(specs))
+    seen: set[str] = set()
+    module_names: list[str] = []
+    for spec in specs:
+        for name in _walk_package_modules(spec):
+            if name not in seen:
+                seen.add(name)
+                module_names.append(name)
+
     modules = [Module.from_name(name) for name in module_names]
     docs = _collect_docs(modules)
     kind_by_fullname = {doc.fullname: doc.kind for doc in docs}

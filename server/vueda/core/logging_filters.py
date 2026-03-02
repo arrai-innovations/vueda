@@ -1,3 +1,11 @@
+"""Logging filter that suppresses validation-warning-only exceptions."""
+
+__all__ = (
+    "FilterOutVuedaValidationWarnings",
+    "contains_only_warnings",
+    "extract_error_strings",
+)
+
 import logging
 
 from rest_framework.exceptions import ValidationError

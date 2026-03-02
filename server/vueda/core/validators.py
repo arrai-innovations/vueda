@@ -1,3 +1,7 @@
+"""Serializer validators that return conflicting object details."""
+
+__all__ = ("UniqueTogetherWithPkValidator",)
+
 from rest_framework.validators import UniqueTogetherValidator
 
 from vueda.core.exceptions import VuedaValidationError

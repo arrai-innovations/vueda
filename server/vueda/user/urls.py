@@ -1,3 +1,10 @@
+"""URL configuration for the vueda.user app."""
+
+__all__ = (
+    "urlpatterns",
+    "user_patterns",
+)
+
 from allauth.headless.urls import urlpatterns as allauth_urlpatterns
 from dj_rest_auth.views import LogoutView
 from dj_rest_auth.views import PasswordChangeView

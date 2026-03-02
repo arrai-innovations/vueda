@@ -1,3 +1,12 @@
+"""Entry point for the `vueda` CLI command."""
+
+__all__ = (
+    "main",
+    "setup_django_settings_module",
+    "version",
+    "version_for_main",
+)
+
 import argparse
 import os
 import sys

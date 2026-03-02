@@ -1,3 +1,18 @@
+"""Management command for generating group permission migrations from change history."""
+
+__all__ = (
+    "INDENT8",
+    "MIGRATION_MODIFIED_COMMENT",
+    "NEWLINE",
+    "Command",
+    "GroupChangeTypes",
+    "backwards_migrate_groups",
+    "changed_data",
+    "forwards_migrate_groups",
+    "make_sure_permissions_exist",
+    "migrate_step",
+)
+
 import contextlib
 import copy
 import datetime

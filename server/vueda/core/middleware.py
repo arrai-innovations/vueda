@@ -1,3 +1,11 @@
+"""ASGI middleware stack with CORS, session, auth, and Sentry user tracking."""
+
+__all__ = (
+    "AsgiMiddlewareStack",
+    "SentryUserMiddleware",
+    "update_sentry_user",
+)
+
 import sentry_sdk
 from asgi_cors_middleware import CorsASGIApp
 from channels.auth import AuthMiddleware

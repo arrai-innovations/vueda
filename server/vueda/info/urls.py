@@ -1,3 +1,10 @@
+"""URL configuration for the vueda.info app."""
+
+__all__ = (
+    "info_patterns",
+    "urlpatterns",
+)
+
 from django.urls import include
 from django.urls import path
 

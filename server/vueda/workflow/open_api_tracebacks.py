@@ -1,3 +1,13 @@
+"""Sample traceback strings used in OpenAPI documentation examples."""
+
+__all__ = (
+    "CUSTOMER_ORDER_INVALID",
+    "SITE_PACKAGES_PATH",
+    "VUEDA_SERVER_PATH",
+    "WORKFLOW_DENIED",
+    "WORKFLOW_INVALID",
+)
+
 # These are here, to keep them out of the serializer.  Less messy.
 SITE_PACKAGES_PATH = "/home/user/.local/share/virtualenvs/vueda-server/lib/python3.11/site-packages"
 VUEDA_SERVER_PATH = "/home/user/projects/vueda-server"

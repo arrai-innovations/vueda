@@ -1,3 +1,22 @@
+"""ViewSet base classes with atomic transactions, row-level filtering, and flex-fields."""
+
+__all__ = (
+    "PERMISSION_NAMES_MAPPING",
+    "AtomicCreateModelViewSetMixin",
+    "AtomicDestroyModelViewSetMixin",
+    "AtomicModelViewSet",
+    "AtomicModelViewSetMixin",
+    "AtomicUpdateModelViewSetMixin",
+    "DeactivateActionViewSetMixin",
+    "FlexFieldsMixin",
+    "ListRowLevelViewSetMixin",
+    "NoExtraFieldsForViewSetMixin",
+    "PerActionSerializerMixin",
+    "VuedaHistoryViewSet",
+    "VuedaReadOnlyViewSet",
+    "VuedaViewSet",
+)
+
 import warnings
 
 from django.conf import settings
@@ -28,18 +47,24 @@ PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
 
 
 class AtomicCreateModelViewSetMixin(drf_viewsets.mixins.CreateModelMixin):
+    """Wraps the DRF ``create`` action in a database transaction."""
+
     def create(self, request, *args, **kwargs):
         with transaction.atomic():
             return super().create(request, *args, **kwargs)
 
 
 class AtomicUpdateModelViewSetMixin(drf_viewsets.mixins.UpdateModelMixin):
+    """Wraps the DRF ``update`` and ``partial_update`` actions in a database transaction."""
+
     def update(self, request, *args, **kwargs):
         with transaction.atomic():
             return super().update(request, *args, **kwargs)
 
 
 class AtomicDestroyModelViewSetMixin(drf_viewsets.mixins.DestroyModelMixin):
+    """Wraps the DRF ``destroy`` action in a database transaction."""
+
     def destroy(self, request, *args, **kwargs):
         with transaction.atomic():
             return super().destroy(request, *args, **kwargs)
@@ -48,6 +73,8 @@ class AtomicDestroyModelViewSetMixin(drf_viewsets.mixins.DestroyModelMixin):
 class AtomicModelViewSetMixin(
     AtomicCreateModelViewSetMixin, AtomicUpdateModelViewSetMixin, AtomicDestroyModelViewSetMixin
 ):
+    """Combines all three atomic write mixins: create, update, and destroy."""
+
     pass
 
 
@@ -72,6 +99,11 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
     column_totals: list[str] = []
 
     def apply_row_level_filter(self, queryset, perm_type="list"):
+        """
+        Apply row-level and workflow-aware queryset filters for the given ``perm_type``.
+        Calls ``RowLevelPermissions.check_queryset`` and, when the model has a workflow,
+        also annotates state permission info and calls ``check_queryset_workflow``.
+        """
         model = queryset.model
         row_level_permissions = getattr(model, "RowLevelPermissions", None)
 
@@ -517,6 +549,16 @@ class DeactivateActionViewSetMixin:
 
 
 class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
+    """
+    Full CRUD ViewSet for VUEDA models. Extends DRF's ``ModelViewSet`` with:
+
+    - Flex-fields expansion (``FlexFieldsMixin``)
+    - Query-parameter validation against filter and serializer fields (``NoExtraFieldsForViewSetMixin``)
+    - Row-level and workflow-aware list filtering (``ListRowLevelViewSetMixin``)
+    - Bulk delete with dry-run support
+    - Override ``destroy_validation`` to add pre-delete business rules.
+    """
+
     detail_args = ["pk"]
 
     def __init_subclass__(cls, **kwargs):
@@ -529,7 +571,11 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
                 stacklevel=2,
             )
 
-    def destroy_validation(self, objs):
+    def destroy_validation(self, objs) -> None:
+        """
+        Override to validate objects before deletion. Raise ``VuedaValidationError``
+        to prevent deletion. Called for both single-object and bulk-delete requests.
+        """
         return None
 
     def apply_object_permission_filter(self, queryset):
@@ -591,6 +637,8 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
 
 
 class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):
+    """``VuedaViewSet`` extended with ``simple-history`` audit endpoints."""
+
     pass
 
 
@@ -600,6 +648,12 @@ class VuedaReadOnlyViewSet(
     ListRowLevelViewSetMixin,
     viewsets.ReadOnlyModelViewSet,
 ):
+    """
+    Read-only ViewSet for VUEDA models. Provides ``list`` and ``retrieve`` only,
+    with the same flex-fields, query-parameter validation, and row-level filtering
+    as ``VuedaViewSet``.
+    """
+
     detail_args = ["pk"]
 
     def get_allowed_extra_actions(self, request, *, instance=None):

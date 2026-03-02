@@ -1,3 +1,11 @@
+"""URL router configuration for the vueda.info viewsets."""
+
+__all__ = (
+    "info_choices_router",
+    "info_router",
+    "urlpatterns",
+)
+
 from vueda.core.routers import ContentTypeChoicesRouter
 from vueda.core.routers import ContentTypeRouter
 from vueda.info.viewsets import ModelInfoChoicesViewSet

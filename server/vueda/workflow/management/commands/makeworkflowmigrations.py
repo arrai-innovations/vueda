@@ -1,3 +1,34 @@
+"""Management command for generating workflow state and transition migrations from change history."""
+
+__all__ = (
+    "ADDED",
+    "CHANGED",
+    "DELETED",
+    "INDENT8",
+    "MIGRATION_MODIFIED_COMMENT",
+    "NEWLINE",
+    "Command",
+    "add_history_to_data",
+    "apply_and_save_changes",
+    "backwards_migrate_workflow",
+    "forwards_migrate_workflow",
+    "get_attr_names_for_workflow_models",
+    "get_history_diff",
+    "get_id_values_from_dict",
+    "get_id_values_from_item",
+    "handle_initial_state",
+    "handle_state",
+    "handle_state_objects",
+    "handle_state_permission",
+    "handle_transition",
+    "handle_transition_permission",
+    "handle_transition_source",
+    "handle_workflow",
+    "handle_workflow_permission",
+    "make_sure_permissions_exist",
+    "manage_state_objects",
+)
+
 import contextlib
 import copy
 import datetime

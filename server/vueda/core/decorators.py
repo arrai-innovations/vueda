@@ -1,3 +1,11 @@
+"""ViewSet action decorators for dry-run support and reauthentication."""
+
+__all__ = (
+    "DRY_RUN_HEADER",
+    "action",
+    "recent_auth_required",
+)
+
 from functools import wraps
 
 from allauth.account.internal.flows.reauthentication import raise_if_reauthentication_required

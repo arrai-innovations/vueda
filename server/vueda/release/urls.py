@@ -1,3 +1,7 @@
+"""URL configuration for the vueda.release app."""
+
+__all__ = ("urlpatterns",)
+
 from django.urls import include
 from django.urls import path
 

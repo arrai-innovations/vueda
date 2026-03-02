@@ -18,7 +18,7 @@ export const parseFrontmatter = (raw) => {
         const key = line.slice(0, idx).trim();
         const value = line.slice(idx + 1).trim();
         if (!key) continue;
-        if (value.startsWith('"')) {
+        if (value.startsWith('"') || value.startsWith("[")) {
             try {
                 frontmatter[key] = JSON.parse(value);
             } catch {

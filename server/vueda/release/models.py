@@ -1,3 +1,7 @@
+"""Models for release notes in the vueda.release app."""
+
+__all__ = ("ReleaseNote",)
+
 from django.db import models
 
 from vueda.core.models import VuedaModel

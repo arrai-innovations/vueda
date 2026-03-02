@@ -1,3 +1,7 @@
+"""Object-level permission classes for VDQ queue item actions."""
+
+__all__ = ("QueueItemObjectPermission",)
+
 from vueda.core.permissions import ObjectPermissions
 
 
