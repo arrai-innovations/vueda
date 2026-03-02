@@ -7,7 +7,7 @@ status: draft
 
 # VUEDA
 
-VUEDA is a framework for building admin-style CRUDL applications on top of Django and Vue.js. The server defines models, serializers, and viewsets using VUEDA's base classes; the client discovers those definitions at runtime through a metadata API and generates routes, forms, and views from them. Standard CRUDL surfaces require no hand-wired per-model client code.
+VUEDA is a framework for building admin-style {@term CRUDL} applications on top of Django and Vue.js. The server defines models, serializers, and viewsets using VUEDA's base classes; the client discovers those definitions at runtime through a metadata API and generates routes, forms, and views from them. Standard CRUDL surfaces require no hand-wired per-model client code.
 
 It is an opinionated alternative to `django-admin` for teams that need a modern, maintainable frontend and a predictable server contract.
 
