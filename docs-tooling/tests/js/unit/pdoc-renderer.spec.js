@@ -150,4 +150,10 @@ describe("renderPdocBundle with class members", () => {
         const classPage = [...outputs.entries()].find(([k]) => k.endsWith("Helper.md"))?.[1];
         expect(classPage).toMatch(/## do_work \{#do_work\}/);
     });
+
+    it("module page H1 uses last-two-segment qualified name", () => {
+        const outputs = buildOutputs();
+        const modulePage = [...outputs.entries()].find(([k]) => k.endsWith("example.md"))?.[1];
+        expect(modulePage).toContain("# vueda.example");
+    });
 });

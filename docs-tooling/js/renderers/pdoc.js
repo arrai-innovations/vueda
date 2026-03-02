@@ -142,9 +142,20 @@ export function renderPdocNode(node, index, filePath) {
 
     const frontmatter = renderFrontmatter(fm);
 
+    // For modules, qualify the title with the parent segment so pages like
+    // "viewsets" read as "workflow.viewsets" in headings and browser tabs.
+    const title =
+        node.kind === "module"
+            ? (() => {
+                  const fullname = node.extensions?.pdoc?.fullname || node.name;
+                  const parts = fullname.split(".");
+                  return parts.length >= 2 ? parts.slice(-2).join(".") : fullname;
+              })()
+            : normalizeTitle(node.name);
+
     const lines = [];
     lines.push(frontmatter);
-    lines.push(renderHeading(1, normalizeTitle(node.name)), "");
+    lines.push(renderHeading(1, title), "");
 
     if (node.description) {
         lines.push(renderHeading(2, "Overview"), "", escapeText(node.description), "");
