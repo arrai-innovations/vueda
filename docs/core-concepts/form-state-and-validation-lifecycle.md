@@ -63,7 +63,7 @@ Local validation error codes are namespaced to avoid collisions. `required` and 
 
 ## Server Validation Ingestion and Clearing
 
-Server validation enters the form state through a single method: `handleServerFormValidationError(error)`. This method takes a `FormValidationError` instance (produced by client CRUD adapters from HTTP 400 responses) and iterates its two maps:
+Server validation enters the form state through a single method: `handleServerFormValidationError(error)`. This method takes a `FormValidationError` instance (produced by client {@term CRUDL} adapters from HTTP 400 responses) and iterates its two maps:
 
 - `error.errors` entries are written as `state.errors[name].server`
 - `error.messages` entries are written as `state.messages[name].server`

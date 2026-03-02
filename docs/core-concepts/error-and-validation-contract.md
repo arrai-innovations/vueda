@@ -56,7 +56,7 @@ flowchart TD
 
 The server is the sole authority over validation outcomes. It decides what is valid, what is a warning, and what shape the error payload takes. The client is the authority over how those payloads are represented in the runtime state and rendered in the UI. Neither side has visibility into the other's internal logic; they communicate solely through HTTP responses.
 
-The contract has a single classification gate: **HTTP 400 means form validation; everything else does not.** This is a deliberate constraint. The client's CRUD adapters, auth handlers, and action form components all share the same rule: 400 responses are wrapped in `FormValidationError` and routed into form state. Non-400 failures (`FetchError`, `ListFilterError`, or resolver-specific classes) follow generic error handling paths and do not populate form feedback. This means that a validation-shaped payload returned with a 500 status will never appear in form fields, and a generic error returned with a 400 status will be treated as validation feedback.
+The contract has a single classification gate: **HTTP 400 means form validation; everything else does not.** This is a deliberate constraint. The client's {@term CRUDL} adapters, auth handlers, and action form components all share the same rule: 400 responses are wrapped in `FormValidationError` and routed into form state. Non-400 failures (`FetchError`, `ListFilterError`, or resolver-specific classes) follow generic error handling paths and do not populate form feedback. This means that a validation-shaped payload returned with a 500 status will never appear in form fields, and a generic error returned with a 400 status will be treated as validation feedback.
 
 ## Wire Error Shapes and Status Branches
 
@@ -122,7 +122,7 @@ A response can contain both errors and warnings. The parser processes them indep
 
 ## Client Classification and Form-State Ingestion
 
-Client CRUD adapters (`objectCrud` for `create`/`update`/`delete`, `listCrud` for bulk delete, `storeUser` for authentication, `ModelActionForm` for action execution) all follow the same classification rule: HTTP 400 becomes `FormValidationError`, everything else becomes `FetchError` or a more specific non-form error class.
+Client CRUDL adapters (`objectCrud` for `create`/`update`/`delete`, `listCrud` for bulk delete, `storeUser` for authentication, `ModelActionForm` for action execution) all follow the same classification rule: HTTP 400 becomes `FormValidationError`, everything else becomes `FetchError` or a more specific non-form error class.
 
 `FormValidationError` construction happens at the adapter layer, before the error reaches any form-context handler. The constructor:
 

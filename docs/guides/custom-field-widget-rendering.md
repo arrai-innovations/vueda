@@ -7,7 +7,7 @@ status: draft
 
 # Customize Field and Widget Rendering
 
-This guide covers how to override field and widget rendering for form and filter surfaces without forking core CRUD view components. VUEDA provides three override mechanisms (model config, per-instance view props, and slot-level replacement) with a defined precedence order. Custom components must preserve the field/widget contract to remain compatible with VUEDA's form state and validation lifecycle.
+This guide covers how to override field and widget rendering for form and filter surfaces without forking core {@term CRUDL} view components. VUEDA provides three override mechanisms (model config, per-instance view props, and slot-level replacement) with a defined precedence order. Custom components must preserve the field/widget contract to remain compatible with VUEDA's form state and validation lifecycle.
 
 The guide assumes familiarity with VUEDA's form concepts. If you have not read [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle), start there. For the server-client metadata contract that drives default field/widget resolution, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract).
 For the default resolver and override touchpoints, see {@api js:module:@arrai-innovations/vueda.use/useFieldRenderer}. Most cross-view overrides in this guide are keyed by {@term Model Config}.
@@ -23,7 +23,7 @@ The objective is a custom field or widget rendering that:
 
 Before you begin:
 
-The model has a canonical registration with working CRUD views. Override rendering builds on top of the default form infrastructure; verify that default forms render and submit correctly before introducing overrides.
+The model has a canonical registration with working CRUDL views. Override rendering builds on top of the default form infrastructure; verify that default forms render and submit correctly before introducing overrides.
 
 You understand the field/widget distinction. In VUEDA's form architecture, a **field** is the outer container that manages form state, labels, validation messages, and layout. A **widget** is the inner input control that handles user interaction and value adaptation. Overriding a field replaces the entire container; overriding a widget replaces only the input control within the existing field structure.
 

@@ -69,7 +69,7 @@ Model-info responses undergo normalization when the client stores them. The norm
 
 **Nested camelCasing.** Field metadata objects within `fields` and `filtering` maps are recursively camel-cased. Expand descriptors have their nested `f` field metadata camel-cased as well. Root-level keys remain unchanged.
 
-**PK key extraction.** The client scans the normalized `fields` map for the entry with `pk: true` and stores its key as `data.pk`. This derived key is used by model-config, routing, and CRUD operations to identify objects without assuming a fixed field name.
+**PK key extraction.** The client scans the normalized `fields` map for the entry with `pk: true` and stores its key as `data.pk`. This derived key is used by model-config, routing, and {@term CRUDL} operations to identify objects without assuming a fixed field name.
 
 The normalized result is cached by `app.model` key in `storeModelInfo`. Subsequent requests for the same model resolve from cache without a network fetch. If the initial fetch fails (including the `"no pk field found"` error), the error is cached instead, and subsequent requests for the same key short-circuit to the cached error. This prevents the client from repeatedly fetching metadata that the server returned but the client could not process.
 

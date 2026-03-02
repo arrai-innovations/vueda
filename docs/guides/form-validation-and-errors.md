@@ -7,7 +7,7 @@ status: draft
 
 # Handle Form Validation and Server Errors
 
-This guide covers the end-to-end flow for getting server validation errors into form feedback, clearing them on user interaction, and gating submission on local versus server validation. It applies to both standard CRUD forms (via `useObjectForm`) and custom forms that wire their own submission logic.
+This guide covers the end-to-end flow for getting server validation errors into form feedback, clearing them on user interaction, and gating submission on local versus server validation. It applies to both standard {@term CRUDL} forms (via `useObjectForm`) and custom forms that wire their own submission logic.
 
 The guide assumes familiarity with the form state model. If you have not read [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle), start there; it explains the two-channel state model (errors vs messages), the code-key namespacing (`required`, `validate`, `server`), the runtime reservation of the `server` namespace, and the submission pipeline that this guide builds on. For the server-side contract that produces the validation payloads, see [Error and Validation Contract](../core-concepts/error-and-validation-contract).
 Client-side normalization in this flow is centered on {@api js:class:@arrai-innovations/vueda.utils/errors.FormValidationError}. Server feedback for each {@term Action} is mapped into field-level and form-level channels.
@@ -24,13 +24,13 @@ The objective is a form submission flow where:
 
 Before you begin, ensure the following are in place:
 
-The form uses `useForm` to create a form context and `useField` for each field (or a VUEDA field component that calls `useField` internally). The API endpoint follows VUEDA's server contract: validation failures return HTTP 400 with a payload that `VuedaValidationError` produces, and warnings use the `is_warning=True` flag. For standard CRUD surfaces, `useObjectForm` provides the default submission pipeline described below. For custom forms, you will wire the equivalent logic manually.
+The form uses `useForm` to create a form context and `useField` for each field (or a VUEDA field component that calls `useField` internally). The API endpoint follows VUEDA's server contract: validation failures return HTTP 400 with a payload that `VuedaValidationError` produces, and warnings use the `is_warning=True` flag. For standard CRUDL surfaces, `useObjectForm` provides the default submission pipeline described below. For custom forms, you will wire the equivalent logic manually.
 
 ## Request-Boundary Error Normalization
 
-VUEDA's client CRUD adapters (`objectCrud`, `listCrud`) and action form components (`ModelActionForm`) classify HTTP responses at the request boundary. HTTP 400 responses are wrapped in `FormValidationError`; all other failure statuses produce `FetchError` or resolver-specific error types that do not participate in form-context mapping.
+VUEDA's client CRUDL adapters (`objectCrud`, `listCrud`) and action form components (`ModelActionForm`) classify HTTP responses at the request boundary. HTTP 400 responses are wrapped in `FormValidationError`; all other failure statuses produce `FetchError` or resolver-specific error types that do not participate in form-context mapping.
 
-This classification is automatic for standard CRUD operations (create, update, partial update, bulk delete) and model action execution. If you write a custom fetch wrapper for a non-standard endpoint, you must preserve this mapping:
+This classification is automatic for standard CRUDL operations (create, update, partial update, bulk delete) and model action execution. If you write a custom fetch wrapper for a non-standard endpoint, you must preserve this mapping:
 
 ```js
 const response = await fetch(url, options);
@@ -55,7 +55,7 @@ When a `FormValidationError` reaches the form context (either through the defaul
 
 The split happens in the `FormValidationError` constructor. It flattens the response payload into paths, then uses the regex `/\.warnings(\[\d+\])?/` to classify them. Paths containing `.warnings` (produced by the server's `VuedaValidationError(detail, is_warning=True)`) are routed to `.messages`. Everything else goes to `.errors`.
 
-For standard CRUD forms using `useObjectForm`, the ingestion is automatic; `defaultOnSubmissionError` calls `handleServerFormValidationError` when the caught error is a `FormValidationError`. For custom forms, you must call it explicitly in your error handler:
+For standard CRUDL forms using `useObjectForm`, the ingestion is automatic; `defaultOnSubmissionError` calls `handleServerFormValidationError` when the caught error is a `FormValidationError`. For custom forms, you must call it explicitly in your error handler:
 
 ```js
 try {
@@ -187,7 +187,7 @@ With the validation pipeline wired, verify these behaviors:
 
 **Warning-only response still prevents submission.** Verify that the server is using `VuedaValidationError(detail, is_warning=True)`, not just a string with "warning" in the text. The `is_warning` flag controls the wire-format wrapping (`{"warnings": [...]}`) that the client parser uses to route to `.messages` instead of `.errors`. Without it, the payload lands in `.errors` and blocks submission.
 
-**Custom delete wrapper surfaces false failures.** If your endpoint uses a non-standard success status code (something other than 204 for delete), the default CRUD wrapper may interpret the response as a failure. Adapt the wrapper to recognize the endpoint's success codes while preserving the `400 → FormValidationError` mapping.
+**Custom delete wrapper surfaces false failures.** If your endpoint uses a non-standard success status code (something other than 204 for delete), the default CRUDL wrapper may interpret the response as a failure. Adapt the wrapper to recognize the endpoint's success codes while preserving the `400 → FormValidationError` mapping.
 
 ## Relevant Implementation Surface
 

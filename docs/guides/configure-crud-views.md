@@ -7,7 +7,7 @@ status: draft
 
 # Configure `list`/`read`/`create`/`update` Views
 
-This guide covers how to customize CRUD view behaviour through model config overrides without forking core components. Every override described here builds on the defaults that {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig} derives from {@term Model Info}; the goal is to adjust only where the baseline does not meet your needs.
+This guide covers how to customize {@term CRUDL} view behaviour through model config overrides without forking core components. Every override described here builds on the defaults that {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig} derives from {@term Model Info}; the goal is to adjust only where the baseline does not meet your needs.
 
 The guide assumes a working CRUDL surface is already in place. If the model is not yet registered and routable, start with [Create a CRUDL Surface](./create-crudl-surface). For the metadata contract that model config consumes, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract). For expand and sparse field controls specifically, see [Use Expand and Sparse Field Controls](./expand-and-fields-controls).
 
@@ -92,7 +92,7 @@ When expansion metadata is present, `storeModelConfig` flattens expanded sub-fie
 
 Three config properties control action visibility at different layers, and keeping them aligned is important for predictable behaviour.
 
-**`routeActions`** constrains which actions the `requireModelInfo` route guard admits. If `routeActions` is set, the guard filters model-info actions down to only those names that appear in the array. An action not in `routeActions` will produce an "Action Not Found" toast and redirect, even if the server advertises it. `routeActions` must use server-canonical action names (`retrieve`, not `read`), because the guard normalizes route action names before checking the list. See [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model) for the full guard chain.
+**`routeActions`** constrains which actions the `requireModelInfo` route guard permits. If `routeActions` is set, the guard filters model-info actions down to only those names that appear in the array. An action not in `routeActions` will produce an "Action Not Found" toast and redirect, even if the server advertises it. `routeActions` must use server-canonical action names (`retrieve`, not `read`), because the guard normalizes route action names before checking the list. See [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model) for the full guard chain.
 
 **`actions`** narrows which actions are visible to view components through `useFilteredActions`. This controls the rendering of buttons in `ViewList`, `DetailView`, and `ViewCreate`. An action that passes the route guard but is not in `actions` will not appear as an action button, though the user can still navigate to it directly by URL.
 
@@ -150,7 +150,7 @@ With config overrides in place, verify the surface end-to-end:
 
 **Expanded sub-field is not configurable in field details.** Expansion metadata is flattened into `fieldDetails` using `expand__subfield` keys only when the `expand` config is non-empty. If `expand` is overridden to `[]`, no expansion flattening occurs and `expand__subfield` keys will not be present in `fieldDetails`.
 
-**Template route paths do not match project structure.** The provided project templates wire CRUD routes in `client/src/router/index.js`. If your project does not use the template structure, this path will not apply. The `makeCRUDRoutes` call is project-level wiring and can live wherever your router is set up.
+**Template route paths do not match project structure.** The provided project templates wire CRUDL routes in `client/src/router/index.js`. If your project does not use the template structure, this path will not apply. The `makeCRUDRoutes` call is project-level wiring and can live wherever your router is set up.
 
 ## Relevant Implementation Surface
 

@@ -31,7 +31,7 @@ The viewset uses `ObjectPermissions` (or `WorkflowObjectPermissions` for workflo
 
 Model-info action metadata is the foundation of client-side action visibility. The `model_actions` list emitted by the model-info endpoint determines which {@term Action} entries the client's route guards and UI controls recognize.
 
-For built-in CRUD actions, no explicit wiring is required beyond the viewset permission class. Model-info generation evaluates each built-in action candidate (`list`, `retrieve`, `create`, `update`, `partial_update`, `destroy`) against the requesting user's permissions using `check_object_permissions` with no object. Actions the user lacks permission for are omitted.
+For built-in CRUDL actions, no explicit wiring is required beyond the viewset permission class. Model-info generation evaluates each built-in action candidate (`list`, `retrieve`, `create`, `update`, `partial_update`, `destroy`) against the requesting user's permissions using `check_object_permissions` with no object. Actions the user lacks permission for are omitted.
 
 For extra actions declared on the viewset, visibility is controlled through `get_allowed_extra_actions`. Override this method on the viewset to include or exclude extra actions based on request context:
 
@@ -80,15 +80,15 @@ Rendered action controls in views use two additional filtering layers beyond rou
 
 `list` views use config-filtered actions for toolbar controls (like bulk delete) but do not intersect with per-object availability, since `list` views do not have a single target object.
 
-Workflow transition controls are sourced from the workflow transition store and rendered independently from CRUD action buttons. Do not attempt to infer transition availability from `model_actions` or `available_actions`; transitions have their own data flow and are fetched through dedicated workflow endpoints.
+Workflow transition controls are sourced from the workflow transition store and rendered independently from CRUDL action buttons. Do not attempt to infer transition availability from `model_actions` or `available_actions`; transitions have their own data flow and are fetched through dedicated workflow endpoints.
 
 ## Workflow Transition Handling
 
-Workflow transitions extend the action namespace with transition-specific routes. The route guard includes permitted transition codes in the action set, enabling navigation to transition-specific views alongside standard CRUD routes.
+Workflow transitions extend the action namespace with transition-specific routes. The route guard includes permitted transition codes in the action set, enabling navigation to transition-specific views alongside standard CRUDL routes.
 
 The guard evaluates transitions by their `code` property. Every transition object must have a valid string `code`; objects without one cause the guard to throw an explicit error rather than silently skipping the transition. If you see `requireModelInfo: workflow transition is missing a string code`, check the workflow configuration for transitions with missing or non-string codes.
 
-`ViewActionRouter` resolves transition routes by matching the route's action parameter against transition codes. When a match is found, the route renders `ViewWorkflowTransition`. When no match is found (and the action is also not a standard CRUD action), the route renders `ViewActionNotFound`.
+`ViewActionRouter` resolves transition routes by matching the route's action parameter against transition codes. When a match is found, the route renders `ViewWorkflowTransition`. When no match is found (and the action is also not a standard CRUDL action), the route renders `ViewActionNotFound`.
 
 ## Verification Checklist
 

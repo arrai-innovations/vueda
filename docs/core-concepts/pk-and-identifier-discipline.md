@@ -7,7 +7,7 @@ status: draft
 
 # Primary Key and Identifier Discipline
 
-VUEDA does not assume that every model's primary key is named `id`. Instead, identifier authority flows from the server's serializer metadata through client normalization and into routing, CRUD transport, and lookup caching. Each layer discovers the PK field name from metadata rather than hardcoding it, with a small number of documented exceptions where the system uses fixed conventions.
+VUEDA does not assume that every model's primary key is named `id`. Instead, identifier authority flows from the server's serializer metadata through client normalization and into routing, {@term CRUDL} transport, and lookup caching. Each layer discovers the PK field name from metadata rather than hardcoding it, with a small number of documented exceptions where the system uses fixed conventions.
 
 This page explains where identifier authority lives at each boundary, how single-object and multi-object identifiers are transported, and how the client normalizes and caches PK information. For the {@term Model Info} metadata contract that generates field and PK metadata, see [Field and Expand Semantics](./field-and-expand-semantics). For practical steps on wiring choice and {@term Lookup} fields that depend on identifier resolution, see [Model Choices, Lookup Fields, and Dynamic Options](../guides/choices-and-lookups).
 
@@ -33,7 +33,7 @@ Once `data.pk` is set, downstream consumers use it to resolve identifiers withou
 
 - **Model config** excludes the PK field from default `displayFields`, `fetchFields`, and `submitFields`. The exclusion uses `data.pk` as the key to filter, not a hardcoded `"id"`.
 - **Routing** uses `params.pk` as the route parameter name for `detail` views, independent of the model's actual PK field name. The route parameter is always named `pk`; its value is the PK field's value for the specific object.
-- **CRUD operations** accept `pk` as a parameter on retrieve, patch, and delete functions. `defaultObjectUpdate` accepts a `pkKey` parameter (defaulting to `"id"`) to resolve the identifier from the submitted object.
+- **CRUDL operations** accept `pk` as a parameter on retrieve, patch, and delete functions. `defaultObjectUpdate` accepts a `pkKey` parameter (defaulting to `"id"`) to resolve the identifier from the submitted object.
 - **Lookup context** coerces PK values to strings before cache-key comparison, ensuring that numeric and string representations of the same identifier map to the same cache entry.
 
 ## Identifier Transport Shapes
