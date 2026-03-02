@@ -57,15 +57,17 @@ export class PdocNormalizer extends Normalizer {
         const roots = [];
         const byFullname = new Map();
 
+        const isMigration = (fullname) => /\.migrations(\.|$)/.test(fullname);
+
         for (const doc of payload.docs) {
-            if (!doc.fullname) {
+            if (!doc.fullname || isMigration(doc.fullname)) {
                 continue;
             }
             byFullname.set(doc.fullname, doc);
         }
 
         for (const doc of payload.docs) {
-            if (!doc.fullname) {
+            if (!doc.fullname || isMigration(doc.fullname)) {
                 continue;
             }
 
