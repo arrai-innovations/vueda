@@ -65,7 +65,7 @@ Contract option to request a sparse response containing selected fields.
 
 ## Formatted Name
 
-A `GeneratedField` on every `VuedaBaseModel` that produces a display-ready string, by default derived from the model's `name` field.
+A `GeneratedField` on every `VuedaModel` that produces a display-ready string, by default derived from the model's `name` field.
 
 ## Implementor
 
@@ -73,7 +73,7 @@ A team integrating VUEDA into a domain application.
 
 ## Lookup
 
-A `VuedaBaseModel` subclass with a unique `code` field, intended for lightweight reference data tables (for example, status codes or category labels).
+A `VuedaModel` subclass with a unique `code` field, intended for lightweight reference data tables (for example, status codes or category labels).
 
 ## Model Config
 

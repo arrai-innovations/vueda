@@ -78,6 +78,13 @@ Tests:
 just test
 ```
 
+## Versions
+
+When a major version number change occurs, you will need to update the dependency information in:
+
+- templates/implementor-monorepo-dx/server/pyproject.toml.jinja
+- templates/implementor-monorepo/server/pyproject.toml.jinja
+
 ## Release Tags
 
 We use tag prefixes to publish packages independently:

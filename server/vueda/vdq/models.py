@@ -17,13 +17,13 @@ from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 
 from vueda.core.models import BaseModelMeta
-from vueda.core.models import VuedaBaseModel
+from vueda.core.models import VuedaModel
 from vueda.vdq.celery import cancel_task
 from vueda.vdq.constants import QUEUE_ITEM_DONE_STATES
 from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class BaseSender(VuedaBaseModel):
+class BaseSender(VuedaModel):
     email = models.EmailField(blank=True)
     name = models.CharField(max_length=255, blank=True, default="")
     cell = PhoneNumberField(null=True)
@@ -32,7 +32,7 @@ class BaseSender(VuedaBaseModel):
         abstract = True
 
 
-class BaseReceiver(VuedaBaseModel):
+class BaseReceiver(VuedaModel):
     email = models.EmailField(blank=True)
     name = models.CharField(max_length=255, blank=True, default="")
     cell = PhoneNumberField(null=True)
@@ -57,7 +57,7 @@ SEND_METHOD_CHOICES = (
 )
 
 
-class QueueItem(VuedaBaseModel, HasWorkflowModelMixin):
+class QueueItem(VuedaModel, HasWorkflowModelMixin):
     sender = models.ForeignKey(
         swapper.get_model_name("vueda_vdq", "Sender"),
         on_delete=models.PROTECT,

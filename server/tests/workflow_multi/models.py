@@ -1,11 +1,11 @@
 from django.contrib.postgres import fields as postgres_fields
 from django.db import models
 
-from vueda.core.models import VuedaBaseModel
+from vueda.core.models import VuedaModel
 from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class WorkflowMulti(HasWorkflowModelMixin, VuedaBaseModel):
+class WorkflowMulti(HasWorkflowModelMixin, VuedaModel):
     is_completed = models.BooleanField(default=False)
     due_date = models.DateField(blank=True, null=True)
     priority = models.IntegerField()
@@ -21,7 +21,7 @@ class WorkflowMulti(HasWorkflowModelMixin, VuedaBaseModel):
         db_persist=True,
     )
 
-    class Meta(VuedaBaseModel.Meta):
+    class Meta(VuedaModel.Meta):
         pass
 
     def __str__(self):

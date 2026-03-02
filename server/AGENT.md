@@ -17,7 +17,7 @@
 -   **Companion**: VUEDA Client (`client/`) - Vue 3 component library consuming this API
 -   **Main modules**: `vueda/core/` (base classes), `vueda/user/` (auth), `vueda/workflow/` (state management), `vueda/history/` (audit), `vueda/info/` (meta-API)
 -   **Database**: PostgreSQL with advanced features (arrays, GIN indexes, ranges)
--   **Base classes**: VuedaSerializer, VuedaViewSet, VuedaBaseModel with shared functionality
+-   **Base classes**: VuedaSerializer, VuedaViewSet, VuedaModel with shared functionality
 -   **Testing**: Django test framework in `tests/` with store examples
 -   **Permission system**: Custom workflow-based permissions with row-level access control
 
@@ -27,7 +27,7 @@
 -   **Imports**: Force single-line (isort), known first-party: vueda, tests
 -   **Types**: Python 3.11+ with Django 5.2, no strict typing enforced
 -   **Naming**: snake_case variables/functions, PascalCase classes, use DRF/Django conventions
--   **Models**: Inherit from VuedaBaseModel/ActivatableBaseModel, use custom managers
+-   **Models**: Inherit from VuedaModel/ActivatableBaseModel, use custom managers
 -   **Serializers**: Extend VuedaSerializer with flex-fields and validation mixins
 -   **ViewSets**: Extend VuedaViewSet with atomic transactions and custom actions
 -   **Error handling**: Use DRF ValidationError, custom permission classes

@@ -1,13 +1,13 @@
 from django.db import models
 
-from vueda.core.models import VuedaBaseModel
+from vueda.core.models import VuedaModel
 from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class WorkflowDuplicates(HasWorkflowModelMixin, VuedaBaseModel):
+class WorkflowDuplicates(HasWorkflowModelMixin, VuedaModel):
     name = models.CharField(max_length=50, blank=True)
 
-    class Meta(VuedaBaseModel.Meta):
+    class Meta(VuedaModel.Meta):
         pass
 
     def __str__(self):
