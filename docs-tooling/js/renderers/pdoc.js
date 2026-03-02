@@ -77,7 +77,9 @@ function renderInlineMember(member) {
 
 function renderInlineMembersSection(node, index) {
     const children = index.childrenOf.get(node.id) || [];
-    const publicChildren = children.filter((child) => child.extensions?.pdoc?.is_public !== false);
+    const publicChildren = children.filter(
+        (child) => child.extensions?.pdoc?.is_public !== false && !(/^__.*__$/.test(child.name) && !child.description),
+    );
     if (!publicChildren.length) {
         return "";
     }
@@ -130,7 +132,9 @@ export function renderPdocNode(node, index, filePath) {
 
     if (node.kind === "class") {
         const children = index.childrenOf.get(node.id) || [];
-        const publicChildren = children.filter((c) => c.extensions?.pdoc?.is_public !== false);
+        const publicChildren = children.filter(
+            (c) => c.extensions?.pdoc?.is_public !== false && !(/^__.*__$/.test(c.name) && !c.description),
+        );
         if (publicChildren.length) {
             fm.member_ids = publicChildren.map((c) => c.id);
         }

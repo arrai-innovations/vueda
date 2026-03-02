@@ -24,7 +24,12 @@ const makePayload = () => ({
             modulename: "vueda.example",
             qualname: "Helper",
             docstring: "Helper class.",
-            members: ["vueda.example.Helper.do_work", "vueda.example.Helper.__doc__"],
+            members: [
+                "vueda.example.Helper.do_work",
+                "vueda.example.Helper.__doc__",
+                "vueda.example.Helper.__str__",
+                "vueda.example.Helper.__module__",
+            ],
             source_file: "/srv/vueda/example.py",
             source_lines: { start: 7, end: 20 },
         },
@@ -56,6 +61,32 @@ const makePayload = () => ({
             is_public: false,
             source_file: "/srv/vueda/example.py",
             source_lines: { start: 8, end: 8 },
+        },
+        {
+            kind: "function",
+            name: "__str__",
+            fullname: "vueda.example.Helper.__str__",
+            modulename: "vueda.example",
+            qualname: "Helper.__str__",
+            docstring: "Return the helper's display name.",
+            is_public: true,
+            signature_details: {
+                parameters: [{ name: "self", annotation: null, default: null }],
+                return_annotation: "str",
+            },
+            source_file: "/srv/vueda/example.py",
+            source_lines: { start: 14, end: 15 },
+        },
+        {
+            kind: "variable",
+            name: "__module__",
+            fullname: "vueda.example.Helper.__module__",
+            modulename: "vueda.example",
+            qualname: "Helper.__module__",
+            docstring: "",
+            is_public: true,
+            source_file: "/srv/vueda/example.py",
+            source_lines: { start: 7, end: 7 },
         },
     ],
 });
@@ -100,6 +131,18 @@ describe("renderPdocBundle with class members", () => {
         expect(classPage).toContain("member_ids");
         expect(classPage).toContain("py:function:vueda.example.Helper.do_work");
         expect(classPage).not.toContain("py:property:vueda.example.Helper.__doc__");
+    });
+
+    it("class page includes documented dunders", () => {
+        const outputs = buildOutputs();
+        const classPage = [...outputs.entries()].find(([k]) => k.endsWith("Helper.md"))?.[1];
+        expect(classPage).toContain("__str__");
+    });
+
+    it("class page excludes undocumented dunders that pdoc marks public", () => {
+        const outputs = buildOutputs();
+        const classPage = [...outputs.entries()].find(([k]) => k.endsWith("Helper.md"))?.[1];
+        expect(classPage).not.toContain("__module__");
     });
 
     it("inline member section uses anchor heading syntax", () => {
