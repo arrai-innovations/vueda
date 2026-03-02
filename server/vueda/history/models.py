@@ -3,7 +3,7 @@
 __all__ = (
     "SimpleHistoryManager",
     "SimpleHistoryModelMixin",
-    "VuedaHistoryBaseModel",
+    "VuedaHistoryModel",
 )
 
 from django.db import models
