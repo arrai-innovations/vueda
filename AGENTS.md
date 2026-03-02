@@ -8,6 +8,13 @@ you’re working in:
 - Docs tooling guide: `docs-tooling/AGENTS.md`
 - Copier templates guide: `templates/AGENTS.md`
 
+## Package Managers
+
+This repo uses two workspace managers, both rooted here:
+
+- **Python**: [uv](https://docs.astral.sh/uv/) workspace (`pyproject.toml`). Members: `server/`, `docs-tooling/`. `just bootstrap` runs `uv sync --all-groups --all-packages` to set up all virtual environments. Use `uv run --no-sync` in member packages after bootstrap.
+- **JS**: [pnpm](https://pnpm.io/) workspace (`pnpm-workspace.yaml`). Members: `client/`, `docs/`, `docs-tooling/`, `server/`. `just bootstrap` runs `pnpm install` from the root. Lefthook, ESLint, Prettier, and commitlint live in the root package and are available to all members.
+
 ## Common Commands (root)
 
 - Bootstrap: `just bootstrap`
