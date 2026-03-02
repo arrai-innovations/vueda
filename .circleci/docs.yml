@@ -136,6 +136,8 @@ workflows:
             - docs-publish:
                   name: docs-publish
                   context: arrai-global
+                  requires:
+                      - docs-validate
                   filters:
                       tags:
                           only: /^docs-v.*/
