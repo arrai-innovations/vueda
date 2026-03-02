@@ -12,11 +12,11 @@ from django.db.models.functions import Cast
 from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
 from vueda.core.models import VuedaModel
-from vueda.history.models import VuedaHistoryBaseModel
+from vueda.history.models import VuedaHistoryModel
 from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class Customer(HasWorkflowModelMixin, VuedaHistoryBaseModel):
+class Customer(HasWorkflowModelMixin, VuedaHistoryModel):
     user = models.OneToOneField(get_user_model(), on_delete=models.PROTECT)
 
     formatted_name = None
@@ -35,7 +35,7 @@ class CustomerData(models.Model):
         db_table = "customer_data"
 
 
-class Distributor(VuedaHistoryBaseModel):
+class Distributor(VuedaHistoryModel):
     name = models.CharField(max_length=255)
 
     class Meta(BaseModelMeta):
@@ -57,7 +57,7 @@ class SpecialCare(VuedaModel):
         pass
 
 
-class Product(VuedaHistoryBaseModel):
+class Product(VuedaHistoryModel):
     distributor = models.ForeignKey(Distributor, on_delete=models.PROTECT)
     name = models.CharField(max_length=255)
     disabled = models.BooleanField(db_default=False)
@@ -84,7 +84,7 @@ class OptionType(Lookup):
     pass
 
 
-class ProductOption(VuedaHistoryBaseModel):
+class ProductOption(VuedaHistoryModel):
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     option_type = models.ForeignKey(OptionType, null=True, on_delete=models.PROTECT)
     name = models.CharField(max_length=255)
@@ -140,7 +140,7 @@ class OrderState(Lookup):
     pass
 
 
-class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryBaseModel):
+class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryModel):
     order_number = models.DecimalField(max_digits=7, decimal_places=0)
     when = models.DateTimeField(auto_now_add=True, verbose_name="Date / Time", db_index=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
