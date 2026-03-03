@@ -31,7 +31,7 @@ export function setUsingWarnings(value) {
  */
 
 /**
- * Default implementation for OnRetrieveErrorHandler hook.
+ * Handles a retrieve error by delegating form validation errors to the form context.
  *
  * @param {object} options
  * @param {Error} options.error - The error that occurred.
@@ -39,7 +39,7 @@ export function setUsingWarnings(value) {
  * @param {UseWarningRawState} state - The state of the useWarnings composable.
  * @returns {Promise<boolean>} - True if the error should be marked as handled. Otherwise it may be displayed.
  */
-export const OnRetrieveErrorHandler = async ({ error, formContext, state }) => {
+export const onRetrieveErrorHandler = async ({ error, formContext, state }) => {
     if (error instanceof FormValidationError) {
         formContext.handleServerFormValidationError(error);
         assignReactiveObject(state.formValidationErrors, error);
@@ -170,7 +170,7 @@ export function useWarnings(app, model, formContext, view, pk, objectFormState =
                     await retrieveFn(args);
                     if (state.errored) {
                         const error = state.error;
-                        const handled = await OnRetrieveErrorHandler({
+                        const handled = await onRetrieveErrorHandler({
                             error,
                             formContext,
                             state,

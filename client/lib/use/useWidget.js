@@ -122,7 +122,7 @@ export const WIDGET_EMITS = ["update:modelValue"];
  */
 
 /**
- * @typedef {([value: any]) => any} ValueAdapter
+ * @typedef {(...args: any[]) => any} ValueAdapter
  */
 
 /**

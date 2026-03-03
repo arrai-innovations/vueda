@@ -68,7 +68,7 @@ const FilterFieldMappings = {
  */
 
 /**
- * @typedef {object} useFilterFieldRawState
+ * @typedef {object} UseFilterFieldRawState
  * @property {{[fieldName: string]: any}} initialValues - The form's initial values
  * @property {boolean} array - Indicates if the filter is an array type.
  * @property {boolean} range - Indicates if the filter is a range type.
@@ -79,11 +79,11 @@ const FilterFieldMappings = {
  * It determines the field's default value and any extra filter configuration (like whether it's a range or an array),
  *
  * @param {UseFilterFieldProps} props - Props that include the filter name and filter metadata.
- * @returns {Readonly<useFilterFieldRawState>} - A readonly reactive object containing the initial values and filter configuration.
+ * @returns {Readonly<UseFilterFieldRawState>} - A readonly reactive object containing the initial values and filter configuration.
  */
 export function useFilterField(props, queryValue) {
     const state = reactive(
-        /** @type {useFilterFieldRawState} */ {
+        /** @type {UseFilterFieldRawState} */ {
             array: false,
             range: false,
             initialValues: {},
