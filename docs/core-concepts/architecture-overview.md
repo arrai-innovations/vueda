@@ -15,7 +15,13 @@ The architecture cleanly splits authority: the server owns data integrity, permi
 
 The server is organized into four responsibility layers. Each layer builds on the one below it, and everything above the base layer inherits its guarantees without opting in.
 
-**Domain infrastructure** (`vueda.core`) defines the base model, serializer, and viewset contracts that all domain modules inherit. This layer establishes transactional boundaries (all writes within a request are atomic), the permission-evaluation order, an input-validation policy (unknown fields are rejected), and routing conventions. A domain module that extends `VuedaModel`, `VuedaSerializer`, and `VuedaViewSet` inherits all of these behaviours. A module that does not extend them opts out of the integration entirely.
+**Domain infrastructure**:
+
+(`vueda.core`) defines the base model, serializer, and viewset contracts that all domain modules inherit. This layer establishes transactional boundaries (all writes within a request are atomic), the permission-evaluation order, an input-validation policy (unknown fields are rejected), and routing conventions. A domain module that extends `VuedaModel`, `VuedaSerializer`, and `VuedaViewSet` inherits all of these behaviours.
+
+(`vueda.history`) defines the base model, serializer, and viewset for objects that require audit history. These base classes inherit the corresponding `vueda.core` base classes and incorporate the use of simple history to provide audit history. A domain module that extends `VuedaHistoryModel`, `VuedaHistorySerializer`, and `VuedaHistoryViewSet` inherits all of these behaviours and those from their corresponding `vueda.core` base classes.
+
+A module that does not extend the `vueda.core` or `vueda.history` base classes, opts out of the integration entirely.
 
 **Metadata and discovery** (`vueda.info`) exposes canonical registration and model-info endpoints. This is the bridge between server-side model definitions and client-side UI generation. It derives field shapes, available actions, filtering and ordering capabilities, and permission lists from whatever the domain infrastructure layer defines. Without this layer, the client has no contract to consume. The metadata and discovery layer is covered in detail in [Canonical Registration and Model Discovery](./canonical-registration-and-discovery) and [Server-Client Metadata Contract](./server-client-metadata-contract).
 
@@ -27,7 +33,7 @@ The server is organized into four responsibility layers. Each layer builds on th
 
 The client is a Vue single-page application that generates its UI entirely from server metadata. It is organized into four layers, each consuming the output of the one above it.
 
-**Metadata consumption.** Pinia stores fetch, normalize, and cache the server contract. {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo} holds the server-derived field, action, filter, and permission metadata. {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig} merges those defaults with client-side overrides. Together, they produce the configuration that all downstream layers consume.
+**Metadata consumption.** Pinia stores fetch, normalize, and cache the server contract. {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo} holds the server-derived field, action, filter, ordering, and permission metadata. {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig} merges those defaults with client-side overrides. Together, they produce the configuration that all downstream layers consume.
 
 **Routing and gating.** Router guards load metadata before allowing navigation. Route entry is blocked until model-info is available and the requested action is confirmed present, which is determined by intersecting server-advertised actions, client config restrictions, and workflow transition codes. No view renders without its contract being satisfied.
 
