@@ -1,11 +1,13 @@
 import { getRepoRoot, normalizeSourceFile } from "../../../js/utils/source.js";
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("getRepoRoot", () => {
-    it("returns a string ending with the repo directory name", () => {
+    it("returns the repo root directory", () => {
         const root = getRepoRoot();
         expect(typeof root).toBe("string");
-        expect(root.endsWith("vueda") || root.endsWith("vueda/")).toBe(true);
+        expect(fs.existsSync(path.join(root, "docs-tooling"))).toBe(true);
     });
 });
 
