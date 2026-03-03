@@ -73,7 +73,7 @@ For resolved routes, {@api vue:component:ViewActionRouter} maps action names to 
 
 ## UI Affordance Filtering Layers
 
-Route admission and rendered UI controls are separate filtering layers. A route may be admitted (the action exists in `model_actions` and passes the guard), but the corresponding UI control may be hidden because of additional client-side filtering.
+Route admission and rendered UI controls are separate filtering layers. A route may be permitted (the action exists in `model_actions` and passes the guard), but the corresponding UI control may be hidden because of additional client-side filtering.
 
 The first filtering layer is group-based config filtering. `useFilteredActions` reads the model config's `config.actions` setting and filters the available actions to only those listed. This enables product-specific UX constraints, for example, hiding the `destroy` action from certain user groups, without modifying server-side authorization. If `config.actions` is not defined, no filtering is applied, and all server-advertised actions pass through.
 

@@ -65,7 +65,7 @@ This means a transition with code `approve` is admissible in the same way that `
 
 The guard requires that every transition object have a valid `code` property. If any transition returned by the workflow store lacks a `code` or has a non-string `code`, the guard throws an error (`requireModelInfo: workflow transition is missing a string code`) rather than silently treating the transition as unavailable. This error bypasses the guard's normal redirect/toast path; it surfaces as an unhandled exception in the navigation flow.
 
-Transition discovery is model-scoped: `permitted_transitions` returns all transitions the user can execute anywhere in the workflow, regardless of individual objects' current states. This means a route may be admitted for a transition code, but the target object may not be able to execute that transition from its current state. The mismatch surfaces at execution time as a `400` validation error, not at route admission time.
+Transition discovery is model-scoped: `permitted_transitions` returns all transitions the user can execute anywhere in the workflow, regardless of individual objects' current states. This means a route may be permitted for a transition code, but the target object may not be able to execute that transition from its current state. The mismatch surfaces at execution time as a `400` validation error, not at route admission time.
 
 The workflow store caches both successful transition lists and fetch errors per `app.model`. While an error is cached for a given model key, subsequent calls to the store reject with the cached error without attempting a new fetch. Transient network failures can make transition unavailability sticky until the store is reset or the page is reloaded.
 
