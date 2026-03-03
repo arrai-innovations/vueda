@@ -23,6 +23,7 @@ const KIND_MAP = new Map([
     [16384, "function"], // ConstructorSignature
     [65536, "type"],
     [262144, "property"], // Accessor
+    [2097152, "type"], // TypeAlias
 ]);
 
 const KIND_NAME_MAP = new Map([
@@ -43,6 +44,7 @@ const KIND_NAME_MAP = new Map([
     [16384, "ConstructorSignature"],
     [65536, "TypeLiteral"],
     [262144, "Accessor"],
+    [2097152, "TypeAlias"],
 ]);
 
 function docId(node, kind, contextPath = []) {
@@ -55,8 +57,15 @@ function textFromComment(comment) {
     if (!comment) {
         return undefined;
     }
+    function stripSectionMarkers(text) {
+        return text
+            .split("\n")
+            .filter((line) => !/^\s*\/\/\s*\*{2,}/.test(line))
+            .join("\n")
+            .trim();
+    }
     if (Array.isArray(comment.summary)) {
-        const text = comment.summary.map((part) => part.text).join("");
+        const text = stripSectionMarkers(comment.summary.map((part) => part.text).join(""));
         if (text) {
             return text;
         }
@@ -64,7 +73,8 @@ function textFromComment(comment) {
     if (Array.isArray(comment.blockTags)) {
         const descTag = comment.blockTags.find((tag) => tag.tag === "@description");
         if (descTag) {
-            return descTag.content?.map((part) => part.text).join("") || undefined;
+            const text = descTag.content?.map((part) => part.text).join("") || undefined;
+            return text ? stripSectionMarkers(text) : undefined;
         }
     }
     return undefined;
@@ -104,6 +114,12 @@ function typeToString(type) {
         return JSON.stringify(type.value);
     }
     if (type.type === "reflection") {
+        const sig = type.declaration?.signatures?.[0];
+        if (sig) {
+            const params = (sig.parameters || []).map((p) => `${p.name}: ${typeToString(p.type)}`).join(", ");
+            const ret = typeToString(sig.type);
+            return `(${params}) => ${ret}`;
+        }
         return "object";
     }
     if (type.name) {
@@ -169,12 +185,12 @@ function examplesFromBlockTags(blockTags) {
     });
 }
 
-function signatureFromNode(signature) {
+function signatureFromNode(signature, typeRefFn = typeRef) {
     const parameters = (signature.parameters || []).map((param) =>
         compact({
             name: param.name,
             description: textFromComment(param.comment),
-            type: typeRef(param.type),
+            type: typeRefFn(param.type),
             optional: param.flags?.isOptional,
             default: param.defaultValue,
         }),
@@ -189,7 +205,7 @@ function signatureFromNode(signature) {
         }));
     }
 
-    let returns = typeRef(signature.type);
+    let returns = typeRefFn(signature.type);
     const returnsTag = blockTags.find((tag) => tag.tag === "@returns");
     const returnsText =
         returnsTag?.content
@@ -218,6 +234,36 @@ export class TypeDocNormalizer extends Normalizer {
             throw new Error("Invalid TypeDoc payload");
         }
 
+        const typedocIdMap = new Map();
+        const preVisit = (node, contextPath = []) => {
+            const kind = resolveKind(node);
+            typedocIdMap.set(node.id, docId(node, kind, contextPath));
+            if (Array.isArray(node.children)) {
+                for (const child of node.children) {
+                    preVisit(child, [...contextPath, node.name]);
+                }
+            }
+        };
+        for (const child of payload.children) {
+            preVisit(child, [payload.name || "project"]);
+        }
+
+        const resolveTypeRef = (type) => {
+            if (!type) return undefined;
+            const base = typeRef(type);
+            if (!base) return undefined;
+            if (type.type === "reference") {
+                const numericId = typeof type.target === "number" ? type.target : type.id;
+                if (numericId != null) {
+                    const canonicalId = typedocIdMap.get(numericId);
+                    if (canonicalId) {
+                        return { ...base, link: canonicalId };
+                    }
+                }
+            }
+            return base;
+        };
+
         const nodes = [];
         const roots = [];
 
@@ -233,13 +279,43 @@ export class TypeDocNormalizer extends Normalizer {
                 : [];
             const allExamples = [...nodeExamples, ...sigExamples];
 
+            let typeDefinition;
+            let nodeMembers;
+            if (kind === "type" && node.type) {
+                if (node.type.type === "reflection" && node.type.declaration?.children?.length) {
+                    nodeMembers = node.type.declaration.children.map((prop) =>
+                        compact({
+                            name: prop.name,
+                            kind: "property",
+                            type: resolveTypeRef(prop.type),
+                            description: textFromComment(prop.comment),
+                        }),
+                    );
+                } else {
+                    const typeName = typeToString(node.type);
+                    if (typeName && typeName !== "unknown") {
+                        typeDefinition = { name: typeName };
+                    }
+                }
+            }
+
+            let propertyType;
+            if ((kind === "property" || kind === "method") && node.type) {
+                propertyType = resolveTypeRef(node.type);
+            }
+
             const docNode = compact({
                 id,
                 kind,
                 name: node.name,
                 description,
                 children: [],
-                signatures: Array.isArray(node.signatures) ? node.signatures.map(signatureFromNode) : undefined,
+                signatures: Array.isArray(node.signatures)
+                    ? node.signatures.map((sig) => signatureFromNode(sig, resolveTypeRef))
+                    : undefined,
+                members: nodeMembers,
+                typeDefinition,
+                propertyType,
                 examples: allExamples.length ? allExamples : undefined,
                 source,
                 extensions: {

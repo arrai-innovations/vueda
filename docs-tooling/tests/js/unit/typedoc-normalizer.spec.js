@@ -312,4 +312,260 @@ describe("TypeDocNormalizer", () => {
         expect(varNode.examples[0].lang).toBe("js");
         expect(varNode.examples[0].content).toContain("console.log(PI)");
     });
+
+    it("captures typeDefinition for a simple type alias (intrinsic)", async () => {
+        const normalizer = new TypeDocNormalizer();
+        const payload = {
+            name: "vueda",
+            children: [
+                {
+                    id: 1,
+                    name: "theme",
+                    kind: 2,
+                    children: [
+                        {
+                            id: 2,
+                            name: "SpotName",
+                            kind: 2097152,
+                            comment: { summary: [{ kind: "text", text: "The unique name of a spot." }] },
+                            type: { type: "intrinsic", name: "string" },
+                        },
+                    ],
+                },
+            ],
+        };
+
+        const output = normalizer.normalize(payload);
+        await assertCanonical(output);
+
+        const typeNode = output.nodes.find((n) => n.name === "SpotName");
+        expect(typeNode.kind).toBe("type");
+        expect(typeNode.typeDefinition).toBeDefined();
+        expect(typeNode.typeDefinition.name).toBe("string");
+        expect(typeNode.members).toBeUndefined();
+    });
+
+    it("sets link on typeRef when return type references a known declaration", async () => {
+        const normalizer = new TypeDocNormalizer();
+        const payload = {
+            name: "vueda",
+            children: [
+                {
+                    id: 1,
+                    name: "api",
+                    kind: 2,
+                    children: [
+                        {
+                            id: 10,
+                            name: "ResultType",
+                            kind: 256,
+                            comment: { summary: [{ kind: "text", text: "The result type." }] },
+                        },
+                        {
+                            id: 11,
+                            name: "getResult",
+                            kind: 64,
+                            comment: { summary: [{ kind: "text", text: "Get a result." }] },
+                            signatures: [
+                                {
+                                    id: 12,
+                                    name: "getResult",
+                                    parameters: [],
+                                    type: { type: "reference", target: 10, name: "ResultType" },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        const output = normalizer.normalize(payload);
+        await assertCanonical(output);
+
+        const fnNode = output.nodes.find((n) => n.name === "getResult");
+        const returns = fnNode.signatures[0].returns;
+        expect(returns.name).toBe("ResultType");
+        expect(returns.link).toBe("js:interface:vueda.api.ResultType");
+    });
+
+    it("omits link on typeRef when reference id is not in the map", async () => {
+        const normalizer = new TypeDocNormalizer();
+        const payload = {
+            name: "vueda",
+            children: [
+                {
+                    id: 1,
+                    name: "api",
+                    kind: 2,
+                    children: [
+                        {
+                            id: 20,
+                            name: "fetchData",
+                            kind: 64,
+                            comment: { summary: [{ kind: "text", text: "Fetch some data." }] },
+                            signatures: [
+                                {
+                                    id: 21,
+                                    name: "fetchData",
+                                    parameters: [],
+                                    type: { type: "reference", target: 999, name: "ExternalType" },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        const output = normalizer.normalize(payload);
+        await assertCanonical(output);
+
+        const fnNode = output.nodes.find((n) => n.name === "fetchData");
+        const returns = fnNode.signatures[0].returns;
+        expect(returns.name).toBe("ExternalType");
+        expect(returns.link).toBeUndefined();
+    });
+
+    it("captures propertyType for a property node with an intrinsic type", async () => {
+        const normalizer = new TypeDocNormalizer();
+        const payload = {
+            name: "vueda",
+            children: [
+                {
+                    id: 1,
+                    name: "forms",
+                    kind: 2,
+                    children: [
+                        {
+                            id: 2,
+                            name: "clearErrors",
+                            kind: 1024,
+                            comment: { summary: [{ kind: "text", text: "Clears all form errors." }] },
+                            type: { type: "intrinsic", name: "boolean" },
+                        },
+                    ],
+                },
+            ],
+        };
+
+        const output = normalizer.normalize(payload);
+        await assertCanonical(output);
+
+        const propNode = output.nodes.find((n) => n.name === "clearErrors");
+        expect(propNode.kind).toBe("property");
+        expect(propNode.propertyType).toBeDefined();
+        expect(propNode.propertyType.name).toBe("boolean");
+        expect(propNode.typeDefinition).toBeUndefined();
+    });
+
+    it("produces a function signature string for a callable reflection property", async () => {
+        const normalizer = new TypeDocNormalizer();
+        const payload = {
+            name: "vueda",
+            children: [
+                {
+                    id: 1,
+                    name: "forms",
+                    kind: 2,
+                    children: [
+                        {
+                            id: 2,
+                            name: "clearErrors",
+                            kind: 1024,
+                            comment: {
+                                summary: [{ kind: "text", text: "Clears all errors associated with this field." }],
+                            },
+                            type: {
+                                type: "reflection",
+                                declaration: {
+                                    kind: 65536,
+                                    signatures: [
+                                        {
+                                            kind: 4096,
+                                            parameters: [
+                                                {
+                                                    name: "childIndex",
+                                                    flags: {},
+                                                    type: { type: "intrinsic", name: "number" },
+                                                },
+                                            ],
+                                            type: { type: "intrinsic", name: "void" },
+                                        },
+                                    ],
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        };
+
+        const output = normalizer.normalize(payload);
+        await assertCanonical(output);
+
+        const propNode = output.nodes.find((n) => n.name === "clearErrors");
+        expect(propNode.kind).toBe("property");
+        expect(propNode.propertyType).toBeDefined();
+        expect(propNode.propertyType.name).toBe("(childIndex: number) => void");
+    });
+
+    it("captures members for a type alias with an object reflection shape", async () => {
+        const normalizer = new TypeDocNormalizer();
+        const payload = {
+            name: "vueda",
+            children: [
+                {
+                    id: 1,
+                    name: "theme",
+                    kind: 2,
+                    children: [
+                        {
+                            id: 2,
+                            name: "ComponentConfig",
+                            kind: 2097152,
+                            comment: { summary: [{ kind: "text", text: "Config for a component." }] },
+                            type: {
+                                type: "reflection",
+                                declaration: {
+                                    id: 3,
+                                    kind: 65536,
+                                    children: [
+                                        {
+                                            id: 4,
+                                            name: "defaultVariant",
+                                            kind: 1024,
+                                            type: { type: "reference", name: "VariantName" },
+                                        },
+                                        {
+                                            id: 5,
+                                            name: "spots",
+                                            kind: 1024,
+                                            type: {
+                                                type: "array",
+                                                elementType: { type: "reference", name: "SpotName" },
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        };
+
+        const output = normalizer.normalize(payload);
+        await assertCanonical(output);
+
+        const typeNode = output.nodes.find((n) => n.name === "ComponentConfig");
+        expect(typeNode.kind).toBe("type");
+        expect(typeNode.members).toBeDefined();
+        expect(typeNode.members).toHaveLength(2);
+        expect(typeNode.members[0].name).toBe("defaultVariant");
+        expect(typeNode.members[0].type.name).toBe("VariantName");
+        expect(typeNode.members[1].name).toBe("spots");
+        expect(typeNode.members[1].type.name).toBe("SpotName[]");
+        expect(typeNode.typeDefinition).toBeUndefined();
+    });
 });

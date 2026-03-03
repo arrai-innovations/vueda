@@ -84,6 +84,8 @@
                     "type": "array",
                     "items": { "type": "string" }
                 },
+                "typeDefinition": { "$ref": "#/$defs/TypeRef" },
+                "propertyType": { "$ref": "#/$defs/TypeRef" },
                 "source": { "$ref": "#/$defs/SourceLocation" },
                 "extensions": {
                     "type": "object"
