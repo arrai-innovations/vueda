@@ -34,6 +34,41 @@ const payload = {
     ],
 };
 
+const payloadWithExamples = {
+    name: "vueda",
+    children: [
+        {
+            id: 1,
+            name: "strings",
+            kind: 2,
+            children: [
+                {
+                    id: 2,
+                    name: "shout",
+                    kind: 64,
+                    comment: { summary: [{ kind: "text", text: "Uppercases a string." }] },
+                    signatures: [
+                        {
+                            id: 3,
+                            name: "shout",
+                            parameters: [{ id: 4, name: "s", flags: {}, type: { type: "intrinsic", name: "string" } }],
+                            type: { type: "intrinsic", name: "string" },
+                            comment: {
+                                blockTags: [
+                                    {
+                                        tag: "@example",
+                                        content: [{ kind: "code", text: "```js\nshout('hello');\n// => 'HELLO'\n```" }],
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+    ],
+};
+
 function buildOutputs() {
     const bundle = new TypeDocNormalizer().normalize(payload);
     return renderTypeDocBundle(bundle);
@@ -88,5 +123,103 @@ describe("renderTypeDocBundle", () => {
             expect(content).toContain("kind:");
             expect(content).toContain('source: "typedoc"');
         }
+    });
+
+    it("module page annotates child links with descriptions when available", () => {
+        const outputs = buildOutputs();
+        const page = outputs.get("js/math.md");
+        // sum has a description "Add two numbers." which should appear on the module index
+        expect(page).toContain("Add two numbers.");
+    });
+});
+
+describe("renderTypeDocBundle with returns description", () => {
+    const payloadWithReturnsDesc = {
+        name: "vueda",
+        children: [
+            {
+                id: 1,
+                name: "math",
+                kind: 2,
+                children: [
+                    {
+                        id: 2,
+                        name: "double",
+                        kind: 64,
+                        comment: { summary: [{ kind: "text", text: "Double a number." }] },
+                        signatures: [
+                            {
+                                id: 3,
+                                name: "double",
+                                parameters: [
+                                    { id: 4, name: "n", flags: {}, type: { type: "intrinsic", name: "number" } },
+                                ],
+                                type: { type: "intrinsic", name: "number" },
+                                comment: {
+                                    blockTags: [
+                                        {
+                                            tag: "@returns",
+                                            content: [{ kind: "text", text: "The doubled value." }],
+                                        },
+                                    ],
+                                },
+                            },
+                        ],
+                        sources: [{ fileName: "client/lib/math.js", line: 10 }],
+                    },
+                ],
+            },
+        ],
+    };
+
+    function buildOutputsWithReturnsDesc() {
+        const bundle = new TypeDocNormalizer().normalize(payloadWithReturnsDesc);
+        return renderTypeDocBundle(bundle);
+    }
+
+    it("function page renders the @returns description text", () => {
+        const outputs = buildOutputsWithReturnsDesc();
+        const page = outputs.get("js/math/functions/double.md");
+        expect(page).toBeDefined();
+        expect(page).toContain("The doubled value.");
+    });
+
+    it("returns description appears after the return type name", () => {
+        const outputs = buildOutputsWithReturnsDesc();
+        const page = outputs.get("js/math/functions/double.md");
+        const typePos = page.indexOf("`number`");
+        const descPos = page.indexOf("The doubled value.");
+        expect(typePos).toBeGreaterThan(-1);
+        expect(descPos).toBeGreaterThan(typePos);
+    });
+});
+
+describe("renderTypeDocBundle with examples", () => {
+    function buildOutputsWithExamples() {
+        const bundle = new TypeDocNormalizer().normalize(payloadWithExamples);
+        return renderTypeDocBundle(bundle);
+    }
+
+    it("function page renders an Examples heading when @example is present", () => {
+        const outputs = buildOutputsWithExamples();
+        const page = outputs.get("js/strings/functions/shout.md");
+        expect(page).toBeDefined();
+        expect(page).toContain("## Examples");
+    });
+
+    it("function page renders the example code block with language tag", () => {
+        const outputs = buildOutputsWithExamples();
+        const page = outputs.get("js/strings/functions/shout.md");
+        expect(page).toContain("```js");
+        expect(page).toContain("shout('hello')");
+    });
+
+    it("Examples section appears after Signature section", () => {
+        const outputs = buildOutputsWithExamples();
+        const page = outputs.get("js/strings/functions/shout.md");
+        const sigPos = page.indexOf("## Signature");
+        const exPos = page.indexOf("## Examples");
+        expect(sigPos).toBeGreaterThan(-1);
+        expect(exPos).toBeGreaterThan(sigPos);
     });
 });

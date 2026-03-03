@@ -52,10 +52,22 @@ function docId(node, kind, contextPath = []) {
 }
 
 function textFromComment(comment) {
-    if (!comment || !Array.isArray(comment.summary)) {
+    if (!comment) {
         return undefined;
     }
-    return comment.summary.map((part) => part.text).join("");
+    if (Array.isArray(comment.summary)) {
+        const text = comment.summary.map((part) => part.text).join("");
+        if (text) {
+            return text;
+        }
+    }
+    if (Array.isArray(comment.blockTags)) {
+        const descTag = comment.blockTags.find((tag) => tag.tag === "@description");
+        if (descTag) {
+            return descTag.content?.map((part) => part.text).join("") || undefined;
+        }
+    }
+    return undefined;
 }
 
 function typeToString(type) {
@@ -139,6 +151,24 @@ function resolveKindName(node) {
     return KIND_NAME_MAP.get(node.kind);
 }
 
+function examplesFromBlockTags(blockTags) {
+    if (!blockTags || !blockTags.length) {
+        return undefined;
+    }
+    const exampleTags = blockTags.filter((tag) => tag.tag === "@example");
+    if (!exampleTags.length) {
+        return undefined;
+    }
+    return exampleTags.map((tag) => {
+        const raw = tag.content?.map((part) => part.text).join("") || "";
+        const fenceMatch = raw.match(/^\s*```(\w*)\n([\s\S]*?)\n?```\s*$/);
+        if (fenceMatch) {
+            return compact({ lang: fenceMatch[1] || undefined, content: fenceMatch[2] });
+        }
+        return { content: raw.trim() };
+    });
+}
+
 function signatureFromNode(signature) {
     const parameters = (signature.parameters || []).map((param) =>
         compact({
@@ -159,10 +189,25 @@ function signatureFromNode(signature) {
         }));
     }
 
+    let returns = typeRef(signature.type);
+    const returnsTag = blockTags.find((tag) => tag.tag === "@returns");
+    const returnsText =
+        returnsTag?.content
+            ?.map((part) => part.text)
+            .join("")
+            .trim() || undefined;
+    if (returns?.name === "object" && signature.type?.type === "reflection") {
+        if (returnsText) {
+            returns = { name: returnsText };
+        }
+    } else if (returnsText && returns) {
+        returns = { ...returns, description: returnsText };
+    }
+
     return compact({
         label: signature.name,
         parameters: parameters.length ? parameters : undefined,
-        returns: typeRef(signature.type),
+        returns,
         throws,
     });
 }
@@ -179,8 +224,14 @@ export class TypeDocNormalizer extends Normalizer {
         const visit = (node, contextPath = []) => {
             const kind = resolveKind(node);
             const id = docId(node, kind, contextPath);
-            const description = textFromComment(node.comment);
+            const description = textFromComment(node.comment) || textFromComment(node.signatures?.[0]?.comment);
             const source = sourceLocation(node.sources);
+
+            const nodeExamples = examplesFromBlockTags(node.comment?.blockTags) || [];
+            const sigExamples = Array.isArray(node.signatures)
+                ? node.signatures.flatMap((sig) => examplesFromBlockTags(sig.comment?.blockTags) || [])
+                : [];
+            const allExamples = [...nodeExamples, ...sigExamples];
 
             const docNode = compact({
                 id,
@@ -189,6 +240,7 @@ export class TypeDocNormalizer extends Normalizer {
                 description,
                 children: [],
                 signatures: Array.isArray(node.signatures) ? node.signatures.map(signatureFromNode) : undefined,
+                examples: allExamples.length ? allExamples : undefined,
                 source,
                 extensions: {
                     typedoc: {

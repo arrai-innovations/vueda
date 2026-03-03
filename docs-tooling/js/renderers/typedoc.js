@@ -32,7 +32,12 @@ function renderSignatures(node, filePath) {
         }
 
         if (signature.returns?.name) {
-            lines.push(renderHeading(3, "Returns"), "", renderCodeInline(signature.returns.name), "");
+            const returnsLines = [renderHeading(3, "Returns"), "", renderCodeInline(signature.returns.name)];
+            if (signature.returns.description) {
+                returnsLines.push("", signature.returns.description);
+            }
+            returnsLines.push("");
+            lines.push(...returnsLines);
         }
 
         if (signature.throws?.length) {
@@ -58,24 +63,45 @@ function renderChildrenSections(node, index, pathMap, filePath) {
 
     const lines = [];
 
+    const childLink = (child) => {
+        const link = linkToPath(child.name, pathMap.get(child.id), filePath);
+        if (!child.description) {
+            return link;
+        }
+        const summary = child.description.split(/\n/)[0].trimEnd();
+        return `${link} - ${summary}`;
+    };
+
     if (properties.length) {
         lines.push(renderHeading(2, "Properties"), "");
-        const items = properties.map((child) => linkToPath(child.name, pathMap.get(child.id), filePath));
-        lines.push(renderList(items), "");
+        lines.push(renderList(properties.map(childLink)), "");
     }
 
     if (methods.length) {
         lines.push(renderHeading(2, "Methods"), "");
-        const items = methods.map((child) => linkToPath(child.name, pathMap.get(child.id), filePath));
-        lines.push(renderList(items), "");
+        lines.push(renderList(methods.map(childLink)), "");
     }
 
     if (types.length) {
         lines.push(renderHeading(2, "Types"), "");
-        const items = types.map((child) => linkToPath(child.name, pathMap.get(child.id), filePath));
-        lines.push(renderList(items), "");
+        lines.push(renderList(types.map(childLink)), "");
     }
 
+    return lines.join("\n");
+}
+
+function renderExamples(node) {
+    if (!node.examples || !node.examples.length) {
+        return "";
+    }
+    const lines = [renderHeading(2, "Examples"), ""];
+    for (const example of node.examples) {
+        const lang = example.lang || "";
+        lines.push("```" + lang);
+        lines.push((example.content || "").trimEnd());
+        lines.push("```");
+        lines.push("");
+    }
     return lines.join("\n");
 }
 
@@ -105,6 +131,11 @@ export function renderTypeDocNode(node, index, filePath) {
     const signatureBlock = renderSignatures(node, filePath);
     if (signatureBlock) {
         lines.push(signatureBlock);
+    }
+
+    const examplesBlock = renderExamples(node);
+    if (examplesBlock) {
+        lines.push(examplesBlock);
     }
 
     const childrenBlock = renderChildrenSections(node, index, index.pathMap, filePath);
