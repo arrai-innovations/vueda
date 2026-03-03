@@ -68,7 +68,7 @@ The guard performs three steps:
 
 3. **Normalize and check** the route's action name. The alias `read` is normalized to `retrieve` before the membership check. If the normalized name is not in the assembled set, the guard denies the route with a toast and redirect.
 
-The `routeActions` config key restricts the action set to only the named actions. If set, actions not listed in `routeActions` are excluded from route admission, even if the server advertises them. Use this when a product surface should expose only a subset of the model's available actions. Note that the supported key is `routeActions`; the legacy key `routerActions` is ignored with a console warning.
+The `routeActions` config key restricts the action set to only the named actions. If set, actions not listed in `routeActions` are excluded from route admission, even if the server advertises them. Use this when a product surface should expose only a subset of the model's available actions.
 
 ## Component-Level Action Filtering
 
@@ -105,7 +105,7 @@ After wiring action availability, verify the following behaviors:
 
 **Action appears in model-info but not in `detail` view controls.** The action is filtered at object scope. Check the object's `available_actions` in the API response. If the action is absent, the object's permission state (workflow, row-level) is denying it. This is expected behavior, not a bug.
 
-**"Action Not Found" toast for a valid server action.** Check `config.routeActions`. If set, the action must be listed there to pass the route guard. Also check for the legacy `routerActions` key; it is silently ignored.
+**"Action Not Found" toast for a valid server action.** Check `config.routeActions`. If set, the action must be listed there to pass the route guard.
 
 **Route guard fails repeatedly for a model after a transient error.** The model-info store caches fetch errors. The cached error will be reused for all navigation attempts to that model until the store is reset or the page is reloaded.
 

@@ -140,7 +140,7 @@ With config overrides in place, verify the surface end-to-end:
 
 **Action button is missing from the view.** Check three things in order. First, confirm the action is present in the model-info response (`model_actions`); if not, the user may lack the permission. Second, check that the action is included in the `actions` config for that view. Third, verify that `actionDetails` has an entry for the action; a missing entry causes `useFilteredActions` to drop it.
 
-**"Action Not Found" toast on navigation.** `routeActions` is filtering the action out. Verify that `routeActions` uses server-canonical names (`retrieve`, `partial_update`, `destroy`) rather than client route names (`read`, `update`, `delete`). The `routerActions` spelling (with an extra `r`) is deprecated, ignored with a console warning, and has no effect.
+**"Action Not Found" toast on navigation.** `routeActions` is filtering the action out. Verify that `routeActions` uses server-canonical names (`retrieve`, `partial_update`, `destroy`) rather than client route names (`read`, `update`, `delete`).
 
 **Create/update form rejects a field on submission.** `submitFields` includes a field that the server serializer does not accept for write operations (for example, a read-only field or a field not in the serializer's `fields` list). The server returns a 400 with a field-keyed validation error. Align `submitFields` with the server serializer's writable fields.
 
