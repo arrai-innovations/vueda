@@ -23,9 +23,9 @@ A model exists in exactly one of three registration states:
 
 **Unregistered**: the model is invisible to model-info and the client. It may have a Django model class, migrations, database tables, and even serializers or viewsets defined in code, but none of that matters until registration occurs.
 
-**Serializer-only**: the model is visible in model-info with field schema and permission metadata, but without action, filter, or ordering metadata. This state exists to support metadata consumers that only need field shapes; for example, when the client needs to resolve field types for a related model referenced through an expand, but that related model does not need its own {@term CRUDL} surface.
+**Serializer-only**: the model is visible in model-info with field, expands, and permission metadata. It will have empty action, filter, and ordering metadata. This state exists to support metadata consumers that only need field shapes; for example, when the client needs to resolve field types for a related model referenced through an expand, but that related model does not need its own {@term CRUDL} surface. Expands metadata is provided, to allow expansion through this model into other models that may be register fully or serializer only.
 
-**Fully registered** (serializer + viewset): the model is visible with complete metadata, including fields, actions, filters, ordering, and permissions. This is the state required for the client to generate a functional UI surface for the model, with routes, forms, and views.
+**Fully registered** (serializer + viewset): the model is visible with complete metadata, including fields, expands, actions, filters, ordering, and permissions. This is the state required for the client to generate a functional UI surface for the model, with routes, forms, and views.
 
 Only certain transitions between states are valid:
 
@@ -40,7 +40,7 @@ The canonical serializer is unique per model. Two Django apps cannot register di
 
 The distinction between serializer-only and full registration is architecturally significant because it determines which sections of the metadata response exist.
 
-Serializer-only registration produces a model-info entry containing field schema (types, constraints, read-only markers, choice indicators) and permission codenames. This is enough for metadata consumers that need to understand the shape of a model's data, like resolving field types for related-model choice lookups, but it is not enough to generate a CRUDL surface. Without a viewset, there are no actions to advertise, no filter definitions to expose, and no ordering capabilities to declare.
+Serializer-only registration produces a model-info entry containing field and expand schema (types, constraints, read-only markers, choice indicators) and permission codenames. This is enough for metadata consumers that need to understand the shape of a model's data, like resolving field types for related-model choice lookups, but it is not enough to generate a CRUDL surface. Without a viewset, there are no actions to advertise, no filter definitions to expose, and no ordering capabilities to declare. A serializer-only model can be used for an inline model that is saved along with its parent model and has its data loaded through expandable fields.
 
 Full registration produces the complete metadata surface. Actions (CRUDL plus any extra actions defined on the viewset), filter definitions, and ordering capabilities are all derived from the viewset. The serializer alone cannot express these; they depend on viewset configuration, permission checks, and router integration that only exist when a viewset is present.
 
@@ -56,11 +56,12 @@ Performing registration at import time or module scope risks content-type resolu
 class MyAppConfig(AppConfig):
     def ready(self):
         from vueda.info.registration import register
-        from .models import MyModel
+        from .serializers import InlineExpandedModelSerializer
         from .serializers import MyModelSerializer
         from .viewsets import MyModelViewSet
 
-        register(MyModel, MyModelSerializer, MyModelViewSet)
+        register(MyModelSerializer, MyModelViewSet)
+        register_serializer(InlineExpandedModelSerializer)
 ```
 
 This pattern is consistent across VUEDA's own modules: `vueda.vdq`, `vueda.user`, and `vueda.release` all register their models in `ready()`.
@@ -69,7 +70,7 @@ This pattern is consistent across VUEDA's own modules: `vueda.vdq`, `vueda.user`
 
 The model-info viewset does not perform ORM introspection or scan installed apps. Its list and `detail` endpoints are derived exclusively from the set of registered models. If the registry is empty, model-info returns an empty list. If a specific model is requested that is not in the registry, model-info returns a 404.
 
-That 404 is indistinguishable from a request for a nonexistent URL. There is no special "unregistered" status code or error message. From the perspective of any API consumer, an unregistered model simply does not exist. The metadata response includes which sections are present and which fields and actions are advertised; this is determined entirely by the registration state described above.
+These 404s can only be distinguished by the content they return. A non existing model will return json data about the error. A hit to a nonexistent url will return html.
 
 ## Client Discovery and the Trust Boundary
 
@@ -81,15 +82,15 @@ The client does not distinguish between "unregistered" and "nonexistent." Both p
 
 ## Failure Modes
 
-**Serializer-only registration without a viewset** leaves the model visible in model-info but without action, filter, or ordering metadata. The client can see the model's fields, but cannot generate CRUDL routes or forms for it. This can produce confusing behaviour: the model appears to exist, but nothing functional can be done with it, and it is usually the result of an incomplete registration rather than intentional design.
+**Serializer-only registration without a viewset** leaves the model visible in model-info but without action, filter, or ordering metadata. The client can see the model's fields and generate inline forms via expandable fields, but cannot generate CRUDL routes for it. If the model needs CRUDL routes, actions, filters, or ordering metadata, then it must be registered with a viewset.
 
 **Registration at import time** can cause content-type resolution failures or ordering-dependent import errors. These surface as startup crashes that may be difficult to diagnose because the error messages reference content types or models that appear to be correctly defined. The fix is always to move registration into `AppConfig.ready()`.
 
-**Duplicate canonical serializers** fail at startup. If two apps each attempt to register a different serializer as the canonical serializer for the same model, the second registration call raises an error. The canonical serializer must be unique across the entire project.
+**Duplicate canonical serializers** fail at startup. If two apps each attempt to register a different serializer as the canonical serializer for the same model, the second registration call raises an error. The only case where this would work, is if the first registration call is to `register_serializer` and the second to `register`, which causes the registation to be upgraded to include the viewset.
 
 **Cached 404 errors on the client** block discovery of models that are registered after the client has loaded. There is no automatic cache invalidation for this case; a page reload is required.
 
-**Registry accessor mutations** have no effect. The registry's accessor functions return defensive copies. Code that retrieves a registration entry and modifies it will not change the actual registry state. The registry is effectively immutable after startup.
+**Registry accessor mutations** have no effect. The registry's accessor functions return defensive copies. Code that retrieves a registration entry and modifies it will not change the actual registry state. The registry is effectively immutable after startup, unless you modify \_registry directly, which is not advised.
 
 ## Relevant Implementation Surface
 
