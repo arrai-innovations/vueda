@@ -25,7 +25,7 @@ A module that does not extend the `vueda.core` or `vueda.history` base classes, 
 
 **Metadata and discovery** (`vueda.info`) exposes canonical registration and model-info endpoints. This is the bridge between server-side model definitions and client-side UI generation. It derives field shapes, available actions, filtering and ordering capabilities, and permission lists from whatever the domain infrastructure layer defines. Without this layer, the client has no contract to consume. The metadata and discovery layer is covered in detail in [Canonical Registration and Model Discovery](./canonical-registration-and-discovery) and [Server-Client Metadata Contract](./server-client-metadata-contract).
 
-**Stateful lifecycle** (`vueda.workflow`, `vueda.vdq`) encodes state machines and asynchronous dispatch workflows. Workflow transitions are enforced server-side and reflected in metadata; available actions change based on the object's state. The dispatch queue (VDQ) delegates long-running work, such as email and SMS delivery, to a worker process while maintaining state visibility through the same workflow mechanism.
+**Stateful lifecycle** (`vueda.workflow`, `vueda.vdq`) encodes state machines and asynchronous dispatch workflows. Workflow transitions are enforced server-side and reflected in metadata; available actions change based on the object's state. The dispatch queue (VDQ) delegates potentially long-running work, such as email and SMS delivery, to a worker process while maintaining state visibility through the same workflow mechanism.
 
 **Cross-cutting concerns** (`vueda.user`, `vueda.history`) handle authentication, session management, TOTP two-factor authentication, and audit history. These cut across all domain modules but do not define the architectural shape; they are consumed by the layers above.
 
@@ -45,7 +45,7 @@ The client is a Vue single-page application that generates its UI entirely from 
 
 Three processes make up the runtime system. They share a database and cache but are otherwise isolated.
 
-The **web process** (WSGI) handles all synchronous request/response work: CRUD operations, metadata queries, workflow transitions, authentication, and webhook ingestion. All database writes in a request are wrapped in a transaction (`ATOMIC_REQUESTS`). Any unhandled exception causes the entire request to roll back. No partial writes persist.
+The **web process** (WSGI) handles all synchronous request/response work: CRUDL operations, metadata queries, workflow transitions, authentication, and webhook ingestion. All database writes in a request are wrapped in a transaction (`ATOMIC_REQUESTS`). Any unhandled exception causes the entire request to roll back. No partial writes persist.
 
 The **worker process** (Celery) handles asynchronous dispatch: email delivery, SMS delivery, and periodic status checks. Workers share the same database, cache, and Django settings as the web process, but they do not have access to HTTP request context or middleware. State changes to worker tasks follow the same workflow transition rules as the web process; there is no separate permission model for background work. However, because workers lack request context, any logic that depends on the current user or session must be passed explicitly rather than inferred from middleware.
 
