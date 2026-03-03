@@ -1,3 +1,8 @@
+/**
+ * @module theme/vueda-tailwind/views
+ * @description Tailwind CSS pass-through theme configuration for vueda-client page and view-level components.
+ */
+
 export default {
     PageTitle: {
         root: ({ headerClass, sticky }) => ({

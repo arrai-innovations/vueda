@@ -1,3 +1,7 @@
+/**
+ * @module use/useLinkModelView
+ * @description Computes the href and navigation handler for a model-view link, disabling the action when a required primary key is absent.
+ */
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";

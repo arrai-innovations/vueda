@@ -1,3 +1,7 @@
+/**
+ * @module use/useSlotNameGrouper
+ * @description Organises available slots into named prefix groups for a given field, returning grouped slots, unmatched remainder, and a helper to check group presence.
+ */
 import { getSlotNamesFor } from "@vueda/utils/rendererSupport.js";
 import { computed, reactive, readonly, unref } from "vue";
 

@@ -1,3 +1,7 @@
+/**
+ * @module use/useModelInitialValues
+ * @description Derives sensible initial values for each field of a model based on field type mappings, supporting both create and edit scenarios.
+ */
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
 import { filterExpressions } from "@vueda/utils/filterLookups.js";
 import isEqual from "lodash-es/isEqual.js";

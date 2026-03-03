@@ -1,3 +1,7 @@
+/**
+ * @module stores/storeDarkMode
+ * @description Pinia store for tracking and persisting the user's dark mode preference via localStorage.
+ */
 import { defineStore } from "pinia";
 
 const darkModeLocalStorageKey = "darkMode";

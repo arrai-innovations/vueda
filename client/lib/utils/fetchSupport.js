@@ -1,3 +1,7 @@
+/**
+ * @module utils/fetchSupport
+ * @description Low-level fetch helper that decodes responses and wraps failures in typed errors.
+ */
 import { FetchError } from "@vueda/utils/errors.js";
 
 /**

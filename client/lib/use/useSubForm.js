@@ -1,3 +1,7 @@
+/**
+ * @module use/useSubForm
+ * @description Creates a child form context that delegates submission and loading state to a parent form context, scoped to an optional parent path.
+ */
 import { del, flattenPathsWithValues, keyDiff } from "@arrai-innovations/reactive-helpers";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import get from "lodash-es/get.js";

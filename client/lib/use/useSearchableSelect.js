@@ -1,3 +1,7 @@
+/**
+ * @module use/useSearchableSelect
+ * @description Manages state and data-fetching for a searchable select widget, supporting pagination, debounced search, grouping, and lazy loading of remote options.
+ */
 import { deepUnref, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useResolvedLookupObject } from "@vueda/use/useResolvedLookupObject.js";

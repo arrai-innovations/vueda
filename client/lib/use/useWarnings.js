@@ -1,3 +1,7 @@
+/**
+ * @module use/useWarnings
+ * @description Handles form data retrieval and submission with integrated warning/confirmation support, surfacing server-side validation errors back to the form context.
+ */
 import { ObjectError, assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";

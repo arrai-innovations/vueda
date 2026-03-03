@@ -1,3 +1,7 @@
+/**
+ * @module router/makeCrud
+ * @description Generates Vue Router route records for CRUD views with configurable auth and group guards.
+ */
 import { requireAuth, requireGroups, requireModelInfo } from "@vueda/router/guards.js";
 
 /**

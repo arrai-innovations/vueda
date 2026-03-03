@@ -1,3 +1,7 @@
+/**
+ * @module utils/buildForm
+ * @description Builds and manages reactive form state, resolving field and widget components from configuration and props.
+ */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";

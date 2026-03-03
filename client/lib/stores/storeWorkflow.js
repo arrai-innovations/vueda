@@ -1,3 +1,7 @@
+/**
+ * @module stores/storeWorkflow
+ * @description Pinia store for fetching and caching workflow states, available transitions, history, and executing transitions for model objects.
+ */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";

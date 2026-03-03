@@ -1,3 +1,7 @@
+/**
+ * @module use/useFieldSetInline
+ * @description Manages an inline field-set (repeatable child rows) within a form, handling row addition, deletion, reordering, and slot resolution.
+ */
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { FIELD_PROPS } from "@vueda/use/useField.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";

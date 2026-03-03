@@ -1,3 +1,8 @@
+/**
+ * @module utils/duration
+ * @description Parses and serializes Django-style duration strings (D HH:MM:SS) to and from plain objects.
+ */
+
 const durationRegExp = /^(?:(\d+)\s+)?(\d{2}):(\d{2}):(\d{2})$/;
 
 export function parseDuration(durationString) {

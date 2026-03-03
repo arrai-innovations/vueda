@@ -1,3 +1,8 @@
+/**
+ * @module router/routerComponent
+ * @description Defines and exports the default CRUD view component map with support for consumer overrides.
+ */
+
 const defaultCrudComponents = {
     list: async () => (await import("@vueda/views/ViewList.vue")).default,
     create: async () => (await import("@vueda/views/ViewCreate.vue")).default,

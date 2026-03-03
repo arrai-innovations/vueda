@@ -1,4 +1,9 @@
 /**
+ * @module utils/rendererSupport
+ * @description Helpers for resolving prefixed Vue slot names used by field and widget renderer components.
+ */
+
+/**
  * Helper to get slot names with a specific prefix, excluding certain slots.
  *
  * @param {{[slotName: string]: any}} slots - The slots object

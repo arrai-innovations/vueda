@@ -1,3 +1,7 @@
+/**
+ * @module use/useFieldSetTabularInline
+ * @description Extends the inline field-set composable with responsive breakpoint logic to switch between table and stacked display modes.
+ */
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
 import { useTheme } from "@vueda/use/useTheme.js";

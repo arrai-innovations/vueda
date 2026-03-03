@@ -1,3 +1,8 @@
+/**
+ * @module theme/register
+ * @description Provides get/set accessors for the global PrimeVue preset used by vueda-client widgets.
+ */
+
 let primeVuePreset = null;
 
 /**

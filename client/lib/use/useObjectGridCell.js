@@ -1,3 +1,7 @@
+/**
+ * @module use/useObjectGridCell
+ * @description Computes the formatted and raw values for a single grid cell from an object, related object, or calculated object.
+ */
 import { unifiedGet } from "@vueda/utils/unifiedGet.js";
 import { computed } from "vue";
 

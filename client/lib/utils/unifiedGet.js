@@ -1,3 +1,7 @@
+/**
+ * @module utils/unifiedGet
+ * @description Retrieves a value from a plain, related, or calculated object based on a namespaced field path.
+ */
 import get from "lodash-es/get.js";
 
 export const unifiedGet = (obj, relatedObj, calculatedObj, fieldPath) => {

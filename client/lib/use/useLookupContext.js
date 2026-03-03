@@ -1,3 +1,7 @@
+/**
+ * @module use/useLookupContext
+ * @description Creates and provides a shared lookup context that batches and deduplicates object fetch requests across multiple consumers.
+ */
 import { CancellablePromise, deepUnref, useList, useObject } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";

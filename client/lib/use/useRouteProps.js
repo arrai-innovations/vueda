@@ -1,3 +1,7 @@
+/**
+ * @module use/useRouteProps
+ * @description Returns a computed ref of the resolved route props for the first matched route, supporting both object and function prop definitions.
+ */
 import isFunction from "lodash-es/isFunction.js";
 import { computed } from "vue";
 import { useRoute } from "vue-router";

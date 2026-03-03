@@ -1,3 +1,7 @@
+/**
+ * @module stores/storeModelChoices
+ * @description Pinia store for fetching and caching field-level choice lists for Django model fields and filters.
+ */
 import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { PAGE_SIZE_PARAM } from "@vueda/utils/constants.js";

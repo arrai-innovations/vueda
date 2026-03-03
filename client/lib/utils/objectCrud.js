@@ -1,3 +1,7 @@
+/**
+ * @module utils/objectCrud
+ * @description VUEDA-specific object CRUD functions (retrieve, create, update, patch, delete) for a single model instance.
+ */
 import { cancellableFetch, setObjectCrud } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";

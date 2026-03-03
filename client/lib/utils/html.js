@@ -1,3 +1,7 @@
+/**
+ * @module utils/html
+ * @description Utilities for escaping, sanitizing, and detecting HTML in user-supplied strings.
+ */
 import DOMPurify from "dompurify";
 import isObject from "lodash-es/isObject.js";
 import isString from "lodash-es/isString.js";

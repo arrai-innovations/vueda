@@ -1,3 +1,7 @@
+/**
+ * @module use/useFilteredActions
+ * @description Returns the subset of model actions that the current user is permitted to perform, based on model config and user group membership.
+ */
 import { useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";

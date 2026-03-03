@@ -1,4 +1,7 @@
-// useWarningClass.js
+/**
+ * @module use/useWarningClass
+ * @description Applies a warning CSS class via PrimeVue passthrough while preserving any externally supplied passthrough options.
+ */
 import { getPrimeVuePreset } from "@vueda/theme/register.js";
 import { usePassThrough } from "primevue/passthrough";
 import { computed, ref, watchEffect } from "vue";

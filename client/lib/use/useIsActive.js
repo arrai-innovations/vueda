@@ -1,3 +1,7 @@
+/**
+ * @module use/useIsActive
+ * @description Returns a readonly boolean ref that tracks whether the current component is mounted and active (not deactivated by keep-alive).
+ */
 import { onActivated, onDeactivated, onMounted, readonly, ref } from "vue";
 
 /**

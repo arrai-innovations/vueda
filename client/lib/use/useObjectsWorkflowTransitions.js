@@ -1,3 +1,7 @@
+/**
+ * @module use/useObjectsWorkflowTransitions
+ * @description Fetches and tracks the available workflow transitions for a specific set of object primary keys, preserving deep reactivity across changes to app, model, or PKs.
+ */
 import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { getUsingVuedaWorkflow, storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";

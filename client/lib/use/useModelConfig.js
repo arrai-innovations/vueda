@@ -1,3 +1,7 @@
+/**
+ * @module use/useModelConfig
+ * @description Provides a reactive, view-aware model configuration by combining server model info with client-side config store data.
+ */
 import { useLoadingError, useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { useIsActive } from "@vueda/use/useIsActive";

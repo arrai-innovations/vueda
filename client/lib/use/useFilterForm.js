@@ -1,3 +1,7 @@
+/**
+ * @module use/useFilterForm
+ * @description Manages reactive filter form values, translating field-type-specific initial values and range fields into URL-ready query parameters.
+ */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
@@ -60,7 +64,7 @@ const FilterFieldMappings = {
 /**
  * @typedef {object} UseFilterFieldProps
  * @property {string} filterName - The name for the filter.
- * @property {{filterName: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - each available filter details, by filter name
+ * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - each available filter details, by filter name
  */
 
 /**

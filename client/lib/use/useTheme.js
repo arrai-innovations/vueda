@@ -1,3 +1,7 @@
+/**
+ * @module use/useTheme
+ * @description Resolves and caches component theme classes by merging the default theme with inherited and local overrides.
+ */
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";

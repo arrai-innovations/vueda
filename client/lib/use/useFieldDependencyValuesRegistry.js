@@ -1,3 +1,7 @@
+/**
+ * @module use/useFieldDependencyValuesRegistry
+ * @description Maintains a registry of reactive dependency-path values for form fields, enabling fields to observe other form values they depend on.
+ */
 import { keyDiff } from "@arrai-innovations/reactive-helpers";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";

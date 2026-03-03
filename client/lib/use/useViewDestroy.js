@@ -1,3 +1,7 @@
+/**
+ * @module use/useViewDestroy
+ * @description Provides reactive instance deletion support for a view screen, including bulk delete and error handling.
+ */
 import { useList } from "@arrai-innovations/reactive-helpers";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";

@@ -1,3 +1,8 @@
+/**
+ * @module theme/vueda-tailwind/objects-grid
+ * @description Tailwind CSS pass-through theme configuration for vueda-client ObjectsGrid and related table/card components.
+ */
+
 export default {
     ObjectsGrid: {
         root: {

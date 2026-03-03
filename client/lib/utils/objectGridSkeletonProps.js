@@ -1,3 +1,8 @@
+/**
+ * @module utils/objectGridSkeletonProps
+ * @description Returns skeleton loader dimension props appropriate for each field type in an object grid.
+ */
+
 export function getSkeletonPropsForField(field) {
     if (!field) {
         return { width: "100%", height: "1.5rem" };

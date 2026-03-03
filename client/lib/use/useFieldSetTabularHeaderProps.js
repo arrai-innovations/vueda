@@ -1,3 +1,7 @@
+/**
+ * @module use/useFieldSetTabularHeaderProps
+ * @description Derives reactive header props (label, help, required, invalid, readOnly) for a tabular fieldset column from the form model and form context.
+ */
 import { computed, unref } from "vue";
 
 // Warning: This file makes assumptions about various form, field, and widget context behaviors,

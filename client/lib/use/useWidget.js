@@ -1,3 +1,7 @@
+/**
+ * @module use/useWidget
+ * @description Provides the shared props, emits, and reactive context for form widget components, bridging field context with widget-level value handling and validation state.
+ */
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import isEqual from "lodash-es/isEqual.js";
 import { computed, inject, onUnmounted, provide, reactive, readonly, ref, toRef, unref, watch } from "vue";

@@ -1,3 +1,7 @@
+/**
+ * @module use/useField
+ * @description Provides reactive field context including value tracking, validation, required-state, and server error handling for individual form fields.
+ */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";

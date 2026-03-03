@@ -1,3 +1,7 @@
+/**
+ * @module utils/urls
+ * @description Provides URL templates and builder functions for all VUEDA API endpoints.
+ */
 import { unwrapNested } from "@arrai-innovations/reactive-helpers";
 import { getServerActionName, getServerRoutePart } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";

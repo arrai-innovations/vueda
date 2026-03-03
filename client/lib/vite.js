@@ -1,3 +1,7 @@
+/**
+ * @module vite
+ * @description Exports a Vite configuration helper that sets up aliases, symlink fixes, and runtime optimisations for vueda-client projects.
+ */
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";

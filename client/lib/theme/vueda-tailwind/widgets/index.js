@@ -1,3 +1,8 @@
+/**
+ * @module theme/vueda-tailwind/widgets
+ * @description Tailwind CSS pass-through theme configuration for vueda-client form widget components.
+ */
+
 export default {
     WidgetAutoComplete: {
         root: {
