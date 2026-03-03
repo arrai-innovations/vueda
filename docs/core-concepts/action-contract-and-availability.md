@@ -31,7 +31,7 @@ The router extends DRF's default route generation to support the bulk partition.
 
 ## Model-Scope Action Metadata
 
-The model-info endpoint ({@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}) emits `model_actions` as a list of action descriptors, each containing the action's `name`, `detail` and `bulk` flags, supported HTTP methods (`method_names`), and optional `parameters` and `detail_args`.
+The model-info endpoint ({@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}) emits `model_actions` as a list of action descriptors, each containing the action's `name`, short `description`, `detail` and `bulk` flags, supported HTTP methods (`method_names`), and optional `parameters` and `detail_args` (required `parameters`). The short `description` is derived from the action name, app label, and model name.
 
 Built-in action candidates are `list`, `retrieve`, `create`, `update`, `partial_update`, and `destroy`. Among the built-ins, `destroy` is flagged `bulk: true`. Non-list, non-create built-ins are flagged `detail: true` and include `detail_args` (defaulting to `["pk"]`). Each built-in action's `method_names` is derived from a fixed mapping: `list` and `retrieve` map to `get`, `create` to `post`, `update` to `put`, `partial_update` to `patch`, and `destroy` to `delete`.
 
@@ -45,7 +45,7 @@ When the canonical registration for a model has no viewset, only a serializer, `
 
 ## HTTP Method Mapping Metadata
 
-The `method_names` field on each action descriptor is a list of lowercase HTTP verb strings. On the server side, the field is emitted as `method_names` (snake_case). The client's model-info store normalizes all metadata keys to camelCase, so the same field appears as `methodNames` in client code.
+The `method_names` field on each action descriptor is a list of lowercase HTTP verb strings (`get`, `post`, `put`, `patch`, `delete`).
 
 For built-in actions, the method mapping is fixed and is defined by `METHOD_MAPPING` in the serializer. For extra actions, the methods are derived from the DRF action's `mapping` attribute, which reflects the `methods` argument passed to the `@action` decorator.
 
@@ -53,7 +53,7 @@ In the current client implementation, `method_names`/`methodNames` is descriptiv
 
 ## Object-Scope Availability Metadata
 
-While `model_actions` describes what actions exist for a model, `available_actions` describes what actions the requesting user can perform on a specific object. This field is computed per serialized instance and appears in `detail` responses.
+While `model_actions` describes what actions exist for a model, `available_actions` describes what actions the requesting user can perform on a specific object. This field is computed per serialized instance and appears in `detail` and `list` responses.
 
 The computation runs each standard action (retrieve, update, partial_update, destroy) through object-level permission checks. `create` is excluded for concrete instances; it applies at model scope, not object scope. The result is a list of action names for which the user has permission on that specific object.
 
@@ -63,7 +63,7 @@ The {@term Model-Scope vs Object-Scope Availability} distinction is fundamental 
 
 ## Client {@term Action Namespace} and {@term Route Admission}
 
-The client normalizes action names before performing {@term Route Admission} checks. The normalization maps aliases to canonical names; most notably, `read` is normalized to `retrieve`. This normalization ensures that route definitions using either name resolve consistently against the server-advertised action set.
+The client normalizes action names before performing {@term Route Admission} checks. The normalization maps aliases to canonical names; most notably, `read` is normalized to `retrieve`. This normalization ensures that route definitions using either name resolve consistently against the server-advertised action set. Action name values (e.g., partial_update) are string values, not object keys, and are not camelCased by the store normalization. Client code compares action names in their original snake_case form.
 
 Route admission is evaluated in the {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo} navigation guard. The guard fetches model-info for the target route's model, then checks whether the route's action name (after normalization) appears in the computed action set. The action set is assembled from three sources: the `model_actions` names from model-info, an optional `routeActions` filter from the model's config (which restricts the set to only named actions), and workflow transition codes (which extend the set with transition-specific routes).
 
@@ -91,6 +91,8 @@ For destroy operations, dry-run behaviour has specific response semantics. A dry
 
 Dry-run mode is intended for validation and simulation. It enables the client to preflight a mutation, checking whether the action would succeed and what validation errors would surface, without committing the change. The client should not redirect or emit success toasts after a dry-run response.
 
+For actions that directly or indirectly use a third party API or modify a third party database, make sure to use or pass `request.dry_run` through, so you can prevent changes when a dry-run is triggered.
+
 ## Failure Surface and Drift Patterns
 
 The layered contract exhibits several characteristic failure patterns when the layers are misaligned.
@@ -99,15 +101,7 @@ The layered contract exhibits several characteristic failure patterns when the l
 
 **Config over-restriction hides valid actions.** When `config.routeActions` is set too narrowly, server-advertised actions are excluded from the route admission set. The action exists on the server, model-info reports it, but the client-side filter removes it before the guard evaluates. The symptom is an "Action Not Found" toast and redirect, with no indication that the action was filtered by config rather than missing from the server.
 
-**Workflow transitions without string codes break guards.** The route guard evaluates transition availability by checking the transition's `code` property. If a transition object lacks a valid string `code`, the guard throws an error (`requireModelInfo: workflow transition is missing a string code`) rather than gracefully treating the transition as unavailable. This is an explicit validation failure that surfaces as a runtime exception rather than the normal toast-and-redirect flow.
-
-**Legacy config keys are silently ignored.** The supported route-filtering key is `routeActions`. The legacy key `routerActions` is ignored; a warning is logged once, but no error is thrown. If a project uses the legacy key, the expected route filtering simply does not happen.
-
 **Cached model-info errors persist across navigations.** When the model-info store encounters a fetch error, the error is cached and reused for all subsequent navigations to the same `app.model` key. Retrying the navigation does not trigger a refetch. The only recovery is a store reset or page reload. This can cause a transient server error to appear permanent to the user.
-
-**Method metadata is not a route gate.** Treating `method_names`/`methodNames` as a route admission signal is incorrect in the current client implementation. Route admission is via action-name membership. Code or tests that assume route denial due to a verb mismatch will not behave as expected.
-
-**OpenAPI prose can drift from runtime semantics.** The `method_names` field is generated from actual DRF mapping data, but OpenAPI documentation or prose descriptions of action semantics may not accurately reflect runtime `detail`/`list` partitioning. The authoritative source for whether an action is detail-scoped or list-scoped is the runtime behaviour and test expectations, not generated documentation text.
 
 ## Relevant Implementation Surface
 
