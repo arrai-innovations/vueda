@@ -280,6 +280,7 @@ const refFn = (state, el) => {
  * @property {{[slotName: string]: import('@vueda/use/useSlotNameResolver.js').ResolvedSlotName}} resolvedSlotNames - The resolved slot
  *  name instances by original slot name.
  * @property {BoundDoCreate} doCreate - The method to create a new object in the fieldset.
+ * @property {() => {[fieldName: string]: any}} getEmptyFieldObject - Returns an empty object with initial values for each field.
  * @property {BoundHandleSelected} handleSelected - The method to handle selected items.
  * @property {BoundRefFn} refFn - The method to add a reference to an item.
  * @property {BoundRemoveObject} removeObject - The method to remove an object from the fieldset.

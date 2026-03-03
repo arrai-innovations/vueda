@@ -14,7 +14,9 @@ import isSet from "lodash-es/isSet.js";
 import omit from "lodash-es/omit.js";
 import { computed, effectScope, toRef, watch } from "vue";
 
-/*
+/**
+ * Returns the slot names for a field's help, error, and message slots.
+ *
  * @param {string} formModelName - The name of the field's configuration in FormModel configuration.
  * @returns {string[]} The slot names for the field's help, error, and message slots.
  */

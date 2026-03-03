@@ -27,7 +27,8 @@ export const PASSTHROUGH_OPTION_PROPS = {
  *  passthroughs.
  *
  * @param {import("vue").PropType<PassthroughOptions>} props - The props for the passthrough.
- * @param {import("@vueda/use/useWidget.js").WidgetState} widgetState - The widget context.
+ * @param {import("@vueda/use/useWidget.js").WidgetContextState} widgetState - The widget context state.
+ * @returns {import('vue').Ref<object>} A ref containing the resolved PrimeVue passthrough options.
  */
 export function useWarningClass(props, widgetState) {
     const basePreset = getPrimeVuePreset();

@@ -68,4 +68,10 @@ export const sanitizeMessages = (messages) => {
 };
 
 export const tagRegex = /<\/?[a-z][\s\S]*>/i;
+/**
+ * Tests whether a string contains any HTML tags.
+ *
+ * @param {string} message - The string to test.
+ * @returns {boolean} True if the string contains HTML tags.
+ */
 export const containsHtml = (message) => tagRegex.test(message);

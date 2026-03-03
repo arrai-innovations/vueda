@@ -188,7 +188,7 @@ export const WIDGET_EMITS = ["update:modelValue"];
  *
  * @param {WidgetContextProps} props - The widget context's reactive props.
  * @param {import('vue').EmitFn} emit - The widget context's component emit function.
- * @return {WidgetContext} The widget context object.
+ * @returns {WidgetContext} The widget context object.
  */
 export function useWidget(props, emit) {
     /** @type {import('@vueda/use/useField.js').FieldContext|null} */

@@ -9,6 +9,8 @@ import set from "lodash-es/set.js";
 import { computed, inject, provide, reactive, readonly, toRef, unref, watch } from "vue";
 
 /**
+ * Creates a child form context that delegates submission and loading state to a parent form context, scoped to an optional path prefix.
+ *
  * @param {object} options - Options for the subform.
  * @param {import('vue').Ref<string>|string} [options.parentPath] - The path to the parent form.
  * @returns {import('@vueda/use/useForm').FormContext} - The sub form context for the subform.

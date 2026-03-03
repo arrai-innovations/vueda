@@ -412,6 +412,30 @@ export const storeModelConfig = defineStore("modelConfig", {
         initialized: {}, // a cache of promises for getConfig
     }),
     actions: {
+        /**
+         * Stores generic and view-specific model config overrides.
+         * @param {{app: string, model: string}} params - The app and model identifiers.
+         * @param {string} params.app - Django app label.
+         * @param {string} params.model - Model name.
+         * @param {OverridingModelConfig|null} [genericConfig] - Overrides applied to all views.
+         * @param {{[view: string]: OverridingModelConfig}|null} [specificConfigs] - Per-view overrides.
+         * @returns {void}
+         * @example
+         * ```js
+         * const store = storeModelConfig();
+         *
+         * store.setConfig(
+         *     { app: 'myapp', model: 'Widget' },
+         *     // generic (all views)
+         *     { displayFields: ['name', 'status'], sortables: ['name'] },
+         *     // view-specific overrides
+         *     {
+         *         list: { displayFields: ['name', 'status', 'created_at'] },
+         *         update: { submitFields: ['name', 'status'] },
+         *     },
+         * );
+         * ```
+         */
         setConfig({ app, model }, genericConfig = null, specificConfigs = null) {
             if (!app || !model) {
                 throw new Error("setConfig requires app and model");

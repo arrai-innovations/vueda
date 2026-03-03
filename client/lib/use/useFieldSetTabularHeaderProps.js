@@ -17,6 +17,8 @@ import { computed, unref } from "vue";
  */
 
 /**
+ * Returns computed header props (label, help, required, invalid, readOnly) for a field in tabular form mode.
+ *
  * @param {import('@vueda/use/useFormModel.js').UseFormModelState} formModel - The form model's reactive state.
  * @param {import('@vueda/use/useForm.js').FormContext} formContext - The form context object.
  * @param {import('vue').Ref<string>|string} formModelName - The full FormModel name of the field.

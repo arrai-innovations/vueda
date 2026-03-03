@@ -55,6 +55,19 @@ import { effectScope, reactive, readonly, ref, toRef, watch } from "vue";
  * @param {import('vue').Ref<string>|string} model - The model name
  * @param {import('vue').Ref<string>|string} [view] - What you are doing with the model
  * @returns {ModelConfigState} An object containing reactive fields and actions for create, update, read, and list views.
+ * @example
+ * ```vue
+ * <script setup>
+ * import { useModelConfig } from '@vueda/use/useModelConfig.js';
+ *
+ * const modelConfig = useModelConfig('myapp', 'Widget', 'list');
+ * // modelConfig.loading, modelConfig.config, modelConfig.info are all reactive
+ * </script>
+ * <template>
+ *   <div v-if="modelConfig.loading">Loading...</div>
+ *   <div v-else>{{ modelConfig.config.verboseName }}</div>
+ * </template>
+ * ```
  */
 export function useModelConfig(app, model, view) {
     if (!app || !model) {

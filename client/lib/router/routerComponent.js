@@ -16,6 +16,11 @@ const defaultCrudComponents = {
 
 export const crudComponents = { ...defaultCrudComponents };
 
+/**
+ * Merges custom CRUD view components into the global registry, overriding defaults.
+ *
+ * @param {{[actionName: string]: () => Promise<object>}} customComponents - A map of action names to lazy component importers.
+ */
 export function setCrudComponents(customComponents) {
     Object.assign(crudComponents, customComponents);
 }

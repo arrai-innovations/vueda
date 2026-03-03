@@ -158,6 +158,8 @@ function groupBy(objects, groupKey) {
  * @typedef {import('vue').Reactive<WidgetSearchableSelectRaw>} WidgetSearchableSelect
  */
 /**
+ * Manages reactive state and behavior for a searchable select widget, including lazy loading, pagination, and virtual scrolling.
+ *
  * @param {WidgetSearchableSelectProps} props - The props for the widget searchable select.
  * @param {import('../use/useWidget.js').WidgetContext} widgetContext - The widget context.
  * @param {object} selectRef - The ref for the primevue select component.

@@ -303,6 +303,9 @@ export function defaultObjectDelete({ target, pk, deleteArgs }) {
     return returnPromise;
 }
 
+/**
+ * Installs the default object CRUD adaptors for retrieve, create, update, patch, and delete.
+ */
 export function setupDefaultObjectCrud() {
     setObjectCrud({
         retrieve: defaultObjectRetrieve,

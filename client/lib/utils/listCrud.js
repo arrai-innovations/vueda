@@ -258,6 +258,9 @@ export function defaultObjectsDelete({ target, pks, dryRun }) {
     );
 }
 
+/**
+ * Installs the default list CRUD adaptor (single-page paginated list and bulk delete).
+ */
 export function setupDefaultListCrud() {
     setListCrud({
         list: singlePagePaginatedListCrudAdaptor,

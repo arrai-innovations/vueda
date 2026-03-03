@@ -81,6 +81,19 @@ const generateAliasesForLinkedPackage = (
     return aliases;
 };
 
+/**
+ * Returns a Vite plugin configuration object with aliases, runtime helpers, and optional symlink fixes for vueda.
+ *
+ * @param {object} [options] - Configuration options.
+ * @param {string} [options.root] - The project root directory. Defaults to process.cwd().
+ * @param {boolean} [options.enableSourceAlias] - Whether to enable source aliases. Defaults to true.
+ * @param {boolean} [options.enableSymlinkFixes] - Whether to enable symlink fixes. Defaults to true.
+ * @param {boolean} [options.enableRuntimeAliases] - Whether to enable runtime aliases. Defaults to true.
+ * @param {string[]} [options.excludePackages] - Packages to exclude from aliasing.
+ * @param {object} [options.extraAliases] - Additional aliases to include.
+ * @param {object} [options.optimizeDeps] - Vite optimizeDeps overrides.
+ * @returns {object} The Vite plugin configuration.
+ */
 export const vuedaViteConfig = (options = {}) => {
     const {
         root = process.cwd(),

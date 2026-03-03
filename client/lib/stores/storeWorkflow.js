@@ -46,6 +46,11 @@ export function setUsingVuedaWorkflow(value) {
     usingVuedaWorkflow = value;
 }
 
+/**
+ * Returns whether the vueda workflow module is active.
+ *
+ * @returns {boolean} True if workflow is active.
+ */
 export function getUsingVuedaWorkflow() {
     return usingVuedaWorkflow;
 }

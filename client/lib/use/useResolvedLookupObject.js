@@ -22,6 +22,7 @@ import { effectScope, inject, onScopeDispose, reactive, readonly, toRaw, toRef, 
  */
 
 /**
+ * Resolves a single object by pk via the parent lookup context, reactively tracking loading and error state.
  *
  * @param {import('vue').Ref<string>|string} app
  * @param {import('vue').Ref<string>|string} model

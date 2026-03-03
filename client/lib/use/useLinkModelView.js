@@ -11,6 +11,8 @@ import { computed, toRef, unref } from "vue";
 import { useRouter } from "vue-router";
 
 /**
+ * Computes a navigable href and disabled state for a model view action, disabling the link when a required PK is absent.
+ *
  * @param {import('vue').UnwrapNestedRefs<{
  *     app: string,
  *     model: string,
@@ -21,7 +23,7 @@ import { useRouter } from "vue-router";
  *     href: import('vue').ComputedRef<string|undefined>,
  *     navigate: () => Promise<void>,
  *     actionDisabled: import('vue').ComputedRef<boolean>,
- * }} The link model view.
+ * }} The link model view state.
  */
 export const useLinkModelView = (props) => {
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));

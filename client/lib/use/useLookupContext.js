@@ -13,6 +13,11 @@ import debounce from "lodash-es/debounce.js";
 import isEqual from "lodash-es/isEqual.js";
 import { effectScope, nextTick, provide, reactive, readonly } from "vue";
 
+/**
+ * Creates and provides a shared lookup context that batches and deduplicates object fetch requests across multiple consumers.
+ *
+ * @returns {object} The lookup context instance.
+ */
 export function useLookupContext() {
     const es = effectScope();
     /** @typedef {{

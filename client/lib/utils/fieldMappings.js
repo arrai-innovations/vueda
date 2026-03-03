@@ -644,6 +644,17 @@ export const filterFieldMapping = {
  *
  * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
  * @returns {typeof defaultFieldMappings} The updated default field mappings.
+ * @example
+ * ```js
+ * import MyCustomField from '@/components/MyCustomField.vue';
+ * import MyCustomWidget from '@/components/MyCustomWidget.vue';
+ *
+ * mergeDefaultFieldMappings({
+ *     MyCustomField: {
+ *         MyCustomField: { component: MyCustomField, widget: MyCustomWidget, default: true },
+ *     },
+ * });
+ * ```
  */
 export function mergeDefaultFieldMappings(customMappings) {
     return merge(defaultFieldMappings, customMappings);
@@ -654,6 +665,12 @@ export function mergeDefaultFieldMappings(customMappings) {
  *
  * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
  * @returns {typeof filterFieldMapping} The updated filter field mappings.
+ * @example
+ * ```js
+ * mergeFilterFieldMapping({
+ *     MyCustomField: { component: MyCustomField, widget: MyCustomWidget },
+ * });
+ * ```
  */
 export function mergeFilterFieldMapping(customMappings) {
     return merge(filterFieldMapping, customMappings);
@@ -664,6 +681,14 @@ export function mergeFilterFieldMapping(customMappings) {
  *
  * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
  * @returns {typeof manyFieldMappings} The updated many-to-many field mappings.
+ * @example
+ * ```js
+ * mergeManyFieldMappings({
+ *     MyCustomField: {
+ *         MyCustomField: { widget: MyCustomWidget, fieldProps: { manyComponent: MyCustomField }, default: true },
+ *     },
+ * });
+ * ```
  */
 export function mergeManyFieldMappings(customMappings) {
     return merge(manyFieldMappings, customMappings);

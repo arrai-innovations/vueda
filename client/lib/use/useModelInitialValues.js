@@ -105,6 +105,12 @@ export function mergeModelInitialValuesMappings(customMappings) {
     return merge(fieldInitialValueMappings, customMappings);
 }
 
+/**
+ * Returns the initial value for a field based on its type and model, or undefined for many-relations.
+ *
+ * @param {import('@vueda/stores/storeModelInfo.js').FieldDetail} fieldDetail - The field detail object.
+ * @returns {unknown} The initial value for the field, or undefined.
+ */
 export const getFieldInitialValue = (fieldDetail) => {
     if (fieldDetail.many) {
         return undefined;

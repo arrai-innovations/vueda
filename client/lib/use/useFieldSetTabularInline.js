@@ -77,7 +77,7 @@ const handleIsTableUpdate = (state, newValue) => {
  * @property {import('@vueuse/core').Breakpoints} breakpoints - The breakpoints object.
  * @property {import('@vueda/use/useField.js').FieldContext} fieldSetContext - The field context object.
  * @property {import('@vueda/use/useFormModel.js').UseFormModelState} formModel - The form model's reactive state.
- * @property {{[slotName: string]: import('@vueda/use/useSlotNameResolver.js').ResolvedSlotName}} - The resolved slot
+ * @property {{[slotName: string]: import('@vueda/use/useSlotNameResolver.js').ResolvedSlotName}} resolvedSlotNames - The resolved slot
  *  name instances by original slot name.
  * @property {import('@vueda/use/useTheme.js').UseThemeReturnFunction} theme - The theme fn for the FieldSetTabularInline.
  * @property {BoundDoCreate} doCreate - The method to create a new object in the fieldset.
