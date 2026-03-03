@@ -7,8 +7,10 @@ dependencies = [
 ]
 
 [dependency-groups]
-test = [
+dev = [
+  "coverage>=7.3.3",
   "pytest>=8.0.0",
+  "pytest-cov>=4.1.0",
 ]
 
 [tool.pytest.ini_options]
@@ -16,3 +18,16 @@ testpaths = ["tests"]
 # "py" is added directly (not ".") to avoid conflicts with the PyPI `py`
 # package and pytest's own tests/py/ collection path.
 pythonpath = ["py"]
+# importlib mode avoids sys.path-based package traversal, preventing the
+# editable-installed `py` package (docs-tooling/py/) from shadowing tests/py/.
+addopts = "--import-mode=importlib"
+
+[tool.coverage.run]
+branch = true
+source = ["./py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+]

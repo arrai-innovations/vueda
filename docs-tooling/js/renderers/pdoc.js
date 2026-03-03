@@ -14,6 +14,18 @@ import {
     slugify,
 } from "./markdown.js";
 
+const DUNDER_RE = /^__.*__$/;
+
+function isVisibleMember(node) {
+    return node.extensions?.pdoc?.is_public !== false && !(DUNDER_RE.test(node.name) && !node.description);
+}
+
+function moduleTitle(node) {
+    const fullname = node.extensions?.pdoc?.fullname || node.name;
+    const parts = fullname.split(".");
+    return parts.length >= 2 ? parts.slice(-2).join(".") : fullname;
+}
+
 function renderSignatures(node, filePath) {
     if (!node.signatures || !node.signatures.length) {
         return "";
@@ -77,7 +89,7 @@ function renderInlineMember(member) {
 
 function renderInlineMembersSection(node, index) {
     const children = index.childrenOf.get(node.id) || [];
-    const publicChildren = children.filter((child) => child.extensions?.pdoc?.is_public !== false);
+    const publicChildren = children.filter(isVisibleMember);
     if (!publicChildren.length) {
         return "";
     }
@@ -90,11 +102,18 @@ function renderChildrenSections(node, index, pathMap, filePath) {
         return "";
     }
 
+    const submodules = children.filter((child) => child.kind === "module");
     const methods = children.filter((child) => child.kind === "method" || child.kind === "function");
     const properties = children.filter((child) => child.kind === "property");
-    const others = children.filter((child) => !["method", "function", "property"].includes(child.kind));
+    const others = children.filter((child) => !["module", "method", "function", "property"].includes(child.kind));
 
     const lines = [];
+
+    if (submodules.length) {
+        lines.push(renderHeading(2, "Submodules"), "");
+        const items = submodules.map((child) => linkToPath(child.name, pathMap.get(child.id), filePath));
+        lines.push(renderList(items), "");
+    }
 
     if (properties.length) {
         lines.push(renderHeading(2, "Properties"), "");
@@ -130,7 +149,7 @@ export function renderPdocNode(node, index, filePath) {
 
     if (node.kind === "class") {
         const children = index.childrenOf.get(node.id) || [];
-        const publicChildren = children.filter((c) => c.extensions?.pdoc?.is_public !== false);
+        const publicChildren = children.filter(isVisibleMember);
         if (publicChildren.length) {
             fm.member_ids = publicChildren.map((c) => c.id);
         }
@@ -138,9 +157,11 @@ export function renderPdocNode(node, index, filePath) {
 
     const frontmatter = renderFrontmatter(fm);
 
+    const title = node.kind === "module" ? moduleTitle(node) : normalizeTitle(node.name);
+
     const lines = [];
     lines.push(frontmatter);
-    lines.push(renderHeading(1, normalizeTitle(node.name)), "");
+    lines.push(renderHeading(1, title), "");
 
     if (node.description) {
         lines.push(renderHeading(2, "Overview"), "", escapeText(node.description), "");
