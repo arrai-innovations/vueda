@@ -79,8 +79,6 @@ When the client requests metadata for a model and receives a 404, it caches that
 
 The client does not distinguish between "unregistered" and "nonexistent." Both produce the same opaque failure: navigation to that model is blocked, and no forms or views are generated. From the client's perspective, a model either has metadata or it does not, and the reason for its absence is not surfaced.
 
-The client also requires a detectable primary key field in the metadata for any registered model. If the canonical serializer does not include a field that the client can identify as the PK, client-side normalization fails regardless of the server-side registration state.
-
 ## Failure Modes
 
 **Serializer-only registration without a viewset** leaves the model visible in model-info but without action, filter, or ordering metadata. The client can see the model's fields, but cannot generate CRUDL routes or forms for it. This can produce confusing behaviour: the model appears to exist, but nothing functional can be done with it, and it is usually the result of an incomplete registration rather than intentional design.
