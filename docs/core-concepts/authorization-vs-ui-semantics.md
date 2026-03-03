@@ -75,8 +75,6 @@ The separation between server authorization and client UI semantics creates pred
 
 **Action name normalization mismatch.** The action namespace uses `retrieve` internally, but external references may use `read`. `getActionName` normalizes `read` to `retrieve` before matching. If a custom action or route uses `read` without normalization, the guard or `ViewActionRouter` will not find a match. The symptom is an "Action Not Found" toast or a `ViewActionNotFound` render.
 
-**Transition code absence or invalidity.** If a transition lacks a string `code` in the server response, the route guard throws rather than redirecting. The navigation aborts without the standard "Action Not Found" toast. If transition-permission rows are missing on the server, the transition code never appears in permitted transitions, so the route guard redirects normally; the code is simply absent from the action set.
-
 **Cached metadata errors.** Both `storeModelInfo` and `storeWorkflow` cache fetch errors. If a model-info or permitted-transitions fetch fails (network error, 403, invalid response), the error is cached per `app.model` key. Subsequent navigation attempts for the same model short-circuit to the cached error without retrying the fetch. Recovery requires recreating the store instance (typically through component lifecycle reset).
 
 ## Relevant Implementation Surface
