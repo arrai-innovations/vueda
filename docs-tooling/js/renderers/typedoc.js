@@ -92,7 +92,10 @@ function renderChildrenSections(node, index, pathMap, filePath) {
         if (!child.description) {
             return typeHint ? `${link}${typeHint}` : link;
         }
-        const collapsed = child.description.replace(/\s+/g, " ").trim();
+        const collapsed = child.description
+            .replace(/```[\s\S]*?```/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
         const sentenceMatch = collapsed.match(/^.*?\.(?= |$)/);
         const summary = sentenceMatch ? sentenceMatch[0] : collapsed;
         return `${link}${typeHint} - ${summary}`;
