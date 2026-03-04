@@ -1,3 +1,7 @@
+/**
+ * @module stores/storeModelConfig
+ * @description Pinia store for building, caching, and retrieving merged client-side model configurations from generic and view-specific overrides.
+ */
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -24,10 +28,10 @@ import { defineStore } from "pinia";
  */
 
 /**
- * @typedef {{fieldName: import('@vueda/stores/storeModelInfo.js').FieldInfo}} FieldDetails
- * @typedef {{expandName: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} ExpandDetails
- * @typedef {{actionName: import('@vueda/stores/storeModelInfo.js').ActionInfo}} ActionDetails
- * @typedef {{filterName: import('@vueda/stores/storeModelInfo.js').FilterInfo}} FilterableDetails
+ * @typedef {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} FieldDetails
+ * @typedef {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} ExpandDetails
+ * @typedef {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} ActionDetails
+ * @typedef {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} FilterableDetails
  * @typedef {{[fieldComponentName:string]: import('@vueda/utils/formLookups.js').FieldComponent}} FieldComponents
  * @typedef {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} WidgetComponents
  */
@@ -51,10 +55,10 @@ import { defineStore } from "pinia";
  * @property {boolean} allowShowAllPages - whether to allow showing all pages in list view
  * @property {string[]} sortables - field names that can be sorted in list view
  * @property {string[]} sorted - the default sort order for list view
- * @property {{fieldName: import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - each available field details, by field name
- * @property {{expandName: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - each available expand details, by expand name
- * @property {{actionName: import('@vueda/stores/storeModelInfo.js').ActionInfo}} actionDetails - each available action details, by action name
- * @property {{filterName: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - each available filter details, by filter name
+ * @property {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - each available field details, by field name
+ * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - each available expand details, by expand name
+ * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} actionDetails - each available action details, by action name
+ * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - each available filter details, by filter name
  * @property {object} formProps - extra props to pass the form model
  * @property {{[fieldComponentName:string]: import('@vueda/utils/formLookups.js').FieldComponent}} fieldComponents - overriding components for individual fields
  * @property {object} fieldProps - extra props to pass a field component in a form model
@@ -81,10 +85,10 @@ import { defineStore } from "pinia";
  * @property {string[]} [filterables] - filters to display in list view
  * @property {string[]} [sortables] - field names that can be sorted in list view
  * @property {string[]} [sorted] - the default sort order for list view
- * @property {{fieldName: import('@vueda/stores/storeModelInfo.js').FieldInfo}} [fieldDetails] - each available field details, by field name
- * @property {{expandName: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} [expandDetails] - each available expand details, by expand name
- * @property {{actionName: import('@vueda/stores/storeModelInfo.js').ActionInfo}} [actionDetails] - each available action details, by action name
- * @property {{filterName: import('@vueda/stores/storeModelInfo.js').FilterInfo}} [filterableDetails] - each available filter details, by filter name
+ * @property {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} [fieldDetails] - each available field details, by field name
+ * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} [expandDetails] - each available expand details, by expand name
+ * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} [actionDetails] - each available action details, by action name
+ * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} [filterableDetails] - each available filter details, by filter name
  * @property {object} [formProps] - extra props to pass the form model
  * @property {boolean} allowColumnHiding - whether to allow hiding columns in list view
  * @property {boolean} showTotalRecordNum - whether to show total record count in list view
@@ -101,7 +105,7 @@ import { defineStore } from "pinia";
  * Get a default configuration object for a model based on model info.
  *
  * @param {import('@vueda/stores/storeModelInfo.js').ModelInfo} modelInfo - The model info to base the configuration on.
- * @returns {[generic:ModelConfig, {[view: string]: OverridingModelConfig}]} The default configuration objects.
+ * @returns {[ModelConfig, {[view: string]: OverridingModelConfig}]} The default configuration objects.
  */
 const getDefaultFromModelInfo = (modelInfo) => {
     if (!modelInfo || !modelInfo.fields || !modelInfo.expand || !modelInfo.actions) {
@@ -387,7 +391,7 @@ const mergeDeepProperties = (
  *         genericConfigs: {[key: string]: ModelConfig},
  *         specificConfigs: {[key: string]: OverridingModelConfig},
  *         builtConfigs: {[key: string]: ModelConfig},
- *         initailized: {[key: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>},
+ *         initialized: {[key: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>},
  *     },
  *     {
  *         setConfig: (
@@ -408,6 +412,30 @@ export const storeModelConfig = defineStore("modelConfig", {
         initialized: {}, // a cache of promises for getConfig
     }),
     actions: {
+        /**
+         * Stores generic and view-specific model config overrides.
+         * @param {{app: string, model: string}} params - The app and model identifiers.
+         * @param {string} params.app - Django app label.
+         * @param {string} params.model - Model name.
+         * @param {OverridingModelConfig|null} [genericConfig] - Overrides applied to all views.
+         * @param {{[view: string]: OverridingModelConfig}|null} [specificConfigs] - Per-view overrides.
+         * @returns {void}
+         * @example
+         * ```js
+         * const store = storeModelConfig();
+         *
+         * store.setConfig(
+         *     { app: 'myapp', model: 'Widget' },
+         *     // generic (all views)
+         *     { displayFields: ['name', 'status'], sortables: ['name'] },
+         *     // view-specific overrides
+         *     {
+         *         list: { displayFields: ['name', 'status', 'created_at'] },
+         *         update: { submitFields: ['name', 'status'] },
+         *     },
+         * );
+         * ```
+         */
         setConfig({ app, model }, genericConfig = null, specificConfigs = null) {
             if (!app || !model) {
                 throw new Error("setConfig requires app and model");

@@ -84,6 +84,8 @@
                     "type": "array",
                     "items": { "type": "string" }
                 },
+                "typeDefinition": { "$ref": "#/$defs/TypeRef" },
+                "propertyType": { "$ref": "#/$defs/TypeRef" },
                 "source": { "$ref": "#/$defs/SourceLocation" },
                 "extensions": {
                     "type": "object"
@@ -150,6 +152,7 @@
             "additionalProperties": false,
             "properties": {
                 "name": { "type": "string" },
+                "description": { "type": "string" },
                 "kind": {
                     "type": "string",
                     "enum": ["primitive", "array", "object", "union", "enum", "reference"]

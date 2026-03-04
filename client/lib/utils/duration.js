@@ -1,5 +1,16 @@
+/**
+ * @module utils/duration
+ * @description Parses and serializes Django-style duration strings (D HH:MM:SS) to and from plain objects.
+ */
+
 const durationRegExp = /^(?:(\d+)\s+)?(\d{2}):(\d{2}):(\d{2})$/;
 
+/**
+ * Parses a Django-style duration string (D HH:MM:SS) into a plain object.
+ *
+ * @param {string} durationString - The duration string to parse.
+ * @returns {{days: number, hours: number, minutes: number, seconds: number}|null} The parsed duration, or null if the string is invalid.
+ */
 export function parseDuration(durationString) {
     const match = durationString.match(durationRegExp);
     if (!match) {
@@ -12,6 +23,12 @@ export function parseDuration(durationString) {
     return { days, hours, minutes, seconds };
 }
 
+/**
+ * Serializes a duration plain object back into a Django-style duration string (D HH:MM:SS).
+ *
+ * @param {{days?: number, hours?: number, minutes?: number, seconds?: number}} durationObject - The duration to serialize.
+ * @returns {string} The formatted duration string.
+ */
 export function convertDurationToString(durationObject) {
     const padWithZero = (num) => String(num).padStart(2, "0");
     const days = padWithZero(durationObject.days || 0);

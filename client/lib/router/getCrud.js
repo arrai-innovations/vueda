@@ -1,3 +1,7 @@
+/**
+ * @module router/getCrud
+ * @description Provides a helper to build a Vue Router location object for a CRUD action route given app, model, and pk.
+ */
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 
 /**

@@ -1,3 +1,7 @@
+/**
+ * @module utils/case
+ * @description Memoized case-conversion utilities for deriving route parts, CRUD names, and display titles from app and model names.
+ */
 import { unwrapNested } from "@arrai-innovations/reactive-helpers";
 import camelCase from "lodash-es/camelCase.js";
 import lowerCase from "lodash-es/lowerCase.js";

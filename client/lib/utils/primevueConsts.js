@@ -1,3 +1,15 @@
+/**
+ * @module utils/primevueConsts
+ * @description Known PrimeVue component prop names used to separate component-owned
+ *   props from pass-through attributes.
+ */
+
+/**
+ * All recognized prop names for the PrimeVue DatePicker component.
+ * Used to filter props before passing extras as attributes.
+ *
+ * @type {string[]}
+ */
 export const knownDatePickerProps = [
     "modelValue",
     "defaultValue",

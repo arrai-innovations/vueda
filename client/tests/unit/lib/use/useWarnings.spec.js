@@ -7,13 +7,13 @@ vi.mock("@vueda/use/useIsActive.js", async () => {
 });
 
 describe("lib/use/useWarnings.js", () => {
-    let useWarnings, OnRetrieveErrorHandler, reactive, ref;
+    let useWarnings, onRetrieveErrorHandler, reactive, ref;
 
     beforeEach(async () => {
         ({ reactive, ref } = await vi.importActual("vue"));
         const mod = await vi.importActual("@vueda/use/useWarnings.js");
         useWarnings = mod.useWarnings;
-        OnRetrieveErrorHandler = mod.OnRetrieveErrorHandler;
+        onRetrieveErrorHandler = mod.onRetrieveErrorHandler;
     });
 
     afterEach(() => {
@@ -21,12 +21,12 @@ describe("lib/use/useWarnings.js", () => {
         vi.clearAllMocks();
     });
 
-    scopedIt("OnRetrieveErrorHandler handles FormValidationError", async () => {
+    scopedIt("onRetrieveErrorHandler handles FormValidationError", async () => {
         const { FormValidationError } = await vi.importActual("@vueda/utils/errors.js");
         const error = new FormValidationError({}, {});
         const formContext = { handleServerFormValidationError: vi.fn() };
         const state = reactive({ formValidationErrors: {} });
-        const result = await OnRetrieveErrorHandler({ error, formContext, state });
+        const result = await onRetrieveErrorHandler({ error, formContext, state });
         expect(formContext.handleServerFormValidationError).toHaveBeenCalledWith(error);
         expect(Object.keys(state.formValidationErrors).length).toBeGreaterThan(0);
         expect(result).toBe(true);

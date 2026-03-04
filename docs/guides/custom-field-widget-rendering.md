@@ -10,7 +10,7 @@ status: draft
 This guide covers how to override field and widget rendering for form and filter surfaces without forking core {@term CRUDL} view components. VUEDA provides three override mechanisms (model config, per-instance view props, and slot-level replacement) with a defined precedence order. Custom components must preserve the field/widget contract to remain compatible with VUEDA's form state and validation lifecycle.
 
 The guide assumes familiarity with VUEDA's form concepts. If you have not read [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle), start there. For the server-client metadata contract that drives default field/widget resolution, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract).
-For the default resolver and override touchpoints, see {@api js:module:@arrai-innovations/vueda.use/useFieldRenderer}. Most cross-view overrides in this guide are keyed by {@term Model Config}.
+For the default resolver and override touchpoints, see {@api js:module:@arrai-innovations/vueda/use/useFieldRenderer}. Most cross-view overrides in this guide are keyed by {@term Model Config}.
 
 ## Goal and Preconditions
 
@@ -195,19 +195,19 @@ const widget = useWidget(props, emit);
 ## Relevant Implementation Surface
 
 - JavaScript:
-    - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
-    - {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}
-    - {@api js:module:@arrai-innovations/vueda.use/useModelConfig}
-    - {@api js:module:@arrai-innovations/vueda.use/useFormModel}
-    - {@api js:function:@arrai-innovations/vueda.use/useFormModel.useFormModel}
-    - {@api js:module:@arrai-innovations/vueda.use/useFieldRenderer}
-    - {@api js:function:@arrai-innovations/vueda.use/useFieldRenderer.useFieldRenderer}
-    - {@api js:module:@arrai-innovations/vueda.use/useField}
-    - {@api js:function:@arrai-innovations/vueda.use/useField.useField}
-    - {@api js:module:@arrai-innovations/vueda.use/useWidget}
-    - {@api js:function:@arrai-innovations/vueda.use/useWidget.useWidget}
-    - {@api js:module:@arrai-innovations/vueda.utils/buildForm}
-    - {@api js:module:@arrai-innovations/vueda.utils/formLookups}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}
+    - {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig}
+    - {@api js:module:@arrai-innovations/vueda/use/useModelConfig}
+    - {@api js:module:@arrai-innovations/vueda/use/useFormModel}
+    - {@api js:function:@arrai-innovations/vueda/use/useFormModel#useFormModel}
+    - {@api js:module:@arrai-innovations/vueda/use/useFieldRenderer}
+    - {@api js:function:@arrai-innovations/vueda/use/useFieldRenderer#useFieldRenderer}
+    - {@api js:module:@arrai-innovations/vueda/use/useField}
+    - {@api js:function:@arrai-innovations/vueda/use/useField#useField}
+    - {@api js:module:@arrai-innovations/vueda/use/useWidget}
+    - {@api js:function:@arrai-innovations/vueda/use/useWidget#useWidget}
+    - {@api js:module:@arrai-innovations/vueda/utils/buildForm}
+    - {@api js:module:@arrai-innovations/vueda/utils/formLookups}
 - Vue.js Components:
     - {@api vue:component:FormModel}
     - {@api vue:component:FieldRenderer}

@@ -1,3 +1,7 @@
+/**
+ * @module stores/storeTheme
+ * @description Pinia store for registering and managing UI component theme variants and their spot configurations.
+ */
 import { defineStore } from "pinia";
 
 /**

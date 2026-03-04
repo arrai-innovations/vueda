@@ -1,4 +1,7 @@
-// @vueda/utils/useDevLogger.js
+/**
+ * @module use/useDevLogger
+ * @description Provides a development-only logger that prefixes messages with the component name and field or widget context.
+ */
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import { getCurrentInstance, inject, toRaw, unref } from "vue";
 

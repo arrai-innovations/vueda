@@ -1,3 +1,7 @@
+/**
+ * @module utils/formLookups
+ * @description Lazily-loaded registries of all available field and widget Vue components.
+ */
 import { defineAsyncComponent } from "vue";
 
 /**

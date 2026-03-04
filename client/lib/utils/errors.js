@@ -1,3 +1,7 @@
+/**
+ * @module utils/errors
+ * @description Custom error classes and helpers for classifying fetch, form validation, and list filter failures.
+ */
 import { flattenPaths } from "@arrai-innovations/reactive-helpers";
 import get from "lodash-es/get.js";
 

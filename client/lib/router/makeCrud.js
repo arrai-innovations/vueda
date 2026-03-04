@@ -1,3 +1,7 @@
+/**
+ * @module router/makeCrud
+ * @description Generates Vue Router route records for CRUD views with configurable auth and group guards.
+ */
 import { requireAuth, requireGroups, requireModelInfo } from "@vueda/router/guards.js";
 
 /**
@@ -14,6 +18,24 @@ import { requireAuth, requireGroups, requireModelInfo } from "@vueda/router/guar
  * @param {import('vue-router').Router} params.router - The Vue router instance.
  * @param {import('pinia').Pinia} params.pinia - The Pinia instance.
  * @returns {import('vue-router').RouteLocationNormalized[]} The generated routes.
+ * @example
+ * ```js
+ * import { createRouter, createWebHistory } from 'vue-router';
+ * import ActionView from '@/views/ActionView.vue';
+ * import { makeCRUDRoutes } from '@vueda/router/makeCrud.js';
+ *
+ * const router = createRouter({ history: createWebHistory(), routes: [] });
+ *
+ * // In your app setup (after createApp):
+ * router.addRoute(...makeCRUDRoutes({
+ *     component: ActionView,
+ *     vueApp: app,
+ *     router,
+ *     pinia,
+ *     authRedirect: { name: 'login' },
+ *     actionRedirect: { name: 'not-found' },
+ * }));
+ * ```
  */
 export function makeCRUDRoutes({
     component,

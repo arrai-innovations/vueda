@@ -1,3 +1,14 @@
+/**
+ * @module utils/objectGridSkeletonProps
+ * @description Returns skeleton loader dimension props appropriate for each field type in an object grid.
+ */
+
+/**
+ * Returns skeleton loader dimension props appropriate for a given field type.
+ *
+ * @param {import('@vueda/stores/storeModelInfo.js').FieldDetail|undefined} field - The field detail object.
+ * @returns {{width: string, height: string, borderRadius?: string}} Skeleton dimension props.
+ */
 export function getSkeletonPropsForField(field) {
     if (!field) {
         return { width: "100%", height: "1.5rem" };

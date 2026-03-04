@@ -1,3 +1,7 @@
+/**
+ * @module vite
+ * @description Exports a Vite configuration helper that sets up aliases, symlink fixes, and runtime optimisations for VUEDA Client projects.
+ */
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -77,6 +81,20 @@ const generateAliasesForLinkedPackage = (
     return aliases;
 };
 
+/**
+ * Returns a Vite config fragment for vueda, covering `define`, `resolve.alias`, and (optionally) `optimizeDeps`.
+ * Spread the result into your Vite `defineConfig` or merge it with `mergeConfig`.
+ *
+ * @param {object} [options] - Configuration options.
+ * @param {string} [options.root] - The project root directory. Defaults to process.cwd().
+ * @param {boolean} [options.enableSourceAlias] - Whether to enable source aliases. Defaults to true.
+ * @param {boolean} [options.enableSymlinkFixes] - Whether to enable symlink fixes. Defaults to true.
+ * @param {boolean} [options.enableRuntimeAliases] - Whether to enable runtime aliases. Defaults to true.
+ * @param {string[]} [options.excludePackages] - Packages to exclude from aliasing.
+ * @param {object} [options.extraAliases] - Additional aliases to include.
+ * @param {object} [options.optimizeDeps] - Vite optimizeDeps overrides.
+ * @returns {import('vite').UserConfig} A partial Vite config fragment.
+ */
 export const vuedaViteConfig = (options = {}) => {
     const {
         root = process.cwd(),

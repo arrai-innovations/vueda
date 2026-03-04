@@ -1,3 +1,7 @@
+/**
+ * @module stores/storeModelInfo
+ * @description Pinia store and supporting types for fetching and caching Django model metadata from the server.
+ */
 import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";

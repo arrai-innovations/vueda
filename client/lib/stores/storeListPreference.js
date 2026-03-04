@@ -1,3 +1,7 @@
+/**
+ * @module stores/storeListPreference
+ * @description Pinia store for persisting per-model ViewList preferences (hidden columns, filters, and sorting) to localStorage.
+ */
 import { getAppModelDotName } from "@vueda/utils/case.js";
 import isEqual from "lodash-es/isEqual.js";
 import { defineStore } from "pinia";

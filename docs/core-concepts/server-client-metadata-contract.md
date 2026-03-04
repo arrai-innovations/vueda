@@ -128,8 +128,8 @@ There is no metadata for wire version or schema negotiation between the server a
     - {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
     - {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
 - JavaScript:
-    - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
-    - {@api js:module:@arrai-innovations/vueda.use/useModelInfo}
-    - {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}
+    - {@api js:module:@arrai-innovations/vueda/use/useModelInfo}
+    - {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo}
 - Vue.js Components:
     - {@api vue:component:ViewActionRouter}

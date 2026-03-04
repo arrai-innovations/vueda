@@ -65,7 +65,7 @@ The {@term Model-Scope vs Object-Scope Availability} distinction is fundamental 
 
 The client normalizes action names before performing {@term Route Admission} checks. The normalization maps aliases to canonical names; most notably, `read` is normalized to `retrieve`. This normalization ensures that route definitions using either name resolve consistently against the server-advertised action set.
 
-Route admission is evaluated in the {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo} navigation guard. The guard fetches model-info for the target route's model, then checks whether the route's action name (after normalization) appears in the computed action set. The action set is assembled from three sources: the `model_actions` names from model-info, an optional `routeActions` filter from the model's config (which restricts the set to only named actions), and workflow transition codes (which extend the set with transition-specific routes).
+Route admission is evaluated in the {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} navigation guard. The guard fetches model-info for the target route's model, then checks whether the route's action name (after normalization) appears in the computed action set. The action set is assembled from three sources: the `model_actions` names from model-info, an optional `routeActions` filter from the model's config (which restricts the set to only named actions), and workflow transition codes (which extend the set with transition-specific routes).
 
 When the action is not found in the computed set, the guard denies the route. The denial surfaces as a toast notification ("Action Not Found") and a redirect, typically to the model's `list` view. When model-info itself cannot be fetched (network error, server error), the error is cached in the model-info store and reused for subsequent navigation attempts to the same model key. This means a transient fetch failure will block all routes for that model until the store is reset or the page is reloaded.
 
@@ -126,10 +126,10 @@ The layered contract exhibits several characteristic failure patterns when the l
 - {@api py:function:vueda.core.serializers.fields.AvailableActionsField.get_value}
 - {@api py:class:vueda.core.utils.AvailableActionsRequest}
 - {@api rest:endpoint:GET:/vueda.info/model_info/}
-- {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
-- {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
-- {@api js:module:@arrai-innovations/vueda.utils/actionMap}
-- {@api js:function:@arrai-innovations/vueda.utils/actionMap.getActionName}
-- {@api js:module:@arrai-innovations/vueda.router/guards}
-- {@api js:module:@arrai-innovations/vueda.use/useFilteredActions}
-- {@api js:function:@arrai-innovations/vueda.use/useFilteredActions.useFilteredActions}
+- {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}
+- {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}
+- {@api js:module:@arrai-innovations/vueda/utils/actionMap}
+- {@api js:function:@arrai-innovations/vueda/utils/actionMap#getActionName}
+- {@api js:module:@arrai-innovations/vueda/router/guards}
+- {@api js:module:@arrai-innovations/vueda/use/useFilteredActions}
+- {@api js:function:@arrai-innovations/vueda/use/useFilteredActions#useFilteredActions}

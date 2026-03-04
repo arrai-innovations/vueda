@@ -438,7 +438,7 @@ const buildApiSidebar = () => {
         .map((entry) => entry.name)
         .sort((a, b) => a.localeCompare(b));
 
-    return languageDirs.map((languageDir) => {
+    const languageGroups = languageDirs.map((languageDir) => {
         const languageRoot = path.join(apiRoot, languageDir);
         const languageIndexPath = path.join(languageRoot, "index.md");
         const languageTitle = fs.existsSync(languageIndexPath) ? readDocMeta(languageIndexPath).title : languageDir;
@@ -450,10 +450,12 @@ const buildApiSidebar = () => {
             .map((entry) => entry.name)
             .sort((a, b) => a.localeCompare(b))
             .map((subDirName) => {
-                const subDirIndexPath = path.join(languageRoot, subDirName, "index.md");
+                const subDirPath = path.join(languageRoot, subDirName);
+                const subDirIndexPath = path.join(subDirPath, "index.md");
                 const text = fs.existsSync(subDirIndexPath) ? readDocMeta(subDirIndexPath).title : subDirName;
                 const link = normalizeDocRoute(`/reference/api/${languageDir}/${subDirName}/`);
-                return { text, link };
+                const items = buildApiSubItems(subDirPath);
+                return items.length ? { text, link, collapsed: false, items } : { text, link };
             });
 
         const fileItems = fs
@@ -482,9 +484,17 @@ const buildApiSidebar = () => {
         const overviewLink = normalizeDocRoute(`/reference/api/${languageDir}/`);
         return {
             text: languageTitle,
+            collapsed: true,
             items: [{ text: "Overview", link: overviewLink }, ...subdirectoryItems, ...fileItems],
         };
     });
+    return [
+        {
+            text: "Reference",
+            items: [{ text: "Overview", link: "/reference/" }],
+        },
+        ...languageGroups,
+    ];
 };
 
 const docsSidebar = {

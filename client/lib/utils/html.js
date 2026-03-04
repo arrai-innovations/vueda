@@ -1,3 +1,7 @@
+/**
+ * @module utils/html
+ * @description Utilities for escaping, sanitizing, and detecting HTML in user-supplied strings.
+ */
 import DOMPurify from "dompurify";
 import isObject from "lodash-es/isObject.js";
 import isString from "lodash-es/isString.js";
@@ -64,4 +68,10 @@ export const sanitizeMessages = (messages) => {
 };
 
 export const tagRegex = /<\/?[a-z][\s\S]*>/i;
+/**
+ * Tests whether a string contains any HTML tags.
+ *
+ * @param {string} message - The string to test.
+ * @returns {boolean} True if the string contains HTML tags.
+ */
 export const containsHtml = (message) => tagRegex.test(message);

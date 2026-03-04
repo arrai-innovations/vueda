@@ -1,3 +1,7 @@
+/**
+ * @module use/useWorkflowTransitions
+ * @description Fetches and reactively tracks the available workflow transitions for a given app and model.
+ */
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { getUsingVuedaWorkflow, storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";

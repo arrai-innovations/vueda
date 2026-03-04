@@ -1,7 +1,12 @@
+/**
+ * @module use/useWidget
+ * @description Provides the shared props, emits, and reactive context for form widget components, bridging field context with widget-level value handling and validation state.
+ */
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import isEqual from "lodash-es/isEqual.js";
 import { computed, inject, onUnmounted, provide, reactive, readonly, ref, toRef, unref, watch } from "vue";
 
+/** Vue component props definition for widget components. Spread into component options to include standard widget identification, display, validation, value handling, disabled behavior, and field context props. */
 export const WIDGET_PROPS = {
     // *** Identification & Metadata ***
     name: {
@@ -74,6 +79,7 @@ export const WIDGET_PROPS = {
     },
 };
 
+/** Array of Vue event names emitted by widget components. Pass to the `emits` option of a widget component. */
 export const WIDGET_EMITS = ["update:modelValue"];
 
 /**
@@ -118,7 +124,7 @@ export const WIDGET_EMITS = ["update:modelValue"];
  */
 
 /**
- * @typedef {([value: any]) => any} ValueAdapter
+ * @typedef {(...args: any[]) => any} ValueAdapter
  */
 
 /**
@@ -184,7 +190,7 @@ export const WIDGET_EMITS = ["update:modelValue"];
  *
  * @param {WidgetContextProps} props - The widget context's reactive props.
  * @param {import('vue').EmitFn} emit - The widget context's component emit function.
- * @return {WidgetContext} The widget context object.
+ * @returns {WidgetContext} The widget context object.
  */
 export function useWidget(props, emit) {
     /** @type {import('@vueda/use/useField.js').FieldContext|null} */

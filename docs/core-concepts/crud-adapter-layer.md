@@ -7,9 +7,9 @@ status: draft
 
 # CRUDL Adapter Layer
 
-VUEDA's client-side {@term CRUDL} composables ({@api js:module:@arrai-innovations/vueda.utils/listCrud} and {@api js:module:@arrai-innovations/vueda.utils/objectCrud}) do not hardcode HTTP transport. Instead, they consume adapter functions from a module-level registry that the application populates once at startup. The registry pattern decouples data operations from transport: composables call named adapter slots without knowing whether the adapter uses `fetch`, a GraphQL client, or a mock. Each composable instance receives its own copy of the adapter set, so per-instance overrides do not affect other instances or the global registry.
+VUEDA's client-side {@term CRUDL} composables ({@api js:module:@arrai-innovations/vueda/utils/listCrud} and {@api js:module:@arrai-innovations/vueda/utils/objectCrud}) do not hardcode HTTP transport. Instead, they consume adapter functions from a module-level registry that the application populates once at startup. The registry pattern decouples data operations from transport: composables call named adapter slots without knowing whether the adapter uses `fetch`, a GraphQL client, or a mock. Each composable instance receives its own copy of the adapter set, so per-instance overrides do not affect other instances or the global registry.
 
-This page describes the registry pattern, the default adapter implementations VUEDA provides, the call signatures and return contracts adapters must satisfy, and the failure modes that result from misconfiguration or custom replacement. For transport-level abort and state-gating concerns, see [Cancellable Network Operations](./cancellable-network-operations). For the composables that consume these adapters, see the generated API reference for {@api js:module:@arrai-innovations/vueda.utils/listCrud} and {@api js:module:@arrai-innovations/vueda.utils/objectCrud}.
+This page describes the registry pattern, the default adapter implementations VUEDA provides, the call signatures and return contracts adapters must satisfy, and the failure modes that result from misconfiguration or custom replacement. For transport-level abort and state-gating concerns, see [Cancellable Network Operations](./cancellable-network-operations). For the composables that consume these adapters, see the generated API reference for {@api js:module:@arrai-innovations/vueda/utils/listCrud} and {@api js:module:@arrai-innovations/vueda/utils/objectCrud}.
 
 ## Why Adapters Exist
 
@@ -31,23 +31,23 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 
 ## Default Adapter Set (List)
 
-{@api js:function:@arrai-innovations/vueda.utils/listCrud.setupDefaultListCrud} populates the list registry with VUEDA's HTTP adapters by calling `setListCrud(...)`. It registers {@api js:function:@arrai-innovations/vueda.utils/listCrud.singlePagePaginatedListCrudAdaptor} for the `list` slot, {@api js:function:@arrai-innovations/vueda.utils/listCrud.defaultObjectsDelete} for `bulkDelete`, and sets `args.resultsKey = "results"`.
+{@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} populates the list registry with VUEDA's HTTP adapters by calling `setListCrud(...)`. It registers {@api js:function:@arrai-innovations/vueda/utils/listCrud#singlePagePaginatedListCrudAdaptor} for the `list` slot, {@api js:function:@arrai-innovations/vueda/utils/listCrud#defaultObjectsDelete} for `bulkDelete`, and sets `args.resultsKey = "results"`.
 
 **`singlePagePaginatedListCrudAdaptor` fetches one page at a time.** It builds a URL from the `target` object, adds query parameters for pagination, search, ordering, and filters, then delegates to `cancellableFetch`. On success, it calls `clearObjects()` when loading page 1 (or when `params.page` is undefined), then calls `pushObjects(responseData[target.resultsKey])` to write results into the composable's reactive state. It also updates pagination metadata (`setPaginateInfo`) and column totals (`setColumnTotals`) from the response.
 
 **The adapter checks `isCancelled.value` after receiving a response but before writing state.** If the composable was cancelled between the request and the response (for example, because the user navigated away or changed filter parameters), the response is silently discarded. No callbacks are invoked, and no state is mutated. This is the composable-level cancellation gate; transport-level abort is handled separately by `cancellableFetch`.
 
-**{@api js:function:@arrai-innovations/vueda.utils/listCrud.allPagePaginatedListCrudAdaptor} fetches all pages concurrently.** It shares a single `AbortController` across concurrent page fetches (up to four concurrent via `p-limit`). Cancelling the returned promise aborts all in-flight pages. It uses `Promise.allSettled()` to avoid unhandled rejections when some pages are aborted while others succeed. This adapter is not registered by default; projects that need it can register it explicitly via `setListCrud`.
+**{@api js:function:@arrai-innovations/vueda/utils/listCrud#allPagePaginatedListCrudAdaptor} fetches all pages concurrently.** It shares a single `AbortController` across concurrent page fetches (up to four concurrent via `p-limit`). Cancelling the returned promise aborts all in-flight pages. It uses `Promise.allSettled()` to avoid unhandled rejections when some pages are aborted while others succeed. This adapter is not registered by default; projects that need it can register it explicitly via `setListCrud`.
 
-**{@api js:function:@arrai-innovations/vueda.utils/listCrud.defaultObjectsDelete} handles bulk deletion.** It sends `{ pks: [...] }` as a JSON body with the `DELETE` method, adds a {@term Dry Run} header when `dryRun` is true, and classifies responses by status code: `204` is success (returns nothing), `400` throws {@api js:class:@arrai-innovations/vueda.utils/errors.FormValidationError}, and other statuses throw `FetchError`.
+**{@api js:function:@arrai-innovations/vueda/utils/listCrud#defaultObjectsDelete} handles bulk deletion.** It sends `{ pks: [...] }` as a JSON body with the `DELETE` method, adds a {@term Dry Run} header when `dryRun` is true, and classifies responses by status code: `204` is success (returns nothing), `400` throws {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}, and other statuses throw `FetchError`.
 
 ## Default Adapter Set (Object)
 
-{@api js:function:@arrai-innovations/vueda.utils/objectCrud.setupDefaultObjectCrud} populates the object registry with VUEDA's HTTP adapters. It registers {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectRetrieve}, {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectCreate}, {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectUpdate}, {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectPatch}, and {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectDelete}.
+{@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} populates the object registry with VUEDA's HTTP adapters. It registers {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectRetrieve}, {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectCreate}, {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectUpdate}, {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectPatch}, and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectDelete}.
 
 **Object adapters resolve to the response data directly.** Unlike list adapters (which push results via callbacks and resolve to `void`), object adapters return a promise that resolves to the object's data on success. The caller receives the created, retrieved, updated, or patched object as the resolution value.
 
-**Status code contracts are fixed per adapter.** `defaultObjectCreate` expects `201` on success. `defaultObjectUpdate` and `defaultObjectPatch` expect `200`. `defaultObjectDelete` expects `204`. All four mutation adapters throw {@api js:class:@arrai-innovations/vueda.utils/errors.FormValidationError} on `400` (server-side validation failure) and `FetchError` on other non-success statuses.
+**Status code contracts are fixed per adapter.** `defaultObjectCreate` expects `201` on success. `defaultObjectUpdate` and `defaultObjectPatch` expect `200`. `defaultObjectDelete` expects `204`. All four mutation adapters throw {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError} on `400` (server-side validation failure) and `FetchError` on other non-success statuses.
 
 **Default adapters are explicitly non-`async` to preserve `.cancel()` on the returned promise.** Each adapter returns the promise produced by `fetchHelper` or `cancellableFetch` directly, with a `.cancel()` method attached. Wrapping an adapter in `async`/`await` or `.then()` produces a new `Promise` instance that does not carry the `.cancel()` method. This is a deliberate design constraint documented in inline comments, and it is the most common pitfall when writing custom adapters.
 
@@ -55,7 +55,7 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 
 **Each adapter function receives a single structured object.** The keys vary by adapter type, but common keys include `target` (an object with `app`, `model`, `pk`, and `action` properties used for URL construction), `params` (query parameters), and adapter-specific additions. List adapters receive callback functions (`pushObjects`, `clearObjects`, `setPaginateInfo`, `setColumnTotals`) and an `isCancelled` reactive flag. Object adapters receive the object data to send.
 
-**Return values are promises, optionally cancellable.** List adapters resolve to `void` because they push results via callbacks. Object adapters resolve to the response data. Both may return a {@api js:type:@arrai-innovations/vueda.utils/fetchSupport.CancellablePromise} (a promise with a `.cancel()` method backed by an `AbortController`) or a plain `Promise` ({@api js:type:@arrai-innovations/vueda.utils/fetchSupport.MaybeCancellablePromise}). Composables call `promise?.cancel?.()` defensively, so plain promises are acceptable but will not abort in-flight requests.
+**Return values are promises, optionally cancellable.** List adapters resolve to `void` because they push results via callbacks. Object adapters resolve to the response data. Both may return a {@api js:type:@arrai-innovations/vueda/utils/fetchSupport#CancellablePromise} (a promise with a `.cancel()` method backed by an `AbortController`) or a plain `Promise` ({@api js:type:@arrai-innovations/vueda/utils/fetchSupport#MaybeCancellablePromise}). Composables call `promise?.cancel?.()` defensively, so plain promises are acceptable but will not abort in-flight requests.
 
 **Per-instance overrides are validated at composable creation.** When a composable is created with `handlers` overrides, `assignCrud` validates the keys against a fixed set. Unknown keys throw. Override values must be callable; non-functions throw. Valid overrides replace the corresponding slot in the instance's copy of the adapter set, leaving the global registry and other instances unaffected.
 
@@ -69,7 +69,7 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 
 ## Error Classification
 
-**Default adapters classify errors by HTTP status code and response shape.** The primary error types are {@api js:class:@arrai-innovations/vueda.utils/errors.FormValidationError} (for `400` responses, representing server-side validation failures) and `FetchError` (for all other non-success statuses). `FormValidationError` carries the response body, which typically contains per-field error messages that the form system can display inline.
+**Default adapters classify errors by HTTP status code and response shape.** The primary error types are {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError} (for `400` responses, representing server-side validation failures) and `FetchError` (for all other non-success statuses). `FormValidationError` carries the response body, which typically contains per-field error messages that the form system can display inline.
 
 **List adapters use a response-shape heuristic to distinguish filter errors from generic fetch errors.** `singlePagePaginatedListCrudAdaptor` checks whether any non-page, non-search query parameter key appears as a key in the response body. If the heuristic matches, the error is classified as a `ListFilterError` (indicating that a filter value was invalid). If the heuristic fails (for example, because the error response does not mirror parameter names), the error is classified as a generic `FetchError`. This heuristic-based classification means that unusual error response shapes can produce unexpected error types.
 
@@ -99,21 +99,21 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 
 ## Relevant Implementation Surface
 
-- {@api js:function:@arrai-innovations/vueda.utils/listCrud.setupDefaultListCrud}
-- {@api js:function:@arrai-innovations/vueda.utils/objectCrud.setupDefaultObjectCrud}
-- {@api js:module:@arrai-innovations/vueda.utils/listCrud}
-- {@api js:module:@arrai-innovations/vueda.utils/objectCrud}
-- {@api js:function:@arrai-innovations/vueda.utils/listCrud.singlePagePaginatedListCrudAdaptor}
-- {@api js:function:@arrai-innovations/vueda.utils/listCrud.allPagePaginatedListCrudAdaptor}
-- {@api js:function:@arrai-innovations/vueda.utils/listCrud.defaultObjectsDelete}
-- {@api js:function:@arrai-innovations/vueda.utils/listCrud.makeSearchParamsString}
-- {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectRetrieve}
-- {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectCreate}
-- {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectUpdate}
-- {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectPatch}
-- {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectDelete}
-- {@api js:function:@arrai-innovations/vueda.utils/fetchSupport.fetchHelper}
-- {@api js:type:@arrai-innovations/vueda.utils/fetchSupport.CancellablePromise}
-- {@api js:type:@arrai-innovations/vueda.utils/fetchSupport.MaybeCancellablePromise}
-- {@api js:class:@arrai-innovations/vueda.utils/errors.FormValidationError}
-- {@api js:module:@arrai-innovations/vueda.utils/errors}
+- {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud}
+- {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud}
+- {@api js:module:@arrai-innovations/vueda/utils/listCrud}
+- {@api js:module:@arrai-innovations/vueda/utils/objectCrud}
+- {@api js:function:@arrai-innovations/vueda/utils/listCrud#singlePagePaginatedListCrudAdaptor}
+- {@api js:function:@arrai-innovations/vueda/utils/listCrud#allPagePaginatedListCrudAdaptor}
+- {@api js:function:@arrai-innovations/vueda/utils/listCrud#defaultObjectsDelete}
+- {@api js:function:@arrai-innovations/vueda/utils/listCrud#makeSearchParamsString}
+- {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectRetrieve}
+- {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectCreate}
+- {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectUpdate}
+- {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectPatch}
+- {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectDelete}
+- {@api js:function:@arrai-innovations/vueda/utils/fetchSupport#fetchHelper}
+- {@api js:type:@arrai-innovations/vueda/utils/fetchSupport#CancellablePromise}
+- {@api js:type:@arrai-innovations/vueda/utils/fetchSupport#MaybeCancellablePromise}
+- {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}
+- {@api js:module:@arrai-innovations/vueda/utils/errors}

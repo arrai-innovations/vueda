@@ -1,11 +1,10 @@
+/**
+ * @module use/useReactiveHookRegistry
+ * @description A composable that allows registering boolean hooks for named groups, aggregating hooks for the same group into a single computed value.
+ */
 import { getFakePk, keyDiff } from "@arrai-innovations/reactive-helpers";
 import identity from "lodash-es/identity.js";
 import { computed, effectScope, nextTick, reactive } from "vue";
-
-/**
- * @module use/useReactiveHookRegistry.js - A composable function that allows you to register boolean hooks for specific
- * named groups, aggregating hooks for the same group into a single OR-computed value.
- */
 
 /**
  * @callback BoundRegisterHook
@@ -137,7 +136,8 @@ const updateAggregates = (
  * @typedef {object} ReactiveHookRegistry
  * @property {BoundRegisterHook} registerHook - Registers a hook for a given field path.
  * @property {BoundUnregisterHook} unregisterHook - Unregisters a hook given its unique ID.
- * @property {ComputedAggregates} computedAggregates - A map of field paths to computed values indicating whether any of the hooks
+ * @property {ComputedAggregates} computedAggregates - A map of group names to computed values indicating whether any hook in the group returns true.
+ * @property {() => void} stop - Stops all effect scopes created by this registry.
  */
 
 /**

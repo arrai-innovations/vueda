@@ -186,4 +186,4 @@ All workflow endpoints require `vueda_workflow.read_workflow` at the viewset per
     - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}
     - {@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}
 - JavaScript:
-    - {@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}

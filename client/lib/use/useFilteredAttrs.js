@@ -1,3 +1,7 @@
+/**
+ * @module use/useFilteredAttrs
+ * @description Returns a computed ref of component attrs filtered to an explicit pick list and/or omit list, normalising keys to camelCase.
+ */
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import camelCase from "lodash-es/camelCase.js";
 import { computed, useAttrs } from "vue";

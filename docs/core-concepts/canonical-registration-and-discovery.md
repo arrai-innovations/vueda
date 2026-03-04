@@ -107,4 +107,4 @@ The client also requires a detectable primary key field in the metadata for any 
     - {@api rest:endpoint:GET:/vueda.info/model_info/}
     - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
 - JavaScript:
-    - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}
