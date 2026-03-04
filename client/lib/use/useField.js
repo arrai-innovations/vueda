@@ -12,36 +12,63 @@ import isString from "lodash-es/isString.js";
 import omit from "lodash-es/omit.js";
 import { computed, inject, onUnmounted, provide, reactive, readonly, toRef, unref, watch } from "vue";
 
-/** Vue component props definition for field components. Spread into component options to include standard field identification, validation, display, value handling, and form context behavior props. */
+/**
+ * Vue component props definition for field components. Spread into component options to include
+ * standard field identification, validation, display, value handling, and form context behavior props.
+ *
+ * @vueda-spread props
+ */
 export const FIELD_PROPS = {
     // *** Identification & Metadata ***
+    /** The field name, used as the path to look up and store the value in the form model. */
     name: { type: String, required: true },
+    /** The name of the form model for configuration lookup; inherits from form context when omitted. */
     formModelName: { type: String, default: undefined },
-    /* v8 ignore next 2 */
+    /** Other fields whose server errors should be cleared when this field's value changes. */
+    /* v8 ignore next 1 */
     clearServerErrorDependents: { type: Array, default: () => [] },
+    /** Other field paths this field depends on; their values are passed to validation and required functions. */
+    /* v8 ignore next 1 */
     validationDependencies: { type: Array, default: () => [] },
+    /** Whether the field is read-only; disables editing and skips required validation. */
     readOnly: { type: Boolean, default: false },
 
     // *** Validation ***
+    /** Whether the field is required. */
     required: { type: Boolean, default: null },
+    /** Error message shown when a required field is left empty. */
     requiredMessage: { type: String, default: "This field is required." },
+    /** Custom function that determines whether the field should be required based on dependency values. */
     shouldRequireFn: { type: Function, default: null },
+    /** Custom function that checks whether a value violates the required rule; defaults to rejecting null, undefined, empty string, false, and 0. */
     isRequiredViolation: { type: Function, default: null },
+    /** Custom validation function; should return true when valid or an error message string when invalid. */
     validate: { type: Function, default: null },
 
     // *** Display ***
+    /** The label shown next to the field; defaults to the field name when omitted. */
     label: { type: String, default: null },
+    /** Help text displayed alongside the field. */
     help: { type: String, default: "" },
 
     // *** Value Handling ***
+    /** The field's external model value; used only in contextless mode (v-model binding). */
     modelValue: { type: [String, Number, Boolean, Array, Object], default: undefined },
 
     // *** Form Context Behavior ***
+    /** When true, the field ignores any surrounding form context and manages its own state. */
     contextless: { type: Boolean, default: false },
 };
 
-/** Array of Vue event names emitted by field components. Pass to the `emits` option of a field component. */
-export const FIELD_EMITS = ["update:modelValue"];
+/**
+ * Array of Vue event names emitted by field components. Pass to the `emits` option of a field component.
+ *
+ * @vueda-spread emits
+ */
+export const FIELD_EMITS = [
+    /** Emitted when the field value changes. */
+    "update:modelValue",
+];
 
 /**
  * Determines whether a value would **violate a required field rule**.

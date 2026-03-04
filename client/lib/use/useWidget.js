@@ -6,81 +6,107 @@ import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js
 import isEqual from "lodash-es/isEqual.js";
 import { computed, inject, onUnmounted, provide, reactive, readonly, ref, toRef, unref, watch } from "vue";
 
-/** Vue component props definition for widget components. Spread into component options to include standard widget identification, display, validation, value handling, disabled behavior, and field context props. */
+/**
+ * Vue component props definition for widget components. Spread into component options to include standard
+ * widget identification, display, validation, value handling, disabled behavior, and field context props.
+ *
+ * @vueda-spread props
+ */
 export const WIDGET_PROPS = {
     // *** Identification & Metadata ***
+    /** The widget name; inherits from the surrounding field context when omitted. */
     name: {
         type: String,
         default: undefined,
     },
 
     // *** Display ***
+    /** The label displayed next to the widget; inherits from the surrounding field context when omitted. */
     label: {
         type: String,
         default: undefined,
     },
+    /** Help text displayed alongside the widget; inherits from the surrounding field context when omitted. */
     help: {
         type: String,
         default: undefined,
     },
+    /** Whether the widget is read-only; inherits from the surrounding field context when omitted. */
     readOnly: {
         type: Boolean,
         default: false,
     },
 
     // *** Validation ***
+    /** Whether the widget is required; inherits from the surrounding field context when undefined. */
     required: {
         type: Boolean,
         default: undefined, // let the default from field context take over
     },
 
     // *** Value Handling ***
+    /** The widget's bound value (v-model); used only in contextless mode. */
     modelValue: {
         type: [String, Number, Boolean, Array, Object],
         default: undefined,
     },
+    /** Adapter that converts the form model value into a value suitable for the widget UI. */
     fieldToWidget: {
         type: [Object, Function],
         default: null,
     },
+    /** Adapter that converts the widget UI value back into a form model value for validation and submission. */
     widgetToField: {
         type: [Object, Function],
         default: null,
     },
+    /** Manually set the invalid state when not in a field context. */
     invalid: {
         type: Boolean,
         default: undefined,
     },
+    /** Manually set the warning state when not in a field context. */
     warning: {
         type: Boolean,
         default: undefined,
     },
 
     // *** Disabled Behavior ***
+    /** Whether the widget is disabled. */
     disabled: {
         type: Boolean,
         default: false,
     },
+    /** A function that returns whether the widget should be disabled; takes precedence over the disabled prop. */
     disabledFn: {
         type: Function,
         default: null,
     },
 
     // *** Field Context Behavior ***
+    /** When true, the widget ignores any surrounding field or form context and manages its own state. */
     contextless: {
         type: Boolean,
         default: false,
         description: "Ignore a field context even if it exists.",
     },
     // *** Dependencies ***
+    /** Field paths whose values the widget needs for display logic; registered with the field context. */
     displayDependencies: {
         type: Array,
         default: () => [],
     },
 };
 
-/** Array of Vue event names emitted by widget components. Pass to the `emits` option of a widget component. */
-export const WIDGET_EMITS = ["update:modelValue"];
+/**
+ * Array of Vue event names emitted by widget components. Pass to the `emits` option of a widget component.
+ *
+ * @vueda-spread emits
+ */
+export const WIDGET_EMITS = [
+    /** Emitted when the widget value changes. */
+    "update:modelValue",
+];
 
 /**
  * The raw prop arguments for the useWidget function. (Matches WIDGET_PROPS).

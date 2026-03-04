@@ -13,8 +13,15 @@ import { computed, effectScope, getCurrentInstance, inject, provide, toRef, unre
 
 let defaultTheme = vuedaTailwind;
 
-/** Vue component props definition for components that accept a theme override prop. Spread into component options to allow callers to supply a partial theme object that is merged with the component's default theme. */
+/**
+ * Vue component props definition for components that accept a theme override prop.
+ * Spread into component options to allow callers to supply a partial theme object that
+ * is merged with the component's default theme.
+ *
+ * @vueda-spread props
+ */
 export const THEME_OVERRIDE_PROPS = {
+    /** A partial theme object merged with the component's default theme; accepts a Tailwind class string, class array, or theme object. */
     themeOverride: {
         type: [String, Object, Array],
         default: null,

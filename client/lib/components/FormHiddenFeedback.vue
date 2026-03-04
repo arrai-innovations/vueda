@@ -1,36 +1,48 @@
 <script>
 import { computed } from "vue";
 
-/** Vue component props definition for FormHiddenFeedback components. Includes props for help text, errors, warnings, manual invalid and warning state overrides, and layout options. */
+/**
+ * Vue component props definition for FormHiddenFeedback components. Includes props for help
+ * text, errors, warnings, manual invalid and warning state overrides, and layout options.
+ *
+ * @vueda-spread props
+ */
 export const FORM_HIDDEN_FEEDBACK_PROPS = {
+    /** Help text displayed in the feedback popover. */
     help: {
         type: String,
         default: undefined,
     },
+    /** Errors to display, keyed by code. */
     errors: {
         type: Object,
         default: null,
         description: "Errors to display, keyed by code.",
     },
+    /** Warnings to display, keyed by code. */
     warnings: {
         type: Object,
         default: null,
         description: "Warnings to display, keyed by code.",
     },
+    /** Manually set the invalid state; defaults to true when errors are present. */
     invalid: {
         type: Boolean,
         description: "Manually set the invalid state, defaults to if there are errors.",
         default: undefined,
     },
+    /** Manually set the warning state; defaults to true when warnings are present. */
     warning: {
         type: Boolean,
         description: "Manually set the warning state, defaults to if there are warnings.",
         default: undefined,
     },
+    /** When true, the feedback indicator is not rendered. */
     hidden: {
         type: Boolean,
         default: false,
     },
+    /** When true, applies card layout styling to the feedback popover. */
     isCardLayout: {
         type: Boolean,
         default: false,
