@@ -11,30 +11,41 @@ export const getWidgetSlotsComputed = (slots) => {
         return WIDGET_LABEL_SLOTS.filter((slotName) => slots[slotName]);
     });
 };
-/** Vue component props definition for WidgetLabel components. Extends FormHiddenFeedback props with label, hidden, card layout, label tag, required tag, and skip-feedback props. */
+/**
+ * Vue component props definition for WidgetLabel components. Extends FormHiddenFeedback props with
+ * label, hidden, card layout, label tag, required tag, and skip-feedback props.
+ *
+ * @vueda-spread props
+ */
 export const WIDGET_LABEL_PROPS = {
     ...FORM_HIDDEN_FEEDBACK_PROPS,
+    /** The label text; falls back to the label from the surrounding widget context when omitted. */
     label: {
         type: String,
         description: "The label when not in context of a widget",
         default: undefined,
     },
+    /** When true, hides the label and feedback widget. */
     hidden: {
         type: Boolean,
         default: false,
     },
+    /** When true, applies card layout styling to the label and feedback area. */
     isCardLayout: {
         type: Boolean,
         default: false,
     },
+    /** HTML tag used to render the label element. */
     labelTag: {
         type: String,
         default: "label",
     },
+    /** HTML tag used to render the required indicator. */
     requiredTag: {
         type: String,
         default: "span",
     },
+    /** When true, omits the hidden feedback indicator button from the label. */
     skipFeedback: {
         type: Boolean,
         default: false,
