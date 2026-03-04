@@ -44,9 +44,7 @@ def register(canonical_serializer, canonical_viewset=None):
             )
 
         key = f"{model._meta.app_label}.{model._meta.model_name}"
-        # If the registered serializer doesn't have a viewset, then
-        # we want to overwrite the data so it includes the viewset.
-        if key in _registry and _registry[key]["viewset"] is not None:
+        if key in _registry:
             raise ValueError(f"{key} is already registered.")
 
         _registry[key] = {
